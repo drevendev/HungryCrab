@@ -1,0 +1,2 @@
+(function(){"use strict";function e(e){let t=e;const n=new Set;return{get:()=>t,set(e){Object.is(e,t)||(t=e,n.forEach(e=>e(t)))},subscribe:e=>(n.add(e),()=>n.delete(e)),dispose(){n.clear()}}}const t=e({pools:[]}),n=document.querySelector("#app");n&&function(e,t){const n=()=>{const{pools:o}=t.get();e.innerHTML=`<h1>Crab Cove</h1><ul>${o.map(e=>`<li>${e}</li>`).join("")}</ul><button id="add">Add pool</button>`,e.querySelector("#add")?.addEventListener("click",()=>{t.set({pools:[...o,`Pool ${o.length+1}`]})})};t.subscribe(n),n()}(n,t)})();
+//# sourceMappingURL=bundle.js.map
