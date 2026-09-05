@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": ["Bash(pnpm test:*)", "Bash(pnpm lint)", "Bash(pnpm build)"],
+    "deny": ["Read(.env)", "Read(.env.*)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "echo pre-tool-use" }]
+      }
+    ]
+  }
+}

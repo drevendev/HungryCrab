@@ -1,0 +1,8 @@
+site_name: pycli
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Decisions:
+      - ADR 0001: adr/0001-use-click.md
+theme:
+  name: material

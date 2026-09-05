@@ -1,0 +1,1 @@
+Prefer click for command-line parsing. Keep functions small and typed. Run ruff before committing.

@@ -1,0 +1,132 @@
+{
+  "default_branch": "main",
+  "commits": [
+    {
+      "message": "chore: scaffold vite app",
+      "date": "2024-03-01T10:00:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "add": [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+        "index.html",
+        "src/main.ts",
+        "src/app.ts",
+        ".gitignore",
+        "README.md",
+        "LICENSE",
+        ".nvmrc"
+      ],
+      "tag": "v0.1.0"
+    },
+    {
+      "message": "feat: add math helpers",
+      "date": "2024-03-05T09:30:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "add": ["src/lib/math.ts", "src/lib/math.test.ts"]
+    },
+    {
+      "message": "feat(store): add reactive store",
+      "date": "2024-03-12T14:00:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "add": ["src/lib/store.ts", "src/lib/store.test.ts"]
+    },
+    {
+      "message": "fix(store): avoid double notify on batch (#12)",
+      "date": "2024-03-20T11:15:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "touch": ["src/lib/store.ts"]
+    },
+    {
+      "message": "ci: add GitHub Actions workflow and dependabot",
+      "date": "2024-04-02T08:00:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "add": [".github/workflows/ci.yml", ".github/dependabot.yml"]
+    },
+    {
+      "message": "fix(store): clear listeners on dispose",
+      "date": "2024-04-15T16:45:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "touch": ["src/lib/store.ts", "src/lib/store.test.ts"]
+    },
+    {
+      "message": "Add e2e tests with Playwright",
+      "date": "2024-05-01T10:00:00+00:00",
+      "author": "Carol Pincer <carol@example.com>",
+      "add": ["playwright.config.ts", "e2e/home.spec.ts"],
+      "tag": "v0.2.0"
+    },
+    {
+      "message": "Revert \"feat(store): add reactive store\"\n\nThis reverts commit 0000000. The batching change broke the settings page.",
+      "date": "2024-05-20T13:00:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "touch": ["src/lib/store.ts"]
+    },
+    {
+      "message": "fix(store): restore store with fixed batching (#20)",
+      "date": "2024-06-03T09:00:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "touch": ["src/lib/store.ts", "src/app.ts"]
+    },
+    {
+      "message": "feat(theme): add dark mode toggle",
+      "date": "2024-06-10T10:00:00+00:00",
+      "author": "Carol Pincer <carol@example.com>",
+      "branch": "feature/dark-mode",
+      "from": "main",
+      "touch": ["src/app.ts"]
+    },
+    {
+      "message": "wip dark mode styles",
+      "date": "2024-06-12T18:30:00+00:00",
+      "author": "Carol Pincer <carol@example.com>",
+      "branch": "feature/dark-mode",
+      "touch": ["src/main.ts"]
+    },
+    {
+      "message": "docs: add changelog, contributing guide and AI config",
+      "date": "2024-07-10T12:00:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "branch": "main",
+      "add": [
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "CLAUDE.md",
+        ".claude/settings.json",
+        ".claude/skills/deploy/SKILL.md",
+        ".editorconfig",
+        ".prettierrc",
+        "eslint.config.js"
+      ]
+    },
+    {
+      "message": "feat: add release workflow",
+      "date": "2024-09-01T09:00:00+00:00",
+      "author": "Alice Crab <alice@example.com>",
+      "add": [".github/workflows/release.yml"],
+      "tag": "v1.0.0"
+    },
+    {
+      "message": "chore: commit build output for gh-pages",
+      "date": "2025-01-15T15:00:00+00:00",
+      "author": "Carol Pincer <carol@example.com>",
+      "add": ["dist/bundle.js", "public/favicon.png", "pnpm-lock.yaml"]
+    },
+    {
+      "message": "chore(deps): bump vite to 6",
+      "date": "2025-02-01T10:00:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "branch": "chore/deps",
+      "from": "main",
+      "touch": ["vite.config.ts"]
+    },
+    {
+      "message": "fix: guard against empty state (#31)",
+      "date": "2025-04-10T11:00:00+00:00",
+      "author": "Bob Shell <bob@example.com>",
+      "branch": "main",
+      "touch": ["src/lib/store.ts"],
+      "tag": "v1.0.1"
+    }
+  ]
+}

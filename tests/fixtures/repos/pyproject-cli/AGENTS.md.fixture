@@ -1,0 +1,11 @@
+# Agent guide for pycli
+
+## Setup
+
+- `uv sync` creates the environment.
+- `uv run pytest` runs the tests with the coverage gate.
+
+## Rules
+
+- Keep the CLI thin; logic lives in `core.py`.
+- Every bug fix needs a regression test.

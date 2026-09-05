@@ -1,0 +1,93 @@
+{
+  "default_branch": "main",
+  "commits": [
+    {
+      "message": "Initial commit",
+      "date": "2024-01-08T09:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "add": [
+        "pyproject.toml",
+        "README.md",
+        "LICENSE",
+        "NOTICE",
+        "src/pycli/__init__.py",
+        "src/pycli/cli.py",
+        "src/pycli/core.py",
+        ".python-version"
+      ]
+    },
+    {
+      "message": "feat: add __main__ entry point",
+      "date": "2024-01-10T10:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "add": ["src/pycli/__main__.py"],
+      "tag": "v0.1.0"
+    },
+    {
+      "message": "Add tests",
+      "date": "2024-01-20T11:00:00+00:00",
+      "author": "Evan Tide <evan@example.com>",
+      "add": ["tests/conftest.py", "tests/test_cli.py", "tests/test_core.py"]
+    },
+    {
+      "message": "ci: run tests on three platforms",
+      "date": "2024-02-01T08:30:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "add": [".github/workflows/ci.yml"]
+    },
+    {
+      "message": "Fix crash on empty input",
+      "date": "2024-02-14T15:00:00+00:00",
+      "author": "Evan Tide <evan@example.com>",
+      "touch": ["src/pycli/core.py", "tests/test_core.py"],
+      "tag": "v0.1.1"
+    },
+    {
+      "message": "docs: mkdocs site and first ADR",
+      "date": "2024-03-03T12:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "add": ["mkdocs.yml", "docs/index.md", "docs/usage.md", "docs/adr/0001-use-click.md"]
+    },
+    {
+      "message": "chore: pre-commit, security policy, codeowners, templates",
+      "date": "2024-04-18T09:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "add": [
+        ".pre-commit-config.yaml",
+        "SECURITY.md",
+        "CODEOWNERS",
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        ".github/ISSUE_TEMPLATE/config.yml",
+        ".github/PULL_REQUEST_TEMPLATE.md"
+      ]
+    },
+    {
+      "message": "Bugfix: handle unicode file names (#7)",
+      "date": "2024-05-22T14:00:00+00:00",
+      "author": "Evan Tide <evan@example.com>",
+      "touch": ["src/pycli/core.py"]
+    },
+    {
+      "message": "feat: property-based tests and coverage gate",
+      "date": "2024-08-09T10:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "touch": ["tests/test_core.py", "pyproject.toml"]
+    },
+    {
+      "message": "wip: plugin loader",
+      "date": "2024-09-15T16:00:00+00:00",
+      "author": "Evan Tide <evan@example.com>",
+      "branch": "wip/plugins",
+      "from": "main",
+      "touch": ["src/pycli/cli.py"]
+    },
+    {
+      "message": "release: v0.2.0 with publish workflow and changelog",
+      "date": "2025-03-30T11:00:00+00:00",
+      "author": "Dana Reef <dana@example.com>",
+      "branch": "main",
+      "add": [".github/workflows/publish.yml", "CHANGELOG.md", "AGENTS.md", ".cursorrules", "uv.lock"],
+      "tag": "v0.2.0"
+    }
+  ]
+}

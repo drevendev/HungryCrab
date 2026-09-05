@@ -1,0 +1,15 @@
+# Crab Cove agent notes
+
+## Commands
+
+- `pnpm test` runs unit tests, `pnpm test:e2e` runs Playwright.
+- You must run `pnpm lint` before committing.
+
+## Conventions
+
+- Conventional commits.
+- No default exports outside `src/app.ts`.
+
+## Architecture
+
+- `src/lib/store.ts` is the only stateful module.
