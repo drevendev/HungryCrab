@@ -1,0 +1,8 @@
+# Keep line endings deterministic on every platform (the fixtures depend on it).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.lockb binary

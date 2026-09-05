@@ -1,0 +1,96 @@
+[project]
+name = "hungry-crab"
+version = "0.1.0.dev0"
+description = "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Dreven" }]
+keywords = [
+  "repository-mining",
+  "license-compliance",
+  "agent-skills",
+  "claude-code",
+  "git",
+  "cli",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Version Control :: Git",
+  "Typing :: Typed",
+]
+dependencies = ["pyyaml>=6.0.2"]
+
+[project.scripts]
+crab = "hungry_crab.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/drevendev/HungryCrab"
+Repository = "https://github.com/drevendev/HungryCrab"
+Issues = "https://github.com/drevendev/HungryCrab/issues"
+Changelog = "https://github.com/drevendev/HungryCrab/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17",
+  "pytest>=8.4",
+  "ruff>=0.13",
+  "types-pyyaml>=6.0.12",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hungry_crab"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/hungry_crab", "tests", "docs", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["tests/fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "PIE", "PTH", "RUF", "ISC"]
+ignore = [
+  "ISC001", # conflicts with the formatter
+  "RUF012", # mutable class attributes are fine for miner declarations
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+# The tree walk is the hot loop of every digest; os.* calls are deliberate there.
+"src/hungry_crab/miners/inventory.py" = ["PTH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hungry_crab"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = true
+warn_unreachable = true
+pretty = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["fixtures", ".venv", ".git"]
+addopts = "-ra --strict-markers --strict-config"
+xfail_strict = true
