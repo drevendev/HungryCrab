@@ -22,4 +22,4 @@ restrictive one is warranted, are very welcome.
 
 ## Supported versions
 
-The project is pre-release; only the `main` branch receives fixes.
+The project is pre-release; only the `master` branch receives fixes.

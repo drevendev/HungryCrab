@@ -38,7 +38,7 @@ crab = "hungry_crab.cli:main"
 Homepage = "https://github.com/drevendev/HungryCrab"
 Repository = "https://github.com/drevendev/HungryCrab"
 Issues = "https://github.com/drevendev/HungryCrab/issues"
-Changelog = "https://github.com/drevendev/HungryCrab/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/drevendev/HungryCrab/blob/master/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
