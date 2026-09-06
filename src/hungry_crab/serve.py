@@ -239,7 +239,7 @@ class ServeReport:
 
 
 def select_cards(
-    menu: dict[str, Any], options: ServeOptions
+    menu: dict[str, Any], options: ServeOptions, ledger: Ledger | None = None
 ) -> tuple[list[Candidate], list[dict[str, Any]]]:
     cards = menu_candidates(menu)
     by_id = {card.id: card for card in cards}
@@ -248,10 +248,15 @@ def select_cards(
         chosen: list[Candidate] = []
         for nutrient_id in options.ids:
             card = by_id.get(nutrient_id)
-            if card is None:
-                skipped.append({"id": nutrient_id, "reason": "not in the menu"})
-            else:
+            if card is not None:
                 chosen.append(card)
+                continue
+            entry = ledger.entries.get(nutrient_id) if ledger is not None else None
+            if entry is not None and entry.status != "proposed":
+                reason = f"ledger: {entry.status}" + (f" {entry.url}" if entry.url else "")
+            else:
+                reason = "not in the menu"
+            skipped.append({"id": nutrient_id, "reason": reason})
         return chosen, skipped
     if options.top is not None:
         return cards[: options.top], skipped
@@ -281,7 +286,7 @@ def serve(
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --host .` first")
     if options.mode == "issue" and config.serve.issues == "off":
         raise CrabError("serve.issues is off in .crab.yml", hint="set serve.issues to ask or auto")
-    cards, skipped = select_cards(menu, options)
+    cards, skipped = select_cards(menu, options, ledger)
     if options.notes is not None:
         notes = load_notes(options.notes)
         for card in cards:

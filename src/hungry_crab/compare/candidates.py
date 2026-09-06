@@ -723,7 +723,8 @@ def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
 def architecture_candidates(prey: Side, host: Side) -> list[Candidate]:
     if not _truthy(prey.architecture.get("available")):
         return []
-    hubs = [as_dict(h) for h in as_list(prey.architecture.get("hubs"))[:5]]
+    graph = as_dict(prey.architecture.get("graph"))
+    hubs = [as_dict(h) for h in as_list(graph.get("hubs"))[:5]]
     if not hubs:
         return []
     return [

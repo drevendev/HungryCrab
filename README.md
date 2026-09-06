@@ -155,6 +155,12 @@ uv run crab digest . --out /tmp/self-digest --host-license MIT   # the crab eats
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) (the guide coding agents read).
 
+## Benchmarks
+
+`uv run python benchmarks/run.py pallets/click colinhacks/zod` digests the reference prey and
+records seconds and token estimates in `benchmarks/results/`; the milestone limits are 120
+seconds and 30,000 Markdown tokens per digest. See [benchmarks/README.md](benchmarks/README.md).
+
 ## Design
 
 The design documents live in [docs/design](docs/design/README.md):
