@@ -17,15 +17,21 @@ from typing import Any
 
 from . import __version__
 from .cache import Slug, cache_root, prey_paths, resolve_target
-from .compare import CompareOptions, load_menu, menu_candidates, run_compare
+from .compare import compare_for_host, load_menu, menu_candidates
+from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, locate_digest, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
+from .host import HostConfig, write_default_config
+from .ledger import Ledger
 from .licensing.detect import detect_in_repo
 from .miners import MINER_NAMES
-from .nutrients import Candidate
+from .nutrients import STATUSES, Candidate
+from .serve import GhIssueClient, ServeOptions, ServeReport, serve
 from .sniff import format_report, sniff
+from .tune import analyse
+from .tune import apply as apply_tuning
 
 _HOST_MANIFESTS = ("package.json", "pyproject.toml", "Cargo.toml", "setup.cfg", "composer.json")
 
@@ -130,7 +136,46 @@ def build_parser() -> argparse.ArgumentParser:
     p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md")
     p_compare.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_compare.add_argument("--since", default=None, help="when catching first: --since")
+    p_compare.add_argument(
+        "--no-issues", action="store_true", help="do not ask GitHub which nutrients were served"
+    )
     p_compare.add_argument("--json", action="store_true", help="print menu.json")
+
+    p_init = sub.add_parser("init", help="write a default .crab.yml into the host repository")
+    p_init.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_init.add_argument("--force", action="store_true", help="overwrite an existing file")
+
+    p_ledger = sub.add_parser("ledger", help="show or update the host ledger")
+    p_ledger.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    ledger_sub = p_ledger.add_subparsers(dest="ledger_command", metavar="<action>")
+    p_show = ledger_sub.add_parser("show", help="print the ledger summary (default)")
+    p_show.add_argument("--json", action="store_true")
+    p_mark = ledger_sub.add_parser("mark", help="record a decision for a nutrient")
+    p_mark.add_argument("id", help="nutrient id, e.g. crab:ci:ci.cache")
+    p_mark.add_argument("status", choices=STATUSES)
+    p_mark.add_argument("--reason", default="", help="why (kept for crab tune)")
+    p_mark.add_argument("--url", default=None, help="issue or pull request URL")
+
+    p_serve = sub.add_parser(
+        "serve", help="turn approved nutrients into issues (dry-run by default)"
+    )
+    p_serve.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_serve.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
+    p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
+    p_serve.add_argument(
+        "--as", dest="mode", choices=("dry-run", "issue", "pr-branch"), default="dry-run"
+    )
+    p_serve.add_argument(
+        "--notes", type=Path, default=None, help="JSON with why_for_host/how per id (model-written)"
+    )
+    p_serve.add_argument("--json", action="store_true")
+
+    p_tune = sub.add_parser("tune", help="suggest scoring weight changes from the ledger")
+    p_tune.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_tune.add_argument("--write", action="store_true", help="apply the suggestions to .crab.yml")
+    p_tune.add_argument("--min-decisions", type=int, default=3)
+    p_tune.add_argument("--json", action="store_true")
 
     p_menu = sub.add_parser("menu", help="print the ranked menu from the last compare")
     p_menu.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
@@ -263,28 +308,133 @@ def print_menu(
             print(f"    hidden {item.get('id')}: {item.get('reason')}")
 
 
-def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
-    prey = resolve_target(args.prey)
-    host = Path(args.host).resolve()
+def _host_dir(value: Path) -> Path:
+    host = Path(value).resolve()
     if not host.is_dir():
         raise UsageError(f"host path {host} is not a directory")
-    host_license = _resolve_host_license(host, args.host_license)
+    return host
+
+
+def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    prey = resolve_target(args.prey)
+    host = _host_dir(args.host)
     digest_options = DigestOptions(
         depth=args.depth,
         force=args.force,
-        host_license=host_license,
+        host_license=args.host_license,
         cache_root=args.cache_dir,
         catch_options=CatchOptions(shallow=args.shallow, since=args.since),
     )
-    options = CompareOptions(top=args.top, host_license=host_license)
-    result, prey_digest, _ = run_compare(
-        prey, host, digest_options=digest_options, options=options, log=log
+    lookup = None
+    if not args.no_issues and shutil.which("gh"):
+        lookup = GhIssueClient().list_marked
+    result, prey_digest, _, _ = compare_for_host(
+        prey, host, digest_options=digest_options, top=args.top, issue_lookup=lookup, log=log
     )
     if args.json:
         print(json.dumps(result.menu, indent=2, ensure_ascii=False))
         return 0
     print_menu(result.menu, result.candidates, top=min(args.top, 15), show_hidden=False)
     print(f"gap.md and menu.md written to {prey_digest.out_dir}")
+    return 0
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    path = write_default_config(_host_dir(args.host), force=args.force)
+    print(f"wrote {path}")
+    return 0
+
+
+def print_ledger(ledger: Ledger, config: HostConfig) -> None:
+    stats = ledger.stats()
+    location = str(ledger.path) if ledger.path else "not persisted (ledger: none)"
+    print(
+        f"Ledger for {ledger.host or config.root.name}: {stats['entries']} nutrients, "
+        f"{stats['meals']} meals, {location}"
+    )
+    by_status = ", ".join(f"{k} {v}" for k, v in sorted(stats["by_status"].items()))
+    print(f"By status: {by_status or 'nothing yet'}")
+    entries = sorted(ledger.entries.values(), key=lambda e: (e.status, -e.score, e.id))
+    if entries:
+        print(f"{'status':<9}{'score':>5}  {'prey':<24}{'id':<48}reason")
+        for entry in entries[:60]:
+            print(
+                f"{entry.status:<9}{entry.score:>5.2f}  {entry.prey[:23]:<24}{entry.id[:47]:<48}"
+                f"{entry.reason[:40]}"
+            )
+        if len(entries) > 60:
+            print(f"... {len(entries) - 60} more (use --json)")
+
+
+def cmd_ledger(args: argparse.Namespace) -> int:
+    host = _host_dir(args.host)
+    config = HostConfig.load(host)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    if args.ledger_command == "mark":
+        entry = ledger.mark(args.id, args.status, reason=args.reason, url=args.url)
+        saved = ledger.save()
+        print(f"{entry.id}: {entry.status}" + (f" ({entry.reason})" if entry.reason else ""))
+        print(f"ledger saved to {saved}" if saved else "ledger mode is none; nothing persisted")
+        return 0
+    if getattr(args, "json", False):
+        print(json.dumps(ledger.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+    print_ledger(ledger, config)
+    return 0
+
+
+def print_serve_report(report: ServeReport) -> None:
+    if report.mode == "dry-run":
+        for preview in report.previews:
+            print("=" * 72)
+            print(f"[{preview['id']}] {preview['title']}")
+            print("-" * 72)
+            print(preview["body"])
+        print("=" * 72)
+        print(f"dry run: {len(report.previews)} issue(s) would be created")
+    for item in report.served:
+        print(f"created {item['url']}  {item['id']}")
+    for item in report.skipped:
+        print(f"skipped {item['id']}: {item['reason']}")
+    if report.mode == "issue" and report.ledger_path:
+        print(f"ledger updated: {report.ledger_path} (commit it when the ledger mode is repo)")
+
+
+def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    prey = resolve_target(args.prey)
+    host = _host_dir(args.host)
+    config = HostConfig.load(host)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    prey_dir = locate_digest(prey, DigestOptions(cache_root=args.cache_dir))
+    ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
+    options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
+    client = GhIssueClient() if (args.mode == "issue" or shutil.which("gh")) else None
+    report = serve(prey_dir, host, options, config=config, ledger=ledger, client=client, log=log)
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+    print_serve_report(report)
+    return 0
+
+
+def cmd_tune(args: argparse.Namespace) -> int:
+    host = _host_dir(args.host)
+    config = HostConfig.load(host)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    scoring = Scoring.default().merged(config.scoring)
+    report = analyse(ledger, scoring, min_decisions=args.min_decisions)
+    written = None
+    if args.write and any(s.kind in ("category", "trait") for s in report.suggestions):
+        apply_tuning(report, config)
+        written = config.path
+    if args.json:
+        payload = report.to_dict()
+        payload["written"] = str(written) if written else None
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    print(report.to_markdown(), end="")
+    if written:
+        print(f"scoring overrides written to {written}")
     return 0
 
 
@@ -374,6 +524,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_compare(args, log)
         if args.command == "menu":
             return cmd_menu(args, log)
+        if args.command == "init":
+            return cmd_init(args)
+        if args.command == "ledger":
+            return cmd_ledger(args)
+        if args.command == "serve":
+            return cmd_serve(args, log)
+        if args.command == "tune":
+            return cmd_tune(args)
         if args.command == "cache":
             return cmd_cache(args, parser)
     except CrabError as exc:
