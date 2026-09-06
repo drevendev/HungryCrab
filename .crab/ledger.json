@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.ledger/1",
   "host": "HungryCrab",
-  "updated_at": "2026-09-06T12:56:19+00:00",
+  "updated_at": "2026-09-06T13:59:58+00:00",
   "meals": [
     {
       "prey": "pypa/pipx",
@@ -92,6 +92,16 @@
       "date": "2026-09-06T12:56:07+00:00",
       "candidates": 2,
       "new": 0
+    },
+    {
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "url": "https://github.com/aboutcode-org/scancode-toolkit",
+      "license": "Apache-2.0 AND CC-BY-4.0 AND LicenseRef-scancode-other-permissive AND LicenseRef-scancode-other-copyleft",
+      "mode": "IDEAS_ONLY",
+      "date": "2026-09-06T13:59:58+00:00",
+      "candidates": 5,
+      "new": 5
     }
   ],
   "entries": [
@@ -110,6 +120,22 @@
       "decided_at": "2026-09-06T12:40:54+00:00",
       "reason": "",
       "url": "https://github.com/drevendev/HungryCrab/issues/23"
+    },
+    {
+      "id": "crab:architecture:architecture.aboutcode-org-scancode-toolkit.raw",
+      "category": "architecture",
+      "key": "architecture.aboutcode-org-scancode-toolkit.raw",
+      "title": "Architecture of aboutcode-org/scancode-toolkit: hubs and layering (raw material)",
+      "status": "proposed",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "score": 0.03,
+      "artifact": "idea",
+      "first_seen": "2026-09-06T13:59:58+00:00",
+      "last_seen": "2026-09-06T13:59:58+00:00",
+      "decided_at": null,
+      "reason": "",
+      "url": null
     },
     {
       "id": "crab:architecture:architecture.anthropics-skills.raw",
@@ -272,6 +298,22 @@
       "url": null
     },
     {
+      "id": "crab:deps:deps.python.rich",
+      "category": "deps",
+      "key": "deps.python.rich",
+      "title": "Consider rich (terminal formatting)",
+      "status": "proposed",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "score": 0.09,
+      "artifact": "issue",
+      "first_seen": "2026-09-06T13:59:58+00:00",
+      "last_seen": "2026-09-06T13:59:58+00:00",
+      "decided_at": null,
+      "reason": "",
+      "url": null
+    },
+    {
       "id": "crab:docs:docs.site",
       "category": "docs",
       "key": "docs.site",
@@ -285,6 +327,22 @@
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:52+00:00",
       "reason": "pre-1.0; docs/design in the repo is enough for now",
+      "url": null
+    },
+    {
+      "id": "crab:history-lesson:history-lesson.aboutcode-org-scancode-toolkit.fix-prone",
+      "category": "history-lesson",
+      "key": "history-lesson.aboutcode-org-scancode-toolkit.fix-prone",
+      "title": "Lessons from aboutcode-org/scancode-toolkit's history: fix-prone areas",
+      "status": "proposed",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "score": 0.1,
+      "artifact": "issue",
+      "first_seen": "2026-09-06T13:59:58+00:00",
+      "last_seen": "2026-09-06T13:59:58+00:00",
+      "decided_at": null,
+      "reason": "",
       "url": null
     },
     {
@@ -318,6 +376,22 @@
       "decided_at": "2026-09-06T12:03:56+00:00",
       "reason": "",
       "url": "https://github.com/drevendev/HungryCrab/issues/17"
+    },
+    {
+      "id": "crab:hygiene:hygiene.code-of-conduct",
+      "category": "hygiene",
+      "key": "hygiene.code-of-conduct",
+      "title": "Add a code of conduct",
+      "status": "proposed",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "score": 0.11,
+      "artifact": "pr",
+      "first_seen": "2026-09-06T13:59:58+00:00",
+      "last_seen": "2026-09-06T13:59:58+00:00",
+      "decided_at": null,
+      "reason": "",
+      "url": null
     },
     {
       "id": "crab:hygiene:hygiene.codeowners",
@@ -829,6 +903,22 @@
       "last_seen": "2026-09-06T12:55:03+00:00",
       "decided_at": "2026-09-06T12:55:52+00:00",
       "reason": "the crab is consumed as a uv tool and a plugin; a Dockerfile is not how anyone runs it",
+      "url": null
+    },
+    {
+      "id": "crab:tooling:tooling.task-runner",
+      "category": "tooling",
+      "key": "tooling.task-runner",
+      "title": "Add a task runner for common commands",
+      "status": "proposed",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "058f4396269476bdf2abf4a6b679a76f501b7e00",
+      "score": 0.13,
+      "artifact": "issue",
+      "first_seen": "2026-09-06T13:59:58+00:00",
+      "last_seen": "2026-09-06T13:59:58+00:00",
+      "decided_at": null,
+      "reason": "",
       "url": null
     },
     {

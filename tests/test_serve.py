@@ -28,14 +28,20 @@ class FakeIssues:
         self.created: list[dict[str, Any]] = []
         self.labels: list[str] = []
         self.fail_list = False
+        self.can_label = True
+        self.who = "crab-bot[bot]"
 
     def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
         if self.fail_list:
             raise CrabError("boom")
         return self.existing
 
-    def ensure_label(self, slug: Slug, label: str) -> None:
+    def ensure_label(self, slug: Slug, label: str) -> bool:
         self.labels.append(label)
+        return self.can_label
+
+    def identity(self) -> str:
+        return self.who
 
     def create(
         self, slug: Slug, title: str, body: str, labels: list[str], assignees: list[str]
