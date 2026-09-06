@@ -1,23 +1,144 @@
 # Hungry Crab
 
-> Eat a foreign repository, digest it, and extract everything useful for your own repo
-> without violating licenses.
+```text
+                      o   .
+                   .    o    O
+                      o    .
+        (\/)                       (\/)
+         \  \                     /  /
+          \  \___________________/  /
+           \                       /
+            |   (o)         (o)   |
+            |         ___         |
+            |        \___/        |
+            \_____________________/
+             /   /   |   |   \   \
+            /   /    |   |    \   \
+```
+
+> **Eat a foreign repository. Digest it. Serve what is worth keeping, legally.**
 
 [![CI](https://github.com/drevendev/HungryCrab/actions/workflows/ci.yml/badge.svg)](https://github.com/drevendev/HungryCrab/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/drevendev/HungryCrab?color=blue)](https://github.com/drevendev/HungryCrab/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196.svg)](https://www.conventionalcommits.org)
 
-**Status: 0.2.0 "Menu", the first release.** The deterministic CLI digests a prey, compares
-it with your repository, ranks the nutrients with a license verdict each, serves the approved
-ones as issues and remembers every decision. The Agent Skills and the Claude Code plugin sit on
-top. Pull-request serving and the clean-room protocol arrive with 0.3 (see the
+Somewhere out there is a repository that fixed your flaky CI two years ago, wrote the `AGENTS.md`
+you keep meaning to write, and learned the hard way which file breaks every single time anyone
+touches it. Reading it properly costs you an afternoon. Reading fifty of them costs you a month.
+
+The crab reads them for you. It drags the prey into a local cache, dissects it with twelve
+deterministic miners, and boils a whole repository down to a digest small enough for an agent to
+actually read. Then it holds that digest against *your* repository and serves a ranked menu:
+what they have, what you lack, what it would cost you, and exactly what their license lets you
+take. Approve a few and they land as issues in your tracker, each with evidence links and a
+provenance footer. Say no to one and the crab remembers, so it never offers it again.
+
+The prey is never executed. Not one line of its text reaches your issues unless the license says
+it may.
+
+**Status: [0.2.0 "Menu"](https://github.com/drevendev/HungryCrab/releases/latest), the first
+release.** Pull-request serving and the clean-room protocol arrive with 0.3 (see the
 [roadmap](docs/design/03-roadmap.md)).
 
-## What it does
+## The metaphor, in five words
 
-Hungry Crab takes a public GitHub repository (the *prey*), dissects it statically and produces a
-token-budgeted `digest/` folder that an agent can read progressively:
+| Term | Meaning |
+|---|---|
+| **prey** | the foreign repository being eaten |
+| **host** | your repository, the one we eat for |
+| **nutrient** | one transferable thing, with a license mode and provenance |
+| **menu** | the ranked list of nutrients after prey and host are compared |
+| **ledger** | what was eaten, what you accepted, what you turned down |
+
+## Install
+
+Prerequisites: Python 3.11+, `git`, and `gh` authenticated for the GitHub API.
+
+**The CLI**, which every agent then calls:
+
+```bash
+uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab@v0.2.0"
+```
+
+**Claude Code**, which adds `/crab:eat`, `/crab:sniff` and `/crab:menu`:
+
+```bash
+claude plugin marketplace add drevendev/HungryCrab
+```
+
+```bash
+claude plugin install crab@hungry-crab
+```
+
+**Codex**, same plugin, same marketplace:
+
+```bash
+codex plugin marketplace add drevendev/HungryCrab
+```
+
+```bash
+codex plugin add crab@hungry-crab
+```
+
+Restart the agent session afterwards so it picks the plugin up. Cursor and anything else that
+reads the open `SKILL.md` format can use the `skills/` folder of this repository directly; the
+only hard requirement is `crab` on `PATH`.
+
+To move to a newer version later, reinstall with `--force` (a git install pins a commit, so
+`uv tool upgrade` will not move it) and refresh the plugin:
+
+```bash
+uv tool install --force "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+```
+
+```bash
+claude plugin marketplace update hungry-crab && claude plugin update crab
+```
+
+## Feed the crab
+
+With an agent, one line does the whole protocol: judge the menu, ask you, create the issues.
+
+```text
+/crab:eat pallets/click
+```
+
+By hand, the same protocol is six commands:
+
+```bash
+crab sniff pallets/click --host .                  # license, size, activity: is it worth eating?
+```
+
+```bash
+crab init                                          # .crab.yml: appetite, serve policy, ledger mode
+```
+
+```bash
+crab compare pallets/click --host . --issues 300   # digest both sides, diff, score -> gap.md, menu.md
+```
+
+```bash
+crab menu pallets/click --top 15 --category ci     # the ranked menu of nutrients
+```
+
+```bash
+crab serve pallets/click --host . --ids crab:ci:ci.cache --as dry-run   # preview the issue
+```
+
+```bash
+crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is enough"
+```
+
+`crab compare` catches and digests the prey the first time; digests are addressed by commit SHA,
+so eating the same commit twice is free. Giants take `--since 2y` (history newer than two years)
+or `--shallow` (default branch, tree only).
+
+## What the miners extract
+
+`crab digest owner/repo` writes a token-budgeted `digest/` folder that an agent reads
+progressively:
 
 | Miner | What it extracts | Output |
 |---|---|---|
@@ -35,105 +156,42 @@ token-budgeted `digest/` folder that an agent can read progressively:
 | `traits` | a flat matrix of ~120 comparable traits derived from all of the above | `traits.json` |
 
 `manifest.json` is the entry point: every file with a token estimate, the miners that ran, a
-small summary and the suggested reading order. Markdown files stay within a budget (3,500 tokens
-each by default, 30,000 for the whole digest); JSON files keep the full data for scripts.
+small summary and the suggested reading order. Markdown stays within a budget (3,500 tokens per
+file by default, 30,000 for the whole digest); JSON keeps the full data for scripts.
 
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
-model is spent only on judgment.** Nothing in the prey is ever executed, and everything in the
-digest is treated as untrusted data.
-
-## Quick start
-
-Prerequisites: Python 3.11+, `git`, and `gh` (authenticated) for the GitHub API.
-
-```bash
-uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
-# or: pip install git+https://github.com/drevendev/HungryCrab
-```
-
-```bash
-crab sniff pallets/click          # license, size, languages, verdict: is it worth eating?
-crab catch pallets/click          # clone into ~/.cache/hungry-crab (all branches)
-crab digest pallets/click         # run the miners, write digest/, print the token budget
-crab digest . --host-license MIT  # digest a local repository, e.g. the host itself
-```
-
-`crab digest owner/repo` catches the prey first when it is not cached yet. Giants can be caught
-with `--since 2y` (history newer than two years, all branches) or `--shallow` (default branch,
-tree only). Digests are addressed by commit SHA: digesting the same commit twice is free.
+model is spent only on judgment.**
 
 ## From digest to issues
 
-```bash
-crab init                                          # default .crab.yml: appetite, serve policy, ledger mode
-crab compare pallets/click --host . --issues 300   # digest both sides, diff, score -> gap.md, menu.md
-crab menu pallets/click --top 15 --category ci     # the ranked menu of nutrients
-crab serve pallets/click --host . --ids crab:ci:ci.cache --notes notes.json --as dry-run
-crab serve pallets/click --host . --ids crab:ci:ci.cache --notes notes.json --as issue
-crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is enough"
-crab tune                                          # which scoring weights to move, and why
-```
-
-- **compare** turns the two digests into candidate nutrients: trait rules (ci, security,
-  tooling, hygiene, docs, ai-config, tests), tool and dependency diffs within shared
-  ecosystems, README sections, commit and changelog discipline, history and issue lessons,
-  architecture raw material. Every candidate has a stable id, evidence with links to the prey
-  commit, effort, risk and the license mode.
-- **scoring** is a transparent formula (category weight x value x applicability x license mode
-  x effort, minus risk) with weights in `data/scoring.yml`, overridable per host in `.crab.yml`.
-- **serve** creates issues with a hidden `crab:<id>` marker, a label and a provenance footer, so
-  a rerun creates no duplicates; the model-written `why_for_host` and `how` come from a notes
-  file.
+- **compare** turns the two digests into candidate nutrients: trait rules (ci, security, tooling,
+  hygiene, docs, ai-config, tests), tool and dependency diffs within shared ecosystems, README
+  sections, commit and changelog discipline, history and issue lessons, architecture raw
+  material. Every candidate carries a stable id, evidence linked to the prey commit, effort, risk
+  and a license mode.
+- **scoring** is a formula you can read: category weight x value x applicability x license mode x
+  effort, minus risk. Weights live in `data/scoring.yml` and are overridable per host.
+- **serve** creates issues with a hidden `crab:<id>` marker, a label and a provenance footer, so a
+  rerun creates no duplicates. The `why` and `how` come from the agent through a notes file.
 - **ledger** (`.crab/ledger.json` by default) remembers every meal and decision; rejected and
-  served nutrients disappear from later menus. **tune** reads it and says which category and
-  trait weights to move, which categories to switch off, and which prey were a poor match.
+  served nutrients vanish from later menus. **`crab tune`** reads it and tells you which weights to
+  move, which categories to switch off, and which prey were a waste of time.
 
-## Agent skills and the Claude Code plugin
+## Licenses are decided by an engine, not an opinion
 
-The repository is a Claude Code plugin and its own marketplace:
+A deterministic `host license x prey license` matrix gives every nutrient one mode:
 
-```text
-/plugin marketplace add drevendev/HungryCrab
-/plugin install crab@hungry-crab
-```
-
-That gives `/crab:eat owner/repo` (the whole protocol: sniff, compare, judge, ask, serve),
-`/crab:sniff`, `/crab:menu`, the `license` and `serve` skills, and the `crab-historian` and
-`crab-architect` subagents. Any agent that reads `SKILL.md` folders (Codex, Cursor, others) can
-use `skills/` directly, for example through `npx skills add drevendev/HungryCrab`; they only
-need `crab` on PATH:
-
-```bash
-uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
-```
-
-Example output for `crab digest pallets/click`:
-
-```text
-file                  tokens     bytes  miner
-ci.md                    709      2479  ci
-history.md              1564      5471  history
-inventory.md             693      2425  inventory
-...
-markdown tokens: 4167 of 30000 (ok); all files: 21109
-miners: 10 ok, 0 failed; 0.75 s
-```
-
-## License engine
-
-Licenses are decided by a deterministic `host license x prey license` matrix, never by a
-model's opinion. Every nutrient gets one of five modes:
-
-| Mode | What is allowed |
+| Mode | What it allows |
 |---|---|
-| `COPY` | copy code and configs, keep the copyright notice, record it in `THIRD_PARTY_NOTICES.md` |
+| `COPY` | copy code and configs, keep the notice, record it in `THIRD_PARTY_NOTICES.md` |
 | `COPY_FILE` | copy whole files; each keeps its own license (MPL-2.0 style) |
 | `REIMPLEMENT` | use as a specification: clean-room rewrite, no verbatim code |
 | `IDEAS_ONLY` | ideas, architecture, approaches and facts only |
 | `HUMAN` | the engine is unsure; a human decides |
 
 Unknown, missing and source-available licenses always end up as `IDEAS_ONLY` with a human flag.
-This is a compliance aid, not legal advice.
+Issue and discussion text is always `IDEAS_ONLY`, because the copyright belongs to the
+commenters. This is a compliance aid, not legal advice.
 
 ## Safety
 
@@ -141,25 +199,43 @@ This is a compliance aid, not legal advice.
   `npm install`, `pytest` or `make` ever runs inside the cache.
 - **Prey content is untrusted data.** Markdown summaries carry structure (headings, names,
   counts), never the body of README or agent-instruction files, and instruction-like fragments
-  are flagged in the JSON side.
-- **Least privilege.** `sniff` needs only read access to the GitHub API (`gh` or a token).
+  are flagged in the JSON.
+- **Least privilege.** `sniff` and `catch` need read access to the GitHub API; `serve` uses your
+  own authenticated `gh` and creates nothing until you ask it to.
+
+## Benchmarks
+
+```bash
+uv run python benchmarks/run.py pallets/click colinhacks/zod
+```
+
+| Prey | Digest time | Markdown tokens |
+|---|---|---|
+| pallets/click, 3.4k commits | 1.0 s | 5,323 |
+| colinhacks/zod, 513 code files | 4.8 s | 10,873 |
+
+The milestone limits are 120 seconds and 30,000 Markdown tokens per digest. Results land in
+`benchmarks/results/`; see [benchmarks/README.md](benchmarks/README.md).
 
 ## Development
 
 ```bash
 uv sync                      # environment with the dev group
-uv run pytest                # tests build three synthetic git repositories as fixtures
-uv run ruff check . && uv run ruff format --check . && uv run mypy
-uv run crab digest . --out /tmp/self-digest --host-license MIT   # the crab eats itself
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) (the guide coding agents read).
+```bash
+uv run pytest                # tests build three synthetic git repositories as fixtures
+```
 
-## Benchmarks
+```bash
+uv run ruff check . && uv run ruff format --check . && uv run mypy
+```
 
-`uv run python benchmarks/run.py pallets/click colinhacks/zod` digests the reference prey and
-records seconds and token estimates in `benchmarks/results/`; the milestone limits are 120
-seconds and 30,000 Markdown tokens per digest. See [benchmarks/README.md](benchmarks/README.md).
+```bash
+uv run crab digest . --out digest-out --host-license MIT   # the crab eats itself
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md), the guide coding agents read.
 
 ## Design
 
