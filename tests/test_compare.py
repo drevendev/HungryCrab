@@ -69,6 +69,9 @@ def test_python_host_eats_npm_prey(
     e2e = next(c for c in result.candidates if c.id == "crab:tests:tests.e2e")
     assert e2e.applicability == 0.6
     assert "Playwright" in e2e.what
+    architecture = next(c for c in result.candidates if c.category == "architecture")
+    assert architecture.id == "crab:architecture:architecture.npm-app.raw"
+    assert "src/lib/store.ts" in architecture.what and architecture.artifact == "idea"
     # both sides are permissive: COPY, and scores are ranked
     assert result.verdict["mode"] == "COPY"
     assert all(c.license_mode == "COPY" for c in result.candidates)

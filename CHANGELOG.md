@@ -25,6 +25,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Agent Skills `eat`, `license` and `serve`, the `crab-historian` and `crab-architect`
   subagents, the `/crab:sniff` and `/crab:menu` commands, and the Claude Code plugin manifest
   with its own marketplace.
+- `benchmarks/run.py`: digest time and token budget per reference prey, with the first results;
+  the whole loop was exercised end to end on a private sandbox host (issues created, zero
+  duplicates on rerun, decisions recorded, `crab tune` consulted).
 
 ### Added (milestone 0.1 "Sniff & Digest")
 

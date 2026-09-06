@@ -1,0 +1,44 @@
+{
+  "schema": "hungry-crab.benchmark/1",
+  "crab_version": "0.2.0.dev0",
+  "date": "2026-09-06T07:49:09+00:00",
+  "depth": "normal",
+  "platform": {
+    "os": "Windows",
+    "release": "11",
+    "python": "3.14.7",
+    "machine": "AMD64"
+  },
+  "limits": {
+    "seconds": 120.0,
+    "markdown_tokens": 30000
+  },
+  "results": [
+    {
+      "repo": "pallets/click",
+      "sha": "6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1",
+      "seconds": 0.94,
+      "markdown_tokens": 5323,
+      "total_tokens": 29081,
+      "files": 177,
+      "loc": 40393,
+      "commits": 3362,
+      "miners_ok": 12,
+      "miners_failed": 0,
+      "within_limits": true
+    },
+    {
+      "repo": "colinhacks/zod",
+      "sha": "7a00236683c79000dbab0d92f6faf0b7fba39f59",
+      "seconds": 5.09,
+      "markdown_tokens": 10629,
+      "total_tokens": 72891,
+      "files": 722,
+      "loc": 142002,
+      "commits": 3186,
+      "miners_ok": 12,
+      "miners_failed": 0,
+      "within_limits": true
+    }
+  ]
+}
