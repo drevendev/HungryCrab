@@ -260,7 +260,8 @@ across runs.
 | LGPL | `REIMPLEMENT` (linking is a separate question) | `COPY` | `REIMPLEMENT` |
 | GPL / AGPL | `IDEAS_ONLY` / `REIMPLEMENT` | `COPY` if versions are compatible | `IDEAS_ONLY` |
 | BSL / SSPL / Elastic / Commons Clause | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
-| No license / unknown | `IDEAS_ONLY` + `HUMAN` | `IDEAS_ONLY` + `HUMAN` | `IDEAS_ONLY` + `HUMAN` |
+| No license found | `IDEAS_ONLY` + review | `IDEAS_ONLY` + review | `IDEAS_ONLY` + review |
+| License read and not classified | `HUMAN` | `HUMAN` | `HUMAN` |
 | Documentation CC-BY / CC-BY-SA / CC-BY-NC | `COPY`+attribution / share-alike flag / `IDEAS_ONLY` | | |
 
 Special rules:
