@@ -65,7 +65,7 @@ def test_manifest_lists_every_file_with_token_estimates(npm_digest: DigestResult
     assert manifest["prey"]["label"] == "npm-app"
     assert len(manifest["prey"]["sha"]) == 40
     assert manifest["depth"] == "normal"
-    assert manifest["host_license"] == "MIT"
+    assert manifest["maw_license"] == "MIT"
     assert manifest["reading_order"][0] == "inventory.md"
     assert manifest["summary"]["license"]["spdx"] == "MIT"
     assert manifest["summary"]["primary_language"] == "TypeScript"
@@ -96,11 +96,11 @@ def test_second_run_is_served_from_cache_and_force_rewrites(npm_app: Path, tmp_p
     assert not forced.cached
 
 
-def test_local_digest_defaults_to_the_hosts_cache(npm_app: Path, tmp_path: Path) -> None:
+def test_local_digest_defaults_to_the_maws_cache(npm_app: Path, tmp_path: Path) -> None:
     result = run_digest(
         Target(path=npm_app), DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache")
     )
-    assert result.out_dir.is_relative_to(tmp_path / "cache" / "hosts")
+    assert result.out_dir.is_relative_to(tmp_path / "cache" / "maws")
     assert result.out_dir.name == result.manifest["prey"]["sha"]
 
 

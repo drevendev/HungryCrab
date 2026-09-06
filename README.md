@@ -33,7 +33,7 @@ deterministic miners, and boils a whole repository down to a digest small enough
 actually read. Then it holds that digest against *your* repository and serves a ranked menu:
 what they have, what you lack, what it would cost you, and exactly what their license lets you
 take. Approve a few and they land as issues in your tracker, each with evidence links and a
-provenance footer. Say no to one and the crab remembers, so it never offers it again.
+trace footer. Say no to one and the crab remembers, so it never offers it again.
 
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
@@ -47,9 +47,10 @@ release.** Pull-request serving and the clean-room protocol arrive with 0.3 (see
 | Term | Meaning |
 |---|---|
 | **prey** | the foreign repository being eaten |
-| **host** | your repository, the one we eat for |
-| **nutrient** | one transferable thing, with a license mode and provenance |
-| **menu** | the ranked list of nutrients after prey and host are compared |
+| **maw** | your repository: what the prey is eaten *for*, and where the nutrients go |
+| **nutrient** | one transferable thing, with a license mode and trace |
+| **menu** | the ranked list of nutrients after prey and maw are compared |
+| **hunger** | what this maw will and will not swallow, per category, in `.crab.yml` |
 | **ledger** | what was eaten, what you accepted, what you turned down |
 
 ## Install
@@ -110,15 +111,15 @@ With an agent, one line does the whole protocol: judge the menu, ask you, create
 By hand, the same protocol is six commands:
 
 ```bash
-crab sniff pallets/click --host .                  # license, size, activity: is it worth eating?
+crab sniff pallets/click --maw .                  # license, size, activity: is it worth eating?
 ```
 
 ```bash
-crab init                                          # .crab.yml: appetite, serve policy, ledger mode
+crab init                                          # .crab.yml: hunger, serve policy, ledger mode
 ```
 
 ```bash
-crab compare pallets/click --host . --issues 300   # digest both sides, diff, score -> gap.md, menu.md
+crab compare pallets/click --maw . --issues 300   # digest both sides, diff, score -> gap.md, menu.md
 ```
 
 ```bash
@@ -126,7 +127,7 @@ crab menu pallets/click --top 15 --category ci     # the ranked menu of nutrient
 ```
 
 ```bash
-crab serve pallets/click --host . --ids crab:ci:ci.cache --as dry-run   # preview the issue
+crab serve pallets/click --maw . --ids crab:ci:ci.cache --as dry-run   # preview the issue
 ```
 
 ```bash
@@ -145,7 +146,7 @@ progressively:
 | Miner | What it extracts | Output |
 |---|---|---|
 | `inventory` | tree, languages, LOC, manifests, lock files, entry points, vendored and generated content | `inventory.{json,md}` |
-| `license` | SPDX from license files, manifests, headers and the API; per-file exceptions; the verdict against the host license | `license.json` |
+| `license` | SPDX from license files, manifests, headers and the API; per-file exceptions; the verdict against the maw license | `license.json` |
 | `deps` | normalized dependencies per ecosystem (npm, Python, .NET, Rust, Go), lock-file and pinning policy | `deps.json` |
 | `ci` | GitHub Actions workflows: triggers, jobs, matrix, cache, permissions, concurrency, SHA pinning, tools, secrets (names only), dependabot/renovate, other CI systems | `ci.{json,md}` |
 | `testing` | frameworks, layout, test/source ratio, coverage threshold, e2e/property/snapshot/fuzz/benchmarks | `tests.{json,md}` |
@@ -171,9 +172,9 @@ model is spent only on judgment.**
   sections, commit and changelog discipline, history and issue lessons, architecture raw
   material. Every candidate carries a stable id, evidence linked to the prey commit, effort, risk
   and a license mode.
-- **scoring** is a formula you can read: category weight x value x applicability x license mode x
-  effort, minus risk. Weights live in `data/scoring.yml` and are overridable per host.
-- **serve** creates issues with a hidden `crab:<id>` marker, a label and a provenance footer, so a
+- **scoring** is a formula you can read: category weight x value x uptake x license mode x
+  effort, minus risk. Weights live in `data/scoring.yml` and are overridable per maw.
+- **serve** creates issues with a hidden `crab:<id>` marker, a label and a trace footer, so a
   rerun creates no duplicates. The `why` and `how` come from the agent through a notes file.
 - **ledger** (`.crab/ledger.json` by default) remembers every meal and decision; rejected and
   served nutrients vanish from later menus. **`crab tune`** reads it and tells you which weights to
@@ -181,7 +182,7 @@ model is spent only on judgment.**
 
 ## Licenses are decided by an engine, not an opinion
 
-A deterministic `host license x prey license` matrix gives every nutrient one mode:
+A deterministic `maw license x prey license` matrix gives every nutrient one mode:
 
 | Mode | What it allows |
 |---|---|
@@ -234,7 +235,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
 ```bash
-uv run crab digest . --out digest-out --host-license MIT   # the crab eats itself
+uv run crab digest . --out digest-out --maw-license MIT   # the crab eats itself
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md), the guide coding agents read.

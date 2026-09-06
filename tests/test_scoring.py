@@ -12,11 +12,11 @@ def _card(**overrides: object) -> Candidate:
         "key": "ci.cache",
         "title": "Cache",
         "what": "caches",
-        "artifact": "pr",
+        "serve_as": "pr",
         "effort": "S",
         "risk": "low",
         "value": 0.9,
-        "applicability": 1.0,
+        "uptake": 1.0,
         "license_mode": "COPY",
     }
     base.update(overrides)
@@ -29,7 +29,7 @@ def test_default_weights_load_from_package_data() -> None:
     assert scoring.modes["COPY"] == 1.0
     assert scoring.effort["S"] == 1.0
     assert scoring.risk["low"] == 0.0
-    assert scoring.applicability["other_stack"] < scoring.applicability["same_stack"]
+    assert scoring.uptake["other_stack"] < scoring.uptake["same_stack"]
     assert scoring.traits == {}
 
 
@@ -38,9 +38,7 @@ def test_score_formula() -> None:
     assert scoring.score(_card()) == pytest.approx(0.81)
     assert scoring.score(_card(license_mode="IDEAS_ONLY")) == pytest.approx(0.32)
     assert scoring.score(_card(effort="L", risk="high")) == pytest.approx(0.16)
-    assert scoring.score(_card(applicability=0.25, effort="M", risk="medium")) == pytest.approx(
-        0.05
-    )
+    assert scoring.score(_card(uptake=0.25, effort="M", risk="medium")) == pytest.approx(0.05)
     assert scoring.score(_card(category="unknown", value=0.0)) == 0.0
 
 

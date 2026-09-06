@@ -68,7 +68,7 @@ class MineContext:
     git: GitRunner | None = None
     api: dict[str, Any] = field(default_factory=dict)
     results: dict[str, MinerResult] = field(default_factory=dict)
-    host_license: str | None = None
+    maw_license: str | None = None
     now: datetime = field(default_factory=_utcnow)
     md_budget: int = 3500
     shallow: bool = False

@@ -1,7 +1,7 @@
 """What the live meals taught the menu: no noise, no duplicates, no alternatives, no blind spots.
 
 Every test here reproduces a defect the crab served to its own maintainer. Eating ``pypa/pipx``
-gave an unbounded pile of issue lessons, a type checker proposed to a host that already had
+gave an unbounded pile of issue lessons, a type checker proposed to a maw that already had
 one, and a dependency card for the library implementing a nutrient already on the menu. Eating
 ``anthropics/skills`` gave nothing at all in the one category it was chosen to exercise.
 """
@@ -32,28 +32,28 @@ def python_deps(*names: str) -> dict[str, Any]:
     return {"packages": [{"ecosystem": "python", "name": n, "kind": "dev"} for n in names]}
 
 
-def test_a_tool_the_host_already_has_a_kind_of_is_not_a_gap() -> None:
-    """`ty` ranked first on a host running mypy --strict. It is a swap, not a nutrient."""
+def test_a_tool_the_maw_already_has_a_kind_of_is_not_a_gap() -> None:
+    """`ty` ranked first on a maw running mypy --strict. It is a swap, not a nutrient."""
     prey = side("prey", {"ecosystems": ["python"], "type_checkers": ["ty"], "linters": ["ruff"]})
-    host = side("host", {"ecosystems": ["python"], "type_checkers": ["mypy"], "linters": []})
-    keys = {c.key for c in tool_candidates(prey, host)}
+    maw = side("maw", {"ecosystems": ["python"], "type_checkers": ["mypy"], "linters": []})
+    keys = {c.key for c in tool_candidates(prey, maw)}
     assert "tooling.type_checker.ty" not in keys
     assert "tooling.linter.ruff" in keys, "an empty kind is still a real gap"
 
 
-def test_a_tool_of_a_kind_the_host_lacks_entirely_is_proposed() -> None:
+def test_a_tool_of_a_kind_the_maw_lacks_entirely_is_proposed() -> None:
     prey = side("prey", {"ecosystems": ["python"], "type_checkers": ["mypy", "pyright"]})
-    host = side("host", {"ecosystems": ["python"], "type_checkers": []})
-    keys = {c.key for c in tool_candidates(prey, host)}
+    maw = side("maw", {"ecosystems": ["python"], "type_checkers": []})
+    keys = {c.key for c in tool_candidates(prey, maw)}
     assert keys == {"tooling.type_checker.mypy", "tooling.type_checker.pyright"}
-    assert all(c.host_state == "none" for c in tool_candidates(prey, host))
+    assert all(c.maw_state == "none" for c in tool_candidates(prey, maw))
 
 
 def test_deps_see_tools_configured_by_a_file() -> None:
-    """pre-commit was proposed to a host with .pre-commit-config.yaml in its root."""
+    """pre-commit was proposed to a maw with .pre-commit-config.yaml in its root."""
     prey = side("prey", {"ecosystems": ["python"]}, deps=python_deps("pre-commit", "tox"))
-    host = side("host", {"ecosystems": ["python"], "has_precommit": True}, deps=python_deps())
-    out, _ = deps_candidates(prey, host)
+    maw = side("maw", {"ecosystems": ["python"], "has_precommit": True}, deps=python_deps())
+    out, _ = deps_candidates(prey, maw)
     keys = {c.key for c in out}
     assert "deps.python.pre-commit" not in keys
     assert "deps.python.tox" in keys
@@ -68,12 +68,12 @@ def test_a_dependency_that_only_implements_another_nutrient_is_dropped() -> None
         {"ecosystems": ["python"], "coverage_configured": True},
         deps=python_deps("pytest-cov"),
     )
-    host = side(
-        "host",
+    maw = side(
+        "maw",
         {"ecosystems": ["python"], "has_tests": True, "coverage_configured": False},
         deps=python_deps(),
     )
-    keys = {c.key for c in build_candidates(prey, host)[0]}
+    keys = {c.key for c in build_candidates(prey, maw)[0]}
     assert "tests.coverage" in keys
     assert "deps.python.pytest-cov" not in keys, "the library that implements it is the same card"
 
@@ -85,35 +85,35 @@ def test_the_implementing_dependency_survives_when_the_nutrient_is_not_on_the_me
         {"ecosystems": ["python"], "has_property_tests": True},
         deps=python_deps("hypothesis"),
     )
-    host = side("host", {"ecosystems": ["python"], "has_property_tests": True}, deps=python_deps())
-    keys = {c.key for c in build_candidates(prey, host)[0]}
+    maw = side("maw", {"ecosystems": ["python"], "has_property_tests": True}, deps=python_deps())
+    keys = {c.key for c in build_candidates(prey, maw)[0]}
     assert "tests.property" not in keys
     assert "deps.python.hypothesis" in keys
 
 
-def test_a_wider_skills_corpus_is_a_candidate_even_though_the_host_has_skills() -> None:
+def test_a_wider_skills_corpus_is_a_candidate_even_though_the_maw_has_skills() -> None:
     """Eating anthropics/skills produced no ai-config card: every rule was a boolean."""
     prey = side("anthropics/skills", {"has_skills": True, "skills_count": 20})
-    host = side("host", {"has_skills": True, "skills_count": 3})
-    out = ai_config_candidates(prey, host)
+    maw = side("maw", {"has_skills": True, "skills_count": 3})
+    out = ai_config_candidates(prey, maw)
     assert [c.key for c in out] == ["ai-config.skills-corpus"]
     assert out[0].title == "Measure your 3 skills against anthropics/skills's 20"
-    assert out[0].prey_state == "20 skills" and out[0].host_state == "3 skills"
-    assert out[0].artifact == "idea"
+    assert out[0].prey_state == "20 skills" and out[0].maw_state == "3 skills"
+    assert out[0].serve_as == "idea"
 
 
 @pytest.mark.parametrize(
-    ("prey_count", "host_count"),
+    ("prey_count", "maw_count"),
     [
         (7, 3),  # only four ahead: not worth reading a corpus for
         (8, 3),  # five ahead but not three times as many
-        (9, 0),  # the host has none, and "Add skills" already covers that
+        (9, 0),  # the maw has none, and "Add skills" already covers that
     ],
 )
-def test_a_narrow_lead_is_not_a_corpus(prey_count: int, host_count: int) -> None:
+def test_a_narrow_lead_is_not_a_corpus(prey_count: int, maw_count: int) -> None:
     prey = side("prey", {"has_skills": True, "skills_count": prey_count})
-    host = side("host", {"has_skills": host_count > 0, "skills_count": host_count})
-    assert ai_config_candidates(prey, host) == []
+    maw = side("maw", {"has_skills": maw_count > 0, "skills_count": maw_count})
+    assert ai_config_candidates(prey, maw) == []
 
 
 def test_issue_clusters_are_capped_and_titled_by_their_largest_issue() -> None:
@@ -138,8 +138,8 @@ def test_issue_clusters_are_capped_and_titled_by_their_largest_issue() -> None:
             ],
         },
     )
-    host = side("host", {})
-    out = issue_candidates(prey, host)
+    maw = side("maw", {})
+    out = issue_candidates(prey, maw)
     clustered = [c for c in out if "cluster-" in c.key]
     assert len(clustered) == MAX_ISSUE_CLUSTERS
     assert len(out) == MAX_ISSUE_CLUSTERS + MAX_TOP_ISSUES
@@ -156,5 +156,5 @@ def test_a_cluster_without_sample_titles_falls_back_to_its_terms() -> None:
         {},
         issues={"available": True, "clusters": [{"size": 9, "terms": ["windows", "path"]}]},
     )
-    out = issue_candidates(prey, side("host", {}))
+    out = issue_candidates(prey, side("maw", {}))
     assert out[0].title == "Recurring pain in prey: windows, path"

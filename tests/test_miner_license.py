@@ -14,12 +14,12 @@ def test_npm_is_mit_and_copyable(npm_digest: DigestResult) -> None:
     assert data["human_review"] is False
     assert data["conflicts"] == []
     assert data["verdict"]["mode"] == "COPY"
-    assert data["modes_by_host_class"] == {
+    assert data["modes_by_maw_class"] == {
         "permissive": "COPY",
         "gpl": "COPY",
         "proprietary": "COPY",
     }
-    assert data["host_license"] == "MIT"
+    assert data["maw_license"] == "MIT"
 
 
 def test_python_is_apache_with_notice(py_digest: DigestResult) -> None:
@@ -40,7 +40,7 @@ def test_dotnet_is_gpl_and_needs_a_clean_room(dotnet_digest: DigestResult) -> No
     assert data["spdx"] == "GPL-3.0-only"
     assert data["class"] == "gpl"
     assert data["verdict"]["mode"] == "REIMPLEMENT"
-    assert data["modes_by_host_class"] == {
+    assert data["modes_by_maw_class"] == {
         "permissive": "REIMPLEMENT",
         "gpl": "COPY",
         "proprietary": "IDEAS_ONLY",

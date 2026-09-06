@@ -6,7 +6,7 @@ Milestone 0.2 is code-complete, but its exit criterion is only half met:
 
 > end-to-end `/crab:eat` creates issues in a test repository; a repeated run yields 0 duplicates.
 
-The second half is verified: on the sandbox host the crab created three issues from
+The second half is verified: on the sandbox maw the crab created three issues from
 `colinhacks/zod` and a rerun produced zero duplicates. The first half is not. Every run so far
 went through the CLI by hand. The `eat` skill, the subagents and the plugin have been read, never
 executed by an agent. Until an agent walks the protocol, the skill is a document, not a feature.
@@ -16,7 +16,7 @@ just makes it explicit and puts it before 0.3.
 
 ## 2. Goal
 
-Run `/crab:eat` from a live agent session, with **Hungry Crab itself as the host**, against prey
+Run `/crab:eat` from a live agent session, with **Hungry Crab itself as the maw**, against prey
 chosen for what the crab is missing. Two outcomes matter equally:
 
 1. **Nutrients.** Real issues in `drevendev/HungryCrab` that make the crab better.
@@ -25,7 +25,7 @@ chosen for what the crab is missing. Two outcomes matter equally:
 
 ## 3. What the crab is missing (so we know what to look for)
 
-Facts about the host, from its own digest:
+Facts about the maw, from its own digest:
 
 - no release automation, no coverage measurement, no coverage gate;
 - no CodeQL or any security scanning in CI;
@@ -37,7 +37,7 @@ Facts about the host, from its own digest:
 
 ## 4. Prey
 
-Twenty candidates, all sniffed with the crab on 2026-09-06 against an MIT host. Mode is the
+Twenty candidates, all sniffed with the crab on 2026-09-06 against an MIT maw. Mode is the
 license verdict for this repository.
 
 ### Cousins: digest format, budgets, ignore rules
@@ -89,7 +89,7 @@ Checking whether it does is part of this stage.
 
 Start small and same-stack, then widen:
 
-1. `pypa/pipx` — 5 MB, MIT, Python, rich in exactly the CI and release nutrients the host lacks.
+1. `pypa/pipx` — 5 MB, MIT, Python, rich in exactly the CI and release nutrients the maw lacks.
 2. `anthropics/skills` — tests the `ai-config` category and the `IDEAS_ONLY` path.
 3. `github-linguist/linguist` — a large permissive prey, tests the `code` category and evidence links.
 4. `aboutcode-org/scancode-toolkit` — the giant: tests `--shallow --since`, the `HUMAN` verdict and the budget.
@@ -99,7 +99,7 @@ Start small and same-stack, then widen:
 - Does the agent find the CLI, or does the fallback path in `eat/SKILL.md` mislead it?
 - Does it read `manifest.json` and `menu.md` first, or does it wander into raw JSON?
 - Does it delegate history and architecture to the subagents, or do it badly itself?
-- Does it write `why_for_host` and `how` that a maintainer would act on, or generic filler?
+- Does it write `why` and `how` that a maintainer would act on, or generic filler?
 - Does it respect the license mode without being reminded?
 - Does it record rejections in the ledger, or drop them silently?
 - How many tokens does one meal actually cost?
@@ -107,7 +107,7 @@ Start small and same-stack, then widen:
 ## 7. Exit criteria
 
 - `/crab:eat` run end to end from a live agent session, at least twice, on different prey.
-- Issues created in `drevendev/HungryCrab` with provenance, and a rerun yields zero duplicates.
+- Issues created in `drevendev/HungryCrab` with trace, and a rerun yields zero duplicates.
 - Every skill defect found is either fixed or written down as an issue.
 - The token cost of one meal recorded in `benchmarks/`.
 - Milestone 0.2's exit criterion honestly closed; then 0.3 starts.
@@ -119,12 +119,12 @@ what broke was never the thing the meal was chosen to test.
 
 | Meal | Prey | Kept | What it broke |
 |---|---|---|---|
-| 1 | `pypa/pipx` | #14, #15, #16, #17, #19, #20 | `ignore` was parsed and read by nothing, so the crab digesting itself reported three ecosystems and twelve test frameworks, all from `tests/fixtures`, and believed it already measured coverage. Then: a type checker proposed to a host running `mypy --strict`, a dependency card duplicating a nutrient already on the menu, and thirteen issue lessons titled with TF-IDF term lists |
+| 1 | `pypa/pipx` | #14, #15, #16, #17, #19, #20 | `ignore` was parsed and read by nothing, so the crab digesting itself reported three ecosystems and twelve test frameworks, all from `tests/fixtures`, and believed it already measured coverage. Then: a type checker proposed to a maw running `mypy --strict`, a dependency card duplicating a nutrient already on the menu, and thirteen issue lessons titled with TF-IDF term lists |
 | 2 | `anthropics/skills` | #22, #23 | Every `ai-config` rule is a yes/no question, so the official skills corpus produced no `ai-config` candidate at all. `has_notice_file` was mined, printed, and read by no rule. Four of the prey's twenty skills had `>` as their description |
 | 3 | `github-linguist/linguist` | #26, #27 | 3390 of 4293 files are `samples/`, so a Ruby project read as Objective-C with four ecosystems, none of them Ruby, and the menu offered ninety Python dependencies from a sample requirements file. A security card at the top of the menu built from three commits, two of which contain "Security" as part of a language name |
 
 The pattern is one defect: **the crab counted somebody's test corpus as somebody's code.** First the
-host's, then the prey's. Meals 1 and 3 are the same bug from opposite sides, and the second one
+maw's, then the prey's. Meals 1 and 3 are the same bug from opposite sides, and the second one
 was not found by looking harder at the first — it was found by eating a repository that is mostly
 corpus.
 
@@ -134,12 +134,12 @@ sets, and the observation in #23 that the prey ships an evaluation harness for s
 
 `issue-lesson` is switched off in this repository's `.crab.yml`: twenty-two candidates across the
 three meals, none kept. A prey's users report bugs in that prey. It should be switched back on
-the first time the prey is a user-facing CLI of the same shape as the host.
+the first time the prey is a user-facing CLI of the same shape as the maw.
 
 ## 9. Exit criteria — state
 
 - **Met.** Three live meals from an agent session, on unrelated prey; eleven issues with
-  provenance; reruns yield zero duplicates and every rejection carries a reason.
+  trace; reruns yield zero duplicates and every rejection carries a reason.
 - **Met.** Every defect found is fixed, with a regression test, or filed: #28 and the note in #23.
 - **Open.** The token cost of a meal is not recorded in `benchmarks/` yet; 0.3.1 records it per
   phase ([07-scheduled-crab.md](07-scheduled-crab.md)), which is the shape the number is

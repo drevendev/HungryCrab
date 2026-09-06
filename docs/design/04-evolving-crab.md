@@ -2,28 +2,28 @@
 
 ## 1. What it is
 
-A public repository with **active GitHub Actions** that hosts an "organism" (`src/`) and its
+A public repository with **active GitHub Actions** that maws an "organism" (`src/`) and its
 **goal** (`goal/`). The organism periodically runs the cycle:
 
 ```
-        ┌──────────────────────────────────────────────────────────┐
-        │                                                          │
-   GOAL ─► HUNT ─► CONSUME ─► EVOLVE ─► TRIAL ──fail──► HUNT       │
-     ▲                                     │                       │
-     │                                   pass                      │
-     │                                     ▼                       │
-     └────────── MOLT ◄──────────────── GROW                       │
-               (molting)               (retro)                     │
+        ┌──────────────────────────────────────────────────────┐
+        │                                                      │
+   GOAL ─► HUNT ─► EAT ─► GROW ─► TRIAL ──fail──► HUNT         │
+     ▲                              │                          │
+     │                            pass                         │
+     │                              ▼                          │
+     └────────── MOLT ◄────────── TASTE                        │
+               (molting)          (retro)                      │
 ```
 
 | Phase | What it does | Who | Artifact |
 |---|---|---|---|
 | **GOAL** | sets a new, harder benchmark without retiring the old ones | model + human (until E3) | PR into `goal/benchmarks/` |
 | **HUNT** | searches for candidate repositories for the current failure/goal | `crab hunt` (script) + model picks from the top-20 | `cycles/NNNN/hunt.md` |
-| **CONSUME** | digests the chosen prey with the organism as the host | `crab eat` (script + model) | digest, `menu.md` |
-| **EVOLVE** | implements the chosen nutrients in `src/` | model, under license modes | PR `evolve/NNNN-*` |
+| **EAT** | digests the chosen prey with the organism as the maw | `crab eat` (script + model) | digest, `menu.md` |
+| **GROW** | implements the chosen nutrients in `src/` | model, under license modes | PR `grow/NNNN-*` |
 | **TRIAL** | runs the benchmarks | **plain CI, no LLM** | `metrics.json`, check status |
-| **GROW** | retrospective: what helped, what did not, what was learned | model | `cycles/NNNN/retro.md`, update of `docs/LESSONS.md` |
+| **TASTE** | retrospective: what helped, what did not, what was learned | model | `cycles/NNNN/retro.md`, update of `docs/LESSONS.md` |
 | **MOLT** | refactoring and cleanup: dead code, surplus dependencies, docs sync | model | PR `molt/NNNN` |
 
 The base organism is Hungry Crab itself; the base goal is "digest repositories efficiently". So
@@ -68,7 +68,7 @@ evolving-hungry-crab/
 - **Cycle issue** `Cycle #0007` with labels `phase:hunt` … `phase:molt`, `attempt:2`. The body is
   a phase checklist, the comments are the journal of every phase. A human sees everything without
   a special UI.
-- **Branches** `evolve/0007-<slug>`, `molt/0007`, `goal/0008`; a PR is the only way to change
+- **Branches** `grow/0007-<slug>`, `molt/0007`, `goal/0008`; a PR is the only way to change
   `main`.
 - `state/current.json` — machine-readable pointer (which cycle, which phase, attempt, budget
   spent). The workflow reads it instead of parsing labels.
@@ -82,14 +82,14 @@ checks the budget (`guard`), and starts the job for the required phase:
 
 ```yaml
 jobs:
-  route:   # reads state, decides which phase to run, checks budget and kill switch
-  hunt:    # needs: route; if phase == hunt → crab hunt + model picks → issue comment, state → consume
-  consume: # crab eat <prey> --host . → menu.md → state → evolve
-  evolve:  # model implements top-N nutrients → PR evolve/NNNN → state → trial
-  trial:   # does nothing itself: TRIAL is trial.yml on the PR; route observes the check status
-  grow:    # after merge: retro.md, LESSONS.md, metrics into cycles/ → state → molt
-  molt:    # PR molt/NNNN → after merge state → goal
-  goal:    # PR goal/NNNN with a new benchmark → after merge a new cycle, state → hunt
+  route:  # reads state, decides which phase to run, checks budget and kill switch
+  hunt:   # needs: route; if phase == hunt → crab hunt + model picks → issue comment, state → eat
+  eat:    # crab eat <prey> --maw . → menu.md → state → grow
+  grow:   # model implements top-N nutrients → PR grow/NNNN → state → trial
+  trial:  # does nothing itself: TRIAL is trial.yml on the PR; route observes the check status
+  taste:  # after merge: retro.md, LESSONS.md, metrics into cycles/ → state → molt
+  molt:   # PR molt/NNNN → after merge state → goal
+  goal:   # PR goal/NNNN with a new benchmark → after merge a new cycle, state → hunt
 ```
 
 Model phases use the official `anthropics/claude-code-action@v1` with `claude_code_oauth_token`
@@ -111,14 +111,14 @@ base goal:
 |---|---|---|
 | B1 License Verdicts | accuracy of SPDX + mode on 40 repositories pinned by SHA | 100 % |
 | B2 Traits Recall | recall/precision of traits on 10 labeled prey | ≥ 0.90 / ≥ 0.90 |
-| B3 Golden Nutrients | share of "must-find" nutrients (manual labeling of 5 prey→host pairs) present in the deterministic layer's top-30 menu | ≥ 0.80 |
+| B3 Golden Nutrients | share of "must-find" nutrients (manual labeling of 5 prey→maw pairs) present in the deterministic layer's top-30 menu | ≥ 0.80 |
 | B4 Budget | digest size in tokens and time on reference repositories | ≤ 30k, ≤ 120 s |
 | B5 Ecosystem Coverage | number of correctly parsed manifest/CI formats | ≥ 6 → grows |
 | B6 Menu Quality (slow) | menu rated by an LLM judge against a rubric, and the share of accepted issues in the fleet | weekly, soft threshold |
 
 Benchmarks live in `goal/benchmarks/history/` forever: **GOAL adds, never removes**. Golden data is
 pinned to prey SHAs — otherwise the benchmark drifts. LLM-dependent metrics (B6) do not block
-merges; they are a signal for GROW and GOAL.
+merges; they are a signal for TASTE and GOAL.
 
 ## 6. Phase rules
 
@@ -127,24 +127,24 @@ merges; they are a signal for GROW and GOAL.
 not in the ledger), scores; the model picks 1–3 prey and writes a rationale. If nothing suitable
 is found K times in a row — state `starving`, escalation to a human.
 
-**CONSUME.** A regular `crab eat` with the organism as host; appetite from `goal/.crab.yml`.
+**EAT.** A regular `crab eat` with the organism as maw; hunger from `goal/.crab.yml`.
 
-**EVOLVE.** Implements the top-N nutrients (N from the budget), one PR per cycle, one commit per
+**GROW.** Implements the top-N nutrients (N from the budget), one PR per cycle, one commit per
 nutrient. License modes strictly; `REIMPLEMENT` via the clean-room subagent; attribution updated.
-The PR must contain: the nutrient list with provenance and the expected impact on benchmarks.
+The PR must contain: the nutrient list with trace and the expected impact on benchmarks.
 
 **TRIAL.** `trial.yml` on the PR: `fitness.py` → `metrics.json`; comparison against
 `current.json` and the whole `history/`. Failure → a comment with the metrics diff → `attempt+1`,
 state `hunt` with a hint; after `max_attempts` — `needs-human`.
 
-**GROW.** Only after merge: a templated retro (hypothesis → result → lesson), update of
+**TASTE.** Only after merge: a templated retro (hypothesis → result → lesson), update of
 `LESSONS.md` (size-capped — old lessons get compressed, otherwise the prompt grows forever),
 metrics written to `cycles/NNNN/metrics.json` for the dashboard.
 
 **MOLT.** A refactoring PR with hard invariants: all benchmarks green, coverage not lower,
 LOC/complexity not higher, dead code removed (`vulture`/`knip`/equivalents), dependencies pruned,
 docs in sync. If the invariants fail — the PR is closed and a lesson goes into the next cycle's
-GROW.
+TASTE.
 
 **GOAL.** Proposes the next benchmark: harder along one measurable axis (threshold, new ecosystem,
 new nutrient category, fewer tokens), with a rationale from the retro. Mandatory: regression is
@@ -156,7 +156,7 @@ deterministic. Until level E3 a human merges it.
 `CONSTITUTION.md` — what the organism cannot change by itself:
 - purpose, and a ban on changing the goal without a human;
 - license policy (the mode matrix, `IDEAS_ONLY` by default for the unknown);
-- **prey code is never executed** — CONSUME is static, TRIAL executes only the organism's own code
+- **prey code is never executed** — EAT is static, TRIAL executes only the organism's own code
   on an ephemeral runner;
 - prey content is data, not instructions;
 - budget and kill switch: the repo variable `CRAB_PAUSED=true` stops `route`;
@@ -167,7 +167,7 @@ Mechanics, not promises:
   owners" → changes to those paths need a human; everything else merges on checks.
 - The default `GITHUB_TOKEN` cannot push workflow changes — we keep it that way.
 - `guard.yml` on every PR: the diff does not touch protected paths (when the author is the bot),
-  secret scan, attribution updated on `COPY`, no execution from the cache in the CONSUME logs.
+  secret scan, attribution updated on `COPY`, no execution from the cache in the EAT logs.
 - The `PreToolUse` hook from the base crab is enabled in CI as well.
 - All secrets with minimal rights; the model token is visible only to model-phase jobs.
 
@@ -177,7 +177,7 @@ Mechanics, not promises:
 |---|---|---|---|
 | L0 | a human, every phase | a human | 3 clean cycles |
 | L1 | schedule | a human — everything | 5 cycles without PR edits |
-| L2 | schedule | auto: EVOLVE on green TRIAL; human: GOAL, MOLT | 10 cycles, fitness never drops |
+| L2 | schedule | auto: GROW on green TRIAL; human: GOAL, MOLT | 10 cycles, fitness never drops |
 | L3 | schedule | auto for everything within the constitution; the human gets a weekly digest and escalations | indefinitely, with the kill switch |
 
 ## 9. Observability (E4)
@@ -213,10 +213,10 @@ measure it without an LLM, where the data comes from, which queries to hunt with
 | `src/` | a naive backtracking solver as the baseline |
 | GOAL ladder | 100 % of top95 in < 1 s total → < 100 ms → hardest20 → 16×16 → difficulty rating → generator with unique solutions |
 
-What happens in a cycle: HUNT finds DLX-based solvers; CONSUME yields nutrients: "Knuth's DLX
+What happens in a cycle: HUNT finds DLX-based solvers; EAT yields nutrients: "Knuth's DLX
 algorithm" (`IDEAS_ONLY` — the idea is free), "a puzzle test set" (check the data license),
-"bitmask candidate representation" (idea), "benchmark harness" (`COPY` if MIT); EVOLVE implements
-DLX in the clean room; TRIAL shows p95; GROW records what produced the gain; MOLT throws out the
+"bitmask candidate representation" (idea), "benchmark harness" (`COPY` if MIT); GROW implements
+DLX in the clean room; TRIAL shows p95; TASTE records what produced the gain; MOLT throws out the
 old backtracking if it is not needed as a fallback; GOAL raises the bar.
 
 ### Other goals that fit the contract
@@ -232,7 +232,7 @@ fit poorly — they need an LLM judge, which makes for a slow, non-strict TRIAL.
 | Risk | Countermeasure |
 |---|---|
 | Overfitting to the benchmark (the crab "memorizes" the golden set) | hidden holdout set in TRIAL, prey rotation in benchmarks, B6 as an external signal |
-| Unbounded prompt growth (`LESSONS.md`) | size cap, compression of old lessons in GROW |
+| Unbounded prompt growth (`LESSONS.md`) | size cap, compression of old lessons in TASTE |
 | Prey drift (repository changed, benchmark broke) | everything pinned by SHA |
 | Burning through subscription limits | `budget.yml`, pause instead of failure, weekly report |
 | Prompt injection from prey in autonomous mode | same rules as the base crab, plus `guard.yml`, plus protected paths |

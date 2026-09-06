@@ -1,6 +1,6 @@
-"""License classification and the host x prey verdict matrix.
+"""License classification and the maw x prey verdict matrix.
 
-Modes (what a nutrient under the prey's license may become in the host):
+Modes (what a nutrient under the prey's license may become in the maw):
 
 - ``COPY``         copy code/configs, keep the notice, record it in THIRD_PARTY_NOTICES.md
 - ``COPY_FILE``    copy whole files; the file keeps its own license (MPL-2.0 style)
@@ -33,7 +33,7 @@ class LicenseClass(StrEnum):
     UNKNOWN = "unknown"
 
 
-class HostClass(StrEnum):
+class MawClass(StrEnum):
     PERMISSIVE = "permissive"
     GPL = "gpl"
     PROPRIETARY = "proprietary"
@@ -237,11 +237,11 @@ def classify(spdx: str | None) -> LicenseClass:
     return LicenseClass.UNKNOWN
 
 
-def host_class(spdx: str | None) -> HostClass:
-    """Which column of the matrix a host with this license belongs to."""
+def maw_class(spdx: str | None) -> MawClass:
+    """Which column of the matrix a maw with this license belongs to."""
     cls = classify(spdx)
     if cls in (LicenseClass.LGPL, LicenseClass.GPL, LicenseClass.AGPL):
-        return HostClass.GPL
+        return MawClass.GPL
     if cls in (
         LicenseClass.PERMISSIVE,
         LicenseClass.PERMISSIVE_NOTICE,
@@ -249,8 +249,8 @@ def host_class(spdx: str | None) -> HostClass:
         LicenseClass.DOCS_ATTRIBUTION,
         LicenseClass.DOCS_SHARE_ALIKE,
     ):
-        return HostClass.PERMISSIVE
-    return HostClass.PROPRIETARY
+        return MawClass.PERMISSIVE
+    return MawClass.PROPRIETARY
 
 
 @dataclass(frozen=True)
@@ -274,28 +274,26 @@ def _gpl_version(ident: str) -> tuple[str, bool]:
     return version, body.endswith(("or-later", "+"))
 
 
-def _gpl_prey_fits_gpl_host(prey: str, host: str | None) -> bool:
-    """Can GPL code (``prey``) be copied into a host under ``host`` without changing it?"""
-    host_id = normalize(host) or ""
+def _gpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
+    """Can GPL code (``prey``) be copied into a maw under ``maw`` without changing it?"""
+    maw_id = normalize(maw) or ""
     prey_version, prey_later = _gpl_version(prey)
     if prey.startswith("AGPL-"):
-        return host_id.startswith("AGPL-3.0")
-    if host_id.startswith(("AGPL-3.0", "GPL-3.0")):
+        return maw_id.startswith("AGPL-3.0")
+    if maw_id.startswith(("AGPL-3.0", "GPL-3.0")):
         return prey_version == "3.0" or prey_later
-    if host_id == "GPL-2.0-only":
+    if maw_id == "GPL-2.0-only":
         return prey_version == "2.0"
-    return host_id == "GPL-2.0-or-later"
+    return maw_id == "GPL-2.0-or-later"
 
 
-def decide_for_class(
-    prey_spdx: str | None, host: HostClass, host_spdx: str | None = None
-) -> Verdict:
+def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None = None) -> Verdict:
     prey = normalize(prey_spdx)
     cls = classify(prey)
     if cls is LicenseClass.PERMISSIVE:
         return Verdict(Mode.COPY, reason="permissive license: keep the copyright notice")
     if cls is LicenseClass.PERMISSIVE_NOTICE:
-        if host is HostClass.GPL and (normalize(host_spdx) or "") == "GPL-2.0-only":
+        if maw is MawClass.GPL and (normalize(maw_spdx) or "") == "GPL-2.0-only":
             return Verdict(Mode.IDEAS_ONLY, reason="Apache-2.0 is incompatible with GPL-2.0-only")
         return Verdict(
             Mode.COPY, notice_required=True, reason="Apache-2.0: carry the NOTICE file over"
@@ -315,21 +313,21 @@ def decide_for_class(
             Mode.COPY_FILE, reason="file-level copyleft: whole files only, each keeps its license"
         )
     if cls is LicenseClass.LGPL:
-        if host is HostClass.GPL:
-            return Verdict(Mode.COPY, reason="LGPL code may be relicensed under the host's GPL")
+        if maw is MawClass.GPL:
+            return Verdict(Mode.COPY, reason="LGPL code may be relicensed under the maw's GPL")
         return Verdict(Mode.REIMPLEMENT, reason="LGPL: clean-room rewrite; linking is separate")
     if cls in (LicenseClass.GPL, LicenseClass.AGPL):
         assert prey is not None
-        if host is HostClass.GPL:
-            if _gpl_prey_fits_gpl_host(prey, host_spdx):
+        if maw is MawClass.GPL:
+            if _gpl_prey_fits_gpl_maw(prey, maw_spdx):
                 return Verdict(Mode.COPY, reason="compatible copyleft versions")
             return Verdict(Mode.IDEAS_ONLY, reason="incompatible copyleft versions")
-        if host is HostClass.PERMISSIVE:
+        if maw is MawClass.PERMISSIVE:
             return Verdict(
                 Mode.REIMPLEMENT,
                 reason="strong copyleft: only a clean-room reimplementation from a spec",
             )
-        return Verdict(Mode.IDEAS_ONLY, reason="strong copyleft into a closed host: ideas only")
+        return Verdict(Mode.IDEAS_ONLY, reason="strong copyleft into a closed maw: ideas only")
     if cls is LicenseClass.SOURCE_AVAILABLE:
         return Verdict(Mode.IDEAS_ONLY, reason="source-available, not open source")
     if cls is LicenseClass.NONE:
@@ -341,20 +339,20 @@ def decide_for_class(
     return Verdict(Mode.IDEAS_ONLY, human_review=True, reason=f"unrecognised license {prey or '?'}")
 
 
-def decide(prey_spdx: str | None, host_spdx: str | None) -> Verdict:
-    return decide_for_class(prey_spdx, host_class(host_spdx), host_spdx)
+def decide(prey_spdx: str | None, maw_spdx: str | None) -> Verdict:
+    return decide_for_class(prey_spdx, maw_class(maw_spdx), maw_spdx)
 
 
-_SAMPLE_HOSTS: dict[HostClass, str | None] = {
-    HostClass.PERMISSIVE: "MIT",
-    HostClass.GPL: "GPL-3.0-only",
-    HostClass.PROPRIETARY: None,
+_SAMPLE_MAWS: dict[MawClass, str | None] = {
+    MawClass.PERMISSIVE: "MIT",
+    MawClass.GPL: "GPL-3.0-only",
+    MawClass.PROPRIETARY: None,
 }
 
 
-def modes_by_host_class(prey_spdx: str | None) -> dict[str, str]:
-    """The mode a nutrient would get in a permissive, a GPL and a proprietary host."""
+def modes_by_maw_class(prey_spdx: str | None) -> dict[str, str]:
+    """The mode a nutrient would get in a permissive, a GPL and a proprietary maw."""
     return {
-        host.value: decide_for_class(prey_spdx, host, sample).mode.value
-        for host, sample in _SAMPLE_HOSTS.items()
+        maw.value: decide_for_class(prey_spdx, maw, sample).mode.value
+        for maw, sample in _SAMPLE_MAWS.items()
     }

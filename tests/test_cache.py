@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from hungry_crab.cache import Slug, Target, host_paths, prey_paths, resolve_target
+from hungry_crab.cache import Slug, Target, maw_paths, prey_paths, resolve_target
 from hungry_crab.errors import UsageError
 
 
@@ -42,13 +42,13 @@ def test_prey_paths_layout(tmp_path: Path) -> None:
     assert paths.catch_file == paths.root / "catch.json"
 
 
-def test_host_paths_are_stable_and_distinct(tmp_path: Path) -> None:
-    first = host_paths(tmp_path / "alpha", tmp_path)
-    again = host_paths(tmp_path / "alpha", tmp_path)
-    other = host_paths(tmp_path / "beta", tmp_path)
+def test_maw_paths_are_stable_and_distinct(tmp_path: Path) -> None:
+    first = maw_paths(tmp_path / "alpha", tmp_path)
+    again = maw_paths(tmp_path / "alpha", tmp_path)
+    other = maw_paths(tmp_path / "beta", tmp_path)
     assert first.root == again.root
     assert first.root != other.root
-    assert first.root.parent == tmp_path / "hosts"
+    assert first.root.parent == tmp_path / "maws"
     assert first.root.name.startswith("alpha-")
 
 

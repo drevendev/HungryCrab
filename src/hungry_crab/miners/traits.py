@@ -1,6 +1,6 @@
 """Traits miner: a flat matrix of boolean/enum/number traits derived from the other miners.
 
-Traits are the currency of ``crab compare``: the host's matrix minus the prey's matrix is the
+Traits are the currency of ``crab compare``: the maw's matrix minus the prey's matrix is the
 first, fully deterministic list of candidate nutrients. Keys are stable identifiers.
 """
 

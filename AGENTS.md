@@ -7,8 +7,10 @@ with `CONTRIBUTING.md`.
 
 Hungry Crab (`crab`) is a deterministic Python CLI that digests a foreign repository (the *prey*)
 into a token-budgeted `digest/` folder, so that an agent can later decide what is worth carrying
-over into its own repository (the *host*) without violating licenses. The design is written down
-in `docs/design/`; follow it instead of re-deriving decisions. The decisions log is at the end of
+over into its own repository (the *maw*) without violating licenses. The design is written down
+in `docs/design/`; follow it instead of re-deriving decisions. The vocabulary is in
+`docs/design/GLOSSARY.md` — prey, maw, nutrient, menu, hunger, meal, ledger — and it is the
+authority when a document disagrees with it. The decisions log is at the end of
 `docs/design/01-concept-and-skill.md`.
 
 ## Layout
@@ -20,11 +22,11 @@ in `docs/design/`; follow it instead of re-deriving decisions. The decisions log
   and leaves it broken.
 - `src/hungry_crab/fetch/`: git wrapper, GitHub API client, `catch`, issues fetch.
 - `src/hungry_crab/miners/`: one module per miner; `__init__.py` is the ordered registry.
-- `src/hungry_crab/licensing/`: SPDX detection and the host x prey verdict matrix.
+- `src/hungry_crab/licensing/`: SPDX detection and the maw x prey verdict matrix.
 - `src/hungry_crab/digest.py`: orchestrator, budgets, `manifest.json`.
 - `src/hungry_crab/compare/`: trait rules, candidate builders, scoring (`data/scoring.yml`),
   gap.md and menu.md rendering; `nutrients.py` is the card schema.
-- `src/hungry_crab/host.py`, `ledger.py`, `serve.py`, `tune.py`: `.crab.yml`, the ledger, issue
+- `src/hungry_crab/maw.py`, `ledger.py`, `serve.py`, `tune.py`: `.crab.yml`, the ledger, issue
   creation through gh, weight suggestions from the ledger.
 - `src/hungry_crab/mdutil.py`, `tokens.py`, `safety.py`: Markdown builder with a token budget,
   token estimate, prompt-injection heuristics.
@@ -41,7 +43,7 @@ in `docs/design/`; follow it instead of re-deriving decisions. The decisions log
 uv sync
 uv run pytest
 uv run ruff check . && uv run ruff format . && uv run mypy
-uv run crab digest . --out /tmp/self-digest --host-license MIT
+uv run crab digest . --out /tmp/self-digest --maw-license MIT
 ```
 
 ## Rules
@@ -59,7 +61,7 @@ uv run crab digest . --out /tmp/self-digest --host-license MIT
 7. Digest files are budgeted: Markdown at most 3,500 tokens per file by default. Full data goes to
    JSON, summaries to Markdown; `MdDoc` trims low-priority sections automatically.
 8. Type hints everywhere; `mypy --strict` and `ruff` must pass.
-9. Nutrient ids are host-relative and stable (`crab:<category>:<key>`); prey-specific lessons
+9. Nutrient ids are maw-relative and stable (`crab:<category>:<key>`); prey-specific lessons
    carry the prey slug in the key. Never change an existing key without a ledger migration.
 10. Skills describe the protocol, the CLI does the work: put new deterministic logic into the
     CLI and keep `SKILL.md` files short.

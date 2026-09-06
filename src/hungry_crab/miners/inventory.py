@@ -485,7 +485,7 @@ def summarize(
         "files": len(files),
         # Files that are actually this repository's content. `files` also counts vendored and
         # generated trees, which a fresh clone of a prey does not have, so comparing the raw
-        # count against a prey's makes a host with a .venv look enormous.
+        # count against a prey's makes a maw with a .venv look enormous.
         "files_counted": len(counted),
         "dirs": stats["dirs"],
         "bytes": bytes_total,

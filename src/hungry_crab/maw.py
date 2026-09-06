@@ -1,4 +1,4 @@
-"""Host-side configuration (``.crab.yml``) and the identity of the host repository."""
+"""Maw-side configuration (``.crab.yml``) and the identity of the maw repository."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from .cache import Slug, host_paths
+from .cache import Slug, maw_paths
 from .errors import CrabError, UsageError
 from .fetch.git import GitRunner
 from .typeutil import as_dict, as_list
@@ -16,10 +16,10 @@ from .typeutil import as_dict, as_list
 CONFIG_FILE = ".crab.yml"
 LEDGER_MODES = ("repo", "cache", "none")
 SERVE_MODES = ("auto", "ask", "off")
-HOST_MODES = ("normal", "strict")
+MAW_MODES = ("normal", "strict")
 DEFAULT_LABEL = "hungry-crab"
 
-DEFAULT_APPETITE: dict[str, Any] = {
+DEFAULT_HUNGER: dict[str, Any] = {
     "security": True,
     "ci": True,
     "tests": True,
@@ -35,10 +35,10 @@ DEFAULT_APPETITE: dict[str, Any] = {
 }
 
 DEFAULT_CONFIG_TEXT = """\
-# Hungry Crab host configuration. Every key is optional; these are the defaults.
+# Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
 mode: normal               # normal | strict (strict never copies code, only configs and templates)
-appetite:                  # per nutrient category: true | false | issues-only | ideas-only
+hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
   tests: true
@@ -69,7 +69,7 @@ scoring: {}                # overrides for data/scoring.yml sections; `crab tune
 """
 
 
-def _appetite_value(value: object) -> Any:
+def _hunger_value(value: object) -> Any:
     if isinstance(value, bool):
         return value
     text = str(value).strip().lower()
@@ -80,7 +80,7 @@ def _appetite_value(value: object) -> Any:
     if text in ("issues-only", "ideas-only"):
         return text
     raise UsageError(
-        f"invalid appetite value {value!r}",
+        f"invalid hunger value {value!r}",
         hint="use true, false, issues-only or ideas-only",
     )
 
@@ -112,12 +112,12 @@ class ServeSettings:
 
 
 @dataclass
-class HostConfig:
+class MawConfig:
     root: Path
     exists: bool = False
     license: str | None = None
     mode: str = "normal"
-    appetite: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_APPETITE))
+    hunger: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_HUNGER))
     ignore: list[str] = field(default_factory=list)
     serve: ServeSettings = field(default_factory=ServeSettings)
     attribution_file: str = "THIRD_PARTY_NOTICES.md"
@@ -130,7 +130,7 @@ class HostConfig:
         return self.root / CONFIG_FILE
 
     @classmethod
-    def load(cls, root: Path) -> HostConfig:
+    def load(cls, root: Path) -> MawConfig:
         config = cls(root=root.resolve())
         path = config.path
         if not path.is_file():
@@ -145,11 +145,17 @@ class HostConfig:
         license_value = data.get("license")
         if isinstance(license_value, str) and license_value.strip():
             config.license = license_value.strip()
-        config.mode = _choice(data.get("mode", "normal"), HOST_MODES, "mode")
-        appetite = dict(DEFAULT_APPETITE)
-        for key, value in as_dict(data.get("appetite")).items():
-            appetite[str(key)] = _appetite_value(value)
-        config.appetite = appetite
+        config.mode = _choice(data.get("mode", "normal"), MAW_MODES, "mode")
+        if "appetite" in data:
+            # Silently ignoring it would leave a maw eating things it had switched off.
+            raise UsageError(
+                f"{path} uses the old key 'appetite'",
+                hint="rename it to 'hunger'; the values are unchanged",
+            )
+        hunger = dict(DEFAULT_HUNGER)
+        for key, value in as_dict(data.get("hunger")).items():
+            hunger[str(key)] = _hunger_value(value)
+        config.hunger = hunger
         config.ignore = [str(pattern) for pattern in as_list(data.get("ignore"))]
         serve = as_dict(data.get("serve"))
         max_prs = serve.get("max_prs_per_run", 3)
@@ -175,7 +181,7 @@ class HostConfig:
         if self.ledger == "repo":
             return self.root / ".crab" / "ledger.json"
         if self.ledger == "cache":
-            return host_paths(self.root, cache_root).ledger_file
+            return maw_paths(self.root, cache_root).ledger_file
         return None
 
     def write_scoring(self, scoring: dict[str, Any]) -> Path:
@@ -201,7 +207,7 @@ def write_default_config(root: Path, *, force: bool = False) -> Path:
     return path
 
 
-def host_slug(root: Path) -> Slug | None:
+def maw_slug(root: Path) -> Slug | None:
     """The GitHub repository behind ``origin``, if there is one."""
     if not GitRunner.available():
         return None

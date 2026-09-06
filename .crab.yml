@@ -1,7 +1,7 @@
-# Hungry Crab host configuration. Every key is optional; these are the defaults.
+# Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
 mode: normal               # normal | strict (strict never copies code, only configs and templates)
-appetite:                  # per nutrient category: true | false | issues-only | ideas-only
+hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
   tests: true

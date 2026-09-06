@@ -52,7 +52,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest
       - name: Digest this repository (smoke test)
-        run: uv run crab digest . --out digest-out --host-license MIT
+        run: uv run crab digest . --out digest-out --maw-license MIT
       - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
         with:

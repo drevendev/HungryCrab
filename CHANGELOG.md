@@ -15,13 +15,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   process is not the uv tool install that would be replaced, because uv cannot replace the crab
   while it is running.
 - Two nutrients the second live meal showed were missing. `hygiene.notice-file`: the prey keeps a
-  NOTICE file for third-party attribution and the host does not, which matters for a tool whose
+  NOTICE file for third-party attribution and the maw does not, which matters for a tool whose
   own verdicts say `notice_required`. `ai-config.skills-corpus`: the prey ships far more agent
-  skills than the host, so its corpus is worth reading even though the host has skills of its
+  skills than the maw, so its corpus is worth reading even though the maw has skills of its
   own. Every other `ai-config` rule asks a yes/no question, so eating the official skills
   repository used to produce no `ai-config` candidate at all.
 - The crab can file issues into a repository it does not own, and under its own name.
-  `serve.token_env` in a host's `.crab.yml` names an environment variable holding the token to
+  `serve.token_env` in a maw's `.crab.yml` names an environment variable holding the token to
   serve with, so a GitHub App installation token gives the issues a bot's identity instead of a
   maintainer's; `crab serve --as issue` opens by saying which identity it is using. Creating a
   label needs write access where opening an issue does not, so a label the crab cannot create is
@@ -30,6 +30,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A digest describes one repository; a meal describes a pair.** `crab compare` used to write
+  `menu.md`, `gap.md` and `compare.json` into the prey's digest, which every maw that eats that
+  prey shares — so a second maw silently overwrote the first one's menu, and the licence verdict,
+  which depends on the maw's own licence, was recorded as if it were a fact about the prey. The
+  comparison now lands in `maws/<maw>/meals/<prey>@<sha>/` as `menu.md`, `menu.json`, `gap.md`
+  and `meal.json`. `crab menu` takes `--maw`, because a menu belongs to one.
+- `applicability` is `uptake`, the term nutrition already uses for the fraction of a nutrient
+  that is actually absorbed.
+- `docs/design/GLOSSARY.md`: every term in one place, with the words that were replaced and why.
+  The vocabulary lived in seven documents, which is how "host" survived as long as it did.
+
+- **The repository the crab feeds is the maw, not the host.** In parasitology a host is what
+  gets eaten, which is the opposite of what this word had to mean here, and `--host` read like a
+  network address besides. Prey feeds the maw. `--host` is now `--maw`, `--host-license` is
+  `--maw-license`, `HostConfig` is `MawConfig`, `src/hungry_crab/host.py` is `maw.py`, and the
+  cache keeps local digests under `maws/` instead of `hosts/`. Old `--host` is gone rather than
+  deprecated: nothing is released yet, and two vocabularies cost more than one rename.
+- **`appetite` in `.crab.yml` is now `hunger`**, with the same values. A file that still says
+  `appetite` is a usage error rather than a silent default, because a maw quietly eating what it
+  had switched off is worse than a failed command.
+- The scheduled crab's first phase is `CRAVE`, not `HUNGER`, now that hunger is the name of a
+  configuration block ([`docs/design/07-scheduled-crab.md`](docs/design/07-scheduled-crab.md)).
 - README rewritten: what the crab is for, the vocabulary, install instructions for both Claude
   Code and Codex (both consume the same plugin marketplace), and the measured benchmark numbers.
   Installs track `master`; a release tag is opt-in.
@@ -42,9 +64,9 @@ repository.
 - `ignore` in `.crab.yml` was parsed and read by nothing, so the crab digesting itself reported
   three ecosystems, eslint and twelve test frameworks, all from `tests/fixtures`. Because it
   believed it already measured coverage, the coverage nutrient never appeared.
-- A tool of a kind the host already has is no longer a candidate: `ty` was ranked first on a host
+- A tool of a kind the maw already has is no longer a candidate: `ty` was ranked first on a maw
   running `mypy --strict`. Swapping one type checker for another is a decision, not a nutrient.
-- The dependency diff now sees tools a host configures with a file rather than a pinned
+- The dependency diff now sees tools a maw configures with a file rather than a pinned
   dependency, and drops the library that merely implements a nutrient already on the menu
   (`pytest-cov` next to "Measure test coverage").
 - Issue lessons are capped at three clusters and three popular issues, sorted by size, and titled
@@ -52,9 +74,9 @@ repository.
   twenty-four candidates, all scored the same.
 - `crab compare` writes the resolved license verdict into the prey digest's `manifest.json`,
   which said `null` while `menu.md` said `COPY`.
-- An issue for a nutrient the host lacks entirely no longer reads "What this repository has: no".
-- The `eat` skill gained a step: check that the host column in `gap.md` describes this repository
-  before judging anything against it, and guidance to switch a whole category off in `appetite`
+- An issue for a nutrient the maw lacks entirely no longer reads "What this repository has: no".
+- The `eat` skill gained a step: check that the maw column in `gap.md` describes this repository
+  before judging anything against it, and guidance to switch a whole category off in `hunger`
   instead of rejecting its cards one by one.
 - A test corpus is no longer counted as the repository's own code. `github-linguist/linguist` is
   3390 sample files in four hundred languages against 32 files of Ruby, and the crab read it as
@@ -78,7 +100,7 @@ repository.
   the hypotheses, the frozen setup, the metrics, the golden set, and the threats to validity.
 - `docs/design/05-self-feeding.md`: the stage between 0.2 and 0.3. Milestone 0.2's exit criterion
   is only half met, because `/crab:eat` has never run in a live agent session. The document names
-  what the host is missing, lists twenty prey sniffed against an MIT host with their license
+  what the maw is missing, lists twenty prey sniffed against an MIT maw with their license
   modes, gives an order to eat them in, and says what to watch in the skill.
 
 ## [0.2.0] - 2026-09-06

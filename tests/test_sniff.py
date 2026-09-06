@@ -43,7 +43,7 @@ def test_permissive_prey_is_eatable() -> None:
     assert report.verdict == VERDICT_EAT
     assert report.license_spdx == "MIT"
     assert report.license_class == "permissive"
-    assert report.modes_by_host_class["gpl"] == "COPY"
+    assert report.modes_by_maw_class["gpl"] == "COPY"
     assert report.warnings == []
     assert report.suggestions == ["crab catch example/prey"]
     assert list(report.languages) == ["TypeScript", "CSS"]
@@ -53,13 +53,13 @@ def test_permissive_prey_is_eatable() -> None:
     assert "Next: crab catch example/prey" in text
 
 
-def test_copyleft_prey_needs_care_and_host_mode() -> None:
+def test_copyleft_prey_needs_care_and_maw_mode() -> None:
     gpl = {"key": "gpl-3.0", "name": "GNU General Public License v3.0", "spdx_id": "GPL-3.0"}
-    report = build_report(SLUG, _repo(license=gpl), {}, host_license="MIT", now=NOW)
+    report = build_report(SLUG, _repo(license=gpl), {}, maw_license="MIT", now=NOW)
     assert report.verdict == VERDICT_CAREFUL
     assert report.license_spdx == "GPL-3.0-only"
     assert report.mode == "REIMPLEMENT"
-    assert "Mode for host (MIT): REIMPLEMENT" in format_report(report)
+    assert "Mode for maw (MIT): REIMPLEMENT" in format_report(report)
 
 
 def test_custom_license_goes_to_a_human() -> None:
@@ -73,7 +73,7 @@ def test_custom_license_goes_to_a_human() -> None:
 def test_missing_license_means_ideas_only() -> None:
     report = build_report(SLUG, _repo(license=None), {}, now=NOW)
     assert report.verdict == VERDICT_IDEAS
-    assert report.modes_by_host_class["permissive"] == "IDEAS_ONLY"
+    assert report.modes_by_maw_class["permissive"] == "IDEAS_ONLY"
 
 
 def test_giant_archived_fork_gets_warnings() -> None:

@@ -1,7 +1,7 @@
 """Nutrient cards: the unit of value the crab serves.
 
-A card is a fact (what the prey has and the host lacks) plus judgment slots (why it matters for
-this host, how to do it) that a model fills in later. Ids are stable across runs: host-relative
+A card is a fact (what the prey has and the maw lacks) plus judgment slots (why it matters for
+this maw, how to do it) that a model fills in later. Ids are stable across runs: maw-relative
 nutrients are ``crab:<category>:<key>`` regardless of which prey suggested them, so the ledger
 and the issue markers deduplicate across prey; prey-specific lessons carry the prey in the key.
 """
@@ -28,7 +28,7 @@ CATEGORIES: tuple[str, ...] = (
     "architecture",
     "code",
 )
-ARTIFACTS: tuple[str, ...] = ("pr", "issue", "idea")
+SERVE_AS: tuple[str, ...] = ("pr", "issue", "idea")
 EFFORTS: tuple[str, ...] = ("S", "M", "L")
 RISKS: tuple[str, ...] = ("low", "medium", "high")
 STATUSES: tuple[str, ...] = ("proposed", "accepted", "rejected", "served", "merged", "ignored")
@@ -75,20 +75,20 @@ class Candidate:
     title: str
     what: str
     prey_state: str = ""
-    host_state: str = ""
-    artifact: str = "issue"
+    maw_state: str = ""
+    serve_as: str = "issue"
     effort: str = "M"
     risk: str = "low"
     value: float = 0.5
-    applicability: float = 1.0
+    uptake: float = 1.0
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     license_mode: str = "HUMAN"
     score: float = 0.0
-    why_for_host: str = ""
+    why: str = ""
     how: str = ""
     status: str = "proposed"
-    provenance: dict[str, Any] = field(default_factory=dict)
+    trace: dict[str, Any] = field(default_factory=dict)
 
     @property
     def id(self) -> str:
@@ -114,8 +114,8 @@ class Candidate:
 
 
 def merge_notes(card: Candidate, notes: dict[str, Any]) -> Candidate:
-    """Apply model-written fields (title, why_for_host, how, artifact, ...) onto a card."""
-    for key in ("title", "what", "why_for_host", "how", "artifact", "effort", "risk"):
+    """Apply model-written fields (title, why, how, serve_as, ...) onto a card."""
+    for key in ("title", "what", "why", "how", "serve_as", "effort", "risk"):
         value = notes.get(key)
         if isinstance(value, str) and value.strip():
             setattr(card, key, value.strip())

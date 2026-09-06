@@ -1,4 +1,4 @@
-"""Turn two digests (prey and host) into candidate nutrients. Facts only, no judgment."""
+"""Turn two digests (prey and maw) into candidate nutrients. Facts only, no judgment."""
 
 from __future__ import annotations
 
@@ -18,11 +18,11 @@ MAX_ISSUE_CLUSTERS = 3
 MAX_TOP_ISSUES = 3
 
 # How far ahead a prey's skills corpus must be before reading it is worth a card, in absolute
-# count and as a multiple of the host's.
+# count and as a multiple of the maw's.
 MIN_SKILL_LEAD = 5
 SKILL_LEAD_RATIO = 3
 
-# Tools a host uses through a config file rather than a pinned dependency. Without this the
+# Tools a maw uses through a config file rather than a pinned dependency. Without this the
 # dependency diff proposes pre-commit to a repository whose .pre-commit-config.yaml is right
 # there in the root.
 TRAIT_IMPLIES_PACKAGE: dict[str, str] = {
@@ -259,22 +259,22 @@ def _rule_evidence(rule: TraitRule, prey: Side) -> list[Evidence]:
     return []
 
 
-def applicability_kind(prey: Side, host: Side, *, stack_bound: bool) -> str:
+def uptake_kind(prey: Side, maw: Side, *, stack_bound: bool) -> str:
     if not stack_bound:
         return "same_stack"
-    return "same_stack" if prey.ecosystems & host.ecosystems else "other_stack"
+    return "same_stack" if prey.ecosystems & maw.ecosystems else "other_stack"
 
 
-def trait_rule_candidates(prey: Side, host: Side) -> list[Candidate]:
+def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
     out: list[Candidate] = []
     for rule in TRAIT_RULES:
         prey_value = prey.trait(rule.trait)
-        host_value = host.trait(rule.trait)
-        if not _truthy(prey_value) or _truthy(host_value):
+        maw_value = maw.trait(rule.trait)
+        if not _truthy(prey_value) or _truthy(maw_value):
             continue
-        if any(not _truthy(host.trait(name)) for name in rule.needs_host):
+        if any(not _truthy(maw.trait(name)) for name in rule.needs_maw):
             continue
-        if rule.stack_bound and not (prey.ecosystems & host.ecosystems):
+        if rule.stack_bound and not (prey.ecosystems & maw.ecosystems):
             continue
         out.append(
             Candidate(
@@ -283,8 +283,8 @@ def trait_rule_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=rule.title,
                 what=f"{prey.label} {_fill(rule.what, prey.traits)}",
                 prey_state=_fmt(prey_value),
-                host_state=_fmt(host_value),
-                artifact=rule.artifact,
+                maw_state=_fmt(maw_value),
+                serve_as=rule.serve_as,
                 effort=rule.effort,
                 risk=rule.risk,
                 value=rule.value,
@@ -295,7 +295,7 @@ def trait_rule_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
+def tool_candidates(prey: Side, maw: Side) -> list[Candidate]:
     out: list[Candidate] = []
     for kind, title in (
         ("linters", "Adopt the linter {tool}"),
@@ -303,15 +303,15 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
         ("type_checkers", "Adopt the type checker {tool}"),
     ):
         prey_tools = {str(t) for t in as_list(prey.trait(kind))}
-        host_tools = {str(t) for t in as_list(host.trait(kind))}
-        if host_tools:
-            # The host already has a tool of this kind, so the prey's is an alternative, not a
+        maw_tools = {str(t) for t in as_list(maw.trait(kind))}
+        if maw_tools:
+            # The maw already has a tool of this kind, so the prey's is an alternative, not a
             # gap. Swapping mypy for ty is a decision, not a nutrient, and proposing it buries
             # the candidates that fill an actual hole.
             continue
         for tool in sorted(prey_tools):
             ecosystem = TOOL_ECOSYSTEM.get(tool)
-            if ecosystem is None or ecosystem not in host.ecosystems:
+            if ecosystem is None or ecosystem not in maw.ecosystems:
                 continue
             out.append(
                 Candidate(
@@ -320,8 +320,8 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                     title=title.format(tool=tool),
                     what=f"{prey.label} uses {tool} ({kind.replace('_', ' ')})",
                     prey_state=", ".join(sorted(prey_tools)),
-                    host_state="none",
-                    artifact="pr",
+                    maw_state="none",
+                    serve_as="pr",
                     effort="M" if kind == "type_checkers" else "S",
                     risk="low",
                     value=0.7,
@@ -329,8 +329,8 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                 )
             )
     prey_strict = prey.trait("typescript_strict")
-    host_strict = host.trait("typescript_strict")
-    if prey_strict is True and host_strict is False:
+    maw_strict = maw.trait("typescript_strict")
+    if prey_strict is True and maw_strict is False:
         out.append(
             Candidate(
                 category="tooling",
@@ -338,8 +338,8 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title="Enable TypeScript strict mode",
                 what=f"{prey.label} compiles with strict: true",
                 prey_state="strict",
-                host_state="not strict",
-                artifact="pr",
+                maw_state="not strict",
+                serve_as="pr",
                 effort="M",
                 risk="medium",
                 value=0.6,
@@ -349,7 +349,7 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
         )
     task_runners = ("has_makefile", "has_justfile", "has_taskfile")
     if any(_truthy(prey.trait(t)) for t in task_runners) and not any(
-        _truthy(host.trait(t)) for t in task_runners
+        _truthy(maw.trait(t)) for t in task_runners
     ):
         which = [t.removeprefix("has_") for t in task_runners if _truthy(prey.trait(t))]
         out.append(
@@ -359,8 +359,8 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title="Add a task runner for common commands",
                 what=f"{prey.label} uses {', '.join(which)}",
                 prey_state=", ".join(which),
-                host_state="none",
-                artifact="issue",
+                maw_state="none",
+                serve_as="issue",
                 effort="S",
                 risk="low",
                 value=0.4,
@@ -375,9 +375,9 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
         "has_tool_versions": ("*", "tooling.tool-versions", "Pin tool versions with mise or asdf"),
     }  # fmt: skip
     for trait, (ecosystem, key, title) in pins.items():
-        if not _truthy(prey.trait(trait)) or _truthy(host.trait(trait)):
+        if not _truthy(prey.trait(trait)) or _truthy(maw.trait(trait)):
             continue
-        if ecosystem != "*" and ecosystem not in host.ecosystems:
+        if ecosystem != "*" and ecosystem not in maw.ecosystems:
             continue
         out.append(
             Candidate(
@@ -386,8 +386,8 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=title,
                 what=f"{prey.label} pins its runtime version ({trait.removeprefix('has_')})",
                 prey_state="yes",
-                host_state="no",
-                artifact="pr",
+                maw_state="no",
+                serve_as="pr",
                 effort="S",
                 risk="low",
                 value=0.4,
@@ -397,36 +397,36 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def ai_config_candidates(prey: Side, host: Side) -> list[Candidate]:
+def ai_config_candidates(prey: Side, maw: Side) -> list[Candidate]:
     """Counts, not booleans.
 
-    Every other `ai-config` rule asks whether the host has the file at all, so a host that
+    Every other `ai-config` rule asks whether the maw has the file at all, so a maw that
     ships three skills learns nothing from a corpus of twenty. Eating `anthropics/skills`
     produced no `ai-config` candidate at all, which is the opposite of why one would eat it.
     """
     out: list[Candidate] = []
     prey_skills = prey.trait("skills_count")
-    host_skills = host.trait("skills_count")
+    maw_skills = maw.trait("skills_count")
     if (
         isinstance(prey_skills, int)
-        and isinstance(host_skills, int)
-        and host_skills > 0
-        and prey_skills - host_skills >= MIN_SKILL_LEAD
-        and prey_skills >= host_skills * SKILL_LEAD_RATIO
+        and isinstance(maw_skills, int)
+        and maw_skills > 0
+        and prey_skills - maw_skills >= MIN_SKILL_LEAD
+        and prey_skills >= maw_skills * SKILL_LEAD_RATIO
     ):
         out.append(
             Candidate(
                 category="ai-config",
                 key="ai-config.skills-corpus",
-                title=f"Measure your {host_skills} skills against {prey.label}'s {prey_skills}",
+                title=f"Measure your {maw_skills} skills against {prey.label}'s {prey_skills}",
                 what=(
                     f"{prey.label} ships {prey_skills} skills where this repository ships "
-                    f"{host_skills}: a corpus wide enough to show what a SKILL.md is expected "
+                    f"{maw_skills}: a corpus wide enough to show what a SKILL.md is expected "
                     "to carry, and where yours are thin"
                 ),
                 prey_state=f"{prey_skills} skills",
-                host_state=f"{host_skills} skills",
-                artifact="idea",
+                maw_state=f"{maw_skills} skills",
+                serve_as="idea",
                 effort="M",
                 risk="low",
                 value=0.6,
@@ -437,12 +437,12 @@ def ai_config_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def readme_candidates(prey: Side, host: Side) -> list[Candidate]:
-    if not _truthy(host.trait("has_readme")) or not _truthy(prey.trait("has_readme")):
+def readme_candidates(prey: Side, maw: Side) -> list[Candidate]:
+    if not _truthy(maw.trait("has_readme")) or not _truthy(prey.trait("has_readme")):
         return []
     prey_sections = {str(s) for s in as_list(prey.trait("readme_sections"))}
-    host_sections = {str(s) for s in as_list(host.trait("readme_sections"))}
-    missing = sorted(prey_sections - host_sections)
+    maw_sections = {str(s) for s in as_list(maw.trait("readme_sections"))}
+    missing = sorted(prey_sections - maw_sections)
     out: list[Candidate] = []
     if len(missing) >= 2:
         out.append(
@@ -452,8 +452,8 @@ def readme_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"README: add {', '.join(missing)} sections",
                 what=f"{prey.label}'s README covers {', '.join(sorted(prey_sections))}",
                 prey_state=", ".join(sorted(prey_sections)),
-                host_state=", ".join(sorted(host_sections)) or "none",
-                artifact="pr",
+                maw_state=", ".join(sorted(maw_sections)) or "none",
+                serve_as="pr",
                 effort="S",
                 risk="low",
                 value=0.5,
@@ -465,7 +465,7 @@ def readme_candidates(prey: Side, host: Side) -> list[Candidate]:
     if (
         isinstance(prey_badges, int)
         and prey_badges >= 2
-        and not _truthy(host.trait("readme_badges"))
+        and not _truthy(maw.trait("readme_badges"))
     ):
         out.append(
             Candidate(
@@ -474,8 +474,8 @@ def readme_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title="README: add status badges",
                 what=f"{prey.label}'s README shows {prey_badges} badges",
                 prey_state=str(prey_badges),
-                host_state="0",
-                artifact="pr",
+                maw_state="0",
+                serve_as="pr",
                 effort="S",
                 risk="low",
                 value=0.3,
@@ -485,14 +485,14 @@ def readme_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def test_candidates(prey: Side, host: Side) -> list[Candidate]:
+def test_candidates(prey: Side, maw: Side) -> list[Candidate]:
     out: list[Candidate] = []
-    if not _truthy(host.trait("has_tests")):
+    if not _truthy(maw.trait("has_tests")):
         return out
     frameworks = as_dict(prey.testing.get("frameworks"))
-    same_stack = bool(prey.ecosystems & host.ecosystems)
+    same_stack = bool(prey.ecosystems & maw.ecosystems)
     for trait, (kind, effort, title) in TEST_KIND_TRAITS.items():
-        if not _truthy(prey.trait(trait)) or _truthy(host.trait(trait)):
+        if not _truthy(prey.trait(trait)) or _truthy(maw.trait(trait)):
             continue
         used = sorted(name for name, k in frameworks.items() if k == kind)
         out.append(
@@ -502,20 +502,20 @@ def test_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=title,
                 what=f"{prey.label} has {kind} tests" + (f" ({', '.join(used)})" if used else ""),
                 prey_state="yes",
-                host_state="no",
-                artifact="issue",
+                maw_state="no",
+                serve_as="issue",
                 effort=effort,
                 risk="medium" if kind in ("e2e", "mutation") else "low",
                 value=0.7 if kind in ("e2e", "property", "integration") else 0.5,
-                applicability=1.0 if same_stack else 0.6,
+                uptake=1.0 if same_stack else 0.6,
                 tags=[trait, *used],
             )
         )
     prey_threshold = prey.trait("coverage_threshold")
     if (
         isinstance(prey_threshold, int)
-        and _truthy(host.trait("coverage_configured"))
-        and not _truthy(host.trait("coverage_threshold"))
+        and _truthy(maw.trait("coverage_configured"))
+        and not _truthy(maw.trait("coverage_threshold"))
     ):
         out.append(
             Candidate(
@@ -524,8 +524,8 @@ def test_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"Fail CI below a coverage threshold ({prey_threshold}%)",
                 what=f"{prey.label} enforces {prey_threshold}% coverage",
                 prey_state=f"{prey_threshold}%",
-                host_state="coverage measured, no threshold",
-                artifact="pr",
+                maw_state="coverage measured, no threshold",
+                serve_as="pr",
                 effort="S",
                 risk="low",
                 value=0.6,
@@ -535,18 +535,18 @@ def test_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def commit_candidates(prey: Side, host: Side) -> list[Candidate]:
+def commit_candidates(prey: Side, maw: Side) -> list[Candidate]:
     out: list[Candidate] = []
-    host_commits = host.trait("commits")
-    if not isinstance(host_commits, int) or host_commits < 10:
+    maw_commits = maw.trait("commits")
+    if not isinstance(maw_commits, int) or maw_commits < 10:
         return out
     prey_ratio = prey.trait("conventional_commits_ratio")
-    host_ratio = host.trait("conventional_commits_ratio")
+    maw_ratio = maw.trait("conventional_commits_ratio")
     if (
         isinstance(prey_ratio, float)
         and prey_ratio >= 0.7
-        and isinstance(host_ratio, float)
-        and host_ratio < 0.4
+        and isinstance(maw_ratio, float)
+        and maw_ratio < 0.4
     ):
         out.append(
             Candidate(
@@ -555,15 +555,15 @@ def commit_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title="Adopt Conventional Commits",
                 what=f"{prey.label} writes {prey_ratio * 100:.0f}% conventional commit subjects",
                 prey_state=f"{prey_ratio * 100:.0f}%",
-                host_state=f"{host_ratio * 100:.0f}%",
-                artifact="issue",
+                maw_state=f"{maw_ratio * 100:.0f}%",
+                serve_as="issue",
                 effort="S",
                 risk="low",
                 value=0.6,
                 tags=["conventional_commits_ratio"],
             )
         )
-    if _truthy(prey.trait("semver_tags")) and not _truthy(host.trait("semver_tags")):
+    if _truthy(prey.trait("semver_tags")) and not _truthy(maw.trait("semver_tags")):
         latest = prey.trait("latest_tag")
         out.append(
             Candidate(
@@ -574,8 +574,8 @@ def commit_candidates(prey: Side, host: Side) -> list[Candidate]:
                     f"{prey.label} tags releases ({prey.trait('tag_count')} tags, latest {latest})"
                 ),
                 prey_state=str(latest),
-                host_state="no semver tags",
-                artifact="issue",
+                maw_state="no semver tags",
+                serve_as="issue",
                 effort="S",
                 risk="low",
                 value=0.5,
@@ -585,7 +585,7 @@ def commit_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def changelog_candidates(prey: Side, host: Side) -> list[Candidate]:
+def changelog_candidates(prey: Side, maw: Side) -> list[Candidate]:
     structured = {
         "keep-a-changelog",
         "conventional-changelog",
@@ -594,12 +594,12 @@ def changelog_candidates(prey: Side, host: Side) -> list[Candidate]:
         "git-cliff",
     }
     prey_format = prey.trait("changelog_format")
-    host_format = host.trait("changelog_format")
+    maw_format = maw.trait("changelog_format")
     if (
         isinstance(prey_format, str)
         and prey_format in structured
-        and isinstance(host_format, str)
-        and host_format not in structured
+        and isinstance(maw_format, str)
+        and maw_format not in structured
     ):
         return [
             Candidate(
@@ -608,8 +608,8 @@ def changelog_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"Structure the changelog ({prey_format})",
                 what=f"{prey.label} keeps a {prey_format} changelog",
                 prey_state=prey_format,
-                host_state=host_format,
-                artifact="issue",
+                maw_state=maw_format,
+                serve_as="issue",
                 effort="S",
                 risk="low",
                 value=0.4,
@@ -620,32 +620,32 @@ def changelog_candidates(prey: Side, host: Side) -> list[Candidate]:
     return []
 
 
-def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, list[str]]]:
+def deps_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, list[str]]]:
     """Notable dependencies get their own card; everything else is one grouped idea card."""
     out: list[Candidate] = []
     only_in_prey: dict[str, list[str]] = {}
     prey_packages = [as_dict(p) for p in as_list(prey.deps.get("packages"))]
-    host_names = {
+    maw_names = {
         (str(p.get("ecosystem")), str(p.get("name")).lower())
-        for p in (as_dict(x) for x in as_list(host.deps.get("packages")))
+        for p in (as_dict(x) for x in as_list(maw.deps.get("packages")))
     }
-    host_tools = {
+    maw_tools = {
         str(t).lower()
         for kind in ("linters", "formatters", "type_checkers", "test_frameworks")
-        for t in as_list(host.trait(kind))
+        for t in as_list(maw.trait(kind))
     }
     # A tool configured by a file rather than pinned as a dependency is still in use here.
-    host_tools |= {
-        package for trait, package in TRAIT_IMPLIES_PACKAGE.items() if _truthy(host.trait(trait))
+    maw_tools |= {
+        package for trait, package in TRAIT_IMPLIES_PACKAGE.items() if _truthy(maw.trait(trait))
     }
-    for ecosystem in sorted(prey.ecosystems & host.ecosystems):
+    for ecosystem in sorted(prey.ecosystems & maw.ecosystems):
         names = sorted(
             {
                 str(p.get("name"))
                 for p in prey_packages
                 if p.get("ecosystem") == ecosystem
                 and p.get("kind") not in ("central", "indirect")
-                and (ecosystem, str(p.get("name")).lower()) not in host_names
+                and (ecosystem, str(p.get("name")).lower()) not in maw_names
             }
         )
         if not names:
@@ -655,7 +655,7 @@ def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, 
         rest: list[str] = []
         for name in names:
             description = notable.get(name)
-            if description is None or name.lower() in host_tools:
+            if description is None or name.lower() in maw_tools:
                 rest.append(name)
                 continue
             out.append(
@@ -665,8 +665,8 @@ def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, 
                     title=f"Consider {name} ({description})",
                     what=f"{prey.label} depends on {name}: {description}",
                     prey_state=name,
-                    host_state="not used",
-                    artifact="issue",
+                    maw_state="not used",
+                    serve_as="issue",
                     effort="S",
                     risk="low",
                     value=0.5,
@@ -682,8 +682,8 @@ def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, 
                     what=f"{prey.label} also uses: {', '.join(rest[:30])}"
                     + (" ..." if len(rest) > 30 else ""),
                     prey_state=f"{len(rest)} packages",
-                    host_state="not used",
-                    artifact="idea",
+                    maw_state="not used",
+                    serve_as="idea",
                     effort="M",
                     risk="low",
                     value=0.3,
@@ -693,7 +693,7 @@ def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, 
     return out, only_in_prey
 
 
-def history_candidates(prey: Side, host: Side) -> list[Candidate]:
+def history_candidates(prey: Side, maw: Side) -> list[Candidate]:
     if not _truthy(prey.history.get("available")):
         return []
     slug = slugify(prey.label)
@@ -716,8 +716,8 @@ def history_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"Lessons from {prey.label}'s history: fix-prone areas",
                 what=what,
                 prey_state=f"{len(fix_prone)} fix-prone files, {reverts} reverts",
-                host_state="n/a (lesson, not a gap)",
-                artifact="issue",
+                maw_state="n/a (lesson, not a gap)",
+                serve_as="issue",
                 effort="M",
                 risk="low",
                 value=0.6,
@@ -737,8 +737,8 @@ def history_candidates(prey: Side, host: Side) -> list[Candidate]:
                     "their subjects are in history.json"
                 ),
                 prey_state=str(security),
-                host_state="n/a (lesson, not a gap)",
-                artifact="idea",
+                maw_state="n/a (lesson, not a gap)",
+                serve_as="idea",
                 effort="M",
                 risk="low",
                 value=0.6,
@@ -748,7 +748,7 @@ def history_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
+def issue_candidates(prey: Side, maw: Side) -> list[Candidate]:
     """Issue lessons are the noisiest category, so only the strongest few are proposed.
 
     An unbounded list of term-cluster candidates floods the menu: the first live meal produced
@@ -773,8 +773,8 @@ def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"Recurring pain in {prey.label}: {headline}",
                 what=f"{size} issues cluster around {terms}; the largest is: {headline}",
                 prey_state=f"{size} issues, {data.get('reactions') or 0} reactions",
-                host_state="n/a (lesson, not a gap)",
-                artifact="idea",
+                maw_state="n/a (lesson, not a gap)",
+                serve_as="idea",
                 effort="M",
                 risk="low",
                 value=0.5,
@@ -795,8 +795,8 @@ def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
                 title=f"Popular request in {prey.label}: {title[:80]}",
                 what=f"issue #{number} has {reactions} reactions",
                 prey_state=f"{reactions} reactions",
-                host_state="n/a (lesson, not a gap)",
-                artifact="idea",
+                maw_state="n/a (lesson, not a gap)",
+                serve_as="idea",
                 effort="M",
                 risk="low",
                 value=0.5,
@@ -809,7 +809,7 @@ def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
     return out
 
 
-def architecture_candidates(prey: Side, host: Side) -> list[Candidate]:
+def architecture_candidates(prey: Side, maw: Side) -> list[Candidate]:
     if not _truthy(prey.architecture.get("available")):
         return []
     graph = as_dict(prey.architecture.get("graph"))
@@ -823,8 +823,8 @@ def architecture_candidates(prey: Side, host: Side) -> list[Candidate]:
             title=f"Architecture of {prey.label}: hubs and layering (raw material)",
             what="import-graph hubs: " + ", ".join(str(h.get("path")) for h in hubs),
             prey_state=f"{len(hubs)} hubs",
-            host_state="n/a (raw material for the architect)",
-            artifact="idea",
+            maw_state="n/a (raw material for the architect)",
+            serve_as="idea",
             effort="L",
             risk="low",
             value=0.4,
@@ -834,21 +834,21 @@ def architecture_candidates(prey: Side, host: Side) -> list[Candidate]:
     ]
 
 
-def build_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, Any]]:
+def build_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, Any]]:
     """All candidates (deduplicated by id) plus extra facts for gap.md."""
-    deps, only_in_prey = deps_candidates(prey, host)
+    deps, only_in_prey = deps_candidates(prey, maw)
     groups = [
-        trait_rule_candidates(prey, host),
-        tool_candidates(prey, host),
-        ai_config_candidates(prey, host),
-        readme_candidates(prey, host),
-        test_candidates(prey, host),
-        commit_candidates(prey, host),
-        changelog_candidates(prey, host),
+        trait_rule_candidates(prey, maw),
+        tool_candidates(prey, maw),
+        ai_config_candidates(prey, maw),
+        readme_candidates(prey, maw),
+        test_candidates(prey, maw),
+        commit_candidates(prey, maw),
+        changelog_candidates(prey, maw),
         deps,
-        history_candidates(prey, host),
-        issue_candidates(prey, host),
-        architecture_candidates(prey, host),
+        history_candidates(prey, maw),
+        issue_candidates(prey, maw),
+        architecture_candidates(prey, maw),
     ]
     seen: set[str] = set()
     out: list[Candidate] = []

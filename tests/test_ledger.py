@@ -25,19 +25,19 @@ MENU = {
 
 def _cards() -> list[Candidate]:
     cards = [
-        Candidate("ci", "ci.cache", "Cache", "caches", artifact="pr"),
-        Candidate("tooling", "tooling.dependabot", "Dependabot", "bot", artifact="pr"),
-        Candidate("docs", "docs.site", "Docs site", "site", artifact="issue"),
+        Candidate("ci", "ci.cache", "Cache", "caches", serve_as="pr"),
+        Candidate("tooling", "tooling.dependabot", "Dependabot", "bot", serve_as="pr"),
+        Candidate("docs", "docs.site", "Docs site", "site", serve_as="issue"),
     ]
     for index, card in enumerate(cards):
         card.score = 0.9 - index * 0.1
-        card.provenance = {"prey": "example/prey", "sha": "a" * 40}
+        card.trace = {"prey": "example/prey", "sha": "a" * 40}
     return cards
 
 
 def test_record_mark_hide_and_roundtrip(tmp_path: Path) -> None:
     path = tmp_path / ".crab" / "ledger.json"
-    ledger = Ledger.load(path, host="host")
+    ledger = Ledger.load(path, maw="maw")
     assert ledger.entries == {} and ledger.meals == []
     assert ledger.record_meal(MENU, _cards(), now=NOW) == 3
     assert ledger.record_meal(MENU, _cards()[:2], now=LATER) == 0
@@ -72,10 +72,10 @@ def test_record_mark_hide_and_roundtrip(tmp_path: Path) -> None:
     assert saved == path and path.is_file()
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data["schema"] == LEDGER_SCHEMA
-    assert data["host"] == "host"
+    assert data["maw"] == "maw"
     assert [e["id"] for e in data["entries"]] == sorted(e["id"] for e in data["entries"])
     reloaded = Ledger.load(path)
-    assert reloaded.host == "host"
+    assert reloaded.maw == "maw"
     assert reloaded.entries["crab:ci:ci.cache"].reason == "we use a different cache"
     assert reloaded.meals[0].prey == "example/prey" and reloaded.meals[0].mode == "COPY"
     stats = reloaded.stats()
@@ -86,7 +86,7 @@ def test_record_mark_hide_and_roundtrip(tmp_path: Path) -> None:
 
 
 def test_ledger_without_a_path_stays_in_memory() -> None:
-    ledger = Ledger(None, host="h")
+    ledger = Ledger(None, maw="h")
     ledger.record_meal(MENU, _cards(), now=NOW)
     assert ledger.save() is None
     assert ledger.ensure(_cards()[0]).id == "crab:ci:ci.cache"

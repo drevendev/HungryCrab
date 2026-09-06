@@ -9,10 +9,10 @@ from conftest import FIXED_NOW
 from helpers import copy_repo, read_json, write_tree
 
 from hungry_crab.cache import Target
-from hungry_crab.compare import compare_for_host
+from hungry_crab.compare import compare_for_maw
 from hungry_crab.digest import DigestOptions, run_digest
 from hungry_crab.fs import is_ignored
-from hungry_crab.host import CONFIG_FILE
+from hungry_crab.maw import CONFIG_FILE
 
 
 @pytest.mark.parametrize(
@@ -37,44 +37,44 @@ def test_is_ignored(path: str, patterns: list[str], expected: bool) -> None:
 def test_a_tree_under_an_unconventional_name_still_needs_ignore(
     npm_app: Path, tmp_path: Path
 ) -> None:
-    """The failing case that started this: a host whose fixtures are foreign stacks.
+    """The failing case that started this: a maw whose fixtures are foreign stacks.
 
     `fixtures` and `samples` are now excluded by name (see `mark_sample_corpora`), so the
     failing shape has to be spelled with a directory no convention covers.
     """
-    host = tmp_path / "host"
+    maw = tmp_path / "maw"
     write_tree(
-        host,
+        maw,
         {
             "pyproject.toml": '[project]\nname = "thing"\nversion = "0.1.0"\n',
             "src/thing/__init__.py": "x = 1\n",
         },
     )
-    copy_repo(npm_app, host / "tests" / "embedded" / "npm-app")
-    result = run_digest(Target(path=host), DigestOptions(out=tmp_path / "d1", now=FIXED_NOW))
+    copy_repo(npm_app, maw / "tests" / "embedded" / "npm-app")
+    result = run_digest(Target(path=maw), DigestOptions(out=tmp_path / "d1", now=FIXED_NOW))
     traits = read_json(result, "traits.json")["traits"]
-    assert "npm" in traits["ecosystems"], "without ignore the tree counts as the host's stack"
+    assert "npm" in traits["ecosystems"], "without ignore the tree counts as the maw's stack"
     assert "eslint" in traits["linters"]
     assert traits["has_e2e_tests"] is True
 
 
 def test_ignore_keeps_the_fixtures_out_of_the_digest(npm_app: Path, tmp_path: Path) -> None:
-    host = tmp_path / "host"
+    maw = tmp_path / "maw"
     write_tree(
-        host,
+        maw,
         {
             "pyproject.toml": '[project]\nname = "thing"\nversion = "0.1.0"\n',
             "src/thing/__init__.py": "x = 1\n",
             CONFIG_FILE: "ignore:\n  - tests/fixtures/**\n",
         },
     )
-    copy_repo(npm_app, host / "tests" / "fixtures" / "npm-app")
-    result = run_digest(Target(path=host), DigestOptions(out=tmp_path / "d2", now=FIXED_NOW))
+    copy_repo(npm_app, maw / "tests" / "fixtures" / "npm-app")
+    result = run_digest(Target(path=maw), DigestOptions(out=tmp_path / "d2", now=FIXED_NOW))
     inventory = read_json(result, "inventory.json")
     traits = read_json(result, "traits.json")["traits"]
     assert inventory["ignored"]["patterns"] == ["tests/fixtures/**"]
     assert inventory["ignored"]["files"] > 20
-    assert traits["ecosystems"] == ["python"], "the npm fixture is not this host's stack"
+    assert traits["ecosystems"] == ["python"], "the npm fixture is not this maw's stack"
     assert traits["linters"] == [] and traits["formatters"] == []
     assert traits["has_e2e_tests"] is False
     assert traits["test_frameworks"] == []
@@ -84,29 +84,27 @@ def test_ignore_keeps_the_fixtures_out_of_the_digest(npm_app: Path, tmp_path: Pa
 
 
 def test_explicit_ignore_option_wins_over_the_config(npm_app: Path, tmp_path: Path) -> None:
-    host = tmp_path / "host"
-    write_tree(host, {"pyproject.toml": '[project]\nname = "t"\nversion = "0"\n'})
-    copy_repo(npm_app, host / "vendored")
+    maw = tmp_path / "maw"
+    write_tree(maw, {"pyproject.toml": '[project]\nname = "t"\nversion = "0"\n'})
+    copy_repo(npm_app, maw / "vendored")
     options = DigestOptions(out=tmp_path / "d3", now=FIXED_NOW, ignore=["vendored/**"])
-    result = run_digest(Target(path=host), options)
+    result = run_digest(Target(path=maw), options)
     assert read_json(result, "traits.json")["traits"]["ecosystems"] == ["python"]
 
 
-def test_compare_applies_the_host_ignore(
-    npm_app: Path, pyproject_cli: Path, tmp_path: Path
-) -> None:
-    """The prey keeps its whole tree; only the host's fixtures are excluded."""
-    host = copy_repo(pyproject_cli, tmp_path / "host")
-    copy_repo(npm_app, host / "tests" / "fixtures" / "npm-app")
-    write_tree(host, {CONFIG_FILE: "ignore:\n  - tests/fixtures/**\nledger: none\n"})
-    result, _, _, config = compare_for_host(
+def test_compare_applies_the_maw_ignore(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> None:
+    """The prey keeps its whole tree; only the maw's fixtures are excluded."""
+    maw = copy_repo(pyproject_cli, tmp_path / "maw")
+    copy_repo(npm_app, maw / "tests" / "fixtures" / "npm-app")
+    write_tree(maw, {CONFIG_FILE: "ignore:\n  - tests/fixtures/**\nledger: none\n"})
+    result, _, _, config = compare_for_maw(
         Target(path=npm_app),
-        host,
+        maw,
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache"),
         now=FIXED_NOW,
     )
     assert config.ignore == ["tests/fixtures/**"]
-    assert result.host.trait("ecosystems") == ["python"]
+    assert result.maw.trait("ecosystems") == ["python"]
     assert result.prey.trait("ecosystems") == ["npm"], "the prey is digested whole"
     ids = {c.id for c in result.candidates}
-    assert "crab:tooling:tooling.linter.eslint" not in ids, "the host is not an npm project"
+    assert "crab:tooling:tooling.linter.eslint" not in ids, "the maw is not an npm project"
