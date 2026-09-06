@@ -8,7 +8,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196.svg)](https://www.conventionalcommits.org)
 
-**Status: pre-release, milestone 0.2 "Menu".** The deterministic CLI digests a prey, compares
+**Status: 0.2.0 "Menu", the first release.** The deterministic CLI digests a prey, compares
 it with your repository, ranks the nutrients with a license verdict each, serves the approved
 ones as issues and remembers every decision. The Agent Skills and the Claude Code plugin sit on
 top. Pull-request serving and the clean-room protocol arrive with 0.3 (see the
