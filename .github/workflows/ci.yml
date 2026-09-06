@@ -51,6 +51,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked
       - run: uv run pytest
+      - name: Menu benchmark (B1)
+        run: uv run python benchmarks/menu_benchmark.py
       - name: Digest this repository (smoke test)
         run: uv run crab digest . --out digest-out --maw-license MIT
       - uses: actions/upload-artifact@v7

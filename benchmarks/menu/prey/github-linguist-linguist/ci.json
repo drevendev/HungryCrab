@@ -1,0 +1,393 @@
+{
+ "actions": {
+  "actions/attest-build-provenance": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v2"
+   ]
+  },
+  "actions/checkout": {
+   "count": 5,
+   "pinned_sha": false,
+   "refs": [
+    "v1",
+    "v2",
+    "v4"
+   ]
+  },
+  "actions/setup-go": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v6"
+   ]
+  },
+  "docker/build-push-action": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v6"
+   ]
+  },
+  "docker/login-action": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v3"
+   ]
+  },
+  "docker/metadata-action": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v5"
+   ]
+  },
+  "docker/setup-buildx-action": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v3"
+   ]
+  },
+  "dtolnay/rust-toolchain": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "stable"
+   ]
+  },
+  "ruby/setup-ruby": {
+   "count": 3,
+   "pinned_sha": false,
+   "refs": [
+    "v1"
+   ]
+  }
+ },
+ "composite_actions": [],
+ "dependabot": {
+  "updates": [
+   {
+    "directory": "/",
+    "ecosystem": "bundler",
+    "groups": [],
+    "interval": "daily"
+   },
+   {
+    "directory": "/script/regex-compatibility/rust",
+    "ecosystem": "cargo",
+    "groups": [],
+    "interval": "daily"
+   }
+  ],
+  "version": 2
+ },
+ "features": {
+  "actions_sha_pinned_ratio": 0.0,
+  "cache": true,
+  "calls_reusable_workflows": false,
+  "codeql": false,
+  "composite_actions": 0,
+  "concurrency": false,
+  "dependabot": true,
+  "macos_runner": false,
+  "matrix": true,
+  "other_ci": [],
+  "permissions_per_job": true,
+  "permissions_top_level": true,
+  "pipe_to_shell_steps": 0,
+  "provider": "github-actions",
+  "release_automation": true,
+  "renovate": false,
+  "reusable_workflows": false,
+  "schedule": false,
+  "secrets": [
+   "GITHUB_TOKEN"
+  ],
+  "security_scanning": [],
+  "timeouts": false,
+  "tools": [
+   "docker build"
+  ],
+  "windows_runner": false,
+  "workflow_dispatch": false,
+  "workflows": 2
+ },
+ "renovate": null,
+ "workflows": [
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "regex-compatibility",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v4"
+    },
+    {
+     "action": "ruby/setup-ruby",
+     "job": "regex-compatibility",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v1"
+    },
+    {
+     "action": "actions/setup-go",
+     "job": "regex-compatibility",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v6"
+    },
+    {
+     "action": "dtolnay/rust-toolchain",
+     "job": "regex-compatibility",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "stable"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "run",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v1"
+    },
+    {
+     "action": "ruby/setup-ruby",
+     "job": "run",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v1"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "dockerfile",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v1"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "classifier",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v2"
+    },
+    {
+     "action": "ruby/setup-ruby",
+     "job": "classifier",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v1"
+    }
+   ],
+   "cache": true,
+   "concurrency": null,
+   "env": [],
+   "job_permissions": 0,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "regex-compatibility",
+     "matrix": null,
+     "name": "Regex data compatibility",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 1,
+     "step_uses": 4,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "run",
+     "matrix": {
+      "axes": {
+       "ruby": 3
+      },
+      "fail_fast": null,
+      "size": 3
+     },
+     "name": "Ruby ${{ matrix.ruby }}",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 2,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "dockerfile",
+     "matrix": null,
+     "name": "Test Dockerfile",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 1,
+     "steps": 4,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "classifier",
+     "matrix": null,
+     "name": "Classifier cross-validation",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 2,
+     "step_uses": 2,
+     "steps": 4,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": true,
+   "name": "Run Tests",
+   "path": ".github/workflows/ci.yml",
+   "permissions": {
+    "contents": "read"
+   },
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "ubuntu-latest"
+   ],
+   "secrets": [],
+   "timeouts": 0,
+   "tools": [
+    "docker build"
+   ],
+   "trigger_details": {
+    "pull_request": {
+     "branches": [
+      "main"
+     ]
+    },
+    "push": {
+     "branches": [
+      "main"
+     ]
+    }
+   },
+   "triggers": [
+    "push",
+    "pull_request",
+    "merge_group"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v4"
+    },
+    {
+     "action": "docker/setup-buildx-action",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v3"
+    },
+    {
+     "action": "docker/metadata-action",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v5"
+    },
+    {
+     "action": "docker/login-action",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v3"
+    },
+    {
+     "action": "docker/build-push-action",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v6"
+    },
+    {
+     "action": "actions/attest-build-provenance",
+     "job": "build-and-release",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v2"
+    }
+   ],
+   "cache": false,
+   "concurrency": null,
+   "env": [],
+   "job_permissions": 1,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "build-and-release",
+     "matrix": null,
+     "name": null,
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 0,
+     "step_uses": 6,
+     "steps": 6,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": false,
+   "name": "Publish Docker image",
+   "path": ".github/workflows/publish_docker_image.yml",
+   "permissions": null,
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "ubuntu-latest"
+   ],
+   "secrets": [
+    "GITHUB_TOKEN"
+   ],
+   "timeouts": 0,
+   "tools": [
+    "docker build"
+   ],
+   "trigger_details": {
+    "release": {
+     "types": [
+      "published"
+     ]
+    }
+   },
+   "triggers": [
+    "release"
+   ]
+  }
+ ]
+}

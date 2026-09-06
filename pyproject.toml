@@ -91,6 +91,8 @@ pretty = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# B1, the menu benchmark, is gated by the test suite; its runner lives in benchmarks/.
+pythonpath = ["benchmarks"]
 norecursedirs = ["fixtures", ".venv", ".git"]
 addopts = "-ra --strict-markers --strict-config"
 xfail_strict = true

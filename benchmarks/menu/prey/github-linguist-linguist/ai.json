@@ -1,0 +1,48 @@
+{
+ "agents": [],
+ "codex": [],
+ "commands": [],
+ "copilot_instructions": [],
+ "copilot_prompts": [],
+ "cursor_rules": [],
+ "devcontainer": true,
+ "hooks": [],
+ "instruction_files": [
+  {
+   "bytes": 5105,
+   "frontmatter": {},
+   "headings": [
+    "AGENTS.md",
+    "Project Overview",
+    "Key Files and Directories",
+    "Development Environment",
+    "Common Tasks",
+    "Adding a Language Extension",
+    "Adding a New Language",
+    "Replacing a Grammar",
+    "Important Scripts",
+    "Testing",
+    "Coding Conventions",
+    "Generated and script maintained files — do not edit by hand",
+    "PR Requirements",
+    "Usage Requirements for New Languages/Extensions",
+    "Grammar Requirements",
+    "Key Dependencies"
+   ],
+   "imports": 0,
+   "lines": 124,
+   "path": "AGENTS.md",
+   "suspicious": [],
+   "tool": "agents",
+   "words": 716
+  }
+ ],
+ "mcp": [],
+ "plugin": [],
+ "present": [
+  "agents"
+ ],
+ "settings": [],
+ "skills": [],
+ "suspicious_fragments": 0
+}

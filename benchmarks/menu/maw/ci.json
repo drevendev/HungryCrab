@@ -1,0 +1,205 @@
+{
+ "actions": {
+  "actions/checkout": {
+   "count": 2,
+   "pinned_sha": false,
+   "refs": [
+    "v7"
+   ]
+  },
+  "actions/upload-artifact": {
+   "count": 1,
+   "pinned_sha": false,
+   "refs": [
+    "v7"
+   ]
+  },
+  "astral-sh/setup-uv": {
+   "count": 2,
+   "pinned_sha": false,
+   "refs": [
+    "v7"
+   ]
+  }
+ },
+ "composite_actions": [],
+ "dependabot": {
+  "updates": [
+   {
+    "directory": "/",
+    "ecosystem": "github-actions",
+    "groups": [
+     "actions"
+    ],
+    "interval": "weekly"
+   },
+   {
+    "directory": "/",
+    "ecosystem": "uv",
+    "groups": [
+     "python"
+    ],
+    "interval": "weekly"
+   }
+  ],
+  "version": 2
+ },
+ "features": {
+  "actions_sha_pinned_ratio": 0.0,
+  "cache": true,
+  "calls_reusable_workflows": false,
+  "codeql": false,
+  "composite_actions": 0,
+  "concurrency": true,
+  "dependabot": true,
+  "macos_runner": false,
+  "matrix": true,
+  "other_ci": [],
+  "permissions_per_job": false,
+  "permissions_top_level": true,
+  "pipe_to_shell_steps": 0,
+  "provider": "github-actions",
+  "release_automation": false,
+  "renovate": false,
+  "reusable_workflows": false,
+  "schedule": false,
+  "secrets": [],
+  "security_scanning": [],
+  "timeouts": true,
+  "tools": [
+   "mypy",
+   "pytest",
+   "ruff",
+   "uv"
+  ],
+  "windows_runner": true,
+  "workflow_dispatch": true,
+  "workflows": 1
+ },
+ "renovate": null,
+ "workflows": [
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "lint",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v7"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "lint",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v7"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v7"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v7"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": false,
+     "ref": "v7"
+    }
+   ],
+   "cache": true,
+   "concurrency": {
+    "cancel_in_progress": true,
+    "group": "ci-${{ github.ref }}"
+   },
+   "env": [
+    "PYTHONIOENCODING"
+   ],
+   "job_permissions": 0,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "lint",
+     "matrix": null,
+     "name": "Lint and type-check",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 4,
+     "step_uses": 2,
+     "steps": 6,
+     "timeout_minutes": 10,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "test",
+     "matrix": {
+      "axes": {
+       "os": 2,
+       "python": 2
+      },
+      "fail_fast": false,
+      "size": 4
+     },
+     "name": "Test (${{ matrix.os }}, Python ${{ matrix.python }})",
+     "needs": null,
+     "runs_on": "${{ matrix.os }}",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 3,
+     "steps": 6,
+     "timeout_minutes": 20,
+     "uses": null
+    }
+   ],
+   "matrix": true,
+   "name": "CI",
+   "path": ".github/workflows/ci.yml",
+   "permissions": {
+    "contents": "read"
+   },
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "${{ matrix.os }}",
+    "ubuntu-latest",
+    "windows-latest"
+   ],
+   "secrets": [],
+   "timeouts": 2,
+   "tools": [
+    "mypy",
+    "pytest",
+    "ruff",
+    "uv"
+   ],
+   "trigger_details": {
+    "push": {
+     "branches": [
+      "master"
+     ]
+    }
+   },
+   "triggers": [
+    "push",
+    "pull_request",
+    "workflow_dispatch"
+   ]
+  }
+ ]
+}

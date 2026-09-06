@@ -1,0 +1,4 @@
+{
+ "available": false,
+ "reason": "no issues fetched; run `crab catch <prey> --issues 300`"
+}

@@ -1,0 +1,184 @@
+{
+ "build_backend": null,
+ "ecosystems": [
+  "go",
+  "rust"
+ ],
+ "engines": {},
+ "lockfiles": [
+  {
+   "ecosystem": "rust",
+   "path": "script/regex-compatibility/rust/Cargo.lock"
+  },
+  {
+   "ecosystem": "go",
+   "path": "tools/grammars/go.sum"
+  }
+ ],
+ "manifests": [
+  {
+   "ecosystem": "go",
+   "go_version": "1.20",
+   "path": "tools/grammars/go.mod"
+  },
+  {
+   "ecosystem": "rust",
+   "edition": "2021",
+   "name": "linguist-regex-compatibility",
+   "path": "script/regex-compatibility/rust/Cargo.toml",
+   "workspace": false
+  }
+ ],
+ "npm_scripts": {},
+ "package_count": 15,
+ "packages": [
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/golang/protobuf",
+   "pinned": true,
+   "spec": "v0.0.0-20171113180720-1e59b77b52bf"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/groob/plist",
+   "pinned": true,
+   "spec": "v0.0.0-20171013152701-7b367e0aa692"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/mitchellh/mapstructure",
+   "pinned": true,
+   "spec": "v0.0.0-20171017171808-06020f85339e"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/urfave/cli/v2",
+   "pinned": true,
+   "spec": "v2.3.0"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "gopkg.in/cheggaaa/pb.v1",
+   "pinned": true,
+   "spec": "v1.0.18"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "runtime",
+   "manifest": "tools/grammars/go.mod",
+   "name": "gopkg.in/yaml.v2",
+   "pinned": true,
+   "spec": "v2.2.8"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/cpuguy83/go-md2man/v2",
+   "pinned": true,
+   "spec": "v2.0.0-20190314233015-f79a8a8ca69d"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/fatih/color",
+   "pinned": true,
+   "spec": "v1.12.0"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/mattn/go-colorable",
+   "pinned": true,
+   "spec": "v0.1.8"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/mattn/go-runewidth",
+   "pinned": true,
+   "spec": "v0.0.2"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/russross/blackfriday/v2",
+   "pinned": true,
+   "spec": "v2.0.1"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "github.com/shurcooL/sanitized_anchor_name",
+   "pinned": true,
+   "spec": "v1.0.0"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "golang.org/x/sync",
+   "pinned": true,
+   "spec": "v0.0.0-20210220032951-036812b2e83c"
+  },
+  {
+   "ecosystem": "go",
+   "kind": "indirect",
+   "manifest": "tools/grammars/go.mod",
+   "name": "gopkg.in/check.v1",
+   "pinned": true,
+   "spec": "v1.0.0-20201130134442-10cb98267c6c"
+  },
+  {
+   "ecosystem": "rust",
+   "kind": "runtime",
+   "manifest": "script/regex-compatibility/rust/Cargo.toml",
+   "name": "regex",
+   "pinned": false,
+   "spec": "1"
+  }
+ ],
+ "policies": {
+  "go": {
+   "central_package_management": null,
+   "dev": 8,
+   "lockfiles": [
+    "tools/grammars/go.sum"
+   ],
+   "package_manager": "go",
+   "packages": 14,
+   "pinned_ratio": 1.0,
+   "runtime": 6
+  },
+  "rust": {
+   "central_package_management": null,
+   "dev": 0,
+   "lockfiles": [
+    "script/regex-compatibility/rust/Cargo.lock"
+   ],
+   "package_manager": "cargo",
+   "packages": 1,
+   "pinned_ratio": 0.0,
+   "runtime": 1
+  }
+ },
+ "python_tools": [],
+ "requires_python": null,
+ "target_frameworks": [],
+ "workspaces": []
+}

@@ -1,0 +1,184 @@
+{
+ "adr": {
+  "dirs": [],
+  "files": 0
+ },
+ "changelog": null,
+ "codeowners": ".github/CODEOWNERS",
+ "community": {
+  "contributing": "CONTRIBUTING.md"
+ },
+ "discussion_templates": [],
+ "docs_dir": "docs",
+ "docs_dir_files": 5,
+ "docs_dir_top": [
+  "README.md",
+  "how-linguist-works.md",
+  "overrides.md",
+  "releasing.md",
+  "troubleshooting.md"
+ ],
+ "docs_site": null,
+ "funding": null,
+ "issue_templates": [
+  ".github/ISSUE_TEMPLATE/bug_report.md",
+  ".github/ISSUE_TEMPLATE/config.yml",
+  ".github/ISSUE_TEMPLATE/feature_request.md",
+  ".github/ISSUE_TEMPLATE/new_language.md"
+ ],
+ "largest_docs": [
+  {
+   "bytes": 17871,
+   "path": "CONTRIBUTING.md"
+  },
+  {
+   "bytes": 10730,
+   "path": "README.md"
+  },
+  {
+   "bytes": 7912,
+   "path": "docs/troubleshooting.md"
+  },
+  {
+   "bytes": 6210,
+   "path": "docs/overrides.md"
+  },
+  {
+   "bytes": 5105,
+   "path": "AGENTS.md"
+  },
+  {
+   "bytes": 3485,
+   "path": ".github/PULL_REQUEST_TEMPLATE.md"
+  },
+  {
+   "bytes": 3117,
+   "path": "docs/releasing.md"
+  },
+  {
+   "bytes": 2354,
+   "path": "docs/how-linguist-works.md"
+  },
+  {
+   "bytes": 1059,
+   "path": ".github/ISSUE_TEMPLATE/bug_report.md"
+  },
+  {
+   "bytes": 626,
+   "path": ".github/ISSUE_TEMPLATE/new_language.md"
+  }
+ ],
+ "markdown_files": 12,
+ "markdown_words": 8665,
+ "pr_template": ".github/PULL_REQUEST_TEMPLATE.md",
+ "readme": {
+  "badges": 2,
+  "bytes": 10730,
+  "has_code_blocks": true,
+  "has_toc": false,
+  "heading_count": 22,
+  "headings": [
+   {
+    "level": 1,
+    "title": "Linguist"
+   },
+   {
+    "level": 2,
+    "title": "Documentation"
+   },
+   {
+    "level": 2,
+    "title": "Installation"
+   },
+   {
+    "level": 3,
+    "title": "Dependencies"
+   },
+   {
+    "level": 2,
+    "title": "Usage"
+   },
+   {
+    "level": 3,
+    "title": "Application usage"
+   },
+   {
+    "level": 3,
+    "title": "Command line usage"
+   },
+   {
+    "level": 4,
+    "title": "Git Repository"
+   },
+   {
+    "level": 4,
+    "title": "Additional options"
+   },
+   {
+    "level": 5,
+    "title": "`--rev REV`"
+   },
+   {
+    "level": 5,
+    "title": "`--breakdown`"
+   },
+   {
+    "level": 5,
+    "title": "`--strategies`"
+   },
+   {
+    "level": 5,
+    "title": "`--json`"
+   },
+   {
+    "level": 4,
+    "title": "Single file"
+   },
+   {
+    "level": 4,
+    "title": "Additional options"
+   },
+   {
+    "level": 5,
+    "title": "`--breakdown`"
+   },
+   {
+    "level": 5,
+    "title": "`--strategies`"
+   },
+   {
+    "level": 5,
+    "title": "`--json`"
+   },
+   {
+    "level": 4,
+    "title": "Docker"
+   },
+   {
+    "level": 5,
+    "title": "Building the image"
+   },
+   {
+    "level": 2,
+    "title": "Contributing"
+   },
+   {
+    "level": 2,
+    "title": "License"
+   }
+  ],
+  "links": 20,
+  "mentions_ai_disclaimer": false,
+  "path": "README.md",
+  "sections": [
+   "configuration",
+   "contributing",
+   "development",
+   "install",
+   "license",
+   "usage"
+  ],
+  "suspicious": [],
+  "words": 1478
+ }
+}

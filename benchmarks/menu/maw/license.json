@@ -1,0 +1,69 @@
+{
+ "api_spdx": null,
+ "candidates": [],
+ "class": "permissive",
+ "confidence": 0.95,
+ "conflicts": [],
+ "evidence": [
+  {
+   "confidence": 0.95,
+   "note": "",
+   "path": "LICENSE",
+   "source": "file",
+   "spdx": "MIT"
+  },
+  {
+   "confidence": 0.7,
+   "note": "",
+   "path": "pyproject.toml",
+   "source": "manifest",
+   "spdx": "MIT"
+  }
+ ],
+ "exceptions": [
+  {
+   "kind": "header",
+   "path": "tests/test_licensing.py",
+   "spdx": "Apache-2.0 OR MIT"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "tests/fixtures/repos/dotnet-lib/LICENSE",
+   "spdx": "GPL-3.0-only"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "tests/fixtures/repos/pyproject-cli/LICENSE",
+   "spdx": "Apache-2.0"
+  }
+ ],
+ "header_counts": {
+  "Apache-2.0 OR MIT": 1
+ },
+ "headers_scanned": 76,
+ "human_review": false,
+ "license_files": [
+  "LICENSE"
+ ],
+ "maw_license": "MIT",
+ "modes_by_maw_class": {
+  "gpl": "COPY",
+  "permissive": "COPY",
+  "proprietary": "COPY"
+ },
+ "notes": [
+  "1 file headers declare a different license"
+ ],
+ "notice_files": [],
+ "resolution": "single",
+ "spdx": "MIT",
+ "verdict": {
+  "human_review": false,
+  "mode": "COPY",
+  "notice_required": false,
+  "reason": "permissive license: keep the copyright notice",
+  "share_alike": false
+ }
+}

@@ -1,0 +1,588 @@
+{
+ "available": true,
+ "closed": 322,
+ "clusters": [
+  {
+   "numbers": [
+    1364,
+    1853,
+    1672,
+    1567,
+    1448,
+    1445,
+    1410,
+    1366,
+    1324,
+    1304,
+    1269,
+    1264,
+    1189,
+    925,
+    890,
+    780,
+    683
+   ],
+   "open": 0,
+   "reactions": 1,
+   "sample_titles": [
+    "pipx uninject leaves behind broken links for dependency apps in ~/.local/bin",
+    "`pipx uninject` leaves man page symlinks behind",
+    "uninject --leave-deps can break dependencies for remaining packages"
+   ],
+   "size": 17,
+   "terms": [
+    "troubleshooting",
+    "page",
+    "apps",
+    "filing",
+    "feel"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    278,
+    835,
+    1635,
+    1617,
+    1584,
+    1574,
+    1573,
+    1526,
+    1523,
+    1513,
+    1484,
+    1482,
+    998
+   ],
+   "open": 0,
+   "reactions": 33,
+   "sample_titles": [
+    "No module named pip",
+    "reinstall-all does not recover from python version upgrade",
+    "ModuleNotFoundError: No module named 'pipx'"
+   ],
+   "size": 13,
+   "terms": [
+    "module",
+    "traceback",
+    "recent",
+    "last",
+    "line"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    1524,
+    1337,
+    1177,
+    1537,
+    1535,
+    1452,
+    1429,
+    1419,
+    1412
+   ],
+   "open": 0,
+   "reactions": 38,
+   "sample_titles": [
+    "`sudo pipx ensurepath --global` fails on Ubuntu 24.04 LTS",
+    "Global parameter does not work using ensurepath command",
+    "Running `pipx` without any arguments errors on `1.4.0`"
+   ],
+   "size": 9,
+   "terms": [
+    "global",
+    "sudo",
+    "ensurepath",
+    "usage",
+    "uninstall"
+   ],
+   "top_label": "docs"
+  },
+  {
+   "numbers": [
+    1031,
+    1320,
+    1615,
+    1449,
+    812,
+    1695,
+    1550,
+    1502,
+    1395
+   ],
+   "open": 0,
+   "reactions": 15,
+   "sample_titles": [
+    "Add the ability to install from requirements.txt files",
+    "Improve docs for resolving `space in home path` warning",
+    "tb3cwgh"
+   ],
+   "size": 9,
+   "terms": [
+    "alternative",
+    "frustrations",
+    "alleviates",
+    "workaround",
+    "cases"
+   ],
+   "top_label": "docs"
+  },
+  {
+   "numbers": [
+    1331,
+    1582,
+    1503,
+    1441,
+    1610,
+    1389
+   ],
+   "open": 0,
+   "reactions": 11,
+   "sample_titles": [
+    "No such file or directory: '.github/workflows/constraints.txt' when used in GitHub Action",
+    "--pip-args='--constraints https://....' cannot use url based constraints file",
+    "`upgrade-all` does not allow specifying `--pip-args`"
+   ],
+   "size": 6,
+   "terms": [
+    "foo",
+    "args",
+    "constraint",
+    "constraints",
+    "upgrade"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    1521,
+    1646,
+    1630,
+    1514,
+    1421,
+    1358
+   ],
+   "open": 0,
+   "reactions": 2,
+   "sample_titles": [
+    "`--fetch-missing-python` not working",
+    "build standalone versions not found",
+    "URLs used by `--fetch-missing-python` to find Windows Python builds is incorrect."
+   ],
+   "size": 6,
+   "terms": [
+    "fetch",
+    "troubleshooting",
+    "missing",
+    "provided",
+    "standalone"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    109,
+    687,
+    952,
+    828,
+    1713
+   ],
+   "open": 0,
+   "reactions": 24,
+   "sample_titles": [
+    "Lock/pin pipx --list output for provisioning multiple machines?",
+    "Support provisioning of pipx-managed sites from the output of `pipx list --json`.",
+    "Package List Reinstall: pipx install --packages pipx-list.json"
+   ],
+   "size": 5,
+   "terms": [
+    "json",
+    "output",
+    "list",
+    "workstation",
+    "provisioning"
+   ],
+   "top_label": "enhancement"
+  },
+  {
+   "numbers": [
+    1793,
+    1527,
+    1496,
+    1461,
+    701
+   ],
+   "open": 0,
+   "reactions": 0,
+   "sample_titles": [
+    "man page not automatically linked in editable mode",
+    "No man pages for ansible-core",
+    "pip._vendor.distlib.DistlibException: Unable to locate finder for 'pip._vendor.distlib'"
+   ],
+   "size": 5,
+   "terms": [
+    "package_name_from_spec",
+    "setup",
+    "determined",
+    "usr",
+    "run_subprocess"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    497,
+    365,
+    1531,
+    664
+   ],
+   "open": 0,
+   "reactions": 6,
+   "sample_titles": [
+    "pipx upgrade exit codes should follow convention and indicate failure",
+    "Installing local package fails",
+    "Issues installing nuitka with pipx"
+   ],
+   "size": 4,
+   "terms": [
+    "determine",
+    "nuitka",
+    "spec",
+    "cannot",
+    "fails"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    913,
+    1388,
+    562
+   ],
+   "open": 0,
+   "reactions": 15,
+   "sample_titles": [
+    "Allow running scripts with dependencies using pipx",
+    "Support installing single-file scripts with inline script metadata",
+    "Support running & installing scripts with dependencies specified in __requires__"
+   ],
+   "size": 3,
+   "terms": [
+    "scripts",
+    "script",
+    "dependencies",
+    "run",
+    "delete"
+   ],
+   "top_label": "enhancement"
+  },
+  {
+   "numbers": [
+    1290,
+    1585,
+    1486
+   ],
+   "open": 0,
+   "reactions": 5,
+   "sample_titles": [
+    "Pipx ensurepath sets environment in the active shell, not other shells",
+    "Add support for an --all-shells flag for ensurepath",
+    "pipx ensurepath fails on last Alpine (3.20): \"No such file or directory: 'bash'\""
+   ],
+   "size": 3,
+   "terms": [
+    "shells",
+    "ensurepath",
+    "docker",
+    "shell",
+    "sets"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    1811,
+    1801,
+    2014
+   ],
+   "open": 0,
+   "reactions": 4,
+   "sample_titles": [
+    "Support dependency cooldowns",
+    "using pip 26.1 dependency cooldown with pipx?",
+    "Allow setting --cooldown in global config or env variable"
+   ],
+   "size": 3,
+   "terms": [
+    "cooldown",
+    "uploaded",
+    "prior",
+    "cooldowns",
+    "dependency"
+   ],
+   "top_label": "enhancement"
+  },
+  {
+   "numbers": [
+    1636,
+    1603,
+    598
+   ],
+   "open": 0,
+   "reactions": 4,
+   "sample_titles": [
+    "Install from artifacts repo (with authentication via artifacts keyring)",
+    "Pipx install fails when pip's global index-url is set to a private package repository and ",
+    "Installing some packages using --index-url fails on pipx 0.15.6.0"
+   ],
+   "size": 3,
+   "terms": [
+    "index",
+    "keyring",
+    "private",
+    "url",
+    "repository"
+   ],
+   "top_label": "bug"
+  },
+  {
+   "numbers": [
+    330,
+    748,
+    621
+   ],
+   "open": 0,
+   "reactions": 1,
+   "sample_titles": [
+    "register-python-argcomplete not available when pipx is installed via homebrew",
+    "setup for `pipx completions` not working on Ubuntu 20.04",
+    "Following pipx completions guidelines for Mac ends with `command not found: compdef` failu"
+   ],
+   "size": 3,
+   "terms": [
+    "register",
+    "argcomplete",
+    "eval",
+    "completions",
+    "guidelines"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1924,
+    1841,
+    1254
+   ],
+   "open": 0,
+   "reactions": 0,
+   "sample_titles": [
+    "pipx install --force fails with uv backend",
+    "`uninject` fails when backend is uv",
+    "space efficient non-isolated caches? or use deps solver like `micromamba`?"
+   ],
+   "size": 3,
+   "terms": [
+    "backend",
+    "pycowsay",
+    "requests",
+    "backed",
+    "implemented"
+   ],
+   "top_label": "bug"
+  }
+ ],
+ "comments": {
+  "max": 51,
+  "median": 2.0,
+  "no_comments": 68
+ },
+ "fetched": 322,
+ "labels": [
+  {
+   "count": 96,
+   "name": "enhancement"
+  },
+  {
+   "count": 84,
+   "name": "bug"
+  },
+  {
+   "count": 49,
+   "name": "help wanted"
+  },
+  {
+   "count": 19,
+   "name": "docs"
+  },
+  {
+   "count": 14,
+   "name": "windows"
+  },
+  {
+   "count": 13,
+   "name": "question"
+  },
+  {
+   "count": 13,
+   "name": "good first issue"
+  },
+  {
+   "count": 6,
+   "name": "awaiting response"
+  },
+  {
+   "count": 6,
+   "name": "upstream"
+  },
+  {
+   "count": 4,
+   "name": "more info from user needed"
+  },
+  {
+   "count": 3,
+   "name": "duplicate"
+  },
+  {
+   "count": 3,
+   "name": "macOS"
+  },
+  {
+   "count": 3,
+   "name": "need reproduce"
+  },
+  {
+   "count": 1,
+   "name": "wontfix"
+  },
+  {
+   "count": 1,
+   "name": "cli"
+  }
+ ],
+ "oldest_open": [],
+ "open": 0,
+ "suspicious_titles": 0,
+ "time_to_close_days": {
+  "median": 339.5,
+  "p90": 1215.3,
+  "samples": 322
+ },
+ "top_by_reactions": [
+  {
+   "comments": 26,
+   "labels": [
+    "enhancement",
+    "help wanted"
+   ],
+   "number": 754,
+   "reactions": 31,
+   "state": "closed",
+   "title": "Option to install package globally for multi-user access",
+   "url": "https://github.com/pypa/pipx/issues/754"
+  },
+  {
+   "comments": 7,
+   "labels": [],
+   "number": 376,
+   "reactions": 28,
+   "state": "closed",
+   "title": "Remove emojis by default",
+   "url": "https://github.com/pypa/pipx/issues/376"
+  },
+  {
+   "comments": 28,
+   "labels": [
+    "enhancement",
+    "help wanted"
+   ],
+   "number": 149,
+   "reactions": 28,
+   "state": "closed",
+   "title": "Feature request: Option to list available upgrades without performing them",
+   "url": "https://github.com/pypa/pipx/issues/149"
+  },
+  {
+   "comments": 0,
+   "labels": [
+    "enhancement"
+   ],
+   "number": 1370,
+   "reactions": 26,
+   "state": "closed",
+   "title": "Integrate \"uv\" in some way, or offer an option to swap the pip command template",
+   "url": "https://github.com/pypa/pipx/issues/1370"
+  },
+  {
+   "comments": 51,
+   "labels": [
+    "bug",
+    "help wanted"
+   ],
+   "number": 278,
+   "reactions": 26,
+   "state": "closed",
+   "title": "No module named pip",
+   "url": "https://github.com/pypa/pipx/issues/278"
+  },
+  {
+   "comments": 1,
+   "labels": [
+    "question"
+   ],
+   "number": 1669,
+   "reactions": 21,
+   "state": "closed",
+   "title": "No up-to-date version of pipx available via apt",
+   "url": "https://github.com/pypa/pipx/issues/1669"
+  },
+  {
+   "comments": 11,
+   "labels": [
+    "enhancement",
+    "help wanted"
+   ],
+   "number": 356,
+   "reactions": 19,
+   "state": "closed",
+   "title": "pipx upgrade with a specificier",
+   "url": "https://github.com/pypa/pipx/issues/356"
+  },
+  {
+   "comments": 9,
+   "labels": [
+    "docs"
+   ],
+   "number": 1524,
+   "reactions": 16,
+   "state": "closed",
+   "title": "`sudo pipx ensurepath --global` fails on Ubuntu 24.04 LTS",
+   "url": "https://github.com/pypa/pipx/issues/1524"
+  },
+  {
+   "comments": 10,
+   "labels": [],
+   "number": 359,
+   "reactions": 16,
+   "state": "closed",
+   "title": "Support for `pipx install -r requirements.txt`",
+   "url": "https://github.com/pypa/pipx/issues/359"
+  },
+  {
+   "comments": 3,
+   "labels": [
+    "enhancement",
+    "help wanted"
+   ],
+   "number": 934,
+   "reactions": 14,
+   "state": "closed",
+   "title": "Support for `pipx inject <package> -r <requirements-file>`",
+   "url": "https://github.com/pypa/pipx/issues/934"
+  }
+ ],
+ "unlabeled": 98
+}

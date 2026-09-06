@@ -1,0 +1,570 @@
+{
+ "agents": [],
+ "codex": [],
+ "commands": [],
+ "copilot_instructions": [],
+ "copilot_prompts": [],
+ "cursor_rules": [],
+ "devcontainer": false,
+ "hooks": [],
+ "instruction_files": [],
+ "mcp": [],
+ "plugin": [
+  {
+   "keys": [
+    "metadata",
+    "name",
+    "owner",
+    "plugins"
+   ],
+   "name": "anthropic-agent-skills",
+   "path": ".claude-plugin/marketplace.json",
+   "version": null
+  }
+ ],
+ "present": [
+  "claude"
+ ],
+ "settings": [],
+ "skills": [
+  {
+   "bytes": 7902,
+   "frontmatter": {
+    "description": "Stop and check this skill before finishing any reply to a question about how to use Claude or a Claude product — it recommends matching courses, tutorials, and ",
+    "name": "academy-guide"
+   },
+   "headings": [
+    "Claude Academy guide",
+    "Purpose",
+    "Rules",
+    "The catalog"
+   ],
+   "imports": 0,
+   "lines": 147,
+   "location": "plugin",
+   "path": "skills/academy-guide/SKILL.md",
+   "suspicious": [],
+   "words": 1209
+  },
+  {
+   "bytes": 20173,
+   "frontmatter": {
+    "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generati",
+    "name": "algorithmic-art"
+   },
+   "headings": [
+    "ALGORITHMIC PHILOSOPHY CREATION",
+    "THE CRITICAL UNDERSTANDING",
+    "HOW TO GENERATE AN ALGORITHMIC PHILOSOPHY",
+    "PHILOSOPHY EXAMPLES",
+    "ESSENTIAL PRINCIPLES",
+    "DEDUCING THE CONCEPTUAL SEED",
+    "P5.JS IMPLEMENTATION",
+    "⚠️ STEP 0: READ THE TEMPLATE FIRST ⚠️",
+    "TECHNICAL REQUIREMENTS",
+    "CRAFTSMANSHIP REQUIREMENTS",
+    "OUTPUT FORMAT",
+    "INTERACTIVE ARTIFACT CREATION",
+    "CRITICAL: WHAT'S FIXED VS VARIABLE",
+    "REQUIRED FEATURES",
+    "USING THE ARTIFACT",
+    "VARIATIONS & EXPLORATION",
+    "THE CREATIVE PROCESS",
+    "RESOURCES"
+   ],
+   "imports": 0,
+   "lines": 405,
+   "location": "plugin",
+   "path": "skills/algorithmic-art/SKILL.md",
+   "suspicious": [],
+   "words": 2761
+  },
+  {
+   "bytes": 2308,
+   "frontmatter": {
+    "description": "Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand color",
+    "name": "brand-guidelines"
+   },
+   "headings": [
+    "Anthropic Brand Styling",
+    "Overview",
+    "Brand Guidelines",
+    "Colors",
+    "Typography",
+    "Features",
+    "Smart Font Application",
+    "Text Styling",
+    "Shape and Accent Colors",
+    "Technical Details",
+    "Font Management",
+    "Color Application"
+   ],
+   "imports": 0,
+   "lines": 73,
+   "location": "plugin",
+   "path": "skills/brand-guidelines/SKILL.md",
+   "suspicious": [],
+   "words": 329
+  },
+  {
+   "bytes": 12068,
+   "frontmatter": {
+    "description": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, d",
+    "name": "canvas-design"
+   },
+   "headings": [
+    "DESIGN PHILOSOPHY CREATION",
+    "THE CRITICAL UNDERSTANDING",
+    "HOW TO GENERATE A VISUAL PHILOSOPHY",
+    "PHILOSOPHY EXAMPLES",
+    "ESSENTIAL PRINCIPLES",
+    "DEDUCING THE SUBTLE REFERENCE",
+    "CANVAS CREATION",
+    "FINAL STEP",
+    "MULTI-PAGE OPTION"
+   ],
+   "imports": 0,
+   "lines": 130,
+   "location": "plugin",
+   "path": "skills/canvas-design/SKILL.md",
+   "suspicious": [],
+   "words": 1749
+  },
+  {
+   "bytes": 86271,
+   "frontmatter": {
+    "description": "Reference for the Claude API / Anthropic SDK — model ids, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration. TRIGGER —",
+    "name": "claude-api"
+   },
+   "headings": [
+    "Building LLM-Powered Applications with Claude",
+    "Before You Start",
+    "Output Requirement",
+    "Defaults",
+    "Warning: API Drift - Your Training Prior May Be Stale",
+    "Subcommands",
+    "Language Detection",
+    "Language-Specific Feature Support",
+    "Which Surface Should I Use?",
+    "Building an Agent: Four Approaches",
+    "Should I Build an Agent?",
+    "Architecture",
+    "Current Models (cached: 2026-06-24)",
+    "Claude Fable 5.1 (`claude-fable-5-1`) - most capable widely released model",
+    "Authentication (Quick Reference)",
+    "Thinking & Effort (Quick Reference)",
+    "Compaction (Quick Reference)",
+    "Prompt Caching (Quick Reference)",
+    "Fast Mode (Quick Reference)",
+    "Task Budgets (Quick Reference)"
+   ],
+   "imports": 0,
+   "lines": 570,
+   "location": "plugin",
+   "path": "skills/claude-api/SKILL.md",
+   "suspicious": [
+    "ntent first (frozen system prompt, deterministic tool",
+    "`datetime.now()` in system prompt, unsorted JSON, var",
+    "_config.format`) or system prompt instructions to con"
+   ],
+   "words": 11698
+  },
+  {
+   "bytes": 10801,
+   "frontmatter": {
+    "description": "After you give a substantive answer or draft that the user may act on — advice or recommendations, drafted artifacts such as goals, plans, pitches, proposals, o",
+    "name": "discernment-nudge"
+   },
+   "headings": [
+    "Discernment nudge",
+    "Why this exists",
+    "When to offer the nudge",
+    "When not to",
+    "Writing the prompts",
+    "Output format"
+   ],
+   "imports": 0,
+   "lines": 209,
+   "location": "plugin",
+   "path": "skills/discernment-nudge/SKILL.md",
+   "suspicious": [],
+   "words": 1751
+  },
+  {
+   "bytes": 16190,
+   "frontmatter": {
+    "description": "Guide users through a structured workflow for co-authoring documentation. Use when user wants to write documentation, proposals, technical specs, decision docs,",
+    "name": "doc-coauthoring"
+   },
+   "headings": [
+    "Doc Co-Authoring Workflow",
+    "When to Offer This Workflow",
+    "Stage 1: Context Gathering",
+    "Initial Questions",
+    "Info Dumping",
+    "Stage 2: Refinement & Structure",
+    "Step 1: Clarifying Questions",
+    "Step 2: Brainstorming",
+    "Step 3: Curation",
+    "Step 4: Gap Check",
+    "Step 5: Drafting",
+    "Step 6: Iterative Refinement",
+    "Quality Checking",
+    "Near Completion",
+    "Stage 3: Reader Testing",
+    "Testing Approach",
+    "Step 1: Predict Reader Questions",
+    "Step 2: Test with Sub-Agent",
+    "Step 3: Run Additional Checks",
+    "Step 4: Report and Fix"
+   ],
+   "imports": 0,
+   "lines": 375,
+   "location": "plugin",
+   "path": "skills/doc-coauthoring/SKILL.md",
+   "suspicious": [],
+   "words": 2466
+  },
+  {
+   "bytes": 7002,
+   "frontmatter": {
+    "description": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx files) or Word templates (.dotx files). Triggers include: any ",
+    "name": "docx"
+   },
+   "headings": [
+    "DOCX creation, editing, and analysis",
+    "Creating with docx-js — gotchas",
+    "Verify the output",
+    "Editing existing documents",
+    "edit unpacked/word/document.xml in place — do NOT reformat or pretty-print",
+    "redlining? add --author \"<the name you redlined under>\" to check every edit is t",
+    "Comments",
+    "Against an already-unpacked directory (preferred when also placing markers)",
+    "Against a .docx directly",
+    "Dependencies"
+   ],
+   "imports": 0,
+   "lines": 91,
+   "location": "plugin",
+   "path": "skills/docx/SKILL.md",
+   "suspicious": [],
+   "words": 975
+  },
+  {
+   "bytes": 9461,
+   "frontmatter": {
+    "description": "Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making ch",
+    "name": "frontend-design"
+   },
+   "headings": [
+    "Frontend Design",
+    "Ground your designs in the subject matter",
+    "Design principles",
+    "Process: plan, review against the brief, build, critique",
+    "Restraint and self-critique",
+    "More on writing in design"
+   ],
+   "imports": 0,
+   "lines": 71,
+   "location": "plugin",
+   "path": "skills/frontend-design/SKILL.md",
+   "suspicious": [],
+   "words": 1516
+  },
+  {
+   "bytes": 1543,
+   "frontmatter": {
+    "description": "A set of resources to help me write all kinds of internal communications, using the formats that my company likes to use. Claude should use this skill whenever ",
+    "name": "internal-comms"
+   },
+   "headings": [
+    "When to use this skill",
+    "How to use this skill",
+    "Keywords"
+   ],
+   "imports": 0,
+   "lines": 32,
+   "location": "plugin",
+   "path": "skills/internal-comms/SKILL.md",
+   "suspicious": [],
+   "words": 211
+  },
+  {
+   "bytes": 9328,
+   "frontmatter": {
+    "description": "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when b",
+    "name": "mcp-builder"
+   },
+   "headings": [
+    "MCP Server Development Guide",
+    "Overview",
+    "Process",
+    "🚀 High-Level Workflow",
+    "Phase 1: Deep Research and Planning",
+    "Phase 2: Implementation",
+    "Phase 3: Review and Test",
+    "Phase 4: Create Evaluations",
+    "Reference Files",
+    "📚 Documentation Library",
+    "Core MCP Documentation (Load First)",
+    "SDK Documentation (Load During Phase 1/2)",
+    "Language-Specific Implementation Guides (Load During Phase 2)",
+    "Evaluation Guide (Load During Phase 4)"
+   ],
+   "imports": 0,
+   "lines": 236,
+   "location": "plugin",
+   "path": "skills/mcp-builder/SKILL.md",
+   "suspicious": [],
+   "words": 1143
+  },
+  {
+   "bytes": 8386,
+   "frontmatter": {
+    "description": "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text/tables from PDFs, combining or merging multiple P",
+    "name": "pdf"
+   },
+   "headings": [
+    "PDF Processing Guide",
+    "Overview",
+    "Quick Start",
+    "Read a PDF",
+    "Extract text",
+    "Python Libraries",
+    "pypdf - Basic Operations",
+    "pdfplumber - Text and Table Extraction",
+    "Combine all tables",
+    "reportlab - Create PDFs",
+    "Add text",
+    "Add a line",
+    "Save",
+    "Add content",
+    "Page 2",
+    "Build PDF",
+    "Subscripts: use <sub> tag",
+    "Superscripts: use <super> tag",
+    "Command-Line Tools",
+    "pdftotext (poppler-utils)"
+   ],
+   "imports": 0,
+   "lines": 314,
+   "location": "plugin",
+   "path": "skills/pdf/SKILL.md",
+   "suspicious": [],
+   "words": 1007
+  },
+  {
+   "bytes": 21034,
+   "frontmatter": {
+    "description": "Use this skill any time a .pptx or .potx file is involved in any way — as input, output, or both. This includes: creating slide decks, pitch decks, or presentat",
+    "name": "pptx"
+   },
+   "headings": [
+    "PPTX creation, editing, and analysis",
+    "Scripts",
+    "Creating with pptxgenjs — gotchas",
+    "Editing existing decks and templates",
+    "reorder / delete slides = edit <p:sldIdLst> in ppt/presentation.xml",
+    "edit slide content in ppt/slides/slideN.xml",
+    "Design Ideas",
+    "Before Starting",
+    "Color Palettes",
+    "For Each Slide",
+    "Typography",
+    "Spacing",
+    "Avoid (Common Mistakes)",
+    "QA (Required)",
+    "Content QA",
+    "File QA (required)",
+    "Visual QA",
+    "Converting to Images",
+    "Dependencies"
+   ],
+   "imports": 0,
+   "lines": 238,
+   "location": "plugin",
+   "path": "skills/pptx/SKILL.md",
+   "suspicious": [],
+   "words": 3129
+  },
+  {
+   "bytes": 33653,
+   "frontmatter": {
+    "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an e",
+    "name": "skill-creator"
+   },
+   "headings": [
+    "Skill Creator",
+    "Communicating with the user",
+    "Creating a skill",
+    "Capture Intent",
+    "Interview and Research",
+    "Write the SKILL.md",
+    "Skill Writing Guide",
+    "Report structure",
+    "[Title]",
+    "Executive summary",
+    "Key findings",
+    "Recommendations",
+    "Commit message format",
+    "Writing Style",
+    "Test Cases",
+    "Running and evaluating test cases",
+    "Step 1: Spawn all runs (with-skill AND baseline) in the same turn",
+    "Step 2: While runs are in progress, draft assertions",
+    "Step 3: As runs complete, capture timing data",
+    "Step 4: Grade, aggregate, and launch the viewer"
+   ],
+   "imports": 0,
+   "lines": 485,
+   "location": "plugin",
+   "path": "skills/skill-creator/SKILL.md",
+   "suspicious": [
+    "model ID from your system prompt (the one powering t"
+   ],
+   "words": 5205
+  },
+  {
+   "bytes": 8095,
+   "frontmatter": {
+    "description": "Knowledge and utilities for creating animated GIFs optimized for Slack. Provides constraints, validation tools, and animation concepts. Use when users request a",
+    "name": "slack-gif-creator"
+   },
+   "headings": [
+    "Slack GIF Creator",
+    "Slack Requirements",
+    "Core Workflow",
+    "1. Create builder",
+    "2. Generate frames",
+    "3. Save with optimization",
+    "Drawing Graphics",
+    "Working with User-Uploaded Images",
+    "Use directly, or just as reference for colors/style",
+    "Drawing from Scratch",
+    "Circles/ovals",
+    "Stars, triangles, any polygon",
+    "Lines",
+    "Rectangles",
+    "Making Graphics Look Good",
+    "Available Utilities",
+    "GIFBuilder (`core.gif_builder`)",
+    "Validators (`core.validators`)",
+    "Detailed validation",
+    "Quick check"
+   ],
+   "imports": 0,
+   "lines": 254,
+   "location": "plugin",
+   "path": "skills/slack-gif-creator/SKILL.md",
+   "suspicious": [],
+   "words": 1103
+  },
+  {
+   "bytes": 3183,
+   "frontmatter": {
+    "description": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fo",
+    "name": "theme-factory"
+   },
+   "headings": [
+    "Theme Factory Skill",
+    "Purpose",
+    "Usage Instructions",
+    "Themes Available",
+    "Theme Details",
+    "Application Process",
+    "Create your Own Theme"
+   ],
+   "imports": 0,
+   "lines": 59,
+   "location": "plugin",
+   "path": "skills/theme-factory/SKILL.md",
+   "suspicious": [],
+   "words": 486
+  },
+  {
+   "bytes": 3160,
+   "frontmatter": {
+    "description": "Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for",
+    "name": "web-artifacts-builder"
+   },
+   "headings": [
+    "Web Artifacts Builder",
+    "Design & Style Guidelines",
+    "Quick Start",
+    "Step 1: Initialize Project",
+    "Step 2: Develop Your Artifact",
+    "Step 3: Bundle to Single HTML File",
+    "Step 4: Share Artifact with User",
+    "Step 5: Testing/Visualizing the Artifact (Optional)",
+    "Reference"
+   ],
+   "imports": 0,
+   "lines": 74,
+   "location": "plugin",
+   "path": "skills/web-artifacts-builder/SKILL.md",
+   "suspicious": [],
+   "words": 446
+  },
+  {
+   "bytes": 4008,
+   "frontmatter": {
+    "description": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing br",
+    "name": "webapp-testing"
+   },
+   "headings": [
+    "Web Application Testing",
+    "Decision Tree: Choosing Your Approach",
+    "Example: Using with_server.py",
+    "Reconnaissance-Then-Action Pattern",
+    "Common Pitfall",
+    "Best Practices",
+    "Reference Files"
+   ],
+   "imports": 0,
+   "lines": 96,
+   "location": "plugin",
+   "path": "skills/webapp-testing/SKILL.md",
+   "suspicious": [],
+   "words": 501
+  },
+  {
+   "bytes": 8697,
+   "frontmatter": {
+    "description": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xl",
+    "name": "xlsx"
+   },
+   "headings": [
+    "XLSX creation, editing, and analysis",
+    "Requirements for every output",
+    "Recalculate (mandatory whenever the file contains formulas)",
+    "Choosing formulas that survive verification",
+    "openpyxl gotchas",
+    "Financial models",
+    "Dependencies"
+   ],
+   "imports": 0,
+   "lines": 99,
+   "location": "plugin",
+   "path": "skills/xlsx/SKILL.md",
+   "suspicious": [],
+   "words": 1312
+  },
+  {
+   "bytes": 146,
+   "frontmatter": {
+    "description": "Replace with description of the skill and when Claude should use it.",
+    "name": "template-skill"
+   },
+   "headings": [
+    "Insert instructions below"
+   ],
+   "imports": 0,
+   "lines": 6,
+   "location": "other",
+   "path": "template/SKILL.md",
+   "suspicious": [],
+   "words": 21
+  }
+ ],
+ "suspicious_fragments": 4
+}

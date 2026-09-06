@@ -1,0 +1,367 @@
+{
+ "active_months": 1,
+ "age_days": 0,
+ "authors": 2,
+ "available": true,
+ "bus_factor": 1,
+ "commits": 13,
+ "commits_last_365d": 13,
+ "commits_last_90d": 13,
+ "commits_per_month_last_year": {
+  "2025-10": 0,
+  "2025-11": 0,
+  "2025-12": 0,
+  "2026-01": 0,
+  "2026-02": 0,
+  "2026-03": 0,
+  "2026-04": 0,
+  "2026-05": 0,
+  "2026-06": 0,
+  "2026-07": 0,
+  "2026-08": 0,
+  "2026-09": 13
+ },
+ "conventional_commits_ratio": 1.0,
+ "coupling": [
+  {
+   "a": "CHANGELOG.md",
+   "b": "README.md",
+   "count": 3,
+   "share": 0.75
+  },
+  {
+   "a": "src/hungry_crab/cli.py",
+   "b": "tests/test_cli.py",
+   "count": 3,
+   "share": 0.75
+  },
+  {
+   "a": "CHANGELOG.md",
+   "b": "benchmarks/results/2026-09-06.json",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": "CHANGELOG.md",
+   "b": "pyproject.toml",
+   "count": 2,
+   "share": 0.5
+  },
+  {
+   "a": "README.md",
+   "b": "benchmarks/results/2026-09-06.json",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": "README.md",
+   "b": "pyproject.toml",
+   "count": 2,
+   "share": 0.5
+  },
+  {
+   "a": "src/hungry_crab/compare/candidates.py",
+   "b": "tests/test_compare.py",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": "src/hungry_crab/cli.py",
+   "b": "src/hungry_crab/digest.py",
+   "count": 2,
+   "share": 0.67
+  },
+  {
+   "a": "src/hungry_crab/digest.py",
+   "b": "tests/test_cli.py",
+   "count": 2,
+   "share": 0.67
+  },
+  {
+   "a": "src/hungry_crab/cli.py",
+   "b": "src/hungry_crab/compare/__init__.py",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": "src/hungry_crab/compare/__init__.py",
+   "b": "tests/test_cli.py",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": ".github/workflows/ci.yml",
+   "b": "SECURITY.md",
+   "count": 2,
+   "share": 1.0
+  },
+  {
+   "a": ".github/workflows/ci.yml",
+   "b": "pyproject.toml",
+   "count": 2,
+   "share": 0.67
+  },
+  {
+   "a": "SECURITY.md",
+   "b": "pyproject.toml",
+   "count": 2,
+   "share": 1.0
+  }
+ ],
+ "files_touched": 111,
+ "first_commit": "2026-09-06T00:35:25+03:00",
+ "fix_commits": 1,
+ "fix_prone": [
+  {
+   "added": 59,
+   "commits": 4,
+   "deleted": 1,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "CHANGELOG.md"
+  },
+  {
+   "added": 180,
+   "commits": 4,
+   "deleted": 4,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "README.md"
+  }
+ ],
+ "fix_ratio": 0.08,
+ "hotspots": [
+  {
+   "added": 573,
+   "commits": 4,
+   "deleted": 14,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/cli.py"
+  },
+  {
+   "added": 234,
+   "commits": 4,
+   "deleted": 2,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "tests/test_cli.py"
+  },
+  {
+   "added": 180,
+   "commits": 4,
+   "deleted": 4,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "README.md"
+  },
+  {
+   "added": 99,
+   "commits": 4,
+   "deleted": 3,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "pyproject.toml"
+  },
+  {
+   "added": 59,
+   "commits": 4,
+   "deleted": 1,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "CHANGELOG.md"
+  },
+  {
+   "added": 414,
+   "commits": 3,
+   "deleted": 0,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/digest.py"
+  },
+  {
+   "added": 66,
+   "commits": 3,
+   "deleted": 6,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": ".github/workflows/ci.yml"
+  },
+  {
+   "added": 11,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/__init__.py"
+  },
+  {
+   "added": 772,
+   "commits": 2,
+   "deleted": 1,
+   "fix_ratio": 0.5,
+   "fixes": 1,
+   "path": "src/hungry_crab/compare/candidates.py"
+  },
+  {
+   "added": 371,
+   "commits": 2,
+   "deleted": 6,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "docs/design/01-concept-and-skill.md"
+  },
+  {
+   "added": 355,
+   "commits": 2,
+   "deleted": 5,
+   "fix_ratio": 0.5,
+   "fixes": 1,
+   "path": "src/hungry_crab/serve.py"
+  },
+  {
+   "added": 310,
+   "commits": 2,
+   "deleted": 1,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/compare/__init__.py"
+  },
+  {
+   "added": 238,
+   "commits": 2,
+   "deleted": 0,
+   "fix_ratio": 0.5,
+   "fixes": 1,
+   "path": "tests/test_compare.py"
+  },
+  {
+   "added": 177,
+   "commits": 2,
+   "deleted": 2,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "docs/design/02-mvp.md"
+  },
+  {
+   "added": 152,
+   "commits": 2,
+   "deleted": 0,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/fetch/catch.py"
+  },
+  {
+   "added": 149,
+   "commits": 2,
+   "deleted": 0,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "tests/test_digest.py"
+  },
+  {
+   "added": 96,
+   "commits": 2,
+   "deleted": 0,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "tests/test_catch.py"
+  },
+  {
+   "added": 72,
+   "commits": 2,
+   "deleted": 2,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "AGENTS.md"
+  },
+  {
+   "added": 63,
+   "commits": 2,
+   "deleted": 0,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "src/hungry_crab/miners/__init__.py"
+  },
+  {
+   "added": 51,
+   "commits": 2,
+   "deleted": 7,
+   "fix_ratio": 0.5,
+   "fixes": 1,
+   "path": "benchmarks/results/2026-09-06.json"
+  }
+ ],
+ "largest_commits": [
+  {
+   "date": "2026-09-06",
+   "files": 101,
+   "lines": 3440,
+   "sha": "715e36a",
+   "subject": "test: add synthetic fixture repositories and miner tests"
+  },
+  {
+   "date": "2026-09-06",
+   "files": 32,
+   "lines": 6586,
+   "sha": "6004484",
+   "subject": "feat: add crab CLI with sniff, catch and digest"
+  },
+  {
+   "date": "2026-09-06",
+   "files": 21,
+   "lines": 591,
+   "sha": "0d1fa42",
+   "subject": "feat(plugin): add the eat, license and serve skills, subagents, commands and plugin manifests (#5)"
+  },
+  {
+   "date": "2026-09-06",
+   "files": 15,
+   "lines": 995,
+   "sha": "7f04307",
+   "subject": "chore: scaffold repository with uv, ruff, mypy and CI"
+  },
+  {
+   "date": "2026-09-06",
+   "files": 12,
+   "lines": 2795,
+   "sha": "e3027e4",
+   "subject": "feat(compare): add crab compare and crab menu with scored nutrient candidates (#2)"
+  }
+ ],
+ "last_commit": "2026-09-06T11:21:35+03:00",
+ "merges": 0,
+ "pr_style_ratio": 0.54,
+ "revert_count": 0,
+ "reverts": [],
+ "security_commit_count": 0,
+ "security_commits": [],
+ "shallow": false,
+ "tags": {
+  "annotated_ratio": 1.0,
+  "count": 2,
+  "latest": "crab--v0.2.0",
+  "latest_date": "2026-09-06T11:22:15+03:00",
+  "recent": [
+   "crab--v0.2.0",
+   "v0.2.0"
+  ],
+  "release_cadence_days": null,
+  "releases_last_year": 1,
+  "semver_count": 1,
+  "semver_ratio": 0.5
+ },
+ "top_authors": [
+  {
+   "commits": 12,
+   "name": "Dreven",
+   "share": 0.92
+  },
+  {
+   "commits": 1,
+   "name": "dependabot[bot]",
+   "share": 0.08
+  }
+ ],
+ "truncated": false
+}

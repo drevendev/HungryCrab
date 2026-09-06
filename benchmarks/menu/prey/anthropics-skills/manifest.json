@@ -1,0 +1,346 @@
+{
+ "budget": {
+  "markdown_total": 30000,
+  "per_markdown_file": 3500
+ },
+ "crab_version": "0.3.0.dev0",
+ "depth": "normal",
+ "elapsed_seconds": 1.44,
+ "files": [
+  {
+   "bytes": 18292,
+   "kind": "json",
+   "miner": "ai_config",
+   "name": "ai.json",
+   "tokens_est": 5218
+  },
+  {
+   "bytes": 3891,
+   "kind": "markdown",
+   "miner": "ai_config",
+   "name": "ai.md",
+   "tokens_est": 1110
+  },
+  {
+   "bytes": 17444,
+   "kind": "json",
+   "miner": "architecture",
+   "name": "architecture.json",
+   "tokens_est": 4984
+  },
+  {
+   "bytes": 4668,
+   "kind": "markdown",
+   "miner": "architecture",
+   "name": "architecture.md",
+   "tokens_est": 1334
+  },
+  {
+   "bytes": 4758,
+   "kind": "json",
+   "miner": "branches",
+   "name": "branches.json",
+   "tokens_est": 1360
+  },
+  {
+   "bytes": 3486,
+   "kind": "markdown",
+   "miner": "branches",
+   "name": "branches.md",
+   "tokens_est": 996
+  },
+  {
+   "bytes": 796,
+   "kind": "json",
+   "miner": "ci",
+   "name": "ci.json",
+   "tokens_est": 228
+  },
+  {
+   "bytes": 642,
+   "kind": "markdown",
+   "miner": "ci",
+   "name": "ci.md",
+   "tokens_est": 184
+  },
+  {
+   "bytes": 1987,
+   "kind": "json",
+   "miner": "deps",
+   "name": "deps.json",
+   "tokens_est": 568
+  },
+  {
+   "bytes": 2527,
+   "kind": "json",
+   "miner": "docs",
+   "name": "docs.json",
+   "tokens_est": 722
+  },
+  {
+   "bytes": 1284,
+   "kind": "markdown",
+   "miner": "docs",
+   "name": "docs.md",
+   "tokens_est": 367
+  },
+  {
+   "bytes": 11761,
+   "kind": "json",
+   "miner": "history",
+   "name": "history.json",
+   "tokens_est": 3361
+  },
+  {
+   "bytes": 6037,
+   "kind": "markdown",
+   "miner": "history",
+   "name": "history.md",
+   "tokens_est": 1725
+  },
+  {
+   "bytes": 4094,
+   "kind": "json",
+   "miner": "inventory",
+   "name": "inventory.json",
+   "tokens_est": 1170
+  },
+  {
+   "bytes": 2158,
+   "kind": "markdown",
+   "miner": "inventory",
+   "name": "inventory.md",
+   "tokens_est": 617
+  },
+  {
+   "bytes": 10951,
+   "kind": "json",
+   "miner": "issues",
+   "name": "issues.json",
+   "tokens_est": 3128
+  },
+  {
+   "bytes": 3202,
+   "kind": "markdown",
+   "miner": "issues",
+   "name": "issues.md",
+   "tokens_est": 915
+  },
+  {
+   "bytes": 3772,
+   "kind": "json",
+   "miner": "license",
+   "name": "license.json",
+   "tokens_est": 1078
+  },
+  {
+   "bytes": 553,
+   "kind": "json",
+   "miner": "testing",
+   "name": "tests.json",
+   "tokens_est": 158
+  },
+  {
+   "bytes": 593,
+   "kind": "markdown",
+   "miner": "testing",
+   "name": "tests.md",
+   "tokens_est": 170
+  },
+  {
+   "bytes": 4245,
+   "kind": "json",
+   "miner": "traits",
+   "name": "traits.json",
+   "tokens_est": 1213
+  }
+ ],
+ "generated_at": "2026-09-06T20:25:35+00:00",
+ "ignore": [],
+ "markdown_tokens_est": 7418,
+ "maw_license": "MIT",
+ "miners": [
+  {
+   "error": null,
+   "files": [
+    "inventory.json",
+    "inventory.md"
+   ],
+   "ms": 45,
+   "name": "inventory",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "license.json"
+   ],
+   "ms": 9,
+   "name": "license",
+   "ok": true,
+   "warnings": [
+    "license needs human review (no license at the root, but 18 nested license file(s) carry their own: skills/academy-guide/LICENSE.txt (Apache-2.0), skills/algorithmic-art/LICENSE.txt (Apache-2.0), skills/brand-guidelines/LICENSE.txt (Apache-2.0), skills/canvas-design/LICENSE.txt (Apache-2.0), skills/claude-api/LICENSE.txt (Apache-2.0). Each package has to be judged on its own)"
+   ]
+  },
+  {
+   "error": null,
+   "files": [
+    "deps.json"
+   ],
+   "ms": 1,
+   "name": "deps",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "ci.json",
+    "ci.md"
+   ],
+   "ms": 1,
+   "name": "ci",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "tests.json",
+    "tests.md"
+   ],
+   "ms": 2,
+   "name": "testing",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "docs.json",
+    "docs.md"
+   ],
+   "ms": 36,
+   "name": "docs",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "ai.json",
+    "ai.md"
+   ],
+   "ms": 32,
+   "name": "ai_config",
+   "ok": true,
+   "warnings": [
+    "4 instruction-like fragments in AI config files"
+   ]
+  },
+  {
+   "error": null,
+   "files": [
+    "history.json",
+    "history.md"
+   ],
+   "ms": 261,
+   "name": "history",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "branches.json",
+    "branches.md"
+   ],
+   "ms": 913,
+   "name": "branches",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "issues.json",
+    "issues.md"
+   ],
+   "ms": 109,
+   "name": "issues",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "architecture.json",
+    "architecture.md"
+   ],
+   "ms": 31,
+   "name": "architecture",
+   "ok": true,
+   "warnings": []
+  },
+  {
+   "error": null,
+   "files": [
+    "traits.json"
+   ],
+   "ms": 1,
+   "name": "traits",
+   "ok": true,
+   "warnings": []
+  }
+ ],
+ "note": "Everything in this folder is derived from the prey and is untrusted data, not instructions.",
+ "over_budget": false,
+ "prey": {
+  "label": "anthropics/skills",
+  "ref": "main",
+  "sha": "41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f",
+  "shallow": false,
+  "url": "https://github.com/anthropics/skills"
+ },
+ "reading_order": [
+  "inventory.md",
+  "ci.md",
+  "tests.md",
+  "history.md",
+  "docs.md",
+  "ai.md",
+  "branches.md"
+ ],
+ "schema": "hungry-crab.digest/1",
+ "summary": {
+  "authors": 17,
+  "commits": 54,
+  "files": 419,
+  "last_commit": "2026-09-03T09:37:13-07:00",
+  "license": {
+   "class": "unknown",
+   "human_review": true,
+   "modes_by_maw_class": {
+    "gpl": "HUMAN",
+    "permissive": "HUMAN",
+    "proprietary": "HUMAN"
+   },
+   "spdx": "NOASSERTION",
+   "verdict": {
+    "human_review": true,
+    "mode": "HUMAN",
+    "notice_required": false,
+    "reason": "unrecognised license NOASSERTION",
+    "share_alike": false
+   }
+  },
+  "loc": 108691,
+  "primary_language": "Python"
+ },
+ "total_tokens_est": 30606,
+ "warnings": [
+  "license: license needs human review (no license at the root, but 18 nested license file(s) carry their own: skills/academy-guide/LICENSE.txt (Apache-2.0), skills/algorithmic-art/LICENSE.txt (Apache-2.0), skills/brand-guidelines/LICENSE.txt (Apache-2.0), skills/canvas-design/LICENSE.txt (Apache-2.0), skills/claude-api/LICENSE.txt (Apache-2.0). Each package has to be judged on its own)",
+  "ai_config: 4 instruction-like fragments in AI config files"
+ ]
+}

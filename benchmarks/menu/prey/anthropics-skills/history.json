@@ -1,0 +1,514 @@
+{
+ "active_months": 11,
+ "age_days": 322,
+ "authors": 17,
+ "available": true,
+ "bus_factor": 2,
+ "commits": 54,
+ "commits_last_365d": 54,
+ "commits_last_90d": 16,
+ "commits_per_month_last_year": {
+  "2025-10": 10,
+  "2025-11": 2,
+  "2025-12": 5,
+  "2026-01": 0,
+  "2026-02": 4,
+  "2026-03": 4,
+  "2026-04": 6,
+  "2026-05": 6,
+  "2026-06": 5,
+  "2026-07": 4,
+  "2026-08": 6,
+  "2026-09": 2
+ },
+ "conventional_commits_ratio": 0.07,
+ "coupling": [
+  {
+   "a": "skills/claude-api/shared/managed-agents-api-reference.md",
+   "b": "skills/claude-api/shared/managed-agents-core.md",
+   "count": 4,
+   "share": 0.31
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-api-reference.md",
+   "b": "skills/claude-api/shared/managed-agents-overview.md",
+   "count": 4,
+   "share": 0.33
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-core.md",
+   "b": "skills/claude-api/shared/managed-agents-overview.md",
+   "count": 4,
+   "share": 0.33
+  },
+  {
+   "a": "skills/claude-api/SKILL.md",
+   "b": "skills/claude-api/python/claude-api/README.md",
+   "count": 3,
+   "share": 0.25
+  },
+  {
+   "a": "skills/claude-api/SKILL.md",
+   "b": "skills/claude-api/shared/live-sources.md",
+   "count": 3,
+   "share": 0.23
+  },
+  {
+   "a": "skills/claude-api/SKILL.md",
+   "b": "skills/claude-api/shared/managed-agents-api-reference.md",
+   "count": 3,
+   "share": 0.2
+  },
+  {
+   "a": "skills/claude-api/SKILL.md",
+   "b": "skills/claude-api/shared/managed-agents-core.md",
+   "count": 3,
+   "share": 0.23
+  },
+  {
+   "a": "skills/claude-api/SKILL.md",
+   "b": "skills/claude-api/shared/managed-agents-overview.md",
+   "count": 3,
+   "share": 0.25
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-api-reference.md",
+   "b": "skills/claude-api/shared/managed-agents-onboarding.md",
+   "count": 3,
+   "share": 0.25
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-api-reference.md",
+   "b": "skills/claude-api/shared/managed-agents-tools.md",
+   "count": 3,
+   "share": 0.27
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-core.md",
+   "b": "skills/claude-api/shared/managed-agents-onboarding.md",
+   "count": 3,
+   "share": 0.25
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-core.md",
+   "b": "skills/claude-api/shared/managed-agents-tools.md",
+   "count": 3,
+   "share": 0.27
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-onboarding.md",
+   "b": "skills/claude-api/shared/managed-agents-overview.md",
+   "count": 3,
+   "share": 0.25
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-onboarding.md",
+   "b": "skills/claude-api/shared/managed-agents-tools.md",
+   "count": 3,
+   "share": 0.27
+  },
+  {
+   "a": "skills/claude-api/shared/managed-agents-overview.md",
+   "b": "skills/claude-api/shared/managed-agents-tools.md",
+   "count": 3,
+   "share": 0.27
+  }
+ ],
+ "files_touched": 1159,
+ "first_commit": "2025-10-15T17:07:32-04:00",
+ "fix_commits": 4,
+ "fix_prone": [
+  {
+   "added": 63,
+   "commits": 3,
+   "deleted": 7,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/token-counting.md"
+  },
+  {
+   "added": 284,
+   "commits": 4,
+   "deleted": 38,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/anthropic-cli.md"
+  },
+  {
+   "added": 319,
+   "commits": 4,
+   "deleted": 37,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/managed-agents-self-hosted-sandboxes.md"
+  },
+  {
+   "added": 63,
+   "commits": 4,
+   "deleted": 60,
+   "fix_ratio": 0.25,
+   "fixes": 1,
+   "path": "spec/agent-skills-spec.md"
+  },
+  {
+   "added": 73,
+   "commits": 5,
+   "deleted": 14,
+   "fix_ratio": 0.2,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/claude-platform-on-aws.md"
+  },
+  {
+   "added": 456,
+   "commits": 5,
+   "deleted": 456,
+   "fix_ratio": 0.2,
+   "fixes": 1,
+   "path": "skills/claude-api/csharp/claude-api.md"
+  },
+  {
+   "added": 116,
+   "commits": 6,
+   "deleted": 15,
+   "fix_ratio": 0.17,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/agent-design.md"
+  },
+  {
+   "added": 453,
+   "commits": 6,
+   "deleted": 453,
+   "fix_ratio": 0.17,
+   "fixes": 1,
+   "path": "skills/claude-api/go/claude-api.md"
+  },
+  {
+   "added": 214,
+   "commits": 7,
+   "deleted": 16,
+   "fix_ratio": 0.14,
+   "fixes": 1,
+   "path": "skills/claude-api/python/claude-api/batches.md"
+  },
+  {
+   "added": 190,
+   "commits": 7,
+   "deleted": 20,
+   "fix_ratio": 0.14,
+   "fixes": 1,
+   "path": "skills/claude-api/python/claude-api/files-api.md"
+  },
+  {
+   "added": 480,
+   "commits": 7,
+   "deleted": 480,
+   "fix_ratio": 0.14,
+   "fixes": 1,
+   "path": "skills/claude-api/java/claude-api.md"
+  },
+  {
+   "added": 440,
+   "commits": 7,
+   "deleted": 440,
+   "fix_ratio": 0.14,
+   "fixes": 1,
+   "path": "skills/claude-api/php/claude-api.md"
+  },
+  {
+   "added": 152,
+   "commits": 7,
+   "deleted": 152,
+   "fix_ratio": 0.14,
+   "fixes": 1,
+   "path": "skills/claude-api/ruby/claude-api.md"
+  },
+  {
+   "added": 541,
+   "commits": 15,
+   "deleted": 86,
+   "fix_ratio": 0.13,
+   "fixes": 2,
+   "path": "skills/claude-api/shared/managed-agents-api-reference.md"
+  },
+  {
+   "added": 367,
+   "commits": 8,
+   "deleted": 32,
+   "fix_ratio": 0.12,
+   "fixes": 1,
+   "path": "skills/claude-api/python/managed-agents/README.md"
+  }
+ ],
+ "fix_ratio": 0.07,
+ "hotspots": [
+  {
+   "added": 1037,
+   "commits": 21,
+   "deleted": 467,
+   "fix_ratio": 0.1,
+   "fixes": 2,
+   "path": "skills/claude-api/SKILL.md"
+  },
+  {
+   "added": 541,
+   "commits": 15,
+   "deleted": 86,
+   "fix_ratio": 0.13,
+   "fixes": 2,
+   "path": "skills/claude-api/shared/managed-agents-api-reference.md"
+  },
+  {
+   "added": 637,
+   "commits": 14,
+   "deleted": 111,
+   "fix_ratio": 0.07,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/tool-use-concepts.md"
+  },
+  {
+   "added": 480,
+   "commits": 13,
+   "deleted": 121,
+   "fix_ratio": 0.08,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/managed-agents-core.md"
+  },
+  {
+   "added": 226,
+   "commits": 13,
+   "deleted": 61,
+   "fix_ratio": 0.08,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/live-sources.md"
+  },
+  {
+   "added": 684,
+   "commits": 12,
+   "deleted": 119,
+   "fix_ratio": 0.08,
+   "fixes": 1,
+   "path": "skills/claude-api/python/claude-api/README.md"
+  },
+  {
+   "added": 252,
+   "commits": 12,
+   "deleted": 170,
+   "fix_ratio": 0.08,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/managed-agents-onboarding.md"
+  },
+  {
+   "added": 130,
+   "commits": 12,
+   "deleted": 53,
+   "fix_ratio": 0.08,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/managed-agents-overview.md"
+  },
+  {
+   "added": 511,
+   "commits": 11,
+   "deleted": 77,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "skills/claude-api/shared/managed-agents-tools.md"
+  },
+  {
+   "added": 277,
+   "commits": 11,
+   "deleted": 51,
+   "fix_ratio": 0.09,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/managed-agents-environments.md"
+  },
+  {
+   "added": 523,
+   "commits": 10,
+   "deleted": 118,
+   "fix_ratio": 0.1,
+   "fixes": 1,
+   "path": "skills/claude-api/typescript/claude-api/README.md"
+  },
+  {
+   "added": 402,
+   "commits": 10,
+   "deleted": 31,
+   "fix_ratio": 0.1,
+   "fixes": 1,
+   "path": "skills/claude-api/curl/managed-agents.md"
+  },
+  {
+   "added": 395,
+   "commits": 10,
+   "deleted": 36,
+   "fix_ratio": 0.1,
+   "fixes": 1,
+   "path": "skills/claude-api/typescript/managed-agents/README.md"
+  },
+  {
+   "added": 228,
+   "commits": 10,
+   "deleted": 86,
+   "fix_ratio": 0.1,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/models.md"
+  },
+  {
+   "added": 220,
+   "commits": 10,
+   "deleted": 41,
+   "fix_ratio": 0.1,
+   "fixes": 1,
+   "path": "skills/claude-api/python/claude-api/streaming.md"
+  },
+  {
+   "added": 2299,
+   "commits": 9,
+   "deleted": 427,
+   "fix_ratio": 0.11,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/model-migration.md"
+  },
+  {
+   "added": 371,
+   "commits": 9,
+   "deleted": 81,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "skills/claude-api/shared/managed-agents-events.md"
+  },
+  {
+   "added": 356,
+   "commits": 9,
+   "deleted": 64,
+   "fix_ratio": 0.11,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/prompt-caching.md"
+  },
+  {
+   "added": 337,
+   "commits": 9,
+   "deleted": 75,
+   "fix_ratio": 0.11,
+   "fixes": 1,
+   "path": "skills/claude-api/shared/error-codes.md"
+  },
+  {
+   "added": 299,
+   "commits": 9,
+   "deleted": 43,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "skills/claude-api/curl/examples.md"
+  }
+ ],
+ "largest_commits": [
+  {
+   "date": "2025-12-01",
+   "files": 589,
+   "lines": 142042,
+   "sha": "ef74077",
+   "subject": "Move example skills into dedicated folder and create minimal top-level folder structure (#129)"
+  },
+  {
+   "date": "2025-10-16",
+   "files": 576,
+   "lines": 143812,
+   "sha": "83291af",
+   "subject": "Reorganize the example skills (#1)"
+  },
+  {
+   "date": "2025-10-15",
+   "files": 290,
+   "lines": 71980,
+   "sha": "37292f3",
+   "subject": "init repo"
+  },
+  {
+   "date": "2026-02-03",
+   "files": 288,
+   "lines": 121888,
+   "sha": "4e6907a",
+   "subject": "Update docx, xlsx, pdf, pptx skills with latest improvements (#330)"
+  },
+  {
+   "date": "2026-09-01",
+   "files": 69,
+   "lines": 4535,
+   "sha": "5304866",
+   "subject": "Update claude-api skill: Claude Fable 5.1 / Mythos 5.1, Managed Agents updates, cost-optimize (#1704"
+  }
+ ],
+ "last_commit": "2026-09-03T09:37:13-07:00",
+ "merges": 0,
+ "pr_style_ratio": 0.98,
+ "revert_count": 0,
+ "reverts": [],
+ "security_commit_count": 0,
+ "security_commits": [],
+ "shallow": false,
+ "tags": {
+  "annotated_ratio": null,
+  "count": 0,
+  "latest": null,
+  "latest_date": null,
+  "recent": [],
+  "release_cadence_days": null,
+  "releases_last_year": 0,
+  "semver_count": 0,
+  "semver_ratio": null
+ },
+ "top_authors": [
+  {
+   "commits": 15,
+   "name": "Lance Martin",
+   "share": 0.28
+  },
+  {
+   "commits": 13,
+   "name": "Keith Lazuka",
+   "share": 0.24
+  },
+  {
+   "commits": 3,
+   "name": "CJ Avilla",
+   "share": 0.06
+  },
+  {
+   "commits": 3,
+   "name": "Kswan",
+   "share": 0.06
+  },
+  {
+   "commits": 3,
+   "name": "Eric Harmeling",
+   "share": 0.06
+  },
+  {
+   "commits": 2,
+   "name": "william qian",
+   "share": 0.04
+  },
+  {
+   "commits": 2,
+   "name": "Peter Lai",
+   "share": 0.04
+  },
+  {
+   "commits": 2,
+   "name": "Andrew Qu",
+   "share": 0.04
+  },
+  {
+   "commits": 2,
+   "name": "cc-skill-sync[bot]",
+   "share": 0.04
+  },
+  {
+   "commits": 2,
+   "name": "Matt Piccolella",
+   "share": 0.04
+  }
+ ],
+ "truncated": false
+}

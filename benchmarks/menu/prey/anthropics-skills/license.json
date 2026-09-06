@@ -1,0 +1,144 @@
+{
+ "api_spdx": null,
+ "candidates": [],
+ "class": "unknown",
+ "confidence": 0.0,
+ "conflicts": [],
+ "evidence": [],
+ "exceptions": [
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/academy-guide/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/algorithmic-art/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/brand-guidelines/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/canvas-design/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/claude-api/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/discernment-nudge/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.5,
+   "kind": "nested-license",
+   "path": "skills/docx/LICENSE.txt",
+   "spdx": "LicenseRef-Proprietary"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/frontend-design/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/internal-comms/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/mcp-builder/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.5,
+   "kind": "nested-license",
+   "path": "skills/pdf/LICENSE.txt",
+   "spdx": "LicenseRef-Proprietary"
+  },
+  {
+   "confidence": 0.5,
+   "kind": "nested-license",
+   "path": "skills/pptx/LICENSE.txt",
+   "spdx": "LicenseRef-Proprietary"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/skill-creator/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/slack-gif-creator/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/theme-factory/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/web-artifacts-builder/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "skills/webapp-testing/LICENSE.txt",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.5,
+   "kind": "nested-license",
+   "path": "skills/xlsx/LICENSE.txt",
+   "spdx": "LicenseRef-Proprietary"
+  }
+ ],
+ "header_counts": {},
+ "headers_scanned": 73,
+ "human_review": true,
+ "license_files": [],
+ "maw_license": "MIT",
+ "modes_by_maw_class": {
+  "gpl": "HUMAN",
+  "permissive": "HUMAN",
+  "proprietary": "HUMAN"
+ },
+ "notes": [
+  "no license file, manifest declaration or API license",
+  "no license at the root, but 18 nested license file(s) carry their own: skills/academy-guide/LICENSE.txt (Apache-2.0), skills/algorithmic-art/LICENSE.txt (Apache-2.0), skills/brand-guidelines/LICENSE.txt (Apache-2.0), skills/canvas-design/LICENSE.txt (Apache-2.0), skills/claude-api/LICENSE.txt (Apache-2.0). Each package has to be judged on its own"
+ ],
+ "notice_files": [
+  "THIRD_PARTY_NOTICES.md"
+ ],
+ "resolution": "per-path",
+ "spdx": "NOASSERTION",
+ "verdict": {
+  "human_review": true,
+  "mode": "HUMAN",
+  "notice_required": false,
+  "reason": "unrecognised license NOASSERTION",
+  "share_alike": false
+ }
+}

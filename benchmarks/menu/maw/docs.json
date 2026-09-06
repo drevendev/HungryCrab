@@ -1,0 +1,138 @@
+{
+ "adr": {
+  "dirs": [],
+  "files": 0
+ },
+ "changelog": {
+  "format": "keep-a-changelog",
+  "path": "CHANGELOG.md"
+ },
+ "codeowners": null,
+ "community": {
+  "changelog": "CHANGELOG.md",
+  "contributing": "CONTRIBUTING.md",
+  "security": "SECURITY.md"
+ },
+ "discussion_templates": [],
+ "docs_dir": "docs",
+ "docs_dir_files": 5,
+ "docs_dir_top": [
+  "design"
+ ],
+ "docs_site": null,
+ "funding": null,
+ "issue_templates": [],
+ "largest_docs": [
+  {
+   "bytes": 22729,
+   "path": "docs/design/01-concept-and-skill.md"
+  },
+  {
+   "bytes": 14585,
+   "path": "docs/design/04-evolving-crab.md"
+  },
+  {
+   "bytes": 12578,
+   "path": "docs/design/02-mvp.md"
+  },
+  {
+   "bytes": 9630,
+   "path": "README.md"
+  },
+  {
+   "bytes": 5985,
+   "path": "docs/design/03-roadmap.md"
+  },
+  {
+   "bytes": 4547,
+   "path": "skills/eat/SKILL.md"
+  },
+  {
+   "bytes": 3995,
+   "path": "AGENTS.md"
+  },
+  {
+   "bytes": 3399,
+   "path": "docs/design/README.md"
+  },
+  {
+   "bytes": 3366,
+   "path": "CHANGELOG.md"
+  },
+  {
+   "bytes": 2544,
+   "path": "skills/serve/SKILL.md"
+  }
+ ],
+ "markdown_files": 22,
+ "markdown_words": 14175,
+ "pr_template": null,
+ "readme": {
+  "badges": 4,
+  "bytes": 9630,
+  "has_code_blocks": true,
+  "has_toc": false,
+  "heading_count": 12,
+  "headings": [
+   {
+    "level": 1,
+    "title": "Hungry Crab"
+   },
+   {
+    "level": 2,
+    "title": "What it does"
+   },
+   {
+    "level": 2,
+    "title": "Quick start"
+   },
+   {
+    "level": 1,
+    "title": "or: pip install git+https://github.com/drevendev/HungryCrab"
+   },
+   {
+    "level": 2,
+    "title": "From digest to issues"
+   },
+   {
+    "level": 2,
+    "title": "Agent skills and the Claude Code plugin"
+   },
+   {
+    "level": 2,
+    "title": "License engine"
+   },
+   {
+    "level": 2,
+    "title": "Safety"
+   },
+   {
+    "level": 2,
+    "title": "Development"
+   },
+   {
+    "level": 2,
+    "title": "Benchmarks"
+   },
+   {
+    "level": 2,
+    "title": "Design"
+   },
+   {
+    "level": 2,
+    "title": "License"
+   }
+  ],
+  "links": 14,
+  "mentions_ai_disclaimer": true,
+  "path": "README.md",
+  "sections": [
+   "architecture",
+   "development",
+   "install",
+   "license"
+  ],
+  "suspicious": [],
+  "words": 1410
+ }
+}

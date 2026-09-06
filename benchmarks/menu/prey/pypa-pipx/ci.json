@@ -1,0 +1,884 @@
+{
+ "actions": {
+  "actions/cache": {
+   "count": 1,
+   "pinned_sha": true,
+   "refs": [
+    "v6.1.0"
+   ]
+  },
+  "actions/checkout": {
+   "count": 11,
+   "pinned_sha": true,
+   "refs": [
+    "v7.0.1"
+   ]
+  },
+  "actions/download-artifact": {
+   "count": 3,
+   "pinned_sha": true,
+   "refs": [
+    "v8.0.1"
+   ]
+  },
+  "actions/setup-python": {
+   "count": 8,
+   "pinned_sha": true,
+   "refs": [
+    "v7.0.0"
+   ]
+  },
+  "actions/upload-artifact": {
+   "count": 5,
+   "pinned_sha": true,
+   "refs": [
+    "v7.0.1"
+   ]
+  },
+  "astral-sh/setup-uv": {
+   "count": 4,
+   "pinned_sha": true,
+   "refs": [
+    "v10.0.1"
+   ]
+  },
+  "pypa/gh-action-pypi-publish": {
+   "count": 1,
+   "pinned_sha": true,
+   "refs": [
+    "v1.14.2"
+   ]
+  },
+  "zizmorcore/zizmor-action": {
+   "count": 1,
+   "pinned_sha": true,
+   "refs": [
+    "v0.6.2"
+   ]
+  }
+ },
+ "composite_actions": [],
+ "dependabot": {
+  "updates": [
+   {
+    "directory": "/",
+    "ecosystem": "github-actions",
+    "groups": [
+     "actions"
+    ],
+    "interval": "weekly"
+   }
+  ],
+  "version": 2
+ },
+ "features": {
+  "actions_sha_pinned_ratio": 1.0,
+  "cache": true,
+  "calls_reusable_workflows": true,
+  "codeql": false,
+  "composite_actions": 0,
+  "concurrency": true,
+  "dependabot": true,
+  "macos_runner": true,
+  "matrix": true,
+  "other_ci": [],
+  "permissions_per_job": true,
+  "permissions_top_level": true,
+  "pipe_to_shell_steps": 0,
+  "provider": "github-actions",
+  "release_automation": true,
+  "renovate": false,
+  "reusable_workflows": true,
+  "schedule": true,
+  "secrets": [
+   "GH_RELEASE_TOKEN",
+   "GITHUB_TOKEN"
+  ],
+  "security_scanning": [],
+  "timeouts": true,
+  "tools": [
+   "black",
+   "nox",
+   "pre-commit",
+   "pypi publish",
+   "tox"
+  ],
+  "windows_runner": true,
+  "workflow_dispatch": true,
+  "workflows": 6
+ },
+ "renovate": null,
+ "workflows": [
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "create_package_lists",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "create_package_lists",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "create_package_lists",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+     "version_comment": "v7.0.1"
+    }
+   ],
+   "cache": true,
+   "concurrency": {
+    "cancel_in_progress": true,
+    "group": "create-tests-package-lists-${{ github.ref }}"
+   },
+   "env": [],
+   "job_permissions": 0,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "create_package_lists",
+     "matrix": {
+      "axes": {
+       "os": 1,
+       "python-version": 6
+      },
+      "fail_fast": null,
+      "size": 8
+     },
+     "name": "Create package lists",
+     "needs": null,
+     "runs_on": "${{ matrix.os }}",
+     "services": 0,
+     "step_runs": 2,
+     "step_uses": 3,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": true,
+   "name": "Create tests package lists for offline tests",
+   "path": ".github/workflows/create_tests_package_lists.yml",
+   "permissions": {
+    "contents": "read"
+   },
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "${{ matrix.os }}",
+    "ubuntu-latest"
+   ],
+   "secrets": [],
+   "timeouts": 0,
+   "tools": [
+    "nox"
+   ],
+   "trigger_details": {},
+   "triggers": [
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "test_all_packages",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "test_all_packages",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "test_all_packages",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/download-artifact",
+     "job": "report_all_packages",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+     "version_comment": "v8.0.1"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "report_all_packages",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+     "version_comment": "v7.0.1"
+    }
+   ],
+   "cache": true,
+   "concurrency": {
+    "cancel_in_progress": true,
+    "group": "exhaustive-package-test-${{ github.ref }}"
+   },
+   "env": [],
+   "job_permissions": 0,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "test_all_packages",
+     "matrix": {
+      "axes": {
+       "os": 3,
+       "python-version": 3
+      },
+      "fail_fast": null,
+      "size": 9
+     },
+     "name": "Exhaustive Package Test",
+     "needs": null,
+     "runs_on": "${{ matrix.os }}",
+     "services": 0,
+     "step_runs": 2,
+     "step_uses": 3,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "report_all_packages",
+     "matrix": null,
+     "name": "Collate test reports",
+     "needs": "test_all_packages",
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 1,
+     "step_uses": 2,
+     "steps": 3,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": true,
+   "name": "Exhaustive Package Test (slow)",
+   "path": ".github/workflows/exhaustive_package_test.yml",
+   "permissions": {
+    "contents": "read"
+   },
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "${{ matrix.os }}",
+    "macos-latest",
+    "ubuntu-latest",
+    "windows-latest"
+   ],
+   "secrets": [],
+   "timeouts": 0,
+   "tools": [
+    "nox"
+   ],
+   "trigger_details": {},
+   "triggers": [
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "pre-release",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "pre-release",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    }
+   ],
+   "cache": false,
+   "concurrency": null,
+   "env": [
+    "default-python"
+   ],
+   "job_permissions": 1,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "pre-release",
+     "matrix": null,
+     "name": null,
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 2,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": false,
+   "name": "Pre-release",
+   "path": ".github/workflows/pre-release.yml",
+   "permissions": null,
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "ubuntu-latest"
+   ],
+   "secrets": [
+    "GH_RELEASE_TOKEN"
+   ],
+   "timeouts": 0,
+   "tools": [
+    "pre-commit"
+   ],
+   "trigger_details": {},
+   "triggers": [
+    "workflow_dispatch"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "build-package",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "build-package",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "build-package",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/download-artifact",
+     "job": "pypi-publish",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+     "version_comment": "v8.0.1"
+    },
+    {
+     "action": "pypa/gh-action-pypi-publish",
+     "job": "pypi-publish",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "dc37677b2e1c63e2034f94d8a5b11f265b73ba33",
+     "version_comment": "v1.14.2"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "create-release",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "upload-zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "upload-zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    }
+   ],
+   "cache": false,
+   "concurrency": {
+    "cancel_in_progress": true,
+    "group": "${{ github.workflow }}-${{ github.ref }}"
+   },
+   "env": [
+    "default-python"
+   ],
+   "job_permissions": 5,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "test",
+     "matrix": null,
+     "name": "Gate release on the test suite",
+     "needs": null,
+     "runs_on": "?",
+     "services": 0,
+     "step_runs": 0,
+     "step_uses": 0,
+     "steps": 0,
+     "timeout_minutes": null,
+     "uses": "./.github/workflows/tests.yml"
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "build-package",
+     "matrix": null,
+     "name": "Build pipx package",
+     "needs": "test",
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 2,
+     "step_uses": 3,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "pypi-publish",
+     "matrix": null,
+     "name": "Publish pipx to PyPI",
+     "needs": "build-package",
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 0,
+     "step_uses": 2,
+     "steps": 2,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "create-release",
+     "matrix": null,
+     "name": "Create a release on GitHub's UI",
+     "needs": "pypi-publish",
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 1,
+     "step_uses": 1,
+     "steps": 2,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "upload-zipapp",
+     "matrix": null,
+     "name": "Upload zipapp to GitHub Release",
+     "needs": "create-release",
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 2,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": false,
+   "name": "Release",
+   "path": ".github/workflows/release.yml",
+   "permissions": null,
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 1,
+   "runners": [
+    "?",
+    "ubuntu-latest"
+   ],
+   "secrets": [
+    "GITHUB_TOKEN"
+   ],
+   "timeouts": 0,
+   "tools": [
+    "pypi publish",
+    "tox"
+   ],
+   "trigger_details": {
+    "push": {
+     "tags": [
+      "*.*.*"
+     ]
+    }
+   },
+   "triggers": [
+    "push"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
+     "version_comment": "v10.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "actions/cache",
+     "job": "test",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+     "version_comment": "v6.1.0"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "type",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "type",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
+     "version_comment": "v10.0.1"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "man",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "man",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
+     "version_comment": "v10.0.1"
+    },
+    {
+     "action": "actions/checkout",
+     "job": "zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "astral-sh/setup-uv",
+     "job": "zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
+     "version_comment": "v10.0.1"
+    },
+    {
+     "action": "actions/upload-artifact",
+     "job": "zipapp",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "actions/setup-python",
+     "job": "zipapp-windows",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+     "version_comment": "v7.0.0"
+    },
+    {
+     "action": "actions/download-artifact",
+     "job": "zipapp-windows",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+     "version_comment": "v8.0.1"
+    }
+   ],
+   "cache": true,
+   "concurrency": {
+    "cancel_in_progress": true,
+    "group": "tests-${{ github.ref }}"
+   },
+   "env": [],
+   "job_permissions": 0,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "test",
+     "matrix": {
+      "axes": {
+       "os": 1,
+       "py": 7
+      },
+      "fail_fast": false,
+      "size": 9
+     },
+     "name": "🧪 test ${{ matrix.py }} - ${{ matrix.os }}",
+     "needs": null,
+     "runs_on": "${{ matrix.os }}",
+     "services": 0,
+     "step_runs": 4,
+     "step_uses": 4,
+     "steps": 8,
+     "timeout_minutes": 40,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "type",
+     "matrix": null,
+     "name": "🔍 Type check",
+     "needs": null,
+     "runs_on": "ubuntu-24.04",
+     "services": 0,
+     "step_runs": 2,
+     "step_uses": 2,
+     "steps": 4,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "man",
+     "matrix": null,
+     "name": "📖 Build man page",
+     "needs": null,
+     "runs_on": "ubuntu-24.04",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 2,
+     "steps": 5,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "zipapp",
+     "matrix": null,
+     "name": "📦 Build zipapp",
+     "needs": null,
+     "runs_on": "ubuntu-24.04",
+     "services": 0,
+     "step_runs": 3,
+     "step_uses": 4,
+     "steps": 7,
+     "timeout_minutes": null,
+     "uses": null
+    },
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": false,
+     "id": "zipapp-windows",
+     "matrix": null,
+     "name": "🪟 Test zipapp on Windows",
+     "needs": "zipapp",
+     "runs_on": "windows-2025",
+     "services": 0,
+     "step_runs": 1,
+     "step_uses": 2,
+     "steps": 3,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": true,
+   "name": "🧪 tests",
+   "path": ".github/workflows/tests.yml",
+   "permissions": {
+    "contents": "read"
+   },
+   "pipe_to_shell": 0,
+   "reusable": true,
+   "reusable_calls": 0,
+   "runners": [
+    "${{ matrix.os }}",
+    "ubuntu-24.04",
+    "windows-2025"
+   ],
+   "secrets": [],
+   "timeouts": 1,
+   "tools": [
+    "black",
+    "tox"
+   ],
+   "trigger_details": {
+    "push": {
+     "branches": [
+      "main"
+     ]
+    },
+    "schedule": [
+     "0 8 * * *"
+    ]
+   },
+   "triggers": [
+    "workflow_dispatch",
+    "workflow_call",
+    "push",
+    "pull_request",
+    "schedule"
+   ]
+  },
+  {
+   "actions": [
+    {
+     "action": "actions/checkout",
+     "job": "zizmor",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+     "version_comment": "v7.0.1"
+    },
+    {
+     "action": "zizmorcore/zizmor-action",
+     "job": "zizmor",
+     "kind": "marketplace",
+     "pinned_sha": true,
+     "ref": "3dc1ecc9bcb9e94e9b2c709687979e1298497054",
+     "version_comment": "v0.6.2"
+    }
+   ],
+   "cache": false,
+   "concurrency": null,
+   "env": [],
+   "job_permissions": 1,
+   "jobs": [
+    {
+     "container": false,
+     "has_if": false,
+     "has_permissions": true,
+     "id": "zizmor",
+     "matrix": null,
+     "name": "Run zizmor 🌈",
+     "needs": null,
+     "runs_on": "ubuntu-latest",
+     "services": 0,
+     "step_runs": 0,
+     "step_uses": 2,
+     "steps": 2,
+     "timeout_minutes": null,
+     "uses": null
+    }
+   ],
+   "matrix": false,
+   "name": "GitHub Actions Security Analysis with zizmor 🌈",
+   "path": ".github/workflows/zizmor.yml",
+   "permissions": {},
+   "pipe_to_shell": 0,
+   "reusable": false,
+   "reusable_calls": 0,
+   "runners": [
+    "ubuntu-latest"
+   ],
+   "secrets": [],
+   "timeouts": 0,
+   "tools": [],
+   "trigger_details": {
+    "pull_request": {
+     "branches": [
+      "**"
+     ]
+    },
+    "push": {
+     "branches": [
+      "main"
+     ]
+    }
+   },
+   "triggers": [
+    "push",
+    "pull_request"
+   ]
+  }
+ ]
+}

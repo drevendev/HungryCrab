@@ -1,0 +1,684 @@
+{
+ "available": true,
+ "edges": [
+  [
+   "skills/docx/scripts/accept_changes.py",
+   "skills/docx/scripts/office/soffice.py"
+  ],
+  [
+   "skills/docx/scripts/comment.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/merge_runs.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/helpers/pptx_chart.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/helpers/pptx_theme.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validate.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validate.py",
+   "skills/docx/scripts/office/validators/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/__init__.py",
+   "skills/docx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/__init__.py",
+   "skills/docx/scripts/office/validators/docx.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/__init__.py",
+   "skills/docx/scripts/office/validators/pptx.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/__init__.py",
+   "skills/docx/scripts/office/validators/redlining.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/base.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/docx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/docx.py",
+   "skills/docx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_chart.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_slide.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_theme.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/docx/scripts/office/validators/redlining.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/mcp-builder/scripts/evaluation.py",
+   "skills/mcp-builder/scripts/connections.py"
+  ],
+  [
+   "skills/pdf/scripts/fill_fillable_fields.py",
+   "skills/pdf/scripts/extract_form_field_info.py"
+  ],
+  [
+   "skills/pptx/scripts/add_slide.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/clean.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/helpers/pptx_chart.py",
+   "skills/pptx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/helpers/pptx_theme.py",
+   "skills/pptx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/soffice.py",
+   "skills/docx/scripts/office/soffice.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validate.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validate.py",
+   "skills/docx/scripts/office/validators/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/__init__.py",
+   "skills/pptx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/__init__.py",
+   "skills/pptx/scripts/office/validators/docx.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/__init__.py",
+   "skills/pptx/scripts/office/validators/pptx.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/__init__.py",
+   "skills/pptx/scripts/office/validators/redlining.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/base.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/docx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/docx.py",
+   "skills/pptx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_chart.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_slide.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_theme.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/pptx.py",
+   "skills/pptx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/pptx/scripts/office/validators/redlining.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/thumbnail.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/pptx/scripts/thumbnail.py",
+   "skills/docx/scripts/office/soffice.py"
+  ],
+  [
+   "skills/skill-creator/scripts/improve_description.py",
+   "skills/skill-creator/scripts/utils.py"
+  ],
+  [
+   "skills/skill-creator/scripts/package_skill.py",
+   "skills/skill-creator/scripts/quick_validate.py"
+  ],
+  [
+   "skills/skill-creator/scripts/run_eval.py",
+   "skills/skill-creator/scripts/utils.py"
+  ],
+  [
+   "skills/skill-creator/scripts/run_loop.py",
+   "skills/skill-creator/scripts/generate_report.py"
+  ],
+  [
+   "skills/skill-creator/scripts/run_loop.py",
+   "skills/skill-creator/scripts/improve_description.py"
+  ],
+  [
+   "skills/skill-creator/scripts/run_loop.py",
+   "skills/skill-creator/scripts/run_eval.py"
+  ],
+  [
+   "skills/skill-creator/scripts/run_loop.py",
+   "skills/skill-creator/scripts/utils.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/helpers/pptx_chart.py",
+   "skills/xlsx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/helpers/pptx_theme.py",
+   "skills/xlsx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/soffice.py",
+   "skills/docx/scripts/office/soffice.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validate.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validate.py",
+   "skills/docx/scripts/office/validators/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/__init__.py",
+   "skills/xlsx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/__init__.py",
+   "skills/xlsx/scripts/office/validators/docx.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/__init__.py",
+   "skills/xlsx/scripts/office/validators/pptx.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/__init__.py",
+   "skills/xlsx/scripts/office/validators/redlining.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/base.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/docx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/docx.py",
+   "skills/xlsx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_chart.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_slide.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/pptx.py",
+   "skills/docx/scripts/office/helpers/pptx_theme.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/pptx.py",
+   "skills/xlsx/scripts/office/validators/base.py"
+  ],
+  [
+   "skills/xlsx/scripts/office/validators/redlining.py",
+   "skills/docx/scripts/office/helpers/__init__.py"
+  ],
+  [
+   "skills/xlsx/scripts/recalc.py",
+   "skills/docx/scripts/office/soffice.py"
+  ]
+ ],
+ "files_scanned": 73,
+ "graph": {
+  "dir_cycles": [],
+  "dir_edges": [],
+  "edges": 70,
+  "external_top": [
+   {
+    "imports": 40,
+    "name": "pathlib"
+   },
+   {
+    "imports": 30,
+    "name": "sys"
+   },
+   {
+    "imports": 28,
+    "name": "re"
+   },
+   {
+    "imports": 27,
+    "name": "tempfile"
+   },
+   {
+    "imports": 24,
+    "name": "zipfile"
+   },
+   {
+    "imports": 23,
+    "name": "defusedxml"
+   },
+   {
+    "imports": 21,
+    "name": "lxml"
+   },
+   {
+    "imports": 16,
+    "name": "argparse"
+   },
+   {
+    "imports": 14,
+    "name": "json"
+   },
+   {
+    "imports": 13,
+    "name": "subprocess"
+   },
+   {
+    "imports": 13,
+    "name": "os"
+   },
+   {
+    "imports": 11,
+    "name": "typing"
+   },
+   {
+    "imports": 9,
+    "name": "__future__"
+   },
+   {
+    "imports": 8,
+    "name": "posixpath"
+   },
+   {
+    "imports": 7,
+    "name": "pypdf"
+   }
+  ],
+  "hubs": [
+   {
+    "imported_by": 22,
+    "imports": 0,
+    "path": "skills/docx/scripts/office/helpers/__init__.py"
+   },
+   {
+    "imported_by": 5,
+    "imports": 0,
+    "path": "skills/docx/scripts/office/soffice.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 0,
+    "path": "skills/skill-creator/scripts/utils.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 1,
+    "path": "skills/xlsx/scripts/office/validators/base.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 0,
+    "path": "skills/docx/scripts/office/helpers/pptx_slide.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 4,
+    "path": "skills/docx/scripts/office/validators/__init__.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 1,
+    "path": "skills/docx/scripts/office/validators/base.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 1,
+    "path": "skills/pptx/scripts/office/validators/base.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 1,
+    "path": "skills/docx/scripts/office/helpers/pptx_chart.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 1,
+    "path": "skills/docx/scripts/office/helpers/pptx_theme.py"
+   }
+  ],
+  "layers": [],
+  "nodes": 49,
+  "orchestrators": [
+   {
+    "imported_by": 1,
+    "imports": 5,
+    "path": "skills/xlsx/scripts/office/validators/pptx.py"
+   },
+   {
+    "imported_by": 1,
+    "imports": 5,
+    "path": "skills/docx/scripts/office/validators/pptx.py"
+   },
+   {
+    "imported_by": 1,
+    "imports": 5,
+    "path": "skills/pptx/scripts/office/validators/pptx.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 4,
+    "path": "skills/xlsx/scripts/office/validators/__init__.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 4,
+    "path": "skills/docx/scripts/office/validators/__init__.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 4,
+    "path": "skills/pptx/scripts/office/validators/__init__.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 4,
+    "path": "skills/skill-creator/scripts/run_loop.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 2,
+    "path": "skills/pptx/scripts/office/validate.py"
+   },
+   {
+    "imported_by": 1,
+    "imports": 2,
+    "path": "skills/pptx/scripts/office/validators/docx.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 2,
+    "path": "skills/docx/scripts/office/validate.py"
+   }
+  ]
+ },
+ "languages": [
+  "JavaScript",
+  "Python",
+  "Shell"
+ ],
+ "public_surface": [
+  {
+   "names": [
+    "get_soffice_env",
+    "run_soffice"
+   ],
+   "path": "skills/docx/scripts/office/soffice.py"
+  },
+  {
+   "names": [
+    "opc_target",
+    "part_text",
+    "rels_source_part",
+    "rendered_text",
+    "rezip",
+    "safe_extract"
+   ],
+   "path": "skills/docx/scripts/office/helpers/__init__.py"
+  },
+  {
+   "names": [
+    "find_chart_problems"
+   ],
+   "path": "skills/docx/scripts/office/helpers/pptx_chart.py"
+  },
+  {
+   "names": [
+    "fatal_slide_errors",
+    "is_schema_verdict"
+   ],
+   "path": "skills/docx/scripts/office/helpers/pptx_slide.py"
+  },
+  {
+   "names": [
+    "find_shared_master_themes",
+    "live_shared_master_themes"
+   ],
+   "path": "skills/docx/scripts/office/helpers/pptx_theme.py"
+  },
+  {
+   "names": [
+    "BaseSchemaValidator",
+    "DOCXSchemaValidator",
+    "PPTXSchemaValidator",
+    "RedliningValidator"
+   ],
+   "path": "skills/docx/scripts/office/validators/__init__.py"
+  },
+  {
+   "names": [
+    "BaseSchemaValidator",
+    "process_text_content",
+    "repair",
+    "repair_whitespace_preservation",
+    "validate",
+    "validate_against_xsd",
+    "validate_all_relationship_ids",
+    "validate_content_types",
+    "validate_file_against_xsd",
+    "validate_file_references",
+    "validate_namespaces",
+    "validate_unique_ids",
+    "validate_xml"
+   ],
+   "path": "skills/docx/scripts/office/validators/base.py"
+  },
+  {
+   "names": [
+    "opc_target",
+    "part_text",
+    "rels_source_part",
+    "rendered_text",
+    "rezip",
+    "safe_extract"
+   ],
+   "path": "skills/pptx/scripts/office/helpers/__init__.py"
+  },
+  {
+   "names": [
+    "BaseSchemaValidator",
+    "DOCXSchemaValidator",
+    "PPTXSchemaValidator",
+    "RedliningValidator"
+   ],
+   "path": "skills/pptx/scripts/office/validators/__init__.py"
+  },
+  {
+   "names": [
+    "BaseSchemaValidator",
+    "process_text_content",
+    "repair",
+    "repair_whitespace_preservation",
+    "validate",
+    "validate_against_xsd",
+    "validate_all_relationship_ids",
+    "validate_content_types",
+    "validate_file_against_xsd",
+    "validate_file_references",
+    "validate_namespaces",
+    "validate_unique_ids",
+    "validate_xml"
+   ],
+   "path": "skills/pptx/scripts/office/validators/base.py"
+  },
+  {
+   "names": [
+    "parse_skill_md"
+   ],
+   "path": "skills/skill-creator/scripts/utils.py"
+  },
+  {
+   "names": [
+    "opc_target",
+    "part_text",
+    "rels_source_part",
+    "rendered_text",
+    "rezip",
+    "safe_extract"
+   ],
+   "path": "skills/xlsx/scripts/office/helpers/__init__.py"
+  }
+ ],
+ "top_files_by_symbols": [
+  {
+   "classes": 0,
+   "functions": 25,
+   "path": "skills/docx/scripts/merge_runs.py",
+   "public": 3
+  },
+  {
+   "classes": 1,
+   "functions": 23,
+   "path": "skills/docx/scripts/office/validators/base.py",
+   "public": 13
+  },
+  {
+   "classes": 1,
+   "functions": 23,
+   "path": "skills/pptx/scripts/office/validators/base.py",
+   "public": 13
+  },
+  {
+   "classes": 1,
+   "functions": 23,
+   "path": "skills/xlsx/scripts/office/validators/base.py",
+   "public": 13
+  },
+  {
+   "classes": 0,
+   "functions": 20,
+   "path": "skills/slack-gif-creator/core/easing.py",
+   "public": 20
+  },
+  {
+   "classes": 4,
+   "functions": 13,
+   "path": "skills/mcp-builder/scripts/connections.py",
+   "public": 7
+  },
+  {
+   "classes": 0,
+   "functions": 16,
+   "path": "skills/pptx/scripts/add_slide.py",
+   "public": 7
+  },
+  {
+   "classes": 1,
+   "functions": 14,
+   "path": "skills/algorithmic-art/templates/generator_template.js",
+   "public": 0
+  },
+  {
+   "classes": 1,
+   "functions": 14,
+   "path": "skills/docx/scripts/office/validators/redlining.py",
+   "public": 5
+  },
+  {
+   "classes": 1,
+   "functions": 14,
+   "path": "skills/pptx/scripts/office/validators/redlining.py",
+   "public": 5
+  },
+  {
+   "classes": 1,
+   "functions": 14,
+   "path": "skills/xlsx/scripts/office/validators/redlining.py",
+   "public": 5
+  },
+  {
+   "classes": 1,
+   "functions": 13,
+   "path": "skills/docx/scripts/office/validators/pptx.py",
+   "public": 9
+  },
+  {
+   "classes": 1,
+   "functions": 13,
+   "path": "skills/pptx/scripts/office/validators/pptx.py",
+   "public": 9
+  },
+  {
+   "classes": 1,
+   "functions": 13,
+   "path": "skills/skill-creator/eval-viewer/generate_review.py",
+   "public": 11
+  },
+  {
+   "classes": 1,
+   "functions": 13,
+   "path": "skills/xlsx/scripts/office/validators/pptx.py",
+   "public": 9
+  }
+ ],
+ "totals": {
+  "classes": 21,
+  "exports": 0,
+  "functions": 494
+ },
+ "truncated": false
+}
