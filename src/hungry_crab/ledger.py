@@ -36,7 +36,7 @@ class LedgerEntry:
     prey: str = ""
     sha: str = ""
     score: float = 0.0
-    artifact: str = "issue"
+    serve_as: str = "issue"
     first_seen: str = ""
     last_seen: str = ""
     decided_at: str | None = None
@@ -63,10 +63,10 @@ class LedgerEntry:
             key=card.key,
             title=card.title,
             status=card.status if card.status in STATUSES else "proposed",
-            prey=str(card.provenance.get("prey", "")),
-            sha=str(card.provenance.get("sha", "")),
+            prey=str(card.trace.get("prey", "")),
+            sha=str(card.trace.get("sha", "")),
             score=card.score,
-            artifact=card.artifact,
+            serve_as=card.serve_as,
             first_seen=stamp,
             last_seen=stamp,
         )
@@ -168,8 +168,8 @@ class Ledger:
                 continue
             existing.last_seen = stamp
             existing.score = card.score
-            existing.prey = str(card.provenance.get("prey", existing.prey))
-            existing.sha = str(card.provenance.get("sha", existing.sha))
+            existing.prey = str(card.trace.get("prey", existing.prey))
+            existing.sha = str(card.trace.get("sha", existing.sha))
         prey = as_dict(menu.get("prey"))
         verdict = as_dict(menu.get("verdict"))
         self.meals.append(

@@ -86,7 +86,7 @@ Every arm emits the same card schema, so the judge grades substance and not rese
 crab:
 
 ```json
-{"id": "...", "category": "...", "title": "...", "what": "...", "why_for_maw": "...",
+{"id": "...", "category": "...", "title": "...", "what": "...", "why": "...",
  "how": "...", "evidence": [{"path": "...", "url": "..."}], "license_mode": "...",
  "effort": "S|M|L", "risk": "low|medium|high"}
 ```

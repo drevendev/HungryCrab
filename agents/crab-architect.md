@@ -35,5 +35,5 @@ maw's (same files). The caller may also name specific maw files to look at.
 ## Output
 
 Markdown with `## Findings` and a `## Notes` JSON block
-(`[{"id": ..., "why_for_maw": ..., "how": ...}]`) for the `architecture` candidate id from the
+(`[{"id": ..., "why": ..., "how": ...}]`) for the `architecture` candidate id from the
 menu. Under 500 words.

@@ -5,7 +5,7 @@
 With a single `/crab:eat owner/repo` in any repository of the fleet, get:
 
 1. A deterministic digest of the prey and a diff against the maw (no model, minutes).
-2. A menu of ≥ 10 concrete nutrients with license verdicts and provenance.
+2. A menu of ≥ 10 concrete nutrients with license verdicts and trace.
 3. Approved nutrients created as issues; 1–3 low-risk nutrients as ready PRs.
 4. A repeated run creates no duplicates.
 
@@ -21,7 +21,7 @@ and PRs on CI / tooling / AI configs merge without rework.
 | Ecosystems: npm/TS, Python/pyproject, C#/.NET, GitHub Actions | Go, Rust, JVM, PHP, Ruby, others |
 | Code, history, branches, issues, PRs (metadata), releases, wiki | Discussions, PR review comments, Actions runs statistics |
 | Traits matrix (~120 traits), compare, pre-scoring | Learning the scorer from the ledger, embeddings |
-| Issues + PRs via gh, provenance, dedup, ledger, attribution | GitHub Action, MCP server, dashboard |
+| Issues + PRs via gh, trace, dedup, ledger, attribution | GitHub Action, MCP server, dashboard |
 | Clean room via a subagent (from 0.3) | Automatic similarity check of an implementation against the original |
 | Plugin for Claude Code + `npx skills add` | PyPI package with auto-update (possible, not required) |
 
@@ -95,7 +95,7 @@ description: Eat a foreign repository and turn everything useful for the current
 8. Run `crab ledger mark …` and print the final report with links.
 ```
 
-References (`references/`): the license matrix, issue/PR templates with the provenance footer,
+References (`references/`): the license matrix, issue/PR templates with the trace footer,
 the category list with "what counts as valuable" criteria, examples of good cards.
 
 ## 7. MVP subagents
@@ -128,7 +128,7 @@ the category list with "what counts as valuable" criteria, examples of good card
   duplicates.
 
 ### 0.3 "Serve" — PRs and the clean room
-- `serve --as pr-branch`, PR template with provenance, `THIRD_PARTY_NOTICES.md`, secret scan.
+- `serve --as pr-branch`, PR template with trace, `THIRD_PARTY_NOTICES.md`, secret scan.
 - `crab-cleanroom` skill and subagent with the deny rule; the "never execute prey" hook.
 - Wiki miner, `strict` mode, `--shallow/--since` for giants.
 - README, docs, disclaimer, `npx skills add` compatibility.
@@ -145,7 +145,7 @@ the category list with "what counts as valuable" criteria, examples of good card
 | Idempotency | repeated `/crab:eat` of the same SHA → 0 new issues |
 | Prey code execution | 0 cases; the hook blocks an attempt in a test |
 | Platforms | Windows 11 + Ubuntu in the crab's CI |
-| Provenance | 100 % of issues/PRs contain repo@sha, license, mode, evidence links |
+| Trace | 100 % of issues/PRs contain repo@sha, license, mode, evidence links |
 
 ## 10. First prey → maw pairs for fleet validation
 

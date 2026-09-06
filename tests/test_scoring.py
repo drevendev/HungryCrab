@@ -12,7 +12,7 @@ def _card(**overrides: object) -> Candidate:
         "key": "ci.cache",
         "title": "Cache",
         "what": "caches",
-        "artifact": "pr",
+        "serve_as": "pr",
         "effort": "S",
         "risk": "low",
         "value": 0.9,

@@ -25,13 +25,13 @@ MENU = {
 
 def _cards() -> list[Candidate]:
     cards = [
-        Candidate("ci", "ci.cache", "Cache", "caches", artifact="pr"),
-        Candidate("tooling", "tooling.dependabot", "Dependabot", "bot", artifact="pr"),
-        Candidate("docs", "docs.site", "Docs site", "site", artifact="issue"),
+        Candidate("ci", "ci.cache", "Cache", "caches", serve_as="pr"),
+        Candidate("tooling", "tooling.dependabot", "Dependabot", "bot", serve_as="pr"),
+        Candidate("docs", "docs.site", "Docs site", "site", serve_as="issue"),
     ]
     for index, card in enumerate(cards):
         card.score = 0.9 - index * 0.1
-        card.provenance = {"prey": "example/prey", "sha": "a" * 40}
+        card.trace = {"prey": "example/prey", "sha": "a" * 40}
     return cards
 
 

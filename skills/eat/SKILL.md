@@ -48,9 +48,9 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
    the cache, never copy text verbatim unless the mode is `COPY`.
 7. **Judge.** For each shown candidate decide keep or drop for *this* maw. The score is a
    deterministic pre-ranking, not a verdict. For kept ones write two things, concrete and short:
-   `why_for_maw` (what improves here, 1-3 sentences) and `how` (the first steps, adapted to this
+   `why` (what improves here, 1-3 sentences) and `how` (the first steps, adapted to this
    repository's toolchain). Save them as JSON:
-   `[{"id": "crab:ci:ci.cache", "why_for_maw": "...", "how": "..."}]` in a scratch file.
+   `[{"id": "crab:ci:ci.cache", "why": "...", "how": "..."}]` in a scratch file.
 8. **Ask.** Show the menu as a table: id, category, title, license mode, effort, your verdict.
    Ask which items to serve. In CI, follow the `serve` policy in `.crab.yml` instead.
    Record drops right away: `crab ledger mark <id> rejected --reason "..."`; the ledger
@@ -60,7 +60,7 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
    to keep it without issues), and mark one representative id so the reason is on record.
 9. **Serve.** `crab serve <prey> --maw . --ids a,b --notes notes.json --as dry-run`, show the
    previews, then after confirmation `--as issue`. Every issue carries a hidden `crab:<id>`
-   marker, the `hungry-crab` label and a provenance footer, so a rerun creates no duplicates.
+   marker, the `hungry-crab` label and a trace footer, so a rerun creates no duplicates.
    Nutrients marked `pr` are served as issues until milestone 0.3 brings pull-request branches.
 10. **Close the meal.** Commit `.crab/ledger.json` when the ledger mode is `repo`. Report the
     created issues with links, what was skipped and why, and suggest `crab tune` once the ledger

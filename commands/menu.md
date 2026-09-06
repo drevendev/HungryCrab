@@ -9,5 +9,5 @@ when `crab` is not on PATH).
 
 If it reports that there is no menu yet, run `crab compare <prey> --maw . --issues 300` first
 and then the menu again. Present the ranked candidates as a table (rank, score, category,
-nutrient, mode, effort, artifact, id) and remind the user that the `eat` skill judges and
+nutrient, mode, effort, serve_as, id) and remind the user that the `eat` skill judges and
 serves them.

@@ -69,7 +69,7 @@ class CompareResult:
 def apply_hunger(
     candidates: list[Candidate], hunger: dict[str, Any]
 ) -> tuple[list[Candidate], list[dict[str, Any]]]:
-    """``false`` drops a category, ``issues-only``/``ideas-only`` downgrade the artifact."""
+    """``false`` drops a category, ``issues-only``/``ideas-only`` downgrade what it is served as."""
     kept: list[Candidate] = []
     hidden: list[dict[str, Any]] = []
     for candidate in candidates:
@@ -81,10 +81,10 @@ def apply_hunger(
             continue
         if isinstance(setting, str):
             mode = setting.lower()
-            if mode == "issues-only" and candidate.artifact == "pr":
-                candidate.artifact = "issue"
+            if mode == "issues-only" and candidate.serve_as == "pr":
+                candidate.serve_as = "issue"
             elif mode == "ideas-only":
-                candidate.artifact = "idea"
+                candidate.serve_as = "idea"
         kept.append(candidate)
     return kept, hidden
 
@@ -110,7 +110,7 @@ def compare_digests(
         candidate.applicability = round(
             candidate.applicability * scoring.applicability_for("same_stack"), 2
         )
-        candidate.provenance = {
+        candidate.trace = {
             "prey": prey.label,
             "url": prey.url,
             "sha": prey.sha,

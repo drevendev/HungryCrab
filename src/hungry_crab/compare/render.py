@@ -156,22 +156,22 @@ def menu_doc(
     categories = ", ".join(
         f"{k} {v}" for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])
     )
-    artifacts = ", ".join(
-        f"{kind} {sum(1 for c in shown if c.artifact == kind)}" for kind in ("pr", "issue", "idea")
+    served_as = ", ".join(
+        f"{kind} {sum(1 for c in shown if c.serve_as == kind)}" for kind in ("pr", "issue", "idea")
     )
     summary.kv(
         [
             ("Candidates", f"{len(candidates)} ({len(shown)} shown, {len(hidden)} hidden)"),
             ("By category", categories),
             ("Default license mode", f"{verdict.get('mode', '?')}: {verdict.get('reason', '')}"),
-            ("Artifacts", artifacts),
+            ("Served as", served_as),
         ]
     )
     table = doc.section("Ranked candidates", priority=1)
     table.table(
         ["#", "Score", "Category", "Nutrient", "Mode", "Effort", "Risk", "Artifact", "Id"],
         (
-            [i, c.score, c.category, c.title, c.license_mode, c.effort, c.risk, c.artifact, c.id]
+            [i, c.score, c.category, c.title, c.license_mode, c.effort, c.risk, c.serve_as, c.id]
             for i, c in enumerate(shown, start=1)
         ),
     )
@@ -189,8 +189,8 @@ def menu_doc(
             details.line(f"- **Evidence:** {cited}")
         if explain and candidate.id in explain:
             details.line(f"- **Score:** {candidate.score} = {explain[candidate.id]}")
-        if candidate.why_for_maw:
-            details.line(f"- **Why for the maw:** {candidate.why_for_maw}")
+        if candidate.why:
+            details.line(f"- **Why for the maw:** {candidate.why}")
         if candidate.how:
             details.line(f"- **How:** {candidate.how}")
         details.line("")

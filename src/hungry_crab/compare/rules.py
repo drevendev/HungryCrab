@@ -16,7 +16,7 @@ class TraitRule:
     category: str
     title: str
     what: str
-    artifact: str
+    serve_as: str
     effort: str
     risk: str
     value: float

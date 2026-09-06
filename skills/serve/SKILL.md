@@ -1,6 +1,6 @@
 ---
 name: serve
-description: Write and create issues for approved nutrients with provenance and deduplication markers, using crab serve. Use when serving a menu, writing the why and how of a nutrient, explaining the provenance footer, or checking why a nutrient was skipped.
+description: Write and create issues for approved nutrients with trace and deduplication markers, using crab serve. Use when serving a menu, writing the why and how of a nutrient, explaining the trace footer, or checking why a nutrient was skipped.
 ---
 
 # Serve nutrients
@@ -15,19 +15,19 @@ Before serving, write `notes.json` with one entry per nutrient you keep:
 [
   {
     "id": "crab:ci:ci.cache",
-    "why_for_maw": "Every CI run reinstalls the dependencies; the prey's cache step cuts its lint job to 12 seconds.",
+    "why": "Every CI run reinstalls the dependencies; the prey's cache step cuts its lint job to 12 seconds.",
     "how": "Add `enable-cache: true` to astral-sh/setup-uv in ci.yml, keyed on uv.lock; run it on one PR before enabling it for the matrix."
   }
 ]
 ```
 
-Rules for `why_for_maw` and `how`:
+Rules for `why` and `how`:
 
 - Name a concrete effect in this repository (time, risk, a class of bugs), not a generic benefit.
 - `how` names files and tools of the maw, adapted to its toolchain; it is the first step, not a
   full plan.
 - Never paste prey text unless the license mode is `COPY`; even then cite the path.
-- Optional fields: `title` (if the generated one is off), `artifact`, `effort`, `risk`.
+- Optional fields: `title` (if the generated one is off), `serve_as`, `effort`, `risk`.
 
 ## Commands
 
@@ -61,7 +61,7 @@ the label.
 ## What an issue contains
 
 See `references/issue-template.md`. Every issue carries a hidden `<!-- crab:<id> -->` marker
-(deduplication across runs and machines), the `hungry-crab` label, and a provenance footer with
+(deduplication across runs and machines), the `hungry-crab` label, and a trace footer with
 prey, commit, license and mode. The ledger records `served` with the issue URL.
 
 ## Skips and their meaning

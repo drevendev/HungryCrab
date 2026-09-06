@@ -99,7 +99,7 @@ def test_a_wider_skills_corpus_is_a_candidate_even_though_the_maw_has_skills() -
     assert [c.key for c in out] == ["ai-config.skills-corpus"]
     assert out[0].title == "Measure your 3 skills against anthropics/skills's 20"
     assert out[0].prey_state == "20 skills" and out[0].maw_state == "3 skills"
-    assert out[0].artifact == "idea"
+    assert out[0].serve_as == "idea"
 
 
 @pytest.mark.parametrize(

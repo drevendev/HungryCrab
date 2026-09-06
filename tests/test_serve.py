@@ -88,7 +88,7 @@ def test_parse_markers_and_render_issue() -> None:
     }
     card = Candidate(
         "ci", "ci.cache", "Cache dependencies in CI", "npm-app caches dependencies",
-        maw_state="no", artifact="pr", effort="S", risk="low",
+        maw_state="no", serve_as="pr", effort="S", risk="low",
         evidence=[Evidence(".github/workflows/ci.yml", "https://x/ci.yml")],
         license_mode="COPY", score=0.81,
     )  # fmt: skip
@@ -113,7 +113,7 @@ def test_parse_markers_and_render_issue() -> None:
     assert "## What this repository has\n\nnothing comparable\n" in body
     card.maw_state = "ruff 0.4, no cache"
     assert "## What this repository has\n\nruff 0.4, no cache\n" in render_issue(card, {})[1]
-    card.why_for_maw = "Our CI is slow."
+    card.why = "Our CI is slow."
     card.how = "Use setup-uv cache."
     _, body = render_issue(card, {"prey": {"label": "p"}})
     assert "Our CI is slow." in body and "Use setup-uv cache." in body
@@ -150,9 +150,7 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
     prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
     notes = tmp_path / "notes.json"
     notes.write_text(
-        json.dumps(
-            [{"id": "crab:ci:ci.cache", "why_for_maw": "CI takes 9 minutes.", "how": "Cache uv."}]
-        ),
+        json.dumps([{"id": "crab:ci:ci.cache", "why": "CI takes 9 minutes.", "how": "Cache uv."}]),
         encoding="utf-8",
     )
     config = MawConfig.load(pyproject_cli)
@@ -160,7 +158,7 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
     ledger.record_meal(
         {"prey": {"label": "npm-app"}, "verdict": {"mode": "COPY"}},
         [
-            Candidate("ci", "ci.concurrency", "Concurrency", "x", provenance={"prey": "npm-app"}),
+            Candidate("ci", "ci.concurrency", "Concurrency", "x", trace={"prey": "npm-app"}),
         ],
         now=NOW,
     )

@@ -173,7 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--as", dest="mode", choices=("dry-run", "issue", "pr-branch"), default="dry-run"
     )
     p_serve.add_argument(
-        "--notes", type=Path, default=None, help="JSON with why_for_maw/how per id (model-written)"
+        "--notes", type=Path, default=None, help="JSON with why/how per id (model-written)"
     )
     p_serve.add_argument("--json", action="store_true")
 
@@ -315,7 +315,7 @@ def print_menu(
         title = card.title if len(card.title) <= 50 else card.title[:47] + "..."
         print(
             f"{index:>3} {card.score:>5.2f}  {card.category:<15}{title:<52}{card.license_mode:<12}"
-            f"{card.effort:<4}{card.artifact:<6}{card.id}"
+            f"{card.effort:<4}{card.serve_as:<6}{card.id}"
         )
     if show_hidden:
         for item in menu.get("hidden", []):

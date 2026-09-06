@@ -6,7 +6,7 @@ Hungry Crab takes a foreign public repository (the *prey*), statically dissects 
 commit history, branches, issues, wiki, CI/CD, tests, architecture, documentation, AI configs — and
 turns it into a **ranked menu of "nutrients"**: concrete things that can be carried over into your
 own repository (the *maw*). Every nutrient carries a license verdict (what exactly is allowed:
-copy, rewrite, idea only) and provenance (where from, which commit, which license). Approved
+copy, rewrite, idea only) and trace (where from, which commit, which license). Approved
 nutrients become issues and pull requests in the maw repository.
 
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
@@ -21,7 +21,7 @@ model is spent only on judgment and implementation.**
 | **Sniff** | Quick reconnaissance of the prey via API: license, size, languages, is it worth eating |
 | **Catch** | Downloading the prey into a local cache: git mirror, wiki, issues, PRs, releases |
 | **Digest** | Deterministic analysis of the prey → the `digest/` folder (JSON + Markdown) |
-| **Nutrient** | A unit of value: one transferable thing with a license mode and provenance |
+| **Nutrient** | A unit of value: one transferable thing with a license mode and trace |
 | **Menu** | Ranked list of candidate nutrients after comparing prey with maw |
 | **Serve** | Turning approved nutrients into issues / PRs / attribution files |
 | **Ledger** | Journal in the maw repository: what was eaten, what was accepted, what was rejected |
@@ -136,7 +136,7 @@ HungryCrab/
 │   ├── eat/SKILL.md             # orchestrator: sniff→catch→digest→compare→menu→serve (/crab:eat)
 │   ├── license/                 # SKILL.md + references/matrix.md — mode rules
 │   ├── cleanroom/SKILL.md       # protocol: "spec without code → implementation without prey access" (0.3)
-│   └── serve/SKILL.md           # how to write issues/PRs, templates, provenance
+│   └── serve/SKILL.md           # how to write issues/PRs, templates, trace
 ├── agents/
 │   ├── crab-historian.md        # reads history.md/branches.md, formulates lessons
 │   ├── crab-architect.md        # reads architecture.md, compares with the maw
@@ -176,8 +176,8 @@ HungryCrab/
 6. **Approve.** A menu table for the user. Interactively — checkboxes; in CI — the policy from
    `.crab.yml` (`issues: auto`, `prs: ask`, limits).
 7. **Serve.** `crab serve` creates issues (label `hungry-crab`, hidden id marker in the body,
-   provenance footer). For PR nutrients — one branch per nutrient, implementation by the model
-   (for `REIMPLEMENT` — via the clean-room subagent), `gh pr create` with provenance, update of
+   trace footer). For PR nutrients — one branch per nutrient, implementation by the model
+   (for `REIMPLEMENT` — via the clean-room subagent), `gh pr create` with trace, update of
    `THIRD_PARTY_NOTICES.md` if anything was copied.
 8. **Ledger.** An entry in the maw's `.crab/ledger.json`: prey@sha, the nutrient list and their
    statuses. Eating the same repository again shows only what is new.
@@ -214,14 +214,14 @@ Target: a full default digest ≤ 30k tokens.
   "id": "crab:owner/repo@1a2b3c:ci:actions-cache-npm:7f3a",
   "category": "ci",
   "title": "npm cache in CI via actions/setup-node cache",
-  "what": "…", "why_for_maw": "…", "how": "…",
+  "what": "…", "why": "…", "how": "…",
   "evidence": [{"path": ".github/workflows/ci.yml", "lines": "12-30",
                 "url": "https://github.com/owner/repo/blob/1a2b3c/.github/workflows/ci.yml#L12-L30"}],
   "license_mode": "REIMPLEMENT",
   "effort": "S", "risk": "low", "score": 0.82,
-  "artifact": "pr",
+  "serve_as": "pr",
   "status": "proposed",
-  "provenance": {"prey": "owner/repo", "sha": "1a2b3c", "license": "GPL-3.0-only",
+  "trace": {"prey": "owner/repo", "sha": "1a2b3c", "license": "GPL-3.0-only",
                  "fetched_at": "2026-09-05T12:00:00Z"}
 }
 ```
@@ -280,7 +280,7 @@ Special rules:
 2. **Stage B (implementer)** — the `crab-cleanroom-impl` subagent with a **fresh context** and the
    rule `deny: Read(~/.cache/hungry-crab/**)` implements from the specification in the maw
    repository.
-3. The PR provenance records: "implemented from a specification, without access to the prey
+3. The PR trace records: "implemented from a specification, without access to the prey
    source", with a link to the spec in `.crab/specs/<id>.md`.
 
 ## 11. Security
@@ -360,6 +360,6 @@ Regardless of mode, dedup against open issues via the `crab:<id>` marker is alwa
 | Prey sources | GitHub first, fetch layer behind an interface | GitLab/Gitea can be added later without touching the miners |
 | Repository name | `drevendev/HungryCrab`; the distribution and the cache directory stay `hungry-crab` | matches the naming of the author's other repositories |
 | Plugin and skill names | plugin `crab`, skills `eat`, `license`, `serve` (folders without a prefix), marketplace `hungry-crab` | Claude Code namespaces plugin skills as `/plugin:skill`, so this is the only way to get `/crab:eat`; the price is generic folder names for skills-only installs |
-| Nutrient ids | `crab:<category>:<key>`, maw-relative and independent of the prey and its SHA; prey-specific lessons carry the prey slug in the key | deduplication must work across runs, machines and different prey suggesting the same thing; the SHA lives in the provenance instead |
+| Nutrient ids | `crab:<category>:<key>`, maw-relative and independent of the prey and its SHA; prey-specific lessons carry the prey slug in the key | deduplication must work across runs, machines and different prey suggesting the same thing; the SHA lives in the trace instead |
 | Scoring | `category x value x applicability x mode x effort - risk` with weights in `data/scoring.yml`, overridable per maw; `crab tune` moves weights from ledger decisions with fixed, explained steps | a formula a human can read beats a model's opinion; the ledger is the only training signal until the Evolving Crab exists |
 | First maw | a private sandbox repository built from the npm-app fixture, then the author's real repositories | issues created while the menu is being tuned must not pollute real projects |

@@ -17,7 +17,7 @@ Rendered by `hungry_crab.serve.render_issue`. Placeholders in angle brackets.
 
 ## Why it matters here
 
-<why_for_maw from the notes file, or a "not judged yet" placeholder>
+<why from the notes file, or a "not judged yet" placeholder>
 
 ## Suggested change
 

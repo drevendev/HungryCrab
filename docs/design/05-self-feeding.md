@@ -99,7 +99,7 @@ Start small and same-stack, then widen:
 - Does the agent find the CLI, or does the fallback path in `eat/SKILL.md` mislead it?
 - Does it read `manifest.json` and `menu.md` first, or does it wander into raw JSON?
 - Does it delegate history and architecture to the subagents, or do it badly itself?
-- Does it write `why_for_maw` and `how` that a maintainer would act on, or generic filler?
+- Does it write `why` and `how` that a maintainer would act on, or generic filler?
 - Does it respect the license mode without being reminded?
 - Does it record rejections in the ledger, or drop them silently?
 - How many tokens does one meal actually cost?
@@ -107,7 +107,7 @@ Start small and same-stack, then widen:
 ## 7. Exit criteria
 
 - `/crab:eat` run end to end from a live agent session, at least twice, on different prey.
-- Issues created in `drevendev/HungryCrab` with provenance, and a rerun yields zero duplicates.
+- Issues created in `drevendev/HungryCrab` with trace, and a rerun yields zero duplicates.
 - Every skill defect found is either fixed or written down as an issue.
 - The token cost of one meal recorded in `benchmarks/`.
 - Milestone 0.2's exit criterion honestly closed; then 0.3 starts.
@@ -139,7 +139,7 @@ the first time the prey is a user-facing CLI of the same shape as the maw.
 ## 9. Exit criteria — state
 
 - **Met.** Three live meals from an agent session, on unrelated prey; eleven issues with
-  provenance; reruns yield zero duplicates and every rejection carries a reason.
+  trace; reruns yield zero duplicates and every rejection carries a reason.
 - **Met.** Every defect found is fixed, with a regression test, or filed: #28 and the note in #23.
 - **Open.** The token cost of a meal is not recorded in `benchmarks/` yet; 0.3.1 records it per
   phase ([07-scheduled-crab.md](07-scheduled-crab.md)), which is the shape the number is

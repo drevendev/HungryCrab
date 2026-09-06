@@ -131,7 +131,7 @@ is found K times in a row — state `starving`, escalation to a human.
 
 **GROW.** Implements the top-N nutrients (N from the budget), one PR per cycle, one commit per
 nutrient. License modes strictly; `REIMPLEMENT` via the clean-room subagent; attribution updated.
-The PR must contain: the nutrient list with provenance and the expected impact on benchmarks.
+The PR must contain: the nutrient list with trace and the expected impact on benchmarks.
 
 **TRIAL.** `trial.yml` on the PR: `fitness.py` → `metrics.json`; comparison against
 `current.json` and the whole `history/`. Failure → a comment with the metrics diff → `attempt+1`,

@@ -33,7 +33,7 @@ deterministic miners, and boils a whole repository down to a digest small enough
 actually read. Then it holds that digest against *your* repository and serves a ranked menu:
 what they have, what you lack, what it would cost you, and exactly what their license lets you
 take. Approve a few and they land as issues in your tracker, each with evidence links and a
-provenance footer. Say no to one and the crab remembers, so it never offers it again.
+trace footer. Say no to one and the crab remembers, so it never offers it again.
 
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
@@ -48,7 +48,7 @@ release.** Pull-request serving and the clean-room protocol arrive with 0.3 (see
 |---|---|
 | **prey** | the foreign repository being eaten |
 | **maw** | your repository: what the prey is eaten *for*, and where the nutrients go |
-| **nutrient** | one transferable thing, with a license mode and provenance |
+| **nutrient** | one transferable thing, with a license mode and trace |
 | **menu** | the ranked list of nutrients after prey and maw are compared |
 | **hunger** | what this maw will and will not swallow, per category, in `.crab.yml` |
 | **ledger** | what was eaten, what you accepted, what you turned down |
@@ -174,7 +174,7 @@ model is spent only on judgment.**
   and a license mode.
 - **scoring** is a formula you can read: category weight x value x applicability x license mode x
   effort, minus risk. Weights live in `data/scoring.yml` and are overridable per maw.
-- **serve** creates issues with a hidden `crab:<id>` marker, a label and a provenance footer, so a
+- **serve** creates issues with a hidden `crab:<id>` marker, a label and a trace footer, so a
   rerun creates no duplicates. The `why` and `how` come from the agent through a notes file.
 - **ledger** (`.crab/ledger.json` by default) remembers every meal and decision; rejected and
   served nutrients vanish from later menus. **`crab tune`** reads it and tells you which weights to

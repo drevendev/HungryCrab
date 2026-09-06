@@ -71,7 +71,7 @@ def test_python_maw_eats_npm_prey(
     assert "Playwright" in e2e.what
     architecture = next(c for c in result.candidates if c.category == "architecture")
     assert architecture.id == "crab:architecture:architecture.npm-app.raw"
-    assert "src/lib/store.ts" in architecture.what and architecture.artifact == "idea"
+    assert "src/lib/store.ts" in architecture.what and architecture.serve_as == "idea"
     # both sides are permissive: COPY, and scores are ranked
     assert result.verdict["mode"] == "COPY"
     assert all(c.license_mode == "COPY" for c in result.candidates)
@@ -86,8 +86,8 @@ def test_python_maw_eats_npm_prey(
     dependabot = next(c for c in result.candidates if c.id == "crab:tooling:tooling.dependabot")
     assert dependabot.evidence[0].path == ".github/dependabot.yml"
     assert "github-actions, npm" in dependabot.what
-    assert dependabot.provenance["prey"] == "npm-app"
-    assert dependabot.provenance["maw"] == "pyproject-cli"
+    assert dependabot.trace["prey"] == "npm-app"
+    assert dependabot.trace["maw"] == "pyproject-cli"
 
 
 def test_npm_maw_eats_python_prey(
@@ -136,13 +136,13 @@ def test_gpl_prey_lowers_every_score(
 
 def test_hunger_hides_and_downgrades() -> None:
     cards = [
-        Candidate("ci", "ci.cache", "Cache", "caches", artifact="pr"),
-        Candidate("deps", "deps.npm.zod", "zod", "uses zod", artifact="issue"),
-        Candidate("docs", "docs.site", "Docs", "docs", artifact="issue"),
+        Candidate("ci", "ci.cache", "Cache", "caches", serve_as="pr"),
+        Candidate("deps", "deps.npm.zod", "zod", "uses zod", serve_as="issue"),
+        Candidate("docs", "docs.site", "Docs", "docs", serve_as="issue"),
     ]
     kept, hidden = apply_hunger(cards, {"deps": False, "ci": "issues-only", "docs": "ideas-only"})
     assert [c.id for c in kept] == ["crab:ci:ci.cache", "crab:docs:docs.site"]
-    assert kept[0].artifact == "issue" and kept[1].artifact == "idea"
+    assert kept[0].serve_as == "issue" and kept[1].serve_as == "idea"
     assert hidden == [{"id": "crab:deps:deps.npm.zod", "reason": "hunger: deps is off"}]
 
 

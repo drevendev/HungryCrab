@@ -38,7 +38,7 @@ CRAVE ─► HUNT ─► EAT ─► SERVE ─► GROW ─► TRIAL ─► TASTE 
 |---|---|---|---|
 | CRAVE | decides what this maw is short of this round | ledger, open crab issues, last taste | writes the round's goal in two sentences |
 | HUNT | picks 1–3 prey | candidate list, filters, ledger and issue dedup | picks, and says why these |
-| EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why_for_maw` and `how` |
+| EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why` and `how` |
 | SERVE | files the issues | `crab serve` | confirms, or the serve policy decides |
 | GROW | implements one served nutrient | — | branch, change, pull request |
 | TRIAL | did it hold | the maw's own tests and CI | reads the result, decides retry or drop |
@@ -82,7 +82,7 @@ A crab that has just moulted is soft, and it is not its new size until the shell
 not a version until the same thing happens to it: **`HARDEN` is where a round stops being a pile
 of merged pull requests and becomes a number.**
 
-- the changelog gains one entry per nutrient the round landed, with its provenance;
+- the changelog gains one entry per nutrient the round landed, with its trace;
 - the version moves: a nutrient merged makes it a minor, a round that only moulted makes it a
   patch, and anything that changed a published schema or a CLI contract escalates to a human;
 - the tag is written, and whatever the maw's release automation does with a tag, it does.
@@ -240,7 +240,7 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
 - One full round on a second repository that is not the crab, at `serve` autonomy.
 - One molt that shed something a previous round grew, with every invariant green.
 - One version this repository did not bump by hand: a round hardened into a tag, with a changelog
-  entry per nutrient and its provenance.
+  entry per nutrient and its trace.
 - The state file survives a machine restart and a `crab update`.
 - Cost per phase recorded in `benchmarks/`, and quoted in 04's budget.
 

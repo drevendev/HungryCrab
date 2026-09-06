@@ -33,9 +33,9 @@ and, optionally, the path of the cached clone under `~/.cache/hungry-crab/`.
 3. Write 3-7 lessons. Each lesson: one sentence of pattern, one sentence of evidence
    (paths, sha7s, numbers), one sentence of what the maw should check or do.
 4. Map each lesson to a nutrient: the `history-lesson` candidate id from the menu, with a
-   `why_for_maw` and `how` the caller can put into the notes file.
+   `why` and `how` the caller can put into the notes file.
 
 ## Output
 
 Markdown with a `## Lessons` list and a `## Notes` JSON block
-(`[{"id": ..., "why_for_maw": ..., "how": ...}]`). Keep it under 600 words.
+(`[{"id": ..., "why": ..., "how": ...}]`). Keep it under 600 words.

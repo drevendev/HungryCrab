@@ -1,7 +1,7 @@
-"""``crab serve``: turn approved nutrients into GitHub issues with provenance.
+"""``crab serve``: turn approved nutrients into GitHub issues with trace.
 
 Every issue carries a hidden ``<!-- crab:<id> -->`` marker so that later runs (and other
-machines) can see it was already served, a label, and a provenance footer naming the prey, the
+machines) can see it was already served, a label, and a trace footer naming the prey, the
 commit, the license and the mode. Pull-request branches arrive with milestone 0.3.
 """
 
@@ -225,7 +225,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     how = card.how or HOW_BY_CATEGORY.get(
         card.category, "Decide how to adapt it here; copy nothing unless the mode allows it."
     )
-    why = card.why_for_maw or (
+    why = card.why or (
         "_Not judged yet: the score is a deterministic pre-ranking, the value for this "
         "repository still needs a decision._"
     )

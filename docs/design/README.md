@@ -24,10 +24,10 @@ useful for your own repository without violating licenses) and for its overlay
    is needed: rating the menu, writing issues, implementing PRs.
 3. **Licenses are decided by a deterministic engine, not by the model's opinion.** A
    `maw license × prey license` matrix yields a mode for every nutrient:
-   `COPY` / `COPY_FILE` / `REIMPLEMENT` (clean room) / `IDEAS_ONLY`. Provenance everywhere.
+   `COPY` / `COPY_FILE` / `REIMPLEMENT` (clean room) / `IDEAS_ONLY`. Trace everywhere.
 4. **Prey code is never executed.** Static analysis only. Prey content is untrusted data
    (prompt-injection defense), enforced by a hook.
-5. **Artifacts are issues and PRs with a provenance footer**, plus a `ledger` in the maw
+5. **Artifacts are issues and PRs with a trace footer**, plus a `ledger` in the maw
    repository for idempotency (eating the same prey again yields only what is new) and for learning
    from accepted/rejected proposals.
 6. **MVP** = deterministic transplant of hygiene / CI / tooling / AI configs, plus a menu of ideas

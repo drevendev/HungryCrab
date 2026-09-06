@@ -14,7 +14,7 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 |---|---|---|
 | `COPY` | copy code, configs and text | keep the copyright notice; record the source in `THIRD_PARTY_NOTICES.md`; Apache-2.0 also needs the NOTICE file carried over |
 | `COPY_FILE` | copy whole files (MPL-2.0, EPL, CC-BY-SA documents) | the file keeps its own license header; do not merge it into files under the maw license |
-| `REIMPLEMENT` | use the prey as a specification | clean room: a spec without code, then an implementer without access to the prey (the `crab-cleanroom-impl` subagent from 0.3); record "implemented from a specification" in the provenance |
+| `REIMPLEMENT` | use the prey as a specification | clean room: a spec without code, then an implementer without access to the prey (the `crab-cleanroom-impl` subagent from 0.3); record "implemented from a specification" in the trace |
 | `IDEAS_ONLY` | ideas, architecture, approaches, facts | not a line of code, configuration or documentation text |
 | `HUMAN` | nothing yet | a person decides; present the evidence (`license.json`: files, manifests, headers, conflicts) |
 

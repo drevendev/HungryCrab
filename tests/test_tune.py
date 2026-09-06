@@ -19,7 +19,7 @@ def _ledger(decisions: dict[str, list[str]]) -> Ledger:
     for category, statuses in decisions.items():
         for index, _ in enumerate(statuses):
             card = Candidate(category, f"{category}.item-{index}", f"{category} {index}", "x")
-            card.provenance = {"prey": "example/prey"}
+            card.trace = {"prey": "example/prey"}
             cards.append(card)
     ledger.record_meal(
         {"prey": {"label": "example/prey"}, "verdict": {"mode": "COPY"}}, cards, now=NOW
@@ -71,7 +71,7 @@ def test_trait_level_suggestions_and_apply(tmp_path: Path) -> None:
     cards = []
     for prey_index in range(3):
         card = Candidate("tooling", "tooling.editorconfig", "Editorconfig", "x")
-        card.provenance = {"prey": f"prey-{prey_index}"}
+        card.trace = {"prey": f"prey-{prey_index}"}
         cards.append(card)
     ledger.record_meal({"prey": {"label": "p"}, "verdict": {}}, cards[:1], now=NOW)
     ledger.mark("crab:tooling:tooling.editorconfig", "rejected", now=NOW)
