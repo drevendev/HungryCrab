@@ -10,6 +10,7 @@ useful for your own repository without violating licenses) and for its overlay
 | [02-mvp.md](02-mvp.md) | Minimum viable product: commands, miners, skill protocol, milestones 0.1–0.3, acceptance criteria, first prey → host pairs |
 | [03-roadmap.md](03-roadmap.md) | Roadmap: base crab → evolving crab → forks |
 | [04-evolving-crab.md](04-evolving-crab.md) | Detailed design of the GOAL → HUNT → CONSUME → EVOLVE → TRIAL → GROW → MOLT loop, budgets, constitution, autonomy levels, fork kit (Sudoku example) |
+| [05-self-feeding.md](05-self-feeding.md) | The stage between 0.2 and 0.3: run `/crab:eat` from a live agent session with the crab itself as the host, against twenty sniffed prey |
 
 ## Key decisions (TL;DR)
 

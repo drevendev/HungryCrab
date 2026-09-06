@@ -21,6 +21,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Code and Codex (both consume the same plugin marketplace), and the measured benchmark numbers.
   Installs track `master`; a release tag is opt-in.
 
+### Documentation
+
+- `docs/design/05-self-feeding.md`: the stage between 0.2 and 0.3. Milestone 0.2's exit criterion
+  is only half met, because `/crab:eat` has never run in a live agent session. The document names
+  what the host is missing, lists twenty prey sniffed against an MIT host with their license
+  modes, gives an order to eat them in, and says what to watch in the skill.
+
 ## [0.2.0] - 2026-09-06
 
 The first tagged release. It covers milestone 0.1 "Sniff & Digest" (the deterministic CLI and
