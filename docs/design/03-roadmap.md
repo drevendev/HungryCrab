@@ -17,6 +17,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.1 | Sniff & Digest | CLI, miners without a model, fixtures, CI on Windows + Linux | digest of any public repo ≤ 30k tokens, ≤ 120 s |
 | 0.2 | Menu | compare, scoring, issues/architecture miners, skills, historian/architect subagents, serve issues, ledger, plugin | end-to-end `/crab:eat` → issues, 0 duplicates on rerun |
 | 0.2.1 | Self-feeding | `/crab:eat` from a live agent session with the crab as the host; fix what the skill gets wrong ([05-self-feeding.md](05-self-feeding.md)) | 0.2's exit criterion honestly closed: two live meals, 0 duplicates, skill defects fixed |
+| 0.2.2 | Menu benchmark | B1 from [06-benchmark.md](06-benchmark.md): frozen host and donors, the golden set, the deterministic menu benchmark and its CI gate | `recall_must@30` measured on master and gating pull requests |
 | 0.3 | Serve | PR branches, provenance, attribution, clean room, safety hook, wiki, strict mode, docs | ≥ 3 merged PRs in the fleet; **MVP closed** |
 | 0.4 | Deep Bite | Discussions (GraphQL), PR review comments, Actions runs statistics (flaky tests, durations), tree-sitter symbols and call graph, Go/Rust/JVM/PHP/Ruby manifests, GitLab adapter | 8+ ecosystems, architectural nutrients with symbol-level evidence |
 | 0.5 | Taste Memory | scorer learning from the ledger (accepted/rejected by category and host), `crab hunt --for .` (finding prey for a host via `gh search` + similarity signals), multi-prey (`eat a b c` → merged menu), appetite profiles by repository type | share of accepted issues grows between iterations on the same host |
@@ -27,7 +28,10 @@ Cross-cutting themes of track A:
 - **Own hygiene** — from 0.2 the crab eats itself (`/crab:eat` on its own repo with prey from the
   git-mining / license-detection space) and merges its own proposals.
 - **Benchmarks as a product** — every version adds entries to `benchmarks/`, because track B
-  stands on them.
+  stands on them. The specification is [06-benchmark.md](06-benchmark.md): B1 is deterministic
+  and gates pull requests, B2 judges whole meals across crab versions and Claude models and runs
+  at milestone boundaries. The headline question is whether Haiku with the crab beats Opus
+  without it.
 
 ## Track B · Evolving Hungry Crab
 
