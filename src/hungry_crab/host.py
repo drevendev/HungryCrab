@@ -51,7 +51,9 @@ appetite:                  # per nutrient category: true | false | issues-only |
   issue-lesson: true
   architecture: issues-only
   code: ideas-only
-ignore: []                 # glob patterns of host paths the crab must not touch
+ignore: []                 # globs excluded from this repository's own digest, so that test
+                           # fixtures and vendored trees are not mistaken for your code, e.g.
+                           # [tests/fixtures/**, examples/**]
 serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off (pull requests arrive with 0.3)

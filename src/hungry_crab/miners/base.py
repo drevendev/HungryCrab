@@ -16,7 +16,7 @@ from typing import Any, Protocol
 
 from ..errors import CrabError
 from ..fetch.git import GitRunner
-from ..fs import read_text
+from ..fs import is_ignored, read_text
 from ..mdutil import MdDoc
 
 
@@ -72,6 +72,7 @@ class MineContext:
     now: datetime = field(default_factory=_utcnow)
     md_budget: int = 3500
     shallow: bool = False
+    ignore: list[str] = field(default_factory=list)
 
     @property
     def deep(self) -> bool:
@@ -126,6 +127,8 @@ class MineContext:
         return read_text(self.root / rel, limit=limit)
 
     def exists(self, rel: str) -> bool:
+        if is_ignored(rel, self.ignore):
+            return False
         return (self.root / rel).exists()
 
 

@@ -38,6 +38,7 @@ def _noop(_: str) -> None:
 class CompareOptions:
     appetite: dict[str, Any] = field(default_factory=dict)
     scoring: dict[str, Any] | None = None
+    ignore: list[str] = field(default_factory=list)
     top: int = 30
     host_license: str | None = None
     hidden_ids: dict[str, str] = field(default_factory=dict)  # id -> reason (ledger, issues)
@@ -255,6 +256,7 @@ def compare_for_host(
     options = CompareOptions(
         appetite=config.appetite,
         scoring=config.scoring,
+        ignore=config.ignore,
         top=top,
         host_license=config.license or d_opts.host_license,
         hidden_ids=hidden,
@@ -290,6 +292,7 @@ def run_compare(
         host_license=opts.host_license or d_opts.host_license,
         now=d_opts.now,
         cache_root=d_opts.cache_root,
+        ignore=opts.ignore,
     )
     host_result = run_digest(Target(path=host_path), host_options, log=log)
     prey_root_value = as_dict(prey_result.manifest.get("prey")).get("root")

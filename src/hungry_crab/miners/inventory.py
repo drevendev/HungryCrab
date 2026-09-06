@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ..fs import BINARY_EXTENSIONS, count_lines, looks_binary
+from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, looks_binary
 from ..mdutil import MdDoc
 from .base import FileInfo, MineContext, MinerResult
 
@@ -454,6 +454,10 @@ def summarize(
     }
     data: dict[str, Any] = {
         "files": len(files),
+        # Files that are actually this repository's content. `files` also counts vendored and
+        # generated trees, which a fresh clone of a prey does not have, so comparing the raw
+        # count against a prey's makes a host with a .venv look enormous.
+        "files_counted": len(counted),
         "dirs": stats["dirs"],
         "bytes": bytes_total,
         "loc": loc_total,
@@ -484,11 +488,19 @@ class InventoryMiner:
     def run(self, ctx: MineContext) -> MinerResult:
         files, stats = walk_tree(ctx.root, max_files=MAX_FILES["deep" if ctx.deep else "normal"])
         mark_build_outputs(files)
+        ignored = 0
+        if ctx.ignore:
+            kept = [f for f in files if not is_ignored(f.path, ctx.ignore)]
+            ignored = len(files) - len(kept)
+            files = kept
         try:
-            root_entries = sorted(entry.name for entry in ctx.root.iterdir())
+            root_entries = sorted(
+                entry.name for entry in ctx.root.iterdir() if not is_ignored(entry.name, ctx.ignore)
+            )
         except OSError:
             root_entries = []
         data, extra = summarize(ctx.root, files, stats, root_entries)
+        data["ignored"] = {"patterns": list(ctx.ignore), "files": ignored}
         warnings: list[str] = []
         if stats["truncated"]:
             warnings.append("file list truncated; use --depth deep for more")
@@ -505,7 +517,7 @@ class InventoryMiner:
         summary = doc.section("Summary", priority=1)
         summary.kv(
             [
-                ("Files", data["files"]),
+                ("Files", f"{data['files_counted']} ({data['files']} including vendored)"),
                 ("Directories", data["dirs"]),
                 ("Size", f"{data['bytes'] / 1024:.0f} KB"),
                 ("Lines of code (excluding vendored, generated, binary)", data["loc"]),

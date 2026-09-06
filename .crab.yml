@@ -1,0 +1,27 @@
+# Hungry Crab host configuration. Every key is optional; these are the defaults.
+license: null              # SPDX id of this repository; detected from LICENSE when null
+mode: normal               # normal | strict (strict never copies code, only configs and templates)
+appetite:                  # per nutrient category: true | false | issues-only | ideas-only
+  security: true
+  ci: true
+  tests: true
+  tooling: true
+  ai-config: true
+  hygiene: true
+  docs: true
+  deps: true
+  history-lesson: true
+  issue-lesson: true
+  architecture: issues-only
+  code: ideas-only
+ignore:                    # excluded from this repository's own digest: the fixtures are
+  - tests/fixtures/**      # synthetic repositories, not this project's code
+serve:
+  issues: ask              # auto | ask | off
+  prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
+  max_prs_per_run: 3
+  labels: [hungry-crab]
+  assignees: []
+attribution_file: THIRD_PARTY_NOTICES.md
+ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
+scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
