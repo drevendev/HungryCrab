@@ -9,6 +9,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Four documents still described a verdict the engine had stopped returning.** Since `HUMAN`
+  became reachable, an unrecognised licence is `HUMAN` and a missing one is `IDEAS_ONLY` flagged
+  for review — but `README.md`, `docs/design/01-concept-and-skill.md`, the licence engine's own
+  docstring and `skills/license/references/matrix.md` all still paired them as `IDEAS_ONLY` +
+  `HUMAN`. The last of those is the table the `license` skill hands to a model at the moment it
+  decides whether code may be copied, which makes it the one that mattered. The same reference
+  now also carries the `own` and `bypass` relationships, which short-circuit the matrix entirely
+  and had been documented nowhere an agent reads. `tests/test_docs_match_the_engine.py` guards
+  the retired claim by name across every Markdown file in the repository.
+
 - **A cached digest was reused for a question it had not been asked.** The reuse check compared
   the schema, the commit and the depth, and ignored three things the manifest records because
   they change the result: the crab's own version, `ignore`, and the maw's license. The commit

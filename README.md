@@ -192,7 +192,14 @@ A deterministic `maw license x prey license` matrix gives every nutrient one mod
 | `IDEAS_ONLY` | ideas, architecture, approaches and facts only |
 | `HUMAN` | the engine is unsure; a human decides |
 
-Unknown, missing and source-available licenses always end up as `IDEAS_ONLY` with a human flag.
+The three cases where the engine will not help you look alike and are not:
+
+| Prey | Mode | Flagged for a human |
+|---|---|---|
+| Source-available (BUSL, SSPL, Elastic, Commons Clause) | `IDEAS_ONLY` | no — the license is clear, it just grants little |
+| No license at all | `IDEAS_ONLY` | yes — all rights reserved by default |
+| A license the engine read and could not classify | `HUMAN` | yes — no mode is honest until someone reads it |
+
 Issue and discussion text is always `IDEAS_ONLY`, because the copyright belongs to the
 commenters. This is a compliance aid, not legal advice.
 

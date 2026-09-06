@@ -1,7 +1,9 @@
 """The license engine: deterministic detection and a maw x prey verdict matrix.
 
-The engine is conservative on purpose. Anything it cannot classify becomes ``IDEAS_ONLY`` with a
-``HUMAN`` flag; it never guesses in favour of copying. It is a compliance aid, not legal advice.
+The engine is conservative on purpose and never guesses in favour of copying. A license it read
+and could not classify is the ``HUMAN`` mode: nothing is allowed until a person decides. A prey
+with no license at all is ``IDEAS_ONLY``, flagged for review, because all rights are reserved by
+default. It is a compliance aid, not legal advice.
 """
 
 from __future__ import annotations

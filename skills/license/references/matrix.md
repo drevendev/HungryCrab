@@ -12,10 +12,23 @@ restrictive mode when in doubt.
 | GPL-2.0 / GPL-3.0 | `REIMPLEMENT` (clean room) | `COPY` when the versions are compatible, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | AGPL-3.0 | `REIMPLEMENT` | `COPY` only into an AGPL-3.0 maw, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | BUSL, SSPL, Elastic, Commons Clause, proprietary | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
-| No license or unrecognised | `IDEAS_ONLY` + `HUMAN` | `IDEAS_ONLY` + `HUMAN` | `IDEAS_ONLY` + `HUMAN` |
+| No license found | `IDEAS_ONLY`, flagged for review | `IDEAS_ONLY`, flagged for review | `IDEAS_ONLY`, flagged for review |
+| License read and not classified | `HUMAN` | `HUMAN` | `HUMAN` |
 | CC-BY (documentation) | `COPY` + attribution | `COPY` + attribution | `COPY` + attribution |
 | CC-BY-SA, GFDL | `COPY_FILE` (share-alike flag) | `COPY_FILE` | `COPY_FILE` |
 | CC-BY-NC, CC-BY-ND | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
+
+## When the table does not apply
+
+Two relationships short-circuit the whole matrix, and `license.json` records which one was used.
+
+| Relationship | When | Mode |
+|---|---|---|
+| `own` | the maw's `origin` owner also owns the prey, or the owner is listed in `trust.owners` in the maw's `.crab.yml` | `COPY` — a license governs strangers, and the owner is not one. Still flagged for review under a copyleft or source-available prey: owning a repository lets its owner relicense what they wrote, not what they received from someone else |
+| `bypass` | `trust.bypass_license` is on in the maw's `.crab.yml` | `COPY`, always flagged. This is not a finding about the license; it is a decision to stop asking, and every card says so |
+
+Neither is a licence verdict. If a card carries one, say which, because the reader will assume
+the matrix was consulted and it was not.
 
 ## GPL version compatibility (prey into a GPL maw)
 
