@@ -187,7 +187,7 @@ def test_check_reports_every_component(monkeypatch: pytest.MonkeyPatch) -> None:
     payload = report.to_dict()
     assert payload["remote"]["cli_version"] == "0.3.0"
     assert payload["components"][0]["commands"] == [
-        f"uv tool install --force {updater.REQUIREMENT}"
+        f'uv tool install --force "{updater.REQUIREMENT}"'
     ]
 
 
@@ -277,6 +277,35 @@ def test_run_command_resolves_the_executable_and_captures_failure() -> None:
     # a bare name must be resolved through PATH: on Windows `claude` is `claude.CMD`
     ok, output = updater.run_command([sys.executable, "-c", "print('alive')"])
     assert ok is True and output == "alive"
+
+
+def test_display_command_quotes_the_requirement() -> None:
+    command = ["uv", "tool", "install", "--force", updater.REQUIREMENT]
+    shown = updater.display_command(command)
+    assert shown == (
+        'uv tool install --force "hungry-crab @ git+https://github.com/drevendev/HungryCrab"'
+    )
+    assert updater.display_command(["claude", "plugin", "update", "crab"]) == (
+        "claude plugin update crab"
+    )
+
+
+def test_printed_commands_are_pasteable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(updater, "cli_install_kind", lambda: "uv-tool")
+    monkeypatch.setattr(updater.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+    runner = fake_runner(
+        {
+            "claude plugin list": (True, claude_list("0.2.0")),
+            "codex plugin list": (True, codex_list("0.2.0")),
+        }
+    )
+    report = check(client=FakeGitHub(cli="0.3.0", plugin="0.3.0"), runner=runner)  # type: ignore[arg-type]
+    text = format_report(report)
+    assert '"hungry-crab @ git+https://github.com/drevendev/HungryCrab"' in text
+    assert "--force hungry-crab @" not in text, "an unquoted requirement would not paste"
+    assert report.to_dict()["components"][0]["commands"] == [
+        'uv tool install --force "hungry-crab @ git+https://github.com/drevendev/HungryCrab"'
+    ]
 
 
 def test_empty_report_says_nothing_to_do() -> None:
