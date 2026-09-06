@@ -22,8 +22,8 @@ from typing import Any, Protocol
 from .cache import Slug
 from .compare import load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
-from .host import HostConfig, host_slug
 from .ledger import Ledger
+from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
 from .typeutil import as_dict, as_list
 
@@ -202,9 +202,9 @@ class GhIssueClient:
         return lines[-1] if lines else ""
 
 
-def _host_state(card: Candidate) -> str:
-    """`host_state` is a rendered trait value, and a bare "no" reads badly in an issue."""
-    state = card.host_state.strip()
+def _maw_state(card: Candidate) -> str:
+    """`maw_state` is a rendered trait value, and a bare "no" reads badly in an issue."""
+    state = card.maw_state.strip()
     if state.lower() in ("", "no", "none", "false"):
         return "nothing comparable"
     return state
@@ -225,7 +225,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     how = card.how or HOW_BY_CATEGORY.get(
         card.category, "Decide how to adapt it here; copy nothing unless the mode allows it."
     )
-    why = card.why_for_host or (
+    why = card.why_for_maw or (
         "_Not judged yet: the score is a deterministic pre-ranking, the value for this "
         "repository still needs a decision._"
     )
@@ -234,7 +234,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
         f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
         f"## What the prey does\n\n{card.what}\n{evidence}\n\n"
-        f"## What this repository has\n\n{_host_state(card)}\n\n"
+        f"## What this repository has\n\n{_maw_state(card)}\n\n"
         f"## Why it matters here\n\n{why}\n\n"
         f"## Suggested change\n\n{how}\n\n"
         "---\n"
@@ -274,7 +274,7 @@ class ServeOptions:
 @dataclass
 class ServeReport:
     mode: str
-    host: str
+    maw: str
     served: list[dict[str, Any]] = field(default_factory=list)
     skipped: list[dict[str, Any]] = field(default_factory=list)
     previews: list[dict[str, Any]] = field(default_factory=list)
@@ -283,7 +283,7 @@ class ServeReport:
     def to_dict(self) -> dict[str, Any]:
         return {
             "mode": self.mode,
-            "host": self.host,
+            "maw": self.maw,
             "served": self.served,
             "skipped": self.skipped,
             "previews": self.previews,
@@ -318,15 +318,15 @@ def select_cards(
 
 def serve(
     prey_dir: Path,
-    host_root: Path,
+    maw_root: Path,
     options: ServeOptions,
     *,
-    config: HostConfig,
+    config: MawConfig,
     ledger: Ledger,
     client: IssueClient | None = None,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
-    slug_lookup: Callable[[Path], Slug | None] = host_slug,
+    slug_lookup: Callable[[Path], Slug | None] = maw_slug,
 ) -> ServeReport:
     if options.mode == "pr-branch":
         raise CrabError(
@@ -336,7 +336,7 @@ def serve(
         raise UsageError(f"unknown serve mode {options.mode!r}", hint="use dry-run or issue")
     menu = load_menu(prey_dir)
     if menu is None:
-        raise CrabError("no menu to serve from", hint="run `crab compare <prey> --host .` first")
+        raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
     if options.mode == "issue" and config.serve.issues == "off":
         raise CrabError("serve.issues is off in .crab.yml", hint="set serve.issues to ask or auto")
     cards, skipped = select_cards(menu, options, ledger)
@@ -345,9 +345,9 @@ def serve(
         for card in cards:
             if card.id in notes:
                 merge_notes(card, notes[card.id])
-    report = ServeReport(mode=options.mode, host=str(host_root), skipped=skipped)
+    report = ServeReport(mode=options.mode, maw=str(maw_root), skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
-    slug = slug_lookup(host_root)
+    slug = slug_lookup(maw_root)
     existing: dict[str, dict[str, Any]] = {}
     label = config.serve.label
     if client is not None and slug is not None:
@@ -358,7 +358,7 @@ def serve(
     if options.mode == "issue":
         if slug is None:
             raise CrabError(
-                "the host has no GitHub origin remote, cannot create issues",
+                "the maw has no GitHub origin remote, cannot create issues",
                 hint="add a remote or use --as dry-run",
             )
         if client is None:

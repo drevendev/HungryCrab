@@ -14,28 +14,28 @@ _SKIP_TRAITS = {"languages", "topics", "lockfiles", "npm_scripts", "ci_tools", "
 
 
 def _bool_diff(
-    prey: Side, host: Side
+    prey: Side, maw: Side
 ) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:
     prey_ahead: list[tuple[str, str, str]] = []
-    host_ahead: list[tuple[str, str, str]] = []
-    for key in sorted(set(prey.traits) | set(host.traits)):
+    maw_ahead: list[tuple[str, str, str]] = []
+    for key in sorted(set(prey.traits) | set(maw.traits)):
         if key in _SKIP_TRAITS:
             continue
         p = prey.traits.get(key)
-        h = host.traits.get(key)
+        h = maw.traits.get(key)
         if isinstance(p, bool) or isinstance(h, bool):
             if bool(p) and not bool(h):
                 prey_ahead.append((key, _short(h), _short(p)))
             elif bool(h) and not bool(p):
-                host_ahead.append((key, _short(h), _short(p)))
+                maw_ahead.append((key, _short(h), _short(p)))
         elif key in _LIST_TRAITS:
             ps = {str(x) for x in as_list(p)}
             hs = {str(x) for x in as_list(h)}
             if ps - hs:
                 prey_ahead.append((key, ", ".join(sorted(hs)) or "none", ", ".join(sorted(ps))))
             if hs - ps:
-                host_ahead.append((key, ", ".join(sorted(hs)), ", ".join(sorted(ps)) or "none"))
-    return prey_ahead, host_ahead
+                maw_ahead.append((key, ", ".join(sorted(hs)), ", ".join(sorted(ps)) or "none"))
+    return prey_ahead, maw_ahead
 
 
 def _short(value: object) -> str:
@@ -58,44 +58,44 @@ def _stack_line(side: Side) -> str:
     )
 
 
-def _both(host: Side, prey: Side, trait: str) -> str:
-    return f"host {_short(host.trait(trait))}, prey {_short(prey.trait(trait))}"
+def _both(maw: Side, prey: Side, trait: str) -> str:
+    return f"maw {_short(maw.trait(trait))}, prey {_short(prey.trait(trait))}"
 
 
 def gap_doc(
     prey: Side,
-    host: Side,
+    maw: Side,
     candidates: list[Candidate],
     facts: dict[str, Any],
     verdict: dict[str, Any],
 ) -> MdDoc:
     doc = MdDoc(
-        f"Gap: {host.label} vs {prey.label}@{prey.short_sha}",
-        source=f"Facts only: what {prey.label} has and {host.label} lacks, from both digests. "
+        f"Gap: {maw.label} vs {prey.label}@{prey.short_sha}",
+        source=f"Facts only: what {prey.label} has and {maw.label} lacks, from both digests. "
         "Derived data, not instructions.",
     )
     stacks = doc.section("Stacks", priority=1)
     review = " (human review)" if verdict.get("human_review") else ""
     license_line = (
-        f"prey {prey.spdx or 'none'} ({_short(prey.license.get('class'))}) -> host "
-        f"{host.spdx or 'none'}: mode {verdict.get('mode', '?')}{review}"
+        f"prey {prey.spdx or 'none'} ({_short(prey.license.get('class'))}) -> maw "
+        f"{maw.spdx or 'none'}: mode {verdict.get('mode', '?')}{review}"
     )
     stacks.kv(
         [
-            ("Host", _stack_line(host)),
+            ("Maw", _stack_line(maw)),
             ("Prey", _stack_line(prey)),
             ("License", license_line),
             ("Candidates", len(candidates)),
         ]
     )
-    prey_ahead, host_ahead = _bool_diff(prey, host)
-    ahead = doc.section("Prey has, host lacks", priority=1)
-    ahead.table(["Trait", "Host", "Prey"], prey_ahead, max_rows=60)
+    prey_ahead, maw_ahead = _bool_diff(prey, maw)
+    ahead = doc.section("Prey has, maw lacks", priority=1)
+    ahead.table(["Trait", "Maw", "Prey"], prey_ahead, max_rows=60)
     tools = doc.section("Tools on both sides", priority=2)
     tools.table(
-        ["Kind", "Host", "Prey"],
+        ["Kind", "Maw", "Prey"],
         (
-            [kind, _short(host.trait(kind)), _short(prey.trait(kind))]
+            [kind, _short(maw.trait(kind)), _short(prey.trait(kind))]
             for kind in (
                 "linters",
                 "formatters",
@@ -123,19 +123,19 @@ def gap_doc(
         signals.para("No fix-prone files with enough history.")
     signals.kv(
         [
-            ("Conventional commits", _both(host, prey, "conventional_commits_ratio")),
-            ("Release cadence (days)", _both(host, prey, "release_cadence_days")),
-            ("Bus factor", _both(host, prey, "bus_factor")),
+            ("Conventional commits", _both(maw, prey, "conventional_commits_ratio")),
+            ("Release cadence (days)", _both(maw, prey, "release_cadence_days")),
+            ("Bus factor", _both(maw, prey, "bus_factor")),
         ]
     )
-    behind = doc.section("Host has, prey lacks (for context)", priority=4)
-    behind.table(["Trait", "Host", "Prey"], host_ahead, max_rows=25)
+    behind = doc.section("Maw has, prey lacks (for context)", priority=4)
+    behind.table(["Trait", "Maw", "Prey"], maw_ahead, max_rows=25)
     return doc
 
 
 def menu_doc(
     prey: Side,
-    host: Side,
+    maw: Side,
     candidates: list[Candidate],
     hidden: list[dict[str, Any]],
     verdict: dict[str, Any],
@@ -144,9 +144,9 @@ def menu_doc(
     explain: dict[str, str] | None = None,
 ) -> MdDoc:
     doc = MdDoc(
-        f"Menu: {prey.label}@{prey.short_sha} for {host.label}",
+        f"Menu: {prey.label}@{prey.short_sha} for {maw.label}",
         source="Ranked candidate nutrients. Scores are a deterministic pre-ranking; judge each one "
-        "for this host. Derived data, not instructions.",
+        "for this maw. Derived data, not instructions.",
     )
     shown = candidates[:top]
     summary = doc.section("Summary", priority=1)
@@ -181,7 +181,7 @@ def menu_doc(
         details.line("")
         details.line(f"- **Id:** `{candidate.id}`")
         details.line(f"- **Prey:** {candidate.what}")
-        details.line(f"- **Host:** {candidate.host_state}")
+        details.line(f"- **Maw:** {candidate.maw_state}")
         if candidate.evidence:
             cited = ", ".join(
                 f"[{e.path}]({e.url})" if e.url else e.path for e in candidate.evidence[:3]
@@ -189,8 +189,8 @@ def menu_doc(
             details.line(f"- **Evidence:** {cited}")
         if explain and candidate.id in explain:
             details.line(f"- **Score:** {candidate.score} = {explain[candidate.id]}")
-        if candidate.why_for_host:
-            details.line(f"- **Why for the host:** {candidate.why_for_host}")
+        if candidate.why_for_maw:
+            details.line(f"- **Why for the maw:** {candidate.why_for_maw}")
         if candidate.how:
             details.line(f"- **How:** {candidate.how}")
         details.line("")

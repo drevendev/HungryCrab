@@ -1,7 +1,7 @@
 """Nutrient cards: the unit of value the crab serves.
 
-A card is a fact (what the prey has and the host lacks) plus judgment slots (why it matters for
-this host, how to do it) that a model fills in later. Ids are stable across runs: host-relative
+A card is a fact (what the prey has and the maw lacks) plus judgment slots (why it matters for
+this maw, how to do it) that a model fills in later. Ids are stable across runs: maw-relative
 nutrients are ``crab:<category>:<key>`` regardless of which prey suggested them, so the ledger
 and the issue markers deduplicate across prey; prey-specific lessons carry the prey in the key.
 """
@@ -75,7 +75,7 @@ class Candidate:
     title: str
     what: str
     prey_state: str = ""
-    host_state: str = ""
+    maw_state: str = ""
     artifact: str = "issue"
     effort: str = "M"
     risk: str = "low"
@@ -85,7 +85,7 @@ class Candidate:
     tags: list[str] = field(default_factory=list)
     license_mode: str = "HUMAN"
     score: float = 0.0
-    why_for_host: str = ""
+    why_for_maw: str = ""
     how: str = ""
     status: str = "proposed"
     provenance: dict[str, Any] = field(default_factory=dict)
@@ -114,8 +114,8 @@ class Candidate:
 
 
 def merge_notes(card: Candidate, notes: dict[str, Any]) -> Candidate:
-    """Apply model-written fields (title, why_for_host, how, artifact, ...) onto a card."""
-    for key in ("title", "what", "why_for_host", "how", "artifact", "effort", "risk"):
+    """Apply model-written fields (title, why_for_maw, how, artifact, ...) onto a card."""
+    for key in ("title", "what", "why_for_maw", "how", "artifact", "effort", "risk"):
         value = notes.get(key)
         if isinstance(value, str) and value.strip():
             setattr(card, key, value.strip())

@@ -6,16 +6,16 @@ import pytest
 from helpers import write_tree
 
 from hungry_crab.licensing import (
-    HostClass,
     LicenseClass,
+    MawClass,
     Mode,
     classify,
     decide,
     decide_for_class,
     detect_from_text,
     detect_in_repo,
-    host_class,
-    modes_by_host_class,
+    maw_class,
+    modes_by_maw_class,
     normalize,
 )
 from hungry_crab.licensing.detect import manifest_license
@@ -145,20 +145,20 @@ def test_classify(spdx: str | None, expected: LicenseClass) -> None:
 @pytest.mark.parametrize(
     ("spdx", "expected"),
     [
-        ("MIT", HostClass.PERMISSIVE),
-        ("MPL-2.0", HostClass.PERMISSIVE),
-        ("GPL-3.0-only", HostClass.GPL),
-        ("LGPL-2.1-only", HostClass.GPL),
-        (None, HostClass.PROPRIETARY),
-        ("BUSL-1.1", HostClass.PROPRIETARY),
+        ("MIT", MawClass.PERMISSIVE),
+        ("MPL-2.0", MawClass.PERMISSIVE),
+        ("GPL-3.0-only", MawClass.GPL),
+        ("LGPL-2.1-only", MawClass.GPL),
+        (None, MawClass.PROPRIETARY),
+        ("BUSL-1.1", MawClass.PROPRIETARY),
     ],
 )
-def test_host_class(spdx: str | None, expected: HostClass) -> None:
-    assert host_class(spdx) is expected
+def test_maw_class(spdx: str | None, expected: MawClass) -> None:
+    assert maw_class(spdx) is expected
 
 
 @pytest.mark.parametrize(
-    ("prey", "host", "mode", "human"),
+    ("prey", "maw", "mode", "human"),
     [
         ("MIT", "MIT", Mode.COPY, False),
         ("MIT", None, Mode.COPY, False),
@@ -185,8 +185,8 @@ def test_host_class(spdx: str | None, expected: HostClass) -> None:
         ("NOASSERTION", "MIT", Mode.IDEAS_ONLY, True),
     ],
 )
-def test_decide_matrix(prey: str | None, host: str | None, mode: Mode, human: bool) -> None:
-    verdict = decide(prey, host)
+def test_decide_matrix(prey: str | None, maw: str | None, mode: Mode, human: bool) -> None:
+    verdict = decide(prey, maw)
     assert verdict.mode is mode
     assert verdict.human_review is human
 
@@ -197,18 +197,18 @@ def test_apache_requires_notice_and_share_alike_flag() -> None:
     assert not decide("MIT", "MIT").notice_required
 
 
-def test_modes_by_host_class() -> None:
-    assert modes_by_host_class("MIT") == {
+def test_modes_by_maw_class() -> None:
+    assert modes_by_maw_class("MIT") == {
         "permissive": "COPY",
         "gpl": "COPY",
         "proprietary": "COPY",
     }
-    assert modes_by_host_class("GPL-3.0-only") == {
+    assert modes_by_maw_class("GPL-3.0-only") == {
         "permissive": "REIMPLEMENT",
         "gpl": "COPY",
         "proprietary": "IDEAS_ONLY",
     }
-    assert decide_for_class("MPL-2.0", HostClass.PROPRIETARY).mode is Mode.COPY_FILE
+    assert decide_for_class("MPL-2.0", MawClass.PROPRIETARY).mode is Mode.COPY_FILE
 
 
 @pytest.mark.parametrize(

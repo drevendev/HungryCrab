@@ -18,13 +18,13 @@ from time import perf_counter
 from typing import Any
 
 from . import __version__
-from .cache import Target, host_paths, prey_paths
+from .cache import Target, maw_paths, prey_paths
 from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import read_text
-from .host import HostConfig
+from .maw import MawConfig
 from .miners import MineContext, Miner, select_miners
 from .tokens import estimate_tokens
 
@@ -43,7 +43,7 @@ class DigestOptions:
     out: Path | None = None
     force: bool = False
     miners: list[str] | None = None
-    host_license: str | None = None
+    maw_license: str | None = None
     now: datetime | None = None
     md_budget: int | None = None
     total_budget: int = TOTAL_BUDGET
@@ -106,11 +106,11 @@ def prepare_context(
         root = target.path
         if not root.is_dir():
             raise CrabError(f"{root} is not a directory")
-        digests_dir = host_paths(root, options.cache_root).digests
-        # A local target is usually the host, and its own .crab.yml says what is not its code.
-        # Without this, a repository's test fixtures are digested as if they were the host.
+        digests_dir = maw_paths(root, options.cache_root).digests
+        # A local target is usually the maw, and its own .crab.yml says what is not its code.
+        # Without this, a repository's test fixtures are digested as if they were the maw.
         if not ignore:
-            ignore = HostConfig.load(root).ignore
+            ignore = MawConfig.load(root).ignore
 
     git: GitRunner | None = GitRunner(root) if GitRunner.available() else None
     if git is not None and not (git.is_repo() and git.has_commits()):
@@ -134,7 +134,7 @@ def prepare_context(
         depth=options.depth,
         git=git,
         api=api,
-        host_license=options.host_license,
+        maw_license=options.maw_license,
         now=options.now or datetime.now(UTC),
         md_budget=options.md_budget or MD_BUDGET.get(options.depth, MD_BUDGET["normal"]),
         shallow=shallow,
@@ -210,7 +210,7 @@ def _summary(ctx: MineContext) -> dict[str, Any]:
             "spdx": data.get("spdx"),
             "class": data.get("class"),
             "human_review": data.get("human_review"),
-            "modes_by_host_class": data.get("modes_by_host_class"),
+            "modes_by_maw_class": data.get("modes_by_maw_class"),
             "verdict": data.get("verdict"),
         }
     inventory = ctx.results.get("inventory")
@@ -280,7 +280,7 @@ def build_manifest(
         },
         "depth": options.depth,
         "ignore": list(ctx.ignore),
-        "host_license": options.host_license,
+        "maw_license": options.maw_license,
         "budget": {"per_markdown_file": ctx.md_budget, "markdown_total": options.total_budget},
         "markdown_tokens_est": md_tokens,
         "total_tokens_est": total_tokens,
@@ -362,7 +362,7 @@ def _file_entries(
 def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """Re-scan a digest folder after files were added (e.g. by ``crab compare``).
 
-    ``summary`` merges into ``manifest["summary"]``: a digest taken without a host knows the
+    ``summary`` merges into ``manifest["summary"]``: a digest taken without a maw knows the
     prey's licence but not the verdict, and the comparison that resolves it must not leave the
     manifest saying ``null`` while ``menu.md`` says ``COPY``.
     """

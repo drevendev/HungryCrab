@@ -9,7 +9,7 @@ from helpers import read_json
 from hungry_crab.cache import Target
 from hungry_crab.compare import (
     CompareOptions,
-    apply_appetite,
+    apply_hunger,
     compare_digests,
     load_menu,
     menu_candidates,
@@ -39,14 +39,14 @@ def test_side_loads_a_digest(npm_digest: DigestResult, npm_app: Path) -> None:
     assert side.blob_url("README.md") is None  # local prey has no URL
 
 
-def test_python_host_eats_npm_prey(
+def test_python_maw_eats_npm_prey(
     npm_digest: DigestResult, py_digest: DigestResult, npm_app: Path, pyproject_cli: Path
 ) -> None:
     result = compare_digests(
         npm_digest.out_dir,
         py_digest.out_dir,
         prey_root=npm_app,
-        host_root=pyproject_cli,
+        maw_root=pyproject_cli,
         options=CompareOptions(now=FIXED_NOW),
     )
     ids = _ids(result.candidates)
@@ -87,14 +87,14 @@ def test_python_host_eats_npm_prey(
     assert dependabot.evidence[0].path == ".github/dependabot.yml"
     assert "github-actions, npm" in dependabot.what
     assert dependabot.provenance["prey"] == "npm-app"
-    assert dependabot.provenance["host"] == "pyproject-cli"
+    assert dependabot.provenance["maw"] == "pyproject-cli"
 
 
-def test_npm_host_eats_python_prey(
+def test_npm_maw_eats_python_prey(
     npm_digest: DigestResult, py_digest: DigestResult, npm_app: Path, pyproject_cli: Path
 ) -> None:
     result = compare_digests(
-        py_digest.out_dir, npm_digest.out_dir, prey_root=pyproject_cli, host_root=npm_app
+        py_digest.out_dir, npm_digest.out_dir, prey_root=pyproject_cli, maw_root=npm_app
     )
     ids = _ids(result.candidates)
     expected = {
@@ -112,8 +112,8 @@ def test_npm_host_eats_python_prey(
         "crab:ci:ci.macos-runner",
     }
     assert expected <= ids
-    assert "crab:tooling:tooling.python-version-file" not in ids, "npm host cannot use it"
-    assert "crab:hygiene:hygiene.contributing" not in ids, "the host already has one"
+    assert "crab:tooling:tooling.python-version-file" not in ids, "npm maw cannot use it"
+    assert "crab:hygiene:hygiene.contributing" not in ids, "the maw already has one"
     threshold = next(c for c in result.candidates if c.id == "crab:tests:tests.coverage-threshold")
     assert "80%" in threshold.title
     assert result.verdict["mode"] == "COPY"
@@ -124,7 +124,7 @@ def test_gpl_prey_lowers_every_score(
     npm_digest: DigestResult, dotnet_digest: DigestResult, npm_app: Path, dotnet_lib: Path
 ) -> None:
     result = compare_digests(
-        dotnet_digest.out_dir, npm_digest.out_dir, prey_root=dotnet_lib, host_root=npm_app
+        dotnet_digest.out_dir, npm_digest.out_dir, prey_root=dotnet_lib, maw_root=npm_app
     )
     assert result.verdict["mode"] == "REIMPLEMENT"
     ids = _ids(result.candidates)
@@ -134,16 +134,16 @@ def test_gpl_prey_lowers_every_score(
     assert max(c.score for c in result.candidates) < 0.5
 
 
-def test_appetite_hides_and_downgrades() -> None:
+def test_hunger_hides_and_downgrades() -> None:
     cards = [
         Candidate("ci", "ci.cache", "Cache", "caches", artifact="pr"),
         Candidate("deps", "deps.npm.zod", "zod", "uses zod", artifact="issue"),
         Candidate("docs", "docs.site", "Docs", "docs", artifact="issue"),
     ]
-    kept, hidden = apply_appetite(cards, {"deps": False, "ci": "issues-only", "docs": "ideas-only"})
+    kept, hidden = apply_hunger(cards, {"deps": False, "ci": "issues-only", "docs": "ideas-only"})
     assert [c.id for c in kept] == ["crab:ci:ci.cache", "crab:docs:docs.site"]
     assert kept[0].artifact == "issue" and kept[1].artifact == "idea"
-    assert hidden == [{"id": "crab:deps:deps.npm.zod", "reason": "appetite: deps is off"}]
+    assert hidden == [{"id": "crab:deps:deps.npm.zod", "reason": "hunger: deps is off"}]
 
 
 def test_hidden_ids_and_scoring_overrides(
@@ -170,7 +170,7 @@ def test_markdown_outputs_and_manifest_refresh(
 ) -> None:
     result = compare_digests(npm_digest.out_dir, py_digest.out_dir, prey_root=npm_app)
     assert result.gap_md.startswith("# Gap: pyproject-cli vs npm-app@")
-    assert "## Prey has, host lacks" in result.gap_md
+    assert "## Prey has, maw lacks" in result.gap_md
     assert "| has_dependabot | no | yes |" in result.gap_md
     assert result.menu_md.startswith("# Menu: npm-app@")
     assert "| 1 | " in result.menu_md
@@ -195,9 +195,9 @@ def test_markdown_outputs_and_manifest_refresh(
     ]
     assert all(f["miner"] == "compare" for f in manifest["files"])
     assert manifest["reading_order"][:2] == ["menu.md", "gap.md"]
-    # a digest taken without a host has no verdict; the comparison resolves it
+    # a digest taken without a maw has no verdict; the comparison resolves it
     assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
-    assert manifest["summary"]["license"]["host_license"] == "Apache-2.0"
+    assert manifest["summary"]["license"]["maw_license"] == "Apache-2.0"
     menu = load_menu(out)
     assert menu is not None and menu["schema"] == "hungry-crab.menu/1"
     cards = menu_candidates(menu)
@@ -206,7 +206,7 @@ def test_markdown_outputs_and_manifest_refresh(
 
 
 def test_run_compare_end_to_end(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> None:
-    result, prey_digest, host_digest = run_compare(
+    result, prey_digest, maw_digest = run_compare(
         Target(path=npm_app),
         pyproject_cli,
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache"),
@@ -219,10 +219,10 @@ def test_run_compare_end_to_end(npm_app: Path, pyproject_cli: Path, tmp_path: Pa
     assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
     assert manifest["summary"]["license"]["spdx"] == "MIT", "the merge keeps what the miner found"
     assert manifest["summary"]["primary_language"]
-    assert host_digest.out_dir.is_relative_to(tmp_path / "cache" / "hosts")
-    assert result.menu["host"]["license"] == "Apache-2.0"
+    assert maw_digest.out_dir.is_relative_to(tmp_path / "cache" / "maws")
+    assert result.menu["maw"]["license"] == "Apache-2.0"
     compare_info = read_json(prey_digest, "compare.json")
-    assert compare_info["host"]["label"] == "pyproject-cli"
+    assert compare_info["maw"]["label"] == "pyproject-cli"
     # cached digests on the second run, fresh comparison
     again, _, _ = run_compare(
         Target(path=npm_app),

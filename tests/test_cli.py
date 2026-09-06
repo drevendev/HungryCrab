@@ -7,7 +7,7 @@ import pytest
 from helpers import copy_repo
 
 from hungry_crab import __version__
-from hungry_crab.cli import build_parser, detect_host_license, main
+from hungry_crab.cli import build_parser, detect_maw_license, main
 
 
 def test_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
@@ -57,7 +57,7 @@ def test_digest_of_local_fixture_prints_summary(
     npm_app: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     out = tmp_path / "digest"
-    code = main(["-q", "digest", str(npm_app), "--out", str(out), "--host-license", "MIT"])
+    code = main(["-q", "digest", str(npm_app), "--out", str(out), "--maw-license", "MIT"])
     assert code == 0
     stdout = capsys.readouterr().out
     assert "Digest of npm-app@" in stdout
@@ -91,16 +91,16 @@ def test_compare_and_menu_commands(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     cache = str(tmp_path / "cache")
-    host = copy_repo(pyproject_cli, tmp_path / "host")
+    maw = copy_repo(pyproject_cli, tmp_path / "maw")
     code = main(
-        ["-q", "--cache-dir", cache, "compare", str(npm_app), "--host", str(host), "--no-issues"]
+        ["-q", "--cache-dir", cache, "compare", str(npm_app), "--maw", str(maw), "--no-issues"]
     )
     assert code == 0
     out = capsys.readouterr().out
     assert out.startswith("Menu: npm-app@")
     assert "crab:tooling:tooling.dependabot" in out
     assert "gap.md and menu.md written to" in out
-    assert (host / ".crab" / "ledger.json").is_file(), "ledger mode repo by default"
+    assert (maw / ".crab" / "ledger.json").is_file(), "ledger mode repo by default"
 
     code = main(
         ["-q", "--cache-dir", cache, "menu", str(npm_app), "--top", "3", "--category", "ci"]
@@ -122,10 +122,10 @@ def test_init_ledger_serve_and_tune_commands(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     cache = str(tmp_path / "cache")
-    host = copy_repo(pyproject_cli, tmp_path / "host")
-    assert main(["init", "--host", str(host)]) == 0
+    maw = copy_repo(pyproject_cli, tmp_path / "maw")
+    assert main(["init", "--maw", str(maw)]) == 0
     assert "wrote" in capsys.readouterr().out
-    assert main(["init", "--host", str(host)]) == 1, "refuses to overwrite"
+    assert main(["init", "--maw", str(maw)]) == 1, "refuses to overwrite"
     capsys.readouterr()
     assert (
         main(
@@ -135,8 +135,8 @@ def test_init_ledger_serve_and_tune_commands(
                 cache,
                 "compare",
                 str(npm_app),
-                "--host",
-                str(host),
+                "--maw",
+                str(maw),
                 "--no-issues",
             ]
         )
@@ -144,16 +144,16 @@ def test_init_ledger_serve_and_tune_commands(
     )
     capsys.readouterr()
 
-    assert main(["ledger", "--host", str(host)]) == 0
+    assert main(["ledger", "--maw", str(maw)]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("Ledger for host:")
+    assert out.startswith("Ledger for maw:")
     assert "proposed" in out and "crab:ci:ci.cache" in out
     assert (
         main(
             [
                 "ledger",
-                "--host",
-                str(host),
+                "--maw",
+                str(maw),
                 "mark",
                 "crab:ci:ci.cache",
                 "rejected",
@@ -164,13 +164,13 @@ def test_init_ledger_serve_and_tune_commands(
         == 0
     )
     assert "crab:ci:ci.cache: rejected (no)" in capsys.readouterr().out
-    assert main(["ledger", "--host", str(host), "show", "--json"]) == 0
+    assert main(["ledger", "--maw", str(maw), "show", "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     statuses = {e["id"]: e["status"] for e in payload["entries"]}
     assert statuses["crab:ci:ci.cache"] == "rejected"
 
     code = main(
-        ["-q", "--cache-dir", cache, "serve", str(npm_app), "--host", str(host), "--top", "2"]
+        ["-q", "--cache-dir", cache, "serve", str(npm_app), "--maw", str(maw), "--top", "2"]
     )
     assert code == 0
     out = capsys.readouterr().out
@@ -184,8 +184,8 @@ def test_init_ledger_serve_and_tune_commands(
             cache,
             "serve",
             str(npm_app),
-            "--host",
-            str(host),
+            "--maw",
+            str(maw),
             "--ids",
             "crab:ci:ci.cache",
         ]
@@ -199,8 +199,8 @@ def test_init_ledger_serve_and_tune_commands(
             cache,
             "serve",
             str(npm_app),
-            "--host",
-            str(host),
+            "--maw",
+            str(maw),
             "--top",
             "1",
             "--as",
@@ -210,10 +210,10 @@ def test_init_ledger_serve_and_tune_commands(
     assert code == 1
     assert "0.3" in capsys.readouterr().err
 
-    assert main(["tune", "--host", str(host)]) == 0
+    assert main(["tune", "--maw", str(maw)]) == 0
     out = capsys.readouterr().out
     assert "1 decisions in the ledger" in out
-    assert main(["tune", "--host", str(host), "--json"]) == 0
+    assert main(["tune", "--maw", str(maw), "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["decisions"] == 1 and payload["written"] is None
 
@@ -227,6 +227,6 @@ def test_menu_before_compare_is_an_error(
     assert "no menu" in err and "crab compare" in err
 
 
-def test_detect_host_license(npm_app: Path, pyproject_cli: Path) -> None:
-    assert detect_host_license(npm_app) == "MIT"
-    assert detect_host_license(pyproject_cli) == "Apache-2.0"
+def test_detect_maw_license(npm_app: Path, pyproject_cli: Path) -> None:
+    assert detect_maw_license(npm_app) == "MIT"
+    assert detect_maw_license(pyproject_cli) == "Apache-2.0"

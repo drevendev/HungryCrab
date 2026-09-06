@@ -7,12 +7,12 @@ useful for your own repository without violating licenses) and for its overlay
 | Document | Covers |
 |---|---|
 | [01-concept-and-skill.md](01-concept-and-skill.md) | What the crab is, form factor (CLI + Agent Skills + plugin), installation, architecture, digest format, license engine, security, decisions log |
-| [02-mvp.md](02-mvp.md) | Minimum viable product: commands, miners, skill protocol, milestones 0.1–0.3, acceptance criteria, first prey → host pairs |
+| [02-mvp.md](02-mvp.md) | Minimum viable product: commands, miners, skill protocol, milestones 0.1–0.3, acceptance criteria, first prey → maw pairs |
 | [03-roadmap.md](03-roadmap.md) | Roadmap: base crab → evolving crab → forks |
 | [04-evolving-crab.md](04-evolving-crab.md) | Detailed design of the GOAL → HUNT → CONSUME → EVOLVE → TRIAL → GROW → MOLT loop, budgets, constitution, autonomy levels, fork kit (Sudoku example) |
-| [05-self-feeding.md](05-self-feeding.md) | The stage between 0.2 and 0.3: run `/crab:eat` from a live agent session with the crab itself as the host, against twenty sniffed prey |
+| [05-self-feeding.md](05-self-feeding.md) | The stage between 0.2 and 0.3: run `/crab:eat` from a live agent session with the crab itself as the maw, against twenty sniffed prey |
 | [06-benchmark.md](06-benchmark.md) | Specification of the two benchmarks: B1 the deterministic menu benchmark in CI, B2 the judged meal benchmark across crab versions and Claude models |
-| [07-scheduled-crab.md](07-scheduled-crab.md) | The local sibling of the evolving crab: hunger → hunt → eat → serve → grow → trial → taste → molt → harden, one phase per wake-up, on this repository or on any target it is pointed at |
+| [07-scheduled-crab.md](07-scheduled-crab.md) | The local sibling of the evolving crab: crave → hunt → eat → serve → grow → trial → taste → molt → harden, one phase per wake-up, on this repository or on any target it is pointed at |
 
 ## Key decisions (TL;DR)
 
@@ -23,11 +23,11 @@ useful for your own repository without violating licenses) and for its overlay
    `digest/` with a token budget and progressive disclosure. The model is spent only where judgment
    is needed: rating the menu, writing issues, implementing PRs.
 3. **Licenses are decided by a deterministic engine, not by the model's opinion.** A
-   `host license × prey license` matrix yields a mode for every nutrient:
+   `maw license × prey license` matrix yields a mode for every nutrient:
    `COPY` / `COPY_FILE` / `REIMPLEMENT` (clean room) / `IDEAS_ONLY`. Provenance everywhere.
 4. **Prey code is never executed.** Static analysis only. Prey content is untrusted data
    (prompt-injection defense), enforced by a hook.
-5. **Artifacts are issues and PRs with a provenance footer**, plus a `ledger` in the host
+5. **Artifacts are issues and PRs with a provenance footer**, plus a `ledger` in the maw
    repository for idempotency (eating the same prey again yields only what is new) and for learning
    from accepted/rejected proposals.
 6. **MVP** = deterministic transplant of hygiene / CI / tooling / AI configs, plus a menu of ideas
@@ -47,5 +47,5 @@ useful for your own repository without violating licenses) and for its overlay
   skill namespace `/crab:*`, Python package `hungry_crab`.
 - **Commits:** Conventional Commits. The crab measures this trait in prey, so it must pass its own
   check.
-- **Ledger** lives in the host repository by default (`.crab/ledger.json`) and is committed by the
-  same PR that serves the nutrients; `cache` and `none` modes exist for hosts that do not want it.
+- **Ledger** lives in the maw repository by default (`.crab/ledger.json`) and is committed by the
+  same PR that serves the nutrients; `cache` and `none` modes exist for maws that do not want it.

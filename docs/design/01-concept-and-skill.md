@@ -5,9 +5,9 @@
 Hungry Crab takes a foreign public repository (the *prey*), statically dissects all of it — code,
 commit history, branches, issues, wiki, CI/CD, tests, architecture, documentation, AI configs — and
 turns it into a **ranked menu of "nutrients"**: concrete things that can be carried over into your
-own repository (the *host*). Every nutrient carries a license verdict (what exactly is allowed:
+own repository (the *maw*). Every nutrient carries a license verdict (what exactly is allowed:
 copy, rewrite, idea only) and provenance (where from, which commit, which license). Approved
-nutrients become issues and pull requests in the host repository.
+nutrients become issues and pull requests in the maw repository.
 
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
 model is spent only on judgment and implementation.**
@@ -17,20 +17,20 @@ model is spent only on judgment and implementation.**
 | Term | Meaning |
 |---|---|
 | **Prey** | The foreign repository being eaten |
-| **Host** | Your repository, the one we eat for |
+| **Maw** | Your repository, the one we eat for |
 | **Sniff** | Quick reconnaissance of the prey via API: license, size, languages, is it worth eating |
 | **Catch** | Downloading the prey into a local cache: git mirror, wiki, issues, PRs, releases |
 | **Digest** | Deterministic analysis of the prey → the `digest/` folder (JSON + Markdown) |
 | **Nutrient** | A unit of value: one transferable thing with a license mode and provenance |
-| **Menu** | Ranked list of candidate nutrients after comparing prey with host |
+| **Menu** | Ranked list of candidate nutrients after comparing prey with maw |
 | **Serve** | Turning approved nutrients into issues / PRs / attribution files |
-| **Ledger** | Journal in the host repository: what was eaten, what was accepted, what was rejected |
-| **Appetite** | Host settings: which nutrient categories it is interested in |
+| **Ledger** | Journal in the maw repository: what was eaten, what was accepted, what was rejected |
+| **Hunger** | Maw settings: which nutrient categories it is interested in |
 | **Molting** | Refactoring and cleanup after growth (Evolving Crab term) |
 
 ## 3. What counts as "useful": the nutrient taxonomy
 
-Categories are fixed — they are keys in the host config, issue labels, and scoring axes.
+Categories are fixed — they are keys in the maw config, issue labels, and scoring axes.
 
 | Category | Examples | Extracted by |
 |---|---|---|
@@ -90,12 +90,12 @@ Additionally: **branches** — experimental features that never landed in main o
 | Download everything (git mirror, wiki, issues, PRs, releases) | ✔ | |
 | Prey license and per-file exceptions, verdict matrix | ✔ | flags ambiguous cases for a human |
 | Inventory, languages, LOC, manifests, entry points | ✔ | |
-| Traits matrix (~150 traits) for host and prey, diff | ✔ | |
+| Traits matrix (~150 traits) for maw and prey, diff | ✔ | |
 | Parsing CI, tests, dependencies, docs, AI configs | ✔ | |
 | History metrics: hotspots, fix ratio, reverts, coupling, cadence | ✔ | |
 | Issue clustering (TF-IDF), top by reactions, time to close | ✔ | |
 | Preliminary menu scoring | ✔ | |
-| "Is this valuable for *this* host?" | | ✔ |
+| "Is this valuable for *this* maw?" | | ✔ |
 | Phrasing a lesson from history/issues | | ✔ |
 | Issue text, implementation plan, effort/risk estimate | | ✔ |
 | Implementing the PR (adaptation or clean room) | | ✔ |
@@ -123,7 +123,7 @@ folders into Claude Code / Codex / Cursor. On first run the skill checks for the
 **Path C — manual.** `git clone`, symlink `skills/*` into `~/.claude/skills/`, `pip install -e .`.
 
 **Path D — CI (post-MVP).** `uses: drevendev/HungryCrab/action@v1` — run digest and serve in the
-host's workflow on a schedule or via `workflow_dispatch`.
+maw's workflow on a schedule or via `workflow_dispatch`.
 
 ## 6. Repository layout of `HungryCrab`
 
@@ -139,7 +139,7 @@ HungryCrab/
 │   └── serve/SKILL.md           # how to write issues/PRs, templates, provenance
 ├── agents/
 │   ├── crab-historian.md        # reads history.md/branches.md, formulates lessons
-│   ├── crab-architect.md        # reads architecture.md, compares with the host
+│   ├── crab-architect.md        # reads architecture.md, compares with the maw
 │   ├── crab-license-auditor.md  # ambiguous license cases
 │   └── crab-cleanroom-impl.md   # implementer without read access to the prey cache
 ├── hooks/hooks.json             # PreToolUse: forbid executing anything from the prey cache
@@ -157,7 +157,7 @@ HungryCrab/
 ├── pyproject.toml · README.md · LICENSE (MIT)
 ```
 
-## 7. Workflow of `/crab:eat <prey> [--host .]`
+## 7. Workflow of `/crab:eat <prey> [--maw .]`
 
 1. **Sniff.** `crab sniff owner/repo` — API only: license (SPDX), size, languages, stars,
    activity, community profile. Instant verdict: default mode (`COPY`/`IDEAS_ONLY`…), a warning if
@@ -167,19 +167,19 @@ HungryCrab/
    newest + top by reactions). Everything goes to `~/.cache/hungry-crab/github/<owner>/<repo>/`: one shared clone plus
    per-commit digests under `digests/<sha>/`.
 3. **Digest.** `crab digest` — runs all miners → `digest/` (see § 8). No LLM.
-4. **Compare.** `crab compare --host .` — digest of the host (fast, local), diff of
+4. **Compare.** `crab compare --maw .` — digest of the maw (fast, local), diff of
    traits/deps/ci/tests/ai-config, preliminary scoring → `gap.md`, `menu.md`.
 5. **Judge (model).** The skill reads `manifest.json`, then `menu.md`, then **only the digest
    sections needed** for the candidates in doubt. For history and architecture it may delegate to
    the `crab-historian` / `crab-architect` subagents. Output: filled nutrient cards — what / why for
-   the host / how / mode / effort / risk.
+   the maw / how / mode / effort / risk.
 6. **Approve.** A menu table for the user. Interactively — checkboxes; in CI — the policy from
    `.crab.yml` (`issues: auto`, `prs: ask`, limits).
 7. **Serve.** `crab serve` creates issues (label `hungry-crab`, hidden id marker in the body,
    provenance footer). For PR nutrients — one branch per nutrient, implementation by the model
    (for `REIMPLEMENT` — via the clean-room subagent), `gh pr create` with provenance, update of
    `THIRD_PARTY_NOTICES.md` if anything was copied.
-8. **Ledger.** An entry in the host's `.crab/ledger.json`: prey@sha, the nutrient list and their
+8. **Ledger.** An entry in the maw's `.crab/ledger.json`: prey@sha, the nutrient list and their
    statuses. Eating the same repository again shows only what is new.
 
 ## 8. Digest: format and progressive disclosure
@@ -187,7 +187,7 @@ HungryCrab/
 ```
 digest/
 ├── manifest.json        # what exists, size of each file in tokens, prey sha, schema version
-├── license.json         # spdx, confidence, per-file exceptions, verdict vs host
+├── license.json         # spdx, confidence, per-file exceptions, verdict vs maw
 ├── inventory.{json,md}  # tree, languages, LOC, manifests, entry points, vendored/generated
 ├── traits.json          # boolean/enum trait matrix
 ├── ci.{json,md}         # workflows: triggers, jobs, actions@versions, cache, matrix, permissions
@@ -199,7 +199,7 @@ digest/
 ├── docs.md              # README/docs outline, ADRs, CHANGELOG, templates, wiki outline
 ├── architecture.md      # directory hierarchy with purpose guesses, symbol index, import-graph hubs
 ├── ai.md                # AI configs found and their gist
-├── gap.md               # what the host lacks that the prey has (after compare)
+├── gap.md               # what the maw lacks that the prey has (after compare)
 └── menu.md              # ranked candidates with license mode and pre-score
 ```
 
@@ -214,7 +214,7 @@ Target: a full default digest ≤ 30k tokens.
   "id": "crab:owner/repo@1a2b3c:ci:actions-cache-npm:7f3a",
   "category": "ci",
   "title": "npm cache in CI via actions/setup-node cache",
-  "what": "…", "why_for_host": "…", "how": "…",
+  "what": "…", "why_for_maw": "…", "how": "…",
   "evidence": [{"path": ".github/workflows/ci.yml", "lines": "12-30",
                 "url": "https://github.com/owner/repo/blob/1a2b3c/.github/workflows/ci.yml#L12-L30"}],
   "license_mode": "REIMPLEMENT",
@@ -252,7 +252,7 @@ across runs.
 
 ### Matrix (abridged)
 
-| Prey ↓ / Host → | MIT/BSD/Apache | GPL-compatible | Proprietary/closed |
+| Prey ↓ / Maw → | MIT/BSD/Apache | GPL-compatible | Proprietary/closed |
 |---|---|---|---|
 | MIT / BSD / ISC / 0BSD / Zlib / Unlicense / CC0 | `COPY` | `COPY` | `COPY` |
 | Apache-2.0 | `COPY` (+NOTICE) | `COPY` for GPLv3 only, `IDEAS_ONLY` for GPLv2 | `COPY` (+NOTICE) |
@@ -268,7 +268,7 @@ Special rules:
   commenters; we carry over the meaning and a link, not the text).
 - Configs and "small snippets" are not automatically free — same mode as code. Conservative, but
   indisputable.
-- Host `strict` mode: even under `COPY`, code is downgraded to `REIMPLEMENT`; only configs and
+- Maw `strict` mode: even under `COPY`, code is downgraded to `REIMPLEMENT`; only configs and
   templates are copied. Useful for repositories that do not want to carry foreign copyright.
 - README disclaimer: the tool helps with license compliance; it is not legal advice.
 
@@ -278,7 +278,7 @@ Special rules:
    functional specification: behavior, interface, edge cases, example tests. Forbidden: code,
    internal identifiers, comments from the original.
 2. **Stage B (implementer)** — the `crab-cleanroom-impl` subagent with a **fresh context** and the
-   rule `deny: Read(~/.cache/hungry-crab/**)` implements from the specification in the host
+   rule `deny: Read(~/.cache/hungry-crab/**)` implements from the specification in the maw
    repository.
 3. The PR provenance records: "implemented from a specification, without access to the prey
    source", with a link to the spec in `.crab/specs/<id>.md`.
@@ -292,17 +292,17 @@ Special rules:
 - **Prey code is never executed.** No `npm install`, `pytest`, `make` inside the cache. A
   `PreToolUse` hook blocks Bash commands that combine the cache path with execution verbs (`node`,
   `python`, `npm`, `npx`, `make`, `sh`, `./`).
-- **Secret scan** of everything copied into the host (a gitleaks-grade regex set) — before a PR is
+- **Secret scan** of everything copied into the maw (a gitleaks-grade regex set) — before a PR is
   created.
 - **Least privilege in CI**: `contents: write`, `issues: write`, `pull-requests: write`; a GitHub
   token without the right to change workflows (the default `GITHUB_TOKEN` cannot anyway).
 
-## 12. Host config `.crab.yml` and the ledger
+## 12. Maw config `.crab.yml` and the ledger
 
 ```yaml
 license: MIT                 # detected automatically when omitted
 mode: normal                 # normal | strict
-appetite:                    # which categories are welcome and in what form
+hunger:                    # which categories are welcome and in what form
   ci: true
   tooling: true
   tests: true
@@ -331,8 +331,8 @@ Ledger modes and what they affect:
 
 | Mode | Where | Consequences |
 |---|---|---|
-| `repo` (default) | `.crab/ledger.json` in the host, committed by the same PR that serves the nutrients | visible to CI, collaborators and other machines; survives machine changes; rejected nutrients are remembered; the ledger is also the source for regenerating `THIRD_PARTY_NOTICES.md`; the Evolving Crab needs it because runners are ephemeral. Cost: one tool file in the host and a diff on every run |
-| `cache` | `~/.cache/hungry-crab/hosts/<host>/ledger.json` | the host stays pristine; dedup and rejection memory work on one machine only; CI cannot see it; attribution still has to be committed separately |
+| `repo` (default) | `.crab/ledger.json` in the maw, committed by the same PR that serves the nutrients | visible to CI, collaborators and other machines; survives machine changes; rejected nutrients are remembered; the ledger is also the source for regenerating `THIRD_PARTY_NOTICES.md`; the Evolving Crab needs it because runners are ephemeral. Cost: one tool file in the maw and a diff on every run |
+| `cache` | `~/.cache/hungry-crab/maws/<maw>/ledger.json` | the maw stays pristine; dedup and rejection memory work on one machine only; CI cannot see it; attribution still has to be committed separately |
 | `none` | nowhere | dedup relies solely on the `crab:<id>` markers in existing issues (GitHub acts as the store); rejected nutrients will be proposed again; nothing to learn from |
 
 Regardless of mode, dedup against open issues via the `crab:<id>` marker is always on.
@@ -355,11 +355,11 @@ Regardless of mode, dedup against open issues via the `crab:<id>` marker is alwa
 |---|---|---|
 | CLI name | `crab` | short; PATH conflicts are unlikely and the package keeps the name `hungry-crab` |
 | Project license | MIT | simplest, widest adoption |
-| Ledger location | host repository, `.crab/ledger.json`, committed together with the crab's own PRs; `cache` and `none` remain available | CI, other machines and the Evolving Crab need it; attribution has to live in the repository anyway; rejected nutrients must be remembered |
+| Ledger location | maw repository, `.crab/ledger.json`, committed together with the crab's own PRs; `cache` and `none` remain available | CI, other machines and the Evolving Crab need it; attribution has to live in the repository anyway; rejected nutrients must be remembered |
 | Repository language | English for everything in the repository | public project, tooling and agents expect it |
 | Prey sources | GitHub first, fetch layer behind an interface | GitLab/Gitea can be added later without touching the miners |
 | Repository name | `drevendev/HungryCrab`; the distribution and the cache directory stay `hungry-crab` | matches the naming of the author's other repositories |
 | Plugin and skill names | plugin `crab`, skills `eat`, `license`, `serve` (folders without a prefix), marketplace `hungry-crab` | Claude Code namespaces plugin skills as `/plugin:skill`, so this is the only way to get `/crab:eat`; the price is generic folder names for skills-only installs |
-| Nutrient ids | `crab:<category>:<key>`, host-relative and independent of the prey and its SHA; prey-specific lessons carry the prey slug in the key | deduplication must work across runs, machines and different prey suggesting the same thing; the SHA lives in the provenance instead |
-| Scoring | `category x value x applicability x mode x effort - risk` with weights in `data/scoring.yml`, overridable per host; `crab tune` moves weights from ledger decisions with fixed, explained steps | a formula a human can read beats a model's opinion; the ledger is the only training signal until the Evolving Crab exists |
-| First host | a private sandbox repository built from the npm-app fixture, then the author's real repositories | issues created while the menu is being tuned must not pollute real projects |
+| Nutrient ids | `crab:<category>:<key>`, maw-relative and independent of the prey and its SHA; prey-specific lessons carry the prey slug in the key | deduplication must work across runs, machines and different prey suggesting the same thing; the SHA lives in the provenance instead |
+| Scoring | `category x value x applicability x mode x effort - risk` with weights in `data/scoring.yml`, overridable per maw; `crab tune` moves weights from ledger decisions with fixed, explained steps | a formula a human can read beats a model's opinion; the ledger is the only training signal until the Evolving Crab exists |
+| First maw | a private sandbox repository built from the npm-app fixture, then the author's real repositories | issues created while the menu is being tuned must not pollute real projects |

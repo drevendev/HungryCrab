@@ -29,25 +29,26 @@ model. Nothing about the loop lives in the agent's memory between wake-ups — e
 to continue is in a file.
 
 ```
-HUNGER ─► HUNT ─► EAT ─► SERVE ─► GROW ─► TRIAL ─► TASTE ─► MOLT ─► HARDEN ─┐
-           ▲                                                                │
-           └────────────────────────── next round ──────────────────────────┘
+CRAVE ─► HUNT ─► EAT ─► SERVE ─► GROW ─► TRIAL ─► TASTE ─► MOLT ─► HARDEN ─┐
+          ▲                                                                │
+          └────────────────────────── next round ──────────────────────────┘
 ```
 
 | Phase | One wake-up does | Deterministic | Model |
 |---|---|---|---|
-| HUNGER | decides what this target is short of this round | ledger, open crab issues, last taste | writes the round's goal in two sentences |
+| CRAVE | decides what this maw is short of this round | ledger, open crab issues, last taste | writes the round's goal in two sentences |
 | HUNT | picks 1–3 prey | candidate list, filters, ledger and issue dedup | picks, and says why these |
-| EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why_for_host` and `how` |
+| EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why_for_maw` and `how` |
 | SERVE | files the issues | `crab serve` | confirms, or the serve policy decides |
 | GROW | implements one served nutrient | — | branch, change, pull request |
 | TRIAL | did it hold | the target's own tests and CI | reads the result, decides retry or drop |
-| TASTE | what was learned | `crab tune` | writes the lesson HUNGER reads next round |
+| TASTE | what was learned | `crab tune` | writes the lesson CRAVE reads next round |
 | MOLT | sheds what the round grew out of | the target's own tests, lint and coverage | one refactoring pull request, no new behaviour |
 | HARDEN | the round becomes a version | changelog entry, version bump, tag | decides major, minor or patch and writes the entry |
 
 Every name is either already in this project's vocabulary or biologically exact. A crab is
-hungry, hunts, eats, grows, moults, and then its new shell hardens at the larger size; `taste` is
+hungry, craves, hunts, eats, grows, moults, and then its new shell hardens at the larger
+size; `taste` is
 what milestone 0.5 already calls learning from the ledger, and `trial` is what
 [04](04-evolving-crab.md) already calls running the benchmarks. The last table in this
 section maps the two documents.
@@ -100,7 +101,7 @@ written first and took its names from the evolution metaphor rather than from th
 
 | Here | In 04 | Why the name changed |
 |---|---|---|
-| HUNGER | GOAL | 04's goal raises a benchmark; a local loop only decides what to look for next |
+| CRAVE | GOAL | 04's goal raises a benchmark; a local loop only decides what to look for next |
 | HUNT | HUNT | — |
 | EAT | CONSUME | the skill is called `eat` |
 | GROW | EVOLVE | a crab grows tissue; evolution is what happens to a species over many rounds |
@@ -143,7 +144,7 @@ Rule 10 of `AGENTS.md` says the skill describes the protocol and the CLI does th
 state machine is Python, not prose:
 
 ```
-crab loop init    --host <path> [--control <path>]
+crab loop init    --maw <path> [--control <path>]
 crab loop status  [--json]                       # phase, round, budget, what blocks it
 crab loop next    [--json]                       # the phase to run now, its inputs, the budget left
 crab loop record  --phase <p> --result ok|fail|skip [--note "..."] [--url ...]
@@ -217,7 +218,7 @@ targets:
     prey: [pypa/hatch, pre-commit/pre-commit]   # optional; HUNT picks when absent
 ```
 
-Everything else — appetite, scoring, ignore, ledger — stays in the target's own `.crab.yml`,
+Everything else — hunger, scoring, ignore, ledger — stays in the target's own `.crab.yml`,
 because it describes the target and should travel with it.
 
 ## 8. Autonomy ladder

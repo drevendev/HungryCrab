@@ -53,7 +53,7 @@ def digests(
         options = DigestOptions(
             out=base / name,
             now=FIXED_NOW,
-            host_license="MIT",
+            maw_license="MIT",
             cache_root=base / "cache",
         )
         results[name] = run_digest(Target(path=path), options)

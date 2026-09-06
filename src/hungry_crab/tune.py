@@ -10,8 +10,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .compare.scoring import Scoring
-from .host import HostConfig
 from .ledger import NEGATIVE_STATUSES, Ledger
+from .maw import MawConfig
 from .nutrients import ACCEPTED_STATUSES
 
 STEP_UP = 0.1
@@ -24,7 +24,7 @@ LOW = 0.25
 
 @dataclass
 class Suggestion:
-    kind: str  # category | trait | appetite | prey
+    kind: str  # category | trait | hunger | prey
     target: str
     current: float | str | None
     suggested: float | str | None
@@ -138,7 +138,7 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
             if counts["accepted"] == 0 and total >= max(5, min_decisions):
                 report.suggestions.append(
                     Suggestion(
-                        "appetite", name, "on", "off",
+                        "hunger", name, "on", "off",
                         f"none of {total} decisions accepted; consider switching the category off.",
                         total, 0.0,
                     )
@@ -184,14 +184,14 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
                 Suggestion(
                     "prey", prey, None, None,
                     f"{counts['accepted']} of {total} nutrients from this prey were accepted; "
-                    "it is a poor match for this host.",
+                    "it is a poor match for this maw.",
                     total, round(counts["accepted"] / total, 2),
                 )
             )  # fmt: skip
     return report
 
 
-def apply(report: TuneReport, config: HostConfig) -> dict[str, Any]:
+def apply(report: TuneReport, config: MawConfig) -> dict[str, Any]:
     """Write category and trait suggestions into ``.crab.yml`` under ``scoring``."""
     scoring = {
         key: dict(value) if isinstance(value, dict) else value

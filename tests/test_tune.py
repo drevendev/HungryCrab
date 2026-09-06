@@ -4,8 +4,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from hungry_crab.compare.scoring import Scoring
-from hungry_crab.host import HostConfig
 from hungry_crab.ledger import Ledger
+from hungry_crab.maw import MawConfig
 from hungry_crab.nutrients import Candidate
 from hungry_crab.tune import analyse, apply
 
@@ -14,7 +14,7 @@ NOW = datetime(2025, 6, 1, tzinfo=UTC)
 
 def _ledger(decisions: dict[str, list[str]]) -> Ledger:
     """decisions: category -> list of statuses; keys are numbered per category."""
-    ledger = Ledger(None, host="h")
+    ledger = Ledger(None, maw="h")
     cards: list[Candidate] = []
     for category, statuses in decisions.items():
         for index, _ in enumerate(statuses):
@@ -54,7 +54,7 @@ def test_category_weights_move_with_acceptance() -> None:
     assert ci.current == 0.9 and ci.suggested == 1.0 and ci.acceptance == 0.75
     deps = by_target[("category", "deps")]
     assert deps.current == 0.45 and deps.suggested == 0.3
-    assert by_target[("appetite", "deps")].suggested == "off"
+    assert by_target[("hunger", "deps")].suggested == "off"
     assert ("category", "docs") not in by_target, "two decisions are below the minimum"
     assert ("category", "tests") not in by_target, "50% acceptance is no signal"
     assert ("prey", "example/prey") not in by_target, "40% acceptance is not a poor match"
@@ -67,7 +67,7 @@ def test_category_weights_move_with_acceptance() -> None:
 
 
 def test_trait_level_suggestions_and_apply(tmp_path: Path) -> None:
-    ledger = Ledger(None, host="h")
+    ledger = Ledger(None, maw="h")
     cards = []
     for prey_index in range(3):
         card = Candidate("tooling", "tooling.editorconfig", "Editorconfig", "x")
@@ -90,9 +90,9 @@ def test_trait_level_suggestions_and_apply(tmp_path: Path) -> None:
     assert kinds[("category", "hygiene")].suggested == 0.8
     assert kinds[("trait", "hygiene.security-md")].suggested == 1.0
 
-    config = HostConfig.load(tmp_path)
+    config = MawConfig.load(tmp_path)
     scoring = apply(report, config)
     assert scoring == {"categories": {"hygiene": 0.8}, "traits": {"hygiene.security-md": 1.0}}
-    reloaded = HostConfig.load(tmp_path)
+    reloaded = MawConfig.load(tmp_path)
     assert reloaded.scoring == scoring
     assert Scoring.default().merged(reloaded.scoring).categories["hygiene"] == 0.8

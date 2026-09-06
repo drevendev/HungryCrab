@@ -10,16 +10,16 @@ from conftest import FIXED_NOW
 from helpers import write_tree
 
 from hungry_crab.cache import Slug, Target
-from hungry_crab.compare import CompareOptions, compare_for_host, run_compare
+from hungry_crab.compare import CompareOptions, compare_for_maw, run_compare
 from hungry_crab.digest import DigestOptions
 from hungry_crab.errors import CrabError, UsageError
-from hungry_crab.host import CONFIG_FILE, HostConfig
 from hungry_crab.ledger import Ledger
+from hungry_crab.maw import CONFIG_FILE, MawConfig
 from hungry_crab.nutrients import Candidate, Evidence
 from hungry_crab.serve import ServeOptions, parse_markers, render_issue, serve
 
 NOW = datetime(2025, 6, 3, tzinfo=UTC)
-HOST_SLUG = Slug("example", "host")
+MAW_SLUG = Slug("example", "maw")
 
 
 class FakeIssues:
@@ -88,7 +88,7 @@ def test_parse_markers_and_render_issue() -> None:
     }
     card = Candidate(
         "ci", "ci.cache", "Cache dependencies in CI", "npm-app caches dependencies",
-        host_state="no", artifact="pr", effort="S", risk="low",
+        maw_state="no", artifact="pr", effort="S", risk="low",
         evidence=[Evidence(".github/workflows/ci.yml", "https://x/ci.yml")],
         license_mode="COPY", score=0.81,
     )  # fmt: skip
@@ -109,11 +109,11 @@ def test_parse_markers_and_render_issue() -> None:
     assert "`example/prey@aaaaaaa`" in body
     assert "mode COPY" in body and "not legal advice" in body
     assert "Not judged yet" in body
-    # host_state is a rendered trait value, and a bare "no" reads as an unfinished sentence
+    # maw_state is a rendered trait value, and a bare "no" reads as an unfinished sentence
     assert "## What this repository has\n\nnothing comparable\n" in body
-    card.host_state = "ruff 0.4, no cache"
+    card.maw_state = "ruff 0.4, no cache"
     assert "## What this repository has\n\nruff 0.4, no cache\n" in render_issue(card, {})[1]
-    card.why_for_host = "Our CI is slow."
+    card.why_for_maw = "Our CI is slow."
     card.how = "Use setup-uv cache."
     _, body = render_issue(card, {"prey": {"label": "p"}})
     assert "Our CI is slow." in body and "Use setup-uv cache." in body
@@ -121,8 +121,8 @@ def test_parse_markers_and_render_issue() -> None:
 
 def test_dry_run_previews_and_skips(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> None:
     prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
-    config = HostConfig.load(pyproject_cli)
-    ledger = Ledger(tmp_path / "ledger.json", host="pyproject-cli")
+    config = MawConfig.load(pyproject_cli)
+    ledger = Ledger(tmp_path / "ledger.json", maw="pyproject-cli")
     client = FakeIssues(
         {"crab:tooling:tooling.dependabot": {"number": 7, "url": "u", "state": "open"}}
     )
@@ -131,7 +131,7 @@ def test_dry_run_previews_and_skips(npm_app: Path, pyproject_cli: Path, tmp_path
     )
     report = serve(
         prey_dir, pyproject_cli, options, config=config, ledger=ledger, client=client, now=NOW,
-        slug_lookup=lambda _: HOST_SLUG,
+        slug_lookup=lambda _: MAW_SLUG,
     )  # fmt: skip
     assert report.mode == "dry-run"
     assert [p["id"] for p in report.previews] == ["crab:ci:ci.cache"]
@@ -151,12 +151,12 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
     notes = tmp_path / "notes.json"
     notes.write_text(
         json.dumps(
-            [{"id": "crab:ci:ci.cache", "why_for_host": "CI takes 9 minutes.", "how": "Cache uv."}]
+            [{"id": "crab:ci:ci.cache", "why_for_maw": "CI takes 9 minutes.", "how": "Cache uv."}]
         ),
         encoding="utf-8",
     )
-    config = HostConfig.load(pyproject_cli)
-    ledger = Ledger(tmp_path / "ledger.json", host="pyproject-cli")
+    config = MawConfig.load(pyproject_cli)
+    ledger = Ledger(tmp_path / "ledger.json", maw="pyproject-cli")
     ledger.record_meal(
         {"prey": {"label": "npm-app"}, "verdict": {"mode": "COPY"}},
         [
@@ -171,10 +171,10 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
     )
     report = serve(
         prey_dir, pyproject_cli, options, config=config, ledger=ledger, client=client, now=NOW,
-        slug_lookup=lambda _: HOST_SLUG,
+        slug_lookup=lambda _: MAW_SLUG,
     )  # fmt: skip
     assert [s["id"] for s in report.served] == ["crab:ci:ci.cache"]
-    assert report.served[0]["url"] == "https://github.com/example/host/issues/10"
+    assert report.served[0]["url"] == "https://github.com/example/maw/issues/10"
     assert report.skipped == [{"id": "crab:ci:ci.concurrency", "reason": "ledger: rejected"}]
     assert client.labels == ["hungry-crab"]
     created = client.created[0]
@@ -187,7 +187,7 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
     # second serve of the same id is a no-op
     again = serve(
         prey_dir, pyproject_cli, ServeOptions(ids=["crab:ci:ci.cache"], mode="issue"),
-        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: HOST_SLUG,
+        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: MAW_SLUG,
     )  # fmt: skip
     assert again.served == [] and len(client.created) == 1
     assert again.skipped[0]["reason"].startswith("ledger: served")
@@ -195,7 +195,7 @@ def test_issue_mode_creates_issues_and_updates_the_ledger(
 
 def test_serve_guards(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> None:
     prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
-    config = HostConfig.load(pyproject_cli)
+    config = MawConfig.load(pyproject_cli)
     ledger = Ledger(None)
     with pytest.raises(CrabError, match=r"0\.3"):
         serve(
@@ -223,10 +223,10 @@ def test_serve_guards(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> Non
             prey_dir,
             off,
             ServeOptions(top=1, mode="issue"),
-            config=HostConfig.load(off),
+            config=MawConfig.load(off),
             ledger=ledger,
             client=FakeIssues(),
-            slug_lookup=lambda _: HOST_SLUG,
+            slug_lookup=lambda _: MAW_SLUG,
         )
     with pytest.raises(CrabError, match="no menu"):
         serve(tmp_path / "empty", pyproject_cli, ServeOptions(top=1), config=config, ledger=ledger)
@@ -235,30 +235,29 @@ def test_serve_guards(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> Non
     logged: list[str] = []
     report = serve(
         prey_dir, pyproject_cli, ServeOptions(top=2), config=config, ledger=ledger, client=broken,
-        slug_lookup=lambda _: HOST_SLUG, log=logged.append,
+        slug_lookup=lambda _: MAW_SLUG, log=logged.append,
     )  # fmt: skip
     assert len(report.previews) == 2
     assert any("could not list existing issues" in line for line in logged)
 
 
-def test_compare_for_host_uses_config_ledger_and_issues(
+def test_compare_for_maw_uses_config_ledger_and_issues(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path
 ) -> None:
-    host = tmp_path / "host"
-    host.mkdir()
+    maw = tmp_path / "maw"
+    maw.mkdir()
     # a copy of the fixture tree is enough: compare reads the digest, not git history
     for path in pyproject_cli.rglob("*"):
         if ".git" in path.parts or not path.is_file():
             continue
-        target = host / path.relative_to(pyproject_cli)
+        target = maw / path.relative_to(pyproject_cli)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(path.read_bytes())
     write_tree(
-        host,
+        maw,
         {
             CONFIG_FILE: (
-                "appetite:\n  tests: false\nledger: repo\n"
-                "scoring:\n  categories:\n    tooling: 1.0\n"
+                "hunger:\n  tests: false\nledger: repo\nscoring:\n  categories:\n    tooling: 1.0\n"
             )
         },
     )
@@ -269,8 +268,8 @@ def test_compare_for_host_uses_config_ledger_and_issues(
         lookups.append((str(slug), label))
         return {"crab:ci:ci.cache": {"number": 3, "state": "open", "url": "u"}}
 
-    result, _, ledger, config = compare_for_host(
-        Target(path=npm_app), host,
+    result, _, ledger, config = compare_for_maw(
+        Target(path=npm_app), maw,
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=cache),
         issue_lookup=lookup, now=NOW,
     )  # fmt: skip
@@ -278,15 +277,15 @@ def test_compare_for_host_uses_config_ledger_and_issues(
     ids = {c.id for c in result.candidates}
     assert not any(i.startswith("crab:tests:") for i in ids)
     assert result.candidates[0].category == "tooling", "tooling weight raised to 1.0"
-    assert config.exists and ledger.path == host / ".crab" / "ledger.json"
+    assert config.exists and ledger.path == maw / ".crab" / "ledger.json"
     assert ledger.path is not None and ledger.path.is_file()
     assert all(e.status == "proposed" for e in ledger.entries.values())
     assert ledger.meals[0].prey == "npm-app"
 
     ledger.mark("crab:ci:ci.cache", "rejected", reason="no", now=NOW)
     ledger.save()
-    second, _, ledger2, _ = compare_for_host(
-        Target(path=npm_app), host,
+    second, _, ledger2, _ = compare_for_maw(
+        Target(path=npm_app), maw,
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=cache),
         now=NOW,
     )  # fmt: skip

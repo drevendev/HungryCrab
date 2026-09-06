@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.ledger/1",
-  "host": "HungryCrab",
-  "updated_at": "2026-09-06T13:59:58+00:00",
+  "maw": "HungryCrab",
+  "updated_at": "2026-09-06T14:24:11+00:00",
   "meals": [
     {
       "prey": "pypa/pipx",
@@ -102,6 +102,16 @@
       "date": "2026-09-06T13:59:58+00:00",
       "candidates": 5,
       "new": 5
+    },
+    {
+      "prey": "github-linguist/linguist",
+      "sha": "5fb5096b95ab9893c5925d87121e5faaae9f3966",
+      "url": "https://github.com/github-linguist/linguist",
+      "license": "MIT",
+      "mode": "COPY",
+      "date": "2026-09-06T14:24:11+00:00",
+      "candidates": 0,
+      "new": 0
     }
   ],
   "entries": [
@@ -534,7 +544,7 @@
       "first_seen": "2026-09-06T12:46:08+00:00",
       "last_seen": "2026-09-06T12:55:03+00:00",
       "decided_at": "2026-09-06T12:55:52+00:00",
-      "reason": "linguist's issues are requests to add languages and grammars: its domain, not a lesson for any host. Three meals have produced 22 issue lessons and kept none, so the category is switched off in .crab.yml",
+      "reason": "linguist's issues are requests to add languages and grammars: its domain, not a lesson for any maw. Three meals have produced 22 issue lessons and kept none, so the category is switched off in .crab.yml",
       "url": null
     },
     {
@@ -630,7 +640,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:53+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -646,7 +656,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:53+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -662,7 +672,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:53+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -678,7 +688,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:53+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -694,7 +704,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:54+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -710,7 +720,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:54+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -726,7 +736,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:54+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -742,7 +752,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:55+00:00",
-      "reason": "term-list cluster about pipx's own users, not actionable for this host",
+      "reason": "term-list cluster about pipx's own users, not actionable for this maw",
       "url": null
     },
     {
@@ -758,7 +768,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:55+00:00",
-      "reason": "a feature request for pipx, unrelated to this host",
+      "reason": "a feature request for pipx, unrelated to this maw",
       "url": null
     },
     {
@@ -774,7 +784,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:55+00:00",
-      "reason": "a feature request for pipx, unrelated to this host",
+      "reason": "a feature request for pipx, unrelated to this maw",
       "url": null
     },
     {
@@ -790,7 +800,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:55+00:00",
-      "reason": "a feature request for pipx, unrelated to this host",
+      "reason": "a feature request for pipx, unrelated to this maw",
       "url": null
     },
     {
@@ -806,7 +816,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:56+00:00",
-      "reason": "a feature request for pipx, unrelated to this host",
+      "reason": "a feature request for pipx, unrelated to this maw",
       "url": null
     },
     {
@@ -822,7 +832,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:56+00:00",
-      "reason": "a feature request for pipx, unrelated to this host",
+      "reason": "a feature request for pipx, unrelated to this maw",
       "url": null
     },
     {
@@ -934,7 +944,7 @@
       "first_seen": "2026-09-06T11:57:55+00:00",
       "last_seen": "2026-09-06T11:57:55+00:00",
       "decided_at": "2026-09-06T11:59:51+00:00",
-      "reason": "host already runs mypy --strict; ty is an alternative, not an addition",
+      "reason": "maw already runs mypy --strict; ty is an alternative, not an addition",
       "url": null
     }
   ]

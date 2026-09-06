@@ -17,15 +17,15 @@ from typing import Any
 
 from . import __version__, updater
 from .cache import Slug, cache_root, prey_paths, resolve_target
-from .compare import compare_for_host, load_menu, menu_candidates
+from .compare import compare_for_maw, load_menu, menu_candidates
 from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, locate_digest, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
-from .host import HostConfig, write_default_config
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
+from .maw import MawConfig, write_default_config
 from .miners import MINER_NAMES
 from .nutrients import STATUSES, Candidate
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
@@ -33,7 +33,7 @@ from .sniff import format_report, sniff
 from .tune import analyse
 from .tune import apply as apply_tuning
 
-_HOST_MANIFESTS = ("package.json", "pyproject.toml", "Cargo.toml", "setup.cfg", "composer.json")
+_MAW_MANIFESTS = ("package.json", "pyproject.toml", "Cargo.toml", "setup.cfg", "composer.json")
 
 
 def _stderr(message: str) -> None:
@@ -44,11 +44,11 @@ def _quiet(_: str) -> None:
     return None
 
 
-def detect_host_license(path: Path) -> str | None:
-    """Best-effort license of a local (host) repository, without a full digest."""
+def detect_maw_license(path: Path) -> str | None:
+    """Best-effort license of a local (maw) repository, without a full digest."""
     if not path.is_dir():
-        raise UsageError(f"host path {path} is not a directory")
-    manifests = [name for name in _HOST_MANIFESTS if (path / name).is_file()]
+        raise UsageError(f"maw path {path} is not a directory")
+    manifests = [name for name in _MAW_MANIFESTS if (path / name).is_file()]
     findings = detect_in_repo(path, [], manifests=manifests, max_header_files=0)
     return findings.spdx
 
@@ -72,13 +72,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_sniff = sub.add_parser("sniff", help="API reconnaissance: license, size, languages, verdict")
     p_sniff.add_argument("repo", help="owner/repo or a GitHub URL")
     p_sniff.add_argument(
-        "--host",
+        "--maw",
         type=Path,
         default=None,
-        help="local host repository; compute the mode against its license",
+        help="local maw repository; compute the mode against its license",
     )
     p_sniff.add_argument(
-        "--host-license", default=None, help="host license SPDX id (overrides --host detection)"
+        "--maw-license", default=None, help="maw license SPDX id (overrides --maw detection)"
     )
     p_sniff.add_argument("--json", action="store_true", help="print the report as JSON")
     p_sniff.add_argument(
@@ -106,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
         "digest", help="run the miners; write digest/ for owner/repo or a local path"
     )
     p_digest.add_argument(
-        "target", help="owner/repo, a GitHub URL, or a local directory (e.g. . for the host)"
+        "target", help="owner/repo, a GitHub URL, or a local directory (e.g. . for the maw)"
     )
     p_digest.add_argument("--depth", choices=("normal", "deep"), default="normal")
     p_digest.add_argument(
@@ -118,11 +118,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.add_argument(
         "--miners", default=None, help=f"comma-separated subset of: {', '.join(MINER_NAMES)}"
     )
+    p_digest.add_argument("--maw-license", default=None, help="maw license SPDX id for the verdict")
     p_digest.add_argument(
-        "--host-license", default=None, help="host license SPDX id for the verdict"
-    )
-    p_digest.add_argument(
-        "--host", type=Path, default=None, help="local host repository; detect its license"
+        "--maw", type=Path, default=None, help="local maw repository; detect its license"
     )
     p_digest.add_argument("--md-budget", type=int, default=None, help="token cap per Markdown file")
     p_digest.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
@@ -131,12 +129,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
 
     p_compare = sub.add_parser(
-        "compare", help="digest prey and host, diff them and write gap.md and menu.md"
+        "compare", help="digest prey and maw, diff them and write gap.md and menu.md"
     )
     p_compare.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
-    p_compare.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_compare.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_compare.add_argument(
-        "--host-license", default=None, help="host license SPDX id (else detected)"
+        "--maw-license", default=None, help="maw license SPDX id (else detected)"
     )
     p_compare.add_argument("--depth", choices=("normal", "deep"), default="normal")
     p_compare.add_argument("--force", action="store_true", help="re-run both digests")
@@ -149,12 +147,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_compare.add_argument("--json", action="store_true", help="print menu.json")
 
-    p_init = sub.add_parser("init", help="write a default .crab.yml into the host repository")
-    p_init.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_init = sub.add_parser("init", help="write a default .crab.yml into the maw repository")
+    p_init.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_init.add_argument("--force", action="store_true", help="overwrite an existing file")
 
-    p_ledger = sub.add_parser("ledger", help="show or update the host ledger")
-    p_ledger.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_ledger = sub.add_parser("ledger", help="show or update the maw ledger")
+    p_ledger.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     ledger_sub = p_ledger.add_subparsers(dest="ledger_command", metavar="<action>")
     p_show = ledger_sub.add_parser("show", help="print the ledger summary (default)")
     p_show.add_argument("--json", action="store_true")
@@ -168,19 +166,19 @@ def build_parser() -> argparse.ArgumentParser:
         "serve", help="turn approved nutrients into issues (dry-run by default)"
     )
     p_serve.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
-    p_serve.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
     p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
     p_serve.add_argument(
         "--as", dest="mode", choices=("dry-run", "issue", "pr-branch"), default="dry-run"
     )
     p_serve.add_argument(
-        "--notes", type=Path, default=None, help="JSON with why_for_host/how per id (model-written)"
+        "--notes", type=Path, default=None, help="JSON with why_for_maw/how per id (model-written)"
     )
     p_serve.add_argument("--json", action="store_true")
 
     p_tune = sub.add_parser("tune", help="suggest scoring weight changes from the ledger")
-    p_tune.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_tune.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_tune.add_argument("--write", action="store_true", help="apply the suggestions to .crab.yml")
     p_tune.add_argument("--min-decisions", type=int, default=3)
     p_tune.add_argument("--json", action="store_true")
@@ -211,21 +209,19 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_host_license(host: Path | None, explicit: str | None) -> str | None:
+def _resolve_maw_license(maw: Path | None, explicit: str | None) -> str | None:
     if explicit:
         return explicit
-    if host is not None:
-        return detect_host_license(host)
+    if maw is not None:
+        return detect_maw_license(maw)
     return None
 
 
 def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
-    host_license = _resolve_host_license(args.host, args.host_license)
+    maw_license = _resolve_maw_license(args.maw, args.maw_license)
     client = GitHubClient(prefer_gh=not args.no_gh)
-    report = sniff(
-        slug, client=client, cache_root=args.cache_dir, host_license=host_license, log=log
-    )
+    report = sniff(slug, client=client, cache_root=args.cache_dir, maw_license=maw_license, log=log)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -280,14 +276,14 @@ def print_digest_summary(result: DigestResult) -> None:
 
 def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     target = resolve_target(args.target)
-    host_license = _resolve_host_license(args.host, args.host_license)
+    maw_license = _resolve_maw_license(args.maw, args.maw_license)
     miners = [m.strip() for m in args.miners.split(",") if m.strip()] if args.miners else None
     options = DigestOptions(
         depth=args.depth,
         out=args.out,
         force=args.force,
         miners=miners,
-        host_license=host_license,
+        maw_license=maw_license,
         md_budget=args.md_budget,
         cache_root=args.cache_dir,
         catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
@@ -304,11 +300,11 @@ def print_menu(
     menu: dict[str, Any], cards: list[Candidate], *, top: int, show_hidden: bool
 ) -> None:
     prey = menu.get("prey", {})
-    host = menu.get("host", {})
+    maw = menu.get("maw", {})
     counts = menu.get("counts", {})
     verdict = menu.get("verdict", {})
     print(
-        f"Menu: {prey.get('label')}@{str(prey.get('sha', ''))[:7]} for {host.get('label')} "
+        f"Menu: {prey.get('label')}@{str(prey.get('sha', ''))[:7]} for {maw.get('label')} "
         f"({counts.get('total', len(cards))} candidates, {counts.get('hidden', 0)} hidden, "
         f"default mode {verdict.get('mode', '?')})"
     )
@@ -326,28 +322,28 @@ def print_menu(
             print(f"    hidden {item.get('id')}: {item.get('reason')}")
 
 
-def _host_dir(value: Path) -> Path:
-    host = Path(value).resolve()
-    if not host.is_dir():
-        raise UsageError(f"host path {host} is not a directory")
-    return host
+def _maw_dir(value: Path) -> Path:
+    maw = Path(value).resolve()
+    if not maw.is_dir():
+        raise UsageError(f"maw path {maw} is not a directory")
+    return maw
 
 
 def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     prey = resolve_target(args.prey)
-    host = _host_dir(args.host)
+    maw = _maw_dir(args.maw)
     digest_options = DigestOptions(
         depth=args.depth,
         force=args.force,
-        host_license=args.host_license,
+        maw_license=args.maw_license,
         cache_root=args.cache_dir,
         catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
     )
     lookup = None
     if not args.no_issues and shutil.which("gh"):
         lookup = GhIssueClient().list_marked
-    result, prey_digest, _, _ = compare_for_host(
-        prey, host, digest_options=digest_options, top=args.top, issue_lookup=lookup, log=log
+    result, prey_digest, _, _ = compare_for_maw(
+        prey, maw, digest_options=digest_options, top=args.top, issue_lookup=lookup, log=log
     )
     if args.json:
         print(json.dumps(result.menu, indent=2, ensure_ascii=False))
@@ -358,16 +354,16 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    path = write_default_config(_host_dir(args.host), force=args.force)
+    path = write_default_config(_maw_dir(args.maw), force=args.force)
     print(f"wrote {path}")
     return 0
 
 
-def print_ledger(ledger: Ledger, config: HostConfig) -> None:
+def print_ledger(ledger: Ledger, config: MawConfig) -> None:
     stats = ledger.stats()
     location = str(ledger.path) if ledger.path else "not persisted (ledger: none)"
     print(
-        f"Ledger for {ledger.host or config.root.name}: {stats['entries']} nutrients, "
+        f"Ledger for {ledger.maw or config.root.name}: {stats['entries']} nutrients, "
         f"{stats['meals']} meals, {location}"
     )
     by_status = ", ".join(f"{k} {v}" for k, v in sorted(stats["by_status"].items()))
@@ -385,9 +381,9 @@ def print_ledger(ledger: Ledger, config: HostConfig) -> None:
 
 
 def cmd_ledger(args: argparse.Namespace) -> int:
-    host = _host_dir(args.host)
-    config = HostConfig.load(host)
-    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    maw = _maw_dir(args.maw)
+    config = MawConfig.load(maw)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     if args.ledger_command == "mark":
         entry = ledger.mark(args.id, args.status, reason=args.reason, url=args.url)
         saved = ledger.save()
@@ -420,14 +416,14 @@ def print_serve_report(report: ServeReport) -> None:
 
 def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     prey = resolve_target(args.prey)
-    host = _host_dir(args.host)
-    config = HostConfig.load(host)
-    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    maw = _maw_dir(args.maw)
+    config = MawConfig.load(maw)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     prey_dir = locate_digest(prey, DigestOptions(cache_root=args.cache_dir))
     ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
     options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
     client = GhIssueClient() if (args.mode == "issue" or shutil.which("gh")) else None
-    report = serve(prey_dir, host, options, config=config, ledger=ledger, client=client, log=log)
+    report = serve(prey_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         return 0
@@ -436,9 +432,9 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 
 
 def cmd_tune(args: argparse.Namespace) -> int:
-    host = _host_dir(args.host)
-    config = HostConfig.load(host)
-    ledger = Ledger.load(config.ledger_path(args.cache_dir), host=host.name)
+    maw = _maw_dir(args.maw)
+    config = MawConfig.load(maw)
+    ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     scoring = Scoring.default().merged(config.scoring)
     report = analyse(ledger, scoring, min_decisions=args.min_decisions)
     written = None
@@ -463,7 +459,7 @@ def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     if menu is None:
         raise CrabError(
             f"no menu for {prey.label} yet",
-            hint=f"run: crab compare {args.prey} --host <path to the host repository>",
+            hint=f"run: crab compare {args.prey} --maw <path to the maw repository>",
         )
     cards = menu_candidates(menu)
     if args.category:

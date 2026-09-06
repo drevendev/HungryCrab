@@ -1,6 +1,6 @@
 """Deterministic pre-scoring of candidate nutrients.
 
-Weights live in ``data/scoring.yml``; a host overrides them under ``scoring:`` in ``.crab.yml``.
+Weights live in ``data/scoring.yml``; a maw overrides them under ``scoring:`` in ``.crab.yml``.
 The formula is intentionally simple so that ``crab tune`` can explain every suggestion.
 """
 

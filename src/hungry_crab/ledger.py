@@ -1,6 +1,6 @@
-"""The ledger: what was eaten, what was proposed, and what the host decided.
+"""The ledger: what was eaten, what was proposed, and what the maw decided.
 
-The ledger is the crab's memory for one host. It makes repeated meals idempotent (a nutrient
+The ledger is the crab's memory for one maw. It makes repeated meals idempotent (a nutrient
 that was rejected or served is not proposed again) and it is the raw material for ``crab tune``.
 """
 
@@ -101,22 +101,22 @@ class Meal:
 
 
 class Ledger:
-    def __init__(self, path: Path | None, *, host: str = "") -> None:
+    def __init__(self, path: Path | None, *, maw: str = "") -> None:
         self.path = path
-        self.host = host
+        self.maw = maw
         self.entries: dict[str, LedgerEntry] = {}
         self.meals: list[Meal] = []
 
     @classmethod
-    def load(cls, path: Path | None, *, host: str = "") -> Ledger:
-        ledger = cls(path, host=host)
+    def load(cls, path: Path | None, *, maw: str = "") -> Ledger:
+        ledger = cls(path, maw=maw)
         if path is None or not path.is_file():
             return ledger
         try:
             data = as_dict(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError) as exc:
             raise CrabError(f"ledger {path} is not valid JSON: {exc}") from exc
-        ledger.host = str(data.get("host") or host)
+        ledger.maw = str(data.get("maw") or maw)
         for item in as_list(data.get("entries")):
             entry = LedgerEntry.from_dict(as_dict(item))
             if entry.id:
@@ -128,7 +128,7 @@ class Ledger:
     def to_dict(self, *, now: datetime | None = None) -> dict[str, Any]:
         return {
             "schema": LEDGER_SCHEMA,
-            "host": self.host,
+            "maw": self.maw,
             "updated_at": _stamp(now),
             "meals": [meal.to_dict() for meal in self.meals],
             "entries": [self.entries[key].to_dict() for key in sorted(self.entries)],

@@ -32,7 +32,7 @@ in the scoring weights shows up as "the model got worse".
 
 Nothing moves between runs, or the numbers are not comparable.
 
-**Host:** `drevendev/HungryCrab` at tag `v0.2.0`, checked out into a worktree. Real, ours, and
+**Maw:** `drevendev/HungryCrab` at tag `v0.2.0`, checked out into a worktree. Real, ours, and
 we know exactly what it lacks (no release automation, no coverage, no security scanning,
 hand-written language and license maps, a characters-over-3.5 token estimate).
 
@@ -40,7 +40,7 @@ hand-written language and license maps, a characters-over-3.5 token estimate).
 
 | Donor | License | Why this one |
 |---|---|---|
-| `pypa/pipx` | MIT | small, same stack, rich in exactly the CI and release nutrients the host lacks |
+| `pypa/pipx` | MIT | small, same stack, rich in exactly the CI and release nutrients the maw lacks |
 | `github-linguist/linguist` | MIT | large, permissive, exercises the `code` category and evidence links |
 | `anthropics/skills` | none detected | exercises the `IDEAS_ONLY` path and the `ai-config` category |
 
@@ -53,7 +53,7 @@ when the harness is fixed, so every arm runs through the same harness.
 
 | Arm | Crab | What the model gets |
 |---|---|---|
-| `A0` baseline | none | the donor cloned locally, the host repository, and the frozen prompt from `benchmarks/prompts/baseline.md` |
+| `A0` baseline | none | the donor cloned locally, the maw repository, and the frozen prompt from `benchmarks/prompts/baseline.md` |
 | `A1` old | `v0.2.0` CLI and skills | the `eat` protocol as it was released |
 | `A2` new | `master` CLI and skills | the current protocol |
 
@@ -86,7 +86,7 @@ Every arm emits the same card schema, so the judge grades substance and not rese
 crab:
 
 ```json
-{"id": "...", "category": "...", "title": "...", "what": "...", "why_for_host": "...",
+{"id": "...", "category": "...", "title": "...", "what": "...", "why_for_maw": "...",
  "how": "...", "evidence": [{"path": "...", "url": "..."}], "license_mode": "...",
  "effort": "S|M|L", "risk": "low|medium|high"}
 ```
@@ -100,21 +100,21 @@ model or donor produced it.
 All runs for one donor are pooled into a single batch and shuffled, so the judge grades
 everything on one scale without knowing what came from where.
 
-**Pass 1 — value, blind.** The judge gets the host at the frozen SHA and the pooled cards. It
+**Pass 1 — value, blind.** The judge gets the maw at the frozen SHA and the pooled cards. It
 does **not** get the donor. For each card:
 
-- `useful`: would a maintainer of this exact host act on it? A card is useful only if it names
-  something the host actually lacks and that matters for it.
-- `garbage`, with a reason: duplicate, wrong stack, already present in the host, vague to the
+- `useful`: would a maintainer of this exact maw act on it? A card is useful only if it names
+  something the maw actually lacks and that matters for it.
+- `garbage`, with a reason: duplicate, wrong stack, already present in the maw, vague to the
   point of being unactionable.
-- `quality` 0 to 3, by anchors, not by feel: 0 generic advice; 1 host-specific but no concrete
-  step; 2 concrete step, no evidence; 3 concrete step naming real files or tools of the host,
+- `quality` 0 to 3, by anchors, not by feel: 0 generic advice; 1 maw-specific but no concrete
+  step; 2 concrete step, no evidence; 3 concrete step naming real files or tools of the maw,
   with evidence.
 
 **Pass 2 — facts, with the donor.** Now the judge gets the donor at its pinned SHA:
 
 - does every cited path exist in the donor at that commit, and does it show what the card claims?
-- is `license_mode` consistent with the donor's license and the host's MIT?
+- is `license_mode` consistent with the donor's license and the maw's MIT?
 
 Fabricated evidence is the failure mode we most expect from `A0`, and pass 1 cannot see it.
 This is why the donor is withheld in pass 1 and given in pass 2 rather than hidden entirely.
@@ -132,17 +132,17 @@ the same batch judged twice, and the agreement is published with the results.
 ## 8. The golden set anchors everything
 
 Without it we compare one model's opinion to another's. The golden set is a human-written list of
-nutrients that genuinely matter for the frozen host, in two tiers, `must` and `nice`, stored as
-`benchmarks/golden/<host>@<sha>/<donor>@<sha>.yml` with a one-line justification each.
+nutrients that genuinely matter for the frozen maw, in two tiers, `must` and `nice`, stored as
+`benchmarks/golden/<maw>@<sha>/<donor>@<sha>.yml` with a one-line justification each.
 
-It is written **before any arm runs**, from the host's own digest and known gaps, and frozen.
+It is written **before any arm runs**, from the maw's own digest and known gaps, and frozen.
 Writing it afterwards would let us describe what the crab happens to find. Cards proposed by any
 arm that are not in the golden set and that both judges call useful become candidates for the
 next revision of the set, recorded with the sweep that found them.
 
 ## 9. Metrics
 
-**B1, per (host, donor) pair, deterministic:**
+**B1, per (maw, donor) pair, deterministic:**
 
 - `recall_must@30`, `recall_nice@30` — golden nutrients present in the top 30 of the menu
 - `mean_rank` of the golden items
@@ -180,9 +180,9 @@ benchmarks/
 ├── run.py                      # the digest benchmark that already exists
 ├── prompts/baseline.md         # the frozen A0 prompt
 ├── rubric.md                   # the judging rubric, verbatim, given to the judges
-├── golden/<host>@<sha>/<donor>@<sha>.yml
+├── golden/<maw>@<sha>/<donor>@<sha>.yml
 ├── sweeps/<date>/
-│   ├── manifest.json           # host sha, donor shas, arms, model ids, crab versions, prompt hash
+│   ├── manifest.json           # maw sha, donor shas, arms, model ids, crab versions, prompt hash
 │   ├── runs/<run-id>/{nutrients.json,nutrients.md,usage.json,transcript.log}
 │   ├── judged/<judge>/<batch>.json
 │   └── report.md               # the table and the plot
@@ -206,13 +206,13 @@ prompt and the rubric. A sweep whose manifest does not pin all of them is not a 
 - **Agent runs are not deterministic.** Repeats and medians reduce this; they do not remove it.
   Any difference smaller than the spread between repeats is not a finding.
 - **We write both the crab and the golden set.** Mitigated by writing the set first, from the
-  host's needs, and by letting rival arms contribute candidates to it.
+  maw's needs, and by letting rival arms contribute candidates to it.
 - **The judges are one family.** They are a different family from the models under test, which is
   the bias that matters here, but two GPT judges are not two independent judges.
 - **Verbosity bias.** Longer, prettier cards score higher with any model judge. The quality
   anchors are written to reward concreteness, not length, and the normalizer strips formatting
   differences between arms.
-- **The host is our own repository.** Results may not generalize; the 0.3 fleet run is what tests
+- **The maw is our own repository.** Results may not generalize; the 0.3 fleet run is what tests
   that.
 - **Web ChatGPT is not reproducible.** That is why it audits and does not score.
 
@@ -220,7 +220,7 @@ prompt and the rubric. A sweep whose manifest does not pin all of them is not a 
 
 1. **Stage 0.2.1 first** ([05-self-feeding.md](05-self-feeding.md)). Two or three real meals.
    A rubric written without ever having seen a meal measures the wrong things.
-2. **B1**, immediately after: frozen host and donors, the golden set for `pipx`, the deterministic
+2. **B1**, immediately after: frozen maw and donors, the golden set for `pipx`, the deterministic
    menu benchmark, the CI gate. Cheap and it starts paying at once.
 3. **B2** at the 0.3 boundary: the arms, the normalizer, the judging pipeline, the first sweep.
 

@@ -2,7 +2,7 @@
 
 ## 1. What it is
 
-A public repository with **active GitHub Actions** that hosts an "organism" (`src/`) and its
+A public repository with **active GitHub Actions** that maws an "organism" (`src/`) and its
 **goal** (`goal/`). The organism periodically runs the cycle:
 
 ```
@@ -20,7 +20,7 @@ A public repository with **active GitHub Actions** that hosts an "organism" (`sr
 |---|---|---|---|
 | **GOAL** | sets a new, harder benchmark without retiring the old ones | model + human (until E3) | PR into `goal/benchmarks/` |
 | **HUNT** | searches for candidate repositories for the current failure/goal | `crab hunt` (script) + model picks from the top-20 | `cycles/NNNN/hunt.md` |
-| **CONSUME** | digests the chosen prey with the organism as the host | `crab eat` (script + model) | digest, `menu.md` |
+| **CONSUME** | digests the chosen prey with the organism as the maw | `crab eat` (script + model) | digest, `menu.md` |
 | **EVOLVE** | implements the chosen nutrients in `src/` | model, under license modes | PR `evolve/NNNN-*` |
 | **TRIAL** | runs the benchmarks | **plain CI, no LLM** | `metrics.json`, check status |
 | **GROW** | retrospective: what helped, what did not, what was learned | model | `cycles/NNNN/retro.md`, update of `docs/LESSONS.md` |
@@ -84,7 +84,7 @@ checks the budget (`guard`), and starts the job for the required phase:
 jobs:
   route:   # reads state, decides which phase to run, checks budget and kill switch
   hunt:    # needs: route; if phase == hunt → crab hunt + model picks → issue comment, state → consume
-  consume: # crab eat <prey> --host . → menu.md → state → evolve
+  consume: # crab eat <prey> --maw . → menu.md → state → evolve
   evolve:  # model implements top-N nutrients → PR evolve/NNNN → state → trial
   trial:   # does nothing itself: TRIAL is trial.yml on the PR; route observes the check status
   grow:    # after merge: retro.md, LESSONS.md, metrics into cycles/ → state → molt
@@ -111,7 +111,7 @@ base goal:
 |---|---|---|
 | B1 License Verdicts | accuracy of SPDX + mode on 40 repositories pinned by SHA | 100 % |
 | B2 Traits Recall | recall/precision of traits on 10 labeled prey | ≥ 0.90 / ≥ 0.90 |
-| B3 Golden Nutrients | share of "must-find" nutrients (manual labeling of 5 prey→host pairs) present in the deterministic layer's top-30 menu | ≥ 0.80 |
+| B3 Golden Nutrients | share of "must-find" nutrients (manual labeling of 5 prey→maw pairs) present in the deterministic layer's top-30 menu | ≥ 0.80 |
 | B4 Budget | digest size in tokens and time on reference repositories | ≤ 30k, ≤ 120 s |
 | B5 Ecosystem Coverage | number of correctly parsed manifest/CI formats | ≥ 6 → grows |
 | B6 Menu Quality (slow) | menu rated by an LLM judge against a rubric, and the share of accepted issues in the fleet | weekly, soft threshold |
@@ -127,7 +127,7 @@ merges; they are a signal for GROW and GOAL.
 not in the ledger), scores; the model picks 1–3 prey and writes a rationale. If nothing suitable
 is found K times in a row — state `starving`, escalation to a human.
 
-**CONSUME.** A regular `crab eat` with the organism as host; appetite from `goal/.crab.yml`.
+**CONSUME.** A regular `crab eat` with the organism as maw; hunger from `goal/.crab.yml`.
 
 **EVOLVE.** Implements the top-N nutrients (N from the budget), one PR per cycle, one commit per
 nutrient. License modes strictly; `REIMPLEMENT` via the clean-room subagent; attribution updated.

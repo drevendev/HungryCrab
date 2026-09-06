@@ -13,11 +13,11 @@ Rendered by `hungry_crab.serve.render_issue`. Placeholders in angle brackets.
 
 ## What this repository has
 
-<host_state>
+<maw_state>
 
 ## Why it matters here
 
-<why_for_host from the notes file, or a "not judged yet" placeholder>
+<why_for_maw from the notes file, or a "not judged yet" placeholder>
 
 ## Suggested change
 

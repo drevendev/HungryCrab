@@ -1,6 +1,6 @@
-"""Declarative rules that turn a trait the prey has and the host lacks into a candidate.
+"""Declarative rules that turn a trait the prey has and the maw lacks into a candidate.
 
-Every rule is a fact template. The judgment ("is this valuable for *this* host?") is left to the
+Every rule is a fact template. The judgment ("is this valuable for *this* maw?") is left to the
 model; the rule only records what exists on each side, where to look, and a rough effort/risk.
 """
 
@@ -21,7 +21,7 @@ class TraitRule:
     risk: str
     value: float
     evidence: str = ""
-    needs_host: tuple[str, ...] = ()
+    needs_maw: tuple[str, ...] = ()
     stack_bound: bool = False
 
 
@@ -50,7 +50,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.9,
         evidence="workflows:cache",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.matrix",
@@ -63,7 +63,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.8,
         evidence="workflows:matrix",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.concurrency",
@@ -76,7 +76,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.7,
         evidence="workflows:concurrency",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.permissions",
@@ -89,7 +89,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.85,
         evidence="workflows:permissions",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.timeouts",
@@ -102,7 +102,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.6,
         evidence="workflows:timeouts",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.release-automation",
@@ -115,7 +115,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "medium",
         0.7,
         evidence="workflows:release",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.schedule",
@@ -128,7 +128,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.4,
         evidence="workflows:schedule",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.workflow-dispatch",
@@ -141,7 +141,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.3,
         evidence="workflows:workflow_dispatch",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.reusable-workflows",
@@ -154,7 +154,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.4,
         evidence="workflows:reusable",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.windows-runner",
@@ -167,7 +167,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "medium",
         0.6,
         evidence="workflows:windows",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.macos-runner",
@@ -180,7 +180,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "medium",
         0.4,
         evidence="workflows:macos",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "ci.runs-tests",
@@ -193,7 +193,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.9,
         evidence="workflows:tests",
-        needs_host=("has_ci", "has_tests"),
+        needs_maw=("has_ci", "has_tests"),
     ),
     TraitRule(
         "ci.runs-lint",
@@ -206,7 +206,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.7,
         evidence="workflows:lint",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     # --- security --------------------------------------------------------------------------
     TraitRule(
@@ -220,7 +220,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.8,
         evidence="workflows:codeql",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     TraitRule(
         "security.scanning",
@@ -233,7 +233,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "low",
         0.7,
         evidence="workflows:security",
-        needs_host=("has_ci",),
+        needs_maw=("has_ci",),
     ),
     # --- tooling ---------------------------------------------------------------------------
     TraitRule(
@@ -734,7 +734,7 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         "S",
         "low",
         0.7,
-        needs_host=("has_tests",),
+        needs_maw=("has_tests",),
     ),
 )
 
@@ -749,7 +749,7 @@ TEST_KIND_TRAITS: dict[str, tuple[str, str, str]] = {
     "has_integration_tests": ("integration", "M", "Add integration tests"),
 }
 
-# tool -> ecosystem (a host can only adopt tools of an ecosystem it uses)
+# tool -> ecosystem (a maw can only adopt tools of an ecosystem it uses)
 TOOL_ECOSYSTEM: dict[str, str] = {
     "eslint": "npm", "prettier": "npm", "biome": "npm", "oxlint": "npm", "stylelint": "npm",
     "typescript": "npm", "knip": "npm", "commitlint": "npm", "markdownlint": "npm",

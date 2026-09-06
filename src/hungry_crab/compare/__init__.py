@@ -1,8 +1,8 @@
-"""``crab compare``: prey digest minus host digest, scored into a menu.
+"""``crab compare``: prey digest minus maw digest, scored into a menu.
 
 Outputs land in the prey's digest folder next to the miners' files: ``gap.md`` (facts),
 ``menu.md`` and ``menu.json`` (ranked candidates), ``compare.json`` (what was compared). The
-comparison is host-specific, so the last compare wins; ``compare.json`` says which host it was.
+comparison is maw-specific, so the last compare wins; ``compare.json`` says which maw it was.
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from typing import Any
 from ..cache import Slug, Target
 from ..digest import DigestOptions, DigestResult, refresh_manifest, run_digest
 from ..errors import CrabError
-from ..host import HostConfig, host_slug
 from ..ledger import Ledger
 from ..licensing import decide
+from ..maw import MawConfig, maw_slug
 from ..nutrients import Candidate
 from ..typeutil import as_dict
 from .candidates import Side, build_candidates
@@ -36,11 +36,11 @@ def _noop(_: str) -> None:
 
 @dataclass
 class CompareOptions:
-    appetite: dict[str, Any] = field(default_factory=dict)
+    hunger: dict[str, Any] = field(default_factory=dict)
     scoring: dict[str, Any] | None = None
     ignore: list[str] = field(default_factory=list)
     top: int = 30
-    host_license: str | None = None
+    maw_license: str | None = None
     hidden_ids: dict[str, str] = field(default_factory=dict)  # id -> reason (ledger, issues)
     now: datetime | None = None
     md_budget: int = 3500
@@ -49,7 +49,7 @@ class CompareOptions:
 @dataclass
 class CompareResult:
     prey: Side
-    host: Side
+    maw: Side
     candidates: list[Candidate]
     hidden: list[dict[str, Any]]
     verdict: dict[str, Any]
@@ -59,25 +59,25 @@ class CompareResult:
     menu_md: str
     menu: dict[str, Any]
     prey_dir: Path | None = None
-    host_dir: Path | None = None
+    maw_dir: Path | None = None
 
     @property
     def shown(self) -> list[Candidate]:
         return self.candidates[: int(self.menu["counts"]["top"])]
 
 
-def apply_appetite(
-    candidates: list[Candidate], appetite: dict[str, Any]
+def apply_hunger(
+    candidates: list[Candidate], hunger: dict[str, Any]
 ) -> tuple[list[Candidate], list[dict[str, Any]]]:
     """``false`` drops a category, ``issues-only``/``ideas-only`` downgrade the artifact."""
     kept: list[Candidate] = []
     hidden: list[dict[str, Any]] = []
     for candidate in candidates:
-        setting = appetite.get(candidate.category, True)
+        setting = hunger.get(candidate.category, True)
         if setting is False or (
             isinstance(setting, str) and setting.lower() in ("off", "false", "no")
         ):
-            hidden.append({"id": candidate.id, "reason": f"appetite: {candidate.category} is off"})
+            hidden.append({"id": candidate.id, "reason": f"hunger: {candidate.category} is off"})
             continue
         if isinstance(setting, str):
             mode = setting.lower()
@@ -91,19 +91,19 @@ def apply_appetite(
 
 def compare_digests(
     prey_dir: Path,
-    host_dir: Path,
+    maw_dir: Path,
     *,
     prey_root: Path | None = None,
-    host_root: Path | None = None,
+    maw_root: Path | None = None,
     options: CompareOptions | None = None,
 ) -> CompareResult:
     opts = options or CompareOptions()
     prey = Side.load(prey_dir, root=prey_root)
-    host = Side.load(host_dir, root=host_root)
-    host_spdx = opts.host_license or host.spdx
-    verdict = decide(prey.spdx, host_spdx).to_dict()
+    maw = Side.load(maw_dir, root=maw_root)
+    maw_spdx = opts.maw_license or maw.spdx
+    verdict = decide(prey.spdx, maw_spdx).to_dict()
     scoring = Scoring.default().merged(opts.scoring)
-    candidates, facts = build_candidates(prey, host)
+    candidates, facts = build_candidates(prey, maw)
     now = opts.now or datetime.now(UTC)
     for candidate in candidates:
         candidate.license_mode = str(verdict["mode"])
@@ -115,11 +115,11 @@ def compare_digests(
             "url": prey.url,
             "sha": prey.sha,
             "license": prey.spdx,
-            "host": host.label,
-            "host_sha": host.sha,
+            "maw": maw.label,
+            "maw_sha": maw.sha,
             "compared_at": now.isoformat(timespec="seconds"),
         }
-    candidates, hidden = apply_appetite(candidates, opts.appetite)
+    candidates, hidden = apply_hunger(candidates, opts.hunger)
     still: list[Candidate] = []
     for candidate in candidates:
         reason = opts.hidden_ids.get(candidate.id)
@@ -132,9 +132,9 @@ def compare_digests(
         candidate.score = scoring.score(candidate)
     candidates.sort(key=lambda c: (-c.score, c.category, c.key))
     explain = {c.id: scoring.explain(c) for c in candidates[: opts.top]}
-    gap_md = gap_doc(prey, host, candidates, facts, verdict).render(opts.md_budget)
+    gap_md = gap_doc(prey, maw, candidates, facts, verdict).render(opts.md_budget)
     menu_md = menu_doc(
-        prey, host, candidates, hidden, verdict, top=opts.top, explain=explain
+        prey, maw, candidates, hidden, verdict, top=opts.top, explain=explain
     ).render(opts.md_budget)
     by_category: dict[str, int] = {}
     for candidate in candidates:
@@ -150,15 +150,15 @@ def compare_digests(
             "license_class": prey.license.get("class"),
             "ecosystems": sorted(prey.ecosystems),
         },
-        "host": {
-            "label": host.label,
-            "sha": host.sha,
-            "license": host_spdx,
-            "ecosystems": sorted(host.ecosystems),
-            "root": str(host_root) if host_root else None,
+        "maw": {
+            "label": maw.label,
+            "sha": maw.sha,
+            "license": maw_spdx,
+            "ecosystems": sorted(maw.ecosystems),
+            "root": str(maw_root) if maw_root else None,
         },
         "verdict": verdict,
-        "appetite": opts.appetite,
+        "hunger": opts.hunger,
         "scoring": scoring.to_dict(),
         "counts": {
             "total": len(candidates),
@@ -171,7 +171,7 @@ def compare_digests(
     }
     return CompareResult(
         prey=prey,
-        host=host,
+        maw=maw,
         candidates=candidates,
         hidden=hidden,
         verdict=verdict,
@@ -181,7 +181,7 @@ def compare_digests(
         menu_md=menu_md,
         menu=menu,
         prey_dir=prey_dir,
-        host_dir=host_dir,
+        maw_dir=maw_dir,
     )
 
 
@@ -196,8 +196,8 @@ def write_compare(result: CompareResult, out_dir: Path) -> list[str]:
         "schema": "hungry-crab.compare/1",
         "generated_at": result.menu["generated_at"],
         "prey": result.menu["prey"],
-        "host": result.menu["host"],
-        "host_digest": str(result.host_dir) if result.host_dir else None,
+        "maw": result.menu["maw"],
+        "maw_digest": str(result.maw_dir) if result.maw_dir else None,
         "candidates": result.menu["counts"]["total"],
         "hidden": result.menu["counts"]["hidden"],
         "verdict": result.verdict,
@@ -207,10 +207,8 @@ def write_compare(result: CompareResult, out_dir: Path) -> list[str]:
         encoding="utf-8",
         newline="\n",
     )
-    host_license = as_dict(result.menu["host"]).get("license")
-    refresh_manifest(
-        out_dir, {"license": {"verdict": result.verdict, "host_license": host_license}}
-    )
+    maw_license = as_dict(result.menu["maw"]).get("license")
+    refresh_manifest(out_dir, {"license": {"verdict": result.verdict, "maw_license": maw_license}})
     return list(COMPARE_FILES)
 
 
@@ -232,23 +230,23 @@ def menu_candidates(menu: dict[str, Any]) -> list[Candidate]:
 IssueLookup = Callable[[Slug, str], dict[str, dict[str, Any]]]
 
 
-def compare_for_host(
+def compare_for_maw(
     prey_target: Target,
-    host_root: Path,
+    maw_root: Path,
     *,
     digest_options: DigestOptions | None = None,
     top: int = 30,
     issue_lookup: IssueLookup | None = None,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
-) -> tuple[CompareResult, DigestResult, Ledger, HostConfig]:
-    """The full host-aware comparison: .crab.yml appetite and scoring, ledger and issue dedup."""
-    config = HostConfig.load(host_root)
+) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
+    """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
+    config = MawConfig.load(maw_root)
     d_opts = digest_options or DigestOptions()
-    ledger = Ledger.load(config.ledger_path(d_opts.cache_root), host=host_root.name)
+    ledger = Ledger.load(config.ledger_path(d_opts.cache_root), maw=maw_root.name)
     hidden = ledger.hidden_ids()
     if issue_lookup is not None:
-        slug = host_slug(host_root)
+        slug = maw_slug(maw_root)
         if slug is not None:
             try:
                 for nutrient_id, info in issue_lookup(slug, config.serve.label).items():
@@ -258,16 +256,16 @@ def compare_for_host(
             except CrabError as exc:
                 log(f"warning: could not check existing issues: {exc.message}")
     options = CompareOptions(
-        appetite=config.appetite,
+        hunger=config.hunger,
         scoring=config.scoring,
         ignore=config.ignore,
         top=top,
-        host_license=config.license or d_opts.host_license,
+        maw_license=config.license or d_opts.maw_license,
         hidden_ids=hidden,
         now=now,
     )
     result, prey_digest, _ = run_compare(
-        prey_target, host_root, digest_options=d_opts, options=options, log=log
+        prey_target, maw_root, digest_options=d_opts, options=options, log=log
     )
     new = ledger.record_meal(result.menu, result.candidates, now=now)
     saved = ledger.save(now=now)
@@ -280,7 +278,7 @@ def compare_for_host(
 
 def run_compare(
     prey_target: Target,
-    host_path: Path,
+    maw_path: Path,
     *,
     digest_options: DigestOptions | None = None,
     options: CompareOptions | None = None,
@@ -290,27 +288,27 @@ def run_compare(
     d_opts = digest_options or DigestOptions()
     opts = options or CompareOptions()
     prey_result = run_digest(prey_target, d_opts, log=log)
-    host_options = DigestOptions(
+    maw_options = DigestOptions(
         depth=d_opts.depth,
         force=d_opts.force,
-        host_license=opts.host_license or d_opts.host_license,
+        maw_license=opts.maw_license or d_opts.maw_license,
         now=d_opts.now,
         cache_root=d_opts.cache_root,
         ignore=opts.ignore,
     )
-    host_result = run_digest(Target(path=host_path), host_options, log=log)
+    maw_result = run_digest(Target(path=maw_path), maw_options, log=log)
     prey_root_value = as_dict(prey_result.manifest.get("prey")).get("root")
     prey_root = Path(prey_root_value) if isinstance(prey_root_value, str) else None
     result = compare_digests(
         prey_result.out_dir,
-        host_result.out_dir,
+        maw_result.out_dir,
         prey_root=prey_root if prey_root and prey_root.is_dir() else None,
-        host_root=host_path,
+        maw_root=maw_path,
         options=opts,
     )
     write_compare(result, prey_result.out_dir)
     log(
         f"compared {result.prey.label}@{result.prey.short_sha} with "
-        f"{result.host.label}@{result.host.short_sha}: {len(result.candidates)} candidates"
+        f"{result.maw.label}@{result.maw.short_sha}: {len(result.candidates)} candidates"
     )
-    return result, prey_result, host_result
+    return result, prey_result, maw_result

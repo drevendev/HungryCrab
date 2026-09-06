@@ -6,7 +6,7 @@ Layout (``~/.cache/hungry-crab`` unless ``CRAB_CACHE_DIR`` overrides it)::
     github/<owner>/<repo>/api/             raw GitHub API responses from `crab sniff`
     github/<owner>/<repo>/digests/<sha>/   digest of one commit
     github/<owner>/<repo>/catch.json       what `crab catch` did last time
-    hosts/<name>-<hash>/digests/<sha>/     digests of local repositories (the host side)
+    maws/<name>-<hash>/digests/<sha>/     digests of local repositories (the maw side)
 
 The clone is shared between commits; digests are addressed by SHA so a repeated digest of the
 same commit is served from the cache.
@@ -105,8 +105,8 @@ class PreyPaths:
 
 
 @dataclass(frozen=True)
-class HostPaths:
-    """Cache paths for a local repository (usually the host)."""
+class MawPaths:
+    """Cache paths for a local repository (usually the maw)."""
 
     root: Path
 
@@ -123,11 +123,11 @@ def prey_paths(slug: Slug, root: Path | None = None) -> PreyPaths:
     return PreyPaths((root or cache_root()) / "github" / slug.owner / slug.repo)
 
 
-def host_paths(path: Path, root: Path | None = None) -> HostPaths:
+def maw_paths(path: Path, root: Path | None = None) -> MawPaths:
     resolved = path.resolve()
     digest = hashlib.sha1(str(resolved).lower().encode("utf-8")).hexdigest()[:10]
     name = re.sub(r"[^A-Za-z0-9_.-]+", "-", resolved.name) or "root"
-    return HostPaths((root or cache_root()) / "hosts" / f"{name}-{digest}")
+    return MawPaths((root or cache_root()) / "maws" / f"{name}-{digest}")
 
 
 @dataclass(frozen=True)

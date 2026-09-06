@@ -11,7 +11,7 @@ from typing import Any
 
 from .cache import Slug, prey_paths
 from .fetch.github import GitHubClient
-from .licensing import LicenseClass, classify, decide, modes_by_host_class, normalize
+from .licensing import LicenseClass, classify, decide, modes_by_maw_class, normalize
 
 GIANT_KB = 300 * 1024
 HUGE_KB = 1024 * 1024
@@ -50,8 +50,8 @@ class SniffReport:
     has_wiki: bool
     has_discussions: bool
     verdict: str
-    modes_by_host_class: dict[str, str]
-    host_license: str | None
+    modes_by_maw_class: dict[str, str]
+    maw_license: str | None
     mode: str | None
     warnings: list[str] = field(default_factory=list)
     suggestions: list[str] = field(default_factory=list)
@@ -80,7 +80,7 @@ def build_report(
     repo: dict[str, Any],
     languages: dict[str, int],
     *,
-    host_license: str | None = None,
+    maw_license: str | None = None,
     now: datetime | None = None,
 ) -> SniffReport:
     current = now or datetime.now(UTC)
@@ -181,11 +181,11 @@ def build_report(
         has_wiki=bool(repo.get("has_wiki")),
         has_discussions=bool(repo.get("has_discussions")),
         verdict=verdict,
-        modes_by_host_class=modes_by_host_class(
+        modes_by_maw_class=modes_by_maw_class(
             spdx if cls is not LicenseClass.UNKNOWN else "NOASSERTION"
         ),
-        host_license=host_license,
-        mode=decide(spdx, host_license).mode.value if host_license else None,
+        maw_license=maw_license,
+        mode=decide(spdx, maw_license).mode.value if maw_license else None,
         warnings=warnings,
         suggestions=suggestions,
         fetched_at=current.isoformat(timespec="seconds"),
@@ -198,10 +198,10 @@ def format_report(report: SniffReport) -> str:
         lines.append(f"  {report.description[:200]}")
     license_text = report.license_spdx or report.license_name or "none"
     lines.append(f"License: {license_text} ({report.license_class})  ->  verdict {report.verdict}")
-    modes = ", ".join(f"{k} host: {v}" for k, v in report.modes_by_host_class.items())
+    modes = ", ".join(f"{k} maw: {v}" for k, v in report.modes_by_maw_class.items())
     lines.append(f"Modes: {modes}")
-    if report.host_license:
-        lines.append(f"Mode for host ({report.host_license}): {report.mode}")
+    if report.maw_license:
+        lines.append(f"Mode for maw ({report.maw_license}): {report.mode}")
     lines.append(
         f"Size: {report.size_kb / 1024:.1f} MB | stars {report.stars} | forks {report.forks} | "
         f"open issues {report.open_issues} | default branch {report.default_branch}"
@@ -229,7 +229,7 @@ def sniff(
     *,
     client: GitHubClient | None = None,
     cache_root: Path | None = None,
-    host_license: str | None = None,
+    maw_license: str | None = None,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
 ) -> SniffReport:
@@ -238,7 +238,7 @@ def sniff(
     log(f"sniffing {slug} via {api.transport}")
     repo = api.repo(slug)
     languages = api.languages(slug)
-    report = build_report(slug, repo, languages, host_license=host_license, now=now)
+    report = build_report(slug, repo, languages, maw_license=maw_license, now=now)
     paths = prey_paths(slug, cache_root)
     paths.api.mkdir(parents=True, exist_ok=True)
     (paths.api / "repo.json").write_text(json.dumps(repo, indent=2) + "\n", encoding="utf-8")

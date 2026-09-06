@@ -1,10 +1,10 @@
-"""License miner: SPDX, confidence, per-file exceptions and the verdict against the host."""
+"""License miner: SPDX, confidence, per-file exceptions and the verdict against the maw."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..licensing import classify, decide, modes_by_host_class
+from ..licensing import classify, decide, modes_by_maw_class
 from ..licensing.detect import detect_in_repo, is_license_file_name
 from .base import MineContext, MinerResult
 
@@ -54,10 +54,10 @@ class LicenseMiner:
         data.update(
             {
                 "class": cls.value,
-                "modes_by_host_class": modes_by_host_class(findings.spdx),
-                "host_license": ctx.host_license,
-                "verdict": decide(findings.spdx, ctx.host_license).to_dict()
-                if ctx.host_license
+                "modes_by_maw_class": modes_by_maw_class(findings.spdx),
+                "maw_license": ctx.maw_license,
+                "verdict": decide(findings.spdx, ctx.maw_license).to_dict()
+                if ctx.maw_license
                 else None,
                 "api_spdx": api_spdx,
             }

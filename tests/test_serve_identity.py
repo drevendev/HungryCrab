@@ -13,30 +13,30 @@ from pathlib import Path
 from typing import Any
 
 from helpers import write_tree
-from test_serve import HOST_SLUG, FakeIssues, _menu_dir
+from test_serve import MAW_SLUG, FakeIssues, _menu_dir
 
 from hungry_crab.errors import CrabError
-from hungry_crab.host import CONFIG_FILE, HostConfig
 from hungry_crab.ledger import Ledger
+from hungry_crab.maw import CONFIG_FILE, MawConfig
 from hungry_crab.serve import GhIssueClient, ServeOptions, serve
 
 NOW = datetime(2025, 6, 3, tzinfo=UTC)
 
 
 def _serve(
-    npm_app: Path, host: Path, tmp_path: Path, client: FakeIssues, **kwargs: Any
+    npm_app: Path, maw: Path, tmp_path: Path, client: FakeIssues, **kwargs: Any
 ) -> tuple[Any, list[str]]:
-    prey_dir = _menu_dir(npm_app, host, tmp_path / "cache")
+    prey_dir = _menu_dir(npm_app, maw, tmp_path / "cache")
     log: list[str] = []
     report = serve(
         prey_dir,
-        host,
+        maw,
         ServeOptions(ids=["crab:ci:ci.cache"], mode="issue"),
-        config=HostConfig.load(host),
-        ledger=Ledger(tmp_path / "ledger.json", host="h"),
+        config=MawConfig.load(maw),
+        ledger=Ledger(tmp_path / "ledger.json", maw="h"),
         client=client,
         now=NOW,
-        slug_lookup=lambda _: HOST_SLUG,
+        slug_lookup=lambda _: MAW_SLUG,
         log=log.append,
         **kwargs,
     )
@@ -65,11 +65,11 @@ def test_the_log_says_who_the_issues_are_filed_as(
 
 
 def test_token_env_names_the_identity(tmp_path: Path) -> None:
-    host = tmp_path / "host"
-    write_tree(host, {CONFIG_FILE: "serve:\n  token_env: CRAB_BOT_TOKEN\n"})
-    assert HostConfig.load(host).serve.token_env == "CRAB_BOT_TOKEN"
-    write_tree(host, {CONFIG_FILE: "serve: {}\n"})
-    assert HostConfig.load(host).serve.token_env == "", "gh's own login by default"
+    maw = tmp_path / "maw"
+    write_tree(maw, {CONFIG_FILE: "serve:\n  token_env: CRAB_BOT_TOKEN\n"})
+    assert MawConfig.load(maw).serve.token_env == "CRAB_BOT_TOKEN"
+    write_tree(maw, {CONFIG_FILE: "serve: {}\n"})
+    assert MawConfig.load(maw).serve.token_env == "", "gh's own login by default"
 
 
 class _Recorder(GhIssueClient):
@@ -100,7 +100,7 @@ def test_the_token_from_the_named_variable_reaches_gh(monkeypatch: Any) -> None:
     monkeypatch.setenv("CRAB_BOT_TOKEN", "ghs_installationtoken")
     monkeypatch.setenv("GITHUB_TOKEN", "the-wrong-one")
     client = _Recorder("CRAB_BOT_TOKEN")
-    client.ensure_label(HOST_SLUG, "hungry-crab")
+    client.ensure_label(MAW_SLUG, "hungry-crab")
     assert client.env["GH_TOKEN"] == "ghs_installationtoken"
     assert "GITHUB_TOKEN" not in client.env, "two tokens is one too many"
 
@@ -108,11 +108,11 @@ def test_the_token_from_the_named_variable_reaches_gh(monkeypatch: Any) -> None:
 def test_no_token_leaves_gh_to_its_own_login(monkeypatch: Any) -> None:
     monkeypatch.delenv("CRAB_BOT_TOKEN", raising=False)
     client = _Recorder("CRAB_BOT_TOKEN")
-    client.ensure_label(HOST_SLUG, "hungry-crab")
+    client.ensure_label(MAW_SLUG, "hungry-crab")
     assert "GH_TOKEN" not in client.env
 
 
 def test_a_forbidden_label_is_reported_not_raised() -> None:
     client = _Recorder("")
     client.fail = True
-    assert client.ensure_label(HOST_SLUG, "hungry-crab") is False
+    assert client.ensure_label(MAW_SLUG, "hungry-crab") is False
