@@ -28,3 +28,4 @@ digest-out/
 
 # The prey backlog names private repositories and planned targets; this repository is public.
 .crab/prey-backlog.md
+.crab/researcher-prompt.md

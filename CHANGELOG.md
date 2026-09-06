@@ -7,6 +7,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A cached digest was reused for a question it had not been asked.** The reuse check compared
+  the schema, the commit and the depth, and ignored three things the manifest records because
+  they change the result: the crab's own version, `ignore`, and the maw's license. The commit
+  does not move when `.crab.yml` changes, so step 4 of the `eat` protocol — "the maw reads as the
+  wrong stack, add the offending paths to `ignore` and rerun" — returned the cached answer and
+  the remedy did nothing at all, leaving the whole meal judged against a repository that does not
+  exist. For the same reason an upgraded crab kept serving the previous version's verdicts until
+  someone passed `--force`, which is the mistake `crab update` was taught to avoid one layer up.
+
 ## [0.2.2] - 2026-09-06
 
 ### Added
