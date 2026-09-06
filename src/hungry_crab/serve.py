@@ -157,6 +157,14 @@ class GhIssueClient:
         return lines[-1] if lines else ""
 
 
+def _host_state(card: Candidate) -> str:
+    """`host_state` is a rendered trait value, and a bare "no" reads badly in an issue."""
+    state = card.host_state.strip()
+    if state.lower() in ("", "no", "none", "false"):
+        return "nothing comparable"
+    return state
+
+
 def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     prey = as_dict(menu.get("prey"))
     sha = str(prey.get("sha", ""))
@@ -181,7 +189,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
         f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
         f"## What the prey does\n\n{card.what}\n{evidence}\n\n"
-        f"## What this repository has\n\n{card.host_state or 'nothing comparable'}\n\n"
+        f"## What this repository has\n\n{_host_state(card)}\n\n"
         f"## Why it matters here\n\n{why}\n\n"
         f"## Suggested change\n\n{how}\n\n"
         "---\n"

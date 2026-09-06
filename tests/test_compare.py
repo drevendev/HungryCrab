@@ -195,6 +195,9 @@ def test_markdown_outputs_and_manifest_refresh(
     ]
     assert all(f["miner"] == "compare" for f in manifest["files"])
     assert manifest["reading_order"][:2] == ["menu.md", "gap.md"]
+    # a digest taken without a host has no verdict; the comparison resolves it
+    assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
+    assert manifest["summary"]["license"]["host_license"] == "Apache-2.0"
     menu = load_menu(out)
     assert menu is not None and menu["schema"] == "hungry-crab.menu/1"
     cards = menu_candidates(menu)
@@ -213,6 +216,9 @@ def test_run_compare_end_to_end(npm_app: Path, pyproject_cli: Path, tmp_path: Pa
     assert (prey_digest.out_dir / "gap.md").is_file()
     manifest = read_json(prey_digest, "manifest.json")
     assert "menu.md" in [f["name"] for f in manifest["files"]]
+    assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
+    assert manifest["summary"]["license"]["spdx"] == "MIT", "the merge keeps what the miner found"
+    assert manifest["summary"]["primary_language"]
     assert host_digest.out_dir.is_relative_to(tmp_path / "cache" / "hosts")
     assert result.menu["host"]["license"] == "Apache-2.0"
     compare_info = read_json(prey_digest, "compare.json")

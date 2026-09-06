@@ -21,6 +21,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Code and Codex (both consume the same plugin marketplace), and the measured benchmark numbers.
   Installs track `master`; a release tag is opt-in.
 
+### Fixed
+
+Everything here was found by the first live meal, the crab eating `pypa/pipx` on its own
+repository.
+
+- `ignore` in `.crab.yml` was parsed and read by nothing, so the crab digesting itself reported
+  three ecosystems, eslint and twelve test frameworks, all from `tests/fixtures`. Because it
+  believed it already measured coverage, the coverage nutrient never appeared.
+- A tool of a kind the host already has is no longer a candidate: `ty` was ranked first on a host
+  running `mypy --strict`. Swapping one type checker for another is a decision, not a nutrient.
+- The dependency diff now sees tools a host configures with a file rather than a pinned
+  dependency, and drops the library that merely implements a nutrient already on the menu
+  (`pytest-cov` next to "Measure test coverage").
+- Issue lessons are capped at three clusters and three popular issues, sorted by size, and titled
+  after their largest issue instead of a bare list of TF-IDF terms. They were thirteen of
+  twenty-four candidates, all scored the same.
+- `crab compare` writes the resolved license verdict into the prey digest's `manifest.json`,
+  which said `null` while `menu.md` said `COPY`.
+- An issue for a nutrient the host lacks entirely no longer reads "What this repository has: no".
+- The `eat` skill gained a step: check that the host column in `gap.md` describes this repository
+  before judging anything against it, and guidance to switch a whole category off in `appetite`
+  instead of rejecting its cards one by one.
+
 ### Documentation
 
 - `docs/design/06-benchmark.md`: the specification of both benchmarks. B1 measures the menu

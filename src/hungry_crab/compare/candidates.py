@@ -13,6 +13,36 @@ from ..safety import is_suspicious
 from ..typeutil import as_dict, as_list
 from .rules import NOTABLE_DEPS, TEST_KIND_TRAITS, TOOL_ECOSYSTEM, TRAIT_RULES, TraitRule
 
+MIN_CLUSTER = 5
+MAX_ISSUE_CLUSTERS = 3
+MAX_TOP_ISSUES = 3
+
+# Tools a host uses through a config file rather than a pinned dependency. Without this the
+# dependency diff proposes pre-commit to a repository whose .pre-commit-config.yaml is right
+# there in the root.
+TRAIT_IMPLIES_PACKAGE: dict[str, str] = {
+    "has_precommit": "pre-commit",
+    "has_husky": "husky",
+    "has_commitlint": "commitlint",
+    "has_renovate": "renovate",
+    "coverage_configured": "pytest-cov",
+    "has_benchmarks": "pytest-benchmark",
+}
+
+# A dependency that only exists to implement a nutrient already proposed as a trait. Proposing
+# both puts the same change on the menu twice.
+PACKAGE_IMPLEMENTS_KEY: dict[str, str] = {
+    "pytest-cov": "tests.coverage",
+    "coverage": "tests.coverage",
+    "pre-commit": "tooling.pre-commit",
+    "husky": "tooling.git-hooks",
+    "hypothesis": "tests.property",
+    "fast-check": "tests.property",
+    "pytest-benchmark": "tests.bench",
+    "syrupy": "tests.snapshot",
+    "mutmut": "tests.mutation",
+}
+
 _DIGEST_FILES = {
     "traits": "traits.json",
     "deps": "deps.json",
@@ -269,11 +299,14 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
     ):
         prey_tools = {str(t) for t in as_list(prey.trait(kind))}
         host_tools = {str(t) for t in as_list(host.trait(kind))}
-        for tool in sorted(prey_tools - host_tools):
+        if host_tools:
+            # The host already has a tool of this kind, so the prey's is an alternative, not a
+            # gap. Swapping mypy for ty is a decision, not a nutrient, and proposing it buries
+            # the candidates that fill an actual hole.
+            continue
+        for tool in sorted(prey_tools):
             ecosystem = TOOL_ECOSYSTEM.get(tool)
             if ecosystem is None or ecosystem not in host.ecosystems:
-                continue
-            if tool == "ruff-format" and "ruff" in host_tools:
                 continue
             out.append(
                 Candidate(
@@ -282,7 +315,7 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                     title=title.format(tool=tool),
                     what=f"{prey.label} uses {tool} ({kind.replace('_', ' ')})",
                     prey_state=", ".join(sorted(prey_tools)),
-                    host_state=", ".join(sorted(host_tools)) or "none",
+                    host_state="none",
                     artifact="pr",
                     effort="M" if kind == "type_checkers" else "S",
                     risk="low",
@@ -556,6 +589,10 @@ def deps_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str, 
         for kind in ("linters", "formatters", "type_checkers", "test_frameworks")
         for t in as_list(host.trait(kind))
     }
+    # A tool configured by a file rather than pinned as a dependency is still in use here.
+    host_tools |= {
+        package for trait, package in TRAIT_IMPLIES_PACKAGE.items() if _truthy(host.trait(trait))
+    }
     for ecosystem in sorted(prey.ecosystems & host.ecosystems):
         names = sorted(
             {
@@ -667,23 +704,30 @@ def history_candidates(prey: Side, host: Side) -> list[Candidate]:
 
 
 def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
+    """Issue lessons are the noisiest category, so only the strongest few are proposed.
+
+    An unbounded list of term-cluster candidates floods the menu: the first live meal produced
+    thirteen of twenty-four, all scored identically, all about the prey's own users.
+    """
     if not _truthy(prey.issues.get("available")):
         return []
     slug = slugify(prey.label)
     out: list[Candidate] = []
-    for index, cluster in enumerate(as_list(prey.issues.get("clusters"))[:8], start=1):
-        data = as_dict(cluster)
-        size = data.get("size")
-        if not isinstance(size, int) or size < 5:
-            continue
+    clusters = [as_dict(c) for c in as_list(prey.issues.get("clusters"))]
+    strong = [c for c in clusters if isinstance(c.get("size"), int) and c["size"] >= MIN_CLUSTER]
+    strong.sort(key=lambda c: (-int(c["size"]), -int(c.get("reactions") or 0)))
+    for index, data in enumerate(strong[:MAX_ISSUE_CLUSTERS], start=1):
+        size = int(data["size"])
         terms = ", ".join(str(t) for t in as_list(data.get("terms"))[:5])
+        samples = [str(t) for t in as_list(data.get("sample_titles")) if str(t).strip()]
+        headline = samples[0][:70] if samples else terms
         out.append(
             Candidate(
                 category="issue-lesson",
                 key=f"issue-lesson.{slug}.cluster-{index}",
-                title=f"Recurring user pain in {prey.label}: {terms}",
-                what=f"{size} issues cluster around: {terms}",
-                prey_state=f"{size} issues",
+                title=f"Recurring pain in {prey.label}: {headline}",
+                what=f"{size} issues cluster around {terms}; the largest is: {headline}",
+                prey_state=f"{size} issues, {data.get('reactions') or 0} reactions",
                 host_state="n/a (lesson, not a gap)",
                 artifact="idea",
                 effort="M",
@@ -692,7 +736,7 @@ def issue_candidates(prey: Side, host: Side) -> list[Candidate]:
                 tags=["issues"],
             )
         )
-    for top in as_list(prey.issues.get("top_by_reactions"))[:5]:
+    for top in as_list(prey.issues.get("top_by_reactions"))[:MAX_TOP_ISSUES]:
         data = as_dict(top)
         reactions = data.get("reactions")
         title = str(data.get("title", ""))
@@ -768,4 +812,13 @@ def build_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str,
                 continue
             seen.add(candidate.id)
             out.append(candidate)
+    keys = {candidate.key for candidate in out}
+    out = [c for c in out if _implemented_elsewhere(c) not in keys]
     return out, {"deps_only_in_prey": only_in_prey}
+
+
+def _implemented_elsewhere(candidate: Candidate) -> str | None:
+    """The trait key a dependency card merely implements, if there is one."""
+    if candidate.category != "deps" or not candidate.tags:
+        return None
+    return PACKAGE_IMPLEMENTS_KEY.get(candidate.tags[-1].lower())
