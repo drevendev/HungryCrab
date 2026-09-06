@@ -17,9 +17,9 @@ from typing import Any
 
 from . import __version__, updater
 from .cache import Slug, cache_root, prey_paths, resolve_target
-from .compare import compare_for_maw, load_menu, menu_candidates
+from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
-from .digest import DigestOptions, DigestResult, locate_digest, run_digest
+from .digest import DigestOptions, DigestResult, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
@@ -185,6 +185,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_menu = sub.add_parser("menu", help="print the ranked menu from the last compare")
     p_menu.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_menu.add_argument(
+        "--maw", type=Path, default=Path(), help="maw repository whose meal to read (default: .)"
+    )
     p_menu.add_argument("--top", type=int, default=30)
     p_menu.add_argument("--category", default=None, help="comma-separated categories to show")
     p_menu.add_argument("--all", action="store_true", help="also list hidden candidates")
@@ -342,14 +345,14 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     lookup = None
     if not args.no_issues and shutil.which("gh"):
         lookup = GhIssueClient().list_marked
-    result, prey_digest, _, _ = compare_for_maw(
+    result, _, _, _ = compare_for_maw(
         prey, maw, digest_options=digest_options, top=args.top, issue_lookup=lookup, log=log
     )
     if args.json:
         print(json.dumps(result.menu, indent=2, ensure_ascii=False))
         return 0
     print_menu(result.menu, result.candidates, top=min(args.top, 15), show_hidden=False)
-    print(f"gap.md and menu.md written to {prey_digest.out_dir}")
+    print(f"meal written to {result.meal_dir}")
     return 0
 
 
@@ -419,11 +422,11 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
-    prey_dir = locate_digest(prey, DigestOptions(cache_root=args.cache_dir))
+    meal_dir = meal_for(prey, maw, DigestOptions(cache_root=args.cache_dir))
     ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
     options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
     client = GhIssueClient() if (args.mode == "issue" or shutil.which("gh")) else None
-    report = serve(prey_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
+    report = serve(meal_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         return 0
@@ -454,8 +457,8 @@ def cmd_tune(args: argparse.Namespace) -> int:
 
 def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     prey = resolve_target(args.prey)
-    prey_dir = locate_digest(prey, DigestOptions(cache_root=args.cache_dir))
-    menu = load_menu(prey_dir)
+    meal_dir = meal_for(prey, _maw_dir(args.maw), DigestOptions(cache_root=args.cache_dir))
+    menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError(
             f"no menu for {prey.label} yet",
@@ -470,7 +473,7 @@ def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         payload["candidates"] = [card.to_dict() for card in cards[: args.top]]
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
-    log(f"menu from {prey_dir / 'menu.json'}")
+    log(f"menu from {meal_dir / 'menu.json'}")
     print_menu(menu, cards, top=args.top, show_hidden=args.all)
     return 0
 

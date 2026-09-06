@@ -15,7 +15,7 @@ import yaml
 from ..nutrients import Candidate
 from ..typeutil import as_dict
 
-SECTIONS = ("categories", "traits", "modes", "effort", "risk", "applicability")
+SECTIONS = ("categories", "traits", "modes", "effort", "risk", "uptake")
 
 
 def _floats(value: object) -> dict[str, float]:
@@ -33,7 +33,7 @@ class Scoring:
     modes: dict[str, float]
     effort: dict[str, float]
     risk: dict[str, float]
-    applicability: dict[str, float]
+    uptake: dict[str, float]
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Scoring:
@@ -43,7 +43,7 @@ class Scoring:
             modes=_floats(data.get("modes")),
             effort=_floats(data.get("effort")),
             risk=_floats(data.get("risk")),
-            applicability=_floats(data.get("applicability")),
+            uptake=_floats(data.get("uptake")),
         )
 
     @classmethod
@@ -68,22 +68,22 @@ class Scoring:
     def value_for(self, candidate: Candidate) -> float:
         return self.traits.get(candidate.key, candidate.value)
 
-    def applicability_for(self, kind: str) -> float:
-        return self.applicability.get(kind, 1.0)
+    def uptake_for(self, kind: str) -> float:
+        return self.uptake.get(kind, 1.0)
 
     def score(self, candidate: Candidate) -> float:
         category = self.categories.get(candidate.category, 0.5)
         mode = self.modes.get(candidate.license_mode, 0.3)
         effort = self.effort.get(candidate.effort, 0.75)
         risk = self.risk.get(candidate.risk, 0.1)
-        raw = category * self.value_for(candidate) * candidate.applicability * mode * effort - risk
+        raw = category * self.value_for(candidate) * candidate.uptake * mode * effort - risk
         return round(min(1.0, max(0.0, raw)), 2)
 
     def explain(self, candidate: Candidate) -> str:
         parts = [
             f"{self.categories.get(candidate.category, 0.5):.2f} (category)",
             f"{self.value_for(candidate):.2f} (value)",
-            f"{candidate.applicability:.2f} (applicability)",
+            f"{candidate.uptake:.2f} (uptake)",
             f"{self.modes.get(candidate.license_mode, 0.3):.2f} ({candidate.license_mode})",
             f"{self.effort.get(candidate.effort, 0.75):.2f} (effort {candidate.effort})",
         ]

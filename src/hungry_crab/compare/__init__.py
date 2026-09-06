@@ -1,8 +1,9 @@
 """``crab compare``: prey digest minus maw digest, scored into a menu.
 
-Outputs land in the prey's digest folder next to the miners' files: ``gap.md`` (facts),
-``menu.md`` and ``menu.json`` (ranked candidates), ``compare.json`` (what was compared). The
-comparison is maw-specific, so the last compare wins; ``compare.json`` says which maw it was.
+A digest describes one repository. A **meal** describes a pair, and that is where the outputs
+go: ``maws/<maw>/meals/<prey>@<sha>/`` with ``gap.md`` (facts), ``menu.md`` and ``menu.json``
+(ranked candidates) and ``meal.json`` (what was eaten, by whom, under which verdict). Two maws
+eating the same prey no longer overwrite each other.
 """
 
 from __future__ import annotations
@@ -14,8 +15,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ..cache import Slug, Target
-from ..digest import DigestOptions, DigestResult, refresh_manifest, run_digest
+from ..cache import Slug, Target, maw_paths
+from ..digest import DigestOptions, DigestResult, locate_digest, run_digest
 from ..errors import CrabError
 from ..ledger import Ledger
 from ..licensing import decide
@@ -27,7 +28,8 @@ from .render import gap_doc, menu_doc
 from .scoring import Scoring
 
 MENU_SCHEMA = "hungry-crab.menu/1"
-COMPARE_FILES = ("gap.md", "menu.md", "menu.json", "compare.json")
+MEAL_FILES = ("gap.md", "menu.md", "menu.json", "meal.json")
+MEAL_SCHEMA = "hungry-crab.meal/1"
 
 
 def _noop(_: str) -> None:
@@ -60,6 +62,7 @@ class CompareResult:
     menu: dict[str, Any]
     prey_dir: Path | None = None
     maw_dir: Path | None = None
+    meal_dir: Path | None = None
 
     @property
     def shown(self) -> list[Candidate]:
@@ -107,9 +110,7 @@ def compare_digests(
     now = opts.now or datetime.now(UTC)
     for candidate in candidates:
         candidate.license_mode = str(verdict["mode"])
-        candidate.applicability = round(
-            candidate.applicability * scoring.applicability_for("same_stack"), 2
-        )
+        candidate.uptake = round(candidate.uptake * scoring.uptake_for("same_stack"), 2)
         candidate.trace = {
             "prey": prey.label,
             "url": prey.url,
@@ -185,35 +186,57 @@ def compare_digests(
     )
 
 
-def write_compare(result: CompareResult, out_dir: Path) -> list[str]:
+def write_meal(result: CompareResult, out_dir: Path) -> list[str]:
+    """Write one meal: this maw, that prey, that commit.
+
+    Not into the prey's digest. A digest describes one repository and is shared by every maw
+    that eats it; a menu is about a pair, and the licence verdict in it depends on the maw's
+    own licence. Writing pair-specific facts into the prey's digest let a second maw silently
+    overwrite the first one's menu.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "gap.md").write_text(result.gap_md, encoding="utf-8", newline="\n")
     (out_dir / "menu.md").write_text(result.menu_md, encoding="utf-8", newline="\n")
     (out_dir / "menu.json").write_text(
         json.dumps(result.menu, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
     )
-    compare_info = {
-        "schema": "hungry-crab.compare/1",
+    meal_info = {
+        "schema": MEAL_SCHEMA,
         "generated_at": result.menu["generated_at"],
         "prey": result.menu["prey"],
         "maw": result.menu["maw"],
+        "prey_digest": str(result.prey_dir) if result.prey_dir else None,
         "maw_digest": str(result.maw_dir) if result.maw_dir else None,
         "candidates": result.menu["counts"]["total"],
         "hidden": result.menu["counts"]["hidden"],
         "verdict": result.verdict,
+        "maw_license": as_dict(result.menu["maw"]).get("license"),
     }
-    (out_dir / "compare.json").write_text(
-        json.dumps(compare_info, indent=2, ensure_ascii=False) + "\n",
+    (out_dir / "meal.json").write_text(
+        json.dumps(meal_info, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
         newline="\n",
     )
-    maw_license = as_dict(result.menu["maw"]).get("license")
-    refresh_manifest(out_dir, {"license": {"verdict": result.verdict, "maw_license": maw_license}})
-    return list(COMPARE_FILES)
+    return list(MEAL_FILES)
 
 
-def load_menu(prey_dir: Path) -> dict[str, Any] | None:
-    path = prey_dir / "menu.json"
+def locate_meal(
+    prey_label: str, prey_sha: str, maw_root: Path, options: DigestOptions | None = None
+) -> Path:
+    """Where this maw keeps its meal of that prey at that commit."""
+    cache_root = (options or DigestOptions()).cache_root
+    return maw_paths(maw_root, cache_root).meal(prey_label, prey_sha)
+
+
+def meal_for(prey: Target, maw_root: Path, options: DigestOptions | None = None) -> Path:
+    """The same, for a caller that has a target rather than a digested prey."""
+    opts = options or DigestOptions()
+    prey_dir = locate_digest(prey, opts)
+    return locate_meal(prey.label, prey_dir.name, maw_root, opts)
+
+
+def load_menu(meal_dir: Path) -> dict[str, Any] | None:
+    path = meal_dir / "menu.json"
     if not path.is_file():
         return None
     try:
@@ -306,9 +329,12 @@ def run_compare(
         maw_root=maw_path,
         options=opts,
     )
-    write_compare(result, prey_result.out_dir)
+    meal_dir = locate_meal(result.prey.label, result.prey.sha, maw_path, d_opts)
+    result.meal_dir = meal_dir
+    write_meal(result, meal_dir)
     log(
         f"compared {result.prey.label}@{result.prey.short_sha} with "
         f"{result.maw.label}@{result.maw.short_sha}: {len(result.candidates)} candidates"
     )
+    log(f"meal written to {meal_dir}")
     return result, prey_result, maw_result

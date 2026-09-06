@@ -54,13 +54,14 @@ class FakeIssues:
 
 
 def _menu_dir(npm_app: Path, pyproject_cli: Path, cache: Path) -> Path:
-    _, prey_digest, _ = run_compare(
+    result, _, _ = run_compare(
         Target(path=npm_app),
         pyproject_cli,
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=cache),
         options=CompareOptions(now=FIXED_NOW),
     )
-    return prey_digest.out_dir
+    assert result.meal_dir is not None
+    return result.meal_dir
 
 
 def test_parse_markers_and_render_issue() -> None:

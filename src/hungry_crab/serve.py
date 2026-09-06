@@ -317,7 +317,7 @@ def select_cards(
 
 
 def serve(
-    prey_dir: Path,
+    meal_dir: Path,
     maw_root: Path,
     options: ServeOptions,
     *,
@@ -334,7 +334,7 @@ def serve(
         )
     if options.mode not in ("dry-run", "issue"):
         raise UsageError(f"unknown serve mode {options.mode!r}", hint="use dry-run or issue")
-    menu = load_menu(prey_dir)
+    menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
     if options.mode == "issue" and config.serve.issues == "off":

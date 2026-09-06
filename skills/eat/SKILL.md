@@ -29,14 +29,16 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
 3. **Compare.** `crab compare <prey> --maw . --issues 300 [--since ...]`. This catches and
    digests the prey if needed, digests the maw, applies the hunger and scoring from
    `.crab.yml`, hides nutrients the ledger or existing issues already cover, and prints the path
-   of the prey digest. It never executes anything inside the prey.
+   of the meal it wrote. It never executes anything inside the prey.
 4. **Check the maw was read correctly.** Open `gap.md` and look at the maw column: the
    ecosystems, linters and test frameworks it lists must be the ones this repository really
    uses. A maw that vendors or fixtures foreign code reads as a foreign stack, and then every
    candidate is judged against a repository that does not exist. If the column is wrong, add the
    offending paths to `ignore` in `.crab.yml` (ask first), rerun `crab compare`, and say what
    changed. This costs one minute and it decides the whole meal.
-5. **Read progressively.** Read `manifest.json` in the prey digest, then `menu.md`. Read other
+5. **Read progressively.** Read `menu.md` in the meal, then `manifest.json` in the prey's
+   digest for what else is there. A digest describes one repository; a meal describes this
+   pair, and the menu, the gap and the licence verdict live in the meal. Read other
    sections only for candidates you need to judge, and respect the token sizes in the manifest:
    - history lessons: `history.md`, or delegate to the `crab-historian` subagent;
    - architecture: `architecture.md` plus the maw's `inventory.md`, or delegate to

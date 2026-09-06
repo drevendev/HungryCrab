@@ -20,6 +20,6 @@ Categories are fixed: they are keys in `.crab.yml` (hunger), issue labels and sc
 ## Drop when
 
 - the maw already does it differently on purpose (check the ledger reasons and the README);
-- the nutrient is stack-specific and the stacks differ (applicability below 0.5);
+- the nutrient is stack-specific and the stacks differ (uptake below 0.5);
 - the license mode is `IDEAS_ONLY` and the value is in the text, not the idea;
 - it would add a dependency the maw's users must install without a clear problem it solves.

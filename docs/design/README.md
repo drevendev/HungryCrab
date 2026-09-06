@@ -6,6 +6,7 @@ useful for your own repository without violating licenses) and for its overlay
 
 | Document | Covers |
 |---|---|
+| [GLOSSARY.md](GLOSSARY.md) | Every term the project uses, in one place, plus the words that were replaced and why. Where a document disagrees with it, the document is a bug |
 | [01-concept-and-skill.md](01-concept-and-skill.md) | What the crab is, form factor (CLI + Agent Skills + plugin), installation, architecture, digest format, license engine, security, decisions log |
 | [02-mvp.md](02-mvp.md) | Minimum viable product: commands, miners, skill protocol, milestones 0.1–0.3, acceptance criteria, first prey → maw pairs |
 | [03-roadmap.md](03-roadmap.md) | Roadmap: base crab → evolving crab → forks |

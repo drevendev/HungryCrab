@@ -259,7 +259,7 @@ def _rule_evidence(rule: TraitRule, prey: Side) -> list[Evidence]:
     return []
 
 
-def applicability_kind(prey: Side, maw: Side, *, stack_bound: bool) -> str:
+def uptake_kind(prey: Side, maw: Side, *, stack_bound: bool) -> str:
     if not stack_bound:
         return "same_stack"
     return "same_stack" if prey.ecosystems & maw.ecosystems else "other_stack"
@@ -507,7 +507,7 @@ def test_candidates(prey: Side, maw: Side) -> list[Candidate]:
                 effort=effort,
                 risk="medium" if kind in ("e2e", "mutation") else "low",
                 value=0.7 if kind in ("e2e", "property", "integration") else 0.5,
-                applicability=1.0 if same_stack else 0.6,
+                uptake=1.0 if same_stack else 0.6,
                 tags=[trait, *used],
             )
         )

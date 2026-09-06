@@ -14,7 +14,7 @@ from hungry_crab.compare import (
     load_menu,
     menu_candidates,
     run_compare,
-    write_compare,
+    write_meal,
 )
 from hungry_crab.compare.candidates import Side
 from hungry_crab.digest import DigestOptions, DigestResult
@@ -67,7 +67,7 @@ def test_python_maw_eats_npm_prey(
     assert not any(i.startswith("crab:deps:") for i in ids)
     assert not any(i.startswith("crab:tooling:tooling.linter") for i in ids)
     e2e = next(c for c in result.candidates if c.id == "crab:tests:tests.e2e")
-    assert e2e.applicability == 0.6
+    assert e2e.uptake == 0.6
     assert "Playwright" in e2e.what
     architecture = next(c for c in result.candidates if c.category == "architecture")
     assert architecture.id == "crab:architecture:architecture.npm-app.raw"
@@ -130,7 +130,7 @@ def test_gpl_prey_lowers_every_score(
     ids = _ids(result.candidates)
     assert {"crab:hygiene:hygiene.code-of-conduct", "crab:tests:tests.bench"} <= ids
     bench = next(c for c in result.candidates if c.id == "crab:tests:tests.bench")
-    assert bench.applicability == 0.6 and bench.license_mode == "REIMPLEMENT"
+    assert bench.uptake == 0.6 and bench.license_mode == "REIMPLEMENT"
     assert max(c.score for c in result.candidates) < 0.5
 
 
@@ -176,28 +176,15 @@ def test_markdown_outputs_and_manifest_refresh(
     assert "| 1 | " in result.menu_md
     assert "crab:ci:ci.cache" in result.menu_md
     assert estimate_tokens(result.menu_md) <= 3500
-    out = tmp_path / "digest"
-    out.mkdir()
-    (out / "manifest.json").write_text(
-        json.dumps(
-            {"schema": "hungry-crab.digest/1", "files": [], "budget": {"markdown_total": 30000}}
-        ),
-        encoding="utf-8",
-    )
-    names = write_compare(result, out)
-    assert names == ["gap.md", "menu.md", "menu.json", "compare.json"]
-    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
-    assert [f["name"] for f in manifest["files"]] == [
-        "compare.json",
-        "gap.md",
-        "menu.json",
-        "menu.md",
-    ]
-    assert all(f["miner"] == "compare" for f in manifest["files"])
-    assert manifest["reading_order"][:2] == ["menu.md", "gap.md"]
-    # a digest taken without a maw has no verdict; the comparison resolves it
-    assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
-    assert manifest["summary"]["license"]["maw_license"] == "Apache-2.0"
+    out = tmp_path / "meal"
+    names = write_meal(result, out)
+    assert names == ["gap.md", "menu.md", "menu.json", "meal.json"]
+    meal = json.loads((out / "meal.json").read_text(encoding="utf-8"))
+    assert meal["schema"] == "hungry-crab.meal/1"
+    # the verdict depends on the maw's licence, so it is a fact about the pair
+    assert meal["verdict"]["mode"] == "COPY"
+    assert meal["maw_license"] == "Apache-2.0"
+    assert meal["prey"]["label"] == "npm-app" and meal["maw"]["label"] == "pyproject-cli"
     menu = load_menu(out)
     assert menu is not None and menu["schema"] == "hungry-crab.menu/1"
     cards = menu_candidates(menu)
@@ -212,17 +199,23 @@ def test_run_compare_end_to_end(npm_app: Path, pyproject_cli: Path, tmp_path: Pa
         digest_options=DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache"),
         options=CompareOptions(now=FIXED_NOW),
     )
-    assert (prey_digest.out_dir / "menu.json").is_file()
-    assert (prey_digest.out_dir / "gap.md").is_file()
+    meal_dir = result.meal_dir
+    assert meal_dir is not None
+    assert (meal_dir / "menu.json").is_file()
+    assert (meal_dir / "gap.md").is_file()
+    assert meal_dir.is_relative_to(tmp_path / "cache" / "maws")
+    assert meal_dir.parent.name == "meals"
+    assert meal_dir.name.startswith("npm-app@")
+    # the prey's digest stays about the prey: no menu, no pair-specific verdict
+    assert not (prey_digest.out_dir / "menu.json").exists()
     manifest = read_json(prey_digest, "manifest.json")
-    assert "menu.md" in [f["name"] for f in manifest["files"]]
-    assert manifest["summary"]["license"]["verdict"]["mode"] == "COPY"
-    assert manifest["summary"]["license"]["spdx"] == "MIT", "the merge keeps what the miner found"
-    assert manifest["summary"]["primary_language"]
+    assert "menu.md" not in [f["name"] for f in manifest["files"]]
+    assert manifest["summary"]["license"]["verdict"] is None
+    assert manifest["summary"]["license"]["spdx"] == "MIT"
     assert maw_digest.out_dir.is_relative_to(tmp_path / "cache" / "maws")
     assert result.menu["maw"]["license"] == "Apache-2.0"
-    compare_info = read_json(prey_digest, "compare.json")
-    assert compare_info["maw"]["label"] == "pyproject-cli"
+    meal_info = json.loads((meal_dir / "meal.json").read_text(encoding="utf-8"))
+    assert meal_info["maw"]["label"] == "pyproject-cli"
     # cached digests on the second run, fresh comparison
     again, _, _ = run_compare(
         Target(path=npm_app),

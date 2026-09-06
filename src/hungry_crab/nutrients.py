@@ -80,7 +80,7 @@ class Candidate:
     effort: str = "M"
     risk: str = "low"
     value: float = 0.5
-    applicability: float = 1.0
+    uptake: float = 1.0
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     license_mode: str = "HUMAN"

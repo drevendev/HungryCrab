@@ -8,7 +8,9 @@ with `CONTRIBUTING.md`.
 Hungry Crab (`crab`) is a deterministic Python CLI that digests a foreign repository (the *prey*)
 into a token-budgeted `digest/` folder, so that an agent can later decide what is worth carrying
 over into its own repository (the *maw*) without violating licenses. The design is written down
-in `docs/design/`; follow it instead of re-deriving decisions. The decisions log is at the end of
+in `docs/design/`; follow it instead of re-deriving decisions. The vocabulary is in
+`docs/design/GLOSSARY.md` — prey, maw, nutrient, menu, hunger, meal, ledger — and it is the
+authority when a document disagrees with it. The decisions log is at the end of
 `docs/design/01-concept-and-skill.md`.
 
 ## Layout

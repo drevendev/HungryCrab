@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.ledger/1",
   "maw": "HungryCrab",
-  "updated_at": "2026-09-06T14:24:11+00:00",
+  "updated_at": "2026-09-06T15:02:30+00:00",
   "meals": [
     {
       "prey": "pypa/pipx",
@@ -110,6 +110,16 @@
       "license": "MIT",
       "mode": "COPY",
       "date": "2026-09-06T14:24:11+00:00",
+      "candidates": 0,
+      "new": 0
+    },
+    {
+      "prey": "github-linguist/linguist",
+      "sha": "5fb5096b95ab9893c5925d87121e5faaae9f3966",
+      "url": "https://github.com/github-linguist/linguist",
+      "license": "MIT",
+      "mode": "COPY",
+      "date": "2026-09-06T15:02:30+00:00",
       "candidates": 0,
       "new": 0
     }

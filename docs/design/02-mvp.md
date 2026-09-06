@@ -70,7 +70,7 @@ symmetric.
 3. `history`/`issues` → `history-lesson`/`issue-lesson` candidates with heuristics: file fix ratio
    > 30 % with ≥ 10 commits; issue with ≥ 20 reactions; cluster of ≥ 5 issues.
 4. `architecture` → candidates only as "raw material for the model" (graph hubs, layering).
-5. Scoring: `score = value(category, trait) × applicability(shared language/framework) ×
+5. Scoring: `score = value(category, trait) × uptake(shared language/framework) ×
    license_ok(mode) × ease(change size) − risk`. Weights live in `scoring.yml`; later the
    Evolving Crab and the ledger will move them.
 6. Dedup against the maw ledger and against open issues labeled `hungry-crab` (search for the

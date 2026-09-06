@@ -242,7 +242,7 @@ def build_manifest(
     total_tokens = 0
     owner = {name: r["name"] for r in records for name in r["files"]}
     for path in sorted(out_dir.iterdir()):
-        if not path.is_file() or path.name == "manifest.json":
+        if not path.is_file() or path.name == "manifest.json" or path.name in MEAL_OWNED:
             continue
         text = read_text(path, limit=50_000_000)
         tokens = estimate_tokens(text)
@@ -310,10 +310,10 @@ def build_manifest(
     }
 
 
-COMPARE_OWNED = {"gap.md", "menu.md", "menu.json", "compare.json"}
+# A meal describes a pair and lives under the maw. These names never belong to a digest, and
+# a cache written before that was true can still have them lying about.
+MEAL_OWNED = {"gap.md", "menu.md", "menu.json", "meal.json", "compare.json"}
 READING_ORDER = (
-    "menu.md",
-    "gap.md",
     "inventory.md",
     "ci.md",
     "tests.md",
@@ -345,8 +345,6 @@ def _file_entries(
             md_tokens += tokens
         total_tokens += tokens
         miner = owner.get(path.name)
-        if miner is None and path.name in COMPARE_OWNED:
-            miner = "compare"
         files.append(
             {
                 "name": path.name,

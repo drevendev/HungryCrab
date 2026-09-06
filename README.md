@@ -172,7 +172,7 @@ model is spent only on judgment.**
   sections, commit and changelog discipline, history and issue lessons, architecture raw
   material. Every candidate carries a stable id, evidence linked to the prey commit, effort, risk
   and a license mode.
-- **scoring** is a formula you can read: category weight x value x applicability x license mode x
+- **scoring** is a formula you can read: category weight x value x uptake x license mode x
   effort, minus risk. Weights live in `data/scoring.yml` and are overridable per maw.
 - **serve** creates issues with a hidden `crab:<id>` marker, a label and a trace footer, so a
   rerun creates no duplicates. The `why` and `how` come from the agent through a notes file.

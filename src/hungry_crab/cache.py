@@ -115,6 +115,20 @@ class MawPaths:
         return self.root / "digests"
 
     @property
+    def meals(self) -> Path:
+        return self.root / "meals"
+
+    def meal(self, prey_label: str, prey_sha: str) -> Path:
+        """Where one meal lives: this maw, that prey, that commit.
+
+        A digest describes one repository; a meal describes a pair. Keeping the comparison
+        here rather than inside the prey's digest is what stops two maws eating the same prey
+        from overwriting each other's menu.
+        """
+        name = re.sub(r"[^A-Za-z0-9_.-]+", "-", prey_label).strip("-") or "prey"
+        return self.meals / f"{name}@{prey_sha}"
+
+    @property
     def ledger_file(self) -> Path:
         return self.root / "ledger.json"
 

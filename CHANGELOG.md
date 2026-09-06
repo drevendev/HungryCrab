@@ -30,6 +30,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **A digest describes one repository; a meal describes a pair.** `crab compare` used to write
+  `menu.md`, `gap.md` and `compare.json` into the prey's digest, which every maw that eats that
+  prey shares — so a second maw silently overwrote the first one's menu, and the licence verdict,
+  which depends on the maw's own licence, was recorded as if it were a fact about the prey. The
+  comparison now lands in `maws/<maw>/meals/<prey>@<sha>/` as `menu.md`, `menu.json`, `gap.md`
+  and `meal.json`. `crab menu` takes `--maw`, because a menu belongs to one.
+- `applicability` is `uptake`, the term nutrition already uses for the fraction of a nutrient
+  that is actually absorbed.
+- `docs/design/GLOSSARY.md`: every term in one place, with the words that were replaced and why.
+  The vocabulary lived in seven documents, which is how "host" survived as long as it did.
+
 - **The repository the crab feeds is the maw, not the host.** In parasitology a host is what
   gets eaten, which is the opposite of what this word had to mean here, and `--host` read like a
   network address besides. Prey feeds the maw. `--host` is now `--maw`, `--host-license` is

@@ -99,11 +99,23 @@ def test_compare_and_menu_commands(
     out = capsys.readouterr().out
     assert out.startswith("Menu: npm-app@")
     assert "crab:tooling:tooling.dependabot" in out
-    assert "gap.md and menu.md written to" in out
+    assert "meal written to" in out
     assert (maw / ".crab" / "ledger.json").is_file(), "ledger mode repo by default"
 
     code = main(
-        ["-q", "--cache-dir", cache, "menu", str(npm_app), "--top", "3", "--category", "ci"]
+        [
+            "-q",
+            "--cache-dir",
+            cache,
+            "menu",
+            str(npm_app),
+            "--maw",
+            str(maw),
+            "--top",
+            "3",
+            "--category",
+            "ci",
+        ]
     )
     assert code == 0
     out = capsys.readouterr().out
@@ -111,7 +123,20 @@ def test_compare_and_menu_commands(
     assert 1 <= len(lines) <= 3
     assert all("crab:ci:" in line for line in lines)
 
-    code = main(["-q", "--cache-dir", cache, "menu", str(npm_app), "--json", "--top", "2"])
+    code = main(
+        [
+            "-q",
+            "--cache-dir",
+            cache,
+            "menu",
+            str(npm_app),
+            "--maw",
+            str(maw),
+            "--json",
+            "--top",
+            "2",
+        ]
+    )
     assert code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["schema"] == "hungry-crab.menu/1"

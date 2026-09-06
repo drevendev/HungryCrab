@@ -1,6 +1,6 @@
 # Default weights for the deterministic pre-scoring in `crab compare`.
 #
-#   score = categories[category] * value * applicability * modes[license_mode] * effort[effort]
+#   score = categories[category] * value * uptake * modes[license_mode] * effort[effort]
 #           - risk[risk]            (clamped to 0..1)
 #
 # `value` comes from the rule that produced the candidate unless `traits` overrides it by key.
@@ -41,7 +41,7 @@ risk:
   medium: 0.1
   high: 0.25
 
-applicability:
+uptake:
   same_stack: 1.0
   transferable: 0.6
   other_stack: 0.25
