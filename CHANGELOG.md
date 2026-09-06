@@ -50,6 +50,15 @@ repository.
 - The `eat` skill gained a step: check that the host column in `gap.md` describes this repository
   before judging anything against it, and guidance to switch a whole category off in `appetite`
   instead of rejecting its cards one by one.
+- A test corpus is no longer counted as the repository's own code. `github-linguist/linguist` is
+  3390 sample files in four hundred languages against 32 files of Ruby, and the crab read it as
+  an Objective-C project with the ecosystems dotnet, go, python and rust, none of them Ruby:
+  every manifest it found was a sample, and the menu offered ninety Python dependencies that
+  were the contents of `samples/Pip Requirements/filenames/requirements.txt`. It now reads as
+  Ruby, 123 files. A repository whose corpus really is its content keeps it.
+- A security fix has to read like a fix. "Add support for Cloud Firestore Security Rules" and
+  "Whitelist injectionSelector in grammars" gave linguist a security history and put the card at
+  the top of the menu; a CVE identifier still speaks for itself.
 - Agent frontmatter is read as YAML, not as one line: a skill whose `description: >` or
   `description: |-` spans several lines was recorded as the literal `>`. Four of the twenty
   skills in `anthropics/skills` were unreadable in the digest. A sequence value (`allowed-tools`

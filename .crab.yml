@@ -11,7 +11,8 @@ appetite:                  # per nutrient category: true | false | issues-only |
   docs: true
   deps: true
   history-lesson: true
-  issue-lesson: true
+  issue-lesson: false      # three meals, 22 candidates, none kept: a prey's users report bugs
+                           # in that prey. Revisit when eating a user-facing CLI like this one.
   architecture: issues-only
   code: ideas-only
 ignore:                    # excluded from this repository's own digest: the fixtures are

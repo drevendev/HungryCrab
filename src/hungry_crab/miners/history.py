@@ -35,7 +35,17 @@ _SECURITY_RE = re.compile(
     r"exploit|sanitiz(?:e|ation)|(?:d|dd)os\b|path traversal|rce\b)",
     re.IGNORECASE,
 )
+_CVE_RE = re.compile(r"\bcve-\d{4}-\d+", re.IGNORECASE)
+# A security fix is a fix. Without this, "Add support for Cloud Firestore Security Rules" and
+# "Whitelist injectionSelector in grammars" made github-linguist/linguist look like a repository
+# with a security history, and put the card at the top of the menu.
+_SECURITY_FIX_RE = re.compile(
+    r"\b(?:fix(?:e[sd])?|patch(?:e[sd])?|address(?:e[sd])?|resolve[sd]?|prevent(?:s|ed)?|"
+    r"mitigat(?:e|es|ed|ion)|harden(?:s|ed|ing)?|close[sd]?|guard(?:s|ed)?|avoid(?:s|ed)?)\b",
+    re.IGNORECASE,
+)
 _SEMVER_TAG_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$")
+
 
 MAX_COMMITS = {"normal": 20_000, "deep": 100_000}
 MAX_COUPLING_FILES = 15
@@ -113,6 +123,13 @@ def is_conventional(subject: str) -> bool:
 
 def is_fix(subject: str) -> bool:
     return bool(_FIX_RE.search(subject))
+
+
+def is_security_fix(subject: str) -> bool:
+    """A CVE identifier speaks for itself; anything else has to read like a fix."""
+    if _CVE_RE.search(subject):
+        return True
+    return bool(_SECURITY_RE.search(subject) and _SECURITY_FIX_RE.search(subject))
 
 
 def bus_factor(counts: Counter[str]) -> int:
@@ -214,7 +231,7 @@ def analyse(commits: list[Commit], *, now: datetime, noise: set[str]) -> dict[st
         for c in commits
         if _PR_STYLE_RE.search(c.subject) or c.subject.startswith("Merge pull request")
     )
-    security = [c for c in commits if _SECURITY_RE.search(c.subject)]
+    security = [c for c in commits if is_security_fix(c.subject)]
     largest = sorted(non_merge, key=lambda c: (-len(c.files), -c.lines))[:5]
 
     return {
