@@ -86,6 +86,42 @@ def test_unknown_miner_is_reported(
     assert "unknown miner" in capsys.readouterr().err
 
 
+def test_compare_and_menu_commands(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cache = str(tmp_path / "cache")
+    code = main(["-q", "--cache-dir", cache, "compare", str(npm_app), "--host", str(pyproject_cli)])
+    assert code == 0
+    out = capsys.readouterr().out
+    assert out.startswith("Menu: npm-app@")
+    assert "crab:tooling:tooling.dependabot" in out
+    assert "gap.md and menu.md written to" in out
+
+    code = main(
+        ["-q", "--cache-dir", cache, "menu", str(npm_app), "--top", "3", "--category", "ci"]
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    lines = [line for line in out.splitlines() if line.strip() and line.strip()[0].isdigit()]
+    assert 1 <= len(lines) <= 3
+    assert all("crab:ci:" in line for line in lines)
+
+    code = main(["-q", "--cache-dir", cache, "menu", str(npm_app), "--json", "--top", "2"])
+    assert code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema"] == "hungry-crab.menu/1"
+    assert len(payload["candidates"]) == 2
+
+
+def test_menu_before_compare_is_an_error(
+    dotnet_lib: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = main(["-q", "--cache-dir", str(tmp_path / "cache"), "menu", str(dotnet_lib)])
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "no menu" in err and "crab compare" in err
+
+
 def test_detect_host_license(npm_app: Path, pyproject_cli: Path) -> None:
     assert detect_host_license(npm_app) == "MIT"
     assert detect_host_license(pyproject_cli) == "Apache-2.0"

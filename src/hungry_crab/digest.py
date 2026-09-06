@@ -297,6 +297,87 @@ def build_manifest(
     }
 
 
+COMPARE_OWNED = {"gap.md", "menu.md", "menu.json", "compare.json"}
+READING_ORDER = (
+    "menu.md",
+    "gap.md",
+    "inventory.md",
+    "ci.md",
+    "tests.md",
+    "history.md",
+    "docs.md",
+    "ai.md",
+    "branches.md",
+    "issues.md",
+    "architecture.md",
+)
+
+
+def _file_entries(
+    out_dir: Path, owner: dict[str, str | None]
+) -> tuple[list[dict[str, Any]], int, int]:
+    files: list[dict[str, Any]] = []
+    md_tokens = 0
+    total_tokens = 0
+    for path in sorted(out_dir.iterdir()):
+        if not path.is_file() or path.name == "manifest.json":
+            continue
+        text = read_text(path, limit=50_000_000)
+        tokens = estimate_tokens(text)
+        suffix = path.suffix
+        kind = (
+            "markdown" if suffix == ".md" else "json" if suffix in (".json", ".jsonl") else "other"
+        )
+        if kind == "markdown":
+            md_tokens += tokens
+        total_tokens += tokens
+        miner = owner.get(path.name)
+        if miner is None and path.name in COMPARE_OWNED:
+            miner = "compare"
+        files.append(
+            {
+                "name": path.name,
+                "kind": kind,
+                "bytes": path.stat().st_size,
+                "tokens_est": tokens,
+                "miner": miner,
+            }
+        )
+    return files, md_tokens, total_tokens
+
+
+def refresh_manifest(out_dir: Path) -> dict[str, Any] | None:
+    """Re-scan a digest folder after files were added (e.g. by ``crab compare``)."""
+    manifest_path = out_dir / "manifest.json"
+    manifest = _load_json(manifest_path)
+    if manifest is None:
+        return None
+    owner = {
+        str(entry.get("name")): entry.get("miner")
+        for entry in manifest.get("files", [])
+        if isinstance(entry, dict)
+    }
+    files, md_tokens, total_tokens = _file_entries(out_dir, owner)
+    manifest["files"] = files
+    manifest["markdown_tokens_est"] = md_tokens
+    manifest["total_tokens_est"] = total_tokens
+    budget = manifest.get("budget", {})
+    total_budget = (
+        budget.get("markdown_total", TOTAL_BUDGET) if isinstance(budget, dict) else TOTAL_BUDGET
+    )
+    manifest["over_budget"] = md_tokens > int(total_budget)
+    names = {entry["name"] for entry in files}
+    manifest["reading_order"] = [name for name in READING_ORDER if name in names]
+    _write_json(manifest_path, manifest)
+    return manifest
+
+
+def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
+    """Where the digest of ``target`` lives (catching the prey first if it is not cached)."""
+    _, out_dir = prepare_context(target, options or DigestOptions())
+    return out_dir
+
+
 def run_digest(
     target: Target, options: DigestOptions | None = None, *, log: Callable[[str], None] = _noop
 ) -> DigestResult:
