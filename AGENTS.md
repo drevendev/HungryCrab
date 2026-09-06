@@ -14,7 +14,10 @@ in `docs/design/`; follow it instead of re-deriving decisions. The decisions log
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | ledger | tune | init | cache`).
+  serve | ledger | tune | init | update | cache`).
+- `src/hungry_crab/updater.py`: `crab update`, which checks the CLI and the agent plugins against
+  master. It must never reinstall the CLI in-process: uv cannot replace a running tool on Windows
+  and leaves it broken.
 - `src/hungry_crab/fetch/`: git wrapper, GitHub API client, `catch`, issues fetch.
 - `src/hungry_crab/miners/`: one module per miner; `__init__.py` is the ordered registry.
 - `src/hungry_crab/licensing/`: SPDX detection and the host x prey verdict matrix.

@@ -15,7 +15,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from . import __version__
+from . import __version__, updater
 from .cache import Slug, cache_root, prey_paths, resolve_target
 from .compare import compare_for_host, load_menu, menu_candidates
 from .compare.scoring import Scoring
@@ -191,6 +191,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_menu.add_argument("--category", default=None, help="comma-separated categories to show")
     p_menu.add_argument("--all", action="store_true", help="also list hidden candidates")
     p_menu.add_argument("--json", action="store_true")
+
+    p_update = sub.add_parser(
+        "update", help="check the CLI and the agent plugins, and bring them up to date"
+    )
+    p_update.add_argument(
+        "--run", action="store_true", help="run the updates instead of only printing them"
+    )
+    p_update.add_argument("--json", action="store_true")
 
     p_cache = sub.add_parser("cache", help="inspect or clean the cache")
     cache_sub = p_cache.add_subparsers(dest="cache_command", metavar="<action>")
@@ -471,6 +479,18 @@ def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     return 0
 
 
+def cmd_update(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    log("checking the CLI and the agent plugins against master")
+    report = updater.check()
+    if args.run:
+        updater.apply(report, log=log)
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+    print(updater.format_report(report))
+    return 0
+
+
 def cmd_cache(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     root = args.cache_dir or cache_root()
     if args.cache_command == "path" or args.cache_command is None:
@@ -542,6 +562,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_serve(args, log)
         if args.command == "tune":
             return cmd_tune(args)
+        if args.command == "update":
+            return cmd_update(args, log)
         if args.command == "cache":
             return cmd_cache(args, parser)
     except CrabError as exc:
