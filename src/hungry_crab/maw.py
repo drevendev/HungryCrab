@@ -8,9 +8,10 @@ from typing import Any
 
 import yaml
 
-from .cache import Slug, maw_paths
+from .cache import Slug, Target, maw_paths
 from .errors import CrabError, UsageError
 from .fetch.git import GitRunner
+from .licensing import Relationship
 from .typeutil import as_dict, as_list
 
 CONFIG_FILE = ".crab.yml"
@@ -63,6 +64,12 @@ serve:
   token_env: ""            # environment variable holding the token to file issues as, e.g.
                            # CRAB_BOT_TOKEN with a GitHub App installation token. Empty means
                            # gh's own login: your issues carry your name, not the crab's.
+trust:                     # a license is a promise to strangers; these are not strangers
+  same_owner: true         # prey owned by the account that owns this repository is your own code
+  owners: []               # other accounts whose repositories count as your own, e.g. [acme-inc]
+  bypass_license: false    # last resort: treat every prey as COPY. Every card says so, and the
+                           # verdict is flagged for human review, because this is not a finding
+                           # about the license but a decision to stop asking.
 attribution_file: THIRD_PARTY_NOTICES.md
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
@@ -112,6 +119,25 @@ class ServeSettings:
 
 
 @dataclass
+class TrustSettings:
+    """Who counts as ourselves. A license governs strangers, not the owner of the code.
+
+    ``same_owner`` covers the common case without configuration: the maw's ``origin`` and the
+    prey belong to one account. ``owners`` extends that to an organisation a solo maintainer also
+    publishes under. ``bypass_license`` is the escape hatch and is never silent.
+    """
+
+    same_owner: bool = True
+    owners: list[str] = field(default_factory=list)
+    bypass_license: bool = False
+
+    def trusts(self, owner: str | None) -> bool:
+        if not owner:
+            return False
+        return owner.lower() in {name.lower() for name in self.owners}
+
+
+@dataclass
 class MawConfig:
     root: Path
     exists: bool = False
@@ -120,6 +146,7 @@ class MawConfig:
     hunger: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_HUNGER))
     ignore: list[str] = field(default_factory=list)
     serve: ServeSettings = field(default_factory=ServeSettings)
+    trust: TrustSettings = field(default_factory=TrustSettings)
     attribution_file: str = "THIRD_PARTY_NOTICES.md"
     ledger: str = "repo"
     scoring: dict[str, Any] = field(default_factory=dict)
@@ -170,6 +197,14 @@ class MawConfig:
             assignees=[str(a) for a in as_list(serve.get("assignees"))],
             token_env=str(serve.get("token_env") or "").strip(),
         )
+        trust = as_dict(data.get("trust"))
+        config.trust = TrustSettings(
+            same_owner=trust.get("same_owner", True) is not False,
+            owners=[
+                str(name).strip() for name in as_list(trust.get("owners")) if str(name).strip()
+            ],
+            bypass_license=trust.get("bypass_license", False) is True,
+        )
         attribution = data.get("attribution_file")
         if isinstance(attribution, str) and attribution.strip():
             config.attribution_file = attribution.strip()
@@ -205,6 +240,44 @@ def write_default_config(root: Path, *, force: bool = False) -> Path:
         raise CrabError(f"{path} already exists", hint="pass --force to overwrite it")
     path.write_text(DEFAULT_CONFIG_TEXT, encoding="utf-8", newline="\n")
     return path
+
+
+def prey_owner(target: Target | Slug | None) -> str | None:
+    """The GitHub account a prey belongs to, or None for a local directory."""
+    if isinstance(target, Slug):
+        return target.owner
+    if isinstance(target, Target) and target.slug is not None:
+        return target.slug.owner
+    return None
+
+
+def relationship_for(
+    target: Target | Slug | None,
+    config: MawConfig,
+    *,
+    maw_owner: str | None = None,
+) -> Relationship:
+    """Whether this prey is a stranger's code, our own, or something we stopped asking about.
+
+    The license matrix answers "may we take this from someone else". It has no way to say that
+    both repositories belong to the same person, and answering `IDEAS_ONLY` when a maintainer
+    eats their own unlicensed repository is a wrong answer to a question nobody asked.
+    """
+    if config.trust.bypass_license:
+        return Relationship.BYPASS
+    owner = prey_owner(target)
+    if owner is None:
+        return Relationship.FOREIGN
+    if config.trust.trusts(owner):
+        return Relationship.OWN
+    if config.trust.same_owner:
+        mine = maw_owner
+        if mine is None:
+            slug = maw_slug(config.root)
+            mine = slug.owner if slug else None
+        if mine and mine.lower() == owner.lower():
+            return Relationship.OWN
+    return Relationship.FOREIGN
 
 
 def maw_slug(root: Path) -> Slug | None:

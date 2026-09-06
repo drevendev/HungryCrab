@@ -11,7 +11,14 @@ from typing import Any
 
 from .cache import Slug, prey_paths
 from .fetch.github import GitHubClient
-from .licensing import LicenseClass, classify, decide, modes_by_maw_class, normalize
+from .licensing import (
+    LicenseClass,
+    Relationship,
+    classify,
+    decide,
+    modes_by_maw_class,
+    normalize,
+)
 
 GIANT_KB = 300 * 1024
 HUGE_KB = 1024 * 1024
@@ -81,6 +88,7 @@ def build_report(
     languages: dict[str, int],
     *,
     maw_license: str | None = None,
+    relationship: Relationship | str = Relationship.FOREIGN,
     now: datetime | None = None,
 ) -> SniffReport:
     current = now or datetime.now(UTC)
@@ -185,7 +193,9 @@ def build_report(
             spdx if cls is not LicenseClass.UNKNOWN else "NOASSERTION"
         ),
         maw_license=maw_license,
-        mode=decide(spdx, maw_license).mode.value if maw_license else None,
+        mode=decide(spdx, maw_license, relationship=relationship).mode.value
+        if maw_license
+        else None,
         warnings=warnings,
         suggestions=suggestions,
         fetched_at=current.isoformat(timespec="seconds"),
@@ -230,6 +240,7 @@ def sniff(
     client: GitHubClient | None = None,
     cache_root: Path | None = None,
     maw_license: str | None = None,
+    relationship: Relationship | str = Relationship.FOREIGN,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
 ) -> SniffReport:
@@ -238,7 +249,9 @@ def sniff(
     log(f"sniffing {slug} via {api.transport}")
     repo = api.repo(slug)
     languages = api.languages(slug)
-    report = build_report(slug, repo, languages, maw_license=maw_license, now=now)
+    report = build_report(
+        slug, repo, languages, maw_license=maw_license, relationship=relationship, now=now
+    )
     paths = prey_paths(slug, cache_root)
     paths.api.mkdir(parents=True, exist_ok=True)
     (paths.api / "repo.json").write_text(json.dumps(repo, indent=2) + "\n", encoding="utf-8")

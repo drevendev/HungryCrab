@@ -23,6 +23,11 @@ serve:
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []
+trust:
+  same_owner: true         # the fleet under drevendev/ is one person's code, whatever the
+                           # repositories say in their (mostly missing) LICENSE files
+  owners: []
+  bypass_license: false
 attribution_file: THIRD_PARTY_NOTICES.md
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them

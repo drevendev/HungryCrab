@@ -9,6 +9,7 @@ from hungry_crab.licensing import (
     LicenseClass,
     MawClass,
     Mode,
+    Relationship,
     classify,
     decide,
     decide_for_class,
@@ -18,7 +19,7 @@ from hungry_crab.licensing import (
     modes_by_maw_class,
     normalize,
 )
-from hungry_crab.licensing.detect import manifest_license
+from hungry_crab.licensing.detect import license_name_from_file, manifest_license
 
 MIT_TEXT = (
     "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
@@ -182,7 +183,9 @@ def test_maw_class(spdx: str | None, expected: MawClass) -> None:
         ("CC-BY-SA-4.0", "MIT", Mode.COPY_FILE, False),
         ("CC-BY-NC-4.0", "MIT", Mode.IDEAS_ONLY, False),
         (None, "MIT", Mode.IDEAS_ONLY, True),
-        ("NOASSERTION", "MIT", Mode.IDEAS_ONLY, True),
+        # Read and not understood is not the same as "nothing is granted": a human decides.
+        ("NOASSERTION", "MIT", Mode.HUMAN, True),
+        ("Weird-License-9", "MIT", Mode.HUMAN, True),
     ],
 )
 def test_decide_matrix(prey: str | None, maw: str | None, mode: Mode, human: bool) -> None:
@@ -283,3 +286,135 @@ def test_detect_in_repo_without_any_license(tmp_path: Path) -> None:
     assert findings.spdx is None
     assert findings.human_review
     assert any("no license" in note for note in findings.notes)
+
+
+# --- the four situations that used to share one NOASSERTION ---------------------------------
+#
+# Every case below is a repository the crab was asked to eat, and every one of them used to end
+# as "unrecognised license" or "no license found". They are four different problems.
+
+
+def test_a_license_file_extension_is_not_a_license_name() -> None:
+    """`LICENSE.md` used to be read as a license called "md" with 0.6 confidence."""
+    assert license_name_from_file("LICENSE.md") is None
+    assert license_name_from_file("LICENSE.txt") is None
+    assert license_name_from_file("LICENSE-APACHE") == "Apache-2.0"
+    assert license_name_from_file("apache-2.0.LICENSE") == "Apache-2.0"
+
+
+def test_an_unreadable_license_file_asks_a_human_instead_of_inventing_one(tmp_path: Path) -> None:
+    """n8n's LICENSE.md: a real file, a real license, no text any signature matches."""
+    write_tree(tmp_path, {"LICENSE.md": "# License\n\nAsk us. Seriously, write an email.\n"})
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.resolution == "unreadable"
+    assert findings.spdx == "NOASSERTION"
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
+    assert "LICENSE.md" in " ".join(findings.notes)
+
+
+def test_two_license_files_offered_as_a_choice_stay_a_choice(tmp_path: Path) -> None:
+    """structlog: LICENSE-APACHE next to LICENSE-MIT is dual licensing, and MIT is enough."""
+    write_tree(tmp_path, {"LICENSE-APACHE": APACHE_TEXT, "LICENSE-MIT": MIT_TEXT})
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.resolution == "dual"
+    assert findings.spdx == "Apache-2.0 OR MIT"
+    verdict = decide(findings.spdx, "MIT")
+    assert verdict.mode is Mode.COPY and not verdict.notice_required
+
+
+def test_license_files_named_after_their_license_are_found_and_are_not_a_choice(
+    tmp_path: Path,
+) -> None:
+    """scancode: `apache-2.0.LICENSE` + `cc-by-4.0.LICENSE`. Both were invisible, and they are
+    not alternatives: the code is Apache-2.0 and the license data is CC-BY-4.0."""
+    write_tree(
+        tmp_path,
+        {"apache-2.0.LICENSE": APACHE_TEXT, "cc-by-4.0.LICENSE": "Attribution 4.0 International\n"},
+    )
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.license_files == ["apache-2.0.LICENSE", "cc-by-4.0.LICENSE"]
+    assert findings.resolution == "split"
+    assert findings.spdx == "Apache-2.0 AND CC-BY-4.0"
+    assert decide(findings.spdx, "MIT").notice_required, "attribution survives the combination"
+
+
+def test_a_licenses_directory_is_read(tmp_path: Path) -> None:
+    write_tree(tmp_path, {"LICENSES/MIT.txt": MIT_TEXT, "LICENSES/Apache-2.0.txt": APACHE_TEXT})
+    findings = detect_in_repo(tmp_path, [])
+    assert sorted(findings.license_files) == ["LICENSES/Apache-2.0.txt", "LICENSES/MIT.txt"]
+    assert findings.resolution == "split"
+    assert set(findings.candidates) == {"MIT", "Apache-2.0"}
+
+
+def test_one_file_that_licenses_different_parts_differently(tmp_path: Path) -> None:
+    """The modelcontextprotocol shape: one LICENSE covering a relicensing transition."""
+    write_tree(
+        tmp_path,
+        {
+            "LICENSE": (
+                "The project is undergoing a licensing transition from the MIT License to the "
+                "Apache License, Version 2.0. Documentation contributions are licensed under "
+                "CC-BY-4.0. Contributions whose authors have not granted permission remain "
+                "licensed under the MIT License.\n" + APACHE_TEXT
+            )
+        },
+    )
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.resolution == "split"
+    assert findings.candidates == ["Apache-2.0", "CC-BY-4.0", "MIT"]
+    verdict = decide(findings.spdx, "MIT")
+    assert verdict.mode is Mode.COPY, "every part of it is permissive; no human is needed"
+    assert verdict.notice_required, "but the strictest of the three still governs the whole"
+
+
+def test_a_monorepo_licensed_per_package_names_the_packages(tmp_path: Path) -> None:
+    """mui-x: nothing at the root, `x-data-grid` is MIT and `x-data-grid-pro` is commercial."""
+    write_tree(
+        tmp_path,
+        {
+            "package.json": '{"name": "monorepo", "private": true}\n',
+            "packages/grid/LICENSE": MIT_TEXT,
+            "packages/grid-pro/LICENSE": PROPRIETARY_TEXT,
+        },
+    )
+    findings = detect_in_repo(
+        tmp_path,
+        [],
+        manifests=["package.json"],
+        nested_license_files=["packages/grid/LICENSE", "packages/grid-pro/LICENSE"],
+    )
+    assert findings.resolution == "per-path"
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
+    note = " ".join(findings.notes)
+    assert "packages/grid/LICENSE (MIT)" in note
+    assert {item["spdx"] for item in findings.exceptions} == {"MIT", "LicenseRef-Proprietary"}
+
+
+# --- relationship: a license governs strangers ----------------------------------------------
+
+
+def test_own_repositories_are_copyable_whatever_their_license_says() -> None:
+    """A maintainer eating their own unlicensed repository is not a licensing question."""
+    verdict = decide(None, "MIT", relationship=Relationship.OWN)
+    assert verdict.mode is Mode.COPY
+    assert not verdict.human_review
+    assert "same owner" in verdict.reason
+
+
+def test_own_but_copyleft_still_asks_because_the_code_may_not_all_be_ours() -> None:
+    verdict = decide("GPL-3.0-only", "MIT", relationship=Relationship.OWN)
+    assert verdict.mode is Mode.COPY
+    assert verdict.human_review, "owning the repository does not launder someone else's code"
+
+
+def test_bypass_says_so_on_every_card() -> None:
+    verdict = decide("BUSL-1.1", "MIT", relationship=Relationship.BYPASS)
+    assert verdict.mode is Mode.COPY
+    assert verdict.human_review
+    assert "bypass" in verdict.reason
+
+
+def test_a_foreign_prey_is_unaffected_by_the_new_parameter() -> None:
+    assert decide("GPL-3.0-only", "MIT") == decide(
+        "GPL-3.0-only", "MIT", relationship=Relationship.FOREIGN
+    )

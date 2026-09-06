@@ -6,12 +6,15 @@ import pytest
 from fixture_builder import git
 from helpers import write_tree
 
+from hungry_crab.cache import Slug, Target
 from hungry_crab.errors import CrabError, UsageError
+from hungry_crab.licensing import Relationship
 from hungry_crab.maw import (
     CONFIG_FILE,
     DEFAULT_HUNGER,
     MawConfig,
     maw_slug,
+    relationship_for,
     write_default_config,
 )
 
@@ -122,3 +125,69 @@ def test_the_old_appetite_key_is_an_error_not_a_shrug(tmp_path: Path) -> None:
         MawConfig.load(tmp_path)
     assert "appetite" in caught.value.message
     assert "hunger" in (caught.value.hint or "")
+
+
+# --- trust: which prey is not a stranger ------------------------------------------------------
+
+
+def test_trust_defaults(tmp_path: Path) -> None:
+    trust = MawConfig.load(tmp_path).trust
+    assert trust.same_owner is True
+    assert trust.owners == []
+    assert trust.bypass_license is False
+
+
+def test_trust_is_read_from_the_file(tmp_path: Path) -> None:
+    write_tree(
+        tmp_path,
+        {CONFIG_FILE: "trust:\n  same_owner: false\n  owners: [acme-inc, Drevendev]\n"},
+    )
+    trust = MawConfig.load(tmp_path).trust
+    assert trust.same_owner is False
+    assert trust.owners == ["acme-inc", "Drevendev"]
+    assert trust.trusts("DREVENDEV"), "account names are not case sensitive on GitHub"
+    assert not trust.trusts("someone-else")
+    assert not trust.trusts(None)
+
+
+def test_the_default_config_file_parses_back_into_the_defaults(tmp_path: Path) -> None:
+    write_default_config(tmp_path)
+    config = MawConfig.load(tmp_path)
+    assert config.trust.same_owner is True
+    assert config.trust.owners == []
+    assert config.trust.bypass_license is False
+
+
+def test_a_prey_from_the_same_owner_is_our_own_code(tmp_path: Path) -> None:
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "remote", "add", "origin", "https://github.com/drevendev/HungryCrab.git")
+    config = MawConfig.load(tmp_path)
+    assert relationship_for(Slug("drevendev", "Devostasis"), config) is Relationship.OWN
+    assert relationship_for(Slug("pallets", "click"), config) is Relationship.FOREIGN
+
+
+def test_same_owner_can_be_switched_off(tmp_path: Path) -> None:
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "remote", "add", "origin", "https://github.com/drevendev/HungryCrab.git")
+    write_tree(tmp_path, {CONFIG_FILE: "trust:\n  same_owner: false\n"})
+    config = MawConfig.load(tmp_path)
+    assert relationship_for(Slug("drevendev", "Devostasis"), config) is Relationship.FOREIGN
+
+
+def test_a_trusted_owner_needs_no_git_remote(tmp_path: Path) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: "trust:\n  owners: [acme-inc]\n"})
+    config = MawConfig.load(tmp_path)
+    assert relationship_for(Slug("acme-inc", "thing"), config) is Relationship.OWN
+
+
+def test_a_local_directory_has_no_owner_to_compare(tmp_path: Path) -> None:
+    config = MawConfig.load(tmp_path)
+    assert relationship_for(Target(path=tmp_path), config) is Relationship.FOREIGN
+    assert relationship_for(None, config) is Relationship.FOREIGN
+
+
+def test_bypass_wins_over_everything_including_an_unknown_owner(tmp_path: Path) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: "trust:\n  bypass_license: true\n"})
+    config = MawConfig.load(tmp_path)
+    assert relationship_for(None, config) is Relationship.BYPASS
+    assert relationship_for(Slug("stranger", "repo"), config) is Relationship.BYPASS
