@@ -58,6 +58,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `crab update` compares the **commit** the CLI was installed from, not just its version. Every
+  commit of a development series reports the same `0.3.0.dev0`, so version comparison told a crab
+  seven commits and one whole rename behind that it was up to date. The installed commit comes
+  from `direct_url.json`, which pip and uv both write for a VCS install.
+- The plugin manifests carry the CLI's version, and a test keeps them from drifting again. They
+  said `0.2.0` while the CLI said `0.3.0.dev0`, so every agent was told its plugin was current
+  while its skills still spoke of `--host`.
+
 Everything here was found by the first live meal, the crab eating `pypa/pipx` on its own
 repository.
 

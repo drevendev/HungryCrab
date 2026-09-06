@@ -115,9 +115,23 @@ def test_cli_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
     assert newer.installed == __version__ and newer.available == "9.9.9"
     assert newer.commands == [["uv", "tool", "install", "--force", updater.REQUIREMENT]]
 
+    # Same version string, different commit: during a dev series that is the normal case, and
+    # reporting it as up to date left a crab seven commits and one rename behind.
+    monkeypatch.setattr(updater, "installed_commit", lambda: "a" * 40)
+    behind = check_cli(Remote(cli_version=__version__, sha="b" * 40, date="2026-09-06"))
+    assert behind.status == OUTDATED
+    assert "installed from aaaaaaa" in behind.detail and "master is at bbbbbbb" in behind.detail
+    assert behind.commands == [["uv", "tool", "install", "--force", updater.REQUIREMENT]]
+
+    monkeypatch.setattr(updater, "installed_commit", lambda: "b" * 40)
     same = check_cli(Remote(cli_version=__version__, sha="b" * 40, date="2026-09-06"))
     assert same.status == OK
-    assert "reinstall to pick up newer commits" in same.detail
+    assert same.detail == "same version as master (bbbbbbb, 2026-09-06)"
+
+    monkeypatch.setattr(updater, "installed_commit", lambda: None)
+    unknown = check_cli(Remote(cli_version=__version__, sha="b" * 40, date="2026-09-06"))
+    assert unknown.status == OK
+    assert "records no commit" in unknown.detail
     assert same.commands, "an up-to-date version can still be behind master"
 
     offline = check_cli(Remote(error="no network"))
