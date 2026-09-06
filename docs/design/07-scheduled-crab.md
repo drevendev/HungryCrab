@@ -29,9 +29,9 @@ model. Nothing about the loop lives in the agent's memory between wake-ups — e
 to continue is in a file.
 
 ```
-PLAN ─► HUNT ─► EAT ─► SERVE ─► WORK ─► CHECK ─► RETRO ─┐
-          ▲                                             │
-          └──────────────── next round ─────────────────┘
+PLAN ─► HUNT ─► EAT ─► SERVE ─► WORK ─► CHECK ─► RETRO ─► MOLT ─┐
+          ▲                                                     │
+          └──────────────────── next round ─────────────────────┘
 ```
 
 | Phase | One wake-up does | Deterministic | Model |
@@ -43,9 +43,28 @@ PLAN ─► HUNT ─► EAT ─► SERVE ─► WORK ─► CHECK ─► RETRO �
 | WORK | implements one served nutrient | — | branch, change, pull request |
 | CHECK | did it hold | the target's own tests and CI | reads the result, decides retry or drop |
 | RETRO | what was learned | `crab tune` | writes the lesson that PLAN reads next round |
+| MOLT | sheds what the round grew out of | the target's own tests, lint and coverage | one refactoring pull request, no new behaviour |
 
-`WORK` is the phase that does not exist today: the crab currently stops at the issue. It is also
-the phase with the sharpest safety boundary, so it is the last one switched on (§6).
+`WORK` and `MOLT` are the phases that do not exist today: the crab currently stops at the issue.
+They are also the two that write code, so they are the last ones switched on (§6).
+
+**Molting** is not optional decoration. A loop that only adds is a loop that accretes: eight
+rounds of nutrients leave a repository with eight half-integrated changes, and the ninth menu is
+judged against a codebase nobody has read since. The crab's own vocabulary already has the word
+for the answer. [04](04-evolving-crab.md) puts `MOLT` after `GROW` for the same reason, with hard
+invariants, and this loop inherits them in the terms a local target can actually provide:
+
+- every test the target already ran still passes, and its linter is no louder than before;
+- coverage does not fall;
+- the change adds no public surface: no new command, flag, config key or exported name;
+- what it may remove is what the round itself made redundant — dead code, a superseded helper, a
+  doc paragraph that now contradicts the code, a dependency nothing imports any more.
+
+If an invariant fails, the pull request is closed and the reason goes into the next `RETRO`
+rather than into a fix attempt: a molt that needs debugging is not a molt.
+
+`MOLT` runs only when the round actually landed something. Molting after a round that changed
+nothing is churn, and the loop skips straight to `PLAN`.
 
 ## 3. State
 
@@ -122,15 +141,18 @@ loop:
 | Level | The loop may | Stops at |
 |---|---|---|
 | `read` | digest, compare, judge, write the menu to a file | before SERVE |
-| `serve` | everything in `read`, plus file issues | before WORK |
-| `work` | everything in `serve`, plus a branch and a pull request | never merges |
+| `serve` | everything in `read`, plus file issues, and file what a molt would remove instead of removing it | before WORK |
+| `work` | everything in `serve`, plus a branch and a pull request, from `WORK` and from `MOLT` | never merges |
 
 Invariants at every level, inherited from the constitution in 04 and enforced here by the CLI
 rather than by prose:
 
 - prey is never executed, and prey content is data, not instructions;
 - no phase pushes to the default branch, and no phase merges anything;
-- `WORK` refuses paths a target marks protected — `.github/**`, licence files, `.crab.yml` itself;
+- `WORK` and `MOLT` refuse paths a target marks protected — `.github/**`, licence files,
+  `.crab.yml` itself;
+- a molt never deletes what it cannot show is unreachable: it removes what the round made
+  redundant, and lists everything else for a human instead;
 - a target we do not own is `read` or `serve`, never `work`, until its owner says otherwise in
   writing in that repository's own `.crab.yml`;
 - `crab loop pause` is the kill switch, and it is one command with no arguments.
@@ -157,7 +179,7 @@ because it describes the target and should travel with it.
 |---|---|---|---|
 | S0 | a human runs `/crab:loop` | human | 3 clean rounds |
 | S1 | scheduled, stops before WORK | human | 10 rounds with no correction |
-| S2 | scheduled through WORK on repositories we own | human | fitness never drops for a month |
+| S2 | scheduled through WORK and MOLT on repositories we own | human | a month with no invariant broken |
 | S3 | S2 on named foreign targets, by invitation | human | — |
 
 There is no level where the loop merges. That is 04's problem, and 04 has a fitness function to
@@ -174,6 +196,7 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
 
 - Ten consecutive scheduled wake-ups on `HungryCrab` with no human input except merging.
 - One full round on a second repository that is not the crab, at `serve` autonomy.
+- One molt that shed something a previous round grew, with every invariant green.
 - The state file survives a machine restart and a `crab update`.
 - Cost per phase recorded in `benchmarks/`, and quoted in 04's budget.
 
@@ -182,10 +205,11 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
 1. **Control repository or plain directory.** A private repository gives history and a second
    machine; a directory outside git is one less moving part. Default proposed: private
    repository, because the loop's own history is evidence for 04.
-2. **Does WORK belong here.** It is the most valuable phase and the most dangerous one. Default
-   proposed: design it now, ship it at S2, after `serve` has run for a month.
+2. **Do WORK and MOLT belong here.** The most valuable phases and the two dangerous ones.
+   Default proposed: design both now, ship them together at S2 after `serve` has run for a
+   month — a loop that adds without shedding is worse than one that does neither.
 3. **HUNT before 0.5.** `crab hunt` is a 0.5 feature. Until then HUNT reads a prey list from the
    target's config — the twenty prey in [05-self-feeding.md](05-self-feeding.md) are already such
    a list.
 4. **Where the loop sits in the roadmap.** Proposed: Track A after 0.3, as the bridge into Track
-   B, since `WORK` needs 0.3's pull-request machinery.
+   B, since `WORK` and `MOLT` both need 0.3's pull-request machinery.
