@@ -1,0 +1,429 @@
+{
+ "build_backend": "hatchling.build",
+ "ecosystems": [
+  "python"
+ ],
+ "engines": {},
+ "lockfiles": [
+  {
+   "ecosystem": "python",
+   "path": "uv.lock"
+  }
+ ],
+ "manifests": [
+  {
+   "build_backend": "hatchling.build",
+   "dependency_groups": [
+    "dev",
+    "docs",
+    "lint",
+    "man",
+    "test",
+    "type",
+    "zipapp"
+   ],
+   "ecosystem": "python",
+   "name": "pipx",
+   "path": "pyproject.toml",
+   "requires_python": ">=3.10",
+   "scripts": 1,
+   "tools": [
+    "codespell",
+    "hatch",
+    "pytest",
+    "ruff",
+    "towncrier",
+    "ty"
+   ],
+   "version": null
+  }
+ ],
+ "npm_scripts": {},
+ "package_count": 45,
+ "packages": [
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "argcomplete",
+   "pinned": false,
+   "spec": ">=1.9.4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "colorama",
+   "pinned": false,
+   "spec": ">=0.4.4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "filelock",
+   "pinned": false,
+   "spec": ">=3.16"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "packaging",
+   "pinned": false,
+   "spec": ">=26"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "platformdirs",
+   "pinned": false,
+   "spec": ">=4.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "tomli",
+   "pinned": false,
+   "spec": ""
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "userpath",
+   "pinned": false,
+   "spec": ">=1.6,!=1.9"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "optional:uv",
+   "manifest": "pyproject.toml",
+   "name": "uv",
+   "pinned": false,
+   "spec": ">=0.9.17"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "docutils",
+   "pinned": false,
+   "spec": ">=0.21"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pypiserver",
+   "pinned": false,
+   "spec": ">=2.3.2"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pytest",
+   "pinned": false,
+   "spec": ">=8"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pytest-cov",
+   "pinned": false,
+   "spec": ">=4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pytest-mock",
+   "pinned": false,
+   "spec": ">=3.11.1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pytest-subprocess",
+   "pinned": false,
+   "spec": ">=1.5.4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "pytest-xdist",
+   "pinned": false,
+   "spec": ">=3.5"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "setuptools",
+   "pinned": false,
+   "spec": ">=68"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:test",
+   "manifest": "pyproject.toml",
+   "name": "watchdog",
+   "pinned": false,
+   "spec": ">=4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:type",
+   "manifest": "pyproject.toml",
+   "name": "gitpython",
+   "pinned": false,
+   "spec": ">=3.1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:type",
+   "manifest": "pyproject.toml",
+   "name": "hatchling",
+   "pinned": false,
+   "spec": ">=1.27"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:type",
+   "manifest": "pyproject.toml",
+   "name": "tomli",
+   "pinned": false,
+   "spec": ">=2"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:type",
+   "manifest": "pyproject.toml",
+   "name": "ty",
+   "pinned": false,
+   "spec": ">=0.0.59"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:type",
+   "manifest": "pyproject.toml",
+   "name": "types-docutils",
+   "pinned": false,
+   "spec": ">=0.21"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "furo",
+   "pinned": false,
+   "spec": ">=2024.8.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx",
+   "pinned": false,
+   "spec": ">=8.1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-argparse-cli",
+   "pinned": false,
+   "spec": ">=1.19"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-autodoc-typehints",
+   "pinned": false,
+   "spec": ">=2.5"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-codeautolink",
+   "pinned": false,
+   "spec": ">=0.15"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-copybutton",
+   "pinned": false,
+   "spec": ">=0.5.2"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-design",
+   "pinned": false,
+   "spec": ">=0.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-issues",
+   "pinned": false,
+   "spec": ">=5"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-last-updated-by-git",
+   "pinned": false,
+   "spec": ">=0.3.8"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-llm",
+   "pinned": false,
+   "spec": ">=0.4.1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-notfound-page",
+   "pinned": false,
+   "spec": ">=1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-reredirects",
+   "pinned": false,
+   "spec": ">=0.1.5"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinx-sitemap",
+   "pinned": false,
+   "spec": ">=2.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinxcontrib-mermaid",
+   "pinned": false,
+   "spec": ">=1"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinxcontrib-towncrier",
+   "pinned": false,
+   "spec": ">=0.5.0a0"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "sphinxext-opengraph",
+   "pinned": false,
+   "spec": ">=0.9"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:docs",
+   "manifest": "pyproject.toml",
+   "name": "towncrier",
+   "pinned": false,
+   "spec": ">=23.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:lint",
+   "manifest": "pyproject.toml",
+   "name": "pre-commit",
+   "pinned": false,
+   "spec": ">=3"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:man",
+   "manifest": "pyproject.toml",
+   "name": "docutils",
+   "pinned": false,
+   "spec": ">=0.21"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:zipapp",
+   "manifest": "pyproject.toml",
+   "name": "shiv",
+   "pinned": false,
+   "spec": ">=1.0.6"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "build",
+   "manifest": "pyproject.toml",
+   "name": "docutils",
+   "pinned": false,
+   "spec": ">=0.21"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "build",
+   "manifest": "pyproject.toml",
+   "name": "hatch-vcs",
+   "pinned": false,
+   "spec": ">=0.4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "build",
+   "manifest": "pyproject.toml",
+   "name": "hatchling",
+   "pinned": false,
+   "spec": ">=1.27"
+  }
+ ],
+ "policies": {
+  "python": {
+   "central_package_management": null,
+   "dev": 38,
+   "lockfiles": [
+    "uv.lock"
+   ],
+   "package_manager": "uv",
+   "packages": 45,
+   "pinned_ratio": 0.0,
+   "runtime": 7
+  }
+ },
+ "python_tools": [
+  "codespell",
+  "hatch",
+  "pytest",
+  "ruff",
+  "towncrier",
+  "ty"
+ ],
+ "requires_python": ">=3.10",
+ "target_frameworks": [],
+ "workspaces": []
+}

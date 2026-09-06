@@ -1,6 +1,6 @@
 [project]
 name = "hungry-crab"
-version = "0.3.0.dev0"
+version = "0.2.2"
 description = "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -91,6 +91,8 @@ pretty = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# B1, the menu benchmark, is gated by the test suite; its runner lives in benchmarks/.
+pythonpath = ["benchmarks"]
 norecursedirs = ["fixtures", ".venv", ".git"]
 addopts = "-ra --strict-markers --strict-config"
 xfail_strict = true

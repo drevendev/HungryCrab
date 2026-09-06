@@ -19,8 +19,8 @@ from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, locate_digest, run_digest
 from ..errors import CrabError
 from ..ledger import Ledger
-from ..licensing import decide
-from ..maw import MawConfig, maw_slug
+from ..licensing import Relationship, decide
+from ..maw import MawConfig, maw_slug, relationship_for
 from ..nutrients import Candidate
 from ..typeutil import as_dict
 from .candidates import Side, build_candidates
@@ -46,6 +46,9 @@ class CompareOptions:
     hidden_ids: dict[str, str] = field(default_factory=dict)  # id -> reason (ledger, issues)
     now: datetime | None = None
     md_budget: int = 3500
+    # `own` when the maw's owner also owns the prey, `bypass` when the maw switched the
+    # license engine off on purpose. Resolved by the caller, which knows both slugs.
+    relationship: str = "foreign"
 
 
 @dataclass
@@ -104,7 +107,7 @@ def compare_digests(
     prey = Side.load(prey_dir, root=prey_root)
     maw = Side.load(maw_dir, root=maw_root)
     maw_spdx = opts.maw_license or maw.spdx
-    verdict = decide(prey.spdx, maw_spdx).to_dict()
+    verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship).to_dict()
     scoring = Scoring.default().merged(opts.scoring)
     candidates, facts = build_candidates(prey, maw)
     now = opts.now or datetime.now(UTC)
@@ -278,6 +281,9 @@ def compare_for_maw(
                     )
             except CrabError as exc:
                 log(f"warning: could not check existing issues: {exc.message}")
+    relationship = relationship_for(prey_target, config)
+    if relationship is not Relationship.FOREIGN:
+        log(f"license relationship: {relationship.value} (from .crab.yml trust)")
     options = CompareOptions(
         hunger=config.hunger,
         scoring=config.scoring,
@@ -286,6 +292,7 @@ def compare_for_maw(
         maw_license=config.license or d_opts.maw_license,
         hidden_ids=hidden,
         now=now,
+        relationship=relationship.value,
     )
     result, prey_digest, _ = run_compare(
         prey_target, maw_root, digest_options=d_opts, options=options, log=log

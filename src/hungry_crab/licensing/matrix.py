@@ -39,6 +39,19 @@ class MawClass(StrEnum):
     PROPRIETARY = "proprietary"
 
 
+class Relationship(StrEnum):
+    """How the maw is related to the prey, which a license alone cannot express.
+
+    ``FOREIGN`` is the default and the only one that consults the matrix. ``OWN`` says the maw's
+    owner also owns the prey, so the license is a note to third parties and not a limit on the
+    owner. ``BYPASS`` is a deliberate override configured by the maw.
+    """
+
+    FOREIGN = "foreign"
+    OWN = "own"
+    BYPASS = "bypass"
+
+
 class Mode(StrEnum):
     COPY = "COPY"
     COPY_FILE = "COPY_FILE"
@@ -336,11 +349,61 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
             human_review=True,
             reason="no license found: all rights reserved by default",
         )
-    return Verdict(Mode.IDEAS_ONLY, human_review=True, reason=f"unrecognised license {prey or '?'}")
+    # Something was read and could not be classified. That is a different situation from "nothing
+    # is granted": a human can read it in a minute, and until then no mode is honest.
+    return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised license {prey or '?'}")
 
 
-def decide(prey_spdx: str | None, maw_spdx: str | None) -> Verdict:
-    return decide_for_class(prey_spdx, maw_class(maw_spdx), maw_spdx)
+# Owning the repository lets its owner relicense what they wrote. It does not launder code that
+# arrived from someone else, and a copyleft or source-available license on one's own repository is
+# usually a sign that some of it did.
+_OWN_NEEDS_REVIEW = frozenset(
+    {
+        LicenseClass.LGPL,
+        LicenseClass.GPL,
+        LicenseClass.AGPL,
+        LicenseClass.SOURCE_AVAILABLE,
+        LicenseClass.DOCS_RESTRICTED,
+        LicenseClass.UNKNOWN,
+    }
+)
+
+
+def decide_related(
+    prey_spdx: str | None,
+    maw: MawClass,
+    maw_spdx: str | None,
+    relationship: Relationship,
+) -> Verdict:
+    """The verdict once the maw's relationship to the prey is known."""
+    if relationship is Relationship.BYPASS:
+        return Verdict(
+            Mode.COPY,
+            human_review=True,
+            reason="license checks bypassed by .crab.yml (trust.bypass_license)",
+        )
+    if relationship is Relationship.OWN:
+        cls = classify(normalize(prey_spdx))
+        if cls in _OWN_NEEDS_REVIEW:
+            return Verdict(
+                Mode.COPY,
+                human_review=True,
+                reason=(
+                    f"same owner, but the prey is {cls.value}: check the parts of it that came "
+                    "from someone else before copying"
+                ),
+            )
+        return Verdict(Mode.COPY, reason="same owner: the maw's owner also owns the prey")
+    return decide_for_class(prey_spdx, maw, maw_spdx)
+
+
+def decide(
+    prey_spdx: str | None,
+    maw_spdx: str | None,
+    *,
+    relationship: Relationship | str = Relationship.FOREIGN,
+) -> Verdict:
+    return decide_related(prey_spdx, maw_class(maw_spdx), maw_spdx, Relationship(str(relationship)))
 
 
 _SAMPLE_MAWS: dict[MawClass, str | None] = {

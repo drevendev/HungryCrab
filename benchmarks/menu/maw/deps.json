@@ -1,0 +1,107 @@
+{
+ "build_backend": "hatchling.build",
+ "ecosystems": [
+  "python"
+ ],
+ "engines": {},
+ "lockfiles": [
+  {
+   "ecosystem": "python",
+   "path": "uv.lock"
+  }
+ ],
+ "manifests": [
+  {
+   "build_backend": "hatchling.build",
+   "dependency_groups": [
+    "dev"
+   ],
+   "ecosystem": "python",
+   "name": "hungry-crab",
+   "path": "pyproject.toml",
+   "requires_python": ">=3.11",
+   "scripts": 1,
+   "tools": [
+    "hatch",
+    "mypy",
+    "pytest",
+    "ruff"
+   ],
+   "version": "0.2.0"
+  }
+ ],
+ "npm_scripts": {},
+ "package_count": 6,
+ "packages": [
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "pyproject.toml",
+   "name": "pyyaml",
+   "pinned": false,
+   "spec": ">=6.0.2"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:dev",
+   "manifest": "pyproject.toml",
+   "name": "mypy",
+   "pinned": false,
+   "spec": ">=1.17"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:dev",
+   "manifest": "pyproject.toml",
+   "name": "pytest",
+   "pinned": false,
+   "spec": ">=8.4"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:dev",
+   "manifest": "pyproject.toml",
+   "name": "ruff",
+   "pinned": false,
+   "spec": ">=0.13"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "group:dev",
+   "manifest": "pyproject.toml",
+   "name": "types-pyyaml",
+   "pinned": false,
+   "spec": ">=6.0.12"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "build",
+   "manifest": "pyproject.toml",
+   "name": "hatchling",
+   "pinned": false,
+   "spec": ">=1.27"
+  }
+ ],
+ "policies": {
+  "python": {
+   "central_package_management": null,
+   "dev": 5,
+   "lockfiles": [
+    "uv.lock"
+   ],
+   "package_manager": "uv",
+   "packages": 6,
+   "pinned_ratio": 0.0,
+   "runtime": 1
+  }
+ },
+ "python_tools": [
+  "hatch",
+  "mypy",
+  "pytest",
+  "ruff"
+ ],
+ "requires_python": ">=3.11",
+ "target_frameworks": [],
+ "workspaces": []
+}

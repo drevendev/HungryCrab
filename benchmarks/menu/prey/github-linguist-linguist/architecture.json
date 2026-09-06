@@ -1,0 +1,122 @@
+{
+ "available": true,
+ "edges": [],
+ "files_scanned": 67,
+ "graph": {
+  "dir_cycles": [],
+  "dir_edges": [],
+  "edges": 0,
+  "external_top": [],
+  "hubs": [],
+  "layers": [],
+  "nodes": 0,
+  "orchestrators": []
+ },
+ "languages": [
+  "C",
+  "C/C++ Header",
+  "Go",
+  "Ruby",
+  "Rust",
+  "Shell"
+ ],
+ "public_surface": [],
+ "top_files_by_symbols": [
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": ".devcontainer/onCreateCommand.sh",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "Brewfile",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "Gemfile",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "Rakefile",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "ext/linguist/extconf.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "ext/linguist/lex.linguist_yy.c",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "ext/linguist/lex.linguist_yy.h",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "ext/linguist/linguist.c",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "ext/linguist/linguist.h",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist/blob.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist/blob_helper.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist/classifier.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist/file_blob.rb",
+   "public": 0
+  },
+  {
+   "classes": 0,
+   "functions": 0,
+   "path": "lib/linguist/generated.rb",
+   "public": 0
+  }
+ ],
+ "totals": {
+  "classes": 0,
+  "exports": 0,
+  "functions": 0
+ },
+ "truncated": false
+}

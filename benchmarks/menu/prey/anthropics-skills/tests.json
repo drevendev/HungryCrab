@@ -1,0 +1,29 @@
+{
+ "configs": [],
+ "coverage": {
+  "configured": false,
+  "service": null,
+  "threshold": null,
+  "threshold_source": null
+ },
+ "frameworks": {},
+ "has_tests": false,
+ "sample_test_files": [],
+ "special": {
+  "benchmarks": false,
+  "e2e": false,
+  "fuzz": false,
+  "integration": false,
+  "mocking": false,
+  "mutation": false,
+  "property": false,
+  "snapshot": false
+ },
+ "src_files": 73,
+ "src_loc": 15966,
+ "test_dirs": [],
+ "test_files": 0,
+ "test_loc": 0,
+ "test_loc_ratio": 0.0,
+ "test_to_src_ratio": 0.0
+}

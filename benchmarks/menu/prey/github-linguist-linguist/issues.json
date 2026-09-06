@@ -1,0 +1,471 @@
+{
+ "available": true,
+ "closed": 250,
+ "clusters": [
+  {
+   "numbers": [
+    7348,
+    7302,
+    7787,
+    7751,
+    7676,
+    7603,
+    7589,
+    7514,
+    7368,
+    7338,
+    7318,
+    7291,
+    7232,
+    7209,
+    7054,
+    7048,
+    7039,
+    6993,
+    6912,
+    6890
+   ],
+   "open": 0,
+   "reactions": 6,
+   "sample_titles": [
+    "Consider supporting .ts files with node shebang",
+    "env uv shebang files not detected as python",
+    "Gleam syntax highlighting"
+   ],
+   "size": 24,
+   "terms": [
+    "fix",
+    "provide",
+    "unexpected",
+    "analysis",
+    "opening"
+   ],
+   "top_label": "Bug"
+  },
+  {
+   "numbers": [
+    8071,
+    8070,
+    8069,
+    7995,
+    7994,
+    7993,
+    7992,
+    7950,
+    7921,
+    7789,
+    7576,
+    7573,
+    7540,
+    7406,
+    7294,
+    7244,
+    7102,
+    6980,
+    6938,
+    6713
+   ],
+   "open": 6,
+   "reactions": 0,
+   "sample_titles": [
+    "Add TwinCat - GVL",
+    "Add Support for TwinCat DUT",
+    "Add Support for TwinCat PLC Projects"
+   ],
+   "size": 23,
+   "terms": [
+    "identified",
+    "commonly",
+    "list",
+    "everybody",
+    "contribute"
+   ],
+   "top_label": "Add Language"
+  },
+  {
+   "numbers": [
+    4974,
+    5085,
+    4566,
+    4153,
+    4578,
+    4229,
+    4203,
+    4435,
+    4329,
+    4004,
+    4348,
+    4112,
+    4613,
+    5042
+   ],
+   "open": 1,
+   "reactions": 193,
+   "sample_titles": [
+    "Change gdscript grammar provider",
+    "Kotlin syntax highlighting stopped working in 7.12.0",
+    "Unable to recognise Dockerfiles with extensions"
+   ],
+   "size": 14,
+   "terms": [
+    "reviewed",
+    "troubleshooting",
+    "linguist",
+    "implementing",
+    "preliminary"
+   ],
+   "top_label": "Stale"
+  },
+  {
+   "numbers": [
+    6000,
+    6072,
+    6503,
+    7105,
+    6763,
+    6747
+   ],
+   "open": 1,
+   "reactions": 92,
+   "sample_titles": [
+    "Add Language: Luau",
+    "Add Language: c3lang",
+    "Add Language: Nickel"
+   ],
+   "size": 6,
+   "terms": [
+    "luau",
+    "lang",
+    "nickel",
+    "teal",
+    "c3lang"
+   ],
+   "top_label": "Add Language"
+  },
+  {
+   "numbers": [
+    6844,
+    6847,
+    6846,
+    6845,
+    6834
+   ],
+   "open": 0,
+   "reactions": 2,
+   "sample_titles": [
+    "Add Gwion",
+    "Add Pa",
+    "Add Kuroko"
+   ],
+   "size": 5,
+   "terms": [
+    "gwion",
+    "benchmark",
+    "kuroko",
+    "horse64",
+    "valkarias"
+   ],
+   "top_label": "Add Language"
+  },
+  {
+   "numbers": [
+    8065,
+    7583,
+    7503,
+    7460,
+    7437
+   ],
+   "open": 0,
+   "reactions": 0,
+   "sample_titles": [
+    "Language stats cache stuck",
+    "There is a difference between the scan results of the docker image built and the display o",
+    "The color for Kotlin in search bar is the old color"
+   ],
+   "size": 5,
+   "terms": [
+    "attachments",
+    "assets",
+    "image",
+    "user",
+    "color"
+   ],
+   "top_label": "Bug"
+  },
+  {
+   "numbers": [
+    7718,
+    7019,
+    6889,
+    6673
+   ],
+   "open": 1,
+   "reactions": 0,
+   "sample_titles": [
+    "The Unity layout file is currently misidentified as Mathematica",
+    "Add Algol",
+    "Lua grammar source needs refresh"
+   ],
+   "size": 4,
+   "terms": [
+    "links",
+    "discussion",
+    "related",
+    "remaining",
+    "details"
+   ],
+   "top_label": "Bug"
+  },
+  {
+   "numbers": [
+    5169,
+    6717,
+    6295
+   ],
+   "open": 2,
+   "reactions": 1,
+   "sample_titles": [
+    "High Level Assembly language is not recognized",
+    "Add the B lang and .s for assembly",
+    "TI Program - Add Extensions and Improve Statistics for TI Assembly Programs"
+   ],
+   "size": 3,
+   "terms": [
+    "assembly",
+    "predecessor",
+    "affected",
+    "programs",
+    "programming"
+   ],
+   "top_label": "Add Language"
+  },
+  {
+   "numbers": [
+    7706,
+    7485,
+    6952
+   ],
+   "open": 0,
+   "reactions": 0,
+   "sample_titles": [
+    "Skript Language Support",
+    "Minecraft Skript Language",
+    "Add Skript, a language that allows Minecraft server owners to configure their server."
+   ],
+   "size": 3,
+   "terms": [
+    "skript",
+    "skriptlang",
+    "minecraft",
+    "previous",
+    "closed"
+   ],
+   "top_label": "Add Language"
+  },
+  {
+   "numbers": [
+    6839,
+    6837,
+    6836
+   ],
+   "open": 0,
+   "reactions": 0,
+   "sample_titles": [
+    "Add HVM",
+    "Add Kind",
+    "Add Formcore"
+   ],
+   "size": 3,
+   "terms": [
+    "higherorderco",
+    "kind",
+    "fmc",
+    "kind1",
+    "hvm"
+   ],
+   "top_label": "Add Language"
+  }
+ ],
+ "comments": {
+  "max": 148,
+  "median": 1.0,
+  "no_comments": 83
+ },
+ "fetched": 344,
+ "labels": [
+  {
+   "count": 174,
+   "name": "Add Language"
+  },
+  {
+   "count": 174,
+   "name": "Good First Issue"
+  },
+  {
+   "count": 62,
+   "name": "Improvement"
+  },
+  {
+   "count": 55,
+   "name": "Bug"
+  },
+  {
+   "count": 4,
+   "name": "Invalid"
+  },
+  {
+   "count": 2,
+   "name": "Pending Popularity"
+  },
+  {
+   "count": 2,
+   "name": "Stale"
+  },
+  {
+   "count": 2,
+   "name": "Help Wanted"
+  },
+  {
+   "count": 1,
+   "name": "Blocked"
+  }
+ ],
+ "oldest_open": [
+  {
+   "created_at": "2017-11-30T11:07:35Z",
+   "number": 3924,
+   "title": "Outstanding Grammar Issues",
+   "url": "https://github.com/github-linguist/linguist/issues/3924"
+  },
+  {
+   "created_at": "2019-06-28T06:16:23Z",
+   "number": 4566,
+   "title": "Unable to recognise Dockerfiles with extensions",
+   "url": "https://github.com/github-linguist/linguist/issues/4566"
+  },
+  {
+   "created_at": "2020-09-02T07:00:55Z",
+   "number": 4990,
+   "title": "Suggestion: Move all grammar-related metadata to `grammars.yml`",
+   "url": "https://github.com/github-linguist/linguist/issues/4990"
+  },
+  {
+   "created_at": "2021-01-24T07:06:42Z",
+   "number": 5169,
+   "title": "High Level Assembly language is not recognized",
+   "url": "https://github.com/github-linguist/linguist/issues/5169"
+  },
+  {
+   "created_at": "2021-03-30T10:18:22Z",
+   "number": 5298,
+   "title": "Add SATySFi support",
+   "url": "https://github.com/github-linguist/linguist/issues/5298"
+  }
+ ],
+ "open": 94,
+ "suspicious_titles": 0,
+ "time_to_close_days": {
+  "median": 10.8,
+  "p90": 676.6,
+  "samples": 250
+ },
+ "top_by_reactions": [
+  {
+   "comments": 51,
+   "labels": [],
+   "number": 2598,
+   "reactions": 105,
+   "state": "closed",
+   "title": "Custom Markdown syntax highlighting within locally specified code fences",
+   "url": "https://github.com/github-linguist/linguist/issues/2598"
+  },
+  {
+   "comments": 6,
+   "labels": [
+    "Add Language",
+    "Good First Issue"
+   ],
+   "number": 6000,
+   "reactions": 78,
+   "state": "closed",
+   "title": "Add Language: Luau",
+   "url": "https://github.com/github-linguist/linguist/issues/6000"
+  },
+  {
+   "comments": 31,
+   "labels": [],
+   "number": 2627,
+   "reactions": 72,
+   "state": "closed",
+   "title": "[Feature Request] Repository-local language highlighting",
+   "url": "https://github.com/github-linguist/linguist/issues/2627"
+  },
+  {
+   "comments": 28,
+   "labels": [],
+   "number": 137,
+   "reactions": 59,
+   "state": "closed",
+   "title": "Allow specifying an ignore file for language statistics",
+   "url": "https://github.com/github-linguist/linguist/issues/137"
+  },
+  {
+   "comments": 16,
+   "labels": [],
+   "number": 4974,
+   "reactions": 57,
+   "state": "closed",
+   "title": "Change gdscript grammar provider",
+   "url": "https://github.com/github-linguist/linguist/issues/4974"
+  },
+  {
+   "comments": 5,
+   "labels": [],
+   "number": 5087,
+   "reactions": 48,
+   "state": "closed",
+   "title": "Update Julia syntax",
+   "url": "https://github.com/github-linguist/linguist/issues/5087"
+  },
+  {
+   "comments": 8,
+   "labels": [
+    "Add Language",
+    "Good First Issue"
+   ],
+   "number": 6358,
+   "reactions": 39,
+   "state": "closed",
+   "title": "Add Language: Typst",
+   "url": "https://github.com/github-linguist/linguist/issues/6358"
+  },
+  {
+   "comments": 14,
+   "labels": [],
+   "number": 5085,
+   "reactions": 37,
+   "state": "closed",
+   "title": "Kotlin syntax highlighting stopped working in 7.12.0",
+   "url": "https://github.com/github-linguist/linguist/issues/5085"
+  },
+  {
+   "comments": 63,
+   "labels": [],
+   "number": 3044,
+   "reactions": 36,
+   "state": "closed",
+   "title": "JSX Syntax highlighting broken?",
+   "url": "https://github.com/github-linguist/linguist/issues/3044"
+  },
+  {
+   "comments": 25,
+   "labels": [],
+   "number": 1792,
+   "reactions": 26,
+   "state": "closed",
+   "title": "Support language highlighting on GitHub.com based upon Linguist overrides",
+   "url": "https://github.com/github-linguist/linguist/issues/1792"
+  }
+ ],
+ "unlabeled": 44
+}

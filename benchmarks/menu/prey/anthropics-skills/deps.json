@@ -1,0 +1,87 @@
+{
+ "build_backend": null,
+ "ecosystems": [
+  "python"
+ ],
+ "engines": {},
+ "lockfiles": [],
+ "manifests": [
+  {
+   "ecosystem": "python",
+   "kind": "requirements",
+   "path": "skills/slack-gif-creator/requirements.txt"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "requirements",
+   "path": "skills/mcp-builder/scripts/requirements.txt"
+  }
+ ],
+ "npm_scripts": {},
+ "package_count": 6,
+ "packages": [
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/slack-gif-creator/requirements.txt",
+   "name": "pillow",
+   "pinned": false,
+   "spec": ">=10.0.0"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/slack-gif-creator/requirements.txt",
+   "name": "imageio",
+   "pinned": false,
+   "spec": ">=2.31.0"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/slack-gif-creator/requirements.txt",
+   "name": "imageio-ffmpeg",
+   "pinned": false,
+   "spec": ">=0.4.9"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/slack-gif-creator/requirements.txt",
+   "name": "numpy",
+   "pinned": false,
+   "spec": ">=1.24.0"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/mcp-builder/scripts/requirements.txt",
+   "name": "anthropic",
+   "pinned": false,
+   "spec": ">=0.39.0"
+  },
+  {
+   "ecosystem": "python",
+   "kind": "runtime",
+   "manifest": "skills/mcp-builder/scripts/requirements.txt",
+   "name": "mcp",
+   "pinned": false,
+   "spec": ">=1.1.0"
+  }
+ ],
+ "policies": {
+  "python": {
+   "central_package_management": null,
+   "dev": 0,
+   "lockfiles": [],
+   "package_manager": "pip",
+   "packages": 6,
+   "pinned_ratio": 0.0,
+   "runtime": 6
+  }
+ },
+ "python_tools": [],
+ "requires_python": null,
+ "target_frameworks": [],
+ "workspaces": []
+}

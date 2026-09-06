@@ -25,7 +25,7 @@ from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
-from .maw import MawConfig, write_default_config
+from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
 from .nutrients import STATUSES, Candidate
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
@@ -223,8 +223,16 @@ def _resolve_maw_license(maw: Path | None, explicit: str | None) -> str | None:
 def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
     maw_license = _resolve_maw_license(args.maw, args.maw_license)
+    relationship = relationship_for(slug, MawConfig.load(_maw_dir(args.maw)))
     client = GitHubClient(prefer_gh=not args.no_gh)
-    report = sniff(slug, client=client, cache_root=args.cache_dir, maw_license=maw_license, log=log)
+    report = sniff(
+        slug,
+        client=client,
+        cache_root=args.cache_dir,
+        maw_license=maw_license,
+        relationship=relationship,
+        log=log,
+    )
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:

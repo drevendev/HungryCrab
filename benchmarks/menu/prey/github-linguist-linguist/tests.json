@@ -1,0 +1,47 @@
+{
+ "configs": [],
+ "coverage": {
+  "configured": false,
+  "service": null,
+  "threshold": null,
+  "threshold_source": null
+ },
+ "frameworks": {},
+ "has_tests": true,
+ "sample_test_files": [
+  "test/helper.rb",
+  "test/test_basic_instrumenter.rb",
+  "test/test_blob.rb",
+  "test/test_classifier.rb",
+  "test/test_cli_integration.rb",
+  "test/test_file_blob.rb",
+  "test/test_generated.rb",
+  "test/test_grammars.rb",
+  "test/test_heuristics.rb",
+  "test/test_instrumentation.rb",
+  "test/test_language.rb",
+  "test/test_language_id.rb",
+  "test/test_pedantic.rb",
+  "test/test_repository.rb",
+  "test/test_samples.rb"
+ ],
+ "special": {
+  "benchmarks": false,
+  "e2e": false,
+  "fuzz": false,
+  "integration": false,
+  "mocking": false,
+  "mutation": false,
+  "property": false,
+  "snapshot": false
+ },
+ "src_files": 48,
+ "src_loc": 9110,
+ "test_dirs": [
+  "test"
+ ],
+ "test_files": 19,
+ "test_loc": 5019,
+ "test_loc_ratio": 0.55,
+ "test_to_src_ratio": 0.4
+}

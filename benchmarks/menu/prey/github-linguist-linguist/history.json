@@ -1,0 +1,582 @@
+{
+ "active_months": 173,
+ "age_days": 5597,
+ "authors": 1377,
+ "available": true,
+ "bus_factor": 8,
+ "commits": 6958,
+ "commits_last_365d": 140,
+ "commits_last_90d": 48,
+ "commits_per_month_last_year": {
+  "2025-10": 11,
+  "2025-11": 0,
+  "2025-12": 9,
+  "2026-01": 25,
+  "2026-02": 3,
+  "2026-03": 16,
+  "2026-04": 0,
+  "2026-05": 6,
+  "2026-06": 19,
+  "2026-07": 8,
+  "2026-08": 28,
+  "2026-09": 5
+ },
+ "conventional_commits_ratio": 0.0,
+ "coupling": [
+  {
+   "a": ".gitmodules",
+   "b": "grammars.yml",
+   "count": 542,
+   "share": 0.88
+  },
+  {
+   "a": "grammars.yml",
+   "b": "lib/linguist/languages.yml",
+   "count": 501,
+   "share": 0.7
+  },
+  {
+   "a": ".gitmodules",
+   "b": "lib/linguist/languages.yml",
+   "count": 443,
+   "share": 0.72
+  },
+  {
+   "a": "lib/linguist/heuristics.yml",
+   "b": "test/test_heuristics.rb",
+   "count": 110,
+   "share": 0.59
+  },
+  {
+   "a": "lib/linguist/heuristics.yml",
+   "b": "lib/linguist/languages.yml",
+   "count": 110,
+   "share": 0.59
+  },
+  {
+   "a": "lib/linguist/languages.yml",
+   "b": "test/test_heuristics.rb",
+   "count": 109,
+   "share": 0.52
+  },
+  {
+   "a": "lib/linguist/languages.yml",
+   "b": "test/test_language.rb",
+   "count": 99,
+   "share": 0.43
+  },
+  {
+   "a": "lib/linguist/language.rb",
+   "b": "test/test_language.rb",
+   "count": 73,
+   "share": 0.35
+  },
+  {
+   "a": "lib/linguist/blob_helper.rb",
+   "b": "test/test_blob.rb",
+   "count": 73,
+   "share": 0.43
+  },
+  {
+   "a": "lib/linguist/heuristics.rb",
+   "b": "test/test_heuristics.rb",
+   "count": 60,
+   "share": 0.3
+  },
+  {
+   "a": "lib/linguist/languages.yml",
+   "b": "lib/linguist/samples.json",
+   "count": 59,
+   "share": 0.25
+  },
+  {
+   "a": "grammars.yml",
+   "b": "lib/linguist/heuristics.yml",
+   "count": 56,
+   "share": 0.3
+  },
+  {
+   "a": ".gitmodules",
+   "b": "lib/linguist/heuristics.yml",
+   "count": 51,
+   "share": 0.28
+  },
+  {
+   "a": "lib/linguist/languages.yml",
+   "b": "test/test_blob.rb",
+   "count": 51,
+   "share": 0.17
+  },
+  {
+   "a": "grammars.yml",
+   "b": "test/test_heuristics.rb",
+   "count": 50,
+   "share": 0.24
+  }
+ ],
+ "files_touched": 3302,
+ "first_commit": "2011-05-09T17:53:41-05:00",
+ "fix_commits": 319,
+ "fix_prone": [
+  {
+   "added": 63,
+   "commits": 4,
+   "deleted": 63,
+   "fix_ratio": 0.5,
+   "fixes": 2,
+   "path": "lib/linguist/md5.rb"
+  },
+  {
+   "added": 134,
+   "commits": 8,
+   "deleted": 10,
+   "fix_ratio": 0.38,
+   "fixes": 3,
+   "path": "docs/overrides.md"
+  },
+  {
+   "added": 1119,
+   "commits": 3,
+   "deleted": 1119,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "samples/Coq/JsNumber.v"
+  },
+  {
+   "added": 32,
+   "commits": 3,
+   "deleted": 3,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "docs/how-linguist-works.md"
+  },
+  {
+   "added": 31,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": ".editorconfig"
+  },
+  {
+   "added": 2,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/grammars/Nova.tmLanguage"
+  },
+  {
+   "added": 26,
+   "commits": 3,
+   "deleted": 26,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/licenses/git_submodule/Nova.tmLanguage.dep.yml"
+  },
+  {
+   "added": 20,
+   "commits": 3,
+   "deleted": 20,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "ext/linguist/strndup.c"
+  },
+  {
+   "added": 208,
+   "commits": 3,
+   "deleted": 208,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/licenses/grammar/ABNF.tmbundle.txt"
+  },
+  {
+   "added": 26,
+   "commits": 3,
+   "deleted": 26,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/licenses/grammar/EBNF.tmbundle.txt"
+  },
+  {
+   "added": 76,
+   "commits": 3,
+   "deleted": 76,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "samples/Perl6/hash.t"
+  },
+  {
+   "added": 2,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/grammars/language-hy"
+  },
+  {
+   "added": 29,
+   "commits": 3,
+   "deleted": 29,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "vendor/licenses/grammar/ebundles.txt"
+  },
+  {
+   "added": 10,
+   "commits": 3,
+   "deleted": 10,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "test/fixtures/hello.n"
+  },
+  {
+   "added": 13,
+   "commits": 3,
+   "deleted": 13,
+   "fix_ratio": 0.33,
+   "fixes": 1,
+   "path": "test/fixtures/hello_syntax1.opa"
+  }
+ ],
+ "fix_ratio": 0.06,
+ "hotspots": [
+  {
+   "added": 20404,
+   "commits": 2331,
+   "deleted": 10021,
+   "fix_ratio": 0.05,
+   "fixes": 113,
+   "path": "lib/linguist/languages.yml"
+  },
+  {
+   "added": 2972,
+   "commits": 711,
+   "deleted": 1430,
+   "fix_ratio": 0.02,
+   "fixes": 13,
+   "path": "grammars.yml"
+  },
+  {
+   "added": 3297,
+   "commits": 617,
+   "deleted": 1593,
+   "fix_ratio": 0.01,
+   "fixes": 5,
+   "path": ".gitmodules"
+  },
+  {
+   "added": 2223,
+   "commits": 298,
+   "deleted": 1695,
+   "fix_ratio": 0.06,
+   "fixes": 17,
+   "path": "test/test_blob.rb"
+  },
+  {
+   "added": 2369578,
+   "commits": 232,
+   "deleted": 2666636,
+   "fix_ratio": 0.04,
+   "fixes": 9,
+   "path": "lib/linguist/samples.json"
+  },
+  {
+   "added": 1586,
+   "commits": 228,
+   "deleted": 1086,
+   "fix_ratio": 0.07,
+   "fixes": 15,
+   "path": "test/test_language.rb"
+  },
+  {
+   "added": 2016,
+   "commits": 210,
+   "deleted": 617,
+   "fix_ratio": 0.07,
+   "fixes": 14,
+   "path": "test/test_heuristics.rb"
+  },
+  {
+   "added": 1503,
+   "commits": 208,
+   "deleted": 919,
+   "fix_ratio": 0.06,
+   "fixes": 13,
+   "path": "lib/linguist/language.rb"
+  },
+  {
+   "added": 1617,
+   "commits": 200,
+   "deleted": 1261,
+   "fix_ratio": 0.12,
+   "fixes": 24,
+   "path": "lib/linguist/heuristics.rb"
+  },
+  {
+   "added": 1439,
+   "commits": 185,
+   "deleted": 223,
+   "fix_ratio": 0.08,
+   "fixes": 15,
+   "path": "lib/linguist/heuristics.yml"
+  },
+  {
+   "added": 1434,
+   "commits": 170,
+   "deleted": 1016,
+   "fix_ratio": 0.09,
+   "fixes": 15,
+   "path": "lib/linguist/blob_helper.rb"
+  },
+  {
+   "added": 663,
+   "commits": 166,
+   "deleted": 214,
+   "fix_ratio": 0.04,
+   "fixes": 6,
+   "path": "lib/linguist/vendor.yml"
+  },
+  {
+   "added": 186,
+   "commits": 154,
+   "deleted": 151,
+   "fix_ratio": 0.01,
+   "fixes": 2,
+   "path": "github-linguist.gemspec"
+  },
+  {
+   "added": 150,
+   "commits": 148,
+   "deleted": 147,
+   "fix_ratio": 0.01,
+   "fixes": 1,
+   "path": "lib/linguist/version.rb"
+  },
+  {
+   "added": 1429,
+   "commits": 142,
+   "deleted": 309,
+   "fix_ratio": 0.09,
+   "fixes": 13,
+   "path": "lib/linguist/generated.rb"
+  },
+  {
+   "added": 1258,
+   "commits": 135,
+   "deleted": 858,
+   "fix_ratio": 0.16,
+   "fixes": 22,
+   "path": "README.md"
+  },
+  {
+   "added": 581,
+   "commits": 108,
+   "deleted": 365,
+   "fix_ratio": 0.05,
+   "fixes": 5,
+   "path": "Rakefile"
+  },
+  {
+   "added": 668,
+   "commits": 79,
+   "deleted": 330,
+   "fix_ratio": 0.1,
+   "fixes": 8,
+   "path": "CONTRIBUTING.md"
+  },
+  {
+   "added": 72,
+   "commits": 72,
+   "deleted": 71,
+   "fix_ratio": 0.03,
+   "fixes": 2,
+   "path": "vendor/grammars/language-javascript"
+  },
+  {
+   "added": 66,
+   "commits": 66,
+   "deleted": 65,
+   "fix_ratio": 0.0,
+   "fixes": 0,
+   "path": "vendor/CodeMirror"
+  }
+ ],
+ "largest_commits": [
+  {
+   "date": "2020-07-29",
+   "files": 710,
+   "lines": 34665,
+   "sha": "96ad118",
+   "subject": "Enable use of Bundler v2 and Migrate to Licensed v2  (#4934)"
+  },
+  {
+   "date": "2012-07-23",
+   "files": 540,
+   "lines": 212589,
+   "sha": "7b6caa0",
+   "subject": "Rename samples subdirectories"
+  },
+  {
+   "date": "2012-06-22",
+   "files": 488,
+   "lines": 173163,
+   "sha": "5521dd0",
+   "subject": "Move test fixtures to samples/"
+  },
+  {
+   "date": "2015-07-29",
+   "files": 465,
+   "lines": 138687,
+   "sha": "90a2937",
+   "subject": "Merge branch 'master' into more-encompassing-number-skips"
+  },
+  {
+   "date": "2016-01-28",
+   "files": 370,
+   "lines": 11921,
+   "sha": "9b8b39f",
+   "subject": "samples: add Terra samples"
+  }
+ ],
+ "last_commit": "2026-09-05T07:11:46+00:00",
+ "merges": 1587,
+ "pr_style_ratio": 0.4,
+ "revert_count": 67,
+ "reverts": [
+  {
+   "date": "2026-01-08",
+   "sha": "652441e",
+   "subject": "Revert \"Add ArkTS language support\" (#7737)"
+  },
+  {
+   "date": "2025-09-15",
+   "sha": "94436d2",
+   "subject": "Add support for Bru (Bruno Markup Language) (#7560)"
+  },
+  {
+   "date": "2025-01-14",
+   "sha": "1a30b0f",
+   "subject": "Switch ApacheConf to maintained upstream (#7143)"
+  },
+  {
+   "date": "2024-11-25",
+   "sha": "c637573",
+   "subject": "Improvements to VBA's Heuristic (#7079)"
+  },
+  {
+   "date": "2024-08-29",
+   "sha": "48b3af8",
+   "subject": "Replace Just grammar (#6985)"
+  },
+  {
+   "date": "2024-08-29",
+   "sha": "d82c4ca",
+   "subject": "Split Cairo out into separate Cairo and Cairo Zero languages (#6917)"
+  },
+  {
+   "date": "2024-06-07",
+   "sha": "e24649a",
+   "subject": "Revert \"Add Overpass QL\" (#6871)"
+  },
+  {
+   "date": "2024-06-07",
+   "sha": "0204ffa",
+   "subject": "Add Luau language (#6612)"
+  },
+  {
+   "date": "2023-12-12",
+   "sha": "8c380f3",
+   "subject": "Add Terraform Template language (#6604)"
+  },
+  {
+   "date": "2023-12-11",
+   "sha": "6a9a3e4",
+   "subject": "Add support for Lean 4 (#6616)"
+  }
+ ],
+ "security_commit_count": 1,
+ "security_commits": [
+  {
+   "date": "2023-12-05",
+   "sha": "2a527e1",
+   "subject": "Address CodeQL security alerts (#6609)"
+  }
+ ],
+ "shallow": false,
+ "tags": {
+  "annotated_ratio": 0.05,
+  "count": 187,
+  "latest": "v9.7.0",
+  "latest_date": "2026-08-26T11:28:00+01:00",
+  "recent": [
+   "v9.7.0",
+   "v9.6.0",
+   "v9.5.0",
+   "v9.4.0",
+   "v9.3.0",
+   "v9.2.0",
+   "v9.1.0",
+   "v9.0.0",
+   "v8.0.1",
+   "v8.0.0"
+  ],
+  "release_cadence_days": 71,
+  "releases_last_year": 5,
+  "semver_count": 186,
+  "semver_ratio": 0.99
+ },
+ "top_authors": [
+  {
+   "commits": 735,
+   "name": "Joshua Peek",
+   "share": 0.11
+  },
+  {
+   "commits": 605,
+   "name": "Arfon Smith",
+   "share": 0.09
+  },
+  {
+   "commits": 571,
+   "name": "Arfon Smith",
+   "share": 0.08
+  },
+  {
+   "commits": 496,
+   "name": "Ted Nyman",
+   "share": 0.07
+  },
+  {
+   "commits": 383,
+   "name": "Paul Chaignon",
+   "share": 0.06
+  },
+  {
+   "commits": 248,
+   "name": "Arfon Smith",
+   "share": 0.04
+  },
+  {
+   "commits": 247,
+   "name": "John Gardner",
+   "share": 0.04
+  },
+  {
+   "commits": 233,
+   "name": "Colin Seymour",
+   "share": 0.03
+  },
+  {
+   "commits": 192,
+   "name": "Adam Roben",
+   "share": 0.03
+  },
+  {
+   "commits": 135,
+   "name": "Brandon Keepers",
+   "share": 0.02
+  }
+ ],
+ "truncated": false
+}

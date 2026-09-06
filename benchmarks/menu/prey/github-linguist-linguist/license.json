@@ -1,0 +1,59 @@
+{
+ "api_spdx": null,
+ "candidates": [],
+ "class": "permissive",
+ "confidence": 0.95,
+ "conflicts": [],
+ "evidence": [
+  {
+   "confidence": 0.95,
+   "note": "",
+   "path": "LICENSE",
+   "source": "file",
+   "spdx": "MIT"
+  }
+ ],
+ "exceptions": [
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "samples/Rich Text Format/LICENSE.rtf",
+   "spdx": "Apache-2.0"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "samples/Text/filenames/COPYING.regex",
+   "spdx": "BSD-3-Clause"
+  },
+  {
+   "confidence": 0.95,
+   "kind": "nested-license",
+   "path": "samples/Text/filenames/LICENSE.mysql",
+   "spdx": "GPL-2.0-only"
+  }
+ ],
+ "header_counts": {},
+ "headers_scanned": 67,
+ "human_review": false,
+ "license_files": [
+  "LICENSE"
+ ],
+ "maw_license": "MIT",
+ "modes_by_maw_class": {
+  "gpl": "COPY",
+  "permissive": "COPY",
+  "proprietary": "COPY"
+ },
+ "notes": [],
+ "notice_files": [],
+ "resolution": "single",
+ "spdx": "MIT",
+ "verdict": {
+  "human_review": false,
+  "mode": "COPY",
+  "notice_required": false,
+  "reason": "permissive license: keep the copyright notice",
+  "share_alike": false
+ }
+}

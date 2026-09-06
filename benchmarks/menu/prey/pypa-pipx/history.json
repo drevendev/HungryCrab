@@ -1,0 +1,567 @@
+{
+ "active_months": 87,
+ "age_days": 2888,
+ "authors": 224,
+ "available": true,
+ "bus_factor": 5,
+ "commits": 1130,
+ "commits_last_365d": 298,
+ "commits_last_90d": 178,
+ "commits_per_month_last_year": {
+  "2025-10": 4,
+  "2025-11": 2,
+  "2025-12": 0,
+  "2026-01": 6,
+  "2026-02": 0,
+  "2026-03": 64,
+  "2026-04": 13,
+  "2026-05": 16,
+  "2026-06": 28,
+  "2026-07": 129,
+  "2026-08": 28,
+  "2026-09": 3
+ },
+ "conventional_commits_ratio": 0.07,
+ "coupling": [
+  {
+   "a": "README.md",
+   "b": "pipx/main.py",
+   "count": 53,
+   "share": 0.45
+  },
+  {
+   "a": "docs/changelog.md",
+   "b": "src/pipx/main.py",
+   "count": 41,
+   "share": 0.25
+  },
+  {
+   "a": "pipx/main.py",
+   "b": "setup.py",
+   "count": 36,
+   "share": 0.58
+  },
+  {
+   "a": "src/pipx/main.py",
+   "b": "src/pipx/venv.py",
+   "count": 30,
+   "share": 0.35
+  },
+  {
+   "a": "docs/changelog.md",
+   "b": "src/pipx/version.py",
+   "count": 27,
+   "share": 0.64
+  },
+  {
+   "a": "src/pipx/main.py",
+   "b": "tests/test_install.py",
+   "count": 25,
+   "share": 0.3
+  },
+  {
+   "a": "CHANGELOG.md",
+   "b": "README.md",
+   "count": 25,
+   "share": 0.23
+  },
+  {
+   "a": "README.md",
+   "b": "docs/index.md",
+   "count": 25,
+   "share": 0.81
+  },
+  {
+   "a": "src/pipx/commands/run.py",
+   "b": "tests/test_run.py",
+   "count": 24,
+   "share": 0.44
+  },
+  {
+   "a": "src/pipx/commands/__init__.py",
+   "b": "src/pipx/main.py",
+   "count": 23,
+   "share": 0.79
+  },
+  {
+   "a": ".github/workflows/exhaustive_package_test.yml",
+   "b": ".github/workflows/tests.yml",
+   "count": 22,
+   "share": 0.79
+  },
+  {
+   "a": "README.md",
+   "b": "setup.py",
+   "count": 22,
+   "share": 0.35
+  },
+  {
+   "a": "src/pipx/commands/install.py",
+   "b": "src/pipx/main.py",
+   "count": 21,
+   "share": 0.4
+  },
+  {
+   "a": ".github/workflows/create_tests_package_lists.yml",
+   "b": ".github/workflows/tests.yml",
+   "count": 21,
+   "share": 0.72
+  },
+  {
+   "a": "src/pipx/commands/install.py",
+   "b": "tests/test_install.py",
+   "count": 20,
+   "share": 0.38
+  }
+ ],
+ "files_touched": 593,
+ "first_commit": "2018-10-05T17:47:45-07:00",
+ "fix_commits": 268,
+ "fix_prone": [
+  {
+   "added": 145,
+   "commits": 4,
+   "deleted": 9,
+   "fix_ratio": 1.0,
+   "fixes": 4,
+   "path": "tests/test_paths.py"
+  },
+  {
+   "added": 301,
+   "commits": 10,
+   "deleted": 37,
+   "fix_ratio": 0.7,
+   "fixes": 7,
+   "path": "tests/test_util.py"
+  },
+  {
+   "added": 201,
+   "commits": 3,
+   "deleted": 8,
+   "fix_ratio": 0.67,
+   "fixes": 2,
+   "path": "src/pipx/commands/health.py"
+  },
+  {
+   "added": 19,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.67,
+   "fixes": 2,
+   "path": "tests/test_subprocess_env.py"
+  },
+  {
+   "added": 49,
+   "commits": 3,
+   "deleted": 2,
+   "fix_ratio": 0.67,
+   "fixes": 2,
+   "path": "tests/test_backends_install.py"
+  },
+  {
+   "added": 339,
+   "commits": 16,
+   "deleted": 144,
+   "fix_ratio": 0.62,
+   "fixes": 10,
+   "path": "src/pipx/paths.py"
+  },
+  {
+   "added": 138,
+   "commits": 5,
+   "deleted": 6,
+   "fix_ratio": 0.6,
+   "fixes": 3,
+   "path": "tests/test_common.py"
+  },
+  {
+   "added": 65,
+   "commits": 5,
+   "deleted": 18,
+   "fix_ratio": 0.6,
+   "fixes": 3,
+   "path": "src/pipx/emojis.py"
+  },
+  {
+   "added": 509,
+   "commits": 22,
+   "deleted": 65,
+   "fix_ratio": 0.5,
+   "fixes": 11,
+   "path": "tests/test_package_specifier.py"
+  },
+  {
+   "added": 802,
+   "commits": 20,
+   "deleted": 143,
+   "fix_ratio": 0.5,
+   "fixes": 10,
+   "path": "tests/test_standalone_interpreter.py"
+  },
+  {
+   "added": 115,
+   "commits": 4,
+   "deleted": 19,
+   "fix_ratio": 0.5,
+   "fixes": 2,
+   "path": "scripts/release.py"
+  },
+  {
+   "added": 284,
+   "commits": 4,
+   "deleted": 30,
+   "fix_ratio": 0.5,
+   "fixes": 2,
+   "path": "src/pipx/script.py"
+  },
+  {
+   "added": 198,
+   "commits": 4,
+   "deleted": 12,
+   "fix_ratio": 0.5,
+   "fixes": 2,
+   "path": "tests/test_ensurepath.py"
+  },
+  {
+   "added": 487,
+   "commits": 15,
+   "deleted": 144,
+   "fix_ratio": 0.47,
+   "fixes": 7,
+   "path": "tests/test_uninject.py"
+  },
+  {
+   "added": 574,
+   "commits": 26,
+   "deleted": 184,
+   "fix_ratio": 0.46,
+   "fixes": 12,
+   "path": "src/pipx/standalone_python.py"
+  }
+ ],
+ "fix_ratio": 0.24,
+ "hotspots": [
+  {
+   "added": 3422,
+   "commits": 186,
+   "deleted": 1350,
+   "fix_ratio": 0.2,
+   "fixes": 38,
+   "path": "src/pipx/main.py"
+  },
+  {
+   "added": 1675,
+   "commits": 167,
+   "deleted": 1675,
+   "fix_ratio": 0.17,
+   "fixes": 28,
+   "path": "docs/changelog.md"
+  },
+  {
+   "added": 2207,
+   "commits": 156,
+   "deleted": 2207,
+   "fix_ratio": 0.18,
+   "fixes": 28,
+   "path": "README.md"
+  },
+  {
+   "added": 2409,
+   "commits": 118,
+   "deleted": 2409,
+   "fix_ratio": 0.12,
+   "fixes": 14,
+   "path": "pipx/main.py"
+  },
+  {
+   "added": 969,
+   "commits": 108,
+   "deleted": 969,
+   "fix_ratio": 0.17,
+   "fixes": 18,
+   "path": "CHANGELOG.md"
+  },
+  {
+   "added": 282,
+   "commits": 91,
+   "deleted": 227,
+   "fix_ratio": 0.05,
+   "fixes": 5,
+   "path": ".pre-commit-config.yaml"
+  },
+  {
+   "added": 1651,
+   "commits": 86,
+   "deleted": 817,
+   "fix_ratio": 0.21,
+   "fixes": 18,
+   "path": "src/pipx/venv.py"
+  },
+  {
+   "added": 2365,
+   "commits": 84,
+   "deleted": 579,
+   "fix_ratio": 0.32,
+   "fixes": 27,
+   "path": "tests/test_install.py"
+  },
+  {
+   "added": 1511,
+   "commits": 72,
+   "deleted": 770,
+   "fix_ratio": 0.25,
+   "fixes": 18,
+   "path": "src/pipx/commands/common.py"
+  },
+  {
+   "added": 535,
+   "commits": 64,
+   "deleted": 397,
+   "fix_ratio": 0.14,
+   "fixes": 9,
+   "path": ".github/workflows/tests.yml"
+  },
+  {
+   "added": 192,
+   "commits": 62,
+   "deleted": 192,
+   "fix_ratio": 0.19,
+   "fixes": 12,
+   "path": "setup.py"
+  },
+  {
+   "added": 1033,
+   "commits": 60,
+   "deleted": 418,
+   "fix_ratio": 0.32,
+   "fixes": 19,
+   "path": "src/pipx/util.py"
+  },
+  {
+   "added": 647,
+   "commits": 60,
+   "deleted": 647,
+   "fix_ratio": 0.17,
+   "fixes": 10,
+   "path": "noxfile.py"
+  },
+  {
+   "added": 438,
+   "commits": 59,
+   "deleted": 211,
+   "fix_ratio": 0.17,
+   "fixes": 10,
+   "path": "pyproject.toml"
+  },
+  {
+   "added": 1215,
+   "commits": 56,
+   "deleted": 572,
+   "fix_ratio": 0.21,
+   "fixes": 12,
+   "path": "src/pipx/commands/run.py"
+  },
+  {
+   "added": 1480,
+   "commits": 55,
+   "deleted": 277,
+   "fix_ratio": 0.27,
+   "fixes": 15,
+   "path": "tests/test_run.py"
+  },
+  {
+   "added": 1303,
+   "commits": 54,
+   "deleted": 752,
+   "fix_ratio": 0.28,
+   "fixes": 15,
+   "path": "src/pipx/commands/upgrade.py"
+  },
+  {
+   "added": 1720,
+   "commits": 53,
+   "deleted": 788,
+   "fix_ratio": 0.26,
+   "fixes": 14,
+   "path": "src/pipx/commands/install.py"
+  },
+  {
+   "added": 871,
+   "commits": 45,
+   "deleted": 383,
+   "fix_ratio": 0.27,
+   "fixes": 12,
+   "path": "tests/conftest.py"
+  },
+  {
+   "added": 475,
+   "commits": 45,
+   "deleted": 475,
+   "fix_ratio": 0.18,
+   "fixes": 8,
+   "path": "docs/installation.md"
+  }
+ ],
+ "largest_commits": [
+  {
+   "date": "2026-07-15",
+   "files": 151,
+   "lines": 10177,
+   "sha": "b5cdd27",
+   "subject": "🐛 fix: resolve release-review findings across the CLI (#1956)"
+  },
+  {
+   "date": "2026-07-15",
+   "files": 117,
+   "lines": 406,
+   "sha": "75b642a",
+   "subject": "Release 1.16.0"
+  },
+  {
+   "date": "2026-07-15",
+   "files": 108,
+   "lines": 417,
+   "sha": "3027ecc",
+   "subject": "📝 docs: restore the 1.16.0 changelog fragments (#1961)"
+  },
+  {
+   "date": "2026-07-15",
+   "files": 105,
+   "lines": 375,
+   "sha": "17509fe",
+   "subject": "Release 1.16.0"
+  },
+  {
+   "date": "2026-07-15",
+   "files": 78,
+   "lines": 10468,
+   "sha": "67af8e5",
+   "subject": "📝 docs: migrate from MkDocs to Sphinx (#1957)"
+  }
+ ],
+ "last_commit": "2026-09-02T06:45:14-07:00",
+ "merges": 18,
+ "pr_style_ratio": 0.78,
+ "revert_count": 7,
+ "reverts": [
+  {
+   "date": "2024-04-28",
+   "sha": "7cce169",
+   "subject": "feat: add upgrade-shared command (#1316)"
+  },
+  {
+   "date": "2024-03-29",
+   "sha": "9679124",
+   "subject": "Revert platformdirs on MacOS and Windows (#1297)"
+  },
+  {
+   "date": "2024-03-18",
+   "sha": "24e8e29",
+   "subject": "Updated PR: Added --global option to perform actions for all users (#754) (#1281)"
+  },
+  {
+   "date": "2023-12-28",
+   "sha": "0a9edac",
+   "subject": "Revert \"Bump actions/upload-artifact from 3 to 4 (#1147)\" (#1153)"
+  },
+  {
+   "date": "2023-12-28",
+   "sha": "3ca69ed",
+   "subject": "Revert \"Bump actions/download-artifact from 3 to 4 (#1148)\" (#1154)"
+  },
+  {
+   "date": "2022-01-03",
+   "sha": "b118a9f",
+   "subject": "Revert \"Update *Edit this page* link\" (#788)"
+  },
+  {
+   "date": "2019-11-30",
+   "sha": "1b144dc",
+   "subject": "Revert \"DOC: Fixed completion command in README.md\" (#285)"
+  }
+ ],
+ "security_commit_count": 1,
+ "security_commits": [
+  {
+   "date": "2025-02-05",
+   "sha": "c6844ba",
+   "subject": "fix: make Github Action safe to RCE via pull request title (#1600)"
+  }
+ ],
+ "shallow": false,
+ "tags": {
+  "annotated_ratio": 0.02,
+  "count": 94,
+  "latest": "1.17.2",
+  "latest_date": "2026-09-01T21:32:54+00:00",
+  "recent": [
+   "1.17.2",
+   "1.17.1",
+   "1.17.0",
+   "1.16.8",
+   "1.16.7",
+   "1.16.6",
+   "1.16.5",
+   "1.16.4",
+   "1.16.3",
+   "1.16.2"
+  ],
+  "release_cadence_days": 5,
+  "releases_last_year": 26,
+  "semver_count": 49,
+  "semver_ratio": 0.52
+ },
+ "top_authors": [
+  {
+   "commits": 165,
+   "name": "Bernát Gábor",
+   "share": 0.15
+  },
+  {
+   "commits": 165,
+   "name": "Matthew Clapp",
+   "share": 0.15
+  },
+  {
+   "commits": 163,
+   "name": "Chad Smith",
+   "share": 0.14
+  },
+  {
+   "commits": 59,
+   "name": "pre-commit-ci[bot]",
+   "share": 0.05
+  },
+  {
+   "commits": 58,
+   "name": "Chad Smith",
+   "share": 0.05
+  },
+  {
+   "commits": 48,
+   "name": "dependabot[bot]",
+   "share": 0.04
+  },
+  {
+   "commits": 47,
+   "name": "Jason Lam",
+   "share": 0.04
+  },
+  {
+   "commits": 30,
+   "name": "github-actions[bot]",
+   "share": 0.03
+  },
+  {
+   "commits": 24,
+   "name": "Dimitri Papadopoulos Orfanos",
+   "share": 0.02
+  },
+  {
+   "commits": 20,
+   "name": "Xuan (Sean) Hu",
+   "share": 0.02
+  }
+ ],
+ "truncated": false
+}

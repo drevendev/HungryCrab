@@ -1,0 +1,17 @@
+{
+ "agents": [],
+ "codex": [],
+ "commands": [],
+ "copilot_instructions": [],
+ "copilot_prompts": [],
+ "cursor_rules": [],
+ "devcontainer": false,
+ "hooks": [],
+ "instruction_files": [],
+ "mcp": [],
+ "plugin": [],
+ "present": [],
+ "settings": [],
+ "skills": [],
+ "suspicious_fragments": 0
+}

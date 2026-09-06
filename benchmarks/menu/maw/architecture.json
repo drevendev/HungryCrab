@@ -1,0 +1,1446 @@
+{
+ "available": true,
+ "edges": [
+  [
+   "benchmarks/run.py",
+   "src/hungry_crab/__init__.py"
+  ],
+  [
+   "benchmarks/run.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "benchmarks/run.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "benchmarks/run.py",
+   "src/hungry_crab/fetch/catch.py"
+  ],
+  [
+   "src/hungry_crab/__main__.py",
+   "src/hungry_crab/cli.py"
+  ],
+  [
+   "src/hungry_crab/cache.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/__init__.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/compare/__init__.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/compare/scoring.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/fetch/catch.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/fetch/github.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/licensing/detect.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/miners/__init__.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/serve.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/sniff.py"
+  ],
+  [
+   "src/hungry_crab/cli.py",
+   "src/hungry_crab/tune.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/compare/candidates.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/compare/render.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/compare/scoring.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/licensing/__init__.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/compare/__init__.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/compare/candidates.py",
+   "src/hungry_crab/compare/rules.py"
+  ],
+  [
+   "src/hungry_crab/compare/candidates.py",
+   "src/hungry_crab/fs.py"
+  ],
+  [
+   "src/hungry_crab/compare/candidates.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/compare/candidates.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/compare/candidates.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/compare/render.py",
+   "src/hungry_crab/compare/candidates.py"
+  ],
+  [
+   "src/hungry_crab/compare/render.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/compare/render.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/compare/render.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/compare/scoring.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/compare/scoring.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/__init__.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/fetch/catch.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/fetch/git.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/fetch/issues.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/fs.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/miners/__init__.py"
+  ],
+  [
+   "src/hungry_crab/digest.py",
+   "src/hungry_crab/tokens.py"
+  ],
+  [
+   "src/hungry_crab/fetch/catch.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/fetch/catch.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/fetch/catch.py",
+   "src/hungry_crab/fetch/git.py"
+  ],
+  [
+   "src/hungry_crab/fetch/catch.py",
+   "src/hungry_crab/fetch/github.py"
+  ],
+  [
+   "src/hungry_crab/fetch/catch.py",
+   "src/hungry_crab/fetch/issues.py"
+  ],
+  [
+   "src/hungry_crab/fetch/git.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/fetch/github.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/fetch/github.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/fetch/issues.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/fetch/issues.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/fetch/issues.py",
+   "src/hungry_crab/fetch/github.py"
+  ],
+  [
+   "src/hungry_crab/fetch/issues.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/host.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/host.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/host.py",
+   "src/hungry_crab/fetch/git.py"
+  ],
+  [
+   "src/hungry_crab/host.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/ledger.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/ledger.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/ledger.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/licensing/__init__.py",
+   "src/hungry_crab/licensing/detect.py"
+  ],
+  [
+   "src/hungry_crab/licensing/__init__.py",
+   "src/hungry_crab/licensing/matrix.py"
+  ],
+  [
+   "src/hungry_crab/licensing/detect.py",
+   "src/hungry_crab/fs.py"
+  ],
+  [
+   "src/hungry_crab/licensing/detect.py",
+   "src/hungry_crab/licensing/matrix.py"
+  ],
+  [
+   "src/hungry_crab/mdutil.py",
+   "src/hungry_crab/tokens.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/ai_config.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/architecture.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/branches.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/ci.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/deps.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/docs.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/history.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/inventory.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/issues.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/license.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/testing.py"
+  ],
+  [
+   "src/hungry_crab/miners/__init__.py",
+   "src/hungry_crab/miners/traits.py"
+  ],
+  [
+   "src/hungry_crab/miners/ai_config.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/ai_config.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/ai_config.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/miners/ai_config.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/architecture.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/architecture.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/base.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/miners/base.py",
+   "src/hungry_crab/fetch/git.py"
+  ],
+  [
+   "src/hungry_crab/miners/base.py",
+   "src/hungry_crab/fs.py"
+  ],
+  [
+   "src/hungry_crab/miners/base.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/branches.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/branches.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/branches.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/miners/ci.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/ci.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/ci.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/deps.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/deps.py",
+   "src/hungry_crab/miners/inventory.py"
+  ],
+  [
+   "src/hungry_crab/miners/deps.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/docs.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/docs.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/docs.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/miners/history.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/history.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/history.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/miners/inventory.py",
+   "src/hungry_crab/fs.py"
+  ],
+  [
+   "src/hungry_crab/miners/inventory.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/inventory.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/issues.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/issues.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/issues.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "src/hungry_crab/miners/issues.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/license.py",
+   "src/hungry_crab/licensing/__init__.py"
+  ],
+  [
+   "src/hungry_crab/miners/license.py",
+   "src/hungry_crab/licensing/detect.py"
+  ],
+  [
+   "src/hungry_crab/miners/license.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/testing.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/testing.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/testing.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/miners/traits.py",
+   "src/hungry_crab/miners/base.py"
+  ],
+  [
+   "src/hungry_crab/miners/traits.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/nutrients.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/compare/__init__.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "src/hungry_crab/serve.py",
+   "src/hungry_crab/typeutil.py"
+  ],
+  [
+   "src/hungry_crab/sniff.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "src/hungry_crab/sniff.py",
+   "src/hungry_crab/fetch/github.py"
+  ],
+  [
+   "src/hungry_crab/sniff.py",
+   "src/hungry_crab/licensing/__init__.py"
+  ],
+  [
+   "src/hungry_crab/tune.py",
+   "src/hungry_crab/compare/scoring.py"
+  ],
+  [
+   "src/hungry_crab/tune.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "src/hungry_crab/tune.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "src/hungry_crab/tune.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/conftest.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/conftest.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/conftest.py",
+   "tests/fixture_builder.py"
+  ],
+  [
+   "tests/helpers.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_cache.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_cache.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "tests/test_catch.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_catch.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "tests/test_catch.py",
+   "src/hungry_crab/fetch/catch.py"
+  ],
+  [
+   "tests/test_cli.py",
+   "src/hungry_crab/__init__.py"
+  ],
+  [
+   "tests/test_cli.py",
+   "src/hungry_crab/cli.py"
+  ],
+  [
+   "tests/test_cli.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/compare/__init__.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/compare/candidates.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "src/hungry_crab/tokens.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "tests/conftest.py"
+  ],
+  [
+   "tests/test_compare.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "src/hungry_crab/miners/__init__.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "src/hungry_crab/tokens.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "tests/conftest.py"
+  ],
+  [
+   "tests/test_digest.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_fixture_builder.py",
+   "tests/fixture_builder.py"
+  ],
+  [
+   "tests/test_host_config.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "tests/test_host_config.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "tests/test_host_config.py",
+   "tests/fixture_builder.py"
+  ],
+  [
+   "tests/test_host_config.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_ledger.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "tests/test_ledger.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "tests/test_ledger.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/test_licensing.py",
+   "src/hungry_crab/licensing/__init__.py"
+  ],
+  [
+   "tests/test_licensing.py",
+   "src/hungry_crab/licensing/detect.py"
+  ],
+  [
+   "tests/test_licensing.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_markdown_and_tokens.py",
+   "src/hungry_crab/mdutil.py"
+  ],
+  [
+   "tests/test_markdown_and_tokens.py",
+   "src/hungry_crab/tokens.py"
+  ],
+  [
+   "tests/test_miner_ai_config.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_ai_config.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_architecture.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_architecture.py",
+   "src/hungry_crab/miners/architecture.py"
+  ],
+  [
+   "tests/test_miner_architecture.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_branches.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_branches.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_ci.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_ci.py",
+   "src/hungry_crab/miners/ci.py"
+  ],
+  [
+   "tests/test_miner_ci.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_deps.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_deps.py",
+   "src/hungry_crab/miners/deps.py"
+  ],
+  [
+   "tests/test_miner_deps.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_docs.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_docs.py",
+   "src/hungry_crab/miners/docs.py"
+  ],
+  [
+   "tests/test_miner_docs.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_history.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_history.py",
+   "src/hungry_crab/miners/history.py"
+  ],
+  [
+   "tests/test_miner_history.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_inventory.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_inventory.py",
+   "src/hungry_crab/miners/inventory.py"
+  ],
+  [
+   "tests/test_miner_inventory.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/fetch/issues.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/miners/__init__.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/miners/inventory.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "src/hungry_crab/miners/issues.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "tests/conftest.py"
+  ],
+  [
+   "tests/test_miner_issues.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_license.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_license.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_testing.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_testing.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_miner_traits.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_miner_traits.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_safety.py",
+   "src/hungry_crab/safety.py"
+  ],
+  [
+   "tests/test_scoring.py",
+   "src/hungry_crab/compare/scoring.py"
+  ],
+  [
+   "tests/test_scoring.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/compare/__init__.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/digest.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/errors.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "src/hungry_crab/serve.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "tests/conftest.py"
+  ],
+  [
+   "tests/test_serve.py",
+   "tests/helpers.py"
+  ],
+  [
+   "tests/test_sniff.py",
+   "src/hungry_crab/cache.py"
+  ],
+  [
+   "tests/test_sniff.py",
+   "src/hungry_crab/sniff.py"
+  ],
+  [
+   "tests/test_tune.py",
+   "src/hungry_crab/compare/scoring.py"
+  ],
+  [
+   "tests/test_tune.py",
+   "src/hungry_crab/host.py"
+  ],
+  [
+   "tests/test_tune.py",
+   "src/hungry_crab/ledger.py"
+  ],
+  [
+   "tests/test_tune.py",
+   "src/hungry_crab/nutrients.py"
+  ],
+  [
+   "tests/test_tune.py",
+   "src/hungry_crab/tune.py"
+  ]
+ ],
+ "files_scanned": 76,
+ "graph": {
+  "dir_cycles": [],
+  "dir_edges": [
+   {
+    "count": 70,
+    "from": "tests",
+    "to": "src/hungry_crab"
+   },
+   {
+    "count": 4,
+    "from": "benchmarks",
+    "to": "src/hungry_crab"
+   }
+  ],
+  "edges": 240,
+  "external_top": [
+   {
+    "imports": 76,
+    "name": "__future__"
+   },
+   {
+    "imports": 34,
+    "name": "pathlib"
+   },
+   {
+    "imports": 33,
+    "name": "typing"
+   },
+   {
+    "imports": 25,
+    "name": "json"
+   },
+   {
+    "imports": 19,
+    "name": "dataclasses"
+   },
+   {
+    "imports": 17,
+    "name": "datetime"
+   },
+   {
+    "imports": 17,
+    "name": "collections"
+   },
+   {
+    "imports": 16,
+    "name": "re"
+   },
+   {
+    "imports": 13,
+    "name": "pytest"
+   },
+   {
+    "imports": 7,
+    "name": "shutil"
+   },
+   {
+    "imports": 6,
+    "name": "os"
+   },
+   {
+    "imports": 4,
+    "name": "subprocess"
+   },
+   {
+    "imports": 4,
+    "name": "tomllib"
+   },
+   {
+    "imports": 3,
+    "name": "sys"
+   },
+   {
+    "imports": 3,
+    "name": "hashlib"
+   }
+  ],
+  "hubs": [
+   {
+    "imported_by": 20,
+    "imports": 9,
+    "path": "src/hungry_crab/digest.py"
+   },
+   {
+    "imported_by": 18,
+    "imports": 1,
+    "path": "tests/helpers.py"
+   },
+   {
+    "imported_by": 18,
+    "imports": 1,
+    "path": "src/hungry_crab/cache.py"
+   },
+   {
+    "imported_by": 17,
+    "imports": 0,
+    "path": "src/hungry_crab/errors.py"
+   },
+   {
+    "imported_by": 15,
+    "imports": 0,
+    "path": "src/hungry_crab/typeutil.py"
+   },
+   {
+    "imported_by": 13,
+    "imports": 1,
+    "path": "src/hungry_crab/nutrients.py"
+   },
+   {
+    "imported_by": 13,
+    "imports": 4,
+    "path": "src/hungry_crab/miners/base.py"
+   },
+   {
+    "imported_by": 12,
+    "imports": 1,
+    "path": "src/hungry_crab/mdutil.py"
+   },
+   {
+    "imported_by": 7,
+    "imports": 0,
+    "path": "src/hungry_crab/safety.py"
+   },
+   {
+    "imported_by": 7,
+    "imports": 4,
+    "path": "src/hungry_crab/host.py"
+   }
+  ],
+  "layers": [
+   {
+    "dir": "src/hungry_crab",
+    "imported_by": 74,
+    "imports": 0
+   },
+   {
+    "dir": "benchmarks",
+    "imported_by": 0,
+    "imports": 4
+   },
+   {
+    "dir": "tests",
+    "imported_by": 0,
+    "imports": 70
+   }
+  ],
+  "nodes": 74,
+  "orchestrators": [
+   {
+    "imported_by": 2,
+    "imports": 16,
+    "path": "src/hungry_crab/cli.py"
+   },
+   {
+    "imported_by": 4,
+    "imports": 13,
+    "path": "src/hungry_crab/miners/__init__.py"
+   },
+   {
+    "imported_by": 4,
+    "imports": 11,
+    "path": "src/hungry_crab/compare/__init__.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 10,
+    "path": "tests/test_serve.py"
+   },
+   {
+    "imported_by": 20,
+    "imports": 9,
+    "path": "src/hungry_crab/digest.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 8,
+    "path": "tests/test_compare.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 8,
+    "path": "tests/test_miner_issues.py"
+   },
+   {
+    "imported_by": 2,
+    "imports": 7,
+    "path": "src/hungry_crab/serve.py"
+   },
+   {
+    "imported_by": 0,
+    "imports": 6,
+    "path": "tests/test_digest.py"
+   },
+   {
+    "imported_by": 3,
+    "imports": 5,
+    "path": "src/hungry_crab/compare/candidates.py"
+   }
+  ]
+ },
+ "languages": [
+  "Python"
+ ],
+ "public_surface": [
+  {
+   "names": [
+    "HostPaths",
+    "PreyPaths",
+    "Slug",
+    "Target",
+    "api",
+    "cache_root",
+    "catch_file",
+    "clone_url",
+    "digests",
+    "host_paths",
+    "is_local",
+    "label",
+    "ledger_file",
+    "parse",
+    "prey_paths",
+    "repo",
+    "resolve_target",
+    "url"
+   ],
+   "path": "src/hungry_crab/cache.py"
+  },
+  {
+   "names": [
+    "build_parser",
+    "cmd_cache",
+    "cmd_catch",
+    "cmd_compare",
+    "cmd_digest",
+    "cmd_init",
+    "cmd_ledger",
+    "cmd_menu",
+    "cmd_serve",
+    "cmd_sniff",
+    "cmd_tune",
+    "detect_host_license",
+    "git_available",
+    "main",
+    "print_digest_summary",
+    "print_ledger",
+    "print_menu",
+    "print_serve_report"
+   ],
+   "path": "src/hungry_crab/cli.py"
+  },
+  {
+   "names": [
+    "DigestOptions",
+    "DigestResult",
+    "build_manifest",
+    "locate_digest",
+    "manifest_path",
+    "prepare_context",
+    "refresh_manifest",
+    "run_digest",
+    "run_miners"
+   ],
+   "path": "src/hungry_crab/digest.py"
+  },
+  {
+   "names": [
+    "CrabError",
+    "ExternalCommandError",
+    "ToolMissingError",
+    "UsageError"
+   ],
+   "path": "src/hungry_crab/errors.py"
+  },
+  {
+   "names": [
+    "count_lines",
+    "is_binary",
+    "looks_binary",
+    "read_text"
+   ],
+   "path": "src/hungry_crab/fs.py"
+  },
+  {
+   "names": [
+    "HostConfig",
+    "ServeSettings",
+    "host_slug",
+    "label",
+    "ledger_path",
+    "load",
+    "path",
+    "write_default_config",
+    "write_scoring"
+   ],
+   "path": "src/hungry_crab/host.py"
+  },
+  {
+   "names": [
+    "Ledger",
+    "LedgerEntry",
+    "Meal",
+    "decisions",
+    "ensure",
+    "from_candidate",
+    "from_dict",
+    "hidden_ids",
+    "load",
+    "mark",
+    "record_meal",
+    "save",
+    "stats",
+    "to_dict"
+   ],
+   "path": "src/hungry_crab/ledger.py"
+  },
+  {
+   "names": [
+    "MdDoc",
+    "MdSection",
+    "bullets",
+    "cell",
+    "kv",
+    "line",
+    "para",
+    "render",
+    "render_lines",
+    "section",
+    "table"
+   ],
+   "path": "src/hungry_crab/mdutil.py"
+  },
+  {
+   "names": [
+    "Candidate",
+    "Evidence",
+    "from_dict",
+    "id",
+    "make_id",
+    "merge_notes",
+    "short_hash",
+    "slugify",
+    "to_dict"
+   ],
+   "path": "src/hungry_crab/nutrients.py"
+  },
+  {
+   "names": [
+    "is_suspicious",
+    "sanitize_lines",
+    "suspicious_fragments"
+   ],
+   "path": "src/hungry_crab/safety.py"
+  },
+  {
+   "names": [
+    "GhIssueClient",
+    "IssueClient",
+    "ServeOptions",
+    "ServeReport",
+    "create",
+    "ensure_label",
+    "list_marked",
+    "load_notes",
+    "parse_markers",
+    "render_issue",
+    "select_cards",
+    "serve",
+    "to_dict"
+   ],
+   "path": "src/hungry_crab/serve.py"
+  },
+  {
+   "names": [
+    "SniffReport",
+    "build_report",
+    "format_report",
+    "sniff",
+    "to_dict"
+   ],
+   "path": "src/hungry_crab/sniff.py"
+  }
+ ],
+ "top_files_by_symbols": [
+  {
+   "classes": 2,
+   "functions": 28,
+   "path": "src/hungry_crab/compare/candidates.py",
+   "public": 21
+  },
+  {
+   "classes": 0,
+   "functions": 23,
+   "path": "src/hungry_crab/cli.py",
+   "public": 18
+  },
+  {
+   "classes": 4,
+   "functions": 18,
+   "path": "src/hungry_crab/miners/base.py",
+   "public": 21
+  },
+  {
+   "classes": 4,
+   "functions": 16,
+   "path": "src/hungry_crab/cache.py",
+   "public": 18
+  },
+  {
+   "classes": 3,
+   "functions": 16,
+   "path": "src/hungry_crab/ledger.py",
+   "public": 14
+  },
+  {
+   "classes": 4,
+   "functions": 15,
+   "path": "src/hungry_crab/serve.py",
+   "public": 13
+  },
+  {
+   "classes": 2,
+   "functions": 16,
+   "path": "src/hungry_crab/miners/deps.py",
+   "public": 15
+  },
+  {
+   "classes": 1,
+   "functions": 15,
+   "path": "src/hungry_crab/fetch/git.py",
+   "public": 15
+  },
+  {
+   "classes": 2,
+   "functions": 14,
+   "path": "src/hungry_crab/miners/history.py",
+   "public": 12
+  },
+  {
+   "classes": 2,
+   "functions": 12,
+   "path": "src/hungry_crab/digest.py",
+   "public": 9
+  },
+  {
+   "classes": 2,
+   "functions": 12,
+   "path": "src/hungry_crab/licensing/detect.py",
+   "public": 8
+  },
+  {
+   "classes": 4,
+   "functions": 10,
+   "path": "src/hungry_crab/licensing/matrix.py",
+   "public": 11
+  },
+  {
+   "classes": 2,
+   "functions": 12,
+   "path": "src/hungry_crab/mdutil.py",
+   "public": 11
+  },
+  {
+   "classes": 0,
+   "functions": 13,
+   "path": "tests/test_cli.py",
+   "public": 13
+  },
+  {
+   "classes": 0,
+   "functions": 12,
+   "path": "tests/test_licensing.py",
+   "public": 12
+  }
+ ],
+ "totals": {
+  "classes": 63,
+  "exports": 0,
+  "functions": 537
+ },
+ "truncated": false
+}

@@ -1,0 +1,52 @@
+{
+ "configs": [],
+ "coverage": {
+  "configured": true,
+  "service": null,
+  "threshold": null,
+  "threshold_source": null
+ },
+ "frameworks": {
+  "pytest": "unit",
+  "pytest-cov": "coverage",
+  "pytest-mock": "mock",
+  "pytest-xdist": "runner"
+ },
+ "has_tests": true,
+ "sample_test_files": [
+  "scripts/test_packages_support.py",
+  "tests/conftest.py",
+  "tests/helpers.py",
+  "tests/package_info.py",
+  "tests/test_animate.py",
+  "tests/test_backends.py",
+  "tests/test_backends_install.py",
+  "tests/test_cache.py",
+  "tests/test_common.py",
+  "tests/test_completions.py",
+  "tests/test_completions_expose.py",
+  "tests/test_docs_urls.py",
+  "tests/test_emojis.py",
+  "tests/test_ensurepath.py",
+  "tests/test_environment.py"
+ ],
+ "special": {
+  "benchmarks": false,
+  "e2e": false,
+  "fuzz": false,
+  "integration": false,
+  "mocking": true,
+  "mutation": false,
+  "property": false,
+  "snapshot": false
+ },
+ "src_files": 61,
+ "src_loc": 15529,
+ "test_dirs": [
+  "tests"
+ ],
+ "test_files": 58,
+ "test_loc": 16221,
+ "test_loc_ratio": 1.04,
+ "test_to_src_ratio": 0.95
+}

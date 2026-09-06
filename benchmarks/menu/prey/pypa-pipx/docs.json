@@ -1,0 +1,86 @@
+{
+ "adr": {
+  "dirs": [],
+  "files": 0
+ },
+ "changelog": {
+  "format": "keep-a-changelog",
+  "path": "docs/changelog.rst"
+ },
+ "codeowners": null,
+ "community": {
+  "changelog": "docs/changelog.rst",
+  "contributing": ".github/CONTRIBUTING.md",
+  "security": ".github/SECURITY.md"
+ },
+ "discussion_templates": [],
+ "docs_dir": "docs",
+ "docs_dir_files": 40,
+ "docs_dir_top": [
+  "README.md",
+  "_ext",
+  "_static",
+  "changelog.rst",
+  "conf.py",
+  "contributing.rst",
+  "explanation",
+  "how-to",
+  "index.rst",
+  "man",
+  "reference",
+  "tutorial"
+ ],
+ "docs_site": "sphinx",
+ "funding": null,
+ "issue_templates": [
+  ".github/ISSUE_TEMPLATE/bug.md",
+  ".github/ISSUE_TEMPLATE/config.yml",
+  ".github/ISSUE_TEMPLATE/feature_request.md"
+ ],
+ "largest_docs": [
+  {
+   "bytes": 75802,
+   "path": "docs/changelog.rst"
+  },
+  {
+   "bytes": 14780,
+   "path": "docs/explanation/comparisons.rst"
+  },
+  {
+   "bytes": 13195,
+   "path": "docs/contributing.rst"
+  },
+  {
+   "bytes": 8664,
+   "path": "docs/explanation/how-pipx-works.rst"
+  },
+  {
+   "bytes": 8622,
+   "path": "docs/how-to/troubleshoot.rst"
+  },
+  {
+   "bytes": 8344,
+   "path": "docs/explanation/making-packages-compatible.rst"
+  },
+  {
+   "bytes": 6382,
+   "path": "docs/how-to/install-pipx.rst"
+  },
+  {
+   "bytes": 5724,
+   "path": "docs/how-to/configure-paths.rst"
+  },
+  {
+   "bytes": 5555,
+   "path": "docs/reference/examples.rst"
+  },
+  {
+   "bytes": 5280,
+   "path": "docs/index.rst"
+  }
+ ],
+ "markdown_files": 46,
+ "markdown_words": 30677,
+ "pr_template": ".github/PULL_REQUEST_TEMPLATE.md",
+ "readme": null
+}

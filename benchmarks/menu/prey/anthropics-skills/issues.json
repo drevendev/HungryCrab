@@ -1,0 +1,441 @@
+{
+ "available": true,
+ "closed": 37,
+ "clusters": [
+  {
+   "numbers": [
+    406,
+    80,
+    470,
+    241,
+    30,
+    1431,
+    689,
+    606,
+    430,
+    429,
+    428
+   ],
+   "open": 10,
+   "reactions": 9,
+   "sample_titles": [
+    "unable to upload or replace existing skills as of today: internal server error",
+    "Sync claude code skills with claude web and claude desktop",
+    "\"skill creator\" skill failed on security tests"
+   ],
+   "size": 11,
+   "terms": [
+    "image",
+    "attachments",
+    "assets",
+    "img",
+    "width"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1352,
+    1721,
+    1552,
+    1478,
+    1427,
+    1419,
+    1338
+   ],
+   "open": 6,
+   "reactions": 1,
+   "sample_titles": [
+    "skill-creator: run_eval.py parallel workers cross-match skill UUIDs, producing false-negat",
+    "skill-creator: trigger detection reports 0% recall for every skill",
+    "skill-creator: description optimizer reports ~0% recall for skills that actually do trigge"
+   ],
+   "size": 7,
+   "terms": [
+    "trigger",
+    "recall",
+    "run_eval",
+    "description",
+    "reports"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1512,
+    1409,
+    1308,
+    1135,
+    1067,
+    876
+   ],
+   "open": 5,
+   "reactions": 0,
+   "sample_titles": [
+    "skills now",
+    "skills",
+    "Skills"
+   ],
+   "size": 6,
+   "terms": [
+    "skills",
+    "claude"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    637,
+    636,
+    635,
+    634,
+    633,
+    632
+   ],
+   "open": 6,
+   "reactions": 0,
+   "sample_titles": [
+    "Run Codex review on PPTX skill v6.0 changes",
+    "Test and validate PPTX skill end-to-end",
+    "Update ADVANCED.md and CHANGELOG.md for PPTX skill v6.0"
+   ],
+   "size": 6,
+   "terms": [
+    "semantic",
+    "template",
+    "inventory",
+    "shape",
+    "overhaul"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1686,
+    1304,
+    1271,
+    1199,
+    712
+   ],
+   "open": 5,
+   "reactions": 0,
+   "sample_titles": [
+    "skill-creator scripts crash on Windows for any skill containing non-ASCII text (missing en",
+    "Windows: eval/optimize harness broken — cp1252 read_text() crash + nested claude -p WinErr",
+    "Windows: skill-creator scripts use cp1252 file I/O, crash (UnicodeDecodeError) on UTF-8 SK"
+   ],
+   "size": 5,
+   "terms": [
+    "cp1252",
+    "encoding",
+    "windows",
+    "crash",
+    "default"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    189,
+    1087,
+    206,
+    919
+   ],
+   "open": 3,
+   "reactions": 11,
+   "sample_titles": [
+    "document-skills and example-skills plugins install identical content, causing duplicate sk",
+    "document-skills plugin loads all skills from repo instead of only declared ones in marketp",
+    "Plugin Marketplace installs extra skills when plugin source is repo root (./)"
+   ],
+   "size": 4,
+   "terms": [
+    "document",
+    "marketplace",
+    "plugin",
+    "behavior",
+    "installing"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    518,
+    1425,
+    1383,
+    1095
+   ],
+   "open": 4,
+   "reactions": 2,
+   "sample_titles": [
+    "skill-creator: eval loop rough edges — grading paths, Bash blocking, aggregate_benchmark.p",
+    "aggregate_benchmark.py and eval-viewer/generate_review.py disagree on where grading.json l",
+    "skill-creator: silent benchmark failures (layout mismatch, inverted delta), broken trigger"
+   ],
+   "size": 4,
+   "terms": [
+    "aggregate_benchmark",
+    "grading",
+    "eval",
+    "json",
+    "viewer"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1625,
+    1620,
+    1468,
+    1021
+   ],
+   "open": 3,
+   "reactions": 0,
+   "sample_titles": [
+    "Command injection via shell=True in with_server.py --server argument",
+    "Shell command injection via --server argument (with_server.py, shell=True)  Affected file:",
+    "webapp-testing: no `allowed-tools` declared despite shell execution and file writes"
+   ],
+   "size": 4,
+   "terms": [
+    "shell",
+    "with_server",
+    "popen",
+    "server",
+    "subprocess"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    14,
+    67,
+    1358
+   ],
+   "open": 3,
+   "reactions": 15,
+   "sample_titles": [
+    "Marketplace installation fails with error when adding anthropics/skills from CLI",
+    "Plugin skills not loaded in Claude Code when installed via marketplace: Missing skills/ di",
+    "/plugin marketplace add anthropics/skills"
+   ],
+   "size": 3,
+   "terms": [
+    "marketplace",
+    "plugin",
+    "anthropics",
+    "clone",
+    "manual"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1008,
+    1689,
+    977
+   ],
+   "open": 3,
+   "reactions": 3,
+   "sample_titles": [
+    "frontend-design: consider consuming/producing DESIGN.md per Google Labs open spec",
+    "Frontend",
+    "feat: Add new rule of use of emojis into frontend-design skill"
+   ],
+   "size": 3,
+   "terms": [
+    "frontend",
+    "emojis",
+    "design",
+    "labs",
+    "icon"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1622,
+    1613,
+    881
+   ],
+   "open": 3,
+   "reactions": 0,
+   "sample_titles": [
+    "claude-api skill: description exceeds pi.dev's 1024-char frontmatter cap (1077 chars)",
+    "claude-api: frontmatter description exceeds 1024-character limit",
+    "claude-api skill description truncated in Claude Code listings"
+   ],
+   "size": 3,
+   "terms": [
+    "api",
+    "exceeds",
+    "frontmatter",
+    "characters",
+    "description"
+   ],
+   "top_label": null
+  },
+  {
+   "numbers": [
+    1617,
+    1525,
+    495
+   ],
+   "open": 3,
+   "reactions": 0,
+   "sample_titles": [
+    "fill_fillable_fields.py silently overwrites existing files (no output-path check) Affected",
+    "PDF,...",
+    "When I create new skills, have to make `scripts`?"
+   ],
+   "size": 3,
+   "terms": [
+    "pdf",
+    "script",
+    "seeing",
+    "fill_fillable_fields",
+    "related"
+   ],
+   "top_label": null
+  }
+ ],
+ "comments": {
+  "max": 43,
+  "median": 0.0,
+  "no_comments": 203
+ },
+ "fetched": 314,
+ "labels": [],
+ "oldest_open": [
+  {
+   "created_at": "2025-10-16T22:27:44Z",
+   "number": 12,
+   "title": "Add guidance to avoid whitespace reformatting in docx/ooxml skill",
+   "url": "https://github.com/anthropics/skills/issues/12"
+  },
+  {
+   "created_at": "2025-10-17T07:45:30Z",
+   "number": 13,
+   "title": "Update marketplace.json",
+   "url": "https://github.com/anthropics/skills/issues/13"
+  },
+  {
+   "created_at": "2025-10-17T08:15:43Z",
+   "number": 14,
+   "title": "Marketplace installation fails with error when adding anthropics/skills from CLI",
+   "url": "https://github.com/anthropics/skills/issues/14"
+  },
+  {
+   "created_at": "2025-10-18T23:47:02Z",
+   "number": 30,
+   "title": "Duplicate message saying \"skill is running\" in output stream",
+   "url": "https://github.com/anthropics/skills/issues/30"
+  },
+  {
+   "created_at": "2025-10-24T22:53:28Z",
+   "number": 62,
+   "title": "All my skills have disappeared an now i get errors",
+   "url": "https://github.com/anthropics/skills/issues/62"
+  }
+ ],
+ "open": 277,
+ "suspicious_titles": 0,
+ "time_to_close_days": {
+  "median": 0.2,
+  "p90": 53.7,
+  "samples": 37
+ },
+ "top_by_reactions": [
+  {
+   "comments": 3,
+   "labels": [],
+   "number": 1143,
+   "reactions": 17,
+   "state": "open",
+   "title": "[Feature Request] Ability to change account email address to prevent workspace data loss -",
+   "url": "https://github.com/anthropics/skills/issues/1143"
+  },
+  {
+   "comments": 2,
+   "labels": [],
+   "number": 1486,
+   "reactions": 15,
+   "state": "open",
+   "title": "`claude-api` skill baloons context.",
+   "url": "https://github.com/anthropics/skills/issues/1486"
+  },
+  {
+   "comments": 1,
+   "labels": [],
+   "number": 157,
+   "reactions": 15,
+   "state": "open",
+   "title": "Proposal:  Executable Agent Skills",
+   "url": "https://github.com/anthropics/skills/issues/157"
+  },
+  {
+   "comments": 8,
+   "labels": [],
+   "number": 202,
+   "reactions": 14,
+   "state": "closed",
+   "title": "skill-creator should be updated to best practice",
+   "url": "https://github.com/anthropics/skills/issues/202"
+  },
+  {
+   "comments": 2,
+   "labels": [],
+   "number": 100,
+   "reactions": 12,
+   "state": "open",
+   "title": "Why such a restrictive license for a project that is meant to serve as an example?",
+   "url": "https://github.com/anthropics/skills/issues/100"
+  },
+  {
+   "comments": 2,
+   "labels": [],
+   "number": 14,
+   "reactions": 10,
+   "state": "open",
+   "title": "Marketplace installation fails with error when adding anthropics/skills from CLI",
+   "url": "https://github.com/anthropics/skills/issues/14"
+  },
+  {
+   "comments": 6,
+   "labels": [],
+   "number": 189,
+   "reactions": 9,
+   "state": "open",
+   "title": "document-skills and example-skills plugins install identical content, causing duplicate sk",
+   "url": "https://github.com/anthropics/skills/issues/189"
+  },
+  {
+   "comments": 16,
+   "labels": [],
+   "number": 228,
+   "reactions": 8,
+   "state": "open",
+   "title": "Enable org-wide skill sharing in Claude.ai",
+   "url": "https://github.com/anthropics/skills/issues/228"
+  },
+  {
+   "comments": 1,
+   "labels": [],
+   "number": 177,
+   "reactions": 8,
+   "state": "open",
+   "title": "Feature Request: Support for Human-Only Comments in SKILL.md Files",
+   "url": "https://github.com/anthropics/skills/issues/177"
+  },
+  {
+   "comments": 12,
+   "labels": [],
+   "number": 556,
+   "reactions": 7,
+   "state": "open",
+   "title": "run_eval.py: claude -p never triggers skills/commands (0% trigger rate across all queries)",
+   "url": "https://github.com/anthropics/skills/issues/556"
+  }
+ ],
+ "unlabeled": 314
+}

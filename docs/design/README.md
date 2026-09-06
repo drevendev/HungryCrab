@@ -14,6 +14,7 @@ useful for your own repository without violating licenses) and for its overlay
 | [05-self-feeding.md](05-self-feeding.md) | The stage between 0.2 and 0.3: run `/crab:eat` from a live agent session with the crab itself as the maw, against twenty sniffed prey |
 | [06-benchmark.md](06-benchmark.md) | Specification of the two benchmarks: B1 the deterministic menu benchmark in CI, B2 the judged meal benchmark across crab versions and Claude models |
 | [07-scheduled-crab.md](07-scheduled-crab.md) | The local sibling of the evolving crab: crave → hunt → eat → serve → grow → trial → taste → molt → harden, one phase per wake-up, on this repository or on any target it is pointed at |
+| [08-budgets-and-feeder.md](08-budgets-and-feeder.md) | Two policies that decide who the crab is for: what a token budget is allowed to do to a digest, and how a repository digests prey in CI with no model and no agent at all |
 
 ## Key decisions (TL;DR)
 

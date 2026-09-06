@@ -1,0 +1,49 @@
+{
+ "configs": [],
+ "coverage": {
+  "configured": false,
+  "service": null,
+  "threshold": null,
+  "threshold_source": null
+ },
+ "frameworks": {
+  "pytest": "unit"
+ },
+ "has_tests": true,
+ "sample_test_files": [
+  "tests/conftest.py",
+  "tests/fixture_builder.py",
+  "tests/helpers.py",
+  "tests/test_cache.py",
+  "tests/test_catch.py",
+  "tests/test_cli.py",
+  "tests/test_compare.py",
+  "tests/test_digest.py",
+  "tests/test_fixture_builder.py",
+  "tests/test_host_config.py",
+  "tests/test_ledger.py",
+  "tests/test_licensing.py",
+  "tests/test_markdown_and_tokens.py",
+  "tests/test_miner_ai_config.py",
+  "tests/test_miner_architecture.py"
+ ],
+ "special": {
+  "benchmarks": true,
+  "e2e": false,
+  "fuzz": false,
+  "integration": false,
+  "mocking": false,
+  "mutation": false,
+  "property": false,
+  "snapshot": false
+ },
+ "src_files": 45,
+ "src_loc": 11148,
+ "test_dirs": [
+  "tests"
+ ],
+ "test_files": 31,
+ "test_loc": 3439,
+ "test_loc_ratio": 0.31,
+ "test_to_src_ratio": 0.69
+}

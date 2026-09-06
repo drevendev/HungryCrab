@@ -1,0 +1,181 @@
+{
+ "agents": [
+  {
+   "bytes": 1789,
+   "frontmatter": {
+    "description": "Compares the architecture sections of the prey and host digests and proposes at most three structural nutrients with evidence. Use for architecture candidates f",
+    "model": "inherit",
+    "name": "crab-architect",
+    "tools": "Read, Grep, Glob"
+   },
+   "headings": [
+    "Input",
+    "Rules",
+    "Method",
+    "Output"
+   ],
+   "imports": 0,
+   "lines": 39,
+   "path": "agents/crab-architect.md",
+   "suspicious": [],
+   "words": 276
+  },
+  {
+   "bytes": 2032,
+   "frontmatter": {
+    "description": "Turns the history and branches sections of a prey digest into 3-7 concrete lessons with evidence. Use for history-lesson candidates from crab compare, or when a",
+    "model": "inherit",
+    "name": "crab-historian",
+    "tools": "Read, Grep, Glob, Bash"
+   },
+   "headings": [
+    "Input",
+    "Rules",
+    "Method",
+    "Output"
+   ],
+   "imports": 0,
+   "lines": 41,
+   "path": "agents/crab-historian.md",
+   "suspicious": [],
+   "words": 333
+  }
+ ],
+ "codex": [],
+ "commands": [],
+ "copilot_instructions": [],
+ "copilot_prompts": [],
+ "cursor_rules": [],
+ "devcontainer": false,
+ "hooks": [],
+ "instruction_files": [
+  {
+   "bytes": 414,
+   "frontmatter": {},
+   "headings": [
+    "Hungry Crab",
+    "Claude Code specifics"
+   ],
+   "imports": 1,
+   "lines": 11,
+   "path": "CLAUDE.md",
+   "suspicious": [],
+   "tool": "claude",
+   "words": 65
+  },
+  {
+   "bytes": 3995,
+   "frontmatter": {},
+   "headings": [
+    "Agent guide for Hungry Crab",
+    "What this repository is",
+    "Layout",
+    "Commands",
+    "Rules",
+    "Adding a miner"
+   ],
+   "imports": 0,
+   "lines": 70,
+   "path": "AGENTS.md",
+   "suspicious": [],
+   "tool": "agents",
+   "words": 545
+  }
+ ],
+ "mcp": [],
+ "plugin": [
+  {
+   "keys": [
+    "author",
+    "description",
+    "homepage",
+    "keywords",
+    "license",
+    "name",
+    "repository",
+    "version"
+   ],
+   "name": "crab",
+   "path": ".claude-plugin/plugin.json",
+   "version": "0.2.0"
+  },
+  {
+   "keys": [
+    "metadata",
+    "name",
+    "owner",
+    "plugins"
+   ],
+   "name": "hungry-crab",
+   "path": ".claude-plugin/marketplace.json",
+   "version": null
+  }
+ ],
+ "present": [
+  "agents",
+  "claude"
+ ],
+ "settings": [],
+ "skills": [
+  {
+   "bytes": 4547,
+   "frontmatter": {
+    "description": "Eat a foreign repository and turn everything useful for the current repository into issues without violating licenses. Use when the user asks to eat, consume, d",
+    "name": "eat"
+   },
+   "headings": [
+    "Eat a repository",
+    "Locate the CLI",
+    "Protocol",
+    "License rules in one breath",
+    "What a good meal looks like"
+   ],
+   "imports": 0,
+   "lines": 72,
+   "location": "plugin",
+   "path": "skills/eat/SKILL.md",
+   "suspicious": [],
+   "words": 698
+  },
+  {
+   "bytes": 2427,
+   "frontmatter": {
+    "description": "Decide what may be carried over from a prey repository under its license. Modes are COPY, COPY_FILE, REIMPLEMENT, IDEAS_ONLY and HUMAN. Use when a nutrient's li",
+    "name": "license"
+   },
+   "headings": [
+    "License rules",
+    "Modes",
+    "Rules that override the matrix",
+    "How to compute a mode"
+   ],
+   "imports": 0,
+   "lines": 39,
+   "location": "plugin",
+   "path": "skills/license/SKILL.md",
+   "suspicious": [],
+   "words": 393
+  },
+  {
+   "bytes": 2544,
+   "frontmatter": {
+    "description": "Write and create issues for approved nutrients with provenance and deduplication markers, using crab serve. Use when serving a menu, writing the why and how of ",
+    "name": "serve"
+   },
+   "headings": [
+    "Serve nutrients",
+    "Notes file",
+    "Commands",
+    "What an issue contains",
+    "Skips and their meaning"
+   ],
+   "imports": 0,
+   "lines": 60,
+   "location": "plugin",
+   "path": "skills/serve/SKILL.md",
+   "suspicious": [],
+   "words": 416
+  }
+ ],
+ "suspicious_fragments": 0
+}

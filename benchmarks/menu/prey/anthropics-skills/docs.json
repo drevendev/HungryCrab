@@ -1,0 +1,130 @@
+{
+ "adr": {
+  "dirs": [],
+  "files": 0
+ },
+ "changelog": null,
+ "codeowners": null,
+ "community": {},
+ "discussion_templates": [],
+ "docs_dir": null,
+ "docs_dir_files": 0,
+ "docs_dir_top": [],
+ "docs_site": null,
+ "funding": null,
+ "issue_templates": [],
+ "largest_docs": [
+  {
+   "bytes": 246735,
+   "path": "skills/claude-api/shared/model-migration.md"
+  },
+  {
+   "bytes": 86271,
+   "path": "skills/claude-api/SKILL.md"
+  },
+  {
+   "bytes": 46566,
+   "path": "THIRD_PARTY_NOTICES.md"
+  },
+  {
+   "bytes": 45192,
+   "path": "skills/claude-api/shared/cost-optimization.md"
+  },
+  {
+   "bytes": 35816,
+   "path": "skills/claude-api/shared/tool-use-concepts.md"
+  },
+  {
+   "bytes": 35189,
+   "path": "skills/claude-api/shared/prompt-audit.md"
+  },
+  {
+   "bytes": 34413,
+   "path": "skills/claude-api/shared/managed-agents-api-reference.md"
+  },
+  {
+   "bytes": 33653,
+   "path": "skills/skill-creator/SKILL.md"
+  },
+  {
+   "bytes": 32932,
+   "path": "skills/claude-api/shared/managed-agents-core.md"
+  },
+  {
+   "bytes": 31376,
+   "path": "skills/claude-api/shared/prompt-caching.md"
+  }
+ ],
+ "markdown_files": 115,
+ "markdown_words": 205249,
+ "pr_template": null,
+ "readme": {
+  "badges": 1,
+  "bytes": 5648,
+  "has_code_blocks": true,
+  "has_toc": false,
+  "heading_count": 13,
+  "headings": [
+   {
+    "level": 1,
+    "title": "Skills"
+   },
+   {
+    "level": 1,
+    "title": "About This Repository"
+   },
+   {
+    "level": 2,
+    "title": "Disclaimer"
+   },
+   {
+    "level": 1,
+    "title": "Skill Sets"
+   },
+   {
+    "level": 1,
+    "title": "Try in Claude Code, Claude.ai, and the API"
+   },
+   {
+    "level": 2,
+    "title": "Claude Code"
+   },
+   {
+    "level": 2,
+    "title": "Claude.ai"
+   },
+   {
+    "level": 2,
+    "title": "Claude API"
+   },
+   {
+    "level": 1,
+    "title": "Creating a Basic Skill"
+   },
+   {
+    "level": 1,
+    "title": "My Skill Name"
+   },
+   {
+    "level": 2,
+    "title": "Examples"
+   },
+   {
+    "level": 2,
+    "title": "Guidelines"
+   },
+   {
+    "level": 1,
+    "title": "Partner Skills"
+   }
+  ],
+  "links": 18,
+  "mentions_ai_disclaimer": false,
+  "path": "README.md",
+  "sections": [
+   "usage"
+  ],
+  "suspicious": [],
+  "words": 829
+ }
+}
