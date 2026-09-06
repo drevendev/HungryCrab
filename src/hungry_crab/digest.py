@@ -359,12 +359,27 @@ def _file_entries(
     return files, md_tokens, total_tokens
 
 
-def refresh_manifest(out_dir: Path) -> dict[str, Any] | None:
-    """Re-scan a digest folder after files were added (e.g. by ``crab compare``)."""
+def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """Re-scan a digest folder after files were added (e.g. by ``crab compare``).
+
+    ``summary`` merges into ``manifest["summary"]``: a digest taken without a host knows the
+    prey's licence but not the verdict, and the comparison that resolves it must not leave the
+    manifest saying ``null`` while ``menu.md`` says ``COPY``.
+    """
     manifest_path = out_dir / "manifest.json"
     manifest = _load_json(manifest_path)
     if manifest is None:
         return None
+    if summary:
+        current = manifest.get("summary")
+        merged = dict(current) if isinstance(current, dict) else {}
+        for key, value in summary.items():
+            existing = merged.get(key)
+            if isinstance(existing, dict) and isinstance(value, dict):
+                merged[key] = {**existing, **value}
+            else:
+                merged[key] = value
+        manifest["summary"] = merged
     owner = {
         str(entry.get("name")): entry.get("miner")
         for entry in manifest.get("files", [])

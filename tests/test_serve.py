@@ -103,6 +103,10 @@ def test_parse_markers_and_render_issue() -> None:
     assert "`example/prey@aaaaaaa`" in body
     assert "mode COPY" in body and "not legal advice" in body
     assert "Not judged yet" in body
+    # host_state is a rendered trait value, and a bare "no" reads as an unfinished sentence
+    assert "## What this repository has\n\nnothing comparable\n" in body
+    card.host_state = "ruff 0.4, no cache"
+    assert "## What this repository has\n\nruff 0.4, no cache\n" in render_issue(card, {})[1]
     card.why_for_host = "Our CI is slow."
     card.how = "Use setup-uv cache."
     _, body = render_issue(card, {"prey": {"label": "p"}})

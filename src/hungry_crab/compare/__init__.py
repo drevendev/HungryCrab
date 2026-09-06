@@ -200,13 +200,17 @@ def write_compare(result: CompareResult, out_dir: Path) -> list[str]:
         "host_digest": str(result.host_dir) if result.host_dir else None,
         "candidates": result.menu["counts"]["total"],
         "hidden": result.menu["counts"]["hidden"],
+        "verdict": result.verdict,
     }
     (out_dir / "compare.json").write_text(
         json.dumps(compare_info, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
         newline="\n",
     )
-    refresh_manifest(out_dir)
+    host_license = as_dict(result.menu["host"]).get("license")
+    refresh_manifest(
+        out_dir, {"license": {"verdict": result.verdict, "host_license": host_license}}
+    )
     return list(COMPARE_FILES)
 
 
