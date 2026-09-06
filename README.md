@@ -1,19 +1,19 @@
 # Hungry Crab
 
 ```text
-                      o   .
-                   .    o    O
-                      o    .
-        (\/)                       (\/)
-         \  \                     /  /
-          \  \___________________/  /
-           \                       /
-            |   (o)         (o)   |
-            |         ___         |
-            |        \___/        |
-            \_____________________/
-             /   /   |   |   \   \
-            /   /    |   |    \   \
+                              o    .
+                           .   o   .   O
+     /\                                                     /\
+    /  \       _____________________________________       /  \
+   |    |     /                                     \     |    |
+   | /\ |     |     \\\\\\\             ///////     |     | /\ |
+   | \/ |     |      (@@@)               (@@@)      |     | \/ |
+    \  /      |                                     |      \  /
+     \ \      |      /\/\/\/\/\/\/\/\/\/\/\/\/      |      / /
+      \ \_____|                                     |_____/ /
+       \______\_____________________________________/______/
+                  /     /      |   |      \     \
+                 /     /       |   |       \     \
 ```
 
 > **Eat a foreign repository. Digest it. Serve what is worth keeping, legally.**
@@ -59,8 +59,11 @@ Prerequisites: Python 3.11+, `git`, and `gh` authenticated for the GitHub API.
 **The CLI**, which every agent then calls:
 
 ```bash
-uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab@v0.2.0"
+uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
 ```
+
+That tracks `master`, which is always green. If you want a specific release instead, append
+`@v0.2.0` to the URL and take care of updates yourself.
 
 **Claude Code**, which adds `/crab:eat`, `/crab:sniff` and `/crab:menu`:
 
@@ -86,16 +89,15 @@ Restart the agent session afterwards so it picks the plugin up. Cursor and anyth
 reads the open `SKILL.md` format can use the `skills/` folder of this repository directly; the
 only hard requirement is `crab` on `PATH`.
 
-To move to a newer version later, reinstall with `--force` (a git install pins a commit, so
-`uv tool upgrade` will not move it) and refresh the plugin:
+To see what is out of date across the CLI and every agent you have, ask the crab:
 
 ```bash
-uv tool install --force "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+crab update
 ```
 
-```bash
-claude plugin marketplace update hungry-crab && claude plugin update crab
-```
+It reports the installed and available versions, notices which agents are on this machine and
+whether the plugin is installed in each, and prints exactly what to run. `crab update --run`
+does the plugin work for you.
 
 ## Feed the crab
 

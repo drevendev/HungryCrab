@@ -7,11 +7,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `crab update`: one command that checks the CLI and every agent plugin against master, notices
+  which agents are on this machine and whether the plugin is installed in each, and prints what
+  to run. `--run` performs the plugin work; the CLI reinstall is only executed when the running
+  process is not the uv tool install that would be replaced, because uv cannot replace the crab
+  while it is running.
+
 ### Changed
 
 - README rewritten: what the crab is for, the vocabulary, install instructions for both Claude
-  Code and Codex (both consume the same plugin marketplace), the update path for a git install,
-  and the measured benchmark numbers.
+  Code and Codex (both consume the same plugin marketplace), and the measured benchmark numbers.
+  Installs track `master`; a release tag is opt-in.
 
 ## [0.2.0] - 2026-09-06
 
