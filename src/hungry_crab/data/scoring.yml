@@ -1,0 +1,47 @@
+# Default weights for the deterministic pre-scoring in `crab compare`.
+#
+#   score = categories[category] * value * applicability * modes[license_mode] * effort[effort]
+#           - risk[risk]            (clamped to 0..1)
+#
+# `value` comes from the rule that produced the candidate unless `traits` overrides it by key.
+# A host overrides any of these sections under `scoring:` in its .crab.yml; `crab tune` suggests
+# adjustments from the ledger.
+version: 1
+
+categories:
+  security: 1.0
+  ci: 0.9
+  tests: 0.85
+  tooling: 0.8
+  ai-config: 0.8
+  hygiene: 0.7
+  docs: 0.6
+  history-lesson: 0.55
+  issue-lesson: 0.5
+  deps: 0.45
+  architecture: 0.4
+  code: 0.4
+
+traits: {}
+
+modes:
+  COPY: 1.0
+  COPY_FILE: 0.9
+  REIMPLEMENT: 0.6
+  IDEAS_ONLY: 0.4
+  HUMAN: 0.3
+
+effort:
+  S: 1.0
+  M: 0.75
+  L: 0.5
+
+risk:
+  low: 0.0
+  medium: 0.1
+  high: 0.25
+
+applicability:
+  same_stack: 1.0
+  transferable: 0.6
+  other_stack: 0.25

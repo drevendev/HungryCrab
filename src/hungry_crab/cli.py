@@ -13,15 +13,18 @@ import shutil
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 from . import __version__
 from .cache import Slug, cache_root, prey_paths, resolve_target
-from .digest import DigestOptions, DigestResult, run_digest
+from .compare import CompareOptions, load_menu, menu_candidates, run_compare
+from .digest import DigestOptions, DigestResult, locate_digest, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
 from .licensing.detect import detect_in_repo
 from .miners import MINER_NAMES
+from .nutrients import Candidate
 from .sniff import format_report, sniff
 
 _HOST_MANIFESTS = ("package.json", "pyproject.toml", "Cargo.toml", "setup.cfg", "composer.json")
@@ -113,6 +116,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_digest.add_argument("--since", default=None, help="when catching first: --since")
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
+
+    p_compare = sub.add_parser(
+        "compare", help="digest prey and host, diff them and write gap.md and menu.md"
+    )
+    p_compare.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_compare.add_argument("--host", type=Path, default=Path(), help="host repository (default: .)")
+    p_compare.add_argument(
+        "--host-license", default=None, help="host license SPDX id (else detected)"
+    )
+    p_compare.add_argument("--depth", choices=("normal", "deep"), default="normal")
+    p_compare.add_argument("--force", action="store_true", help="re-run both digests")
+    p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md")
+    p_compare.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
+    p_compare.add_argument("--since", default=None, help="when catching first: --since")
+    p_compare.add_argument("--json", action="store_true", help="print menu.json")
+
+    p_menu = sub.add_parser("menu", help="print the ranked menu from the last compare")
+    p_menu.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_menu.add_argument("--top", type=int, default=30)
+    p_menu.add_argument("--category", default=None, help="comma-separated categories to show")
+    p_menu.add_argument("--all", action="store_true", help="also list hidden candidates")
+    p_menu.add_argument("--json", action="store_true")
 
     p_cache = sub.add_parser("cache", help="inspect or clean the cache")
     cache_sub = p_cache.add_subparsers(dest="cache_command", metavar="<action>")
@@ -212,6 +237,80 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     return 0
 
 
+def print_menu(
+    menu: dict[str, Any], cards: list[Candidate], *, top: int, show_hidden: bool
+) -> None:
+    prey = menu.get("prey", {})
+    host = menu.get("host", {})
+    counts = menu.get("counts", {})
+    verdict = menu.get("verdict", {})
+    print(
+        f"Menu: {prey.get('label')}@{str(prey.get('sha', ''))[:7]} for {host.get('label')} "
+        f"({counts.get('total', len(cards))} candidates, {counts.get('hidden', 0)} hidden, "
+        f"default mode {verdict.get('mode', '?')})"
+    )
+    print(
+        f"{'#':>3} {'score':>5}  {'category':<15}{'nutrient':<52}{'mode':<12}{'eff':<4}{'art':<6}id"
+    )
+    for index, card in enumerate(cards[:top], start=1):
+        title = card.title if len(card.title) <= 50 else card.title[:47] + "..."
+        print(
+            f"{index:>3} {card.score:>5.2f}  {card.category:<15}{title:<52}{card.license_mode:<12}"
+            f"{card.effort:<4}{card.artifact:<6}{card.id}"
+        )
+    if show_hidden:
+        for item in menu.get("hidden", []):
+            print(f"    hidden {item.get('id')}: {item.get('reason')}")
+
+
+def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    prey = resolve_target(args.prey)
+    host = Path(args.host).resolve()
+    if not host.is_dir():
+        raise UsageError(f"host path {host} is not a directory")
+    host_license = _resolve_host_license(host, args.host_license)
+    digest_options = DigestOptions(
+        depth=args.depth,
+        force=args.force,
+        host_license=host_license,
+        cache_root=args.cache_dir,
+        catch_options=CatchOptions(shallow=args.shallow, since=args.since),
+    )
+    options = CompareOptions(top=args.top, host_license=host_license)
+    result, prey_digest, _ = run_compare(
+        prey, host, digest_options=digest_options, options=options, log=log
+    )
+    if args.json:
+        print(json.dumps(result.menu, indent=2, ensure_ascii=False))
+        return 0
+    print_menu(result.menu, result.candidates, top=min(args.top, 15), show_hidden=False)
+    print(f"gap.md and menu.md written to {prey_digest.out_dir}")
+    return 0
+
+
+def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    prey = resolve_target(args.prey)
+    prey_dir = locate_digest(prey, DigestOptions(cache_root=args.cache_dir))
+    menu = load_menu(prey_dir)
+    if menu is None:
+        raise CrabError(
+            f"no menu for {prey.label} yet",
+            hint=f"run: crab compare {args.prey} --host <path to the host repository>",
+        )
+    cards = menu_candidates(menu)
+    if args.category:
+        wanted = {c.strip() for c in args.category.split(",") if c.strip()}
+        cards = [card for card in cards if card.category in wanted]
+    if args.json:
+        payload = dict(menu)
+        payload["candidates"] = [card.to_dict() for card in cards[: args.top]]
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+    log(f"menu from {prey_dir / 'menu.json'}")
+    print_menu(menu, cards, top=args.top, show_hidden=args.all)
+    return 0
+
+
 def cmd_cache(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     root = args.cache_dir or cache_root()
     if args.cache_command == "path" or args.cache_command is None:
@@ -271,6 +370,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_catch(args, log)
         if args.command == "digest":
             return cmd_digest(args, log)
+        if args.command == "compare":
+            return cmd_compare(args, log)
+        if args.command == "menu":
+            return cmd_menu(args, log)
         if args.command == "cache":
             return cmd_cache(args, parser)
     except CrabError as exc:
