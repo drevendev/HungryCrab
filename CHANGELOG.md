@@ -23,6 +23,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Documentation
 
+- `docs/design/06-benchmark.md`: the specification of both benchmarks. B1 measures the menu
+  deterministically and gates pull requests; B2 judges whole meals across crab versions, Claude
+  models and a no-crab baseline, with blind two-pass judging by a different model family. States
+  the hypotheses, the frozen setup, the metrics, the golden set, and the threats to validity.
 - `docs/design/05-self-feeding.md`: the stage between 0.2 and 0.3. Milestone 0.2's exit criterion
   is only half met, because `/crab:eat` has never run in a live agent session. The document names
   what the host is missing, lists twenty prey sniffed against an MIT host with their license
