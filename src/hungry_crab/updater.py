@@ -45,6 +45,16 @@ def _noop(_: str) -> None:
     return None
 
 
+def display_command(args: Sequence[str]) -> str:
+    """A command a human can paste. The requirement contains spaces and must stay one argument.
+
+    Double quotes rather than shell-style single quotes: cmd.exe understands only those, and
+    PowerShell and POSIX shells accept them too.
+    """
+    parts = [f'"{arg}"' if " " in arg else arg for arg in args]
+    return " ".join(parts)
+
+
 def run_command(args: Sequence[str], *, timeout: float = 300.0) -> tuple[bool, str]:
     """Run an external command; return (ok, combined output).
 
@@ -203,7 +213,7 @@ class Component:
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
-        data["commands"] = [" ".join(command) for command in self.commands]
+        data["commands"] = [display_command(command) for command in self.commands]
         return data
 
 
@@ -304,9 +314,11 @@ def apply(
                 component.detail = "uv is not on PATH"
                 continue
         for command in component.commands:
-            log(f"$ {' '.join(command)}")
+            log("$ " + display_command(command))
             ok, output = call(command)
-            component.ran.append({"command": " ".join(command), "ok": ok, "output": output[-400:]})
+            component.ran.append(
+                {"command": display_command(command), "ok": ok, "output": output[-400:]}
+            )
             if not ok:
                 component.detail = f"failed: {output.strip()[-200:]}"
                 break
@@ -336,7 +348,7 @@ def format_report(report: UpdateReport) -> str:
         lines.append("\nRun:")
         for component in pending:
             for command in component.commands:
-                lines.append(f"  {' '.join(command)}")
+                lines.append("  " + display_command(command))
     elif report.executed:
         lines.append("\nEverything that could be updated here was updated.")
     else:
