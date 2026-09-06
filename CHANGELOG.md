@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- README rewritten: what the crab is for, the vocabulary, install instructions for both Claude
+  Code and Codex (both consume the same plugin marketplace), the update path for a git install,
+  and the measured benchmark numbers.
+
 ## [0.2.0] - 2026-09-06
 
 The first tagged release. It covers milestone 0.1 "Sniff & Digest" (the deterministic CLI and
