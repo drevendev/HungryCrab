@@ -80,7 +80,7 @@ symmetric.
 
 ```markdown
 ---
-name: crab-eat
+name: eat
 description: Eat a foreign repository and turn everything useful for the current repo into
   issues and PRs without violating licenses. Use when the user asks to eat, consume, digest,
   or chew a repo, or asks what to borrow from another project.
@@ -121,7 +121,7 @@ the category list with "what counts as valuable" criteria, examples of good card
 ### 0.2 "Menu" — comparison and the skill
 - `compare`, scoring, `menu`, `gap.md`; issues and architecture miners (regex level), security
   flags.
-- `skills/crab-eat`, `crab-license`, `crab-serve`; historian/architect subagents.
+- `skills/eat`, `license`, `serve`; historian/architect subagents; `crab tune` for the weights.
 - `serve --as issue`, dedup, ledger, `.crab.yml`.
 - Plugin manifest, installation via `/plugin marketplace add`.
 - Exit: end-to-end `/crab:eat` creates issues in a test repository; a repeated run yields 0

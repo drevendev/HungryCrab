@@ -8,9 +8,11 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![Conventional Commits](https://img.shields.io/badge/commits-conventional-fe5196.svg)](https://www.conventionalcommits.org)
 
-**Status: pre-release, milestone 0.1 "Sniff & Digest".** The deterministic CLI works today.
-The comparison with your own repository, the ranked menu of nutrients, the Agent Skills and the
-Claude Code plugin arrive with 0.2 and 0.3 (see the [roadmap](docs/design/03-roadmap.md)).
+**Status: pre-release, milestone 0.2 "Menu".** The deterministic CLI digests a prey, compares
+it with your repository, ranks the nutrients with a license verdict each, serves the approved
+ones as issues and remembers every decision. The Agent Skills and the Claude Code plugin sit on
+top. Pull-request serving and the clean-room protocol arrive with 0.3 (see the
+[roadmap](docs/design/03-roadmap.md)).
 
 ## What it does
 
@@ -28,6 +30,8 @@ token-budgeted `digest/` folder that an agent can read progressively:
 | `ai_config` | CLAUDE.md, AGENTS.md, cursor rules, Copilot instructions, skills, subagents, hooks, MCP servers | `ai.{json,md}` |
 | `history` | hotspots, fix ratio, reverts, co-change coupling, cadence, bus factor, tags and release cadence, conventional-commit discipline | `history.{json,md}` |
 | `branches` | every branch: ahead/behind, freshness, merged or stale, what the unmerged ones are about | `branches.{json,md}` |
+| `issues` | label and time-to-close statistics, the most reacted-to issues, TF-IDF clusters of recurring themes (after `catch --issues N`) | `issues.{json,md}` |
+| `architecture` | regex symbol index (TypeScript, Python, C#), internal import graph with hubs and directory layering, public surface | `architecture.{json,md}` |
 | `traits` | a flat matrix of ~120 comparable traits derived from all of the above | `traits.json` |
 
 `manifest.json` is the entry point: every file with a token estimate, the miners that ran, a
@@ -57,6 +61,51 @@ crab digest . --host-license MIT  # digest a local repository, e.g. the host its
 `crab digest owner/repo` catches the prey first when it is not cached yet. Giants can be caught
 with `--since 2y` (history newer than two years, all branches) or `--shallow` (default branch,
 tree only). Digests are addressed by commit SHA: digesting the same commit twice is free.
+
+## From digest to issues
+
+```bash
+crab init                                          # default .crab.yml: appetite, serve policy, ledger mode
+crab compare pallets/click --host . --issues 300   # digest both sides, diff, score -> gap.md, menu.md
+crab menu pallets/click --top 15 --category ci     # the ranked menu of nutrients
+crab serve pallets/click --host . --ids crab:ci:ci.cache --notes notes.json --as dry-run
+crab serve pallets/click --host . --ids crab:ci:ci.cache --notes notes.json --as issue
+crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is enough"
+crab tune                                          # which scoring weights to move, and why
+```
+
+- **compare** turns the two digests into candidate nutrients: trait rules (ci, security,
+  tooling, hygiene, docs, ai-config, tests), tool and dependency diffs within shared
+  ecosystems, README sections, commit and changelog discipline, history and issue lessons,
+  architecture raw material. Every candidate has a stable id, evidence with links to the prey
+  commit, effort, risk and the license mode.
+- **scoring** is a transparent formula (category weight x value x applicability x license mode
+  x effort, minus risk) with weights in `data/scoring.yml`, overridable per host in `.crab.yml`.
+- **serve** creates issues with a hidden `crab:<id>` marker, a label and a provenance footer, so
+  a rerun creates no duplicates; the model-written `why_for_host` and `how` come from a notes
+  file.
+- **ledger** (`.crab/ledger.json` by default) remembers every meal and decision; rejected and
+  served nutrients disappear from later menus. **tune** reads it and says which category and
+  trait weights to move, which categories to switch off, and which prey were a poor match.
+
+## Agent skills and the Claude Code plugin
+
+The repository is a Claude Code plugin and its own marketplace:
+
+```text
+/plugin marketplace add drevendev/HungryCrab
+/plugin install crab@hungry-crab
+```
+
+That gives `/crab:eat owner/repo` (the whole protocol: sniff, compare, judge, ask, serve),
+`/crab:sniff`, `/crab:menu`, the `license` and `serve` skills, and the `crab-historian` and
+`crab-architect` subagents. Any agent that reads `SKILL.md` folders (Codex, Cursor, others) can
+use `skills/` directly, for example through `npx skills add drevendev/HungryCrab`; they only
+need `crab` on PATH:
+
+```bash
+uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+```
 
 Example output for `crab digest pallets/click`:
 

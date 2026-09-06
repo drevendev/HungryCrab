@@ -13,13 +13,22 @@ in `docs/design/`; follow it instead of re-deriving decisions. The decisions log
 
 ## Layout
 
-- `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | cache`).
-- `src/hungry_crab/fetch/`: git wrapper, GitHub API client, `catch`.
+- `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
+  serve | ledger | tune | init | cache`).
+- `src/hungry_crab/fetch/`: git wrapper, GitHub API client, `catch`, issues fetch.
 - `src/hungry_crab/miners/`: one module per miner; `__init__.py` is the ordered registry.
 - `src/hungry_crab/licensing/`: SPDX detection and the host x prey verdict matrix.
 - `src/hungry_crab/digest.py`: orchestrator, budgets, `manifest.json`.
+- `src/hungry_crab/compare/`: trait rules, candidate builders, scoring (`data/scoring.yml`),
+  gap.md and menu.md rendering; `nutrients.py` is the card schema.
+- `src/hungry_crab/host.py`, `ledger.py`, `serve.py`, `tune.py`: `.crab.yml`, the ledger, issue
+  creation through gh, weight suggestions from the ledger.
 - `src/hungry_crab/mdutil.py`, `tokens.py`, `safety.py`: Markdown builder with a token budget,
   token estimate, prompt-injection heuristics.
+- `skills/`, `agents/`, `commands/`, `.claude-plugin/`: the Agent Skills (`eat`, `license`,
+  `serve`), the subagents (`crab-historian`, `crab-architect`), the `/crab:sniff` and
+  `/crab:menu` commands, and the plugin plus marketplace manifests. `tests/test_plugin.py` keeps
+  them well-formed.
 - `tests/fixtures/`: three synthetic repositories; `tests/fixture_builder.py` turns them into real
   git repositories with history, tags and branches.
 
@@ -47,6 +56,10 @@ uv run crab digest . --out /tmp/self-digest --host-license MIT
 7. Digest files are budgeted: Markdown at most 3,500 tokens per file by default. Full data goes to
    JSON, summaries to Markdown; `MdDoc` trims low-priority sections automatically.
 8. Type hints everywhere; `mypy --strict` and `ruff` must pass.
+9. Nutrient ids are host-relative and stable (`crab:<category>:<key>`); prey-specific lessons
+   carry the prey slug in the key. Never change an existing key without a ledger migration.
+10. Skills describe the protocol, the CLI does the work: put new deterministic logic into the
+    CLI and keep `SKILL.md` files short.
 
 ## Adding a miner
 

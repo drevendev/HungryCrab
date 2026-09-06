@@ -1,0 +1,21 @@
+{
+  "name": "hungry-crab",
+  "owner": {
+    "name": "Dreven",
+    "url": "https://github.com/drevendev"
+  },
+  "metadata": {
+    "description": "Hungry Crab: eat foreign repositories, digest them, serve the nutrients.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "crab",
+      "source": "./",
+      "description": "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses.",
+      "version": "0.2.0",
+      "category": "productivity",
+      "keywords": ["repository-mining", "license-compliance"]
+    }
+  ]
+}
