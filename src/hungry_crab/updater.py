@@ -201,6 +201,26 @@ def cli_install_kind() -> str:
     return "environment"
 
 
+def installed_commit() -> str | None:
+    """The commit this crab was installed from, per PEP 610.
+
+    Versions cannot answer the question during a development series: every commit between two
+    releases says ``0.3.0.dev0``, so comparing versions reported "up to date" to a crab that was
+    thirty commits and one whole rename behind. pip and uv both record the resolved commit of a
+    VCS install in ``direct_url.json``, and that can be compared.
+    """
+    package = Path(__file__).resolve().parent
+    for info in sorted(package.parent.glob("hungry_crab-*.dist-info/direct_url.json")):
+        try:
+            data = json.loads(info.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        commit = as_dict(as_dict(data).get("vcs_info")).get("commit_id")
+        if isinstance(commit, str) and commit:
+            return commit
+    return None
+
+
 @dataclass
 class Component:
     name: str
@@ -248,9 +268,18 @@ def check_cli(remote: Remote) -> Component:
     if remote.cli_version and remote.cli_version != installed:
         detail = f"master is at {remote.cli_version}"
         return Component("crab CLI", installed, remote.cli_version, OUTDATED, detail, [command])
+    here = installed_commit()
+    if here and remote.sha and here != remote.sha:
+        detail = (
+            f"same version as master, but installed from {here[:7]} and master is at "
+            f"{remote.short_sha} ({remote.date})"
+        )
+        return Component("crab CLI", installed, remote.cli_version, OUTDATED, detail, [command])
     detail = "same version as master"
     if remote.short_sha:
-        detail += f" ({remote.short_sha}, {remote.date}); reinstall to pick up newer commits"
+        detail += f" ({remote.short_sha}, {remote.date})"
+    if here is None:
+        detail += "; the install records no commit, so reinstall to be sure"
     return Component("crab CLI", installed, remote.cli_version, OK, detail, [command])
 
 

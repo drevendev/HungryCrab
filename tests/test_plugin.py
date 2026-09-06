@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab import __version__
+
 ROOT = Path(__file__).resolve().parents[1]
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
@@ -33,6 +35,11 @@ def test_plugin_manifest_and_marketplace_agree() -> None:
     assert set(entries) == {"crab"}
     assert entries["crab"]["source"] == "./"
     assert entries["crab"]["version"] == plugin["version"]
+    # The plugin version stayed at 0.2.0 while the CLI moved to 0.3.0.dev0, so every agent
+    # was told it was up to date while its skills still said --host.
+    assert plugin["version"] == __version__.replace(".dev", "-dev."), (
+        "the plugin ships the CLI's skills, so it carries the CLI's version"
+    )
     assert marketplace["name"] == "hungry-crab"
 
 
