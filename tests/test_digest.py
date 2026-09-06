@@ -96,6 +96,45 @@ def test_second_run_is_served_from_cache_and_force_rewrites(npm_app: Path, tmp_p
     assert not forced.cached
 
 
+def test_a_cached_digest_is_only_reused_for_the_same_question(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    """The commit is not the only input, and the `eat` protocol depends on this.
+
+    Step 4 of the skill tells an agent that reads the maw as the wrong stack to add the offending
+    paths to `ignore` and rerun. The commit does not move when `.crab.yml` changes, so the rerun
+    used to return the cached answer and the remedy did nothing at all.
+    """
+    options = DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache")
+    first = run_digest(Target(path=npm_app), options)
+    assert not first.cached
+
+    same = run_digest(Target(path=npm_app), DigestOptions(**options.__dict__))
+    assert same.cached, "nothing changed, so nothing should be recomputed"
+
+    ignored = run_digest(
+        Target(path=npm_app), DigestOptions(**{**options.__dict__, "ignore": ["src/**"]})
+    )
+    assert not ignored.cached, "a different `ignore` is a different digest"
+    assert ignored.manifest["ignore"] == ["src/**"]
+
+    licensed = run_digest(
+        Target(path=npm_app), DigestOptions(**{**options.__dict__, "maw_license": "GPL-3.0-only"})
+    )
+    assert not licensed.cached, "the license verdict inside the digest is maw-dependent"
+
+
+def test_a_digest_from_an_older_crab_is_not_reused(npm_app: Path, tmp_path: Path) -> None:
+    """Upgrading the crab has to change its answers, or `crab update` buys nothing."""
+    options = DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache")
+    run_digest(Target(path=npm_app), options)
+    manifest_path = tmp_path / "out" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["crab_version"] = "0.0.1"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    assert not run_digest(Target(path=npm_app), DigestOptions(**options.__dict__)).cached
+
+
 def test_local_digest_defaults_to_the_maws_cache(npm_app: Path, tmp_path: Path) -> None:
     result = run_digest(
         Target(path=npm_app), DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache")

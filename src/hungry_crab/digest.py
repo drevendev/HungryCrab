@@ -27,6 +27,7 @@ from .fs import read_text
 from .maw import MawConfig
 from .miners import MineContext, Miner, select_miners
 from .tokens import estimate_tokens
+from .typeutil import as_list
 
 SCHEMA = "hungry-crab.digest/1"
 MD_BUDGET = {"normal": 3500, "deep": 12000}
@@ -398,6 +399,25 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
     return manifest
 
 
+def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOptions) -> bool:
+    """Is a digest on disk still an answer to the question being asked?
+
+    The commit is not the only input. A digest of the same commit produced by an older crab, or
+    before ``ignore`` was corrected, or for a maw under a different license, is a different
+    document. The `eat` protocol tells an agent to fix `ignore` in `.crab.yml` and rerun when the
+    maw reads as the wrong stack; without this, that rerun returned the cached answer and the
+    remedy did nothing.
+    """
+    return (
+        cached.get("schema") == SCHEMA
+        and cached.get("crab_version") == __version__
+        and cached.get("prey", {}).get("sha") == ctx.sha
+        and cached.get("depth") == options.depth
+        and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
+        and cached.get("maw_license") == options.maw_license
+    )
+
+
 def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
     """Where the digest of ``target`` lives (catching the prey first if it is not cached)."""
     _, out_dir = prepare_context(target, options or DigestOptions())
@@ -414,13 +434,7 @@ def run_digest(
     manifest_path = out_dir / "manifest.json"
     if not opts.force:
         cached = _load_json(manifest_path)
-        if (
-            cached is not None
-            and cached.get("schema") == SCHEMA
-            and cached.get("prey", {}).get("sha") == ctx.sha
-            and cached.get("depth") == opts.depth
-            and not opts.miners
-        ):
+        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts):
             log(f"digest for {ctx.label}@{ctx.short_sha} is cached at {out_dir}")
             return DigestResult(out_dir, cached, cached=True)
     try:
