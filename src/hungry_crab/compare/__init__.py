@@ -14,8 +14,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ..cache import Target
+from ..cache import Slug, Target
 from ..digest import DigestOptions, DigestResult, refresh_manifest, run_digest
+from ..errors import CrabError
+from ..host import HostConfig, host_slug
+from ..ledger import Ledger
 from ..licensing import decide
 from ..nutrients import Candidate
 from ..typeutil import as_dict
@@ -219,6 +222,54 @@ def load_menu(prey_dir: Path) -> dict[str, Any] | None:
 
 def menu_candidates(menu: dict[str, Any]) -> list[Candidate]:
     return [Candidate.from_dict(as_dict(item)) for item in menu.get("candidates", [])]
+
+
+IssueLookup = Callable[[Slug, str], dict[str, dict[str, Any]]]
+
+
+def compare_for_host(
+    prey_target: Target,
+    host_root: Path,
+    *,
+    digest_options: DigestOptions | None = None,
+    top: int = 30,
+    issue_lookup: IssueLookup | None = None,
+    now: datetime | None = None,
+    log: Callable[[str], None] = _noop,
+) -> tuple[CompareResult, DigestResult, Ledger, HostConfig]:
+    """The full host-aware comparison: .crab.yml appetite and scoring, ledger and issue dedup."""
+    config = HostConfig.load(host_root)
+    d_opts = digest_options or DigestOptions()
+    ledger = Ledger.load(config.ledger_path(d_opts.cache_root), host=host_root.name)
+    hidden = ledger.hidden_ids()
+    if issue_lookup is not None:
+        slug = host_slug(host_root)
+        if slug is not None:
+            try:
+                for nutrient_id, info in issue_lookup(slug, config.serve.label).items():
+                    hidden.setdefault(
+                        nutrient_id, f"issue #{info.get('number')} ({info.get('state')})"
+                    )
+            except CrabError as exc:
+                log(f"warning: could not check existing issues: {exc.message}")
+    options = CompareOptions(
+        appetite=config.appetite,
+        scoring=config.scoring,
+        top=top,
+        host_license=config.license or d_opts.host_license,
+        hidden_ids=hidden,
+        now=now,
+    )
+    result, prey_digest, _ = run_compare(
+        prey_target, host_root, digest_options=d_opts, options=options, log=log
+    )
+    new = ledger.record_meal(result.menu, result.candidates, now=now)
+    saved = ledger.save(now=now)
+    log(
+        f"ledger: {new} new nutrients, {len(ledger.entries)} known"
+        + (f", saved to {saved}" if saved else " (ledger mode: none)")
+    )
+    return result, prey_digest, ledger, config
 
 
 def run_compare(

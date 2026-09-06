@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from helpers import copy_repo
 
 from hungry_crab import __version__
 from hungry_crab.cli import build_parser, detect_host_license, main
@@ -90,12 +91,16 @@ def test_compare_and_menu_commands(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     cache = str(tmp_path / "cache")
-    code = main(["-q", "--cache-dir", cache, "compare", str(npm_app), "--host", str(pyproject_cli)])
+    host = copy_repo(pyproject_cli, tmp_path / "host")
+    code = main(
+        ["-q", "--cache-dir", cache, "compare", str(npm_app), "--host", str(host), "--no-issues"]
+    )
     assert code == 0
     out = capsys.readouterr().out
     assert out.startswith("Menu: npm-app@")
     assert "crab:tooling:tooling.dependabot" in out
     assert "gap.md and menu.md written to" in out
+    assert (host / ".crab" / "ledger.json").is_file(), "ledger mode repo by default"
 
     code = main(
         ["-q", "--cache-dir", cache, "menu", str(npm_app), "--top", "3", "--category", "ci"]
@@ -111,6 +116,106 @@ def test_compare_and_menu_commands(
     payload = json.loads(capsys.readouterr().out)
     assert payload["schema"] == "hungry-crab.menu/1"
     assert len(payload["candidates"]) == 2
+
+
+def test_init_ledger_serve_and_tune_commands(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cache = str(tmp_path / "cache")
+    host = copy_repo(pyproject_cli, tmp_path / "host")
+    assert main(["init", "--host", str(host)]) == 0
+    assert "wrote" in capsys.readouterr().out
+    assert main(["init", "--host", str(host)]) == 1, "refuses to overwrite"
+    capsys.readouterr()
+    assert (
+        main(
+            [
+                "-q",
+                "--cache-dir",
+                cache,
+                "compare",
+                str(npm_app),
+                "--host",
+                str(host),
+                "--no-issues",
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    assert main(["ledger", "--host", str(host)]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("Ledger for host:")
+    assert "proposed" in out and "crab:ci:ci.cache" in out
+    assert (
+        main(
+            [
+                "ledger",
+                "--host",
+                str(host),
+                "mark",
+                "crab:ci:ci.cache",
+                "rejected",
+                "--reason",
+                "no",
+            ]
+        )
+        == 0
+    )
+    assert "crab:ci:ci.cache: rejected (no)" in capsys.readouterr().out
+    assert main(["ledger", "--host", str(host), "show", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    statuses = {e["id"]: e["status"] for e in payload["entries"]}
+    assert statuses["crab:ci:ci.cache"] == "rejected"
+
+    code = main(
+        ["-q", "--cache-dir", cache, "serve", str(npm_app), "--host", str(host), "--top", "2"]
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert "dry run: 1 issue(s) would be created" in out, "the rejected one is skipped"
+    assert "skipped crab:ci:ci.cache: ledger: rejected" in out
+    assert "<!-- crab:" in out
+    code = main(
+        [
+            "-q",
+            "--cache-dir",
+            cache,
+            "serve",
+            str(npm_app),
+            "--host",
+            str(host),
+            "--ids",
+            "crab:ci:ci.cache",
+        ]
+    )
+    assert code == 0
+    assert "skipped crab:ci:ci.cache: ledger: rejected" in capsys.readouterr().out
+    code = main(
+        [
+            "-q",
+            "--cache-dir",
+            cache,
+            "serve",
+            str(npm_app),
+            "--host",
+            str(host),
+            "--top",
+            "1",
+            "--as",
+            "pr-branch",
+        ]
+    )
+    assert code == 1
+    assert "0.3" in capsys.readouterr().err
+
+    assert main(["tune", "--host", str(host)]) == 0
+    out = capsys.readouterr().out
+    assert "1 decisions in the ledger" in out
+    assert main(["tune", "--host", str(host), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["decisions"] == 1 and payload["written"] is None
 
 
 def test_menu_before_compare_is_an_error(
