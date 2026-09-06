@@ -23,7 +23,7 @@ issues.
 
 ## 2. Shape
 
-One scheduled entry per **target**. A wake-up runs exactly one phase and exits. The sequence of
+One scheduled entry per **maw**. A wake-up runs exactly one phase and exits. The sequence of
 phases is a state machine: deterministic transitions in the CLI, judgment inside a phase from the
 model. Nothing about the loop lives in the agent's memory between wake-ups — everything it needs
 to continue is in a file.
@@ -41,9 +41,9 @@ CRAVE ─► HUNT ─► EAT ─► SERVE ─► GROW ─► TRIAL ─► TASTE 
 | EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why_for_maw` and `how` |
 | SERVE | files the issues | `crab serve` | confirms, or the serve policy decides |
 | GROW | implements one served nutrient | — | branch, change, pull request |
-| TRIAL | did it hold | the target's own tests and CI | reads the result, decides retry or drop |
+| TRIAL | did it hold | the maw's own tests and CI | reads the result, decides retry or drop |
 | TASTE | what was learned | `crab tune` | writes the lesson CRAVE reads next round |
-| MOLT | sheds what the round grew out of | the target's own tests, lint and coverage | one refactoring pull request, no new behaviour |
+| MOLT | sheds what the round grew out of | the maw's own tests, lint and coverage | one refactoring pull request, no new behaviour |
 | HARDEN | the round becomes a version | changelog entry, version bump, tag | decides major, minor or patch and writes the entry |
 
 Every name is either already in this project's vocabulary or biologically exact. A crab is
@@ -62,9 +62,9 @@ also the three that write to the repository, so they are the last ones switched 
 rounds of nutrients leave a repository with eight half-integrated changes, and the ninth menu is
 judged against a codebase nobody has read since. The crab's own vocabulary already has the word
 for the answer. 04 puts its molt last for the same reason, with hard invariants, and this loop
-inherits them in the terms a local target can actually provide:
+inherits them in the terms a maw can actually provide:
 
-- every test the target already ran still passes, and its linter is no louder than before;
+- every test the maw already ran still passes, and its linter is no louder than before;
 - coverage does not fall;
 - the change adds no public surface: no new command, flag, config key or exported name;
 - what it may remove is what the round itself made redundant, and nothing else: dead code, a
@@ -85,7 +85,7 @@ of merged pull requests and becomes a number.**
 - the changelog gains one entry per nutrient the round landed, with its provenance;
 - the version moves: a nutrient merged makes it a minor, a round that only moulted makes it a
   patch, and anything that changed a published schema or a CLI contract escalates to a human;
-- the tag is written, and whatever the target's release automation does with a tag, it does.
+- the tag is written, and whatever the maw's release automation does with a tag, it does.
 
 It is the phase that most needs `waiting_on`. Nothing hardens until the round's pull requests are
 merged, and merging is a human's job at every autonomy level (section 8), so a wake-up that finds
@@ -96,32 +96,26 @@ version per commit is a loop measuring its own noise.
 
 ### The same phases in 04
 
-[04-evolving-crab.md](04-evolving-crab.md) names the same cycle differently, because it was
-written first and took its names from the evolution metaphor rather than from the animal:
+[04-evolving-crab.md](04-evolving-crab.md) ran the same cycle under names taken from the
+evolution metaphor rather than from the animal, and two of them meant something else here.
+It now uses these, and only two rows still differ:
 
-| Here | In 04 | Why the name changed |
+| Here | In 04 | Why |
 |---|---|---|
-| CRAVE | GOAL | 04's goal raises a benchmark; a local loop only decides what to look for next |
-| HUNT | HUNT | — |
-| EAT | CONSUME | the skill is called `eat` |
-| GROW | EVOLVE | a crab grows tissue; evolution is what happens to a species over many rounds |
-| TRIAL | TRIAL | — |
-| TASTE | GROW | learning from what was eaten is `taste`, which milestone 0.5 already calls it |
-| MOLT | MOLT | — |
+| CRAVE | GOAL | 04's goal raises a benchmark and owns the `goal/` pack; a local loop only decides what to look for next |
 | HARDEN | — | 04 has no version phase; its fitness function plays that role |
 
-04 is a design document with nothing built on it, so the two should converge on these names
-rather than keep two meanings for `GROW`. That rename is not in this document's scope.
+Every other phase now carries the same name in both documents.
 
 ## 3. State
 
-`.crab/loop.json` next to the ledger, in the target repository when we own it, in a **control
-repository** when we do not. One record per target:
+`.crab/loop.json` next to the ledger, in the maw itself when we own it, in a **control
+repository** when we do not. One record per maw:
 
 ```json
 {
   "schema": "hungry-crab.loop/1",
-  "target": "drevendev/HungryCrab",
+  "maw": "drevendev/HungryCrab",
   "round": 7,
   "phase": "eat",
   "attempt": 1,
@@ -162,10 +156,10 @@ The skill `/crab:loop` is then three steps long: run `crab loop next`, do that o
 
 ## 5. Scheduling
 
-- **Claude Code:** one scheduled task per target invoking `/crab:loop`.
+- **Claude Code:** one scheduled task per maw invoking `/crab:loop`.
 - **Codex:** its own scheduler, the same skill through the same plugin marketplace.
 
-Cadence is a property of the target, not of the machine: a repository under active work wants a
+Cadence is a property of the maw, not of the machine: a repository under active work wants a
 daily wake-up, a stable one wants a weekly. The scheduler holds the cadence; the loop holds the
 budget, and refuses when the cadence would overrun it.
 
@@ -184,7 +178,7 @@ loop:
     open_prs_max: 2
 ```
 
-`autonomy` is per target and is the whole safety story:
+`autonomy` is per maw and is the whole safety story:
 
 | Level | The loop may | Stops at |
 |---|---|---|
@@ -197,20 +191,20 @@ rather than by prose:
 
 - prey is never executed, and prey content is data, not instructions;
 - no phase pushes to the default branch, and no phase merges anything;
-- `GROW`, `MOLT` and `HARDEN` refuse paths a target marks protected — `.github/**`, licence
+- `GROW`, `MOLT` and `HARDEN` refuse paths a maw marks protected — `.github/**`, licence
   `.crab.yml` itself;
 - a molt never deletes what it cannot show is unreachable: it removes what the round made
   redundant, and lists everything else for a human instead;
-- a target we do not own is `read` or `serve`, never `work`, until its owner says otherwise in
+- a maw we do not own is `read` or `serve`, never `work`, until its owner says otherwise in
   writing in that repository's own `.crab.yml`;
 - `crab loop pause` is the kill switch, and it is one command with no arguments.
 
-## 7. Targets that are not the crab
+## 7. Maws that are not the crab
 
-The control repository holds what the target repository cannot:
+The control repository holds what a maw cannot:
 
 ```yaml
-targets:
+maws:
   - repo: git@github.com:me/thing.git
     path: ../thing
     autonomy: serve
@@ -218,8 +212,8 @@ targets:
     prey: [pypa/hatch, pre-commit/pre-commit]   # optional; HUNT picks when absent
 ```
 
-Everything else — hunger, scoring, ignore, ledger — stays in the target's own `.crab.yml`,
-because it describes the target and should travel with it.
+Everything else — hunger, scoring, ignore, ledger — stays in the maw's own `.crab.yml`,
+because it describes the maw and should travel with it.
 
 ## 8. Autonomy ladder
 
@@ -228,7 +222,7 @@ because it describes the target and should travel with it.
 | S0 | a human runs `/crab:loop` | human | 3 clean rounds |
 | S1 | scheduled, stops before GROW | human | 10 rounds with no correction |
 | S2 | scheduled through GROW, MOLT and HARDEN on repositories we own | human | a month with no invariant broken |
-| S3 | S2 on named foreign targets, by invitation | human | — |
+| S3 | S2 on named foreign maws, by invitation | human | — |
 
 There is no level where the loop merges. That is 04's problem, and 04 has a fitness function to
 justify it.
@@ -260,7 +254,7 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
    for a month — a loop that adds without shedding is worse than one that does neither,
    and a round nobody stamps is a round nobody can roll back to.
 3. **HUNT before 0.5.** `crab hunt` is a 0.5 feature. Until then HUNT reads a prey list from the
-   target's config — the twenty prey in [05-self-feeding.md](05-self-feeding.md) are already such
+   maw's config — the twenty prey in [05-self-feeding.md](05-self-feeding.md) are already such
    a list.
 4. **Where the loop sits in the roadmap.** Proposed: Track A after 0.3, as the bridge into Track
    B, since `GROW`, `MOLT` and `HARDEN` all need 0.3's pull-request machinery.
