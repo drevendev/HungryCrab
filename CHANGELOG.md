@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-06
+
+The first tagged release. It covers milestone 0.1 "Sniff & Digest" (the deterministic CLI and
+its miners) and milestone 0.2 "Menu" (comparison, scoring, serving nutrients as issues, the
+ledger, the Agent Skills and the Claude Code plugin).
+
 ### Added (milestone 0.2 "Menu")
 
 - `crab compare`: prey digest minus host digest, turned into scored candidate nutrients with
@@ -47,3 +53,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   by the tests.
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
+
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0

@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.benchmark/1",
-  "crab_version": "0.2.0.dev0",
-  "date": "2026-09-06T07:49:09+00:00",
+  "crab_version": "0.2.0",
+  "date": "2026-09-06T08:19:28+00:00",
   "depth": "normal",
   "platform": {
     "os": "Windows",
@@ -17,9 +17,9 @@
     {
       "repo": "pallets/click",
       "sha": "6aabf099bfdd4c1e75fe8d0e0d4241372b988ab1",
-      "seconds": 0.94,
+      "seconds": 1.02,
       "markdown_tokens": 5323,
-      "total_tokens": 29081,
+      "total_tokens": 29019,
       "files": 177,
       "loc": 40393,
       "commits": 3362,
@@ -30,9 +30,9 @@
     {
       "repo": "colinhacks/zod",
       "sha": "7a00236683c79000dbab0d92f6faf0b7fba39f59",
-      "seconds": 5.09,
-      "markdown_tokens": 10629,
-      "total_tokens": 72891,
+      "seconds": 4.82,
+      "markdown_tokens": 10873,
+      "total_tokens": 69362,
       "files": 722,
       "loc": 142002,
       "commits": 3186,
