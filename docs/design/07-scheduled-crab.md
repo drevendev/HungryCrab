@@ -29,42 +29,88 @@ model. Nothing about the loop lives in the agent's memory between wake-ups — e
 to continue is in a file.
 
 ```
-PLAN ─► HUNT ─► EAT ─► SERVE ─► WORK ─► CHECK ─► RETRO ─► MOLT ─┐
-          ▲                                                     │
-          └──────────────────── next round ─────────────────────┘
+HUNGER ─► HUNT ─► EAT ─► SERVE ─► GROW ─► TRIAL ─► TASTE ─► MOLT ─► HARDEN ─┐
+           ▲                                                                │
+           └────────────────────────── next round ──────────────────────────┘
 ```
 
 | Phase | One wake-up does | Deterministic | Model |
 |---|---|---|---|
-| PLAN | decides what this target needs this round | ledger, open crab issues, last retro | writes the round's goal in two sentences |
+| HUNGER | decides what this target is short of this round | ledger, open crab issues, last taste | writes the round's goal in two sentences |
 | HUNT | picks 1–3 prey | candidate list, filters, ledger and issue dedup | picks, and says why these |
 | EAT | digests, compares, judges one prey | `crab compare` | judges the menu, writes `why_for_host` and `how` |
 | SERVE | files the issues | `crab serve` | confirms, or the serve policy decides |
-| WORK | implements one served nutrient | — | branch, change, pull request |
-| CHECK | did it hold | the target's own tests and CI | reads the result, decides retry or drop |
-| RETRO | what was learned | `crab tune` | writes the lesson that PLAN reads next round |
+| GROW | implements one served nutrient | — | branch, change, pull request |
+| TRIAL | did it hold | the target's own tests and CI | reads the result, decides retry or drop |
+| TASTE | what was learned | `crab tune` | writes the lesson HUNGER reads next round |
 | MOLT | sheds what the round grew out of | the target's own tests, lint and coverage | one refactoring pull request, no new behaviour |
+| HARDEN | the round becomes a version | changelog entry, version bump, tag | decides major, minor or patch and writes the entry |
 
-`WORK` and `MOLT` are the phases that do not exist today: the crab currently stops at the issue.
-They are also the two that write code, so they are the last ones switched on (§6).
+Every name is either already in this project's vocabulary or biologically exact. A crab is
+hungry, hunts, eats, grows, moults, and then its new shell hardens at the larger size; `taste` is
+what milestone 0.5 already calls learning from the ledger, and `trial` is what
+[04](04-evolving-crab.md) already calls running the benchmarks. The last table in this
+section maps the two documents.
+
+`GROW`, `MOLT` and `HARDEN` do not exist today: the crab currently stops at the issue. They are
+also the three that write to the repository, so they are the last ones switched on (section 6).
+
+### Molting
 
 **Molting** is not optional decoration. A loop that only adds is a loop that accretes: eight
 rounds of nutrients leave a repository with eight half-integrated changes, and the ninth menu is
 judged against a codebase nobody has read since. The crab's own vocabulary already has the word
-for the answer. [04](04-evolving-crab.md) puts `MOLT` after `GROW` for the same reason, with hard
-invariants, and this loop inherits them in the terms a local target can actually provide:
+for the answer. 04 puts its molt last for the same reason, with hard invariants, and this loop
+inherits them in the terms a local target can actually provide:
 
 - every test the target already ran still passes, and its linter is no louder than before;
 - coverage does not fall;
 - the change adds no public surface: no new command, flag, config key or exported name;
-- what it may remove is what the round itself made redundant — dead code, a superseded helper, a
-  doc paragraph that now contradicts the code, a dependency nothing imports any more.
+- what it may remove is what the round itself made redundant, and nothing else: dead code, a
+  superseded helper, a doc paragraph that now contradicts the code, a dependency nothing imports.
 
-If an invariant fails, the pull request is closed and the reason goes into the next `RETRO`
+If an invariant fails, the pull request is closed and the reason goes into the next `TASTE`
 rather than into a fix attempt: a molt that needs debugging is not a molt.
 
 `MOLT` runs only when the round actually landed something. Molting after a round that changed
-nothing is churn, and the loop skips straight to `PLAN`.
+nothing is churn, and the loop skips to `HARDEN`, which then has nothing to stamp and skips too.
+
+### Hardening
+
+A crab that has just moulted is soft, and it is not its new size until the shell sets. A round is
+not a version until the same thing happens to it: **`HARDEN` is where a round stops being a pile
+of merged pull requests and becomes a number.**
+
+- the changelog gains one entry per nutrient the round landed, with its provenance;
+- the version moves: a nutrient merged makes it a minor, a round that only moulted makes it a
+  patch, and anything that changed a published schema or a CLI contract escalates to a human;
+- the tag is written, and whatever the target's release automation does with a tag, it does.
+
+It is the phase that most needs `waiting_on`. Nothing hardens until the round's pull requests are
+merged, and merging is a human's job at every autonomy level (section 8), so a wake-up that finds
+them open records `waiting_on: "human: merge #NN"` and exits having spent nothing.
+
+The version is the crab's size, and it changes only when the shell sets. A loop that bumps a
+version per commit is a loop measuring its own noise.
+
+### The same phases in 04
+
+[04-evolving-crab.md](04-evolving-crab.md) names the same cycle differently, because it was
+written first and took its names from the evolution metaphor rather than from the animal:
+
+| Here | In 04 | Why the name changed |
+|---|---|---|
+| HUNGER | GOAL | 04's goal raises a benchmark; a local loop only decides what to look for next |
+| HUNT | HUNT | — |
+| EAT | CONSUME | the skill is called `eat` |
+| GROW | EVOLVE | a crab grows tissue; evolution is what happens to a species over many rounds |
+| TRIAL | TRIAL | — |
+| TASTE | GROW | learning from what was eaten is `taste`, which milestone 0.5 already calls it |
+| MOLT | MOLT | — |
+| HARDEN | — | 04 has no version phase; its fitness function plays that role |
+
+04 is a design document with nothing built on it, so the two should converge on these names
+rather than keep two meanings for `GROW`. That rename is not in this document's scope.
 
 ## 3. State
 
@@ -80,6 +126,7 @@ repository** when we do not. One record per target:
   "attempt": 1,
   "prey": ["github-linguist/linguist"],
   "goal": "close the coverage gap before the benchmark",
+  "hardened": "0.3.0",
   "budget": {"phases_today": 3, "issues_open": 6, "prs_open": 1},
   "waiting_on": null,
   "history": [{"round": 7, "phase": "hunt", "result": "ok", "at": "...", "note": "..."}]
@@ -141,15 +188,15 @@ loop:
 | Level | The loop may | Stops at |
 |---|---|---|
 | `read` | digest, compare, judge, write the menu to a file | before SERVE |
-| `serve` | everything in `read`, plus file issues, and file what a molt would remove instead of removing it | before WORK |
-| `work` | everything in `serve`, plus a branch and a pull request, from `WORK` and from `MOLT` | never merges |
+| `serve` | everything in `read`, plus file issues, and file what a molt would remove instead of removing it | before GROW |
+| `work` | everything in `serve`, plus branches and pull requests from `GROW` and `MOLT`, and the changelog, version and tag in `HARDEN` | never merges |
 
 Invariants at every level, inherited from the constitution in 04 and enforced here by the CLI
 rather than by prose:
 
 - prey is never executed, and prey content is data, not instructions;
 - no phase pushes to the default branch, and no phase merges anything;
-- `WORK` and `MOLT` refuse paths a target marks protected — `.github/**`, licence files,
+- `GROW`, `MOLT` and `HARDEN` refuse paths a target marks protected — `.github/**`, licence
   `.crab.yml` itself;
 - a molt never deletes what it cannot show is unreachable: it removes what the round made
   redundant, and lists everything else for a human instead;
@@ -178,8 +225,8 @@ because it describes the target and should travel with it.
 | Level | Wake-up | Merge | Promote after |
 |---|---|---|---|
 | S0 | a human runs `/crab:loop` | human | 3 clean rounds |
-| S1 | scheduled, stops before WORK | human | 10 rounds with no correction |
-| S2 | scheduled through WORK and MOLT on repositories we own | human | a month with no invariant broken |
+| S1 | scheduled, stops before GROW | human | 10 rounds with no correction |
+| S2 | scheduled through GROW, MOLT and HARDEN on repositories we own | human | a month with no invariant broken |
 | S3 | S2 on named foreign targets, by invitation | human | — |
 
 There is no level where the loop merges. That is 04's problem, and 04 has a fitness function to
@@ -197,6 +244,8 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
 - Ten consecutive scheduled wake-ups on `HungryCrab` with no human input except merging.
 - One full round on a second repository that is not the crab, at `serve` autonomy.
 - One molt that shed something a previous round grew, with every invariant green.
+- One version this repository did not bump by hand: a round hardened into a tag, with a changelog
+  entry per nutrient and its provenance.
 - The state file survives a machine restart and a `crab update`.
 - Cost per phase recorded in `benchmarks/`, and quoted in 04's budget.
 
@@ -205,11 +254,12 @@ who merges. `budget.yml` in 04 is then filled in from `loop.json`'s history.
 1. **Control repository or plain directory.** A private repository gives history and a second
    machine; a directory outside git is one less moving part. Default proposed: private
    repository, because the loop's own history is evidence for 04.
-2. **Do WORK and MOLT belong here.** The most valuable phases and the two dangerous ones.
-   Default proposed: design both now, ship them together at S2 after `serve` has run for a
-   month — a loop that adds without shedding is worse than one that does neither.
+2. **Do GROW, MOLT and HARDEN belong here.** The valuable phases and the three that write.
+   Default proposed: design all three now, ship them together at S2 after `serve` has run
+   for a month — a loop that adds without shedding is worse than one that does neither,
+   and a round nobody stamps is a round nobody can roll back to.
 3. **HUNT before 0.5.** `crab hunt` is a 0.5 feature. Until then HUNT reads a prey list from the
    target's config — the twenty prey in [05-self-feeding.md](05-self-feeding.md) are already such
    a list.
 4. **Where the loop sits in the roadmap.** Proposed: Track A after 0.3, as the bridge into Track
-   B, since `WORK` and `MOLT` both need 0.3's pull-request machinery.
+   B, since `GROW`, `MOLT` and `HARDEN` all need 0.3's pull-request machinery.
