@@ -1,6 +1,6 @@
 [project]
 name = "hungry-crab"
-version = "0.2.0"
+version = "0.3.0.dev0"
 description = "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses."
 readme = "README.md"
 requires-python = ">=3.11"
