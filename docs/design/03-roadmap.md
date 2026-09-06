@@ -19,6 +19,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.2.1 | Self-feeding | `/crab:eat` from a live agent session with the crab as the host; fix what the skill gets wrong ([05-self-feeding.md](05-self-feeding.md)) | 0.2's exit criterion honestly closed: two live meals, 0 duplicates, skill defects fixed |
 | 0.2.2 | Menu benchmark | B1 from [06-benchmark.md](06-benchmark.md): frozen host and donors, the golden set, the deterministic menu benchmark and its CI gate | `recall_must@30` measured on master and gating pull requests |
 | 0.3 | Serve | PR branches, provenance, attribution, clean room, safety hook, wiki, strict mode, docs | ≥ 3 merged PRs in the fleet; **MVP closed** |
+| 0.3.1 | Scheduled crab | `crab loop`: a state machine a local scheduler wakes once per phase, on this repository or on any target it is pointed at ([07-scheduled-crab.md](07-scheduled-crab.md)) | ten consecutive scheduled wake-ups with no human input except merging, and one round on a repository that is not the crab |
 | 0.4 | Deep Bite | Discussions (GraphQL), PR review comments, Actions runs statistics (flaky tests, durations), tree-sitter symbols and call graph, Go/Rust/JVM/PHP/Ruby manifests, GitLab adapter | 8+ ecosystems, architectural nutrients with symbol-level evidence |
 | 0.5 | Taste Memory | scorer learning from the ledger (accepted/rejected by category and host), `crab hunt --for .` (finding prey for a host via `gh search` + similarity signals), multi-prey (`eat a b c` → merged menu), appetite profiles by repository type | share of accepted issues grows between iterations on the same host |
 | 0.6 | Everywhere | composite GitHub Action, MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | the crab runs on a schedule in a host's CI without Claude Code |
@@ -46,7 +47,9 @@ Detailed design in [04-evolving-crab.md](04-evolving-crab.md). Stages here.
 | E4 | Public Organism | GitHub Pages dashboard (fitness per cycle, cost, accepted nutrients), public decision log, "donor" PRs into the base Hungry Crab from evolution results | outsiders can read the evolution history and reuse improvements |
 
 Dependencies: E0 requires 0.3 (something to benchmark); E2 requires 0.5 (`crab hunt` is the HUNT
-phase).
+phase). E0 also inherits its budget numbers from 0.3.1, which runs the same phases locally and
+records what each one costs ([07-scheduled-crab.md](07-scheduled-crab.md)); a cron entry is a
+cheaper place to find out that a phase does not fit in one session than a public organism is.
 
 ## Track C · Forks (other goals)
 
