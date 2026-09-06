@@ -1,0 +1,13 @@
+{
+  "name": "crab",
+  "version": "0.2.0",
+  "description": "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses.",
+  "author": {
+    "name": "Dreven",
+    "url": "https://github.com/drevendev"
+  },
+  "homepage": "https://github.com/drevendev/HungryCrab",
+  "repository": "https://github.com/drevendev/HungryCrab",
+  "license": "MIT",
+  "keywords": ["repository-mining", "license-compliance", "agent-skills", "nutrients"]
+}

@@ -110,7 +110,7 @@ its own marketplace (`.claude-plugin/marketplace.json`):
 
 ```
 /plugin marketplace add drevendev/HungryCrab
-/plugin install hungry-crab@hungry-crab
+/plugin install crab@hungry-crab
 ```
 
 Skills call the CLI via `${CLAUDE_PLUGIN_ROOT}/src/...` — no separate Python package install is
@@ -133,10 +133,10 @@ HungryCrab/
 │   ├── plugin.json              # plugin manifest
 │   └── marketplace.json         # makes the repo its own marketplace
 ├── skills/
-│   ├── crab-eat/SKILL.md        # orchestrator: sniff→catch→digest→compare→menu→serve
-│   ├── crab-license/            # SKILL.md + references/matrix.md — mode rules
-│   ├── crab-cleanroom/SKILL.md  # protocol: "spec without code → implementation without prey access"
-│   └── crab-serve/SKILL.md      # how to write issues/PRs, templates, provenance
+│   ├── eat/SKILL.md             # orchestrator: sniff→catch→digest→compare→menu→serve (/crab:eat)
+│   ├── license/                 # SKILL.md + references/matrix.md — mode rules
+│   ├── cleanroom/SKILL.md       # protocol: "spec without code → implementation without prey access" (0.3)
+│   └── serve/SKILL.md           # how to write issues/PRs, templates, provenance
 ├── agents/
 │   ├── crab-historian.md        # reads history.md/branches.md, formulates lessons
 │   ├── crab-architect.md        # reads architecture.md, compares with the host
@@ -358,4 +358,8 @@ Regardless of mode, dedup against open issues via the `crab:<id>` marker is alwa
 | Ledger location | host repository, `.crab/ledger.json`, committed together with the crab's own PRs; `cache` and `none` remain available | CI, other machines and the Evolving Crab need it; attribution has to live in the repository anyway; rejected nutrients must be remembered |
 | Repository language | English for everything in the repository | public project, tooling and agents expect it |
 | Prey sources | GitHub first, fetch layer behind an interface | GitLab/Gitea can be added later without touching the miners |
-| Repository name | `drevendev/HungryCrab`; the distribution, the plugin and the cache directory stay `hungry-crab` | matches the naming of the author's other repositories |
+| Repository name | `drevendev/HungryCrab`; the distribution and the cache directory stay `hungry-crab` | matches the naming of the author's other repositories |
+| Plugin and skill names | plugin `crab`, skills `eat`, `license`, `serve` (folders without a prefix), marketplace `hungry-crab` | Claude Code namespaces plugin skills as `/plugin:skill`, so this is the only way to get `/crab:eat`; the price is generic folder names for skills-only installs |
+| Nutrient ids | `crab:<category>:<key>`, host-relative and independent of the prey and its SHA; prey-specific lessons carry the prey slug in the key | deduplication must work across runs, machines and different prey suggesting the same thing; the SHA lives in the provenance instead |
+| Scoring | `category x value x applicability x mode x effort - risk` with weights in `data/scoring.yml`, overridable per host; `crab tune` moves weights from ledger decisions with fixed, explained steps | a formula a human can read beats a model's opinion; the ledger is the only training signal until the Evolving Crab exists |
+| First host | a private sandbox repository built from the npm-app fixture, then the author's real repositories | issues created while the menu is being tuned must not pollute real projects |

@@ -7,7 +7,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+### Added (milestone 0.2 "Menu")
+
+- `crab compare`: prey digest minus host digest, turned into scored candidate nutrients with
+  stable ids, evidence links, effort, risk and a license mode; writes `gap.md`, `menu.md` and
+  `menu.json` into the prey digest. `crab menu` prints the ranked menu.
+- Scoring weights in `data/scoring.yml`, overridable per host; `.crab.yml` (`crab init`) with
+  appetite, serve policy, ledger mode and scoring overrides.
+- The ledger (`crab ledger show|mark`): every meal and decision, in the host, the cache or
+  nowhere; rejected and served nutrients disappear from later menus.
+- `crab serve`: issues with a hidden `crab:<id>` marker, a label and a provenance footer,
+  created through `gh` after a dry run; model-written notes per nutrient.
+- `crab tune`: weight suggestions from the ledger per category and trait, appetite switch-offs,
+  poor-match prey; `--write` applies them.
+- `crab catch --issues N` and the `issues` miner (statistics, top by reactions, TF-IDF clusters);
+  the `architecture` miner (symbol index, import graph, hubs, layering, public surface).
+- Agent Skills `eat`, `license` and `serve`, the `crab-historian` and `crab-architect`
+  subagents, the `/crab:sniff` and `/crab:menu` commands, and the Claude Code plugin manifest
+  with its own marketplace.
+
+### Added (milestone 0.1 "Sniff & Digest")
 
 - `crab sniff`: API-only reconnaissance with a license class, a verdict and warnings for
   archived, forked, stale and giant repositories.
