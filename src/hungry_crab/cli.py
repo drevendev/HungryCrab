@@ -94,6 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--since", default=None, help="history newer than 2y / 6m / 90d / an ISO date, all branches"
     )
     p_catch.add_argument("--force", action="store_true", help="delete the existing clone first")
+    p_catch.add_argument(
+        "--issues",
+        type=int,
+        default=0,
+        help="also fetch up to N issues (plus the top by reactions)",
+    )
     p_catch.add_argument("--json", action="store_true")
 
     p_digest = sub.add_parser(
@@ -121,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.add_argument("--md-budget", type=int, default=None, help="token cap per Markdown file")
     p_digest.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_digest.add_argument("--since", default=None, help="when catching first: --since")
+    p_digest.add_argument("--issues", type=int, default=0, help="when catching first: --issues N")
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
 
     p_compare = sub.add_parser(
@@ -136,6 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md")
     p_compare.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_compare.add_argument("--since", default=None, help="when catching first: --since")
+    p_compare.add_argument("--issues", type=int, default=0, help="when catching first: --issues N")
     p_compare.add_argument(
         "--no-issues", action="store_true", help="do not ask GitHub which nutrients were served"
     )
@@ -219,7 +227,9 @@ def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 
 def cmd_catch(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
-    options = CatchOptions(shallow=args.shallow, since=args.since, force=args.force)
+    options = CatchOptions(
+        shallow=args.shallow, since=args.since, force=args.force, issues=args.issues
+    )
     result = catch(slug, options, cache_root=args.cache_dir, log=log)
     if args.json:
         print(json.dumps(result.to_dict(), indent=2))
@@ -272,7 +282,7 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         host_license=host_license,
         md_budget=args.md_budget,
         cache_root=args.cache_dir,
-        catch_options=CatchOptions(shallow=args.shallow, since=args.since),
+        catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
     )
     result = run_digest(target, options, log=log)
     if args.json:
@@ -323,7 +333,7 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         force=args.force,
         host_license=args.host_license,
         cache_root=args.cache_dir,
-        catch_options=CatchOptions(shallow=args.shallow, since=args.since),
+        catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
     )
     lookup = None
     if not args.no_issues and shutil.which("gh"):

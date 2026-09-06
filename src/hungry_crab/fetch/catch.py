@@ -19,6 +19,8 @@ from pathlib import Path
 from ..cache import Slug, prey_paths
 from ..errors import UsageError
 from .git import GitRunner
+from .github import GitHubClient
+from .issues import fetch_issues, write_issues
 
 _SINCE_RE = re.compile(r"^(\d+)\s*([dwmy])$")
 _UNIT_DAYS = {"d": 1, "w": 7, "m": 30, "y": 365}
@@ -33,6 +35,7 @@ class CatchOptions:
     shallow: bool = False
     since: str | None = None
     force: bool = False
+    issues: int = 0
 
 
 @dataclass
@@ -46,6 +49,7 @@ class CatchResult:
     since: str | None
     updated: bool
     caught_at: str
+    issues_fetched: int = 0
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -95,6 +99,7 @@ def catch(
     source_url: str | None = None,
     log: Callable[[str], None] = _noop,
     now: datetime | None = None,
+    github: GitHubClient | None = None,
 ) -> CatchResult:
     """Clone or refresh the prey. ``source_url`` overrides the GitHub URL (used by tests)."""
     opts = options or CatchOptions()
@@ -124,6 +129,13 @@ def catch(
         parent.run(*clone_arguments(opts, now=now), url, str(repo_dir))
         git = GitRunner(repo_dir)
 
+    issues_fetched = 0
+    if opts.issues > 0:
+        client = github or GitHubClient()
+        items = fetch_issues(client, slug, limit=opts.issues, log=log)
+        write_issues(paths.api / "issues.jsonl", items)
+        issues_fetched = len(items)
+
     result = CatchResult(
         slug=str(slug),
         url=url,
@@ -134,6 +146,7 @@ def catch(
         since=opts.since,
         updated=updated,
         caught_at=(now or datetime.now(UTC)).isoformat(timespec="seconds"),
+        issues_fetched=issues_fetched,
     )
     paths.catch_file.write_text(json.dumps(result.to_dict(), indent=2) + "\n", encoding="utf-8")
     return result

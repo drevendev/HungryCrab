@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .ai_config import AiConfigMiner
+from .architecture import ArchitectureMiner
 from .base import FileInfo, MineContext, Miner, MinerResult
 from .branches import BranchesMiner
 from .ci import CiMiner
@@ -10,6 +11,7 @@ from .deps import DepsMiner
 from .docs import DocsMiner
 from .history import HistoryMiner
 from .inventory import InventoryMiner
+from .issues import IssuesMiner
 from .license import LicenseMiner
 from .testing import TestingMiner
 from .traits import TraitsMiner
@@ -34,6 +36,8 @@ ALL_MINERS: tuple[Miner, ...] = (
     AiConfigMiner(),
     HistoryMiner(),
     BranchesMiner(),
+    IssuesMiner(),
+    ArchitectureMiner(),
     TraitsMiner(),
 )
 

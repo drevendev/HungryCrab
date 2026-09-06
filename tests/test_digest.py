@@ -30,6 +30,10 @@ EXPECTED_FILES = {
     "history.md",
     "branches.json",
     "branches.md",
+    "issues.json",
+    "issues.md",
+    "architecture.json",
+    "architecture.md",
     "traits.json",
 }
 
