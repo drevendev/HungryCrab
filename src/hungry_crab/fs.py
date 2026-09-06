@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from fnmatch import fnmatch
 from pathlib import Path
 
 DEFAULT_TEXT_LIMIT = 2 * 1024 * 1024
@@ -45,6 +47,24 @@ def is_binary(path: Path) -> bool:
     except OSError:
         return False
     return looks_binary(chunk)
+
+
+def is_ignored(path: str, patterns: Sequence[str]) -> bool:
+    """Does a POSIX-relative path match one of the ignore globs?
+
+    Both ``tests/fixtures`` and ``tests/fixtures/**`` cover everything under that directory:
+    a pattern also matches any path below it, which is what people mean when they write one.
+    """
+    for raw in patterns:
+        pattern = raw.strip().rstrip("/")
+        if not pattern:
+            continue
+        if fnmatch(path, pattern) or fnmatch(path, f"{pattern}/*"):
+            return True
+        trimmed = pattern.removesuffix("/**").removesuffix("/*")
+        if trimmed != pattern and (fnmatch(path, trimmed) or fnmatch(path, f"{trimmed}/*")):
+            return True
+    return False
 
 
 def count_lines(text: str) -> int:

@@ -24,6 +24,7 @@ from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import read_text
+from .host import HostConfig
 from .miners import MineContext, Miner, select_miners
 from .tokens import estimate_tokens
 
@@ -48,6 +49,7 @@ class DigestOptions:
     total_budget: int = TOTAL_BUDGET
     cache_root: Path | None = None
     catch_options: CatchOptions = field(default_factory=CatchOptions)
+    ignore: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -77,6 +79,7 @@ def prepare_context(
     """Locate (or catch) the tree, open git, and decide where the digest goes."""
     api: dict[str, Any] = {}
     url: str | None = None
+    ignore = list(options.ignore)
     if target.slug is not None:
         paths = prey_paths(target.slug, options.cache_root)
         if not (paths.repo / ".git").exists():
@@ -104,6 +107,10 @@ def prepare_context(
         if not root.is_dir():
             raise CrabError(f"{root} is not a directory")
         digests_dir = host_paths(root, options.cache_root).digests
+        # A local target is usually the host, and its own .crab.yml says what is not its code.
+        # Without this, a repository's test fixtures are digested as if they were the host.
+        if not ignore:
+            ignore = HostConfig.load(root).ignore
 
     git: GitRunner | None = GitRunner(root) if GitRunner.available() else None
     if git is not None and not (git.is_repo() and git.has_commits()):
@@ -131,6 +138,7 @@ def prepare_context(
         now=options.now or datetime.now(UTC),
         md_budget=options.md_budget or MD_BUDGET.get(options.depth, MD_BUDGET["normal"]),
         shallow=shallow,
+        ignore=ignore,
     )
     return ctx, out_dir
 
@@ -271,6 +279,7 @@ def build_manifest(
             "root": str(ctx.root),
         },
         "depth": options.depth,
+        "ignore": list(ctx.ignore),
         "host_license": options.host_license,
         "budget": {"per_markdown_file": ctx.md_budget, "markdown_total": options.total_budget},
         "markdown_tokens_est": md_tokens,

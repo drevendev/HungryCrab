@@ -226,7 +226,8 @@ class TraitsMiner:
             "primary_language": inventory["primary_language"],
             "languages": list(inventory["languages"])[:6],
             "loc": inventory["loc"],
-            "files": inventory["files"],
+            "files": inventory["files_counted"],
+            "files_all": inventory["files"],
             "ecosystems": deps["ecosystems"],
             "monorepo": bool(deps.get("workspaces")) or workspace_manifest,
             # license
