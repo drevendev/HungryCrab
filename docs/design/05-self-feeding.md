@@ -111,3 +111,38 @@ Start small and same-stack, then widen:
 - Every skill defect found is either fixed or written down as an issue.
 - The token cost of one meal recorded in `benchmarks/`.
 - Milestone 0.2's exit criterion honestly closed; then 0.3 starts.
+
+## 8. What the meals actually found
+
+Three meals, three prey, eleven issues in `drevendev/HungryCrab`. Every meal broke something, and
+what broke was never the thing the meal was chosen to test.
+
+| Meal | Prey | Kept | What it broke |
+|---|---|---|---|
+| 1 | `pypa/pipx` | #14, #15, #16, #17, #19, #20 | `ignore` was parsed and read by nothing, so the crab digesting itself reported three ecosystems and twelve test frameworks, all from `tests/fixtures`, and believed it already measured coverage. Then: a type checker proposed to a host running `mypy --strict`, a dependency card duplicating a nutrient already on the menu, and thirteen issue lessons titled with TF-IDF term lists |
+| 2 | `anthropics/skills` | #22, #23 | Every `ai-config` rule is a yes/no question, so the official skills corpus produced no `ai-config` candidate at all. `has_notice_file` was mined, printed, and read by no rule. Four of the prey's twenty skills had `>` as their description |
+| 3 | `github-linguist/linguist` | #26, #27 | 3390 of 4293 files are `samples/`, so a Ruby project read as Objective-C with four ecosystems, none of them Ruby, and the menu offered ninety Python dependencies from a sample requirements file. A security card at the top of the menu built from three commits, two of which contain "Security" as part of a language name |
+
+The pattern is one defect: **the crab counted somebody's test corpus as somebody's code.** First the
+host's, then the prey's. Meals 1 and 3 are the same bug from opposite sides, and the second one
+was not found by looking harder at the first — it was found by eating a repository that is mostly
+corpus.
+
+Two findings could not become nutrients, because no rule can currently see them, and were filed
+by hand: #28, linguist's `vendor.yml` as the canonical replacement for our hand-written directory
+sets, and the observation in #23 that the prey ships an evaluation harness for skills.
+
+`issue-lesson` is switched off in this repository's `.crab.yml`: twenty-two candidates across the
+three meals, none kept. A prey's users report bugs in that prey. It should be switched back on
+the first time the prey is a user-facing CLI of the same shape as the host.
+
+## 9. Exit criteria — state
+
+- **Met.** Three live meals from an agent session, on unrelated prey; eleven issues with
+  provenance; reruns yield zero duplicates and every rejection carries a reason.
+- **Met.** Every defect found is fixed, with a regression test, or filed: #28 and the note in #23.
+- **Open.** The token cost of a meal is not recorded in `benchmarks/` yet; 0.3.1 records it per
+  phase ([07-scheduled-crab.md](07-scheduled-crab.md)), which is the shape the number is
+  actually needed in.
+- **Open.** A meal has still never run without a fix landing in the same session, which is the
+  bar for starting the benchmark.

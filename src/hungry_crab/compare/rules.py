@@ -429,6 +429,18 @@ TRAIT_RULES: tuple[TraitRule, ...] = (
         evidence="files:SECURITY*",
     ),
     TraitRule(
+        "hygiene.notice-file",
+        "has_notice_file",
+        "hygiene",
+        "Record third-party attribution in a NOTICE file",
+        "keeps a NOTICE file for third-party attribution",
+        "pr",
+        "S",
+        "low",
+        0.6,
+        evidence="files:*NOTICE*",
+    ),
+    TraitRule(
         "hygiene.support-md",
         "has_support_md",
         "hygiene",

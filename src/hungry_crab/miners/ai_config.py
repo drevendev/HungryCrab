@@ -17,7 +17,8 @@ from .base import FileInfo, MineContext, MinerResult
 
 _HEADING_RE = re.compile(r"^(#{1,3})\s+(.+?)\s*#*\s*$", re.MULTILINE)
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---", re.DOTALL)
-_FM_FIELD_RE = re.compile(r"^(name|description|tools|model|allowed-tools):\s*(.+)$", re.MULTILINE)
+_FM_KEY_RE = re.compile(r"^(name|description|tools|model|allowed-tools):[ \t]*(.*)$")
+_FM_BLOCK_RE = re.compile(r"^[|>][+-]?\d*$")
 
 INSTRUCTION_FILES: dict[str, str] = {
     "CLAUDE.md": "claude",
@@ -46,12 +47,35 @@ def _headings(text: str) -> list[str]:
 
 
 def _frontmatter(text: str) -> dict[str, str]:
+    """The known scalar fields of a YAML frontmatter block, folding block scalars.
+
+    Not a YAML parser on purpose: prey frontmatter is untrusted, and ``safe_load`` still
+    expands aliases. A skill whose ``description: >`` spans five lines used to be recorded as
+    the literal ``>``.
+    """
     match = _FRONTMATTER_RE.match(text)
     if not match:
         return {}
-    fields = {}
-    for key, value in _FM_FIELD_RE.findall(match.group(1)):
-        cleaned = value.strip().strip("\"'")[:160]
+    lines = match.group(1).splitlines()
+    fields: dict[str, str] = {}
+    index = 0
+    while index < len(lines):
+        found = _FM_KEY_RE.match(lines[index])
+        index += 1
+        if found is None:
+            continue
+        key, value = found.group(1), found.group(2).strip()
+        if not value or _FM_BLOCK_RE.match(value):
+            block: list[str] = []
+            while index < len(lines) and (not lines[index].strip() or lines[index][:1] in " \t"):
+                block.append(lines[index].strip())
+                index += 1
+            items = [line for line in block if line]
+            if items and all(item.startswith("- ") for item in items):
+                value = ", ".join(item[2:].strip() for item in items)
+            else:
+                value = " ".join(items)
+        cleaned = " ".join(value.strip().strip("\"'").split())[:160]
         fields[key] = "[omitted: instruction-like]" if is_suspicious(cleaned) else cleaned
     return fields
 

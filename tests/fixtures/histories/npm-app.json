@@ -94,6 +94,7 @@
         "CLAUDE.md",
         ".claude/settings.json",
         ".claude/skills/deploy/SKILL.md",
+        ".claude/skills/smoke/SKILL.md",
         ".editorconfig",
         ".prettierrc",
         "eslint.config.js"

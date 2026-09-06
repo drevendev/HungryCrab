@@ -114,6 +114,13 @@ BUILD_OUTPUT_DIRS = frozenset(
         "TestResults", ".angular",
     }
 )  # fmt: skip
+CORPUS_DIRS = frozenset(
+    {
+        "samples", "testdata", "test-data", "test_data", "fixtures", "__fixtures__",
+        "__snapshots__", "snapshots", "golden", "goldens", "corpus", "corpora",
+    }
+)  # fmt: skip
+MIN_OWN_FILES = 10
 GENERATED_FILE_RES: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -284,6 +291,28 @@ def mark_build_outputs(files: list[FileInfo]) -> None:
         parts = info.path.split("/")[:-1]
         if any(part in outputs for part in parts):
             info.generated = True
+
+
+def mark_sample_corpora(files: list[FileInfo]) -> None:
+    """A test corpus is not the repository's own code.
+
+    ``github-linguist/linguist`` is 3390 sample files in four hundred languages against 32 files
+    of Ruby, and the crab read it as an Objective-C project with four ecosystems, none of them
+    Ruby: every manifest it found was a sample. The guard is the second clause — a repository
+    whose corpus really is its content keeps it, and is described by it.
+    """
+    marked = [
+        info
+        for info in files
+        if not info.vendored and any(p in CORPUS_DIRS for p in info.path.split("/")[:-1])
+    ]
+    if not marked:
+        return
+    own = sum(1 for f in files if f.counted) - sum(1 for f in marked if f.counted)
+    if own < MIN_OWN_FILES:
+        return
+    for info in marked:
+        info.vendored = True
 
 
 def _first_str(value: object) -> str | None:
@@ -488,6 +517,7 @@ class InventoryMiner:
     def run(self, ctx: MineContext) -> MinerResult:
         files, stats = walk_tree(ctx.root, max_files=MAX_FILES["deep" if ctx.deep else "normal"])
         mark_build_outputs(files)
+        mark_sample_corpora(files)
         ignored = 0
         if ctx.ignore:
             kept = [f for f in files if not is_ignored(f.path, ctx.ignore)]
@@ -517,10 +547,10 @@ class InventoryMiner:
         summary = doc.section("Summary", priority=1)
         summary.kv(
             [
-                ("Files", f"{data['files_counted']} ({data['files']} including vendored)"),
+                ("Files", f"{data['files_counted']} ({data['files']} including excluded trees)"),
                 ("Directories", data["dirs"]),
                 ("Size", f"{data['bytes'] / 1024:.0f} KB"),
-                ("Lines of code (excluding vendored, generated, binary)", data["loc"]),
+                ("Lines of code (excluding vendored, sample, generated, binary)", data["loc"]),
                 ("Primary language", data["primary_language"] or "unknown"),
                 ("Binary files", data["binary_files"]),
                 ("Manifests", len(data["manifests"])),
@@ -569,7 +599,7 @@ class InventoryMiner:
             ),
         )
         if data["vendored_or_generated"]:
-            noise = doc.section("Vendored, generated or build output", priority=3)
+            noise = doc.section("Vendored, sample corpus, generated or build output", priority=3)
             noise.bullets(
                 (f"{n['path']}: {n['files']} files" for n in data["vendored_or_generated"]),
                 max_items=15,

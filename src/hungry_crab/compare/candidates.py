@@ -17,6 +17,11 @@ MIN_CLUSTER = 5
 MAX_ISSUE_CLUSTERS = 3
 MAX_TOP_ISSUES = 3
 
+# How far ahead a prey's skills corpus must be before reading it is worth a card, in absolute
+# count and as a multiple of the host's.
+MIN_SKILL_LEAD = 5
+SKILL_LEAD_RATIO = 3
+
 # Tools a host uses through a config file rather than a pinned dependency. Without this the
 # dependency diff proposes pre-commit to a repository whose .pre-commit-config.yaml is right
 # there in the root.
@@ -387,6 +392,46 @@ def tool_candidates(prey: Side, host: Side) -> list[Candidate]:
                 risk="low",
                 value=0.4,
                 tags=[trait],
+            )
+        )
+    return out
+
+
+def ai_config_candidates(prey: Side, host: Side) -> list[Candidate]:
+    """Counts, not booleans.
+
+    Every other `ai-config` rule asks whether the host has the file at all, so a host that
+    ships three skills learns nothing from a corpus of twenty. Eating `anthropics/skills`
+    produced no `ai-config` candidate at all, which is the opposite of why one would eat it.
+    """
+    out: list[Candidate] = []
+    prey_skills = prey.trait("skills_count")
+    host_skills = host.trait("skills_count")
+    if (
+        isinstance(prey_skills, int)
+        and isinstance(host_skills, int)
+        and host_skills > 0
+        and prey_skills - host_skills >= MIN_SKILL_LEAD
+        and prey_skills >= host_skills * SKILL_LEAD_RATIO
+    ):
+        out.append(
+            Candidate(
+                category="ai-config",
+                key="ai-config.skills-corpus",
+                title=f"Measure your {host_skills} skills against {prey.label}'s {prey_skills}",
+                what=(
+                    f"{prey.label} ships {prey_skills} skills where this repository ships "
+                    f"{host_skills}: a corpus wide enough to show what a SKILL.md is expected "
+                    "to carry, and where yours are thin"
+                ),
+                prey_state=f"{prey_skills} skills",
+                host_state=f"{host_skills} skills",
+                artifact="idea",
+                effort="M",
+                risk="low",
+                value=0.6,
+                evidence=[prey.evidence(p) for p in prey.find_files("skills/*/SKILL.md", limit=3)],
+                tags=["skills_count"],
             )
         )
     return out
@@ -795,6 +840,7 @@ def build_candidates(prey: Side, host: Side) -> tuple[list[Candidate], dict[str,
     groups = [
         trait_rule_candidates(prey, host),
         tool_candidates(prey, host),
+        ai_config_candidates(prey, host),
         readme_candidates(prey, host),
         test_candidates(prey, host),
         commit_candidates(prey, host),

@@ -5,7 +5,13 @@ from collections import Counter
 from helpers import read_json, read_md
 
 from hungry_crab.digest import DigestResult
-from hungry_crab.miners.history import bus_factor, is_conventional, is_fix, parse_log
+from hungry_crab.miners.history import (
+    bus_factor,
+    is_conventional,
+    is_fix,
+    is_security_fix,
+    parse_log,
+)
 
 
 def test_helpers() -> None:
@@ -18,6 +24,17 @@ def test_helpers() -> None:
     assert not is_fix("feat: add fixtures for the fixer")  # 'fixtures' is not 'fix'
     assert bus_factor(Counter({"a": 6, "b": 5, "c": 2})) == 2
     assert bus_factor(Counter({"a": 10})) == 1
+
+
+def test_a_security_fix_is_a_fix() -> None:
+    """Three feature commits made linguist look like a repository with a security history."""
+    assert is_security_fix("Address CodeQL security alerts (#6609)")
+    assert is_security_fix("fix: escape the path before the shell sees it (XSS)")
+    assert is_security_fix("Bump cryptography to 42.0.4 for CVE-2024-26130")
+    assert not is_security_fix("Add support for Cloud Firestore Security Rules (#4120)")
+    assert not is_security_fix("Whitelist injectionSelector in grammars (#4032)")
+    assert not is_security_fix("chore: pre-commit, security policy, codeowners, templates")
+    assert not is_security_fix("fix: handle empty input")
     assert bus_factor(Counter()) == 0
 
 

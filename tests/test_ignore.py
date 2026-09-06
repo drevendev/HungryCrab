@@ -34,8 +34,14 @@ def test_is_ignored(path: str, patterns: list[str], expected: bool) -> None:
     assert is_ignored(path, patterns) is expected
 
 
-def test_digest_without_ignore_sees_the_fixtures(npm_app: Path, tmp_path: Path) -> None:
-    """The failing case that started this: a host whose fixtures are foreign stacks."""
+def test_a_tree_under_an_unconventional_name_still_needs_ignore(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    """The failing case that started this: a host whose fixtures are foreign stacks.
+
+    `fixtures` and `samples` are now excluded by name (see `mark_sample_corpora`), so the
+    failing shape has to be spelled with a directory no convention covers.
+    """
     host = tmp_path / "host"
     write_tree(
         host,
@@ -44,10 +50,10 @@ def test_digest_without_ignore_sees_the_fixtures(npm_app: Path, tmp_path: Path) 
             "src/thing/__init__.py": "x = 1\n",
         },
     )
-    copy_repo(npm_app, host / "tests" / "fixtures" / "npm-app")
+    copy_repo(npm_app, host / "tests" / "embedded" / "npm-app")
     result = run_digest(Target(path=host), DigestOptions(out=tmp_path / "d1", now=FIXED_NOW))
     traits = read_json(result, "traits.json")["traits"]
-    assert "npm" in traits["ecosystems"], "without ignore the fixture counts as the host's stack"
+    assert "npm" in traits["ecosystems"], "without ignore the tree counts as the host's stack"
     assert "eslint" in traits["linters"]
     assert traits["has_e2e_tests"] is True
 
