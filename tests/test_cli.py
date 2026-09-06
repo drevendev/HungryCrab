@@ -62,7 +62,7 @@ def test_digest_of_local_fixture_prints_summary(
     stdout = capsys.readouterr().out
     assert "Digest of npm-app@" in stdout
     assert "inventory.md" in stdout
-    assert "miners: 10 ok, 0 failed" in stdout
+    assert "miners: 12 ok, 0 failed" in stdout
     assert (out / "manifest.json").is_file()
 
 

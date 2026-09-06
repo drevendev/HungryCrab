@@ -22,6 +22,7 @@ from .cache import Target, host_paths, prey_paths
 from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
+from .fetch.issues import read_issues
 from .fs import read_text
 from .miners import MineContext, Miner, select_miners
 from .tokens import estimate_tokens
@@ -93,6 +94,9 @@ def prepare_context(
             loaded = _load_json(paths.api / f"{name}.json")
             if loaded is not None:
                 api[name] = loaded
+        issues = read_issues(paths.api / "issues.jsonl")
+        if issues:
+            api["issues"] = issues
         digests_dir = paths.digests
     else:
         assert target.path is not None

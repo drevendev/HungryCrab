@@ -67,3 +67,30 @@ def test_catch_clones_then_refreshes_from_a_local_source(npm_app: Path, tmp_path
     forced = catch(slug, CatchOptions(force=True), cache_root=cache, source_url=str(npm_app))
     assert forced.updated is False
     assert forced.sha == first.sha
+
+
+class _FakeGitHub:
+    def get(self, path: str, *, allow_missing: bool = False) -> object:
+        if path.startswith("search/issues"):
+            return {"items": []}
+        return [
+            {"number": 2, "title": "Second", "state": "open", "labels": [], "html_url": "u2"},
+            {"number": 1, "title": "First", "state": "closed", "labels": [], "html_url": "u1"},
+        ]
+
+
+def test_catch_can_fetch_issues(npm_app: Path, tmp_path: Path) -> None:
+    slug = Slug("example", "crab-cove")
+    cache = tmp_path / "cache"
+    result = catch(
+        slug,
+        CatchOptions(issues=10),
+        cache_root=cache,
+        source_url=str(npm_app),
+        github=_FakeGitHub(),  # type: ignore[arg-type]
+    )
+    assert result.issues_fetched == 2
+    lines = (prey_paths(slug, cache).api / "issues.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2 and json.loads(lines[0])["number"] == 2
+    recorded = json.loads(prey_paths(slug, cache).catch_file.read_text(encoding="utf-8"))
+    assert recorded["issues_fetched"] == 2
