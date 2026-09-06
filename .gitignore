@@ -25,3 +25,6 @@ Thumbs.db
 
 # Local digest output (the cache lives under ~/.cache/hungry-crab)
 digest-out/
+
+# The prey backlog names private repositories and planned targets; this repository is public.
+.crab/prey-backlog.md
