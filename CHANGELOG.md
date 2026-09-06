@@ -15,6 +15,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   process is not the uv tool install that would be replaced, because uv cannot replace the crab
   while it is running.
 
+- Two nutrients the second live meal showed were missing. `hygiene.notice-file`: the prey keeps a
+  NOTICE file for third-party attribution and the host does not, which matters for a tool whose
+  own verdicts say `notice_required`. `ai-config.skills-corpus`: the prey ships far more agent
+  skills than the host, so its corpus is worth reading even though the host has skills of its
+  own. Every other `ai-config` rule asks a yes/no question, so eating the official skills
+  repository used to produce no `ai-config` candidate at all.
+
 ### Changed
 
 - README rewritten: what the crab is for, the vocabulary, install instructions for both Claude
@@ -43,6 +50,10 @@ repository.
 - The `eat` skill gained a step: check that the host column in `gap.md` describes this repository
   before judging anything against it, and guidance to switch a whole category off in `appetite`
   instead of rejecting its cards one by one.
+- Agent frontmatter is read as YAML, not as one line: a skill whose `description: >` or
+  `description: |-` spans several lines was recorded as the literal `>`. Four of the twenty
+  skills in `anthropics/skills` were unreadable in the digest. A sequence value (`allowed-tools`
+  written as a list) is folded into a comma-separated line.
 
 ### Documentation
 

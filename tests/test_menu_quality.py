@@ -1,19 +1,22 @@
-"""What the first live meal taught the menu: no noise, no duplicates, no alternatives.
+"""What the live meals taught the menu: no noise, no duplicates, no alternatives, no blind spots.
 
-Every test here reproduces a defect the crab served to its own maintainer while eating
-``pypa/pipx``: an unbounded pile of issue lessons, a type checker proposed to a host that
-already had one, and a dependency card for the library implementing a nutrient already on the
-menu.
+Every test here reproduces a defect the crab served to its own maintainer. Eating ``pypa/pipx``
+gave an unbounded pile of issue lessons, a type checker proposed to a host that already had
+one, and a dependency card for the library implementing a nutrient already on the menu. Eating
+``anthropics/skills`` gave nothing at all in the one category it was chosen to exercise.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from hungry_crab.compare.candidates import (
     MAX_ISSUE_CLUSTERS,
     MAX_TOP_ISSUES,
     Side,
+    ai_config_candidates,
     build_candidates,
     deps_candidates,
     issue_candidates,
@@ -86,6 +89,31 @@ def test_the_implementing_dependency_survives_when_the_nutrient_is_not_on_the_me
     keys = {c.key for c in build_candidates(prey, host)[0]}
     assert "tests.property" not in keys
     assert "deps.python.hypothesis" in keys
+
+
+def test_a_wider_skills_corpus_is_a_candidate_even_though_the_host_has_skills() -> None:
+    """Eating anthropics/skills produced no ai-config card: every rule was a boolean."""
+    prey = side("anthropics/skills", {"has_skills": True, "skills_count": 20})
+    host = side("host", {"has_skills": True, "skills_count": 3})
+    out = ai_config_candidates(prey, host)
+    assert [c.key for c in out] == ["ai-config.skills-corpus"]
+    assert out[0].title == "Measure your 3 skills against anthropics/skills's 20"
+    assert out[0].prey_state == "20 skills" and out[0].host_state == "3 skills"
+    assert out[0].artifact == "idea"
+
+
+@pytest.mark.parametrize(
+    ("prey_count", "host_count"),
+    [
+        (7, 3),  # only four ahead: not worth reading a corpus for
+        (8, 3),  # five ahead but not three times as many
+        (9, 0),  # the host has none, and "Add skills" already covers that
+    ],
+)
+def test_a_narrow_lead_is_not_a_corpus(prey_count: int, host_count: int) -> None:
+    prey = side("prey", {"has_skills": True, "skills_count": prey_count})
+    host = side("host", {"has_skills": host_count > 0, "skills_count": host_count})
+    assert ai_config_candidates(prey, host) == []
 
 
 def test_issue_clusters_are_capped_and_titled_by_their_largest_issue() -> None:

@@ -49,7 +49,7 @@ def test_npm_traits(npm_digest: DigestResult) -> None:
         "coverage_threshold": None,
         "has_claude_md": True,
         "has_skills": True,
-        "skills_count": 1,
+        "skills_count": 2,
         "has_claude_hooks": True,
         "has_mcp_config": False,
         "ai_tools": ["claude"],

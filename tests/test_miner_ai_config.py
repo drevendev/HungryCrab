@@ -18,12 +18,20 @@ def test_npm_ai_config(npm_digest: DigestResult) -> None:
         "Architecture",
     ]
     assert claude["suspicious"] == [], "ordinary agent instructions are not injections"
-    assert len(data["skills"]) == 1
+    assert len(data["skills"]) == 2
     skill = data["skills"][0]
     assert skill["path"] == ".claude/skills/deploy/SKILL.md"
     assert skill["frontmatter"]["name"] == "deploy"
     assert skill["frontmatter"]["description"].startswith("Deploy Crab Cove")
     assert skill["location"] == "project"
+    # a folded description used to be recorded as the literal ">"
+    folded = data["skills"][1]["frontmatter"]
+    assert folded["name"] == "smoke"
+    assert folded["description"] == (
+        "Run the smoke suite against a deployed preview and report what broke. Use after a "
+        "deploy, or when the user asks whether the preview is healthy."
+    )
+    assert folded["allowed-tools"] == "Bash, Read"
     settings = data["settings"][0]
     assert settings["permissions"] == {"allow": 3, "deny": 2}
     assert settings["hook_events"] == ["PreToolUse"]
