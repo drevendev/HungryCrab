@@ -59,11 +59,17 @@ def _noop(_: str) -> None:
 class IssueClient(Protocol):
     def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]: ...
 
-    def ensure_label(self, slug: Slug, label: str) -> None: ...
+    def ensure_label(self, slug: Slug, label: str) -> bool:
+        """True when the label exists afterwards. False means: serve without labels."""
+        ...
 
     def create(
         self, slug: Slug, title: str, body: str, labels: list[str], assignees: list[str]
     ) -> str: ...
+
+    def identity(self) -> str:
+        """Who the issues will be filed as, for the log. Empty when it cannot be resolved."""
+        ...
 
 
 def parse_markers(issues: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -87,17 +93,31 @@ def parse_markers(issues: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 
 class GhIssueClient:
-    """Issue operations through the gh CLI (the user's own authentication)."""
+    """Issue operations through the gh CLI.
 
-    def __init__(self, gh: str | None = None, *, timeout: float = 120.0) -> None:
+    ``token_env`` names an environment variable holding the token to act as. gh reads
+    ``GH_TOKEN``, so a GitHub App installation token or a machine account's token there is all
+    it takes for the crab to file issues under its own name instead of the maintainer's. Unset,
+    or naming an empty variable, means gh's own stored authentication: the human.
+    """
+
+    def __init__(
+        self, gh: str | None = None, *, timeout: float = 120.0, token_env: str = ""
+    ) -> None:
         self.gh = gh or shutil.which("gh")
         if not self.gh:
             raise ToolMissingError("gh is required to serve issues", hint="https://cli.github.com")
         self.timeout = timeout
+        self.token_env = token_env
 
     def _run(self, *args: str) -> str:
         env = dict(os.environ)
         env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
+        token = env.get(self.token_env, "").strip() if self.token_env else ""
+        if token:
+            # gh prefers GH_TOKEN over everything it has stored, which is exactly the point.
+            env["GH_TOKEN"] = token
+            env.pop("GITHUB_TOKEN", None)
         assert self.gh is not None
         try:
             proc = subprocess.run(
@@ -111,21 +131,46 @@ class GhIssueClient:
         return proc.stdout.decode("utf-8", errors="replace")
 
     def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
-        out = self._run(
-            "issue", "list", "--repo", str(slug), "--label", label, "--state", "all",
-            "--limit", "500", "--json", "number,url,state,title,body",
-        )  # fmt: skip
+        common = ["issue", "list", "--repo", str(slug), "--state", "all", "--limit", "500",
+                  "--json", "number,url,state,title,body"]  # fmt: skip
+        try:
+            out = self._run(*common, "--label", label)
+        except CrabError:
+            # A repository we cannot label has no label to filter by, and dedup still has to
+            # work: the marker in the body is what identifies a served nutrient, not the label.
+            out = self._run(*common)
         try:
             issues = json.loads(out or "[]")
         except ValueError as exc:
             raise ExternalCommandError("gh issue list returned invalid JSON") from exc
         return parse_markers([as_dict(item) for item in as_list(issues)])
 
-    def ensure_label(self, slug: Slug, label: str) -> None:
-        self._run(
-            "label", "create", label, "--repo", str(slug), "--color", "1D76DB",
-            "--description", "Served by Hungry Crab", "--force",
-        )  # fmt: skip
+    def ensure_label(self, slug: Slug, label: str) -> bool:
+        """Creating a label needs write access; filing an issue does not.
+
+        On a repository the crab is only a visitor to, this is the first thing that fails, and
+        failing it must not cost the meal.
+        """
+        try:
+            self._run(
+                "label", "create", label, "--repo", str(slug), "--color", "1D76DB",
+                "--description", "Served by Hungry Crab", "--force",
+            )  # fmt: skip
+        except CrabError:
+            return False
+        return True
+
+    def _token(self) -> str:
+        return os.environ.get(self.token_env, "").strip() if self.token_env else ""
+
+    def identity(self) -> str:
+        source = f" (${self.token_env})" if self._token() else ""
+        try:
+            login = self._run("api", "user", "-q", ".login").strip()
+        except CrabError:
+            # A GitHub App installation token cannot call /user, which is itself an answer.
+            return f"the app installation in ${self.token_env}" if source else ""
+        return f"{login}{source}" if login else ""
 
     def create(
         self, slug: Slug, title: str, body: str, labels: list[str], assignees: list[str]
@@ -317,8 +362,11 @@ def serve(
                 hint="add a remote or use --as dry-run",
             )
         if client is None:
-            client = GhIssueClient()
+            client = GhIssueClient(token_env=config.serve.token_env)
+        who = client.identity()
+        log(f"serving into {slug} as {who}" if who else f"serving into {slug}")
     label_ready = False
+    labels = list(config.serve.labels)
     for card in cards:
         entry = ledger.entries.get(card.id)
         if entry is not None and entry.status in ("served", "merged", "rejected", "ignored"):
@@ -346,9 +394,15 @@ def serve(
             continue
         assert client is not None and slug is not None
         if not label_ready:
-            client.ensure_label(slug, label)
+            if not client.ensure_label(slug, label):
+                labels = []
+                log(
+                    f"warning: cannot create the {label!r} label in {slug} (that needs write "
+                    "access); serving without labels. Deduplication is unaffected: it reads the "
+                    "crab:<id> marker in the issue body."
+                )
             label_ready = True
-        url = client.create(slug, title, body, config.serve.labels, config.serve.assignees)
+        url = client.create(slug, title, body, labels, config.serve.assignees)
         ledger.ensure(card, now=now)
         ledger.mark(card.id, "served", url=url or None, now=now)
         report.served.append({"id": card.id, "title": title, "url": url})

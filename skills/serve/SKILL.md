@@ -41,6 +41,23 @@ crab serve <prey> --host . --top 5 --as dry-run                            # top
 - `serve.issues: off` in `.crab.yml` blocks creation; `auto` allows it in CI without asking.
 - The host must have a GitHub `origin` remote; `gh` must be authenticated.
 
+## Whose name the issues carry
+
+Issues go into **the host**, so serving into another repository means digesting that repository
+as the host: `crab serve <prey> --host ../their-repo`. It needs a working tree, because the
+comparison is against real files.
+
+By default the issues are filed as whoever `gh` is logged in as. `serve.token_env` in that
+repository's `.crab.yml` names an environment variable holding a token to use instead — a
+GitHub App installation token, or a machine account's — and then the issues carry the crab's
+name rather than a person's. The first log line of `--as issue` says which identity is in use;
+read it back to the user before confirming.
+
+Opening an issue needs no special permission on a public repository, but **creating a label
+needs write access**. Where the crab cannot create its label it says so once and serves without
+labels; deduplication is unaffected, because it reads the `crab:<id>` marker in the body, not
+the label.
+
 ## What an issue contains
 
 See `references/issue-template.md`. Every issue carries a hidden `<!-- crab:<id> -->` marker

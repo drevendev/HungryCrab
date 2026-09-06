@@ -60,6 +60,9 @@ serve:
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []
+  token_env: ""            # environment variable holding the token to file issues as, e.g.
+                           # CRAB_BOT_TOKEN with a GitHub App installation token. Empty means
+                           # gh's own login: your issues carry your name, not the crab's.
 attribution_file: THIRD_PARTY_NOTICES.md
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
@@ -101,6 +104,7 @@ class ServeSettings:
     max_prs_per_run: int = 3
     labels: list[str] = field(default_factory=lambda: [DEFAULT_LABEL])
     assignees: list[str] = field(default_factory=list)
+    token_env: str = ""
 
     @property
     def label(self) -> str:
@@ -158,6 +162,7 @@ class HostConfig:
             else 3,
             labels=labels or [DEFAULT_LABEL],
             assignees=[str(a) for a in as_list(serve.get("assignees"))],
+            token_env=str(serve.get("token_env") or "").strip(),
         )
         attribution = data.get("attribution_file")
         if isinstance(attribution, str) and attribution.strip():

@@ -14,13 +14,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   to run. `--run` performs the plugin work; the CLI reinstall is only executed when the running
   process is not the uv tool install that would be replaced, because uv cannot replace the crab
   while it is running.
-
 - Two nutrients the second live meal showed were missing. `hygiene.notice-file`: the prey keeps a
   NOTICE file for third-party attribution and the host does not, which matters for a tool whose
   own verdicts say `notice_required`. `ai-config.skills-corpus`: the prey ships far more agent
   skills than the host, so its corpus is worth reading even though the host has skills of its
   own. Every other `ai-config` rule asks a yes/no question, so eating the official skills
   repository used to produce no `ai-config` candidate at all.
+- The crab can file issues into a repository it does not own, and under its own name.
+  `serve.token_env` in a host's `.crab.yml` names an environment variable holding the token to
+  serve with, so a GitHub App installation token gives the issues a bot's identity instead of a
+  maintainer's; `crab serve --as issue` opens by saying which identity it is using. Creating a
+  label needs write access where opening an issue does not, so a label the crab cannot create is
+  now reported once and the issues are filed without it — deduplication reads the `crab:<id>`
+  marker in the body, never the label.
 
 ### Changed
 
