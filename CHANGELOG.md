@@ -7,7 +7,39 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-06
+
 ### Added
+
+- **B1, the menu benchmark, and with it milestone 0.2.2.** `benchmarks/menu_benchmark.py` asks
+  one question with no model in the room: with today's rules and weights, would the menu still
+  put the nutrients a human accepted in the top 30, and would it still show the ones they
+  rejected? The golden set is not invented — it is the maintainer's own verdicts on `pypa/pipx`,
+  `anthropics/skills` and `github-linguist/linguist`, lifted from the ledger with the rejection
+  reasons kept, against frozen digests of those three prey and of this repository at `v0.2.0`.
+  Measured at introduction: `recall_must@30` = 1.00 (10/10), `noise@30` = 0.66 (19/29). Both
+  gate pull requests through `tests/test_menu_benchmark.py`, on every platform in the matrix.
+
+- **A license governs strangers, and the maw's owner is not one.** `.crab.yml` grows a `trust`
+  block: `same_owner` (on by default) treats a prey owned by the account behind the maw's
+  `origin` as the maw's own code, `owners` extends that to named accounts, and `bypass_license`
+  is an explicit escape hatch. The verdict matrix takes a `Relationship` alongside the two
+  licenses; `own` yields `COPY`, and still asks for review when the prey carries a copyleft or
+  source-available license, because owning a repository lets its owner relicense what they wrote
+  and not what they received. Before this, a maintainer eating their own unlicensed repository
+  got `IDEAS_ONLY` — a correct answer to a question nobody had asked.
+
+- [`docs/design/08-budgets-and-feeder.md`](docs/design/08-budgets-and-feeder.md) and a revised
+  roadmap. Two policies that decide who the crab is for. **Budgets**: the 30 000-token ceiling was
+  a boolean flag pretending to be a limit, and the per-file budget bought its 3 500 tokens by
+  dropping the tail of a section. It becomes a policy — `warn` for an agent session, `enforce` for
+  a budgeted loop, `off` for a human — and documents that do not fit are paged rather than
+  truncated. **The Feeder**: the deterministic pipeline becomes a reusable GitHub workflow, so a
+  repository can name its prey, run `catch → digest → compare` in CI with no model anywhere, and
+  collect the meal as a build artifact. It moves from milestone 0.6 to 0.3.1, because the
+  Evolving Crab's CONSUME phase is that job and building it later means building it twice.
+  Being able to digest any repository is now a stated goal of track A rather than an implication
+  of it.
 
 - `crab update`: one command that checks the CLI and every agent plugin against master, notices
   which agents are on this machine and whether the plugin is installed in each, and prints what
@@ -58,6 +90,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The injection detector cried wolf on ordinary READMEs.** Eating `syrupy-project/syrupy`
+  produced four flags, and all four were false: "if you need to bypass a custom object
+  representation", "where you need to ignore files by file extension",
+  `<!-- prettier-ignore-start -->` and `<!-- markdownlint-restore -->`. A verb like *ignore* or
+  *bypass* now has to take an object that is an instruction, a rule, a policy or an agent, and
+  HTML comments that open with a known formatter or linter directive are not comments to an
+  agent. The five fragments are regression cases in `tests/test_safety.py`; the sentences that
+  really are aimed at an agent still flag.
+
+- **`NOASSERTION` meant four different things, which is the same as meaning nothing.** The
+  license findings now carry a `resolution`, and each situation gets its own answer.
+  `LICENSE-APACHE` next to `LICENSE-MIT` stays a choice (`dual`, SPDX `OR`); license files that
+  are not alternatives — `apache-2.0.LICENSE` next to `cc-by-4.0.LICENSE`, or one file that says
+  "portions of this software are licensed as follows" — become `split`, where the most
+  restrictive of them governs the whole repository until a nutrient names its own path; a license
+  file nobody can read becomes `unreadable` and asks a human instead of guessing; and a
+  repository that licenses nothing at the root while its packages license themselves becomes
+  `per-path`, naming the packages. Two plain bugs fell out of this: license files named after
+  their license (`apache-2.0.LICENSE`, and any `LICENSES/` directory) were invisible to the
+  detector, and `LICENSE.md` was read as a license *named* `md`.
+- An unrecognised license is `HUMAN` rather than `IDEAS_ONLY`. The mode existed, was documented,
+  and had never been returned; "we read it and do not understand it" is a different situation
+  from "nothing is granted", and only one of them a person can settle in a minute.
 - `crab update` compares the **commit** the CLI was installed from, not just its version. Every
   commit of a development series reports the same `0.3.0.dev0`, so version comparison told a crab
   seven commits and one whole rename behind that it was up to date. The installed commit comes
@@ -158,5 +213,6 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.2.2
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0

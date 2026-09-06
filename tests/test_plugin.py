@@ -35,8 +35,8 @@ def test_plugin_manifest_and_marketplace_agree() -> None:
     assert set(entries) == {"crab"}
     assert entries["crab"]["source"] == "./"
     assert entries["crab"]["version"] == plugin["version"]
-    # The plugin version stayed at 0.2.0 while the CLI moved to 0.3.0.dev0, so every agent
-    # was told it was up to date while its skills still said --host.
+    # The plugin version once stayed at 0.2.0 while the CLI moved on, so every agent was told
+    # it was up to date while its skills still said --host. Cutting a release moves both.
     assert plugin["version"] == __version__.replace(".dev", "-dev."), (
         "the plugin ships the CLI's skills, so it carries the CLI's version"
     )
