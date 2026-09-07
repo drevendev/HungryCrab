@@ -38,8 +38,10 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.2.0 "Menu"](https://github.com/drevendev/HungryCrab/releases/latest), the first
-release.** Pull-request serving and the clean-room protocol arrive with 0.3 (see the
+**Status: [0.2.0 "Menu"](https://github.com/drevendev/HungryCrab/releases/latest) is the latest
+release; `master` is ahead of it by the 0.2.1 and 0.2.2 milestones — self-feeding, the licence
+resolutions and the menu benchmark — and is where the install below points.** Pull-request
+serving and the clean-room protocol arrive with 0.3 (see the
 [roadmap](docs/design/03-roadmap.md)).
 
 ## The metaphor, in five words
@@ -63,8 +65,10 @@ Prerequisites: Python 3.11+, `git`, and `gh` authenticated for the GitHub API.
 uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
 ```
 
-That tracks `master`, which is always green. If you want a specific release instead, append
-`@v0.2.0` to the URL and take care of updates yourself.
+That tracks `master`, which is always green, and is the recommended way to install the crab
+while it is pre-1.0. If you want a fixed version instead, append `@v0.2.0` to the URL — that is
+the only tag so far, and it predates the licence resolutions and the menu benchmark — and take
+care of updates yourself.
 
 **Claude Code**, which adds `/crab:eat`, `/crab:sniff` and `/crab:menu`:
 

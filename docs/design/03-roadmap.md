@@ -17,7 +17,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.1 | Sniff & Digest | CLI, miners without a model, fixtures, CI on Windows + Linux | digest of any public repo within the token policy, ≤ 120 s for ≤ 50k LOC and ≤ 5k commits |
 | 0.2 | Menu | compare, scoring, issues/architecture miners, skills, historian/architect subagents, serve issues, ledger, plugin | end-to-end `/crab:eat` → issues, 0 duplicates on rerun |
 | 0.2.1 | Self-feeding | `/crab:eat` from a live agent session with the crab as the maw; fix what the skill gets wrong ([05-self-feeding.md](05-self-feeding.md)) | 0.2's exit criterion honestly closed: two live meals, 0 duplicates, skill defects fixed |
-| 0.2.2 | Menu benchmark | B1 from [06-benchmark.md](06-benchmark.md): frozen maw and prey, the golden set, the deterministic menu benchmark and its CI gate | **done.** `recall_must@30` = 1.00 (10/10) and `noise@30` = 0.66 (19/29) on master, both gating pull requests through the test suite |
+| 0.2.2 | Menu benchmark | B1 from [06-benchmark.md](06-benchmark.md): frozen maw and prey, the golden set, the deterministic menu benchmark and its CI gate | **milestone done, not released.** `recall_must@30` = 1.00 (10/10) and `noise@30` = 0.66 (19/29) on master, both gating pull requests through the test suite |
 | 0.3 | Serve | PR branches, trace, attribution, clean room, safety hook, wiki, strict mode, docs; the license resolutions and the `trust` relationship; the budget policy and paged documents ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)); coverage measured and gated | ≥ 3 merged PRs in the fleet; **MVP closed** |
 | 0.3.1 | Feeder | The deterministic pipeline as a reusable GitHub workflow and a composite action: a maw names its prey, the job runs `catch → digest → compare` with no model anywhere, and uploads the meal as a build artifact. Rate limits, retries and conditional requests, because a runner has no `gh auth`; `--shallow --since` by default. Brought forward from 0.6 ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)) | a repository with no agent installed gets a menu artifact on a schedule; the Evolving Crab's CONSUME phase is this job |
 | 0.3.2 | Scheduled crab | `crab loop`: a state machine a local scheduler wakes once per phase — crave, hunt, eat, serve, grow, trial, taste, molt, harden — on this repository or on any target it is pointed at ([07-scheduled-crab.md](07-scheduled-crab.md)) | ten consecutive scheduled wake-ups with no human input except merging, one round on a repository that is not the crab, and one version the crab hardened by itself |
@@ -26,7 +26,13 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | the crab is installable and usable from every harness the fleet uses, not only Claude Code |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.2.2**. In flight: **0.3**.
+Released: **0.2.0**, the only tag so far. Milestones complete: **0.2.1** and **0.2.2**, both on
+`master` and in no tag. In flight: **0.3**.
+
+A milestone and a release are different things, and conflating them is what produced
+[#37](https://github.com/drevendev/HungryCrab/issues/37): 0.2.2 was declared released in three
+places and existed in none of them. This table is the authority on milestones; `CHANGELOG.md` is
+the authority on releases, and it names only what has a tag.
 
 Cross-cutting themes of track A:
 - **Own hygiene** — from 0.2 the crab eats itself (`/crab:eat` on its own repo with prey from the
