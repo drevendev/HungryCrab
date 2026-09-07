@@ -1,0 +1,63 @@
+{
+  "default_branch": "main",
+  "commits": [
+    {
+      "message": "Initial import of moltd",
+      "date": "2024-01-15T09:00:00+00:00",
+      "author": "Marla Chela <marla@example.com>",
+      "add": [
+        "go.mod",
+        "go.sum",
+        ".gitignore",
+        "README.md",
+        "LICENSE",
+        "cmd/moltd/main.go",
+        "internal/burrow/burrow.go"
+      ]
+    },
+    {
+      "message": "Test the burrow reader",
+      "date": "2024-01-22T14:30:00+00:00",
+      "author": "Marla Chela <marla@example.com>",
+      "add": ["internal/burrow/burrow_test.go", "Makefile"]
+    },
+    {
+      "message": "Add the moult stage machine",
+      "date": "2024-02-08T11:15:00+00:00",
+      "author": "Devan Pincer <devan@example.com>",
+      "add": ["internal/shell/shell.go", "internal/shell/shell_test.go"],
+      "tag": "v0.1.0"
+    },
+    {
+      "message": "Run tests and golangci-lint in CI",
+      "date": "2024-02-20T08:45:00+00:00",
+      "author": "Devan Pincer <devan@example.com>",
+      "add": [".github/workflows/ci.yml", ".golangci.yml"]
+    },
+    {
+      "message": "Fix the ticker leak in Watch",
+      "date": "2024-03-11T16:20:00+00:00",
+      "author": "Marla Chela <marla@example.com>",
+      "touch": ["internal/shell/shell.go", "internal/shell/shell_test.go"]
+    },
+    {
+      "message": "Return ErrEmpty instead of a bare os error",
+      "date": "2024-04-02T10:05:00+00:00",
+      "author": "Devan Pincer <devan@example.com>",
+      "touch": ["internal/burrow/burrow.go", "internal/burrow/burrow_test.go"],
+      "tag": "v0.2.0"
+    },
+    {
+      "message": "Fix the instar parse on a trailing newline",
+      "date": "2024-05-19T13:40:00+00:00",
+      "author": "Marla Chela <marla@example.com>",
+      "touch": ["internal/burrow/burrow.go"]
+    },
+    {
+      "message": "Widen the Go matrix to 1.23",
+      "date": "2024-06-27T09:30:00+00:00",
+      "author": "Devan Pincer <devan@example.com>",
+      "touch": [".github/workflows/ci.yml"]
+    }
+  ]
+}

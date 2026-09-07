@@ -114,9 +114,36 @@ FRAMEWORK_BY_PACKAGE: dict[str, tuple[str, str]] = {
     "quickcheck": ("quickcheck", "property"),
     "criterion": ("Criterion", "bench"),
     "insta": ("insta", "snapshot"),
-    "testify": ("testify", "unit"),
-    "gomock": ("gomock", "mock"),
 }
+
+# Go module path (lower-case, any /vN suffix stripped) -> (framework, kind).
+#
+# Go needs its own map because `go.mod` records full module paths and the shared map above is
+# keyed on bare package names, so its "testify" and "gomock" entries could never match. Keying
+# Go on last path segments instead would be worse: `github.com/onsi/ginkgo/v2` ends in `v2`, and
+# a bare `mock` would collide with whatever npm or PyPI calls a package next.
+GO_FRAMEWORK_BY_MODULE: dict[str, tuple[str, str]] = {
+    "github.com/stretchr/testify": ("testify", "unit"),
+    "github.com/onsi/ginkgo": ("Ginkgo", "unit"),
+    "github.com/onsi/gomega": ("Gomega", "assert"),
+    "github.com/golang/mock": ("gomock", "mock"),
+    "go.uber.org/mock": ("go.uber.org/mock", "mock"),
+    "github.com/google/go-cmp": ("go-cmp", "assert"),
+    "gotest.tools": ("gotest.tools", "assert"),
+    "github.com/data-dog/go-sqlmock": ("go-sqlmock", "mock"),
+    "github.com/testcontainers/testcontainers-go": ("Testcontainers", "integration"),
+    "github.com/gavv/httpexpect": ("httpexpect", "integration"),
+    "pgregory.net/rapid": ("rapid", "property"),
+    "github.com/leanovate/gopter": ("gopter", "property"),
+    "github.com/cucumber/godog": ("godog", "e2e"),
+}
+_GO_MAJOR_SUFFIX = re.compile(r"/v[2-9]\d*$")
+
+
+def go_framework(module: str) -> tuple[str, str] | None:
+    """The framework a Go module path names, ignoring its major-version suffix."""
+    return GO_FRAMEWORK_BY_MODULE.get(_GO_MAJOR_SUFFIX.sub("", module.lower()))
+
 
 CONFIG_FILES: dict[str, str] = {
     "jest.config.js": "jest",
@@ -306,9 +333,19 @@ class TestingMiner:
                 frameworks.setdefault("coverage.py", "coverage")
         if any(f.name == "conftest.py" for f in files):
             frameworks.setdefault("pytest", "unit")
+        for module in dep_names.get("go", []):
+            hit = go_framework(module)
+            if hit:
+                frameworks[hit[0]] = hit[1]
         python_tests = any(f.ext == ".py" for f in test_files)
         if python_tests and not any(k in frameworks for k in ("pytest", "unittest (guess)")):
             frameworks["unittest (guess)"] = "unit"
+        # In Go the standard library *is* the harness: `go test` runs `testing`, and testify or
+        # Ginkgo sit on top of it rather than replacing it. It is in no manifest, so no amount of
+        # dependency scanning finds it, and 271 `_test.go` files in ossf/scorecard read as a
+        # repository that tests without a framework.
+        if any(f.path.endswith("_test.go") for f in test_files):
+            frameworks.setdefault("testing", "unit")
         return frameworks
 
     def _coverage_threshold(
