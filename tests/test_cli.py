@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from helpers import copy_repo
 
 from hungry_crab import __version__
 from hungry_crab.cli import build_parser, detect_maw_license, main
+from hungry_crab.licensing.matrix import Relationship
 
 
 def test_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
@@ -255,3 +257,78 @@ def test_menu_before_compare_is_an_error(
 def test_detect_maw_license(npm_app: Path, pyproject_cli: Path) -> None:
     assert detect_maw_license(npm_app) == "MIT"
     assert detect_maw_license(pyproject_cli) == "Apache-2.0"
+
+
+def _stub_sniff(monkeypatch: pytest.MonkeyPatch, captured: dict[str, object]) -> None:
+    """Record what ``cmd_sniff`` asks for, and keep the GitHub API out of the test."""
+    from hungry_crab import cli
+    from hungry_crab.sniff import build_report
+
+    repo = {
+        "description": "A prey repository",
+        "default_branch": "main",
+        "size": 20_000,
+        "pushed_at": "2025-05-20T10:00:00Z",
+        "created_at": "2020-01-01T00:00:00Z",
+        "license": {"key": "mit", "name": "MIT License", "spdx_id": "MIT"},
+    }
+
+    def fake_sniff(slug: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        captured["slug"] = slug
+        return build_report(
+            slug,  # type: ignore[arg-type]
+            repo,
+            {},
+            maw_license=kwargs.get("maw_license"),  # type: ignore[arg-type]
+            relationship=kwargs.get("relationship", Relationship.FOREIGN),  # type: ignore[arg-type]
+            now=datetime(2025, 6, 1, tzinfo=UTC),
+        )
+
+    monkeypatch.setattr(cli, "sniff", fake_sniff)
+    monkeypatch.setattr(cli, "GitHubClient", lambda **_: object())
+
+
+def test_sniff_needs_no_maw(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # `crab sniff owner/repo` is the first command of the eat protocol and the plainest form the
+    # design documents show. It once crashed on `Path(None)` because --maw defaults to None here
+    # and nowhere else, and every invocation the project ships passes `--maw .`.
+    captured: dict[str, object] = {}
+    _stub_sniff(monkeypatch, captured)
+    assert main(["sniff", "example/prey"]) == 0
+    assert captured["maw_license"] is None
+    assert captured["relationship"] == Relationship.FOREIGN
+    assert "verdict" in capsys.readouterr().out
+
+
+def test_sniff_with_only_a_maw_license(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # --maw-license is documented as overriding --maw detection, so it has to work alone.
+    captured: dict[str, object] = {}
+    _stub_sniff(monkeypatch, captured)
+    assert main(["sniff", "example/prey", "--maw-license", "GPL-3.0-only"]) == 0
+    assert captured["maw_license"] == "GPL-3.0-only"
+    assert captured["relationship"] == Relationship.FOREIGN
+    assert "GPL-3.0-only" in capsys.readouterr().out
+
+
+def test_sniff_with_a_maw_directory_detects_its_license(
+    monkeypatch: pytest.MonkeyPatch, pyproject_cli: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    captured: dict[str, object] = {}
+    _stub_sniff(monkeypatch, captured)
+    assert main(["sniff", "example/prey", "--maw", str(pyproject_cli)]) == 0
+    assert captured["maw_license"] == "Apache-2.0"
+    capsys.readouterr()
+
+
+def test_sniff_with_a_missing_maw_is_a_usage_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    captured: dict[str, object] = {}
+    _stub_sniff(monkeypatch, captured)
+    assert main(["sniff", "example/prey", "--maw", str(tmp_path / "nowhere")]) == 2
+    assert "is not a directory" in capsys.readouterr().err

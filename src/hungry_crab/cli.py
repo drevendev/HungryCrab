@@ -25,6 +25,7 @@ from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
+from .licensing.matrix import Relationship
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
 from .nutrients import STATUSES, Candidate
@@ -220,10 +221,24 @@ def _resolve_maw_license(maw: Path | None, explicit: str | None) -> str | None:
     return None
 
 
+def _sniff_relationship(slug: Slug, maw: Path | None) -> Relationship:
+    """The prey's relationship to the maw, for a command that does not require a maw.
+
+    ``sniff`` is reconnaissance: it answers "is this worth eating" from the API alone, and
+    ``--maw`` is optional there while every other subcommand defaults it to ``.``. With no maw on
+    disk there is no ``.crab.yml``, so no ``trust.owners`` and no ``bypass``, and no ``origin`` to
+    compare owners against — the prey is a stranger's code, which is what ``sniff`` assumed before
+    the relationship was threaded through it.
+    """
+    if maw is None:
+        return Relationship.FOREIGN
+    return relationship_for(slug, MawConfig.load(_maw_dir(maw)))
+
+
 def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
     maw_license = _resolve_maw_license(args.maw, args.maw_license)
-    relationship = relationship_for(slug, MawConfig.load(_maw_dir(args.maw)))
+    relationship = _sniff_relationship(slug, args.maw)
     client = GitHubClient(prefer_gh=not args.no_gh)
     report = sniff(
         slug,
