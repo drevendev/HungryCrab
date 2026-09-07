@@ -5,7 +5,12 @@ from pathlib import Path
 from helpers import read_json, read_md, write_tree
 
 from hungry_crab.digest import DigestResult
-from hungry_crab.miners.inventory import MAX_FILES, mark_build_outputs, walk_tree
+from hungry_crab.miners.inventory import (
+    MAX_FILES,
+    mark_build_outputs,
+    mark_example_trees,
+    walk_tree,
+)
 
 
 def test_npm_inventory_basics(npm_digest: DigestResult) -> None:
@@ -109,3 +114,50 @@ def test_go_service_reads_as_go(go_digest: DigestResult) -> None:
     assert data["entry_points"] == [
         {"kind": "go:main", "value": "cmd/moltd/main.go", "source": "tree"}
     ]
+
+
+def test_examples_are_not_the_project(npm_digest: DigestResult) -> None:
+    """`promptfoo/promptfoo` read as go+npm+python out of `examples/*`; npm-app carries the shape.
+
+    The example providers are real files with real manifests, and the app is TypeScript. Without
+    `mark_example_trees` this fixture reports three ecosystems and offers flask and numpy as
+    dependencies "the prey uses and you do not".
+    """
+    inventory = read_json(npm_digest, "inventory.json")
+    noise = {row["path"] for row in inventory["vendored_or_generated"]}
+    assert any(path.startswith("examples") for path in noise)
+    assert inventory["primary_language"] == "TypeScript"
+
+
+def test_a_repository_that_is_only_examples_keeps_them(tmp_path: Path) -> None:
+    """The escape hatch, in the shape of `modelcontextprotocol/servers`.
+
+    A repository whose every manifest lives under `examples/` declares itself nowhere else, so
+    excluding them would leave it with no ecosystem at all rather than with the right one.
+    """
+    prey = write_tree(
+        tmp_path / "prey",
+        {
+            "README.md": "# Servers\n\nA collection of reference servers.\n",
+            "examples/server-a/package.json": '{"name":"a","dependencies":{"express":"^4"}}\n',
+            "examples/server-a/index.ts": "export const a = 1;\n",
+            "examples/server-b/package.json": '{"name":"b","dependencies":{"fastify":"^4"}}\n',
+        },
+    )
+    files, _ = walk_tree(prey, max_files=MAX_FILES["normal"])
+    mark_example_trees(files)
+    assert [f.path for f in files if f.vendored] == []
+
+
+def test_examples_go_when_the_repository_declares_itself_elsewhere(tmp_path: Path) -> None:
+    prey = write_tree(
+        tmp_path / "prey",
+        {
+            "package.json": '{"name":"app","dependencies":{"express":"^4"}}\n',
+            "src/index.ts": "export const x = 1;\n",
+            "examples/demo/requirements.txt": "torch==2.3.0\n",
+        },
+    )
+    files, _ = walk_tree(prey, max_files=MAX_FILES["normal"])
+    mark_example_trees(files)
+    assert [f.path for f in files if f.vendored] == ["examples/demo/requirements.txt"]

@@ -86,7 +86,10 @@ def test_parse_go_mod() -> None:
 
 def test_npm_dependency_policy(npm_digest: DigestResult) -> None:
     data = read_json(npm_digest, "deps.json")
+    # Three ecosystems without `mark_example_trees`: the fixture carries the promptfoo shape,
+    # `examples/go-provider/go.mod` and `examples/python-provider/requirements.txt`.
     assert data["ecosystems"] == ["npm"]
+    assert not {"flask", "numpy", "torch"} & {p["name"] for p in data["packages"]}
     assert data["package_count"] == 10
     policy = data["policies"]["npm"]
     assert policy["package_manager"] == "pnpm"

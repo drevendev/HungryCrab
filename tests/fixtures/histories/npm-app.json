@@ -84,7 +84,7 @@
       "touch": ["src/main.ts"]
     },
     {
-      "message": "docs: add changelog, contributing guide and AI config",
+      "message": "docs: add changelog, contributing guide, AI config and provider examples",
       "date": "2024-07-10T12:00:00+00:00",
       "author": "Alice Crab <alice@example.com>",
       "branch": "main",
@@ -97,7 +97,12 @@
         ".claude/skills/smoke/SKILL.md",
         ".editorconfig",
         ".prettierrc",
-        "eslint.config.js"
+        "eslint.config.js",
+        "examples/README.md",
+        "examples/python-provider/requirements.txt",
+        "examples/python-provider/provider.py",
+        "examples/go-provider/go.mod",
+        "examples/go-provider/main.go"
       ]
     },
     {
