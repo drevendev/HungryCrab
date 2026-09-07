@@ -27,7 +27,14 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
    and templates are copied.
 4. Per-file exceptions in `license.json` (vendored directories, headers with another SPDX id)
    override the repository license for those files.
-5. A conflict between the LICENSE file and a manifest, or no license at all, is `HUMAN`.
+5. **No license at all is `IDEAS_ONLY` with human review, not `HUMAN`.** `HUMAN` is only for a
+   license that was read and could not be classified. The two ask for different things: under
+   `IDEAS_ONLY` the need and the facts may still travel, under `HUMAN` nothing may until a person
+   answers.
+6. **Review is a flag, not a mode.** A conflict between the LICENSE file and a manifest does not
+   change the verdict — the mode still comes from the detected license, and the digest records
+   the conflict in `license.json` under `conflicts` with `human_review: true` beside it. Read
+   both: `human_review` is also true for a source-available license, whose mode is `IDEAS_ONLY`.
 
 ## How to compute a mode
 
