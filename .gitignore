@@ -26,6 +26,9 @@ Thumbs.db
 # Local digest output (the cache lives under ~/.cache/hungry-crab)
 digest-out/
 
-# The prey backlog names private repositories and planned targets; this repository is public.
+# The prey backlog and the researcher prompt name private repositories and planned targets;
+# this repository is public. They now live, with history, in a private companion repository —
+# see docs/design/03-roadmap.md on why the queue is not part of this repository. The entries stay
+# so that a stray local copy cannot be committed by accident.
 .crab/prey-backlog.md
 .crab/researcher-prompt.md
