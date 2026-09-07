@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from conftest import FIXED_NOW
 from helpers import read_json, read_md, write_tree
 
-from hungry_crab.digest import DigestResult
+from hungry_crab.cache import Target
+from hungry_crab.digest import DigestOptions, DigestResult, run_digest
 from hungry_crab.miners.inventory import (
     MAX_FILES,
     mark_build_outputs,
@@ -161,3 +163,51 @@ def test_examples_go_when_the_repository_declares_itself_elsewhere(tmp_path: Pat
     files, _ = walk_tree(prey, max_files=MAX_FILES["normal"])
     mark_example_trees(files)
     assert [f.path for f in files if f.vendored] == ["examples/demo/requirements.txt"]
+
+
+LFS_POINTER = (
+    "version https://git-lfs.github.com/spec/v1\n"
+    "oid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\n"
+    "size 2147483648\n"
+)
+
+
+def test_an_lfs_pointer_is_not_source(tmp_path: Path) -> None:
+    """Prey arrives with `GIT_LFS_SKIP_SMUDGE`, so LFS files are 130-byte text files.
+
+    Unrecognised they would be *worse* than the binaries they replace: a two-gigabyte checkpoint
+    would read as three lines of source in whatever language its extension implies. The check has
+    to precede `BINARY_EXTENSIONS`, because a pointer wears the extension of the blob.
+    """
+    prey = write_tree(
+        tmp_path / "prey",
+        {
+            "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
+            "src/load.py": "def load():\n    return 1\n",
+            ".gitattributes": "*.bin filter=lfs diff=lfs merge=lfs -text\n",
+            "models/weights.bin": LFS_POINTER,
+            "models/tokenizer.model": LFS_POINTER.replace("2147483648", "524288000"),
+        },
+    )
+    result = run_digest(
+        Target(path=prey),
+        DigestOptions(out=tmp_path / "digest", now=FIXED_NOW, cache_root=tmp_path / "cache"),
+    )
+    data = read_json(result, "inventory.json")
+    assert data["lfs_files"] == 2, "a `.bin` pointer must not be short-circuited as binary"
+    assert data["lfs_bytes"] == 2147483648 + 524288000
+    assert data["binary_files"] == 0
+    assert data["primary_language"] == "Python"
+    assert data["files_counted"] == data["files"] - 2
+    assert "LFS files (not fetched)" in read_md(result, "inventory.md")
+
+
+def test_a_short_text_file_is_still_source(tmp_path: Path) -> None:
+    """The pointer check reads every file under 1 KB, so it must not claim ordinary ones."""
+    prey = write_tree(
+        tmp_path / "prey",
+        {"pyproject.toml": '[project]\nname = "d"\nversion = "0.1"\n', "a.py": "x = 1\n"},
+    )
+    files, _ = walk_tree(prey, max_files=MAX_FILES["normal"])
+    assert [f.path for f in files if f.lfs] == []
+    assert next(f for f in files if f.path == "a.py").loc == 1

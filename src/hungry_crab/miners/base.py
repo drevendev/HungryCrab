@@ -37,11 +37,13 @@ class FileInfo:
     depth: int
     lockfile: bool
     manifest_kind: str | None
+    lfs: bool = False
+    lfs_size: int | None = None
 
     @property
     def counted(self) -> bool:
         """Counts toward LOC and language shares."""
-        return not (self.vendored or self.generated or self.binary)
+        return not (self.vendored or self.generated or self.binary or self.lfs)
 
 
 @dataclass
