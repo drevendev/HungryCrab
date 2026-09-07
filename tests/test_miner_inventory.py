@@ -97,3 +97,15 @@ def test_walk_tree_skips_symlinks_and_caps_vendored(tmp_path: Path) -> None:
     assert stats["truncated"] is False
     truncated, stats_small = walk_tree(root, max_files=2)
     assert len(truncated) == 2 and stats_small["truncated"] is True
+
+
+def test_go_service_reads_as_go(go_digest: DigestResult) -> None:
+    """A tripwire for the Go fixture: if its tree drifts, the language and entry point move."""
+    data = read_json(go_digest, "inventory.json")
+    assert data["primary_language"] == "Go"
+    assert data["files"] == data["files_counted"] == 13
+    assert {m["path"] for m in data["manifests"]} == {"go.mod", "Makefile"}
+    assert {lock["path"] for lock in data["lockfiles"]} == {"go.sum"}
+    assert data["entry_points"] == [
+        {"kind": "go:main", "value": "cmd/moltd/main.go", "source": "tree"}
+    ]

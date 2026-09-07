@@ -128,3 +128,40 @@ def test_dotnet_dependency_policy(dotnet_digest: DigestResult) -> None:
     kinds = {m["path"]: m for m in data["manifests"]}
     assert kinds["src/Crustacean/Crustacean.csproj"]["properties"]["IsPackable"] == "true"
     assert kinds["tests/Crustacean.Tests/Crustacean.Tests.csproj"]["project_references"] == 1
+
+
+def test_parse_go_mod_reads_both_spellings_of_require() -> None:
+    # `go get` writes bare `require` lines and a module with one or two dependencies keeps them;
+    # the pattern assumed the module path was the first token, which is only true inside a block.
+    block = (
+        "module example.com/x\n\ngo 1.22\n\nrequire (\n"
+        "\tgithub.com/a/b v1.2.3\n\tgolang.org/x/y v0.1.0 // indirect\n)\n"
+    )
+    single = (
+        "module example.com/x\n\ngo 1.22\n\n"
+        "require github.com/a/b v1.2.3\n"
+        "require golang.org/x/y v0.1.0 // indirect\n"
+    )
+    expected = {("github.com/a/b", "runtime"), ("golang.org/x/y", "indirect")}
+    assert {(p.name, p.kind) for p in parse_go_mod(single, "go.mod")[0]} == expected
+    assert {(p.name, p.kind) for p in parse_go_mod(block, "go.mod")[0]} == expected
+
+
+def test_parse_go_mod_ignores_directives_that_are_not_requirements() -> None:
+    text = (
+        "module example.com/x\n\ngo 1.22\n\ntoolchain go1.22.3\n\n"
+        "replace github.com/a/b => github.com/fork/b v1.0.0\n\n"
+        "exclude github.com/bad/c v0.1.0\n\nretract v0.0.1\n"
+    )
+    assert parse_go_mod(text, "go.mod")[0] == []
+
+
+def test_go_dependencies(go_digest: DigestResult) -> None:
+    data = read_json(go_digest, "deps.json")
+    assert data["ecosystems"] == ["go"]
+    names = {p["name"]: p["kind"] for p in data["packages"]}
+    assert names["github.com/spf13/cobra"] == "runtime"
+    assert names["github.com/stretchr/testify"] == "runtime"
+    # A single-line `require ... // indirect`, which the block-only pattern dropped silently.
+    assert names["golang.org/x/sync"] == "indirect"
+    assert data["policies"]["go"]["lockfiles"] == ["go.sum"]

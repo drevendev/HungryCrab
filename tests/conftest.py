@@ -44,6 +44,11 @@ def dotnet_lib(fixture_repos: dict[str, Path]) -> Path:
 
 
 @pytest.fixture(scope="session")
+def go_service(fixture_repos: dict[str, Path]) -> Path:
+    return fixture_repos["go-service"]
+
+
+@pytest.fixture(scope="session")
 def digests(
     fixture_repos: dict[str, Path], tmp_path_factory: pytest.TempPathFactory
 ) -> dict[str, DigestResult]:
@@ -73,3 +78,8 @@ def py_digest(digests: dict[str, DigestResult]) -> DigestResult:
 @pytest.fixture(scope="session")
 def dotnet_digest(digests: dict[str, DigestResult]) -> DigestResult:
     return digests["dotnet-lib"]
+
+
+@pytest.fixture(scope="session")
+def go_digest(digests: dict[str, DigestResult]) -> DigestResult:
+    return digests["go-service"]

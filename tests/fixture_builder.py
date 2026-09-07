@@ -17,7 +17,7 @@ from pathlib import Path
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 REPOS_DIR = FIXTURES_DIR / "repos"
 HISTORIES_DIR = FIXTURES_DIR / "histories"
-FIXTURE_NAMES = ("npm-app", "pyproject-cli", "dotnet-lib")
+FIXTURE_NAMES = ("npm-app", "pyproject-cli", "dotnet-lib", "go-service")
 SUFFIX = ".fixture"
 DEFAULT_AUTHOR = "Fixture Bot <fixture@example.com>"
 

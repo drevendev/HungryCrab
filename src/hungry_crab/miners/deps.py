@@ -16,7 +16,13 @@ from .inventory import LOCKFILES
 _NPM_EXACT_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][\w.]+)?$")
 _PY_REQ_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*(.*?)\s*$")
 _DOTNET_EXACT_RE = re.compile(r"^\d+(?:\.\d+){1,3}(?:-[\w.]+)?$")
-_GO_REQUIRE_RE = re.compile(r"^\s*([\w./~-]+)\s+(v[\w.+-]+)(\s*//\s*indirect)?", re.MULTILINE)
+# ``require`` is optional because go.mod has two spellings: a block, and a bare line per
+# requirement, which is what `go get` writes and what a module with one or two dependencies
+# keeps. Without the prefix, group 1 matched the literal `require` on those lines, _GO_KEYWORDS
+# correctly discarded it, and the module path was never looked at.
+_GO_REQUIRE_RE = re.compile(
+    r"^\s*(?:require\s+)?([\w./~-]+)\s+(v[\w.+-]+)(\s*//\s*indirect)?", re.MULTILINE
+)
 _GO_KEYWORDS = frozenset({"module", "go", "require", "toolchain", "replace", "exclude", "retract"})
 
 MAX_MANIFESTS = 40
