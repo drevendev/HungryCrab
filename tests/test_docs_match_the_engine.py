@@ -84,3 +84,25 @@ def test_security_does_not_promise_a_bound_acquisition_does_not_have() -> None:
             "bound digestion rather than acquisition"
         )
         assert "### What is not bounded: acquisition" in text
+
+
+def test_the_decision_time_skill_separates_review_from_the_mode() -> None:
+    """`RETIRED_CLAIM` is an exact phrase, and rule 5 said the same thing in other words.
+
+    `skills/license/SKILL.md` is the protocol an agent follows at the moment it decides, and it
+    said a conflict or a missing licence "is `HUMAN`". The engine keeps the two apart:
+    `human_review` is a flag that rides alongside a mode, and `decide(None, ...)` is `IDEAS_ONLY`
+    with that flag, not `HUMAN`. Reading them as one mode stops a meal the engine allows —
+    over-cautious rather than over-permissive, but wrong either way, and invisible to a sweep for
+    one exact string.
+    """
+    assert decide(None, "MIT").mode is Mode.IDEAS_ONLY
+    assert decide(None, "MIT").human_review
+
+    text = (ROOT / "skills" / "license" / "SKILL.md").read_text(encoding="utf-8")
+    assert "no license at all, is `HUMAN`" not in text, (
+        "an absent licence is `IDEAS_ONLY` with human review; `HUMAN` is for a licence that was "
+        "read and could not be classified"
+    )
+    assert "No license at all is `IDEAS_ONLY` with human review" in text
+    assert "Review is a flag, not a mode" in text
