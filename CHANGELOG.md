@@ -7,28 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Fixed
-
-- **Four documents still described a verdict the engine had stopped returning.** Since `HUMAN`
-  became reachable, an unrecognised licence is `HUMAN` and a missing one is `IDEAS_ONLY` flagged
-  for review — but `README.md`, `docs/design/01-concept-and-skill.md`, the licence engine's own
-  docstring and `skills/license/references/matrix.md` all still paired them as `IDEAS_ONLY` +
-  `HUMAN`. The last of those is the table the `license` skill hands to a model at the moment it
-  decides whether code may be copied, which makes it the one that mattered. The same reference
-  now also carries the `own` and `bypass` relationships, which short-circuit the matrix entirely
-  and had been documented nowhere an agent reads. `tests/test_docs_match_the_engine.py` guards
-  the retired claim by name across every Markdown file in the repository.
-
-- **A cached digest was reused for a question it had not been asked.** The reuse check compared
-  the schema, the commit and the depth, and ignored three things the manifest records because
-  they change the result: the crab's own version, `ignore`, and the maw's license. The commit
-  does not move when `.crab.yml` changes, so step 4 of the `eat` protocol — "the maw reads as the
-  wrong stack, add the offending paths to `ignore` and rerun" — returned the cached answer and
-  the remedy did nothing at all, leaving the whole meal judged against a repository that does not
-  exist. For the same reason an upgraded crab kept serving the previous version's verdicts until
-  someone passed `--force`, which is the mistake `crab update` was taught to avoid one layer up.
-
-## [0.2.2] - 2026-09-06
+Everything below is on `master` and in no tag. The 0.2.1 and 0.2.2 milestones are complete —
+self-feeding, the licence resolutions, the menu benchmark — but neither was ever released, so
+their entries wait here for the next tag rather than claiming one of their own. Milestones are
+tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tracks releases.
 
 ### Added
 
@@ -110,6 +92,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Installs track `master`; a release tag is opt-in.
 
 ### Fixed
+
+- **Four documents still described a verdict the engine had stopped returning.** Since `HUMAN`
+  became reachable, an unrecognised licence is `HUMAN` and a missing one is `IDEAS_ONLY` flagged
+  for review — but `README.md`, `docs/design/01-concept-and-skill.md`, the licence engine's own
+  docstring and `skills/license/references/matrix.md` all still paired them as `IDEAS_ONLY` +
+  `HUMAN`. The last of those is the table the `license` skill hands to a model at the moment it
+  decides whether code may be copied, which makes it the one that mattered. The same reference
+  now also carries the `own` and `bypass` relationships, which short-circuit the matrix entirely
+  and had been documented nowhere an agent reads. `tests/test_docs_match_the_engine.py` guards
+  the retired claim by name across every Markdown file in the repository.
+
+- **A cached digest was reused for a question it had not been asked.** The reuse check compared
+  the schema, the commit and the depth, and ignored three things the manifest records because
+  they change the result: the crab's own version, `ignore`, and the maw's license. The commit
+  does not move when `.crab.yml` changes, so step 4 of the `eat` protocol — "the maw reads as the
+  wrong stack, add the offending paths to `ignore` and rerun" — returned the cached answer and
+  the remedy did nothing at all, leaving the whole meal judged against a repository that does not
+  exist. For the same reason an upgraded crab kept serving the previous version's verdicts until
+  someone passed `--force`, which is the mistake `crab update` was taught to avoid one layer up.
 
 - **The injection detector cried wolf on ordinary READMEs.** Eating `syrupy-project/syrupy`
   produced four flags, and all four were false: "if you need to bypass a custom object
@@ -234,6 +235,5 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.2...HEAD
-[0.2.2]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.2.2
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0

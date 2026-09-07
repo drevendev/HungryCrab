@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -80,3 +81,48 @@ def test_skill_protocol_mentions_every_cli_step() -> None:
     for command in ("crab sniff", "crab compare", "crab serve", "crab ledger mark", "crab tune"):
         assert command in text
     assert "untrusted" in text and "dry-run" in text
+
+
+def test_the_packaging_version_and_the_importable_one_agree() -> None:
+    """`pyproject.toml` was the one version file nothing checked.
+
+    `__version__` is a literal in `src/hungry_crab/__init__.py` and `[project].version` is a
+    separate literal, with no `importlib.metadata` between them. `crab update` reads one from
+    each side — `fetch_remote` takes master's `pyproject.toml`, `check_cli` takes the installed
+    `__version__` — so a release that bumps one and forgets the other makes it compare two
+    different numbers indefinitely, reporting `master is at X` to a crab that is already current.
+    The commit comparison added later does not rescue that: it only runs when the two version
+    strings are equal, which is exactly what a drift removes.
+    """
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["project"]["version"] == __version__
+
+
+def test_master_carries_a_development_version() -> None:
+    """A released version string on `master` cannot identify the commit that produced it.
+
+    0.2.2 sat in every version file for seven commits after the release that never happened, and
+    `manifest.json` records `crab_version` as part of the digest cache's reuse key — so two crabs
+    that behave differently looked identical to it. The release procedure in `CONTRIBUTING.md`
+    ends by reopening the next `.dev0`; this is what notices when that step is skipped.
+    """
+    assert ".dev" in __version__, (
+        f"master is on {__version__}, which is a release version. A release tags the commit and "
+        "then reopens the next X.Y.Z.dev0 — see the Releasing section in CONTRIBUTING.md."
+    )
+
+
+def test_every_changelog_version_has_a_link_reference() -> None:
+    """A heading with no reference, or a reference with no heading, means the bookkeeping slipped.
+
+    Both link references at the bottom of the file once pointed at `v0.2.2`, a tag that was never
+    created, so two of the three were 404s.
+    """
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    headings = set(re.findall(r"^## \[([^\]]+)\]", text, re.MULTILINE))
+    references = set(re.findall(r"^\[([^\]]+)\]: https://", text, re.MULTILINE))
+    assert "Unreleased" in headings
+    assert headings == references, (
+        f"headings without a reference: {sorted(headings - references)}; "
+        f"references without a heading: {sorted(references - headings)}"
+    )
