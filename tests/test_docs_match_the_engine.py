@@ -61,3 +61,26 @@ def test_the_reference_an_agent_decides_from_names_both_outcomes() -> None:
     assert "`own`" in text and "`bypass`" in text, (
         "the relationship short-circuits the matrix, so the matrix reference has to mention it"
     )
+
+
+def test_security_does_not_promise_a_bound_acquisition_does_not_have() -> None:
+    """The threat model may only claim what `catch` enforces.
+
+    The caps the threat model points at — `MAX_FILES`, `MAX_TEXT_SIZE`, `MAX_VENDORED_PER_DIR`,
+    `MAX_COMMITS` — all live in the miners, which run after the clone has landed on disk. While
+    `CatchOptions()` fetches everything by default, the unconditional claim is false, and the
+    person reading it is deciding whether to point the crab at a stranger's repository.
+
+    When acquisition gains a real bound, the first assertion here is what says the prose may go
+    back to the shorter promise.
+    """
+    from hungry_crab.fetch.catch import CatchOptions
+
+    unbounded = CatchOptions().shallow is False and CatchOptions().since is None
+    text = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    if unbounded:
+        assert "exhaust the machine **while it is being digested**" in text, (
+            "`CatchOptions()` still clones everything, so SECURITY.md has to say that the caps "
+            "bound digestion rather than acquisition"
+        )
+        assert "### What is not bounded: acquisition" in text

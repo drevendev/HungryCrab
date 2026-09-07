@@ -162,7 +162,8 @@ HungryCrab/
 1. **Sniff.** `crab sniff owner/repo` — API only: license (SPDX), size, languages, stars,
    activity, community profile. Instant verdict: default mode (`COPY`/`IDEAS_ONLY`…), a warning if
    the repository is huge (suggest `--shallow --since 2y`).
-2. **Catch.** `crab catch` — `git clone --mirror` (or a partial clone for giants),
+2. **Catch.** `crab catch` — a full `git clone` by default, shallow or date-limited only when
+   asked with `--shallow` / `--since` (a mirror or a partial clone for giants is still unbuilt),
    `<repo>.wiki.git` if present, `gh api --paginate` for issues/PRs/releases/labels (limits: N
    newest + top by reactions). Everything goes to `~/.cache/hungry-crab/github/<owner>/<repo>/`: one shared clone plus
    per-commit digests under `digests/<sha>/`.
