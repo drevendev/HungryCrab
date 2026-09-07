@@ -120,6 +120,7 @@ CORPUS_DIRS = frozenset(
         "__snapshots__", "snapshots", "golden", "goldens", "corpus", "corpora",
     }
 )  # fmt: skip
+EXAMPLE_DIRS = frozenset({"examples", "example", "demo", "demos", "sample"})
 MIN_OWN_FILES = 10
 GENERATED_FILE_RES: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -310,6 +311,41 @@ def mark_sample_corpora(files: list[FileInfo]) -> None:
         return
     own = sum(1 for f in files if f.counted) - sum(1 for f in marked if f.counted)
     if own < MIN_OWN_FILES:
+        return
+    for info in marked:
+        info.vendored = True
+
+
+def mark_example_trees(files: list[FileInfo]) -> None:
+    """A project's examples are documentation, not the stack it is written in.
+
+    ``promptfoo/promptfoo`` is a TypeScript project that read as four ecosystems: ``go`` came from
+    ``examples/provider-golang/go.mod``, and every Python dependency came from an
+    ``examples/*/requirements.txt``. The manifest cap was reached at the same time, and it was
+    spent on the examples rather than on the project.
+
+    ``mark_sample_corpora`` cannot catch this. It is keyed on one large corpus under one
+    directory, and promptfoo's examples are forty small directories with a manifest each, so the
+    "would this empty the repository" size guard never fires. The guard here is a different
+    question — does the repository declare itself anywhere else? — which keeps the escape hatch
+    for a repository whose examples really are its content, such as
+    ``modelcontextprotocol/servers``, where every manifest lives under one.
+    """
+    marked = [
+        info
+        for info in files
+        if not info.vendored and any(p in EXAMPLE_DIRS for p in info.path.split("/")[:-1])
+    ]
+    if not marked:
+        return
+    inside = {info.path for info in marked}
+    declares_itself = any(
+        not info.vendored
+        and info.path not in inside
+        and (info.manifest_kind is not None or info.lockfile)
+        for info in files
+    )
+    if not declares_itself:
         return
     for info in marked:
         info.vendored = True
@@ -518,6 +554,7 @@ class InventoryMiner:
         files, stats = walk_tree(ctx.root, max_files=MAX_FILES["deep" if ctx.deep else "normal"])
         mark_build_outputs(files)
         mark_sample_corpora(files)
+        mark_example_trees(files)
         ignored = 0
         if ctx.ignore:
             kept = [f for f in files if not is_ignored(f.path, ctx.ignore)]
