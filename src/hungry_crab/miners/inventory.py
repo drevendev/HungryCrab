@@ -121,6 +121,40 @@ CORPUS_DIRS = frozenset(
     }
 )  # fmt: skip
 EXAMPLE_DIRS = frozenset({"examples", "example", "demo", "demos", "sample"})
+LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/"
+LFS_POINTER_MAX = 1024
+_LFS_SIZE_RE = re.compile(rb"^size (\d+)$", re.MULTILINE)
+
+
+def _human_bytes(total: int) -> str:
+    """LFS totals run to gigabytes, and "2548 MB" hides what a number like that means."""
+    megabytes = total / 1024 / 1024
+    return f"{megabytes / 1024:.1f} GB" if megabytes >= 1024 else f"{megabytes:.0f} MB"
+
+
+def read_head(full: str, limit: int) -> bytes:
+    """The first ``limit`` bytes, or empty when the file cannot be read."""
+    try:
+        with open(full, "rb") as handle:
+            return handle.read(limit)
+    except OSError:
+        return b""
+
+
+def lfs_pointer_size(data: bytes) -> int | None:
+    """The size an LFS pointer stands in for, or ``None`` if this is not one.
+
+    Prey is cloned with ``GIT_LFS_SKIP_SMUDGE``, so an LFS-tracked file arrives as a three-line
+    text file of about 130 bytes. Left unrecognised it would be counted as source — a model
+    checkpoint would read as three lines of whatever language its extension implies — which is a
+    worse answer than the binary it replaced.
+    """
+    if not data.startswith(LFS_POINTER_PREFIX):
+        return None
+    match = _LFS_SIZE_RE.search(data)
+    return int(match.group(1)) if match else 0
+
+
 MIN_OWN_FILES = 10
 GENERATED_FILE_RES: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -180,7 +214,20 @@ def describe_file(
         manifest_kind = "python"
     binary = False
     loc = 0
-    if ext in BINARY_EXTENSIONS:
+    lfs_size: int | None = None
+    if size and size <= LFS_POINTER_MAX and not vendored:
+        # A pointer is three lines wearing the extension of the blob it stands in for — `.bin`,
+        # `.safetensors`, `.psd` — so the probe has to precede BINARY_EXTENSIONS, or every
+        # pointer that matters is missed. A file this small is read whole either way, so the
+        # check costs no I/O of its own.
+        data = read_head(full, LFS_POINTER_MAX)
+        lfs_size = lfs_pointer_size(data)
+        if lfs_size is None:
+            if ext in BINARY_EXTENSIONS or looks_binary(data):
+                binary = True
+            else:
+                loc = count_lines(data.decode("utf-8", errors="replace"))
+    elif ext in BINARY_EXTENSIONS:
         binary = True
     elif size and size <= MAX_TEXT_SIZE and not vendored:
         try:
@@ -206,6 +253,8 @@ def describe_file(
         depth=depth,
         lockfile=lockfile,
         manifest_kind=manifest_kind,
+        lfs=lfs_size is not None,
+        lfs_size=lfs_size,
     )
 
 
@@ -535,6 +584,10 @@ def summarize(
         "largest_files": largest,
         "vendored_or_generated": [{"path": k, "files": v} for k, v in noise_rows],
         "binary_files": sum(1 for f in files if f.binary),
+        # Tracked by LFS and deliberately not fetched, so the digest describes a repository whose
+        # content it has partly never seen. The byte total is what the pointers claim.
+        "lfs_files": sum(1 for f in files if f.lfs),
+        "lfs_bytes": sum(f.lfs_size or 0 for f in files if f.lfs),
         "symlinks": stats["symlinks"],
         "truncated": stats["truncated"],
         "vendored_dirs_capped": stats["vendored_dirs_capped"],
@@ -590,6 +643,12 @@ class InventoryMiner:
                 ("Lines of code (excluding vendored, sample, generated, binary)", data["loc"]),
                 ("Primary language", data["primary_language"] or "unknown"),
                 ("Binary files", data["binary_files"]),
+                (
+                    "LFS files (not fetched)",
+                    f"{data['lfs_files']} ({_human_bytes(data['lfs_bytes'])})"
+                    if data["lfs_files"]
+                    else 0,
+                ),
                 ("Manifests", len(data["manifests"])),
                 ("Lock files", ", ".join(lock["path"] for lock in data["lockfiles"]) or "none"),
                 ("Git flags", ", ".join(k for k, v in data["flags"].items() if v) or "none"),

@@ -9,6 +9,7 @@ import pytest
 from hungry_crab.cache import Slug, prey_paths
 from hungry_crab.errors import UsageError
 from hungry_crab.fetch.catch import CatchOptions, catch, clone_arguments, parse_since
+from hungry_crab.fetch.git import git_env
 
 NOW = datetime(2025, 6, 1, tzinfo=UTC)
 
@@ -94,3 +95,15 @@ def test_catch_can_fetch_issues(npm_app: Path, tmp_path: Path) -> None:
     assert len(lines) == 2 and json.loads(lines[0])["number"] == 2
     recorded = json.loads(prey_paths(slug, cache).catch_file.read_text(encoding="utf-8"))
     assert recorded["issues_fetched"] == 2
+
+
+def test_prey_clones_never_fetch_lfs_content() -> None:
+    """The one setting a later size preflight would rest on.
+
+    `crab sniff` warns from the GitHub API `size` field, which counts the packed git objects and
+    not LFS content, and GitHub allows a single LFS object of 2-5 GB. Cloning a working tree with
+    smudging on therefore has no upper bound derivable from anything the crab knows before it
+    starts. The crab has no use for the blobs either way: miners read files as data and nothing
+    is ever built or run, so a pointer says as much as the object it stands in for.
+    """
+    assert git_env()["GIT_LFS_SKIP_SMUDGE"] == "1"

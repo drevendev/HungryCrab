@@ -41,6 +41,12 @@ def git_env() -> dict[str, str]:
             "GIT_PAGER": "cat",
             "PAGER": "cat",
             "GIT_OPTIONAL_LOCKS": "0",
+            # The prey's LFS content is never worth fetching: the miners read files as data and
+            # nothing is ever built or run, so a pointer tells them everything a two-gigabyte
+            # blob would. Without this, a clone downloads it — and the GitHub `size` field that
+            # `sniff` warns on counts only the packed git objects, so no preflight on that number
+            # could bound what lands on disk.
+            "GIT_LFS_SKIP_SMUDGE": "1",
         }
     )
     return env
