@@ -38,7 +38,9 @@ DEFAULT_HUNGER: dict[str, Any] = {
 DEFAULT_CONFIG_TEXT = """\
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
-mode: normal               # normal | strict (strict never copies code, only configs and templates)
+mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
+                           # code and copies only configs and templates. It arrives with
+                           # 0.3; today the setting is accepted and changes nothing.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
@@ -71,6 +73,9 @@ trust:                     # a license is a promise to strangers; these are not 
                            # verdict is flagged for human review, because this is not a finding
                            # about the license but a decision to stop asking.
 attribution_file: THIRD_PARTY_NOTICES.md
+                           # where COPY records its sources. The file is written by
+                           # `crab attribution`, which arrives with 0.3; until then nothing
+                           # reads this setting.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 """
