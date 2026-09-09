@@ -10,9 +10,26 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-# Zero-width and byte-order-mark code points: invisible text is a classic carrier for hidden
-# instructions. Built with chr() so the source file itself stays free of invisible characters.
-_ZERO_WIDTH = "".join(chr(code) for code in (0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF))
+# Invisible code points are a classic carrier for hidden instructions, and the Tags block is
+# the one that carries whole sentences: it maps every printable ASCII character to a code
+# point that renders as nothing, so an instruction can be appended to an innocent heading and
+# read back by a model. Built with chr() so the source file itself stays free of them.
+#
+# Two families are deliberately absent. Variation selectors (U+FE00-FE0F) end almost every
+# emoji in a README title, and the emoji joiners already here are load-bearing in Indic and
+# Persian text; flagging U+FE0F would flag headings by the hundred. The soft hyphen (U+00AD)
+# is real hyphenation in real documentation. A detector that fires on ordinary prose stops
+# carrying information, which is the lesson the syrupy meal already taught this module.
+_INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
+    (0x180E, 0x180E),  # Mongolian vowel separator
+    (0x200B, 0x200D),  # zero-width space, non-joiner, joiner
+    (0x2060, 0x2064),  # word joiner and the invisible mathematical operators
+    (0xFEFF, 0xFEFF),  # byte-order mark
+    (0xE0000, 0xE007F),  # Tags: printable ASCII rendered as nothing
+)
+_INVISIBLE = "".join(
+    chr(low) if low == high else f"{chr(low)}-{chr(high)}" for low, high in _INVISIBLE_RANGES
+)
 
 SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -45,7 +62,7 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
             r"|fmt|type|codecov|all-contributors|toc|editorconfig|doctoc|omit|badges)\b)"
             r"[^>]*?\b(?:instruction|assistant|claude|copilot|agent|ignore|must)\b[^>]*?-->"
         ),
-        f"[{_ZERO_WIDTH}]",
+        f"[{_INVISIBLE}]",
         (
             r"\b(?:curl|wget|iwr|invoke-webrequest)\b[^\n]*\|\s*"
             r"(?:sh|bash|zsh|python\d?|powershell|pwsh|iex)\b"
