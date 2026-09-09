@@ -317,23 +317,33 @@ def _evaluate(expr: _Expr) -> tuple[LicenseClass, str]:
     return max(results, key=lambda item: _RANK.index(item[0]))
 
 
+def _leaf_fits_gpl_maw(ident: str, maw_spdx: str | None) -> bool:
+    """May a maw under ``maw_spdx`` copy code offered under this one identifier?
+
+    Every answer but the copyleft one is no, and deliberately so. A branch of a choice has to
+    stand on its own: treating "not copyleft" as "compatible" makes ``GPL-2.0-only OR BUSL-1.1``
+    copyable into a GPL-3 maw through the source-available branch. Apache-2.0, CC-BY and MPL are
+    no here for the opposite reason — each may be copied, but only under an obligation this
+    verdict has no field to carry, and a COPY that silently drops the NOTICE file is the failure
+    #57 exists to remove.
+    """
+    cls = _classify_id(ident)
+    if cls in (LicenseClass.GPL, LicenseClass.AGPL, LicenseClass.LGPL):
+        return _gpl_prey_fits_gpl_maw(ident, maw_spdx)
+    return cls is LicenseClass.PERMISSIVE
+
+
 def _fits_gpl_maw(expr: _Expr, maw_spdx: str | None) -> bool:
     """Can every branch of ``expr`` the recipient must honour live in this GPL maw?
 
-    Version compatibility is a property of the expression, not of one identifier inside it.
-    ``A OR B`` is satisfied by whichever branch fits, because the recipient chooses; ``A AND B``
-    needs both, because both apply. Collapsing the expression to a single "governing" term gets
-    this wrong whenever two terms share a licence class — ``GPL-2.0-or-later AND GPL-2.0-only``
-    would answer with whichever term happened to come first.
+    Compatibility is a property of the expression, not of one identifier inside it. ``A OR B`` is
+    satisfied by whichever branch the recipient can actually take; ``A AND B`` needs both, because
+    both apply. Collapsing the expression to a single "governing" term gets this wrong whenever
+    two terms share a licence class — ``GPL-2.0-or-later AND GPL-2.0-only`` would answer with
+    whichever term happened to come first.
     """
     if not expr.op:
-        ident = _normalize_id(expr.ident)
-        if _classify_id(ident) not in (LicenseClass.GPL, LicenseClass.AGPL):
-            # Only a copyleft term constrains which GPL maw may take the code. Anything else in
-            # the expression is either satisfiable outright or already handled by its own branch,
-            # because it would have decided the class.
-            return True
-        return _gpl_prey_fits_gpl_maw(ident, maw_spdx)
+        return _leaf_fits_gpl_maw(_normalize_id(expr.ident), maw_spdx)
     if expr.op == "OR":
         return any(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)
     return all(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)

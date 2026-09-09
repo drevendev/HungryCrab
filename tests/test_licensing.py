@@ -228,6 +228,31 @@ def test_a_non_copyleft_term_does_not_block_a_gpl_maw() -> None:
 
 
 @pytest.mark.parametrize(
+    "prey",
+    [
+        "GPL-2.0-only OR BUSL-1.1",
+        "GPL-2.0-only OR LicenseRef-Proprietary",
+        "GPL-2.0-only OR Weird-License-9",
+        "GPL-2.0-only OR CC-BY-NC-4.0",
+    ],
+)
+def test_a_branch_of_a_choice_has_to_stand_on_its_own(prey: str) -> None:
+    """A branch that is merely not copyleft is not therefore a way into a GPL maw.
+
+    `OR` is a choice, and taking the BUSL branch of `GPL-2.0-only OR BUSL-1.1` leaves the code
+    under BUSL. Answering "compatible" because the branch is not copyleft turned every
+    source-available, proprietary or unreadable alternative into an escape hatch. Reported in
+    review of #57.
+    """
+    assert decide_for_class(prey, MawClass.GPL, "GPL-3.0-only").mode is not Mode.COPY
+
+
+def test_a_compatible_copyleft_branch_still_satisfies_the_choice() -> None:
+    verdict = decide_for_class("GPL-2.0-only OR GPL-3.0-only", MawClass.GPL, "GPL-3.0-only")
+    assert verdict.mode is Mode.COPY
+
+
+@pytest.mark.parametrize(
     ("spdx", "expected"),
     [
         ("MIT", MawClass.PERMISSIVE),
