@@ -14,6 +14,7 @@ more restrictive mode.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 
@@ -181,18 +182,93 @@ _RANK: tuple[LicenseClass, ...] = (
 )
 
 
-def normalize(spdx: str | None) -> str | None:
-    """Map aliases and deprecated identifiers to canonical SPDX ids; keep unknown ids as-is."""
-    if spdx is None:
+_OPERATORS = frozenset({"AND", "OR"})
+# A capture-less ``re.split`` would drop the brackets, which is the whole point of parsing.
+_TOKEN_RE = re.compile(r"[()]|[^\s()]+")
+
+
+@dataclass(frozen=True)
+class _Expr:
+    """A parsed SPDX expression: a leaf identifier, or an ``AND``/``OR`` of operands.
+
+    ``WITH`` is deliberately not an operator here. ``GPL-2.0-only WITH Classpath-exception-2.0``
+    stays one leaf, classified by its base identifier, which is what an exception can only make
+    more permissive and never less.
+    """
+
+    op: str = ""
+    ident: str = ""
+    operands: tuple[_Expr, ...] = ()
+
+
+def _tokenize(text: str) -> list[str]:
+    return _TOKEN_RE.findall(text)
+
+
+def _parse_primary(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
+    if pos >= len(tokens):
         return None
-    text = spdx.strip().strip("\"'")
-    if not text:
+    if tokens[pos] == "(":
+        parsed = _parse_or(tokens, pos + 1)
+        if parsed is None:
+            return None
+        inner, pos = parsed
+        if pos >= len(tokens) or tokens[pos] != ")":
+            return None
+        return inner, pos + 1
+    words: list[str] = []
+    while pos < len(tokens):
+        token = tokens[pos]
+        if token in ("(", ")") or token.upper() in _OPERATORS:
+            break
+        words.append(token)
+        pos += 1
+    if not words:
         return None
-    upper = text.upper()
-    if " OR " in upper or " AND " in upper:
-        joiner = " OR " if " OR " in upper else " AND "
-        parts = [normalize(part.strip("() ")) or "" for part in _split(text, joiner)]
-        return joiner.join(part for part in parts if part)
+    return _Expr(ident=" ".join(words)), pos
+
+
+def _parse_and(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
+    parsed = _parse_primary(tokens, pos)
+    if parsed is None:
+        return None
+    first, pos = parsed
+    operands = [first]
+    while pos < len(tokens) and tokens[pos].upper() == "AND":
+        parsed = _parse_primary(tokens, pos + 1)
+        if parsed is None:
+            return None
+        operand, pos = parsed
+        operands.append(operand)
+    return (operands[0] if len(operands) == 1 else _Expr(op="AND", operands=tuple(operands))), pos
+
+
+def _parse_or(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
+    parsed = _parse_and(tokens, pos)
+    if parsed is None:
+        return None
+    first, pos = parsed
+    operands = [first]
+    while pos < len(tokens) and tokens[pos].upper() == "OR":
+        parsed = _parse_and(tokens, pos + 1)
+        if parsed is None:
+            return None
+        operand, pos = parsed
+        operands.append(operand)
+    return (operands[0] if len(operands) == 1 else _Expr(op="OR", operands=tuple(operands))), pos
+
+
+def parse_expression(text: str) -> _Expr | None:
+    """The expression, or ``None`` when it is not one this parser understands."""
+    tokens = _tokenize(text)
+    parsed = _parse_or(tokens, 0)
+    if parsed is None:
+        return None
+    expr, pos = parsed
+    return expr if pos == len(tokens) else None
+
+
+def _normalize_id(text: str) -> str:
     lowered = text.lower()
     if lowered in _CANONICAL:
         return _CANONICAL[lowered]
@@ -201,30 +277,66 @@ def normalize(spdx: str | None) -> str | None:
     return text
 
 
-def _split(text: str, joiner: str) -> list[str]:
-    needle = joiner.strip().lower()
-    parts: list[str] = []
-    current: list[str] = []
-    for token in text.split():
-        if token.lower() == needle:
-            parts.append(" ".join(current))
-            current = []
-        else:
-            current.append(token)
-    parts.append(" ".join(current))
-    return parts
+def _render(expr: _Expr, *, parent: str = "") -> str:
+    """Canonical text, with the parentheses the meaning needs and no others."""
+    if not expr.op:
+        return _normalize_id(expr.ident)
+    joined = f" {expr.op} ".join(_render(operand, parent=expr.op) for operand in expr.operands)
+    # AND binds tighter than OR, so only an OR nested inside an AND has to keep its brackets.
+    return f"({joined})" if expr.op == "OR" and parent == "AND" else joined
+
+
+def normalize(spdx: str | None) -> str | None:
+    """Map aliases and deprecated identifiers to canonical SPDX ids; keep unknown ids as-is.
+
+    An expression keeps its structure. Dropping the brackets of ``(MIT OR Apache-2.0) AND
+    CC-BY-4.0`` and re-reading the result with SPDX precedence turns it into ``MIT OR
+    (Apache-2.0 AND CC-BY-4.0)`` — a different licence, and always a more permissive one.
+    """
+    if spdx is None:
+        return None
+    text = spdx.strip().strip("\"'")
+    if not text:
+        return None
+    expr = parse_expression(text)
+    if expr is None:
+        return _normalize_id(text)
+    return _render(expr) or None
+
+
+def _evaluate(expr: _Expr) -> tuple[LicenseClass, str]:
+    """(class, the identifier that decided it)."""
+    if not expr.op:
+        ident = _normalize_id(expr.ident)
+        return _classify_id(ident), ident
+    results = [_evaluate(operand) for operand in expr.operands]
+    if expr.op == "OR":
+        # A choice: the recipient may take the least restrictive branch.
+        return min(results, key=lambda item: _RANK.index(item[0]))
+    # A conjunction: every term applies, so the most restrictive one governs.
+    return max(results, key=lambda item: _RANK.index(item[0]))
+
+
+def governing_id(spdx: str | None) -> str | None:
+    """The single identifier an expression's verdict rests on."""
+    ident = normalize(spdx)
+    if ident is None:
+        return None
+    expr = parse_expression(ident)
+    return _evaluate(expr)[1] if expr is not None else ident
 
 
 def classify(spdx: str | None) -> LicenseClass:
     ident = normalize(spdx)
     if ident is None:
         return LicenseClass.NONE
-    if " OR " in ident:
-        options = [classify(part) for part in ident.split(" OR ")]
-        return min(options, key=_RANK.index)
-    if " AND " in ident:
-        options = [classify(part) for part in ident.split(" AND ")]
-        return max(options, key=_RANK.index)
+    expr = parse_expression(ident)
+    if expr is None:
+        return LicenseClass.UNKNOWN
+    return _evaluate(expr)[0]
+
+
+def _classify_id(ident: str) -> LicenseClass:
     if ident == "Apache-2.0":
         return LicenseClass.PERMISSIVE_NOTICE
     if ident in PERMISSIVE_IDS:
@@ -332,7 +444,9 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
     if cls in (LicenseClass.GPL, LicenseClass.AGPL):
         assert prey is not None
         if maw is MawClass.GPL:
-            if _gpl_prey_fits_gpl_maw(prey, maw_spdx):
+            # In an expression it is one term that carries the copyleft; compare that term's
+            # version, not the whole string, which has no version of its own.
+            if _gpl_prey_fits_gpl_maw(governing_id(prey) or prey, maw_spdx):
                 return Verdict(Mode.COPY, reason="compatible copyleft versions")
             return Verdict(Mode.IDEAS_ONLY, reason="incompatible copyleft versions")
         if maw is MawClass.PERMISSIVE:

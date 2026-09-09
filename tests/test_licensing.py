@@ -20,6 +20,7 @@ from hungry_crab.licensing import (
     normalize,
 )
 from hungry_crab.licensing.detect import license_name_from_file, manifest_license
+from hungry_crab.licensing.matrix import governing_id
 
 MIT_TEXT = (
     "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
@@ -110,6 +111,14 @@ def test_detect_from_text(text: str, expected: str | None) -> None:
         ("UNLICENSED", "LicenseRef-Proprietary"),
         ("SEE LICENSE IN LICENSE.txt", "NOASSERTION"),
         ("(MIT OR Apache-2.0)", "MIT OR Apache-2.0"),
+        # Redundant brackets go; brackets that carry the meaning stay.
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", "(MIT OR Apache-2.0) AND CC-BY-4.0"),
+        ("MIT OR Apache-2.0 AND CC-BY-4.0", "MIT OR Apache-2.0 AND CC-BY-4.0"),
+        ("(mit OR apache-2.0) AND cc-by-4.0", "(MIT OR Apache-2.0) AND CC-BY-4.0"),
+        (
+            "GPL-2.0-only WITH Classpath-exception-2.0",
+            "GPL-2.0-only WITH Classpath-exception-2.0",
+        ),
         ("Zlib", "Zlib"),
         ("", None),
         (None, None),
@@ -134,6 +143,14 @@ def test_normalize(raw: str | None, expected: str | None) -> None:
         ("CC-BY-NC-4.0", LicenseClass.DOCS_RESTRICTED),
         ("MIT OR GPL-3.0-only", LicenseClass.PERMISSIVE),
         ("MIT AND GPL-3.0-only", LicenseClass.GPL),
+        # AND binds tighter than OR, so this one really is permissive.
+        ("MIT OR Apache-2.0 AND CC-BY-4.0", LicenseClass.PERMISSIVE),
+        # The brackets say otherwise: CC-BY applies whichever branch is taken.
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", LicenseClass.DOCS_ATTRIBUTION),
+        ("(MIT OR Apache-2.0) AND GPL-3.0-only", LicenseClass.GPL),
+        ("(GPL-3.0-only OR MIT) AND BUSL-1.1", LicenseClass.SOURCE_AVAILABLE),
+        # Unbalanced: unreadable, and unreadable is not permissive.
+        ("(MIT OR Apache-2.0", LicenseClass.UNKNOWN),
         ("NOASSERTION", LicenseClass.UNKNOWN),
         ("Weird-License-9", LicenseClass.UNKNOWN),
         (None, LicenseClass.NONE),
@@ -141,6 +158,41 @@ def test_normalize(raw: str | None, expected: str | None) -> None:
 )
 def test_classify(spdx: str | None, expected: LicenseClass) -> None:
     assert classify(spdx) is expected
+
+
+@pytest.mark.parametrize(
+    ("prey", "mode", "notice"),
+    [
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", Mode.COPY, True),
+        ("(MIT OR Apache-2.0) AND GPL-3.0-only", Mode.REIMPLEMENT, False),
+        ("(GPL-3.0-only OR MIT) AND BUSL-1.1", Mode.IDEAS_ONLY, False),
+        ("(MIT OR Apache-2.0", Mode.HUMAN, False),
+    ],
+)
+def test_grouped_expression_is_not_flattened(prey: str, mode: Mode, notice: bool) -> None:
+    """A bracketed term binds every branch of the choice beside it.
+
+    Flattening the expression and re-reading it with SPDX precedence used to turn each of these
+    into `COPY` or something close to it, which is the one direction the matrix must never fail
+    in. See HungryCrab#57.
+    """
+    verdict = decide_for_class(prey, MawClass.PERMISSIVE, "MIT")
+    assert verdict.mode is mode
+    assert verdict.notice_required is notice
+
+
+def test_governing_id_names_the_term_that_decided() -> None:
+    assert governing_id("(MIT OR Apache-2.0) AND GPL-3.0-only") == "GPL-3.0-only"
+    assert governing_id("MIT OR GPL-3.0-only") == "MIT"
+    assert governing_id(None) is None
+
+
+def test_a_copyleft_term_keeps_its_version_inside_an_expression() -> None:
+    """The GPL branch compares versions, and only one term of an expression has one."""
+    fits = decide_for_class("(MIT OR Apache-2.0) AND GPL-2.0-only", MawClass.GPL, "GPL-2.0-only")
+    assert fits.mode is Mode.COPY
+    clash = decide_for_class("(MIT OR Apache-2.0) AND GPL-3.0-only", MawClass.GPL, "GPL-2.0-only")
+    assert clash.mode is Mode.IDEAS_ONLY
 
 
 @pytest.mark.parametrize(
