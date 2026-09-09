@@ -58,9 +58,17 @@ Cross-cutting themes of track A:
   benchmark**, costs money and runs at milestone boundaries starting with the 0.3 release; it
   judges whole meals across crab versions and models, and its headline question is whether
   Haiku with the crab beats Opus without it. The specification for B1 and B2 is
-  [06-benchmark.md](06-benchmark.md). A fourth number is still missing and is owed by 0.4:
-  digest **coverage**, `files_counted / files`, which is what actually degrades when a prey is
-  larger than the caps.
+  [06-benchmark.md](06-benchmark.md). A fourth number, digest **coverage**, belongs to **0.3**,
+  whose exit criterion asks for it measured and gated; this paragraph used to owe it to 0.4,
+  and a number cannot have two owners. It has been measured now, and measuring it showed it
+  is not yet a metric: `files_counted / files` counts a deliberately excluded sample corpus
+  and an unread prey the same way, so a repository whose examples the crab skips correctly
+  scores like one it failed to read — the maw digesting itself scores 0.065, and `.venv` is
+  the whole of the difference. The denominator has to become the files the crab meant to
+  read, with exclusions reported beside the ratio rather than inside it. That is the work
+  0.3 owes; it is not the same number as a prey's own test coverage, which the crab reads
+  from the prey and gets wrong for a different reason
+  ([#53](https://github.com/drevendev/HungryCrab/issues/53)).
 
 ## Track B · Evolving Hungry Crab
 
