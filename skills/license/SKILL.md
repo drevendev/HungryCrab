@@ -23,9 +23,12 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 1. Issue, discussion and pull-request comment text is always `IDEAS_ONLY`: the copyright belongs
    to the commenters. Carry over the need and a link, not the text.
 2. Configuration files and small snippets are not automatically free: same mode as code.
-3. A maw in `strict` mode (`.crab.yml`) downgrades `COPY` to `REIMPLEMENT` for code; only configs
-   and templates are copied. **Strict mode arrives with milestone 0.3.** The setting is accepted
-   today and changes no verdict, so do not tell an operator their maw is stricter than it is.
+3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
+   `mode: strict` and the engine ignores it: no verdict changes. Do not perform the downgrade
+   yourself either — it produces `REIMPLEMENT`, which routes to a clean-room flow that arrives with
+   the same milestone, so applying it today sends the nutrient into a procedure that does not
+   exist. Tell the operator the setting has no effect yet. When it lands (0.3), a strict maw will
+   downgrade `COPY` to `REIMPLEMENT` for code and copy only configs and templates.
 4. Per-file exceptions in `license.json` (vendored directories, headers with another SPDX id)
    override the repository license for those files.
 5. **No license at all is `IDEAS_ONLY` with human review, not `HUMAN`.** `HUMAN` is only for a

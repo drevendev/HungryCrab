@@ -40,7 +40,7 @@ DEFAULT_CONFIG_TEXT = """\
 license: null              # SPDX id of this repository; detected from LICENSE when null
 mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
                            # code and copies only configs and templates. It arrives with
-                           # 0.3; today the setting is accepted and changes nothing.
+                           # 0.3; today the setting is accepted and ignored.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
