@@ -15,15 +15,15 @@ from collections.abc import Iterable
 # point that renders as nothing, so an instruction can be appended to an innocent heading and
 # read back by a model. Built with chr() so the source file itself stays free of them.
 #
-# Two families are deliberately absent. Variation selectors (U+FE00-FE0F) end almost every
-# emoji in a README title, and the emoji joiners already here are load-bearing in Indic and
-# Persian text; flagging U+FE0F would flag headings by the hundred. The soft hyphen (U+00AD)
-# is real hyphenation in real documentation. A detector that fires on ordinary prose stops
-# carrying information, which is the lesson the syrupy meal already taught this module.
+# Invisibility alone is not the test; carrying a hidden instruction is. Variation selectors
+# (U+FE00-FE0F) end almost every emoji in a README title, the invisible mathematical operators
+# (U+2061-2064) are real notation, U+180E is real in legacy Mongolian, and the soft hyphen
+# (U+00AD) is real hyphenation. None of them is added here: each would flag legitimate content
+# for two bits of hiding room, and a detector that fires on ordinary text stops carrying
+# information, which is the lesson the syrupy meal already taught this module.
 _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
-    (0x180E, 0x180E),  # Mongolian vowel separator
     (0x200B, 0x200D),  # zero-width space, non-joiner, joiner
-    (0x2060, 0x2064),  # word joiner and the invisible mathematical operators
+    (0x2060, 0x2060),  # word joiner
     (0xFEFF, 0xFEFF),  # byte-order mark
     (0xE0000, 0xE007F),  # Tags: printable ASCII rendered as nothing
 )
