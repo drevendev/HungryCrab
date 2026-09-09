@@ -317,8 +317,46 @@ def _evaluate(expr: _Expr) -> tuple[LicenseClass, str]:
     return max(results, key=lambda item: _RANK.index(item[0]))
 
 
+def _fits_gpl_maw(expr: _Expr, maw_spdx: str | None) -> bool:
+    """Can every branch of ``expr`` the recipient must honour live in this GPL maw?
+
+    Version compatibility is a property of the expression, not of one identifier inside it.
+    ``A OR B`` is satisfied by whichever branch fits, because the recipient chooses; ``A AND B``
+    needs both, because both apply. Collapsing the expression to a single "governing" term gets
+    this wrong whenever two terms share a licence class — ``GPL-2.0-or-later AND GPL-2.0-only``
+    would answer with whichever term happened to come first.
+    """
+    if not expr.op:
+        ident = _normalize_id(expr.ident)
+        if _classify_id(ident) not in (LicenseClass.GPL, LicenseClass.AGPL):
+            # Only a copyleft term constrains which GPL maw may take the code. Anything else in
+            # the expression is either satisfiable outright or already handled by its own branch,
+            # because it would have decided the class.
+            return True
+        return _gpl_prey_fits_gpl_maw(ident, maw_spdx)
+    if expr.op == "OR":
+        return any(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)
+    return all(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)
+
+
+def fits_gpl_maw(prey_spdx: str | None, maw_spdx: str | None) -> bool:
+    """``decide_for_class``'s copyleft-compatibility question, asked of a whole expression."""
+    ident = normalize(prey_spdx)
+    if ident is None:
+        return False
+    expr = parse_expression(ident)
+    if expr is None:
+        return False
+    return _fits_gpl_maw(expr, maw_spdx)
+
+
 def governing_id(spdx: str | None) -> str | None:
-    """The single identifier an expression's verdict rests on."""
+    """The identifier an expression's class rests on, for explaining a verdict.
+
+    When two operands share a class the first one wins, so this names *a* term that produced the
+    class and not necessarily the only one. That makes it good for a reason string and unfit for
+    a compatibility test: use :func:`fits_gpl_maw` for those.
+    """
     ident = normalize(spdx)
     if ident is None:
         return None
@@ -444,9 +482,10 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
     if cls in (LicenseClass.GPL, LicenseClass.AGPL):
         assert prey is not None
         if maw is MawClass.GPL:
-            # In an expression it is one term that carries the copyleft; compare that term's
-            # version, not the whole string, which has no version of its own.
-            if _gpl_prey_fits_gpl_maw(governing_id(prey) or prey, maw_spdx):
+            # Every copyleft term the recipient must honour has to fit this maw's version, and an
+            # expression can carry several. Asking the whole expression keeps the answer the same
+            # whichever order the terms were written in.
+            if fits_gpl_maw(prey, maw_spdx):
                 return Verdict(Mode.COPY, reason="compatible copyleft versions")
             return Verdict(Mode.IDEAS_ONLY, reason="incompatible copyleft versions")
         if maw is MawClass.PERMISSIVE:

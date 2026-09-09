@@ -20,7 +20,7 @@ from hungry_crab.licensing import (
     normalize,
 )
 from hungry_crab.licensing.detect import license_name_from_file, manifest_license
-from hungry_crab.licensing.matrix import governing_id
+from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id
 
 MIT_TEXT = (
     "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
@@ -187,12 +187,44 @@ def test_governing_id_names_the_term_that_decided() -> None:
     assert governing_id(None) is None
 
 
+def test_fits_gpl_maw_reads_the_structure() -> None:
+    assert fits_gpl_maw("GPL-2.0-only OR GPL-3.0-only", "GPL-3.0-only")
+    assert not fits_gpl_maw("GPL-2.0-only AND GPL-3.0-only", "GPL-3.0-only")
+    assert not fits_gpl_maw(None, "GPL-3.0-only")
+    assert not fits_gpl_maw("(GPL-2.0-only", "GPL-3.0-only")
+
+
 def test_a_copyleft_term_keeps_its_version_inside_an_expression() -> None:
     """The GPL branch compares versions, and only one term of an expression has one."""
     fits = decide_for_class("(MIT OR Apache-2.0) AND GPL-2.0-only", MawClass.GPL, "GPL-2.0-only")
     assert fits.mode is Mode.COPY
     clash = decide_for_class("(MIT OR Apache-2.0) AND GPL-3.0-only", MawClass.GPL, "GPL-2.0-only")
     assert clash.mode is Mode.IDEAS_ONLY
+
+
+@pytest.mark.parametrize(
+    ("prey", "expected"),
+    [
+        # OR is the recipient's choice: the compatible branch is available in either spelling.
+        ("GPL-2.0-only OR GPL-2.0-or-later", Mode.COPY),
+        ("GPL-2.0-or-later OR GPL-2.0-only", Mode.COPY),
+        # AND binds both terms, so the incompatible one decides, in either spelling.
+        ("GPL-2.0-or-later AND GPL-2.0-only", Mode.IDEAS_ONLY),
+        ("GPL-2.0-only AND GPL-2.0-or-later", Mode.IDEAS_ONLY),
+    ],
+)
+def test_copyleft_compatibility_does_not_depend_on_operand_order(prey: str, expected: Mode) -> None:
+    """Two terms of the same class used to hand the answer to whichever came first.
+
+    `min`/`max` keep the first element of a tie, so the reduction to one identifier made
+    `GPL-2.0-or-later AND GPL-2.0-only` answer as though the `-or-later` term were the only one —
+    more permissive than the expression. Reported in review of #57.
+    """
+    assert decide_for_class(prey, MawClass.GPL, "GPL-3.0-only").mode is expected
+
+
+def test_a_non_copyleft_term_does_not_block_a_gpl_maw() -> None:
+    assert decide_for_class("MIT AND GPL-3.0-only", MawClass.GPL, "GPL-3.0-only").mode is Mode.COPY
 
 
 @pytest.mark.parametrize(
