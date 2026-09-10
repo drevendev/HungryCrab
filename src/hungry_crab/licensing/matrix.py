@@ -328,7 +328,9 @@ def _leaf_fits_gpl_maw(ident: str, maw_spdx: str | None) -> bool:
     #57 exists to remove.
     """
     cls = _classify_id(ident)
-    if cls in (LicenseClass.GPL, LicenseClass.AGPL, LicenseClass.LGPL):
+    if cls is LicenseClass.LGPL:
+        return _lgpl_prey_fits_gpl_maw(ident, maw_spdx)
+    if cls in (LicenseClass.GPL, LicenseClass.AGPL):
         return _gpl_prey_fits_gpl_maw(ident, maw_spdx)
     return cls is LicenseClass.PERMISSIVE
 
@@ -460,6 +462,38 @@ def _gpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     return maw_id == "GPL-2.0-or-later"
 
 
+def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
+    """Can LGPL code be copied into a maw under this GPL-family licence?
+
+    The GNU compatibility table, and nothing wider (HungryCrab#88):
+
+    - LGPL-2.0 and LGPL-2.1 let the recipient convert a copy to the ordinary GPL, version 2 or
+      any later version (section 3 of both), so they fit every GPL maw and every AGPL-3.0 one.
+    - LGPLv3 is GPLv3 with extra permissions. It fits a maw that is or can become GPLv3 —
+      GPL-3.0, GPL-2.0-or-later, and AGPL-3.0 through section 13 of GPLv3 — and never
+      GPL-2.0-only, which cannot become GPLv3.
+    - Into an LGPL maw, the same version fits, an older one offered "or later" fits, and a newer
+      one fits a maw whose own licence is "or later" — the reasoning that already lets GPL-3.0
+      code into a GPL-2.0-or-later maw.
+
+    A maw this does not recognise as GPL-family gets no, which is the direction to be wrong in.
+    """
+    maw_id = normalize(maw) or ""
+    prey_version, prey_later = _gpl_version(prey)
+    if maw_id.startswith("LGPL-"):
+        maw_version, maw_later = _gpl_version(maw_id)
+        return (
+            prey_version == maw_version
+            or (prey_later and prey_version < maw_version)
+            or (maw_later and maw_version < prey_version)
+        )
+    if not maw_id.startswith(("GPL-", "AGPL-3.0")):
+        return False
+    if prey_version == "2.0":
+        return True
+    return maw_id != "GPL-2.0-only"
+
+
 def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None = None) -> Verdict:
     prey = normalize(prey_spdx)
     cls = classify(prey)
@@ -487,7 +521,18 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
         )
     if cls is LicenseClass.LGPL:
         if maw is MawClass.GPL:
-            return Verdict(Mode.COPY, reason="LGPL code may be relicensed under the maw's GPL")
+            assert prey is not None
+            # Every GPL-family maw used to get COPY here, whatever the versions, so LGPLv3 went
+            # into GPL-2.0-only maws. The same expression-aware check the GPL branch uses decides.
+            if fits_gpl_maw(prey, maw_spdx):
+                return Verdict(Mode.COPY, reason="LGPL code may be relicensed under the maw's GPL")
+            return Verdict(
+                Mode.IDEAS_ONLY,
+                reason=(
+                    f"incompatible copyleft versions: {prey} cannot be relicensed under "
+                    f"{normalize(maw_spdx) or 'this maw'}"
+                ),
+            )
         return Verdict(Mode.REIMPLEMENT, reason="LGPL: clean-room rewrite; linking is separate")
     if cls in (LicenseClass.GPL, LicenseClass.AGPL):
         assert prey is not None
