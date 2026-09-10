@@ -19,7 +19,7 @@ from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, locate_digest, run_digest
 from ..errors import CrabError
 from ..ledger import Ledger
-from ..licensing import Relationship, decide
+from ..licensing import Relationship, cap_for_origin, decide
 from ..maw import MawConfig, maw_slug, relationship_for
 from ..nutrients import Candidate
 from ..typeutil import as_dict
@@ -107,12 +107,18 @@ def compare_digests(
     prey = Side.load(prey_dir, root=prey_root)
     maw = Side.load(maw_dir, root=maw_root)
     maw_spdx = opts.maw_license or maw.spdx
-    verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship).to_dict()
+    repository_verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship)
+    verdict = repository_verdict.to_dict()
     scoring = Scoring.default().merged(opts.scoring)
     candidates, facts = build_candidates(prey, maw)
     now = opts.now or datetime.now(UTC)
     for candidate in candidates:
-        candidate.license_mode = str(verdict["mode"])
+        # The repository's licence is the ceiling, not the answer: a card whose content belongs
+        # to somebody other than the repository is capped further down.
+        card_verdict = cap_for_origin(repository_verdict, candidate.origin)
+        candidate.license_mode = card_verdict.mode.value
+        if card_verdict.mode is not repository_verdict.mode:
+            candidate.license_reason = card_verdict.reason
         candidate.uptake = round(candidate.uptake * scoring.uptake_for("same_stack"), 2)
         candidate.trace = {
             "prey": prey.label,

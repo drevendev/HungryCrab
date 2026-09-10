@@ -84,6 +84,10 @@ class Candidate:
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     license_mode: str = "HUMAN"
+    # Whose copyright covers `what` and `title`. The licence layer reads it; see
+    # `licensing.ContentOrigin`.
+    origin: str = "licensed"
+    license_reason: str = ""
     score: float = 0.0
     why: str = ""
     how: str = ""

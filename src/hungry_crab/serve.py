@@ -229,9 +229,10 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         "_Not judged yet: the score is a deterministic pre-ranking, the value for this "
         "repository still needs a decision._"
     )
+    capped = f" ({card.license_reason})" if card.license_reason else ""
     body = (
         f"<!-- {card.id} -->\n"
-        f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
+        f"**Nutrient** `{card.category}` | license mode `{card.license_mode}`{capped} | "
         f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
         f"## What the prey does\n\n{card.what}\n{evidence}\n\n"
         f"## What this repository has\n\n{_maw_state(card)}\n\n"

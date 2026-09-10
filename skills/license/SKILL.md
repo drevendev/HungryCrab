@@ -21,7 +21,9 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 ## Rules that override the matrix
 
 1. Issue, discussion and pull-request comment text is always `IDEAS_ONLY`: the copyright belongs
-   to the commenters. Carry over the need and a link, not the text.
+   to the commenters. **The engine applies this itself** — an `issue-lesson` card arrives already
+   capped, and `license_reason` on the card says why. Carry over the need and a link, not the
+   text.
 2. Configuration files and small snippets are not automatically free: same mode as code.
 3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
    `mode: strict` and the engine ignores it: no verdict changes. Do not perform the downgrade
