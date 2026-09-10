@@ -18,11 +18,13 @@ from .detect import (
     licenses_mentioned,
 )
 from .matrix import (
+    ContentOrigin,
     LicenseClass,
     MawClass,
     Mode,
     Relationship,
     Verdict,
+    cap_for_origin,
     classify,
     decide,
     decide_for_class,
@@ -33,12 +35,14 @@ from .matrix import (
 )
 
 __all__ = [
+    "ContentOrigin",
     "LicenseClass",
     "LicenseFindings",
     "MawClass",
     "Mode",
     "Relationship",
     "Verdict",
+    "cap_for_origin",
     "classify",
     "decide",
     "decide_for_class",

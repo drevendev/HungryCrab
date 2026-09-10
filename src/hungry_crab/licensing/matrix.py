@@ -53,6 +53,19 @@ class Relationship(StrEnum):
     BYPASS = "bypass"
 
 
+class ContentOrigin(StrEnum):
+    """Whose copyright covers a nutrient's content.
+
+    A repository licence answers for the repository's own material and for nothing else. The
+    text of an issue belongs to whoever wrote the issue, and an MIT badge on the repository does
+    not license it. That distinction cannot be expressed as a licence of the prey, so it travels
+    with the nutrient instead.
+    """
+
+    LICENSED = "licensed"  # the prey's own material, covered by its licence
+    COMMENTERS = "commenters"  # issue, discussion and pull-request text
+
+
 class Mode(StrEnum):
     COPY = "COPY"
     COPY_FILE = "COPY_FILE"
@@ -410,6 +423,30 @@ def _classify_id(ident: str) -> LicenseClass:
     return LicenseClass.UNKNOWN
 
 
+def cap_for_origin(verdict: Verdict, origin: str) -> Verdict:
+    """Narrow a repository verdict to what a nutrient of this origin may actually carry.
+
+    Only ever narrows. A repository already at ``IDEAS_ONLY`` or ``HUMAN`` keeps its verdict and
+    its reason, because the stricter answer is the one that has to survive.
+    """
+    try:
+        ceiling = _ORIGIN_CEILING[ContentOrigin(origin)]
+    except (KeyError, ValueError):
+        return verdict
+    if _MODE_RANK.index(verdict.mode) >= _MODE_RANK.index(ceiling):
+        return verdict
+    return Verdict(
+        mode=ceiling,
+        notice_required=verdict.notice_required,
+        share_alike=verdict.share_alike,
+        human_review=verdict.human_review,
+        reason=(
+            f"{verdict.reason}; capped at {ceiling.value} because this nutrient carries "
+            "text whose copyright belongs to the commenters and not to the repository"
+        ).lstrip("; "),
+    )
+
+
 def maw_class(spdx: str | None) -> MawClass:
     """Which column of the matrix a maw with this license belongs to."""
     cls = classify(spdx)
@@ -424,6 +461,20 @@ def maw_class(spdx: str | None) -> MawClass:
     ):
         return MawClass.PERMISSIVE
     return MawClass.PROPRIETARY
+
+
+# Increasing order of restriction. ``HUMAN`` sits at the end because nothing may travel under
+# it, whatever the reason for it.
+_MODE_RANK: tuple[Mode, ...] = (
+    Mode.COPY,
+    Mode.COPY_FILE,
+    Mode.REIMPLEMENT,
+    Mode.IDEAS_ONLY,
+    Mode.HUMAN,
+)
+
+# What a nutrient's own origin caps its mode at, whatever the repository licence allows.
+_ORIGIN_CEILING: dict[ContentOrigin, Mode] = {ContentOrigin.COMMENTERS: Mode.IDEAS_ONLY}
 
 
 @dataclass(frozen=True)

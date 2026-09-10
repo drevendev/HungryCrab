@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..fs import read_text
+from ..licensing import ContentOrigin
 from ..nutrients import Candidate, Evidence, slugify
 from ..safety import is_suspicious
 from ..typeutil import as_dict, as_list
@@ -769,6 +770,7 @@ def issue_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="issue-lesson",
+                origin=ContentOrigin.COMMENTERS.value,
                 key=f"issue-lesson.{slug}.cluster-{index}",
                 title=f"Recurring pain in {prey.label}: {headline}",
                 what=f"{size} issues cluster around {terms}; the largest is: {headline}",
@@ -791,6 +793,7 @@ def issue_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="issue-lesson",
+                origin=ContentOrigin.COMMENTERS.value,
                 key=f"issue-lesson.{slug}.top-{number}",
                 title=f"Popular request in {prey.label}: {title[:80]}",
                 what=f"issue #{number} has {reactions} reactions",
