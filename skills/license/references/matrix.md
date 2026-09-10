@@ -8,7 +8,7 @@ restrictive mode when in doubt.
 | MIT, BSD, ISC, 0BSD, Zlib, Unlicense, CC0, Boost, PostgreSQL, PSF | `COPY` | `COPY` | `COPY` |
 | Apache-2.0 | `COPY` + NOTICE | `COPY` + NOTICE for GPL-3.0, AGPL-3.0 and GPL-2.0-or-later; `IDEAS_ONLY` for GPL-2.0-only | `COPY` + NOTICE |
 | MPL-2.0, EPL, CDDL | `COPY_FILE` | `COPY_FILE` | `COPY_FILE` |
-| LGPL | `REIMPLEMENT` (linking is a separate question) | `COPY` | `REIMPLEMENT` |
+| LGPL | `REIMPLEMENT` (linking is a separate question) | `COPY` when the versions are compatible (table below), else `IDEAS_ONLY`: LGPLv3 never fits GPL-2.0-only | `REIMPLEMENT` |
 | GPL-2.0 / GPL-3.0 | `REIMPLEMENT` (clean room) | `COPY` when the versions are compatible, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | AGPL-3.0 | `REIMPLEMENT` | `COPY` only into an AGPL-3.0 maw, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | BUSL, SSPL, Elastic, Commons Clause, proprietary | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
@@ -30,7 +30,7 @@ Two relationships short-circuit the whole matrix, and `license.json` records whi
 Neither is a licence verdict. If a card carries one, say which, because the reader will assume
 the matrix was consulted and it was not.
 
-## GPL version compatibility (prey into a GPL maw)
+## GPL and LGPL version compatibility (prey into a GPL maw)
 
 | Prey | GPL-2.0-only maw | GPL-2.0-or-later maw | GPL-3.0 maw | AGPL-3.0 maw |
 |---|---|---|---|---|
@@ -38,6 +38,12 @@ the matrix was consulted and it was not.
 | GPL-2.0-or-later | `COPY` | `COPY` | `COPY` | `COPY` |
 | GPL-3.0 | `IDEAS_ONLY` | `COPY` | `COPY` | `COPY` |
 | AGPL-3.0 | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` | `COPY` |
+| LGPL-2.0, LGPL-2.1 (only or later) | `COPY` | `COPY` | `COPY` | `COPY` |
+| LGPL-3.0 (only or later) | `IDEAS_ONLY` | `COPY` | `COPY` | `COPY` |
+
+LGPL-2.x converts to "GPL version 2 or any later version" (section 3), so it fits every column. LGPLv3 is
+GPLv3 with extra permissions: it fits anything that is or can become GPLv3. Into an LGPL maw, the same
+version fits, an older one offered "or later" fits, and a newer one fits a maw that is itself "or later".
 
 The code lives in `src/hungry_crab/licensing/matrix.py`; the tests in `tests/test_licensing.py`
 are the executable version of this table.

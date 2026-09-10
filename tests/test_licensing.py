@@ -527,3 +527,85 @@ def test_a_foreign_prey_is_unaffected_by_the_new_parameter() -> None:
     assert decide("GPL-3.0-only", "MIT") == decide(
         "GPL-3.0-only", "MIT", relationship=Relationship.FOREIGN
     )
+
+
+# --- LGPL into a GPL-family maw is a question about versions (#88) ---------------------------
+#
+# Every GPL-family maw used to get COPY for every LGPL prey, so LGPLv3 went into GPL-2.0-only
+# maws, which the GNU compatibility table explicitly forbids.
+
+
+@pytest.mark.parametrize(
+    ("prey", "maw", "mode"),
+    [
+        ("LGPL-2.1-only", "GPL-2.0-only", Mode.COPY),
+        ("LGPL-2.1-only", "GPL-2.0-or-later", Mode.COPY),
+        ("LGPL-2.1-only", "GPL-3.0-only", Mode.COPY),
+        ("LGPL-2.1-or-later", "GPL-2.0-only", Mode.COPY),
+        ("LGPL-2.1-or-later", "GPL-2.0-or-later", Mode.COPY),
+        ("LGPL-2.1-or-later", "GPL-3.0-only", Mode.COPY),
+        ("LGPL-3.0-only", "GPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-3.0-only", "GPL-2.0-or-later", Mode.COPY),
+        ("LGPL-3.0-only", "GPL-3.0-only", Mode.COPY),
+        ("LGPL-3.0-or-later", "GPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.1-only", "AGPL-3.0-only", Mode.COPY),
+        ("LGPL-3.0-only", "AGPL-3.0-only", Mode.COPY),
+    ],
+)
+def test_lgpl_into_a_gpl_maw_follows_the_gnu_table(prey: str, maw: str, mode: Mode) -> None:
+    assert decide(prey, maw).mode is mode
+
+
+@pytest.mark.parametrize(
+    ("prey", "maw", "mode"),
+    [
+        ("LGPL-2.1-only", "LGPL-2.1-only", Mode.COPY),
+        ("LGPL-3.0-only", "LGPL-3.0-only", Mode.COPY),
+        ("LGPL-2.1-or-later", "LGPL-3.0-only", Mode.COPY),
+        # A maw that is itself "or later" can become LGPL-3, as GPL-2.0-or-later becomes GPLv3.
+        ("LGPL-3.0-only", "LGPL-2.1-or-later", Mode.COPY),
+        ("LGPL-3.0-only", "LGPL-2.1-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.1-only", "LGPL-3.0-only", Mode.IDEAS_ONLY),
+    ],
+)
+def test_lgpl_into_an_lgpl_maw_fits_the_same_version_or_an_older_or_later(
+    prey: str, maw: str, mode: Mode
+) -> None:
+    """The obvious case has to survive the fix: the same licence on both sides is compatible."""
+    assert decide(prey, maw).mode is mode
+
+
+def test_lgpl_inside_an_expression_is_judged_by_the_lgpl_rules() -> None:
+    """LGPL leaves went through the GPL helper, which does not know LGPL-2.1 section 3.
+
+    So `LGPL-2.1-only AND GPL-3.0-only` into a GPL-3 maw came out IDEAS_ONLY, a restriction the
+    licences do not impose.
+    """
+    assert decide("LGPL-2.1-only AND GPL-3.0-only", "GPL-3.0-only").mode is Mode.COPY
+    assert decide("LGPL-3.0-only AND GPL-2.0-only", "GPL-2.0-only").mode is Mode.IDEAS_ONLY
+
+
+def test_an_incompatible_lgpl_verdict_names_both_licences() -> None:
+    verdict = decide("LGPL-3.0-only", "GPL-2.0-only")
+    assert "LGPL-3.0-only" in verdict.reason
+    assert "GPL-2.0-only" in verdict.reason
+
+
+@pytest.mark.parametrize(
+    ("prey", "maw", "mode"),
+    [
+        # The LGPL path accepted any `GPL-` prefix. GPL-1.0 is reached neither by LGPL-2.x's
+        # "version 2 or any later" nor by LGPLv3, and the GPL path already said no.
+        ("LGPL-2.1-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-3.0-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
+        # Between LGPL versions, 2.0 and 2.1 are different licences.
+        ("LGPL-2.1-only", "LGPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.0-only", "LGPL-2.1-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.1-or-later", "LGPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.0-or-later", "LGPL-2.1-only", Mode.COPY),
+        ("LGPL-2.1-only", "LGPL-2.0-or-later", Mode.COPY),
+    ],
+)
+def test_lgpl_versions_the_gnu_table_does_not_equate(prey: str, maw: str, mode: Mode) -> None:
+    """Found in self-review of #91, both fail-open, both on maws that are rare in practice."""
+    assert decide(prey, maw).mode is mode
