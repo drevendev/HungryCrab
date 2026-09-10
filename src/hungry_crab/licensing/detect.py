@@ -327,6 +327,26 @@ def _detect_gnu(head: str, normalized: str = "") -> tuple[str | None, float]:
     return "GPL-3.0-only", 0.6
 
 
+# "Covered by a triple license under AGPL-3.0, SSPL and the Elastic License": a choice, and one of
+# its branches is open source. Letting the first source-available name decide read that as SSPL,
+# IDEAS_ONLY even for an AGPL maw the AGPL branch lets copy — master had answered AGPL, by accident
+# of checking the GNU head first. The crab cannot build the OR from prose reliably, so such a file
+# stays unreadable and a human picks the branch. A choice among source-available licences only is
+# source-available whichever branch is taken, and is still decided by name.
+_CHOICE_RE = re.compile(
+    r"\b(?:dual|triple|tri|multi)[- ]?licen[cs]|\byour choice of\b|\blicen[cs]ed under either\b",
+    re.IGNORECASE,
+)
+
+
+def _offers_an_open_choice(text: str, normalized: str) -> bool:
+    """A choice of licences in which at least one branch is not source-available."""
+    if not _CHOICE_RE.search(normalized):
+        return False
+    classes = {classify(spdx) for spdx in licenses_mentioned(text)}
+    return LicenseClass.SOURCE_AVAILABLE in classes and len(classes) > 1
+
+
 def detect_from_text(text: str) -> tuple[str | None, float]:
     """Return (spdx, confidence) for the text of a license file."""
     if not text.strip():
@@ -336,9 +356,10 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
         return ident, 0.99
     normalized = _norm(text)
     head = normalized[:700]
-    for spdx, required, forbidden in _SOURCE_AVAILABLE_SIGNATURES:
-        if _matches(normalized, required, forbidden):
-            return spdx, 0.95
+    if not _offers_an_open_choice(text, normalized):
+        for spdx, required, forbidden in _SOURCE_AVAILABLE_SIGNATURES:
+            if _matches(normalized, required, forbidden):
+                return spdx, 0.95
     gnu, confidence = _detect_gnu(head, normalized)
     if gnu:
         return gnu, confidence
@@ -514,19 +535,34 @@ def _nested_licences(findings: LicenseFindings) -> list[tuple[str, str]]:
     ]
 
 
-def _stricter_than_root(findings: LicenseFindings) -> list[tuple[str, str]]:
-    """Nested licences that limit copying beyond what the repository verdict says.
+def _heavier_than_root(findings: LicenseFindings) -> list[tuple[str, str, str]]:
+    """(path, spdx, what) for the nested licences the repository verdict does not answer for.
 
-    Unreadable ones are left out on purpose. A root that declares a split has already folded them
-    into its verdict; a root that does not is usually looking at a font licence or a vendored
-    notice, and flagging every one would teach the reader to ignore the flag.
+    Everything the root's verdict cannot carry counts, not only what restricts copying. An Apache
+    subtree under an MIT root is copyable, but its NOTICE obligation is not in the MIT verdict and
+    there are no per-path verdicts to put it in, so a nutrient from that subtree would go out as
+    COPY without it — the failure #57 removed at the licence level, one level down (raised in
+    review of #90). An unreadable licence counts for the same reason: its obligations are unknown,
+    so nothing shows they are covered.
+
+    This is the project's own tree only. Vendored code, sample corpora and virtualenvs are
+    `vendored-license` and never reach this list, which is what made flagging it bearable. A
+    licence already folded into a declared split is not repeated here.
     """
     root = restriction_rank(findings.spdx)
-    return [
-        (path, spdx)
-        for path, spdx in _nested_licences(findings)
-        if spdx != "NOASSERTION" and restricts_copying(spdx) and restriction_rank(spdx) > root
-    ]
+    folded = set(re.findall(r"[^\s()]+", findings.spdx or ""))
+    heavier: list[tuple[str, str, str]] = []
+    for path, spdx in _nested_licences(findings):
+        if spdx in folded:
+            continue
+        if spdx == "NOASSERTION":
+            heavier.append((path, spdx, "cannot be read"))
+        elif restriction_rank(spdx) > root:
+            what = (
+                "restricts copying" if restricts_copying(spdx) else "adds a notice or attribution"
+            )
+            heavier.append((path, spdx, what))
+    return heavier
 
 
 def _resolve_unclear(
@@ -714,16 +750,16 @@ def detect_in_repo(
     _resolve_unclear(findings, split_mentions, root_declares_split=root_declares_split)
 
     cls = classify(findings.spdx)
-    stricter = _stricter_than_root(findings)
-    if stricter:
-        where = ", ".join(f"{path} ({spdx})" for path, spdx in stricter[:5])
+    heavier = _heavier_than_root(findings)
+    if heavier:
+        where = "; ".join(f"{path} ({spdx}) {what}" for path, spdx, what in heavier[:5])
         findings.notes.append(
-            f"{len(stricter)} nested licence file(s) restrict copying more than the repository "
-            f"licence does: {where}. The verdict is the root's, and it does not cover those paths"
+            f"{len(heavier)} nested licence file(s) the repository verdict does not answer for: "
+            f"{where}. The verdict is the root's; a nutrient from those paths needs a human"
         )
     findings.human_review = (
         bool(findings.conflicts)
-        or bool(stricter)
+        or bool(heavier)
         or cls
         in (
             LicenseClass.NONE,

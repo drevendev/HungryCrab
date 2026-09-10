@@ -720,26 +720,45 @@ def test_a_nested_restriction_the_root_is_silent_about_is_flagged(tmp_path: Path
     assert "ee/LICENSE (BUSL-1.1)" in " ".join(findings.notes)
 
 
-def test_a_nested_licence_that_only_asks_for_a_notice_is_not_a_restriction(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("nested", "text", "flagged"),
+    [
+        ("packages/sdk/LICENSE", APACHE_TEXT, True),
+        ("docs/LICENSE", "Attribution 4.0 International\n", True),
+        ("packages/core/LICENSE", MIT_TEXT, False),
+    ],
+)
+def test_an_obligation_the_root_verdict_does_not_carry_is_flagged(
+    tmp_path: Path, nested: str, text: str, flagged: bool
 ) -> None:
-    write_tree(tmp_path, {"LICENSE": MIT_TEXT, "vendor/x/LICENSE": APACHE_TEXT})
-    findings = detect_in_repo(tmp_path, [], nested_license_files=["vendor/x/LICENSE"])
-    assert {e["spdx"] for e in findings.exceptions} == {"Apache-2.0"}
-    assert not findings.human_review
+    """Raised in review of #90: an attribution-only obligation used to vanish without a signal.
+
+    An Apache subtree under an MIT root is copyable, but its NOTICE is not in the MIT verdict, and
+    a nutrient from that subtree went out as COPY without it. CC-BY's attribution is the same
+    case. MIT under MIT is the control: nothing is lost, so nothing is flagged.
+    """
+    write_tree(tmp_path, {"LICENSE": MIT_TEXT, nested: text})
+    findings = detect_in_repo(tmp_path, [], nested_license_files=[nested])
+    assert findings.spdx == "MIT"
+    assert findings.human_review is flagged
+    assert (nested in " ".join(findings.notes)) is flagged
 
 
-def test_an_unreadable_nested_licence_is_kept_but_not_flagged_without_a_split(
-    tmp_path: Path,
-) -> None:
-    """Kept, because dropping it is the bug; not flagged, because a font licence is not news."""
+def test_an_unreadable_nested_licence_is_kept_and_flagged(tmp_path: Path) -> None:
+    """Kept, because dropping it was #86; flagged, because unknown obligations are not covered.
+
+    The first version kept this silent on the grounds that a font licence is not news. That held
+    while vendored trees reached this list; now that they are recorded separately, what is left
+    is the project's own tree, where a licence file nobody can read deserves a look.
+    """
     write_tree(
         tmp_path, {"LICENSE": MIT_TEXT, "assets/fonts/LICENSE": "Font licence. See the foundry.\n"}
     )
     findings = detect_in_repo(tmp_path, [], nested_license_files=["assets/fonts/LICENSE"])
     assert {e["spdx"] for e in findings.exceptions} == {"NOASSERTION"}
     assert findings.spdx == "MIT"
-    assert not findings.human_review
+    assert findings.human_review
+    assert "assets/fonts/LICENSE (NOASSERTION) cannot be read" in " ".join(findings.notes)
 
 
 def test_a_licence_outside_the_project_is_recorded_but_not_weighed(tmp_path: Path) -> None:
@@ -854,3 +873,37 @@ def test_a_source_file_called_license_does_not_decide_a_split(tmp_path: Path) ->
     data = json.loads((result.out_dir / "license.json").read_text(encoding="utf-8"))
     assert data["spdx"] == "Apache-2.0"
     assert not [e for e in data["exceptions"] if "licensing/" in e["path"]]
+
+
+# --- a choice with an open branch is not decided by its source-available one ----------------
+
+ELASTIC_UMBRELLA = (
+    'Source code in this repository is covered by (i) a triple license under the "GNU Affero '
+    'General Public License v3.0", "Server Side Public License, v 1" and "Elastic License 2.0", '
+    "or (ii) solely under the Elastic License 2.0, as noted in the applicable header.\n"
+)
+SOURCE_AVAILABLE_CHOICE = (
+    "This software is available under your choice of the Redis Source Available License v2 or "
+    "the Server Side Public License v1.\n"
+)
+
+
+def test_a_choice_with_an_open_branch_is_not_decided_by_its_source_available_one() -> None:
+    """The Elasticsearch shape, found in self-review of #90.
+
+    master read it as AGPL, by accident of checking the GNU head first. The first version of this
+    fix read it as SSPL — IDEAS_ONLY even for an AGPL maw the AGPL branch lets copy. Neither is a
+    reading of the file, so it stays unreadable and a human picks the branch.
+    """
+    assert detect_from_text(ELASTIC_UMBRELLA) == (None, 0.0)
+
+
+def test_a_choice_among_source_available_licences_is_still_source_available() -> None:
+    assert detect_from_text(SOURCE_AVAILABLE_CHOICE)[0] == "SSPL-1.0"
+
+
+def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
+    write_tree(tmp_path, {"LICENSE.txt": ELASTIC_UMBRELLA})
+    findings = detect_in_repo(tmp_path, [])
+    assert decide(findings.spdx, "AGPL-3.0-only").mode is Mode.HUMAN
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
