@@ -20,6 +20,7 @@ from hungry_crab.licensing import (
     normalize,
 )
 from hungry_crab.licensing.detect import license_name_from_file, manifest_license
+from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id
 
 MIT_TEXT = (
     "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
@@ -110,6 +111,14 @@ def test_detect_from_text(text: str, expected: str | None) -> None:
         ("UNLICENSED", "LicenseRef-Proprietary"),
         ("SEE LICENSE IN LICENSE.txt", "NOASSERTION"),
         ("(MIT OR Apache-2.0)", "MIT OR Apache-2.0"),
+        # Redundant brackets go; brackets that carry the meaning stay.
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", "(MIT OR Apache-2.0) AND CC-BY-4.0"),
+        ("MIT OR Apache-2.0 AND CC-BY-4.0", "MIT OR Apache-2.0 AND CC-BY-4.0"),
+        ("(mit OR apache-2.0) AND cc-by-4.0", "(MIT OR Apache-2.0) AND CC-BY-4.0"),
+        (
+            "GPL-2.0-only WITH Classpath-exception-2.0",
+            "GPL-2.0-only WITH Classpath-exception-2.0",
+        ),
         ("Zlib", "Zlib"),
         ("", None),
         (None, None),
@@ -134,6 +143,14 @@ def test_normalize(raw: str | None, expected: str | None) -> None:
         ("CC-BY-NC-4.0", LicenseClass.DOCS_RESTRICTED),
         ("MIT OR GPL-3.0-only", LicenseClass.PERMISSIVE),
         ("MIT AND GPL-3.0-only", LicenseClass.GPL),
+        # AND binds tighter than OR, so this one really is permissive.
+        ("MIT OR Apache-2.0 AND CC-BY-4.0", LicenseClass.PERMISSIVE),
+        # The brackets say otherwise: CC-BY applies whichever branch is taken.
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", LicenseClass.DOCS_ATTRIBUTION),
+        ("(MIT OR Apache-2.0) AND GPL-3.0-only", LicenseClass.GPL),
+        ("(GPL-3.0-only OR MIT) AND BUSL-1.1", LicenseClass.SOURCE_AVAILABLE),
+        # Unbalanced: unreadable, and unreadable is not permissive.
+        ("(MIT OR Apache-2.0", LicenseClass.UNKNOWN),
         ("NOASSERTION", LicenseClass.UNKNOWN),
         ("Weird-License-9", LicenseClass.UNKNOWN),
         (None, LicenseClass.NONE),
@@ -141,6 +158,98 @@ def test_normalize(raw: str | None, expected: str | None) -> None:
 )
 def test_classify(spdx: str | None, expected: LicenseClass) -> None:
     assert classify(spdx) is expected
+
+
+@pytest.mark.parametrize(
+    ("prey", "mode", "notice"),
+    [
+        ("(MIT OR Apache-2.0) AND CC-BY-4.0", Mode.COPY, True),
+        ("(MIT OR Apache-2.0) AND GPL-3.0-only", Mode.REIMPLEMENT, False),
+        ("(GPL-3.0-only OR MIT) AND BUSL-1.1", Mode.IDEAS_ONLY, False),
+        ("(MIT OR Apache-2.0", Mode.HUMAN, False),
+    ],
+)
+def test_grouped_expression_is_not_flattened(prey: str, mode: Mode, notice: bool) -> None:
+    """A bracketed term binds every branch of the choice beside it.
+
+    Flattening the expression and re-reading it with SPDX precedence used to turn each of these
+    into `COPY` or something close to it, which is the one direction the matrix must never fail
+    in. See HungryCrab#57.
+    """
+    verdict = decide_for_class(prey, MawClass.PERMISSIVE, "MIT")
+    assert verdict.mode is mode
+    assert verdict.notice_required is notice
+
+
+def test_governing_id_names_the_term_that_decided() -> None:
+    assert governing_id("(MIT OR Apache-2.0) AND GPL-3.0-only") == "GPL-3.0-only"
+    assert governing_id("MIT OR GPL-3.0-only") == "MIT"
+    assert governing_id(None) is None
+
+
+def test_fits_gpl_maw_reads_the_structure() -> None:
+    assert fits_gpl_maw("GPL-2.0-only OR GPL-3.0-only", "GPL-3.0-only")
+    assert not fits_gpl_maw("GPL-2.0-only AND GPL-3.0-only", "GPL-3.0-only")
+    assert not fits_gpl_maw(None, "GPL-3.0-only")
+    assert not fits_gpl_maw("(GPL-2.0-only", "GPL-3.0-only")
+
+
+def test_a_copyleft_term_keeps_its_version_inside_an_expression() -> None:
+    """The GPL branch compares versions, and only one term of an expression has one."""
+    fits = decide_for_class("(MIT OR Apache-2.0) AND GPL-2.0-only", MawClass.GPL, "GPL-2.0-only")
+    assert fits.mode is Mode.COPY
+    clash = decide_for_class("(MIT OR Apache-2.0) AND GPL-3.0-only", MawClass.GPL, "GPL-2.0-only")
+    assert clash.mode is Mode.IDEAS_ONLY
+
+
+@pytest.mark.parametrize(
+    ("prey", "expected"),
+    [
+        # OR is the recipient's choice: the compatible branch is available in either spelling.
+        ("GPL-2.0-only OR GPL-2.0-or-later", Mode.COPY),
+        ("GPL-2.0-or-later OR GPL-2.0-only", Mode.COPY),
+        # AND binds both terms, so the incompatible one decides, in either spelling.
+        ("GPL-2.0-or-later AND GPL-2.0-only", Mode.IDEAS_ONLY),
+        ("GPL-2.0-only AND GPL-2.0-or-later", Mode.IDEAS_ONLY),
+    ],
+)
+def test_copyleft_compatibility_does_not_depend_on_operand_order(prey: str, expected: Mode) -> None:
+    """Two terms of the same class used to hand the answer to whichever came first.
+
+    `min`/`max` keep the first element of a tie, so the reduction to one identifier made
+    `GPL-2.0-or-later AND GPL-2.0-only` answer as though the `-or-later` term were the only one —
+    more permissive than the expression. Reported in review of #57.
+    """
+    assert decide_for_class(prey, MawClass.GPL, "GPL-3.0-only").mode is expected
+
+
+def test_a_non_copyleft_term_does_not_block_a_gpl_maw() -> None:
+    assert decide_for_class("MIT AND GPL-3.0-only", MawClass.GPL, "GPL-3.0-only").mode is Mode.COPY
+
+
+@pytest.mark.parametrize(
+    "prey",
+    [
+        "GPL-2.0-only OR BUSL-1.1",
+        "GPL-2.0-only OR LicenseRef-Proprietary",
+        "GPL-2.0-only OR Weird-License-9",
+        "GPL-2.0-only OR CC-BY-NC-4.0",
+    ],
+)
+def test_a_branch_of_a_choice_has_to_stand_on_its_own(prey: str) -> None:
+    """A branch that is merely not copyleft is not therefore a way into a GPL maw.
+
+    `OR` is a choice, and taking the BUSL branch of `GPL-2.0-only OR BUSL-1.1` leaves the code
+    under BUSL. Answering "compatible" because the branch is not copyleft turned every
+    source-available, proprietary or unreadable alternative into an escape hatch. Reported in
+    review of #57.
+    """
+    assert decide_for_class(prey, MawClass.GPL, "GPL-3.0-only").mode is not Mode.COPY
+
+
+def test_a_compatible_copyleft_branch_still_satisfies_the_choice() -> None:
+    verdict = decide_for_class("GPL-2.0-only OR GPL-3.0-only", MawClass.GPL, "GPL-3.0-only")
+    assert verdict.mode is Mode.COPY
 
 
 @pytest.mark.parametrize(
