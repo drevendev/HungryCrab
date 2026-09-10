@@ -11,7 +11,7 @@ restrictive mode when in doubt.
 | LGPL | `REIMPLEMENT` (linking is a separate question) | `COPY` | `REIMPLEMENT` |
 | GPL-2.0 / GPL-3.0 | `REIMPLEMENT` (clean room) | `COPY` when the versions are compatible, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | AGPL-3.0 | `REIMPLEMENT` | `COPY` only into an AGPL-3.0 maw, else `IDEAS_ONLY` | `IDEAS_ONLY` |
-| BUSL, SSPL, Elastic, Commons Clause, proprietary | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
+| BUSL, SSPL, Elastic, Commons Clause, FSL, PolyForm, Sustainable Use, proprietary | `IDEAS_ONLY` | `IDEAS_ONLY` | `IDEAS_ONLY` |
 | No license found | `IDEAS_ONLY`, flagged for review | `IDEAS_ONLY`, flagged for review | `IDEAS_ONLY`, flagged for review |
 | License read and not classified | `HUMAN` | `HUMAN` | `HUMAN` |
 | CC-BY (documentation) | `COPY` + attribution | `COPY` + attribution | `COPY` + attribution |

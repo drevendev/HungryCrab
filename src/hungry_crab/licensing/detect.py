@@ -11,7 +11,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ..fs import read_text
-from .matrix import LicenseClass, classify, normalize
+from .matrix import LicenseClass, classify, normalize, restriction_rank, restricts_copying
 
 _SPDX_ID_RE = re.compile(
     r"SPDX-License-Identifier:\s*([A-Za-z0-9.+\-]+(?:\s+(?:OR|AND|WITH)\s+[A-Za-z0-9.+\-]+)*)",
@@ -35,6 +35,19 @@ LICENSE_DIRS = frozenset({"licenses", "licences", "license-files"})
 _TEXT_SUFFIXES = frozenset(
     {"md", "txt", "rst", "html", "htm", "adoc", "asciidoc", "markdown", "text", "doc"}
 )
+# A name that starts with LICENSE is a licence file when what follows is a licence name or a text
+# format. When it is a programming language or a data format, it is the code that reads licences
+# (`license.py`) or a digest of one (`license.json`) — and once nested licence files could decide
+# a verdict, a source file called `license.py` would have made a split repository HUMAN.
+_NOT_LICENCE_SUFFIXES = frozenset(
+    {
+        "py", "pyi", "js", "mjs", "cjs", "ts", "tsx", "jsx", "go", "rs", "java", "kt", "kts",
+        "rb", "php", "c", "h", "cc", "cpp", "hpp", "cs", "fs", "swift", "scala", "dart", "lua",
+        "sh", "bash", "ps1", "bat", "cmd",
+        "json", "jsonl", "yaml", "yml", "toml", "xml", "ini", "cfg", "lock", "csv", "tsv", "sql",
+        "png", "jpg", "jpeg", "gif", "svg", "ico", "pdf",
+    }
+)  # fmt: skip
 # Phrases that say a single file covers several situations rather than granting one license.
 _SPLIT_RE = re.compile(
     r"portions of (?:this|the) \w+(?: \w+)? (?:are|is) licensed"
@@ -42,7 +55,10 @@ _SPLIT_RE = re.compile(
     r"|licens\w* transition|transitioning from the"
     r"|remain licensed under"
     r"|dual[- ]licen[cs]ed"
-    r"|are not licensed",
+    r"|are not licensed"
+    # Timescale's root file: "Source code in this repository is variously licensed under ...".
+    r"|variously licen[cs]ed"
+    r"|licen[cs]ed under (?:several|different|multiple) licen[cs]es",
     re.IGNORECASE,
 )
 # Licenses named in prose. Only consulted when `_SPLIT_RE` already said the file is a patchwork,
@@ -63,6 +79,8 @@ _MENTIONS: tuple[tuple[str, str], ...] = (
     ("elastic license", "Elastic-2.0"),
     ("server side public license", "SSPL-1.0"),
     ("business source license", "BUSL-1.1"),
+    ("functional source license", "FSL-1.1-ALv2"),
+    ("polyform", "LicenseRef-PolyForm"),
     ("sustainable use license", "LicenseRef-SustainableUse"),
     ("commons clause", "Commons-Clause"),
     ("enterprise license", "LicenseRef-Proprietary"),
@@ -75,16 +93,70 @@ _ISC_GRANT = (
 )
 
 # (spdx, required phrases, forbidden phrases); evaluated on lower-cased, whitespace-collapsed text.
-# More specific entries come first.
-_SIGNATURES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
-    ("Apache-2.0", ("apache license", "version 2.0"), ()),
-    ("MPL-2.0", ("mozilla public license", "2.0"), ()),
-    ("EPL-2.0", ("eclipse public license", "2.0"), ()),
-    ("EPL-1.0", ("eclipse public license", "1.0"), ()),
+_Signature = tuple[str, tuple[str, ...], tuple[str, ...]]
+
+# Source-available licences are checked before everything else, and on their name alone.
+#
+# A BUSL-1.1 file names its Change License in its own Parameters block — Apache for Sentry and
+# CockroachDB, MPL for HashiCorp's Terraform, Vault and Consul — and an FSL file names its future
+# licence the same way. Checked after the permissive signatures, each of them used to read as the
+# licence it merely names, and source-available code was offered for copying (HungryCrab#86).
+#
+# The asymmetry with the table below is the safety argument. A document that is BUSL and mentions
+# Apache is BUSL; an Apache licence never mentions BUSL. So a lenient match here can only err
+# towards the restrictive reading, and a lenient match there could only err the other way.
+_SOURCE_AVAILABLE_SIGNATURES: tuple[_Signature, ...] = (
     ("BUSL-1.1", ("business source license",), ()),
     ("SSPL-1.0", ("server side public license",), ()),
     ("Elastic-2.0", ("elastic license", "2.0"), ()),
     ("Commons-Clause", ("commons clause",), ()),
+    ("FSL-1.1-MIT", ("functional source license", "mit future license"), ()),
+    ("FSL-1.1-ALv2", ("functional source license",), ()),
+    ("PolyForm-Noncommercial-1.0.0", ("polyform noncommercial license",), ()),
+    ("PolyForm-Small-Business-1.0.0", ("polyform small business license",), ()),
+    ("LicenseRef-PolyForm", ("polyform", "license"), ()),
+    ("LicenseRef-SustainableUse", ("sustainable use license",), ()),
+)
+
+# More specific entries come first. The licences other documents cite by name — Apache, MPL, EPL
+# — need a phrase from their own operative text, not just the name: a custom licence that says
+# "the rest of this product is under the Apache License, Version 2.0" is not the Apache License,
+# and without a signature of its own it has to stay unreadable rather than become Apache.
+_SIGNATURES: tuple[_Signature, ...] = (
+    (
+        "Apache-2.0",
+        ("apache license", "terms and conditions for use, reproduction, and distribution"),
+        (),
+    ),
+    (
+        "Apache-2.0",
+        ("apache license", "you may not use this file except in compliance with the license"),
+        (),
+    ),
+    ("MPL-2.0", ("mozilla public license", "covered software"), ()),
+    (
+        "MPL-2.0",
+        ("this source code form is subject to the terms of the mozilla public license",),
+        (),
+    ),
+    (
+        "EPL-2.0",
+        (
+            "eclipse public license",
+            "2.0",
+            "provided under the terms of this eclipse public license",
+        ),
+        (),
+    ),
+    (
+        "EPL-1.0",
+        (
+            "eclipse public license",
+            "1.0",
+            "provided under the terms of this eclipse public license",
+        ),
+        (),
+    ),
     ("Unlicense", ("this is free and unencumbered software released into the public domain",), ()),
     ("CC0-1.0", ("cc0 1.0",), ()),
     ("CC-BY-NC-SA-4.0", ("attribution-noncommercial-sharealike 4.0",), ()),
@@ -157,7 +229,15 @@ _CLASSIFIER_MAP: dict[str, str] = {
 
 
 def is_license_file_name(name: str) -> bool:
-    return bool(_LICENSE_FILE_RE.match(name) or _SUFFIX_LICENSE_RE.match(name))
+    """Is this a name a licence is kept under?
+
+    ``LICENSE``, ``LICENSE.md``, ``LICENSE-MIT``, ``COPYING.LESSER`` and ``apache-2.0.LICENSE``
+    are. ``license.py`` and ``license.json`` are not, whatever their first seven letters say.
+    """
+    if not (_LICENSE_FILE_RE.match(name) or _SUFFIX_LICENSE_RE.match(name)):
+        return False
+    suffix = name.rsplit(".", 1)[1].lower() if "." in name else ""
+    return suffix not in _NOT_LICENCE_SUFFIXES
 
 
 def license_name_from_file(name: str) -> str | None:
@@ -210,8 +290,26 @@ def find_spdx_identifier(text: str) -> str | None:
     return normalize(match.group(1).strip().rstrip("*/-> "))
 
 
-def _detect_gnu(head: str) -> tuple[str | None, float]:
+# Every GNU licence carries the first phrase in its own text, and every GNU per-file notice
+# carries the second. Naming "the GNU General Public License" is neither: a BUSL file whose
+# Change License is the GPL names it too, and so does a proprietary licence explaining what it is
+# not.
+_GNU_OPERATIVE = (
+    "everyone is permitted to copy and distribute verbatim copies of this license document",
+    "you can redistribute it and/or modify it under the terms of the gnu",
+)
+
+
+def _matches(normalized: str, required: tuple[str, ...], forbidden: tuple[str, ...]) -> bool:
+    return all(phrase in normalized for phrase in required) and not any(
+        phrase in normalized for phrase in forbidden
+    )
+
+
+def _detect_gnu(head: str, normalized: str = "") -> tuple[str | None, float]:
     if "general public license" not in head:
+        return None, 0.0
+    if not any(phrase in (normalized or head) for phrase in _GNU_OPERATIVE):
         return None, 0.0
     later = "any later version" in head
     if "affero" in head:
@@ -229,6 +327,26 @@ def _detect_gnu(head: str) -> tuple[str | None, float]:
     return "GPL-3.0-only", 0.6
 
 
+# "Covered by a triple license under AGPL-3.0, SSPL and the Elastic License": a choice, and one of
+# its branches is open source. Letting the first source-available name decide read that as SSPL,
+# IDEAS_ONLY even for an AGPL maw the AGPL branch lets copy — master had answered AGPL, by accident
+# of checking the GNU head first. The crab cannot build the OR from prose reliably, so such a file
+# stays unreadable and a human picks the branch. A choice among source-available licences only is
+# source-available whichever branch is taken, and is still decided by name.
+_CHOICE_RE = re.compile(
+    r"\b(?:dual|triple|tri|multi)[- ]?licen[cs]|\byour choice of\b|\blicen[cs]ed under either\b",
+    re.IGNORECASE,
+)
+
+
+def _offers_an_open_choice(text: str, normalized: str) -> bool:
+    """A choice of licences in which at least one branch is not source-available."""
+    if not _CHOICE_RE.search(normalized):
+        return False
+    classes = {classify(spdx) for spdx in licenses_mentioned(text)}
+    return LicenseClass.SOURCE_AVAILABLE in classes and len(classes) > 1
+
+
 def detect_from_text(text: str) -> tuple[str | None, float]:
     """Return (spdx, confidence) for the text of a license file."""
     if not text.strip():
@@ -238,13 +356,15 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
         return ident, 0.99
     normalized = _norm(text)
     head = normalized[:700]
-    gnu, confidence = _detect_gnu(head)
+    if not _offers_an_open_choice(text, normalized):
+        for spdx, required, forbidden in _SOURCE_AVAILABLE_SIGNATURES:
+            if _matches(normalized, required, forbidden):
+                return spdx, 0.95
+    gnu, confidence = _detect_gnu(head, normalized)
     if gnu:
         return gnu, confidence
     for spdx, required, forbidden in _SIGNATURES:
-        if all(phrase in normalized for phrase in required) and not any(
-            phrase in normalized for phrase in forbidden
-        ):
+        if _matches(normalized, required, forbidden):
             return spdx, 0.95
     if "all rights reserved" in normalized and len(normalized) < 3000:
         return "LicenseRef-Proprietary", 0.5
@@ -406,7 +526,48 @@ def _license_candidates(
     return found
 
 
-def _resolve_unclear(findings: LicenseFindings, split_mentions: Sequence[str]) -> None:
+def _nested_licences(findings: LicenseFindings) -> list[tuple[str, str]]:
+    """(path, spdx) of every nested licence file that disagrees with the root, readable or not."""
+    return [
+        (str(item["path"]), str(item["spdx"]))
+        for item in findings.exceptions
+        if item.get("kind") == "nested-license"
+    ]
+
+
+def _heavier_than_root(findings: LicenseFindings) -> list[tuple[str, str, str]]:
+    """(path, spdx, what) for the nested licences the repository verdict does not answer for.
+
+    Everything the root's verdict cannot carry counts, not only what restricts copying. An Apache
+    subtree under an MIT root is copyable, but its NOTICE obligation is not in the MIT verdict and
+    there are no per-path verdicts to put it in, so a nutrient from that subtree would go out as
+    COPY without it — the failure #57 removed at the licence level, one level down (raised in
+    review of #90). An unreadable licence counts for the same reason: its obligations are unknown,
+    so nothing shows they are covered.
+
+    This is the project's own tree only. Vendored code, sample corpora and virtualenvs are
+    `vendored-license` and never reach this list, which is what made flagging it bearable. A
+    licence already folded into a declared split is not repeated here.
+    """
+    root = restriction_rank(findings.spdx)
+    folded = set(re.findall(r"[^\s()]+", findings.spdx or ""))
+    heavier: list[tuple[str, str, str]] = []
+    for path, spdx in _nested_licences(findings):
+        if spdx in folded:
+            continue
+        if spdx == "NOASSERTION":
+            heavier.append((path, spdx, "cannot be read"))
+        elif restriction_rank(spdx) > root:
+            what = (
+                "restricts copying" if restricts_copying(spdx) else "adds a notice or attribution"
+            )
+            heavier.append((path, spdx, what))
+    return heavier
+
+
+def _resolve_unclear(
+    findings: LicenseFindings, split_mentions: Sequence[str], *, root_declares_split: bool = False
+) -> None:
     """Separate the three situations that used to share one `NOASSERTION`.
 
     A file that says several licenses apply, a license file nobody can read, and a repository
@@ -416,9 +577,15 @@ def _resolve_unclear(findings: LicenseFindings, split_mentions: Sequence[str]) -
     """
     # A repository that offers a choice of licenses has already answered the question; a file that
     # merely mentions other licenses cannot take that choice away.
-    if split_mentions and findings.resolution != "dual":
+    #
+    # When the root declares the split, the licence files in the tree say where it falls, and they
+    # join it exactly as a licence named in the prose would — including one the crab cannot read,
+    # which is how an unnamed restrictive licence stops inheriting the permissive verdict.
+    folded = _nested_licences(findings) if root_declares_split else []
+    mentions = list(dict.fromkeys([*split_mentions, *(spdx for _, spdx in folded)]))
+    if mentions and findings.resolution != "dual":
         current = findings.spdx.split(" AND ") if findings.spdx else []
-        combined = sorted({*split_mentions, *current})
+        combined = sorted({*mentions, *current})
         if set(combined) != set(current):
             findings.resolution = "split"
             findings.candidates = combined
@@ -428,6 +595,12 @@ def _resolve_unclear(findings: LicenseFindings, split_mentions: Sequence[str]) -
                 f"({', '.join(combined)}); the most restrictive one is used for the whole "
                 "repository until a nutrient names its own path"
             )
+            if folded:
+                where = ", ".join(f"{path} ({spdx})" for path, spdx in folded)
+                findings.notes.append(
+                    "the root declares the split and these nested licence files say where it "
+                    f"falls, so they join it: {where}"
+                )
         return
     if findings.spdx is not None:
         return
@@ -456,6 +629,7 @@ def detect_in_repo(
     root_entries: Sequence[str] | None = None,
     manifests: Sequence[str] = (),
     nested_license_files: Sequence[str] = (),
+    vendored_license_files: Sequence[str] = (),
     api_spdx: str | None = None,
     max_header_files: int = 400,
 ) -> LicenseFindings:
@@ -466,6 +640,7 @@ def detect_in_repo(
     named: list[tuple[str, str]] = []  # (relative path, spdx) for files whose *name* declares one
     alternatives = True  # every named file used the `LICENSE-<name>` form: a choice, not a split
     split_mentions: list[str] = []
+    root_declares_split = False
     for rel, declared in _license_candidates(root, entries, findings):
         path = root / rel
         text = read_text(path, limit=200_000)
@@ -479,6 +654,7 @@ def detect_in_repo(
             named.append((rel, spdx))
             alternatives = alternatives and bool(_NAMED_LICENSE_RE.match(PurePosixPath(rel).name))
         if is_split_license_text(text):
+            root_declares_split = True
             for mention in licenses_mentioned(text):
                 if mention not in split_mentions:
                     split_mentions.append(mention)
@@ -548,23 +724,48 @@ def detect_in_repo(
 
     _scan_headers(root, code_files, findings, max_header_files)
 
-    for rel in nested_license_files:
-        path = root / rel
-        if not path.is_file():
-            continue
-        spdx, confidence = detect_from_text(read_text(path, limit=200_000))
-        if spdx and spdx != findings.spdx:
-            findings.exceptions.append(
-                {"path": rel, "spdx": spdx, "confidence": confidence, "kind": "nested-license"}
-            )
+    # Licence files below the root come in two kinds. Those in the project's own tree can say that
+    # part of the repository is under another licence, and they are weighed. Those in trees the
+    # inventory already calls not-the-project — vendored code, sample corpora, example directories,
+    # a virtualenv — are recorded, because dropping a licence file is how #86 began, but they
+    # neither raise the review flag nor join a split: linguist's corpus carries a LICENSE.mysql
+    # that is test data, and a maw's .venv carries one per installed package.
+    for kind, paths in (
+        ("nested-license", nested_license_files),
+        ("vendored-license", vendored_license_files),
+    ):
+        for rel in paths:
+            path = root / rel
+            if not path.is_file():
+                continue
+            spdx, confidence = detect_from_text(read_text(path, limit=200_000))
+            # A licence file the crab cannot read is still a licence file. Dropping it is how a
+            # restricted subtree used to inherit the root's verdict without anyone being told.
+            spdx = spdx or "NOASSERTION"
+            if spdx != findings.spdx:
+                findings.exceptions.append(
+                    {"path": rel, "spdx": spdx, "confidence": confidence, "kind": kind}
+                )
 
-    _resolve_unclear(findings, split_mentions)
+    _resolve_unclear(findings, split_mentions, root_declares_split=root_declares_split)
 
     cls = classify(findings.spdx)
-    findings.human_review = bool(findings.conflicts) or cls in (
-        LicenseClass.NONE,
-        LicenseClass.UNKNOWN,
-        LicenseClass.SOURCE_AVAILABLE,
+    heavier = _heavier_than_root(findings)
+    if heavier:
+        where = "; ".join(f"{path} ({spdx}) {what}" for path, spdx, what in heavier[:5])
+        findings.notes.append(
+            f"{len(heavier)} nested licence file(s) the repository verdict does not answer for: "
+            f"{where}. The verdict is the root's; a nutrient from those paths needs a human"
+        )
+    findings.human_review = (
+        bool(findings.conflicts)
+        or bool(heavier)
+        or cls
+        in (
+            LicenseClass.NONE,
+            LicenseClass.UNKNOWN,
+            LicenseClass.SOURCE_AVAILABLE,
+        )
     )
     if findings.spdx and findings.spdx.startswith(("GPL-", "LGPL-", "AGPL-")):
         findings.notes.append("'-only' assumed unless headers say 'or later'")

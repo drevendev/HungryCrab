@@ -33,7 +33,11 @@ class LicenseMiner:
             if (f.depth == 0 and f.name.lower() in _ROOT_MANIFESTS)
             or (f.ext in {".csproj", ".fsproj"} and f.depth <= 2)
         ]
-        nested = [f.path for f in files if f.depth >= 1 and is_license_file_name(f.name)][:40]
+        licence_files = [f for f in files if f.depth >= 1 and is_license_file_name(f.name)]
+        # `counted` is the inventory's own answer to "is this the project?": vendored code,
+        # sample corpora, example trees and a virtualenv are all marked as not counted.
+        nested = [f.path for f in licence_files if f.counted][:40]
+        vendored = [f.path for f in licence_files if not f.counted][:40]
         api_spdx: str | None = None
         repo_meta = ctx.api.get("repo")
         if isinstance(repo_meta, dict) and isinstance(repo_meta.get("license"), dict):
@@ -46,6 +50,7 @@ class LicenseMiner:
             root_entries=ctx.root_entries(),
             manifests=manifests,
             nested_license_files=nested,
+            vendored_license_files=vendored,
             api_spdx=api_spdx,
             max_header_files=800 if ctx.deep else 400,
         )
