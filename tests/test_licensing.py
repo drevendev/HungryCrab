@@ -589,3 +589,23 @@ def test_an_incompatible_lgpl_verdict_names_both_licences() -> None:
     verdict = decide("LGPL-3.0-only", "GPL-2.0-only")
     assert "LGPL-3.0-only" in verdict.reason
     assert "GPL-2.0-only" in verdict.reason
+
+
+@pytest.mark.parametrize(
+    ("prey", "maw", "mode"),
+    [
+        # The LGPL path accepted any `GPL-` prefix. GPL-1.0 is reached neither by LGPL-2.x's
+        # "version 2 or any later" nor by LGPLv3, and the GPL path already said no.
+        ("LGPL-2.1-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-3.0-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
+        # Between LGPL versions, 2.0 and 2.1 are different licences.
+        ("LGPL-2.1-only", "LGPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.0-only", "LGPL-2.1-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.1-or-later", "LGPL-2.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.0-or-later", "LGPL-2.1-only", Mode.COPY),
+        ("LGPL-2.1-only", "LGPL-2.0-or-later", Mode.COPY),
+    ],
+)
+def test_lgpl_versions_the_gnu_table_does_not_equate(prey: str, maw: str, mode: Mode) -> None:
+    """Found in self-review of #91, both fail-open, both on maws that are rare in practice."""
+    assert decide(prey, maw).mode is mode

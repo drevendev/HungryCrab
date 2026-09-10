@@ -462,6 +462,29 @@ def _gpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     return maw_id == "GPL-2.0-or-later"
 
 
+# The GPL-family maws the GNU table speaks about. GPL-1.0 is not among them, and neither LGPL-2.x's
+# "version 2 or any later" nor LGPLv3 reaches it; the GPL helper above already answers no for it,
+# and the LGPL one used to accept any `GPL-` prefix (found in self-review of #91).
+_GPL_FAMILY_MAWS = frozenset(
+    {
+        "GPL-2.0-only", "GPL-2.0-or-later", "GPL-3.0-only", "GPL-3.0-or-later",
+        "AGPL-3.0-only", "AGPL-3.0-or-later",
+    }
+)  # fmt: skip
+
+
+def _lgpl_version(ident: str) -> tuple[str, bool]:
+    """('2.0' | '2.1' | '3.0', or_later) for an LGPL identifier.
+
+    `_gpl_version` folds 2.1 into 2.0, which is right for converting to the GPL — both convert to
+    "GPL version 2 or any later version" — and wrong between LGPL versions: LGPL-2.1-only code
+    cannot be relicensed as LGPL-2.0, nor the other way round.
+    """
+    body = ident.split("-", 1)[1] if "-" in ident else ""
+    version = "2.1" if body.startswith("2.1") else "2.0" if body.startswith("2") else "3.0"
+    return version, body.endswith(("or-later", "+"))
+
+
 def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     """Can LGPL code be copied into a maw under this GPL-family licence?
 
@@ -479,17 +502,17 @@ def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     A maw this does not recognise as GPL-family gets no, which is the direction to be wrong in.
     """
     maw_id = normalize(maw) or ""
-    prey_version, prey_later = _gpl_version(prey)
+    prey_version, prey_later = _lgpl_version(prey)
     if maw_id.startswith("LGPL-"):
-        maw_version, maw_later = _gpl_version(maw_id)
+        maw_version, maw_later = _lgpl_version(maw_id)
         return (
             prey_version == maw_version
             or (prey_later and prey_version < maw_version)
             or (maw_later and maw_version < prey_version)
         )
-    if not maw_id.startswith(("GPL-", "AGPL-3.0")):
+    if maw_id not in _GPL_FAMILY_MAWS:
         return False
-    if prey_version == "2.0":
+    if prey_version in ("2.0", "2.1"):
         return True
     return maw_id != "GPL-2.0-only"
 
