@@ -99,3 +99,36 @@ def test_the_hook_manifest_is_well_formed() -> None:
     entries = data["hooks"]["PreToolUse"]
     assert entries[0]["matcher"] == "Bash"
     assert entries[0]["hooks"][0]["command"] == "crab guard --hook"
+
+
+@pytest.mark.parametrize(
+    ("command", "denied"),
+    [
+        (f"rg -l TODO {PREY} | xargs cat", False),
+        (f"rg -l x {PREY} | xargs sh -c 'echo'", True),
+        (f"env FOO=1 python {PREY}/s.py", True),
+        (f"env | grep {PREY}", False),
+        (f"sudo make -C {PREY}", True),
+        (f"timeout 5 node {PREY}/index.js", True),
+        (f"nice 10 make -C {PREY}", True),
+    ],
+)
+def test_a_wrapper_is_judged_by_what_it_wraps(command: str, denied: bool) -> None:
+    """`xargs cat` reads and `xargs sh -c` executes.
+
+    Calling every wrapper an execution verb refused an ordinary way of reading the cache; calling
+    none of them left a hole a pipe could walk through.
+    """
+    assert (executes_prey(command, root=CACHE) is not None) is denied
+
+
+def test_uv_stays_refused_and_the_price_is_named() -> None:
+    """`uv sync` inside the cache is exactly what must not happen.
+
+    The cost is that `uv run crab digest <cache path>` is refused too. Calling `crab` directly is
+    what the documentation does everywhere, so the trade is cheap — but it is a trade, and it
+    belongs in a test rather than in someone's surprise.
+    """
+    assert executes_prey(f"uv sync --directory {PREY}", root=CACHE)
+    assert executes_prey(f"uv run crab digest {PREY}", root=CACHE)
+    assert executes_prey(f"crab digest {PREY}", root=CACHE) is None
