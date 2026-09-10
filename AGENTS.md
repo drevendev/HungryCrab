@@ -16,7 +16,9 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | ledger | tune | init | update | cache`).
+  serve | ledger | tune | init | update | cache | guard`).
+- `src/hungry_crab/guard.py`: the answer behind `crab guard`, and behind the `PreToolUse` hook
+  in `hooks/hooks.json`: would this shell command execute something out of the prey cache?
 - `src/hungry_crab/updater.py`: `crab update`, which checks the CLI and the agent plugins against
   master. It must never reinstall the CLI in-process: uv cannot replace a running tool on Windows
   and leaves it broken.

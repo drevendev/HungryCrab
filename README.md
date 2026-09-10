@@ -210,7 +210,10 @@ commenters. This is a compliance aid, not legal advice.
 ## Safety
 
 - **Prey code is never executed.** The miners read files and run read-only git plumbing. No
-  `npm install`, `pytest` or `make` ever runs inside the cache.
+  `npm install`, `pytest` or `make` ever runs inside the cache. The plugin ships a
+  `PreToolUse` hook so the rule holds for the agent too: a shell command that would run
+  something out of the cache is refused before it starts. `crab guard "<command>"` shows
+  the same answer without a hook.
 - **Prey content is untrusted data.** Markdown summaries carry structure (headings, names,
   counts), never the body of README or agent-instruction files, and instruction-like fragments
   are flagged in the JSON.
