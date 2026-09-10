@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..digest import failed_miners
 from ..fs import read_text
 from ..nutrients import Candidate, Evidence, slugify
 from ..safety import is_suspicious
@@ -133,11 +134,7 @@ class Side:
         that genuinely has nothing to say are the same empty mapping by the time a candidate
         builder sees them. The manifest is the only place the difference survives.
         """
-        return [
-            str(record.get("name") or "?")
-            for record in as_list(self.manifest.get("miners"))
-            if isinstance(record, dict) and not record.get("ok")
-        ]
+        return failed_miners(self.manifest)
 
     @property
     def ecosystems(self) -> set[str]:
