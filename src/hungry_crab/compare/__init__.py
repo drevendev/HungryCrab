@@ -49,6 +49,9 @@ class CompareOptions:
     # `own` when the maw's owner also owns the prey, `bypass` when the maw switched the
     # license engine off on purpose. Resolved by the caller, which knows both slugs.
     relationship: str = "foreign"
+    # Compare a digest whose miners did not all succeed. Off, because an absent producer
+    # reads as an absent fact, and the menu cannot tell the two apart.
+    allow_partial: bool = False
 
 
 @dataclass
@@ -95,6 +98,18 @@ def apply_hunger(
     return kept, hidden
 
 
+def _refuse_partial(prey: Side, maw: Side) -> None:
+    """Stop before a menu is built out of facts a crashed miner never produced."""
+    broken = [(side.label, side.failed_miners) for side in (prey, maw) if side.failed_miners]
+    if not broken:
+        return
+    detail = "; ".join(f"{label}: {', '.join(names)}" for label, names in broken)
+    raise CrabError(
+        f"the digest is missing a producer that failed ({detail})",
+        hint="re-run the digest with --force, or pass --allow-partial to compare it anyway",
+    )
+
+
 def compare_digests(
     prey_dir: Path,
     maw_dir: Path,
@@ -106,6 +121,8 @@ def compare_digests(
     opts = options or CompareOptions()
     prey = Side.load(prey_dir, root=prey_root)
     maw = Side.load(maw_dir, root=maw_root)
+    if not opts.allow_partial:
+        _refuse_partial(prey, maw)
     maw_spdx = opts.maw_license or maw.spdx
     verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship).to_dict()
     scoring = Scoring.default().merged(opts.scoring)
@@ -265,6 +282,7 @@ def compare_for_maw(
     issue_lookup: IssueLookup | None = None,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
+    allow_partial: bool = False,
 ) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
     """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
     config = MawConfig.load(maw_root)
@@ -293,6 +311,7 @@ def compare_for_maw(
         hidden_ids=hidden,
         now=now,
         relationship=relationship.value,
+        allow_partial=allow_partial,
     )
     result, prey_digest, _ = run_compare(
         prey_target, maw_root, digest_options=d_opts, options=options, log=log

@@ -126,6 +126,20 @@ class Side:
         return self.sha[:7]
 
     @property
+    def failed_miners(self) -> list[str]:
+        """Producers that raised while this digest was made.
+
+        ``_load`` turns a missing file into ``{}``, so a miner that crashed and a repository
+        that genuinely has nothing to say are the same empty mapping by the time a candidate
+        builder sees them. The manifest is the only place the difference survives.
+        """
+        return [
+            str(record.get("name") or "?")
+            for record in as_list(self.manifest.get("miners"))
+            if isinstance(record, dict) and not record.get("ok")
+        ]
+
+    @property
     def ecosystems(self) -> set[str]:
         return {str(e) for e in as_list(self.traits.get("ecosystems"))}
 

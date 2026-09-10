@@ -74,6 +74,43 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
+    """What the working tree adds to ``HEAD``, as a short hash.
+
+    A digest is addressed by commit and the miners read the filesystem, so two different
+    worktrees at the same commit are the same cache entry and the second one is served the
+    first one's facts. Uncommitted changes are part of the question being asked.
+
+    Tracked changes come from ``git diff HEAD``, which carries their content. Untracked files
+    contribute name, size and modification time: hashing their contents would cost more than
+    re-digesting, and a needless re-digest is the cheap direction to be wrong in.
+
+    A prey clone is expected to be clean and answers ``"clean"`` for the price of an empty
+    diff. It is asked anyway, because "a clone is never edited" is an assumption about a
+    directory on someone's disk, and an interrupted fetch is enough to break it.
+    """
+    if git is None:
+        return ""
+    diff = git.try_run("diff", "HEAD")
+    untracked = git.try_run("ls-files", "--others", "--exclude-standard")
+    if diff is None or untracked is None:
+        # A repository git cannot answer questions about is not one this can vouch for.
+        return "unknown"
+    names = [line.strip() for line in untracked.splitlines() if line.strip()]
+    if not diff and not names:
+        return "clean"
+    parts = [diff]
+    for name in sorted(names):
+        try:
+            stat = (root / name).stat()
+        except OSError:
+            parts.append(f"{name}\0missing")
+            continue
+        parts.append(f"{name}\0{stat.st_size}\0{stat.st_mtime_ns}")
+    payload = "\0".join(parts).encode("utf-8", "replace")
+    return hashlib.sha1(payload).hexdigest()[:12]
+
+
 def prepare_context(
     target: Target, options: DigestOptions, *, log: Callable[[str], None] = _noop
 ) -> tuple[MineContext, Path]:
@@ -120,10 +157,12 @@ def prepare_context(
         sha = git.head_sha()
         ref = git.current_branch() or git.default_branch()
         shallow = git.is_shallow()
+        worktree = worktree_fingerprint(git, root)
     else:
         sha = "nogit-" + hashlib.sha1(str(root.resolve()).encode("utf-8")).hexdigest()[:12]
         ref = "worktree"
         shallow = False
+        worktree = ""
 
     out_dir = options.out or (digests_dir / sha)
     ctx = MineContext(
@@ -140,6 +179,7 @@ def prepare_context(
         md_budget=options.md_budget or MD_BUDGET.get(options.depth, MD_BUDGET["normal"]),
         shallow=shallow,
         ignore=ignore,
+        worktree=worktree,
     )
     return ctx, out_dir
 
@@ -278,6 +318,7 @@ def build_manifest(
             "ref": ctx.ref,
             "shallow": ctx.shallow,
             "root": str(ctx.root),
+            "worktree": ctx.worktree,
         },
         "depth": options.depth,
         "ignore": list(ctx.ignore),
@@ -407,15 +448,32 @@ def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOption
     document. The `eat` protocol tells an agent to fix `ignore` in `.crab.yml` and rerun when the
     maw reads as the wrong stack; without this, that rerun returned the cached answer and the
     remedy did nothing.
+
+    Two more inputs join them. The working tree, because the miners read files and not the
+    commit, so an edited checkout at the same ``HEAD`` used to be served the previous checkout's
+    facts. And whether every miner succeeded, because a digest missing a producer is not a
+    cheaper version of the same document — it is a document that says the repository has no
+    dependencies when the deps miner crashed. Re-running it is the only way to find out which.
     """
     return (
         cached.get("schema") == SCHEMA
         and cached.get("crab_version") == __version__
         and cached.get("prey", {}).get("sha") == ctx.sha
+        and cached.get("prey", {}).get("worktree", "") == ctx.worktree
         and cached.get("depth") == options.depth
         and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
         and cached.get("maw_license") == options.maw_license
+        and not failed_miners(cached)
     )
+
+
+def failed_miners(manifest: dict[str, Any]) -> list[str]:
+    """The miners that raised, in the order the digest ran them."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and not record.get("ok")
+    ]
 
 
 def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
