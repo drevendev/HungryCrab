@@ -86,6 +86,25 @@ def test_security_does_not_promise_a_bound_acquisition_does_not_have() -> None:
         assert "### What is not bounded: acquisition" in text
 
 
+def test_one_milestone_owns_npx_skills_add() -> None:
+    """`02-mvp.md` put `npx skills add` in 0.3 while the roadmap, the authority, put it in 0.6.
+
+    A reader planning 0.3 from the MVP document scoped in work three milestones away — the same
+    way the two documents once disagreed about digest coverage. The MVP document now defers to
+    the roadmap explicitly; this pins the one item that was found drifting.
+    """
+    roadmap = (ROOT / "docs" / "design" / "03-roadmap.md").read_text(encoding="utf-8")
+    owner = next(line for line in roadmap.splitlines() if "`npx skills add`" in line)
+    assert owner.startswith("| 0.6 |"), "the roadmap row that names it is milestone 0.6"
+
+    mvp = (ROOT / "docs" / "design" / "02-mvp.md").read_text(encoding="utf-8")
+    milestone_03 = mvp.split('### 0.3 "Serve"', 1)[1].split("## 9.", 1)[0]
+    for line in milestone_03.splitlines():
+        if "`npx skills add`" in line:
+            assert "0.6" in line, f"0.3 in 02-mvp.md claims `npx skills add` again: {line!r}"
+    assert "the roadmap wins" in mvp, "02-mvp.md must defer to the roadmap explicitly"
+
+
 def test_the_decision_time_skill_separates_review_from_the_mode() -> None:
     """`RETIRED_CLAIM` is an exact phrase, and rule 5 said the same thing in other words.
 
