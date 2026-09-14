@@ -14,6 +14,23 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **A declared nutrient category is produced by something or deferred by name.** `code` sat in
+  `CATEGORIES`, in `scoring.yml` and in every generated `.crab.yml` as a hunger knob while no
+  candidate builder could emit it, so the setting could not affect a single meal — and the
+  decision to leave it to 0.4 lived in a private backlog, where a deferred category looks
+  exactly like a forgotten one. `DEFERRED_CATEGORIES` in `nutrients.py` names the milestone
+  that owes each producer, `tests/test_categories.py` refuses a category that is neither
+  produced nor listed, and the roadmap, the generated config and the category reference say
+  that `code` is inert until 0.4 ([#52](https://github.com/drevendev/HungryCrab/issues/52)).
+- **Issue forms, a pull request template and `CODEOWNERS`.** The bug form asks for the three
+  things a report never includes — the crab version, the exact command and `manifest.json`;
+  the pull request template carries the summary, the test plan and the changelog reminder every
+  merged pull request has had so far; `CODEOWNERS` names the files an autonomous phase must not
+  change on its own. Making the owner's review mandatory is a branch-protection switch, not a
+  file ([#15](https://github.com/drevendev/HungryCrab/issues/15),
+  [#20](https://github.com/drevendev/HungryCrab/issues/20),
+  [#26](https://github.com/drevendev/HungryCrab/issues/26)).
+
 - **B1, the menu benchmark, and with it milestone 0.2.2.** `benchmarks/menu_benchmark.py` asks
   one question with no model in the room: with today's rules and weights, would the menu still
   put the nutrients a human accepted in the top 30, and would it still show the ones they
@@ -92,6 +109,53 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   Installs track `master`; a release tag is opt-in.
 
 ### Fixed
+
+- **Ignore globs matched by case on Windows and not on Linux.** `is_ignored` ran the path and
+  the pattern through `fnmatch.fnmatch`, which lowercases both on Windows and neither on Linux,
+  so one `.crab.yml` produced two different digests of one commit — file counts, languages,
+  ecosystems and the menu — and each was consistent with itself, so nothing warned. The match
+  is `fnmatchcase` on every platform now, the generated config says so, and `Tests/Fixtures`
+  against `tests/fixtures/**` is a regression case on both legs of CI
+  ([#89](https://github.com/drevendev/HungryCrab/issues/89)).
+- **`crab update` called an install with no recorded commit up to date.** The commit comparison
+  only ran when PEP 610 provenance was there; without it the CLI came back `OK`, and `OK` is
+  not actionable, so the line "reinstall to be sure" was followed by "Nothing to do." A crab at
+  master's version string with no commit to compare is `unknown` now: the reinstall command is
+  printed for a running uv tool, and executed under `--run` where the crab is not the process
+  being replaced ([#97](https://github.com/drevendev/HungryCrab/issues/97)).
+- **The hidden-character check flagged every emoji sequence and every Persian word.** U+200D
+  glues profession and family emoji together and U+200C is ordinary orthography in Persian and
+  the Indic scripts, and both were flagged on sight, so a README heading with 👩‍💻 in it became
+  `[line omitted: instruction-like content]`. A joiner is now judged by its neighbours: it is
+  legitimate next to a character that is not ASCII and not itself invisible, and suspicious
+  wedged into a Latin word, dangling at the end of a heading, or stacked with other invisible
+  characters. The zero-width space, the word joiner, the BOM and the Tags block are flagged as
+  before ([#66](https://github.com/drevendev/HungryCrab/issues/66)).
+- **A repository that measured coverage in CI read as one that did not.** `coverage.configured`
+  came from a threshold in a file, a coverage package in a manifest or a config file at the
+  root — and a Go or Rust project declares coverage in none of those: the flag is on the `go
+  test` line and the upload is an action, both of which the CI miner had already written down.
+  The testing miner now requires `ci`; a coverage upload action names the service, a coverage
+  flag on a test step counts as configured, and `coverage.in_ci` says which workflow said so.
+  The threshold stays a fact declared in a file
+  ([#53](https://github.com/drevendev/HungryCrab/issues/53)). The example-tree leak reported
+  in [#54](https://github.com/drevendev/HungryCrab/issues/54) turned out not to exist — the
+  exclusion reaches the test frameworks through `FileInfo.counted` — and is pinned by a
+  regression case instead.
+- **The ledger forgot which prey proposed a nutrient, and `crab tune` read that field.**
+  Nutrient ids are maw-relative, so every re-proposal overwrote `prey` with the latest prey and
+  the one that found the nutrient lost the credit. `prey` and `sha` now name the first
+  proposer for the life of the entry; `last_prey`, `last_sha` and `sightings` record the rest.
+  A ledger written before this loads unchanged
+  ([#60](https://github.com/drevendev/HungryCrab/issues/60)).
+- **Issue dedup stopped at 500 issues, and a quote outranked the issue it quoted.** Marker
+  discovery asked `gh issue list` for one page of 500, so on a busy repository the crab's own
+  issues fell off the end and the next serve filed everything again — on exactly the repository
+  the crab is a visitor to, where no ledger catches it. It now pages through every issue with
+  `gh api --paginate`, drops pull requests, and does not filter by label, because a repository
+  the crab cannot label gets its issues without one. When a marker appears in several issues,
+  the one whose body opens with it — the shape `crab serve` writes — wins, then the oldest, in
+  whatever order the issues arrive ([#59](https://github.com/drevendev/HungryCrab/issues/59)).
 
 - **Four documents still described a verdict the engine had stopped returning.** Since `HUMAN`
   became reachable, an unrecognised licence is `HUMAN` and a missing one is `IDEAS_ONLY` flagged
@@ -179,6 +243,10 @@ repository.
 
 ### Documentation
 
+- `docs/design/02-mvp.md` defers to the roadmap on what a milestone contains, and says so. It
+  had `npx skills add` in 0.3 while the roadmap — the authority — has it in 0.6, the same way
+  the two once disagreed about digest coverage; a test pins the item that drifted
+  ([#78](https://github.com/drevendev/HungryCrab/issues/78)).
 - `docs/design/06-benchmark.md`: the specification of both benchmarks. B1 measures the menu
   deterministically and gates pull requests; B2 judges whole meals across crab versions, Claude
   models and a no-crab baseline, with blind two-pass judging by a different model family. States
