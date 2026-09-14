@@ -19,7 +19,7 @@ from . import __version__, updater
 from .cache import Slug, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
-from .digest import DigestOptions, DigestResult, run_digest
+from .digest import DigestOptions, DigestResult, failed_miners, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
@@ -127,6 +127,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_digest.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_digest.add_argument("--since", default=None, help="when catching first: --since")
     p_digest.add_argument("--issues", type=int, default=0, help="when catching first: --issues N")
+    p_digest.add_argument(
+        "--fail-on-miner-error",
+        action="store_true",
+        help="exit non-zero when any miner failed (for CI; a human sees the FAILED lines)",
+    )
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
 
     p_compare = sub.add_parser(
@@ -145,6 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_compare.add_argument("--issues", type=int, default=0, help="when catching first: --issues N")
     p_compare.add_argument(
         "--no-issues", action="store_true", help="do not ask GitHub which nutrients were served"
+    )
+    p_compare.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help="compare a digest whose miners did not all succeed",
     )
     p_compare.add_argument("--json", action="store_true", help="print menu.json")
 
@@ -319,6 +329,11 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         print(json.dumps(result.manifest, indent=2, ensure_ascii=False))
     else:
         print_digest_summary(result)
+    broken = failed_miners(result.manifest)
+    if broken and args.fail_on_miner_error:
+        # A digest missing a producer is still useful to a human, who can see which one is gone.
+        # It is not useful to a machine that will compare it, so the caller decides.
+        raise CrabError(f"{len(broken)} miner(s) failed: {', '.join(broken)}")
     return 0
 
 
@@ -369,7 +384,13 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     if not args.no_issues and shutil.which("gh"):
         lookup = GhIssueClient().list_marked
     result, _, _, _ = compare_for_maw(
-        prey, maw, digest_options=digest_options, top=args.top, issue_lookup=lookup, log=log
+        prey,
+        maw,
+        digest_options=digest_options,
+        top=args.top,
+        issue_lookup=lookup,
+        log=log,
+        allow_partial=args.allow_partial,
     )
     if args.json:
         print(json.dumps(result.menu, indent=2, ensure_ascii=False))

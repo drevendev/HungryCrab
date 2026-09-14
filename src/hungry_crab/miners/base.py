@@ -75,6 +75,9 @@ class MineContext:
     md_budget: int = 3500
     shallow: bool = False
     ignore: list[str] = field(default_factory=list)
+    # What the working tree adds to the commit, when it adds anything. Empty for a prey
+    # clone, which is never edited; "clean" or a hash for a local repository.
+    worktree: str = ""
 
     @property
     def deep(self) -> bool:
