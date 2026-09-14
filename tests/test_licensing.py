@@ -19,8 +19,12 @@ from hungry_crab.licensing import (
     modes_by_maw_class,
     normalize,
 )
-from hungry_crab.licensing.detect import license_name_from_file, manifest_license
-from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id
+from hungry_crab.licensing.detect import (
+    is_license_file_name,
+    license_name_from_file,
+    manifest_license,
+)
+from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id, restricts_copying
 
 MIT_TEXT = (
     "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
@@ -53,16 +57,30 @@ BSD2_TEXT = (
     "Redistribution and use in source and binary forms are permitted provided that:\n"
     "1. Redistributions of source code must retain the above copyright notice.\n"
 )
-APACHE_TEXT = "Apache License\nVersion 2.0, January 2004\nhttp://www.apache.org/licenses/\n"
-GPL3_TEXT = "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n\nPreamble\n"
+APACHE_TEXT = (
+    "Apache License\nVersion 2.0, January 2004\nhttp://www.apache.org/licenses/\n\n"
+    "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n"
+)
+# Every FSF licence text opens with this sentence, and the GNU signature asks for it (#86).
+FSF_PREAMBLE = (
+    "Everyone is permitted to copy and distribute verbatim copies\n"
+    "of this license document, but changing it is not allowed.\n"
+)
+GPL3_TEXT = (
+    "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n\n" + FSF_PREAMBLE + "\nPreamble\n"
+)
 GPL3_NOTICE = (
     "This program is free software: you can redistribute it and/or modify it under the terms of "
     "the GNU General Public License as published by the Free Software Foundation, either "
     "version 3 of the License, or (at your option) any later version.\n"
 )
-LGPL21_TEXT = "GNU LESSER GENERAL PUBLIC LICENSE\nVersion 2.1, February 1999\n"
-AGPL_TEXT = "GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007\n"
-MPL_TEXT = "Mozilla Public License Version 2.0\n\n1. Definitions\n"
+LGPL21_TEXT = "GNU LESSER GENERAL PUBLIC LICENSE\nVersion 2.1, February 1999\n" + FSF_PREAMBLE
+AGPL_TEXT = "GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007\n" + FSF_PREAMBLE
+MPL_TEXT = (
+    "Mozilla Public License Version 2.0\n\n1. Definitions\n"
+    "1.1. Contributor means each individual or legal entity that creates, contributes to "
+    "the creation of, or owns Covered Software.\n"
+)
 UNLICENSE_TEXT = "This is free and unencumbered software released into the public domain.\n"
 CC_BY_SA_TEXT = "Attribution-ShareAlike 4.0 International\n"
 BUSL_TEXT = "Business Source License 1.1\nLicensor: Example\n"
@@ -527,3 +545,365 @@ def test_a_foreign_prey_is_unaffected_by_the_new_parameter() -> None:
     assert decide("GPL-3.0-only", "MIT") == decide(
         "GPL-3.0-only", "MIT", relationship=Relationship.FOREIGN
     )
+
+
+# --- a licence is not the licence it mentions (#86) -------------------------------------------
+#
+# A source-available licence names the licence it converts to, and a custom licence names the
+# licence the rest of the product is under. Both used to be read as the licence they named.
+
+
+def _busl(change: str) -> str:
+    """The stock BUSL-1.1 template, with its Change License filled in."""
+    return (
+        "Business Source License 1.1\n\nParameters\n\nLicensor: Acme Corp\n"
+        f"Licensed Work: Widget\nChange Date: 2030-01-01\nChange License: {change}\n\n"
+        "Terms\n\nThe Licensor hereby grants you the right to copy, modify, create derivative "
+        "works, redistribute, and make non-production use of the Licensed Work.\n"
+    )
+
+
+FSL_ALV2_TEXT = (
+    "Functional Source License, Version 1.1, ALv2 Future License\n\n"
+    "Future License Grant: on the second anniversary of the date the Software was made "
+    "available, the Software is also licensed under the Apache License, Version 2.0.\n"
+)
+FSL_MIT_TEXT = (
+    "Functional Source License, Version 1.1, MIT Future License\n\n"
+    "Future License Grant: on the second anniversary the Software is also licensed under MIT.\n"
+)
+COMMONS_CLAUSE_TEXT = (
+    APACHE_TEXT + "\nCommons Clause License Condition v1.0\n\nThe Software is provided to you by "
+    "the Licensor under the License, subject to the following condition.\n"
+)
+SUSTAINABLE_USE_TEXT = (
+    "Sustainable Use License\nVersion 1.0\n\nAcceptance: by using the software, you agree to "
+    "all of the terms and conditions below.\n"
+)
+POLYFORM_NC_TEXT = "PolyForm Noncommercial License 1.0.0\n<https://polyformproject.org/licenses/noncommercial/1.0.0>\n"
+CUSTOM_MENTIONING_APACHE = (
+    "TIMESCALE LICENSE AGREEMENT\n\nBACKGROUND. The Company makes some of its software available "
+    "under the Apache License, Version 2.0, and the rest under this Agreement. Licensee may not "
+    "provide the Timescale software to third parties as a hosted service.\n"
+)
+CUSTOM_MENTIONING_GPL = (
+    "ACME COMMERCIAL LICENSE\n\nThis is not the GNU General Public License, version 3. Use of "
+    "the software requires a paid subscription.\n"
+)
+APACHE_NOTICE = (
+    'Licensed under the Apache License, Version 2.0 (the "License");\n'
+    "you may not use this file except in compliance with the License.\n"
+)
+MPL_NOTICE = (
+    "This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # Sentry and CockroachDB name Apache, HashiCorp names MPL, MariaDB names the GPL.
+        (_busl("Apache License, Version 2.0"), "BUSL-1.1"),
+        (_busl("Mozilla Public License, version 2.0"), "BUSL-1.1"),
+        (
+            _busl(
+                "Version 2 or later of the GNU General Public License as published by the "
+                "Free Software Foundation"
+            ),
+            "BUSL-1.1",
+        ),
+        (FSL_ALV2_TEXT, "FSL-1.1-ALv2"),
+        (FSL_MIT_TEXT, "FSL-1.1-MIT"),
+        (COMMONS_CLAUSE_TEXT, "Commons-Clause"),
+        (SUSTAINABLE_USE_TEXT, "LicenseRef-SustainableUse"),
+        (POLYFORM_NC_TEXT, "PolyForm-Noncommercial-1.0.0"),
+        # No signature of its own: unreadable, which asks a human, rather than Apache.
+        (CUSTOM_MENTIONING_APACHE, None),
+        (CUSTOM_MENTIONING_GPL, None),
+        # And the licences themselves still read as themselves, in both of their usual forms.
+        (APACHE_NOTICE, "Apache-2.0"),
+        (MPL_NOTICE, "MPL-2.0"),
+    ],
+)
+def test_a_licence_is_not_the_licence_it_mentions(text: str, expected: str | None) -> None:
+    assert detect_from_text(text)[0] == expected
+
+
+@pytest.mark.parametrize(
+    "spdx",
+    [
+        "FSL-1.1-ALv2",
+        "FSL-1.1-MIT",
+        "PolyForm-Noncommercial-1.0.0",
+        "PolyForm-Small-Business-1.0.0",
+        "LicenseRef-PolyForm",
+        "LicenseRef-SustainableUse",
+    ],
+)
+def test_the_new_source_available_families_classify_as_such(spdx: str) -> None:
+    assert classify(spdx) is LicenseClass.SOURCE_AVAILABLE
+
+
+@pytest.mark.parametrize(
+    "change", ["Apache License, Version 2.0", "Mozilla Public License, version 2.0"]
+)
+def test_the_stock_busl_template_is_never_offered_for_copying(change: str) -> None:
+    """End to end, for the two templates that used to come out COPY and COPY_FILE."""
+    spdx, _ = detect_from_text(_busl(change))
+    assert decide(spdx, "MIT").mode is Mode.IDEAS_ONLY
+
+
+def test_restricts_copying_draws_the_line_after_attribution() -> None:
+    for spdx in ("MIT", "Apache-2.0", "CC-BY-4.0"):
+        assert not restricts_copying(spdx), spdx
+    for spdx in ("MPL-2.0", "LGPL-3.0-only", "GPL-3.0-only", "BUSL-1.1", "NOASSERTION"):
+        assert restricts_copying(spdx), spdx
+
+
+def test_a_split_the_root_declares_takes_in_the_files_that_say_where_it_falls(
+    tmp_path: Path,
+) -> None:
+    """The Timescale shape: Apache at the root, a custom licence under `tsl/` that mentions Apache.
+
+    The custom licence has no signature, so it is unreadable, and the root says the repository
+    is split. It used to be read as Apache and the whole repository came out COPY.
+    """
+    write_tree(
+        tmp_path,
+        {
+            "LICENSE": (
+                "Source code in this repository is variously licensed under the Apache License, "
+                "Version 2.0 (see LICENSE-APACHE) and the Timescale License "
+                "(see tsl/LICENSE-TIMESCALE).\n"
+            ),
+            "LICENSE-APACHE": APACHE_TEXT,
+            "tsl/LICENSE-TIMESCALE": CUSTOM_MENTIONING_APACHE,
+        },
+    )
+    findings = detect_in_repo(tmp_path, [], nested_license_files=["tsl/LICENSE-TIMESCALE"])
+    nested = {e["path"]: e["spdx"] for e in findings.exceptions if e["kind"] == "nested-license"}
+    assert nested == {"tsl/LICENSE-TIMESCALE": "NOASSERTION"}, "the custom licence is not Apache"
+    assert findings.resolution == "split"
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
+    assert findings.human_review
+    assert "tsl/LICENSE-TIMESCALE (NOASSERTION)" in " ".join(findings.notes)
+
+
+def test_a_declared_split_with_a_source_available_part_is_not_copyable(tmp_path: Path) -> None:
+    """The open-core `ee/` shape, with the part it names readable."""
+    write_tree(
+        tmp_path,
+        {
+            "LICENSE": (
+                "Portions of this software are licensed as follows: everything under ee/ is "
+                "covered by ee/LICENSE, and the rest is under the Apache License, Version 2.0.\n"
+            ),
+            "LICENSE-APACHE": APACHE_TEXT,
+            "ee/LICENSE": _busl("Apache License, Version 2.0"),
+        },
+    )
+    findings = detect_in_repo(tmp_path, [], nested_license_files=["ee/LICENSE"])
+    assert findings.resolution == "split"
+    assert findings.spdx is not None and "BUSL-1.1" in findings.spdx
+    assert decide(findings.spdx, "MIT").mode is Mode.IDEAS_ONLY
+
+
+def test_a_nested_restriction_the_root_is_silent_about_is_flagged(tmp_path: Path) -> None:
+    """Without a declared split the verdict stays the root's — and says it does not cover `ee/`."""
+    write_tree(
+        tmp_path, {"LICENSE": APACHE_TEXT, "ee/LICENSE": _busl("Apache License, Version 2.0")}
+    )
+    findings = detect_in_repo(tmp_path, [], nested_license_files=["ee/LICENSE"])
+    assert {e["spdx"] for e in findings.exceptions} == {"BUSL-1.1"}
+    assert findings.spdx == "Apache-2.0"
+    assert findings.human_review
+    assert "ee/LICENSE (BUSL-1.1)" in " ".join(findings.notes)
+
+
+@pytest.mark.parametrize(
+    ("nested", "text", "flagged"),
+    [
+        ("packages/sdk/LICENSE", APACHE_TEXT, True),
+        ("docs/LICENSE", "Attribution 4.0 International\n", True),
+        ("packages/core/LICENSE", MIT_TEXT, False),
+    ],
+)
+def test_an_obligation_the_root_verdict_does_not_carry_is_flagged(
+    tmp_path: Path, nested: str, text: str, flagged: bool
+) -> None:
+    """Raised in review of #90: an attribution-only obligation used to vanish without a signal.
+
+    An Apache subtree under an MIT root is copyable, but its NOTICE is not in the MIT verdict, and
+    a nutrient from that subtree went out as COPY without it. CC-BY's attribution is the same
+    case. MIT under MIT is the control: nothing is lost, so nothing is flagged.
+    """
+    write_tree(tmp_path, {"LICENSE": MIT_TEXT, nested: text})
+    findings = detect_in_repo(tmp_path, [], nested_license_files=[nested])
+    assert findings.spdx == "MIT"
+    assert findings.human_review is flagged
+    assert (nested in " ".join(findings.notes)) is flagged
+
+
+def test_an_unreadable_nested_licence_is_kept_and_flagged(tmp_path: Path) -> None:
+    """Kept, because dropping it was #86; flagged, because unknown obligations are not covered.
+
+    The first version kept this silent on the grounds that a font licence is not news. That held
+    while vendored trees reached this list; now that they are recorded separately, what is left
+    is the project's own tree, where a licence file nobody can read deserves a look.
+    """
+    write_tree(
+        tmp_path, {"LICENSE": MIT_TEXT, "assets/fonts/LICENSE": "Font licence. See the foundry.\n"}
+    )
+    findings = detect_in_repo(tmp_path, [], nested_license_files=["assets/fonts/LICENSE"])
+    assert {e["spdx"] for e in findings.exceptions} == {"NOASSERTION"}
+    assert findings.spdx == "MIT"
+    assert findings.human_review
+    assert "assets/fonts/LICENSE (NOASSERTION) cannot be read" in " ".join(findings.notes)
+
+
+def test_a_licence_outside_the_project_is_recorded_but_not_weighed(tmp_path: Path) -> None:
+    """Found running the first version of this fix on real prey (#86).
+
+    linguist's sample corpus carries `samples/Text/filenames/LICENSE.mysql`, which is test data,
+    and the crab's own `.venv` carries a licence per installed package. Weighing them raised the
+    review flag on both; dropping them would repeat the original bug.
+    """
+    write_tree(tmp_path, {"LICENSE": APACHE_TEXT, "vendor/lib/LICENSE": GPL3_TEXT})
+    findings = detect_in_repo(tmp_path, [], vendored_license_files=["vendor/lib/LICENSE"])
+    assert {(e["kind"], e["spdx"]) for e in findings.exceptions} == {
+        ("vendored-license", "GPL-3.0-only")
+    }
+    assert findings.spdx == "Apache-2.0"
+    assert not findings.human_review
+
+
+def test_a_declared_split_does_not_take_in_licences_from_outside_the_project(
+    tmp_path: Path,
+) -> None:
+    write_tree(
+        tmp_path,
+        {
+            "LICENSE": (
+                "Portions of this software are licensed as follows: the rest is under the "
+                "Apache License, Version 2.0.\n"
+            ),
+            "LICENSE-APACHE": APACHE_TEXT,
+            "vendor/lib/LICENSE": GPL3_TEXT,
+        },
+    )
+    findings = detect_in_repo(tmp_path, [], vendored_license_files=["vendor/lib/LICENSE"])
+    assert findings.spdx == "Apache-2.0"
+    assert decide(findings.spdx, "MIT").mode is Mode.COPY
+
+
+def test_the_licence_miner_weighs_the_project_and_only_records_the_rest(tmp_path: Path) -> None:
+    """The same split, through the miner, where `counted` decides which kind a file is."""
+    import json
+
+    from hungry_crab.cache import Target
+    from hungry_crab.digest import DigestOptions, run_digest
+
+    repo = write_tree(
+        tmp_path / "repo",
+        {
+            "LICENSE": APACHE_TEXT,
+            "ee/LICENSE": _busl("Apache License, Version 2.0"),
+            "vendor/lib/LICENSE": GPL3_TEXT,
+            "src/app.py": "print('crab')\n",
+        },
+    )
+    options = DigestOptions(out=tmp_path / "out", cache_root=tmp_path / "cache", miners=["license"])
+    result = run_digest(Target(path=repo), options)
+    data = json.loads((result.out_dir / "license.json").read_text(encoding="utf-8"))
+    kinds = {(e["kind"], e["path"]) for e in data["exceptions"]}
+    assert ("nested-license", "ee/LICENSE") in kinds
+    assert ("vendored-license", "vendor/lib/LICENSE") in kinds
+    assert data["human_review"], "ee/ is the project and it is source-available"
+    assert "vendor/lib/LICENSE" not in " ".join(data["notes"])
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("LICENSE", True),
+        ("LICENSE.md", True),
+        ("LICENSE.txt", True),
+        ("LICENSE-MIT", True),
+        ("LICENSE.MIT", True),
+        ("COPYING.LESSER", True),
+        ("apache-2.0.LICENSE", True),
+        ("LICENSE.mysql", True),
+        ("license.py", False),
+        ("license.json", False),
+        ("license.ts", False),
+        ("license.yml", False),
+        ("x.license.json", False),
+    ],
+)
+def test_a_licence_file_name_is_not_a_source_or_a_data_file(name: str, expected: bool) -> None:
+    """The crab read its own `miners/license.py` and frozen `license.json` digests as licences."""
+    assert is_license_file_name(name) is expected
+
+
+def test_a_source_file_called_license_does_not_decide_a_split(tmp_path: Path) -> None:
+    """The regression this fix would otherwise have introduced, through the miner.
+
+    Once nested licence files join a split the root declares, anything the name matcher accepts
+    can decide the verdict. A `license.py` read as an unreadable licence made the repository HUMAN.
+    """
+    import json
+
+    from hungry_crab.cache import Target
+    from hungry_crab.digest import DigestOptions, run_digest
+
+    repo = write_tree(
+        tmp_path / "repo",
+        {
+            "LICENSE": (
+                "Portions of this software are licensed as follows: the rest is under the "
+                "Apache License, Version 2.0.\n"
+            ),
+            "LICENSE-APACHE": APACHE_TEXT,
+            "src/licensing/license.py": "def detect(text):\n    return None\n",
+            "src/licensing/license.json": '{"spdx": "Apache-2.0"}\n',
+        },
+    )
+    options = DigestOptions(out=tmp_path / "out", cache_root=tmp_path / "cache", miners=["license"])
+    result = run_digest(Target(path=repo), options)
+    data = json.loads((result.out_dir / "license.json").read_text(encoding="utf-8"))
+    assert data["spdx"] == "Apache-2.0"
+    assert not [e for e in data["exceptions"] if "licensing/" in e["path"]]
+
+
+# --- a choice with an open branch is not decided by its source-available one ----------------
+
+ELASTIC_UMBRELLA = (
+    'Source code in this repository is covered by (i) a triple license under the "GNU Affero '
+    'General Public License v3.0", "Server Side Public License, v 1" and "Elastic License 2.0", '
+    "or (ii) solely under the Elastic License 2.0, as noted in the applicable header.\n"
+)
+SOURCE_AVAILABLE_CHOICE = (
+    "This software is available under your choice of the Redis Source Available License v2 or "
+    "the Server Side Public License v1.\n"
+)
+
+
+def test_a_choice_with_an_open_branch_is_not_decided_by_its_source_available_one() -> None:
+    """The Elasticsearch shape, found in self-review of #90.
+
+    master read it as AGPL, by accident of checking the GNU head first. The first version of this
+    fix read it as SSPL — IDEAS_ONLY even for an AGPL maw the AGPL branch lets copy. Neither is a
+    reading of the file, so it stays unreadable and a human picks the branch.
+    """
+    assert detect_from_text(ELASTIC_UMBRELLA) == (None, 0.0)
+
+
+def test_a_choice_among_source_available_licences_is_still_source_available() -> None:
+    assert detect_from_text(SOURCE_AVAILABLE_CHOICE)[0] == "SSPL-1.0"
+
+
+def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
+    write_tree(tmp_path, {"LICENSE.txt": ELASTIC_UMBRELLA})
+    findings = detect_in_repo(tmp_path, [])
+    assert decide(findings.spdx, "AGPL-3.0-only").mode is Mode.HUMAN
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN

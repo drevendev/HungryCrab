@@ -136,6 +136,10 @@ _CANONICAL: dict[str, str] = {
     "bsl-1.1": "BUSL-1.1",
     "sspl-1.0": "SSPL-1.0",
     "elastic-2.0": "Elastic-2.0",
+    "fsl-1.1-alv2": "FSL-1.1-ALv2",
+    "fsl-1.1-mit": "FSL-1.1-MIT",
+    "polyform-noncommercial-1.0.0": "PolyForm-Noncommercial-1.0.0",
+    "polyform-small-business-1.0.0": "PolyForm-Small-Business-1.0.0",
     "commons-clause": "Commons-Clause",
     "postgresql": "PostgreSQL",
     "python-2.0": "Python-2.0",
@@ -163,8 +167,12 @@ PERMISSIVE_IDS = frozenset(
 )  # fmt: skip
 
 SOURCE_AVAILABLE_IDS = frozenset(
-    {"BUSL-1.1", "SSPL-1.0", "Elastic-2.0", "Commons-Clause", "LicenseRef-Proprietary"}
-)
+    {
+        "BUSL-1.1", "SSPL-1.0", "Elastic-2.0", "Commons-Clause", "LicenseRef-Proprietary",
+        "FSL-1.1-ALv2", "FSL-1.1-MIT",
+        "PolyForm-Noncommercial-1.0.0", "PolyForm-Small-Business-1.0.0",
+    }
+)  # fmt: skip
 
 _RANK: tuple[LicenseClass, ...] = (
     LicenseClass.PERMISSIVE,
@@ -408,6 +416,21 @@ def _classify_id(ident: str) -> LicenseClass:
     if ident.startswith("GFDL-"):
         return LicenseClass.DOCS_SHARE_ALIKE
     return LicenseClass.UNKNOWN
+
+
+def restriction_rank(spdx: str | None) -> int:
+    """Where a licence sits between "copy it" and "nothing may travel", as a sortable number."""
+    return _RANK.index(classify(spdx))
+
+
+def restricts_copying(spdx: str | None) -> bool:
+    """Does this licence limit copying beyond keeping a notice?
+
+    Apache's NOTICE and CC-BY's attribution travel with a ``COPY``. From file-level copyleft on,
+    the licence decides what may be copied at all, and a part of the repository under it is not
+    covered by a permissive verdict for the rest.
+    """
+    return restriction_rank(spdx) >= _RANK.index(LicenseClass.FILE_COPYLEFT)
 
 
 def maw_class(spdx: str | None) -> MawClass:
