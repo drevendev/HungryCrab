@@ -28,6 +28,13 @@ CATEGORIES: tuple[str, ...] = (
     "architecture",
     "code",
 )
+# A category may be declared before anything produces it, but never silently: a knob in
+# `.crab.yml` and a weight in `scoring.yml` that no meal can reach look exactly like a category
+# somebody forgot. Every entry here names the milestone that owes the producer, and
+# `tests/test_categories.py` refuses a declared category that is neither produced nor listed.
+DEFERRED_CATEGORIES: dict[str, str] = {
+    "code": "0.4 Deep Bite: symbol-level nutrients from tree-sitter symbols and the call graph",
+}
 SERVE_AS: tuple[str, ...] = ("pr", "issue", "idea")
 EFFORTS: tuple[str, ...] = ("S", "M", "L")
 RISKS: tuple[str, ...] = ("low", "medium", "high")

@@ -115,6 +115,9 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
     for entry in entries:
         by_category.setdefault(entry.category, []).append(entry)
         by_key.setdefault(entry.key, []).append(entry)
+        # `entry.prey` is the prey that first proposed the nutrient, kept through every later
+        # sighting, so a decision is credited to the prey that found it rather than to whichever
+        # re-proposed it last.
         if entry.prey:
             by_prey.setdefault(entry.prey, []).append(entry)
     report.categories = {name: _counts(items) for name, items in sorted(by_category.items())}

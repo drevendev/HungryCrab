@@ -69,6 +69,8 @@ def test_npm_ci_features(npm_digest: DigestResult) -> None:
     assert features["actions_sha_pinned_ratio"] == 0.12
     assert features["secrets"] == ["CODECOV_TOKEN"]
     assert {"npm test", "playwright", "codecov", "coverage", "npm build"} <= set(features["tools"])
+    assert features["coverage_upload"] == "codecov"
+    assert features["coverage_flags"] == ["--coverage"]
     assert features["pipe_to_shell_steps"] == 0
     checkout = data["actions"]["actions/checkout"]
     assert checkout["count"] == 2
@@ -83,6 +85,38 @@ def test_npm_ci_features(npm_digest: DigestResult) -> None:
     text = read_md(npm_digest, "ci.md")
     assert "## Workflows" in text and "## Actions used" in text
     assert "CODECOV_TOKEN" in text
+
+
+def test_go_ci_records_what_it_does_about_coverage(go_digest: DigestResult) -> None:
+    data = read_json(go_digest, "ci.json")
+    features = data["features"]
+    assert features["coverage_upload"] == "codecov"
+    assert features["coverage_flags"] == ["-coverprofile"]
+    workflow = data["workflows"][0]
+    assert workflow["coverage"] == {"flags": ["-coverprofile"], "upload": "codecov"}
+
+
+def test_coverage_flags_are_matched_as_flags_not_as_words() -> None:
+    steps = {
+        "go test -cover ./...": ["-cover"],
+        "go test -coverprofile=c.out ./...": ["-coverprofile"],
+        "pytest --cov=pkg --cov-report=xml": ["--cov"],
+        "pytest --cov": ["--cov"],
+        "npx vitest run --coverage": ["--coverage"],
+        'dotnet test --collect:"XPlat Code Coverage"': ["--collect XPlat Code Coverage"],
+        "dotnet test -p:CollectCoverage=true": ["-p:CollectCoverage"],
+        "coverage run -m pytest": ["coverage run"],
+        "cargo llvm-cov --lcov --output-path lcov.info": ["cargo llvm-cov"],
+        "echo coverage is nice; go test ./...": [],
+        "pytest --cov-fail-under=80": [],
+        "./discover ./...": [],
+    }
+    head = "name: x\non: [push]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+    for run, expected in steps.items():
+        parsed = parse_workflow(f"{head}      - run: {run!r}\n", ".github/workflows/x.yml")
+        assert parsed is not None
+        assert parsed["coverage"]["flags"] == expected, run
+        assert parsed["coverage"]["upload"] is None
 
 
 def test_python_ci_gaps(py_digest: DigestResult) -> None:

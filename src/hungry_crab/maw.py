@@ -53,10 +53,11 @@ hunger:                    # per nutrient category: true | false | issues-only |
   history-lesson: true
   issue-lesson: true
   architecture: issues-only
-  code: ideas-only
+  code: ideas-only         # declared, and produced by nothing until 0.4: accepted and inert
 ignore: []                 # globs excluded from this repository's own digest, so that test
                            # fixtures and vendored trees are not mistaken for your code, e.g.
-                           # [tests/fixtures/**, examples/**]
+                           # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on
+                           # every platform, like the git paths they match.
 serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off (pull requests arrive with 0.3)

@@ -28,6 +28,12 @@ from hungry_crab.maw import CONFIG_FILE
         ("src/app.py", [], False),
         ("src/app.py", ["", "  "], False),
         ("vendor/lib/x.go", ["vendor/**", "examples/**"], True),
+        # Case-sensitive on every platform. `fnmatch.fnmatch` lowercases both sides on Windows
+        # and neither on Linux, so the same .crab.yml produced two different digests of one
+        # commit, and each was consistent with itself. Git paths are case-sensitive; so is this.
+        ("Tests/Fixtures/a.py", ["tests/fixtures/**"], False),
+        ("tests/fixtures/a.py", ["tests/fixtures/**"], True),
+        ("docs/README.MD", ["*.md"], False),
     ],
 )
 def test_is_ignored(path: str, patterns: list[str], expected: bool) -> None:

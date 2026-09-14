@@ -15,7 +15,7 @@ Categories are fixed: they are keys in `.crab.yml` (hunger), issue labels and sc
 | `history-lesson` | the prey's fix-prone areas and reverts point at a fragile design the maw shares | issue, from the historian |
 | `issue-lesson` | recurring user pain in the prey that the maw's users will hit too | idea, then issue |
 | `architecture` | layering or hubs in the prey suggest a structural change the maw would benefit from | issue, from the architect |
-| `code` | an algorithm or utility worth copying (mode `COPY`) or reimplementing (`REIMPLEMENT`) | issue until 0.3, then pr |
+| `code` | an algorithm or utility worth copying (mode `COPY`) or reimplementing (`REIMPLEMENT`). Declared and weighted, but no producer emits it until milestone 0.4: a menu never carries a `code` card today, and the `code` hunger setting is inert | issue until 0.3, then pr |
 
 ## Drop when
 

@@ -2,7 +2,9 @@
 
 Every issue carries a hidden ``<!-- crab:<id> -->`` marker so that later runs (and other
 machines) can see it was already served, a label, and a trace footer naming the prey, the
-commit, the license and the mode. Pull-request branches arrive with milestone 0.3.
+commit, the license and the mode. The marker is the first line of the body, and dedup relies on
+that: a quote of a served issue carries the marker too, further down. Pull-request branches
+arrive with milestone 0.3.
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -72,24 +75,60 @@ class IssueClient(Protocol):
         ...
 
 
+def _opens_with(body: str, marker: str) -> bool:
+    """A Hungry Crab issue starts with its marker; a quote of one carries it further down."""
+    match = MARKER_RE.match(body.lstrip())
+    return match is not None and match.group(1) == marker
+
+
 def parse_markers(issues: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Map ``crab:<id>`` markers found in issue bodies to the issue that carries them."""
-    found: dict[str, dict[str, Any]] = {}
+    """Map ``crab:<id>`` markers found in issue bodies to the issue that carries them.
+
+    A marker can be in more than one issue, because an HTML comment survives a quote. The issue
+    the crab filed is the one whose body *opens* with the marker, as ``render_issue`` writes it;
+    among several of those, or failing any, the oldest wins. The answer does not depend on the
+    order the issues arrive in — ``gh`` returns newest first, and "first seen wins" let a quote
+    steal the real issue's number and state.
+    """
+    ranked: dict[str, tuple[tuple[int, int], dict[str, Any]]] = {}
     for issue in issues:
         body = issue.get("body")
         if not isinstance(body, str):
             continue
-        for marker in MARKER_RE.findall(body):
-            found.setdefault(
-                marker,
+        number = issue.get("number")
+        age = number if isinstance(number, int) else sys.maxsize
+        for marker in set(MARKER_RE.findall(body)):
+            rank = (0 if _opens_with(body, marker) else 1, age)
+            current = ranked.get(marker)
+            if current is not None and current[0] <= rank:
+                continue
+            ranked[marker] = (
+                rank,
                 {
-                    "number": issue.get("number"),
+                    "number": number,
                     "url": issue.get("url"),
                     "state": str(issue.get("state", "")).lower(),
                     "title": issue.get("title"),
                 },
             )
-    return found
+    return {marker: found for marker, (_, found) in ranked.items()}
+
+
+def _json_documents(text: str) -> list[Any]:
+    """``gh api --paginate`` prints one JSON document per page, back to back."""
+    decoder = json.JSONDecoder()
+    documents: list[Any] = []
+    index = 0
+    while index < len(text):
+        if text[index].isspace():
+            index += 1
+            continue
+        try:
+            value, index = decoder.raw_decode(text, index)
+        except ValueError as exc:
+            raise ExternalCommandError("gh api returned invalid JSON") from exc
+        documents.append(value)
+    return documents
 
 
 class GhIssueClient:
@@ -131,19 +170,35 @@ class GhIssueClient:
         return proc.stdout.decode("utf-8", errors="replace")
 
     def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
-        common = ["issue", "list", "--repo", str(slug), "--state", "all", "--limit", "500",
-                  "--json", "number,url,state,title,body"]  # fmt: skip
-        try:
-            out = self._run(*common, "--label", label)
-        except CrabError:
-            # A repository we cannot label has no label to filter by, and dedup still has to
-            # work: the marker in the body is what identifies a served nutrient, not the label.
-            out = self._run(*common)
-        try:
-            issues = json.loads(out or "[]")
-        except ValueError as exc:
-            raise ExternalCommandError("gh issue list returned invalid JSON") from exc
-        return parse_markers([as_dict(item) for item in as_list(issues)])
+        """Markers in every issue of the repository, whatever its label, however many.
+
+        ``gh issue list --limit 500`` was a cliff: past five hundred issues the crab's markers
+        fell off the end and the next serve filed everything again — on exactly the repository
+        where the maw's ledger is not there to catch it, one the crab is a visitor to. The label
+        is no filter either: a repository the crab cannot label gets its issues without one, so
+        filtering by it would hide the very issues dedup exists to find. The issues endpoint
+        also returns pull requests; those are dropped.
+        """
+        del label  # dedup reads the marker in the body, never the label
+        out = self._run(
+            "api", "--paginate", f"repos/{slug}/issues?state=all&per_page=100&direction=asc"
+        )
+        issues: list[dict[str, Any]] = []
+        for page in _json_documents(out):
+            for item in as_list(page):
+                data = as_dict(item)
+                if "pull_request" in data:
+                    continue
+                issues.append(
+                    {
+                        "number": data.get("number"),
+                        "url": data.get("html_url"),
+                        "state": data.get("state"),
+                        "title": data.get("title"),
+                        "body": data.get("body"),
+                    }
+                )
+        return parse_markers(issues)
 
     def ensure_label(self, slug: Slug, label: str) -> bool:
         """Creating a label needs write access; filing an issue does not.

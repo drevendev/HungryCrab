@@ -128,10 +128,14 @@ def test_cli_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
     assert same.status == OK
     assert same.detail == "same version as master (bbbbbbb, 2026-09-06)"
 
+    # No recorded commit is not evidence of equality: the version string cannot tell two
+    # development snapshots apart, so the verdict has to stay actionable rather than fall back
+    # to the optimistic one the commit comparison was added to replace.
     monkeypatch.setattr(updater, "installed_commit", lambda: None)
     unknown = check_cli(Remote(cli_version=__version__, sha="b" * 40, date="2026-09-06"))
-    assert unknown.status == OK
+    assert unknown.status == UNKNOWN
     assert "records no commit" in unknown.detail
+    assert unknown.commands == [["uv", "tool", "install", "--force", updater.REQUIREMENT]]
     assert same.commands, "an up-to-date version can still be behind master"
 
     offline = check_cli(Remote(error="no network"))
@@ -254,6 +258,50 @@ def test_apply_updates_the_cli_when_it_is_not_the_running_install(
     executed = [" ".join(call) for call in calls]
     assert any("uv tool install --force" in command for command in executed)
     assert report.components[0].status == OK
+
+
+def _same_version_no_commit(monkeypatch: pytest.MonkeyPatch, kind: str) -> UpdateReport:
+    """A crab at master's version string whose install records no commit."""
+    monkeypatch.setattr(updater, "cli_install_kind", lambda: kind)
+    monkeypatch.setattr(
+        updater, "uv_tool_receipt", lambda: Path("uv-receipt.toml") if kind == "uv-tool" else None
+    )
+    monkeypatch.setattr(updater, "installed_commit", lambda: None)
+    monkeypatch.setattr(updater.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+    runner = fake_runner(
+        {
+            "claude plugin list": (True, claude_list("0.3.0")),
+            "codex plugin list": (True, codex_list("0.3.0")),
+        }
+    )
+    return check(client=FakeGitHub(cli=__version__, plugin="0.3.0"), runner=runner)  # type: ignore[arg-type]
+
+
+def test_a_missing_commit_is_repaired_where_the_crab_is_not_the_running_install(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report = _same_version_no_commit(monkeypatch, "environment")
+    cli = report.components[0]
+    assert cli.status == UNKNOWN and cli in report.actionable
+    calls: list[list[str]] = []
+    updater.apply(report, runner=fake_runner({}, calls))
+    assert any("uv tool install --force" in " ".join(call) for call in calls)
+    assert cli.status == OK and cli.detail == "updated"
+
+
+def test_a_missing_commit_prints_the_reinstall_for_a_running_uv_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report = _same_version_no_commit(monkeypatch, "uv-tool")
+    cli = report.components[0]
+    assert cli.status == UNKNOWN
+    assert "Nothing to do." not in format_report(report), "it just said to reinstall"
+    calls: list[list[str]] = []
+    updater.apply(report, runner=fake_runner({}, calls))
+    assert not any("uv tool install" in " ".join(call) for call in calls), "would break itself"
+    assert cli.status == UNKNOWN and "while it is running" in cli.detail
+    text = format_report(report)
+    assert "Run:" in text and "uv tool install --force" in text
 
 
 def test_apply_reports_a_failing_command(monkeypatch: pytest.MonkeyPatch) -> None:

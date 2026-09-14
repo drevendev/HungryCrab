@@ -128,6 +128,32 @@ ACTION_TOOLS: dict[str, str] = {
     "pypa/gh-action-pypi-publish": "pypi publish",
     "docker/build-push-action": "docker build",
 }
+# Where a workflow sends coverage (matched by prefix on the action name).
+COVERAGE_UPLOAD_ACTIONS: dict[str, str] = {
+    "codecov/codecov-action": "codecov",
+    "coverallsapp/github-action": "coveralls",
+    "paambaati/codeclimate-action": "codeclimate",
+}
+# Coverage declared on the command line rather than in a file. A Go or Rust project has no
+# `.coveragerc` and no coverage package in a manifest: the flag on `go test` is the whole of
+# the declaration, and the upload action above is the other half. Word boundaries keep
+# `--cov` from matching `--cov-report` twice and `-cover` from matching `-coverprofile`.
+COVERAGE_FLAGS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
+    (name, re.compile(pattern))
+    for name, pattern in (
+        ("-coverprofile", r"(?<![\w-])-coverprofile(?![\w-])"),
+        ("-cover", r"(?<![\w-])-cover(?![\w-])"),
+        ("--cov", r"(?<![\w-])--cov(?:=|(?![\w-]))"),
+        ("--coverage", r"(?<![\w-])--coverage(?![\w-])"),
+        ("-p:CollectCoverage", r"-p:CollectCoverage=true"),
+        ("--collect XPlat Code Coverage", r"--collect[=:]\s*[\"']?XPlat Code Coverage"),
+        ("coverage run", r"(?<![\w-])coverage\s+run(?![\w-])"),
+        ("cargo llvm-cov", r"\bcargo\s+llvm-cov\b"),
+        ("cargo tarpaulin", r"\bcargo\s+tarpaulin\b"),
+        ("nyc", r"(?<![\w-])nyc\s+(?![\w-]*$)"),
+        ("c8", r"(?<![\w-])c8\s+(?![\w-]*$)"),
+    )
+)
 OTHER_CI_FILES: dict[str, str] = {
     ".gitlab-ci.yml": "gitlab-ci",
     ".circleci/config.yml": "circleci",
@@ -265,6 +291,8 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
     jobs: list[dict[str, Any]] = []
     actions: list[dict[str, Any]] = []
     tools: set[str] = set()
+    coverage_flags: set[str] = set()
+    coverage_upload: str | None = None
     cache = False
     reusable_calls = 0
     timeouts = 0
@@ -308,6 +336,15 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                         for prefix, tool in ACTION_TOOLS.items()
                         if parsed["action"].startswith(prefix)
                     )
+                    if coverage_upload is None:
+                        coverage_upload = next(
+                            (
+                                service
+                                for prefix, service in COVERAGE_UPLOAD_ACTIONS.items()
+                                if parsed["action"].startswith(prefix)
+                            ),
+                            None,
+                        )
                     if _step_cache(parsed["action"], step.get("with")):
                         cache = True
                 run = step.get("run")
@@ -316,6 +353,9 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     for name, pattern in TOOL_PATTERNS:
                         if pattern.search(run):
                             tools.add(name)
+                    for name, pattern in COVERAGE_FLAGS:
+                        if pattern.search(run):
+                            coverage_flags.add(name)
                     if _PIPE_TO_SHELL_RE.search(run):
                         pipe_to_shell += 1
             jobs.append(
@@ -366,6 +406,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
         "jobs": jobs,
         "actions": actions,
         "tools": sorted(tools),
+        "coverage": {"flags": sorted(coverage_flags), "upload": coverage_upload},
         "cache": cache,
         "matrix": any(j["matrix"] for j in jobs),
         "reusable_calls": reusable_calls,
@@ -512,6 +553,10 @@ class CiMiner:
             "windows_runner": any("windows" in r for wf in workflows for r in wf["runners"]),
             "macos_runner": any("macos" in r for wf in workflows for r in wf["runners"]),
             "tools": sorted({t for wf in workflows for t in wf["tools"]}),
+            "coverage_upload": next(
+                (wf["coverage"]["upload"] for wf in workflows if wf["coverage"]["upload"]), None
+            ),
+            "coverage_flags": sorted({f for wf in workflows for f in wf["coverage"]["flags"]}),
             "secrets": sorted({s for wf in workflows for s in wf["secrets"]}),
             "pipe_to_shell_steps": sum(wf["pipe_to_shell"] for wf in workflows),
             "dependabot": dependabot is not None,
