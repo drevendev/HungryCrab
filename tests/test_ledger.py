@@ -85,6 +85,49 @@ def test_record_mark_hide_and_roundtrip(tmp_path: Path) -> None:
     assert stats["by_prey"]["example/prey"]["proposed"] == 1
 
 
+def test_the_first_prey_keeps_the_credit_when_another_proposes_the_same_nutrient(
+    tmp_path: Path,
+) -> None:
+    """Ids are maw-relative, so many prey propose one nutrient; the finder must not lose it.
+
+    The maw's own ledger showed the failure: three nutrients first proposed on 2026-09-06 by one
+    prey all named the prey of a confirmation round three days later, because every meal
+    overwrote `prey`. `crab tune` groups decisions by that field.
+    """
+    path = tmp_path / "ledger.json"
+    ledger = Ledger(path, maw="maw")
+    first = Candidate("deps", "deps.python.rich", "rich", "x", score=0.6)
+    first.trace = {"prey": "AmenRa/ranx", "sha": "a" * 40}
+    ledger.record_meal({"prey": {"label": "AmenRa/ranx"}, "verdict": {}}, [first], now=NOW)
+    again = Candidate("deps", "deps.python.rich", "rich", "x", score=0.4)
+    again.trace = {"prey": "promptfoo/promptfoo", "sha": "b" * 40}
+    ledger.record_meal(
+        {"prey": {"label": "promptfoo/promptfoo"}, "verdict": {}}, [again], now=LATER
+    )
+
+    entry = ledger.entries["crab:deps:deps.python.rich"]
+    assert (entry.prey, entry.sha) == ("AmenRa/ranx", "a" * 40), "the prey that found it"
+    assert (entry.last_prey, entry.last_sha) == ("promptfoo/promptfoo", "b" * 40)
+    assert entry.sightings == 2
+    assert entry.score == 0.4 and entry.last_seen.startswith("2025-06-02")
+    ledger.mark(entry.id, "accepted", now=LATER)
+    assert ledger.stats()["by_prey"] == {"AmenRa/ranx": {"accepted": 1}}
+
+    ledger.save(now=LATER)
+    reloaded = Ledger.load(path).entries[entry.id]
+    assert reloaded.prey == "AmenRa/ranx" and reloaded.last_prey == "promptfoo/promptfoo"
+    assert reloaded.sightings == 2
+
+
+def test_a_ledger_written_before_sightings_were_recorded_still_loads() -> None:
+    old = {"id": "crab:a:b", "category": "a", "key": "b", "title": "t", "prey": "x/y", "sha": "c"}
+    entry = LedgerEntry.from_dict(old)
+    assert entry.last_prey == "x/y" and entry.last_sha == "c"
+    assert entry.sightings == 1
+    assert LedgerEntry.from_dict({**old, "sightings": "many"}).sightings == 1
+    assert LedgerEntry.from_dict({**old, "sightings": 0}).sightings == 1
+
+
 def test_ledger_without_a_path_stays_in_memory() -> None:
     ledger = Ledger(None, maw="h")
     ledger.record_meal(MENU, _cards(), now=NOW)

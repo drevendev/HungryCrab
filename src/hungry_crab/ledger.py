@@ -28,6 +28,14 @@ def _stamp(now: datetime | None) -> str:
 
 @dataclass
 class LedgerEntry:
+    """One nutrient as this maw has seen it.
+
+    Ids are maw-relative, so the same nutrient is proposed by many prey. ``prey`` and ``sha``
+    name the one that proposed it *first* and are never overwritten: that is the prey that found
+    it, and the one ``crab tune`` credits a decision to. Later sightings move ``last_prey``,
+    ``last_sha``, ``last_seen`` and ``score``, and count in ``sightings``.
+    """
+
     id: str
     category: str
     key: str
@@ -39,6 +47,9 @@ class LedgerEntry:
     serve_as: str = "issue"
     first_seen: str = ""
     last_seen: str = ""
+    last_prey: str = ""
+    last_sha: str = ""
+    sightings: int = 1
     decided_at: str | None = None
     reason: str = ""
     url: str | None = None
@@ -52,23 +63,36 @@ class LedgerEntry:
         kwargs = {key: value for key, value in data.items() if key in known}
         for required in ("id", "category", "key", "title"):
             kwargs.setdefault(required, "")
-        return cls(**kwargs)
+        try:
+            kwargs["sightings"] = max(1, int(kwargs.get("sightings") or 1))
+        except (TypeError, ValueError):
+            kwargs["sightings"] = 1
+        entry = cls(**kwargs)
+        # A ledger written before sightings were recorded knows one prey per entry: the last
+        # one, because every meal overwrote it. That is still the best guess for both.
+        entry.last_prey = entry.last_prey or entry.prey
+        entry.last_sha = entry.last_sha or entry.sha
+        return entry
 
     @classmethod
     def from_candidate(cls, card: Candidate, *, now: datetime | None = None) -> LedgerEntry:
         stamp = _stamp(now)
+        prey = str(card.trace.get("prey", ""))
+        sha = str(card.trace.get("sha", ""))
         return cls(
             id=card.id,
             category=card.category,
             key=card.key,
             title=card.title,
             status=card.status if card.status in STATUSES else "proposed",
-            prey=str(card.trace.get("prey", "")),
-            sha=str(card.trace.get("sha", "")),
+            prey=prey,
+            sha=sha,
             score=card.score,
             serve_as=card.serve_as,
             first_seen=stamp,
             last_seen=stamp,
+            last_prey=prey,
+            last_sha=sha,
         )
 
 
@@ -168,8 +192,12 @@ class Ledger:
                 continue
             existing.last_seen = stamp
             existing.score = card.score
-            existing.prey = str(card.trace.get("prey", existing.prey))
-            existing.sha = str(card.trace.get("sha", existing.sha))
+            existing.last_prey = str(card.trace.get("prey", existing.last_prey))
+            existing.last_sha = str(card.trace.get("sha", existing.last_sha))
+            existing.sightings += 1
+            if not existing.prey:
+                # An entry that never learnt who proposed it: the earliest known prey is this.
+                existing.prey, existing.sha = existing.last_prey, existing.last_sha
         prey = as_dict(menu.get("prey"))
         verdict = as_dict(menu.get("verdict"))
         self.meals.append(
