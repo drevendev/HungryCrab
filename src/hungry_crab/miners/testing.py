@@ -234,7 +234,10 @@ def _test_dirs(test_files: list[FileInfo]) -> list[str]:
 
 class TestingMiner:
     name = "testing"
-    requires: tuple[str, ...] = ("inventory", "deps")
+    # `ci` is here for coverage. A Go or Rust project declares it on the `go test` command line
+    # and in an upload action, never in a manifest or a config file, and the CI miner had
+    # already written both down while this one answered "not configured".
+    requires: tuple[str, ...] = ("inventory", "deps", "ci")
     json_file = "tests.json"
     md_file = "tests.md"
 
@@ -261,12 +264,20 @@ class TestingMiner:
                 frameworks.setdefault(_E2E_CONFIG_TOOLS[tool], "e2e")
 
         threshold, threshold_source = self._coverage_threshold(ctx, configs)
+        ci_coverage = self._ci_coverage(ctx)
         coverage_configured = (
             threshold is not None
             or any(kind == "coverage" for kind in frameworks.values())
             or any(c["tool"] in _COVERAGE_CONFIG_TOOLS for c in configs)
+            or ci_coverage is not None
         )
-        coverage_service = "codecov" if any(c["tool"] == "codecov" for c in configs) else None
+        coverage_service = (
+            ci_coverage["upload"]
+            if ci_coverage and ci_coverage["upload"]
+            else "codecov"
+            if any(c["tool"] == "codecov" for c in configs)
+            else None
+        )
 
         kinds = set(frameworks.values())
         dir_names = {part for f in files for part in f.path.split("/")[:-1]}
@@ -306,6 +317,7 @@ class TestingMiner:
                 "threshold": threshold,
                 "threshold_source": threshold_source,
                 "service": coverage_service,
+                "in_ci": ci_coverage,
             },
             "special": special,
             "sample_test_files": [f.path for f in test_files[:15]],
@@ -348,6 +360,22 @@ class TestingMiner:
             frameworks.setdefault("testing", "unit")
         return frameworks
 
+    def _ci_coverage(self, ctx: MineContext) -> dict[str, Any] | None:
+        """What CI does about coverage, from the CI miner: an upload action, a flag, or nothing.
+
+        The threshold is deliberately not read from here. A threshold is declared in a file,
+        and inventing one from a command line would be worse than reporting none.
+        """
+        for wf in ctx.data("ci")["workflows"]:
+            coverage = wf["coverage"]
+            if coverage["upload"] or coverage["flags"]:
+                return {
+                    "workflow": wf["path"],
+                    "upload": coverage["upload"],
+                    "flags": list(coverage["flags"]),
+                }
+        return None
+
     def _coverage_threshold(
         self, ctx: MineContext, configs: list[dict[str, str]]
     ) -> tuple[int | None, str | None]:
@@ -379,6 +407,11 @@ class TestingMiner:
             if coverage["threshold"]
             else "none"
         )
+        in_ci = coverage["in_ci"]
+        in_ci_line = "none"
+        if in_ci:
+            what = [*([f"upload to {in_ci['upload']}"] if in_ci["upload"] else []), *in_ci["flags"]]
+            in_ci_line = f"{', '.join(what)} ({in_ci['workflow']})"
         summary.kv(
             [
                 ("Test files", data["test_files"]),
@@ -394,6 +427,7 @@ class TestingMiner:
                 ("Coverage configured", coverage["configured"]),
                 ("Coverage threshold", threshold),
                 ("Coverage service", coverage["service"] or "none"),
+                ("Coverage in CI", in_ci_line),
             ]
         )
         special = doc.section("Special kinds of tests", priority=2)
