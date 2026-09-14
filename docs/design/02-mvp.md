@@ -23,7 +23,7 @@ and PRs on CI / tooling / AI configs merge without rework.
 | Traits matrix (~120 traits), compare, pre-scoring | Learning the scorer from the ledger, embeddings |
 | Issues + PRs via gh, trace, dedup, ledger, attribution | GitHub Action, MCP server, dashboard |
 | Clean room via a subagent (from 0.3) | Automatic similarity check of an implementation against the original |
-| Plugin for Claude Code + `npx skills add` | PyPI package with auto-update (possible, not required) |
+| Plugin for Claude Code | `npx skills add` and a PyPI package — milestone 0.6 "Everywhere" in the roadmap |
 
 ## 3. CLI commands (MVP set)
 
@@ -110,6 +110,13 @@ the category list with "what counts as valuable" criteria, examples of good card
 
 ## 8. Milestones
 
+[03-roadmap.md](03-roadmap.md) is the authority on what each milestone contains and where the
+project stands. The lists below are the MVP-era sketch of the first three; where an item here
+and the roadmap's row disagree, the roadmap wins and this list is what needs correcting. It has
+drifted twice already — digest coverage was owed to two milestones at once, and `npx skills add`
+sat in 0.3 here and in 0.6 there — and each time a reader planning from this file scoped in work
+that belonged elsewhere.
+
 ### 0.1 "Sniff & Digest" — CLI without a model
 - Repository, `pyproject`, the crab's own CI (lint, tests on Windows + Linux).
 - `sniff`, `catch`, `digest` with miners: license, inventory, traits, ci, tests, deps, history,
@@ -131,7 +138,8 @@ the category list with "what counts as valuable" criteria, examples of good card
 - `serve --as pr-branch`, PR template with trace, `THIRD_PARTY_NOTICES.md`, secret scan.
 - `crab-cleanroom` skill and subagent with the deny rule; the "never execute prey" hook.
 - Wiki miner, `strict` mode, `--shallow/--since` for giants.
-- README, docs, disclaimer, `npx skills add` compatibility.
+- README, docs, disclaimer. (`npx skills add` compatibility is 0.6 "Everywhere", with the MCP
+  server and the PyPI package.)
 - Exit: a run over 4 fleet repositories, ≥ 3 merged PRs on CI / tooling / AI configs.
 
 ## 9. MVP acceptance criteria

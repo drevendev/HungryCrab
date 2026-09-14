@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 DEFAULT_TEXT_LIMIT = 2 * 1024 * 1024
@@ -54,15 +54,20 @@ def is_ignored(path: str, patterns: Sequence[str]) -> bool:
 
     Both ``tests/fixtures`` and ``tests/fixtures/**`` cover everything under that directory:
     a pattern also matches any path below it, which is what people mean when they write one.
+
+    The match is case-sensitive on every platform. ``fnmatch.fnmatch`` runs both sides through
+    ``os.path.normcase``, which lowercases on Windows and does nothing on Linux, so one
+    ``.crab.yml`` ignored different files on the two platforms and nothing warned: each digest
+    was consistent with itself. The paths come from git, and git paths are case-sensitive.
     """
     for raw in patterns:
         pattern = raw.strip().rstrip("/")
         if not pattern:
             continue
-        if fnmatch(path, pattern) or fnmatch(path, f"{pattern}/*"):
+        if fnmatchcase(path, pattern) or fnmatchcase(path, f"{pattern}/*"):
             return True
         trimmed = pattern.removesuffix("/**").removesuffix("/*")
-        if trimmed != pattern and (fnmatch(path, trimmed) or fnmatch(path, f"{trimmed}/*")):
+        if trimmed != pattern and (fnmatchcase(path, trimmed) or fnmatchcase(path, f"{trimmed}/*")):
             return True
     return False
 

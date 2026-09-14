@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/drevendev/HungryCrab/blob/master/SECURITY.md
+    about: Do not open an issue for a vulnerability; SECURITY.md says how to report one.
+  - name: How the crab is meant to work
+    url: https://github.com/drevendev/HungryCrab/tree/master/docs/design
+    about: The design documents answer most questions about what the crab does and why.

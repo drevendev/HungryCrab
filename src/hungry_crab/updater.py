@@ -278,8 +278,13 @@ def check_cli(remote: Remote) -> Component:
     detail = "same version as master"
     if remote.short_sha:
         detail += f" ({remote.short_sha}, {remote.date})"
-    if here is None:
+    if here is None and remote.sha:
+        # No commit is not evidence of equality. Every commit of a development series carries
+        # the same version string, so without PEP 610 provenance the only honest answer is that
+        # nobody knows — and `OK` is not actionable, which turned "reinstall to be sure" into
+        # "Nothing to do." one line later.
         detail += "; the install records no commit, so reinstall to be sure"
+        return Component("crab CLI", installed, remote.cli_version, UNKNOWN, detail, [command])
     return Component("crab CLI", installed, remote.cli_version, OK, detail, [command])
 
 

@@ -1,0 +1,9 @@
+# The files an autonomous phase must never change on its own: the workflows it runs under,
+# the design it implements, the licence policy it enforces, the crab's own configuration and
+# the licence itself. Reviews from the owner are requested automatically; making them
+# mandatory is the "Require review from Code Owners" switch on the master protection rule.
+/.github/ @drevendev
+/docs/design/ @drevendev
+/src/hungry_crab/licensing/ @drevendev
+/.crab.yml @drevendev
+/LICENSE @drevendev

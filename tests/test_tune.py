@@ -66,6 +66,19 @@ def test_category_weights_move_with_acceptance() -> None:
     assert "category deps" in text and "crab tune --write" in text
 
 
+def test_a_poor_match_is_the_prey_that_proposed_the_nutrients_not_the_last_to_repeat_them() -> None:
+    ledger = _ledger({"deps": ["rejected"] * 5})
+    repeats = []
+    for index in range(5):
+        card = Candidate("deps", f"deps.item-{index}", f"deps {index}", "x")
+        card.trace = {"prey": "other/prey"}
+        repeats.append(card)
+    ledger.record_meal({"prey": {"label": "other/prey"}, "verdict": {}}, repeats, now=NOW)
+    report = analyse(ledger, Scoring.default(), min_decisions=3)
+    prey = {(s.kind, s.target) for s in report.suggestions if s.kind == "prey"}
+    assert prey == {("prey", "example/prey")}, "the finder is judged, not the repeater"
+
+
 def test_trait_level_suggestions_and_apply(tmp_path: Path) -> None:
     ledger = Ledger(None, maw="h")
     cards = []

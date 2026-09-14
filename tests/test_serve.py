@@ -16,7 +16,7 @@ from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import CONFIG_FILE, MawConfig
 from hungry_crab.nutrients import Candidate, Evidence
-from hungry_crab.serve import ServeOptions, parse_markers, render_issue, serve
+from hungry_crab.serve import GhIssueClient, ServeOptions, parse_markers, render_issue, serve
 
 NOW = datetime(2025, 6, 3, tzinfo=UTC)
 MAW_SLUG = Slug("example", "maw")
@@ -118,6 +118,103 @@ def test_parse_markers_and_render_issue() -> None:
     card.how = "Use setup-uv cache."
     _, body = render_issue(card, {"prey": {"label": "p"}})
     assert "Our CI is slow." in body and "Use setup-uv cache." in body
+
+
+def _issue(number: int, body: str, state: str = "open") -> dict[str, Any]:
+    return {
+        "number": number,
+        "url": f"u{number}",
+        "state": state,
+        "title": f"t{number}",
+        "body": body,
+    }
+
+
+def test_the_issue_the_crab_filed_outranks_one_that_quotes_it() -> None:
+    """An HTML comment survives a quote, so a quoting issue carries the marker too.
+
+    `gh` returns newest first and the first carrier used to win, so the quote registered as the
+    issue that served the nutrient and its state was read from the wrong place.
+    """
+    marker = "crab:ci:ci.cache"
+    served = _issue(3, f"<!-- {marker} -->\n**Nutrient** `ci`\n", state="closed")
+    quoting = _issue(9, f"> <!-- {marker} -->\n> **Nutrient** `ci`\n\nStill needed?")
+    expected = {"number": 3, "url": "u3", "state": "closed", "title": "t3"}
+    assert parse_markers([quoting, served])[marker] == expected, "newest first"
+    assert parse_markers([served, quoting])[marker] == expected, "oldest first"
+    # Two issues that both open with the marker (a historical race): the older one wins.
+    twice = _issue(12, f"<!-- {marker} -->\nfiled again by mistake\n")
+    assert parse_markers([twice, quoting, served])[marker]["number"] == 3
+    # No issue opens with it: the oldest carrier is the conservative answer.
+    assert parse_markers([_issue(20, f"see <!-- {marker} -->"), quoting])[marker]["number"] == 9
+    # Bodies that are not strings are skipped, as before.
+    assert parse_markers([{"number": 1, "body": None}]) == {}
+
+
+class _PagedGh(GhIssueClient):
+    """A gh whose `api --paginate` prints the given pages back to back, as the real one does."""
+
+    def __init__(self, pages: list[list[dict[str, Any]]]) -> None:
+        self.gh = "gh"
+        self.timeout = 1.0
+        self.token_env = ""
+        self.pages = pages
+        self.calls: list[tuple[str, ...]] = []
+
+    def _run(self, *args: str) -> str:
+        self.calls.append(args)
+        return "\n".join(json.dumps(page) for page in self.pages)
+
+
+def _api_issue(number: int, body: str | None, **extra: Any) -> dict[str, Any]:
+    return {
+        "number": number,
+        "html_url": f"https://github.com/example/maw/issues/{number}",
+        "state": "open",
+        "title": f"t{number}",
+        "body": body,
+        **extra,
+    }
+
+
+def test_list_marked_reads_every_page_and_drops_pull_requests() -> None:
+    """Marker discovery must not depend on a single page or on a label.
+
+    The 500-issue cap meant that on a busy repository the crab's own issues fell off the end of
+    the one page it asked for, and the next serve filed everything again.
+    """
+    marker = "crab:ci:ci.cache"
+    filler = [[_api_issue(n, "ordinary issue") for n in range(page * 100 + 1, page * 100 + 101)]
+              for page in range(6)]  # fmt: skip
+    last_page = [
+        _api_issue(601, f"<!-- {marker} -->\nserved by the crab"),
+        _api_issue(
+            602, f"> <!-- {marker} -->\nquoted in a pull request", pull_request={"url": "x"}
+        ),
+        _api_issue(603, f"> <!-- {marker} -->\nquoted in a newer issue"),
+    ]
+    client = _PagedGh([*filler, last_page])
+    found = client.list_marked(MAW_SLUG, "hungry-crab")
+    assert found == {
+        marker: {
+            "number": 601,
+            "url": "https://github.com/example/maw/issues/601",
+            "state": "open",
+            "title": "t601",
+        }
+    }
+    (call,) = client.calls
+    assert call[:2] == ("api", "--paginate")
+    assert call[2].startswith("repos/example/maw/issues?state=all&per_page=100")
+    assert "--label" not in call and "--limit" not in call, "neither is a correctness boundary"
+
+
+def test_list_marked_rejects_garbage_from_gh() -> None:
+    client = _PagedGh([])
+    client.pages = []
+    client._run = lambda *args: "[{not json"  # type: ignore[method-assign]
+    with pytest.raises(CrabError, match="invalid JSON"):
+        client.list_marked(MAW_SLUG, "hungry-crab")
 
 
 def test_dry_run_previews_and_skips(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> None:

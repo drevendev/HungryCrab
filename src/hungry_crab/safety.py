@@ -21,8 +21,15 @@ from collections.abc import Iterable
 # (U+00AD) is real hyphenation. None of them is added here: each would flag legitimate content
 # for two bits of hiding room, and a detector that fires on ordinary text stops carrying
 # information, which is the lesson the syrupy meal already taught this module.
+#
+# The two joiners are load-bearing in real text and are judged by their neighbours instead.
+# U+200D glues every multi-person and profession emoji together, and U+200C is ordinary
+# orthography in Persian and in the Indic scripts; both sit between characters that are not
+# ASCII. A joiner that has no such neighbour — wedged into a Latin word, dangling at the end
+# of a heading, or stacked with other invisible characters — has nothing to join and is
+# flagged like the rest.
 _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
-    (0x200B, 0x200D),  # zero-width space, non-joiner, joiner
+    (0x200B, 0x200B),  # zero-width space
     (0x2060, 0x2060),  # word joiner
     (0xFEFF, 0xFEFF),  # byte-order mark
     (0xE0000, 0xE007F),  # Tags: printable ASCII rendered as nothing
@@ -30,6 +37,10 @@ _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
 _INVISIBLE = "".join(
     chr(low) if low == high else f"{chr(low)}-{chr(high)}" for low, high in _INVISIBLE_RANGES
 )
+_JOINERS = chr(0x200C) + chr(0x200D)  # zero-width non-joiner, zero-width joiner
+_ZERO_WIDTH = _INVISIBLE + _JOINERS
+# A character that can legitimately sit next to a joiner: not ASCII, and not itself invisible.
+_JOINABLE = f"[^\\x00-\\x7F{_ZERO_WIDTH}]"
 
 SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -63,6 +74,10 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
             r"[^>]*?\b(?:instruction|assistant|claude|copilot|agent|ignore|must)\b[^>]*?-->"
         ),
         f"[{_INVISIBLE}]",
+        # Two or more zero-width characters in a row hide bits, whatever they are.
+        f"[{_ZERO_WIDTH}]{{2,}}",
+        # A joiner with nothing to join on either side.
+        f"(?<!{_JOINABLE})[{_JOINERS}](?!{_JOINABLE})",
         (
             r"\b(?:curl|wget|iwr|invoke-webrequest)\b[^\n]*\|\s*"
             r"(?:sh|bash|zsh|python\d?|powershell|pwsh|iex)\b"

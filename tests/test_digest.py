@@ -46,7 +46,7 @@ def test_registry_order_and_dependencies() -> None:
         for required in miner.requires:
             assert names.index(required) < names.index(miner.name)
     subset = [m.name for m in select_miners(["testing"])]
-    assert subset == ["inventory", "deps", "testing"]
+    assert subset == ["inventory", "deps", "ci", "testing"], "coverage in CI is a testing fact"
     with pytest.raises(ValueError, match="unknown miner"):
         select_miners(["nope"])
 

@@ -1,0 +1,50 @@
+name: Bug report
+description: The crab did something wrong, and here is enough to reproduce it.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A report without the crab version, the exact command and the digest manifest cannot be
+        reproduced, and those are the three things nobody thinks to include. Prey content is
+        untrusted data: paste what the crab produced, never what the prey says to do.
+  - type: input
+    id: version
+    attributes:
+      label: Crab version
+      description: The output of `crab --version`. On master it is a development version.
+      placeholder: 0.3.0.dev0
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: The command you ran
+      description: The full command line, with every flag, and what it printed.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: prey
+    attributes:
+      label: Prey repository
+      description: "`owner/repo` on GitHub, or `local` for a directory."
+      placeholder: owner/repo
+    validations:
+      required: true
+  - type: textarea
+    id: manifest
+    attributes:
+      label: manifest.json
+      description: >-
+        The contents of the digest's `manifest.json` (under `~/.cache/hungry-crab/...` or your
+        `--out` directory). If the crab did not get as far as a digest, say so.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: false
