@@ -1,0 +1,29 @@
+name: Feature request
+description: Something the crab should do, and the meal that showed it should.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The design documents in `docs/design/` decide what gets built and why; a request that
+        names the document it extends, or the decision it questions, is far easier to act on.
+  - type: textarea
+    id: what
+    attributes:
+      label: What the crab should do
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why, and which meal showed it
+      description: The prey, the maw and what the digest or the menu got wrong or left out.
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How it could work
+      description: Optional. Which miner, rule or command it touches, if you have an idea.
+    validations:
+      required: false
