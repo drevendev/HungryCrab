@@ -32,7 +32,9 @@ _ENV_ASSIGNMENT = re.compile(
     (?P<value>.+?)\s*$
     """
 )
-_TOKEN = re.compile(r"(?<![A-Za-z0-9])([A-Za-z0-9][A-Za-z0-9_+/=-]{31,})(?![A-Za-z0-9])")
+_TOKEN = re.compile(
+    r"(?<![A-Za-z0-9])([A-Za-z0-9][A-Za-z0-9_+/=-]{31,})(?![A-Za-z0-9])"
+)
 _HEX = re.compile(r"^[0-9a-fA-F]+$")
 _UUID = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-"
