@@ -19,10 +19,7 @@ from hungry_crab.publication_safety import (
         ("-----BEGIN OPENSSH PRIVATE KEY-----", "private-key"),
     ],
 )
-def test_high_confidence_secret_shapes_block_without_echoing_value(
-    text: str,
-    rule: str,
-) -> None:
+def test_high_confidence_secret_shapes_block_without_echoing_value(text: str, rule: str) -> None:
     findings = scan_publication("generated/config.txt", f"safe\n{text}\n")
 
     assert PublicationFinding("generated/config.txt", 2, rule) in findings
