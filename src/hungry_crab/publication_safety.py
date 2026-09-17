@@ -140,13 +140,17 @@ def scan_publication(logical_path: str, text: str) -> list[PublicationFinding]:
         if assignment is not None:
             value = _stripped_assignment_value(assignment.group("value"))
             if len(value) >= 8 and not _looks_placeholder(value):
-                findings.append(PublicationFinding(logical_path, line_number, "credential-assignment"))
+                findings.append(
+                    PublicationFinding(logical_path, line_number, "credential-assignment")
+                )
                 continue
 
         for match in _TOKEN.finditer(line):
             value = _token_value(match.group(1))
             if _looks_high_entropy_secret(value):
-                findings.append(PublicationFinding(logical_path, line_number, "high-entropy-token"))
+                findings.append(
+                    PublicationFinding(logical_path, line_number, "high-entropy-token")
+                )
                 break
 
     return findings
