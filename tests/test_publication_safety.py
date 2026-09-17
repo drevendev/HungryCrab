@@ -20,7 +20,8 @@ from hungry_crab.publication_safety import (
     ],
 )
 def test_high_confidence_secret_shapes_block_without_echoing_value(
-    text: str, rule: str
+    text: str,
+    rule: str,
 ) -> None:
     findings = scan_publication("generated/config.txt", f"safe\n{text}\n")
 
