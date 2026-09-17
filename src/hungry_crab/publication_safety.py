@@ -17,10 +17,7 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("aws-access-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
     ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
-    (
-        "private-key",
-        re.compile(r"-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----", re.IGNORECASE),
-    ),
+    ("private-key", re.compile(r"-----BEGIN(?: [A-Z0-9]+)? PRIVATE KEY-----", re.IGNORECASE)),
 )
 
 _ENV_ASSIGNMENT = re.compile(
@@ -32,9 +29,7 @@ _ENV_ASSIGNMENT = re.compile(
     (?P<value>.+?)\s*$
     """
 )
-_TOKEN = re.compile(
-    r"(?<![A-Za-z0-9])([A-Za-z0-9][A-Za-z0-9_+/=-]{31,})(?![A-Za-z0-9])"
-)
+_TOKEN = re.compile(r"(?<![A-Za-z0-9])([A-Za-z0-9][A-Za-z0-9_+/=-]{31,})(?![A-Za-z0-9])")
 _HEX = re.compile(r"^[0-9a-fA-F]+$")
 _UUID = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-"
@@ -150,9 +145,7 @@ def scan_publication(logical_path: str, text: str) -> list[PublicationFinding]:
         for match in _TOKEN.finditer(line):
             value = _token_value(match.group(1))
             if _looks_high_entropy_secret(value):
-                findings.append(
-                    PublicationFinding(logical_path, line_number, "high-entropy-token")
-                )
+                findings.append(PublicationFinding(logical_path, line_number, "high-entropy-token"))
                 break
 
     return findings
