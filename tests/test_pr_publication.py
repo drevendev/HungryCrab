@@ -13,7 +13,9 @@ from hungry_crab.pr_publication import (
 )
 
 
-def _prepared(*, title: str = "feat: carry the nutrient", body: str = "<!-- crab:ci:cache -->") -> PreparedPullRequest:
+def _prepared(
+    *, title: str = "feat: carry the nutrient", body: str = "<!-- crab:ci:cache -->"
+) -> PreparedPullRequest:
     return PreparedPullRequest(
         title=title,
         body=body,
