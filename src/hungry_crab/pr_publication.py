@@ -10,6 +10,7 @@ remember the sequence.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -21,6 +22,8 @@ from .publication_safety import format_publication_findings, scan_publication_bu
 _ResultT = TypeVar("_ResultT")
 _BRANCH_SAFE_RE = re.compile(r"[^a-z0-9._-]+")
 _BRANCH_REPEAT_RE = re.compile(r"[.-]{2,}")
+_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+_HANDOFF_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -29,6 +32,22 @@ class GeneratedFile:
 
     path: str
     content: str
+
+
+@dataclass(frozen=True)
+class HandoffFile:
+    """One exact maw-relative text file declared by the nutrient producer."""
+
+    path: str
+    sha256: str
+
+
+@dataclass(frozen=True)
+class PublicationHandoff:
+    """Machine-readable nutrient-bound declaration of files eligible for publication."""
+
+    nutrient_id: str
+    files: tuple[HandoffFile, ...]
 
 
 @dataclass(frozen=True)
@@ -47,6 +66,101 @@ class PullRequestPublication:
     branch: str
     url: str
     created: bool
+
+
+def _handoff_error(detail: str) -> CrabError:
+    return CrabError("invalid publication handoff; refusing to infer files from the maw", hint=detail)
+
+
+def _validate_handoff_path(path: str) -> None:
+    parts = path.split("/")
+    if (
+        not path
+        or path.startswith("/")
+        or "\\" in path
+        or "\x00" in path
+        or any(not part or part in {".", ".."} for part in parts)
+        or ":" in parts[0]
+    ):
+        raise _handoff_error("file paths must be canonical maw-relative POSIX paths")
+
+
+def load_publication_handoff(payload: str) -> PublicationHandoff:
+    """Parse the exact nutrient/file declaration emitted before PR preparation.
+
+    The schema is intentionally small and strict so producer and publisher cannot disagree about
+    which files belong to a nutrient. Unknown fields, duplicate paths, path traversal, and malformed
+    digests fail closed instead of falling back to working-tree discovery.
+    """
+
+    try:
+        raw: object = json.loads(payload)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise _handoff_error("handoff must be valid JSON") from exc
+    if not isinstance(raw, dict):
+        raise _handoff_error("handoff root must be an object")
+    if set(raw) != {"version", "nutrient_id", "files"}:
+        raise _handoff_error("handoff must contain only version, nutrient_id, and files")
+    if raw["version"] != _HANDOFF_VERSION:
+        raise _handoff_error(f"unsupported handoff version: {raw['version']!r}")
+
+    nutrient_id = raw["nutrient_id"]
+    if not isinstance(nutrient_id, str) or not nutrient_id.startswith("crab:"):
+        raise _handoff_error("nutrient_id must be a crab nutrient id")
+
+    raw_files = raw["files"]
+    if not isinstance(raw_files, list) or not raw_files:
+        raise _handoff_error("handoff must declare at least one generated file")
+
+    files: list[HandoffFile] = []
+    seen_paths: set[str] = set()
+    for raw_file in raw_files:
+        if not isinstance(raw_file, dict) or set(raw_file) != {"path", "sha256"}:
+            raise _handoff_error("each file must contain only path and sha256")
+        path = raw_file["path"]
+        digest = raw_file["sha256"]
+        if not isinstance(path, str):
+            raise _handoff_error("file path must be a string")
+        _validate_handoff_path(path)
+        if path in seen_paths:
+            raise _handoff_error(f"duplicate handoff path: {path}")
+        if not isinstance(digest, str) or _SHA256_RE.fullmatch(digest) is None:
+            raise _handoff_error(f"invalid sha256 for {path}")
+        seen_paths.add(path)
+        files.append(HandoffFile(path=path, sha256=digest))
+
+    return PublicationHandoff(nutrient_id=nutrient_id, files=tuple(files))
+
+
+def generated_files_from_handoff(
+    nutrient_id: str,
+    handoff: PublicationHandoff,
+    read_maw_text: Callable[[str], str],
+) -> tuple[GeneratedFile, ...]:
+    """Freeze exactly the declared maw files after validating nutrient and content identity.
+
+    The publisher consumes returned bytes from ``GeneratedFile.content`` later; it must not reread
+    the working tree during branch/write/push effects. This prevents unrelated dirty files or a
+    post-prepare edit from changing the publication payload.
+    """
+
+    if handoff.nutrient_id != nutrient_id:
+        raise _handoff_error("handoff nutrient_id does not match the publication nutrient")
+
+    generated: list[GeneratedFile] = []
+    for declared in handoff.files:
+        try:
+            content = read_maw_text(declared.path)
+        except (KeyError, OSError) as exc:
+            raise _handoff_error(f"declared file is missing: {declared.path}") from exc
+        if not isinstance(content, str):
+            raise _handoff_error(f"declared file is not UTF-8 text: {declared.path}")
+        actual = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        if actual != declared.sha256:
+            raise _handoff_error(f"declared file changed after handoff: {declared.path}")
+        generated.append(GeneratedFile(path=declared.path, content=content))
+
+    return tuple(generated)
 
 
 def publication_items(prepared: PreparedPullRequest) -> Iterable[tuple[str, str]]:
