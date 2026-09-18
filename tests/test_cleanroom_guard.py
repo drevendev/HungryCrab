@@ -35,9 +35,7 @@ def test_cleanroom_agent_denies_configured_cache_root(monkeypatch) -> None:
 
 def test_cleanroom_agent_may_use_maw_and_spec() -> None:
     assert (
-        cleanroom_guard_reason(
-            _event({"file_path": "/work/maw/.crab/specs/crab-tests-fixture.md"})
-        )
+        cleanroom_guard_reason(_event({"file_path": "/work/maw/.crab/specs/crab-tests-fixture.md"}))
         is None
     )
 
