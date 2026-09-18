@@ -51,6 +51,7 @@ _PLACEHOLDER_VALUES = frozenset(
         "yourtoken",
         "your_token",
         "your-token",
+        "your_token_here",
         "token_here",
         "redacted",
     }
