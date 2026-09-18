@@ -150,7 +150,7 @@ def test_transaction_uses_deterministic_branch_for_new_pr() -> None:
         effects.append((branch, payload.title))
         return "https://github.com/example/maw/pull/9"
 
-    result = publish_prepared_transaction("crab:ci:cache", prepared, lambda: {}, publish)
+    result = publish_prepared_transaction("crab:ci:cache", prepared, dict, publish)
 
     expected_branch = nutrient_branch_name("crab:ci:cache")
     assert result == PullRequestPublication(
