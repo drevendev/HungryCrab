@@ -8,8 +8,11 @@ from hungry_crab.errors import CrabError
 from hungry_crab.pr_publication import (
     GeneratedFile,
     PreparedPullRequest,
+    PullRequestPublication,
+    nutrient_branch_name,
     publication_items,
     publish_prepared_pull_request,
+    publish_prepared_transaction,
 )
 
 
@@ -98,3 +101,119 @@ def test_clean_prepared_pull_request_reaches_effect_once() -> None:
 
     assert url == "https://github.com/example/maw/pull/7"
     assert effects == [{"title": "feat: carry the nutrient", "files": 1}]
+
+
+def test_nutrient_branch_name_is_stable_safe_and_distinct() -> None:
+    branch = nutrient_branch_name("crab:ci:cache/key")
+
+    assert branch == nutrient_branch_name("crab:ci:cache/key")
+    assert branch.startswith("crab/ci-cache-key-")
+    assert ":" not in branch
+    assert "/" not in branch.removeprefix("crab/")
+    assert branch != nutrient_branch_name("crab:ci:cache-key")
+
+
+def test_transaction_reconciles_existing_pr_without_publication_effects() -> None:
+    prepared = _prepared(body="<!-- crab:ci:cache -->\nTrace: safe.\n")
+    effects: list[str] = []
+
+    def publish(_: str, __: PreparedPullRequest) -> str:
+        effects.extend(["branch", "write", "push", "pull-request"])
+        return "https://github.com/example/maw/pull/8"
+
+    result = publish_prepared_transaction(
+        "crab:ci:cache",
+        prepared,
+        lambda: {
+            "crab:ci:cache": {
+                "number": 7,
+                "url": "https://github.com/example/maw/pull/7",
+                "state": "open",
+            }
+        },
+        publish,
+    )
+
+    assert result == PullRequestPublication(
+        branch=nutrient_branch_name("crab:ci:cache"),
+        url="https://github.com/example/maw/pull/7",
+        created=False,
+    )
+    assert effects == []
+
+
+def test_transaction_uses_deterministic_branch_for_new_pr() -> None:
+    prepared = _prepared(body="<!-- crab:ci:cache -->\nTrace: safe.\n")
+    effects: list[tuple[str, str]] = []
+
+    def publish(branch: str, payload: PreparedPullRequest) -> str:
+        effects.append((branch, payload.title))
+        return "https://github.com/example/maw/pull/9"
+
+    result = publish_prepared_transaction("crab:ci:cache", prepared, dict, publish)
+
+    expected_branch = nutrient_branch_name("crab:ci:cache")
+    assert result == PullRequestPublication(
+        branch=expected_branch,
+        url="https://github.com/example/maw/pull/9",
+        created=True,
+    )
+    assert effects == [(expected_branch, "feat: carry the nutrient")]
+
+
+def test_transaction_secret_hit_prevents_reconcile_and_all_effects() -> None:
+    secret = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    prepared = _prepared(
+        body="<!-- crab:ci:cache -->\nTrace: safe.\n",
+        title=secret,
+    )
+    calls: list[str] = []
+
+    def list_marked_prs() -> dict[str, dict[str, object]]:
+        calls.append("reconcile")
+        return {}
+
+    def publish(_: str, __: PreparedPullRequest) -> str:
+        calls.extend(["branch", "write", "push", "pull-request"])
+        return "https://github.com/example/maw/pull/9"
+
+    with pytest.raises(CrabError) as raised:
+        publish_prepared_transaction("crab:ci:cache", prepared, list_marked_prs, publish)
+
+    assert calls == []
+    assert secret not in raised.value.message
+    assert secret not in (raised.value.hint or "")
+
+
+def test_transaction_requires_direct_marker_before_provider_read() -> None:
+    prepared = _prepared(body="Trace only; marker is missing.\n")
+    calls: list[str] = []
+
+    def list_marked_prs() -> dict[str, dict[str, object]]:
+        calls.append("reconcile")
+        return {}
+
+    with pytest.raises(CrabError, match="must open with its nutrient marker"):
+        publish_prepared_transaction(
+            "crab:ci:cache",
+            prepared,
+            list_marked_prs,
+            lambda _branch, _payload: "https://github.com/example/maw/pull/9",
+        )
+
+    assert calls == []
+
+
+def test_transaction_refuses_ambiguous_existing_pr_without_url() -> None:
+    prepared = _prepared(body="<!-- crab:ci:cache -->\nTrace: safe.\n")
+    effects: list[str] = []
+
+    with pytest.raises(CrabError, match="refusing to create a duplicate"):
+        publish_prepared_transaction(
+            "crab:ci:cache",
+            prepared,
+            lambda: {"crab:ci:cache": {"number": 7, "url": None}},
+            lambda _branch, _payload: effects.append("publish") or "unexpected",
+        )
+
+    assert effects == []
