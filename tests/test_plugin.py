@@ -44,7 +44,7 @@ def test_plugin_manifest_and_marketplace_agree() -> None:
     assert marketplace["name"] == "hungry-crab"
 
 
-@pytest.mark.parametrize("skill", ["eat", "license", "serve"])
+@pytest.mark.parametrize("skill", ["eat", "license", "serve", "cleanroom"])
 def test_skills_have_matching_names_and_descriptions(skill: str) -> None:
     fields = _frontmatter(ROOT / "skills" / skill / "SKILL.md")
     assert fields["name"] == skill
@@ -67,6 +67,31 @@ def test_agents_are_read_only_and_named(agent: str) -> None:
     assert not tools & {"Write", "Edit", "NotebookEdit"}
     text = (ROOT / "agents" / f"{agent}.md").read_text(encoding="utf-8")
     assert "untrusted" in text
+
+
+def test_cleanroom_agent_is_guarded_and_can_implement() -> None:
+    fields = _frontmatter(ROOT / "agents" / "crab-cleanroom-impl.md")
+    assert fields["name"] == "crab-cleanroom-impl"
+    tools = {tool.strip() for tool in fields["tools"].split(",")}
+    assert {"Read", "Grep", "Glob", "Write", "Edit"} <= tools
+    assert not tools & {"Bash", "WebFetch", "WebSearch", "Agent", "Skill", "NotebookEdit"}
+    text = (ROOT / "agents" / "crab-cleanroom-impl.md").read_text(encoding="utf-8")
+    assert ".crab/specs/" in text
+    assert "prey source" in text
+    assert "prey cache" in text
+
+
+def test_cleanroom_hook_is_plugin_scoped() -> None:
+    hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
+    pre_tool_use = hooks["hooks"]["PreToolUse"]
+    assert len(pre_tool_use) == 1
+    assert pre_tool_use[0]["matcher"] == "Read|Grep|Glob|Write|Edit"
+    handler = pre_tool_use[0]["hooks"][0]
+    assert handler["type"] == "command"
+    assert handler["command"] == "python"
+    assert handler["args"] == [
+        "${CLAUDE_PLUGIN_ROOT}/src/hungry_crab/cleanroom_guard.py"
+    ]
 
 
 @pytest.mark.parametrize("command", ["sniff", "menu"])
