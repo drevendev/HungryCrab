@@ -39,19 +39,21 @@ _REFERENCE_VALUE = re.compile(
     r"^(?:\$[A-Z_][A-Z0-9_]*|\$\{[A-Z_][A-Z0-9_]*\}|<[^>]+>)$", re.IGNORECASE
 )
 _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
-_PLACEHOLDER_WORDS = (
-    "example",
-    "placeholder",
-    "changeme",
-    "replace_me",
-    "replace-me",
-    "dummy",
-    "sample",
-    "yourtoken",
-    "your_token",
-    "your-token",
-    "token_here",
-    "redacted",
+_PLACEHOLDER_VALUES = frozenset(
+    {
+        "example",
+        "placeholder",
+        "changeme",
+        "replace_me",
+        "replace-me",
+        "dummy",
+        "sample",
+        "yourtoken",
+        "your_token",
+        "your-token",
+        "token_here",
+        "redacted",
+    }
 )
 _ENTROPY_MIN_LENGTH = 32
 _ENTROPY_MIN_BITS = 4.3
@@ -77,10 +79,9 @@ def _looks_placeholder(value: str) -> bool:
     normalized = value.strip().lower()
     if _REFERENCE_VALUE.fullmatch(normalized):
         return True
-    compact = re.sub(r"[^a-z0-9_-]+", "", normalized)
-    if not compact:
+    if not normalized:
         return True
-    return any(word in compact for word in _PLACEHOLDER_WORDS)
+    return normalized in _PLACEHOLDER_VALUES
 
 
 def _shannon_entropy(value: str) -> float:
