@@ -39,6 +39,7 @@ _REFERENCE_VALUE = re.compile(
     r"^(?:\$[A-Z_][A-Z0-9_]*|\$\{[A-Z_][A-Z0-9_]*\}|<[^>]+>)$", re.IGNORECASE
 )
 _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
+_PUBLIC_GITHUB_URL = re.compile(r"https?://(?:www\.)?github\.com/[A-Za-z0-9_.~/-]+")
 _PLACEHOLDER_VALUES = frozenset(
     {
         "example",
@@ -144,7 +145,10 @@ def scan_publication(logical_path: str, text: str) -> list[PublicationFinding]:
                 )
                 continue
 
-        for match in _TOKEN.finditer(line):
+        # Public GitHub trace URLs are identifiers, not opaque tokens. Strip only the public
+        # URL path for the generic entropy pass; query/fragment material remains visible.
+        entropy_line = _PUBLIC_GITHUB_URL.sub(" ", line)
+        for match in _TOKEN.finditer(entropy_line):
             value = _token_value(match.group(1))
             if _looks_high_entropy_secret(value):
                 findings.append(PublicationFinding(logical_path, line_number, "high-entropy-token"))
