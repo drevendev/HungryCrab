@@ -1,0 +1,17 @@
+{
+  "description": "Keep the clean-room implementer out of Hungry Crab's prey cache.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "crab-cleanroom-guard",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
