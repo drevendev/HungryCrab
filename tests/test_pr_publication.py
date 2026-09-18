@@ -111,9 +111,7 @@ def test_handoff_rejects_missing_or_stale_declared_file() -> None:
     assert missing.value.hint == "declared file is missing: generated/cache.yml"
 
     with pytest.raises(CrabError) as stale:
-        generated_files_from_handoff(
-            "crab:ci:cache", handoff, lambda _path: "cache: changed\n"
-        )
+        generated_files_from_handoff("crab:ci:cache", handoff, lambda _path: "cache: changed\n")
     assert stale.value.hint == "declared file changed after handoff: generated/cache.yml"
 
 
