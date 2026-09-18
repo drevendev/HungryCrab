@@ -88,8 +88,8 @@ def test_cleanroom_hook_is_plugin_scoped() -> None:
     assert pre_tool_use[0]["matcher"] == "Read|Grep|Glob|Write|Edit"
     handler = pre_tool_use[0]["hooks"][0]
     assert handler["type"] == "command"
-    assert handler["command"] == "python"
-    assert handler["args"] == ["${CLAUDE_PLUGIN_ROOT}/src/hungry_crab/cleanroom_guard.py"]
+    assert handler["command"] == "crab-cleanroom-guard"
+    assert "args" not in handler
 
 
 @pytest.mark.parametrize("command", ["sniff", "menu"])
