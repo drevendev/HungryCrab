@@ -23,6 +23,7 @@ from .digest import DigestOptions, DigestResult, run_digest
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
+from .guard import executes_prey, run_hook
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
 from .licensing.matrix import Relationship
@@ -208,6 +209,21 @@ def build_parser() -> argparse.ArgumentParser:
     cache_sub.add_parser("ls", help="list cached prey")
     p_rm = cache_sub.add_parser("rm", help="remove one cached prey (clone, API data and digests)")
     p_rm.add_argument("repo")
+
+    p_guard = sub.add_parser("guard", help="answer a PreToolUse hook: may this shell command run?")
+    p_guard.add_argument(
+        "--hook",
+        action="store_true",
+        help="read one hook event as JSON on stdin; exit 2 to deny the command",
+    )
+    # Not `command`: the subparsers already own that dest, and a positional of the same name
+    # overwrites the name of the subcommand being run.
+    p_guard.add_argument(
+        "shell_command",
+        nargs="?",
+        default=None,
+        help="a command to check without a hook event",
+    )
 
     sub.add_parser("version", help="print the version")
     return parser
@@ -554,6 +570,24 @@ def _configure_streams() -> None:
                 reconfigure(encoding="utf-8", errors="replace")
 
 
+def cmd_guard(args: argparse.Namespace) -> int:
+    """The `never execute prey` rule, asked one command at a time.
+
+    With ``--hook`` the event arrives as JSON on stdin, which is how a PreToolUse hook talks.
+    Without it, the command is an argument, which is how a human checks what the rule does.
+    """
+    if args.hook:
+        return run_hook()
+    if not args.shell_command:
+        raise UsageError("nothing to check", hint="pass a command, or --hook to read an event")
+    reason = executes_prey(args.shell_command)
+    if reason is None:
+        print("allowed")
+        return 0
+    print(f"denied: {reason}")
+    return 2
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     _configure_streams()
     parser = build_parser()
@@ -588,6 +622,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_update(args, log)
         if args.command == "cache":
             return cmd_cache(args, parser)
+        if args.command == "guard":
+            return cmd_guard(args)
     except CrabError as exc:
         _stderr(f"crab: error: {exc.message}")
         if exc.hint:
