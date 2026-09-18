@@ -42,6 +42,29 @@ def test_credential_assignment_blocks_but_placeholders_do_not() -> None:
     ]
 
 
+def test_placeholder_words_only_match_as_complete_values() -> None:
+    assignment_secret = "prod-example-Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
+    entropy_secret = "prod_sample_Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
+    text = "\n".join(
+        [
+            "API_TOKEN=YOUR_TOKEN_HERE",
+            "CLIENT_SECRET=placeholder",
+            f"API_TOKEN={assignment_secret}",
+            entropy_secret,
+        ]
+    )
+
+    findings = scan_publication("generated/secrets.txt", text)
+
+    assert findings == [
+        PublicationFinding("generated/secrets.txt", 3, "credential-assignment"),
+        PublicationFinding("generated/secrets.txt", 4, "high-entropy-token"),
+    ]
+    rendered = format_publication_findings(findings)
+    assert assignment_secret not in rendered
+    assert entropy_secret not in rendered
+
+
 def test_high_entropy_token_blocks_without_treating_trace_as_secret() -> None:
     secret = "Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
     trace = "\n".join(
