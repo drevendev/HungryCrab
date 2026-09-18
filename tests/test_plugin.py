@@ -78,7 +78,7 @@ def test_cleanroom_agent_is_guarded_and_can_implement() -> None:
     text = (ROOT / "agents" / "crab-cleanroom-impl.md").read_text(encoding="utf-8")
     assert ".crab/specs/" in text
     assert "prey source" in text
-    assert "prey cache" in text
+    assert "CRAB_CACHE_DIR" in text
 
 
 def test_cleanroom_hook_is_plugin_scoped() -> None:
@@ -89,9 +89,7 @@ def test_cleanroom_hook_is_plugin_scoped() -> None:
     handler = pre_tool_use[0]["hooks"][0]
     assert handler["type"] == "command"
     assert handler["command"] == "python"
-    assert handler["args"] == [
-        "${CLAUDE_PLUGIN_ROOT}/src/hungry_crab/cleanroom_guard.py"
-    ]
+    assert handler["args"] == ["${CLAUDE_PLUGIN_ROOT}/src/hungry_crab/cleanroom_guard.py"]
 
 
 @pytest.mark.parametrize("command", ["sniff", "menu"])
