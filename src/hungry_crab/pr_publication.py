@@ -69,7 +69,9 @@ class PullRequestPublication:
 
 
 def _handoff_error(detail: str) -> CrabError:
-    return CrabError("invalid publication handoff; refusing to infer files from the maw", hint=detail)
+    return CrabError(
+        "invalid publication handoff; refusing to infer files from the maw", hint=detail
+    )
 
 
 def _validate_handoff_path(path: str) -> None:
