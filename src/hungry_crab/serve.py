@@ -200,6 +200,35 @@ class GhIssueClient:
                 )
         return parse_markers(issues)
 
+    def list_marked_prs(self, slug: Slug) -> dict[str, dict[str, Any]]:
+        """Markers in every pull request, across all pages and states.
+
+        GitHub's issues endpoint is intentionally reused here because it gives one paginated
+        stream containing both issues and pull requests. Issue serving drops PR items; PR
+        reconciliation does the inverse. Keeping the marker parser identical preserves the
+        anti-quote rule: a body that opens with ``<!-- crab:<id> -->`` outranks one that merely
+        quotes it, and the oldest direct carrier wins after a historical race.
+        """
+        out = self._run(
+            "api", "--paginate", f"repos/{slug}/issues?state=all&per_page=100&direction=asc"
+        )
+        pull_requests: list[dict[str, Any]] = []
+        for page in _json_documents(out):
+            for item in as_list(page):
+                data = as_dict(item)
+                if "pull_request" not in data:
+                    continue
+                pull_requests.append(
+                    {
+                        "number": data.get("number"),
+                        "url": data.get("html_url"),
+                        "state": data.get("state"),
+                        "title": data.get("title"),
+                        "body": data.get("body"),
+                    }
+                )
+        return parse_markers(pull_requests)
+
     def ensure_label(self, slug: Slug, label: str) -> bool:
         """Creating a label needs write access; filing an issue does not.
 
