@@ -7,10 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/src/hungry_crab/cleanroom_guard.py"
-            ],
+            "command": "crab-cleanroom-guard",
             "timeout": 5
           }
         ]

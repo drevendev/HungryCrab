@@ -9,11 +9,12 @@ routes their tool calls through this PreToolUse hook instead.
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
+
+from .cache import cache_root
 
 CLEANROOM_AGENT_TYPE = "crab:crab-cleanroom-impl"
 
@@ -39,18 +40,42 @@ def _strings(value: object) -> Iterable[str]:
             yield from _strings(item)
 
 
-def _configured_cache_root() -> str:
-    override = os.environ.get("CRAB_CACHE_DIR")
-    root = Path(override).expanduser() if override else Path.home() / ".cache" / "hungry-crab"
-    return str(root).replace("\\", "/").rstrip("/").casefold()
+def _canonical(path: Path, *, cwd: Path) -> Path:
+    path = path.expanduser()
+    if not path.is_absolute():
+        path = cwd / path
+    return path.resolve(strict=False)
 
 
-def _mentions_cache(text: str) -> bool:
+def _event_cwd(event: dict[object, object]) -> Path:
+    process_cwd = Path.cwd().resolve(strict=False)
+    raw = event.get("cwd")
+    if not isinstance(raw, str):
+        return process_cwd
+    try:
+        return _canonical(Path(raw), cwd=process_cwd)
+    except (OSError, RuntimeError, ValueError):
+        return process_cwd
+
+
+def _configured_cache_root(*, cwd: Path) -> Path:
+    return _canonical(cache_root(), cwd=cwd)
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    return path == root or root in path.parents
+
+
+def _mentions_cache(text: str, *, cwd: Path) -> bool:
     if _ENV_CACHE_REF.search(text) or _DEFAULT_CACHE_REF.search(text):
         return True
-    root = _configured_cache_root()
-    normalized = text.replace("\\", "/").casefold()
-    return bool(root and root in normalized)
+
+    try:
+        candidate = _canonical(Path(text), cwd=cwd)
+        root = _configured_cache_root(cwd=cwd)
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return _is_within(candidate, root)
 
 
 def cleanroom_guard_reason(event: object) -> str | None:
@@ -67,7 +92,8 @@ def cleanroom_guard_reason(event: object) -> str | None:
     if not isinstance(tool_input, dict):
         return "Clean-room tool call denied: the tool input could not be inspected."
 
-    if any(_mentions_cache(text) for text in _strings(tool_input)):
+    cwd = _event_cwd(event)
+    if any(_mentions_cache(text, cwd=cwd) for text in _strings(tool_input)):
         return (
             "Clean-room tool call denied: crab-cleanroom-impl may use the maw and its "
             "clean-room specification, but it may not access the Hungry Crab cache."
