@@ -39,7 +39,11 @@ _REFERENCE_VALUE = re.compile(
     r"^(?:\$[A-Z_][A-Z0-9_]*|\$\{[A-Z_][A-Z0-9_]*\}|<[^>]+>)$", re.IGNORECASE
 )
 _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
-_PUBLIC_GITHUB_URL = re.compile(r"https?://(?:www\.)?github\.com/[A-Za-z0-9_.~/-]+")
+_SAFE_GITHUB_TRACE_URL = re.compile(
+    r"https?://(?:www\.)?github\.com/"
+    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
+    r"(?:/commit/[0-9a-fA-F]{7,64}(?![A-Za-z0-9]))?"
+)
 _PLACEHOLDER_VALUES = frozenset(
     {
         "example",
@@ -145,9 +149,10 @@ def scan_publication(logical_path: str, text: str) -> list[PublicationFinding]:
                 )
                 continue
 
-        # Public GitHub trace URLs are identifiers, not opaque tokens. Strip only the public
-        # URL path for the generic entropy pass; query/fragment material remains visible.
-        entropy_line = _PUBLIC_GITHUB_URL.sub(" ", line)
+        # Repository URLs and hex commit trace URLs are public identifiers. Strip only those
+        # known-safe shapes for the generic entropy pass; extra path/query/fragment content
+        # remains visible.
+        entropy_line = _SAFE_GITHUB_TRACE_URL.sub(" ", line)
         for match in _TOKEN.finditer(entropy_line):
             value = _token_value(match.group(1))
             if _looks_high_entropy_secret(value):

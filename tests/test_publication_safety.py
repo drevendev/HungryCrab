@@ -85,6 +85,17 @@ def test_high_entropy_token_blocks_without_treating_trace_as_secret() -> None:
     assert scan_publication("generated/trace.txt", trace) == []
 
 
+def test_github_trace_exemption_does_not_hide_opaque_path_segments() -> None:
+    secret = "Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
+    safe = "Trace: https://github.com/example/prey/commit/0123456789abcdef"
+    suspicious = f"Trace: https://github.com/example/prey/commit/{secret}"
+
+    assert scan_publication("PR_BODY", safe) == []
+    findings = scan_publication("PR_BODY", suspicious)
+    assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
+    assert secret not in format_publication_findings(findings)
+
+
 def test_clean_bundle_passes_unchanged() -> None:
     items = [
         ("generated/README.md", "# Nutrient\n\nNo credentials here.\n"),
