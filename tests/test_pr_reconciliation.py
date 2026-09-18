@@ -23,9 +23,10 @@ class _PagedGh(GhIssueClient):
 
 
 def _api_item(number: int, body: str | None, *, pull_request: bool) -> dict[str, Any]:
+    kind = "pull" if pull_request else "issues"
     item: dict[str, Any] = {
         "number": number,
-        "html_url": f"https://github.com/example/maw/{'pull' if pull_request else 'issues'}/{number}",
+        "html_url": f"https://github.com/example/maw/{kind}/{number}",
         "state": "open",
         "title": f"t{number}",
         "body": body,
