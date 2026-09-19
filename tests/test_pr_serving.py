@@ -145,9 +145,7 @@ def test_creation_limit_counts_only_new_prs_and_commits_provider_receipts(tmp_pa
         (existing.id, False),
         (created.id, True),
     ]
-    assert report.skipped == [
-        {"id": limited.id, "reason": "serve.max_prs_per_run reached (1)"}
-    ]
+    assert report.skipped == [{"id": limited.id, "reason": "serve.max_prs_per_run reached (1)"}]
     assert ledger.entries[existing.id].status == "served"
     assert ledger.entries[created.id].url == "https://example.test/pr/8"
     saved = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -177,9 +175,7 @@ def test_terminal_ledger_entry_needs_no_receipt_or_provider_read(tmp_path: Path)
 
     assert calls == []
     assert report.served == []
-    assert report.skipped == [
-        {"id": card.id, "reason": "ledger: served https://example.test/pr/4"}
-    ]
+    assert report.skipped == [{"id": card.id, "reason": "ledger: served https://example.test/pr/4"}]
 
 
 def test_reconcile_only_publisher_has_zero_git_or_gh_effects_when_pr_is_absent(
