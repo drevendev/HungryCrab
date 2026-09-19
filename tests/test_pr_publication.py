@@ -103,6 +103,49 @@ def test_handoff_rejects_duplicate_paths() -> None:
     assert raised.value.hint == "duplicate handoff path: generated/cache.yml"
 
 
+def test_handoff_rejects_duplicate_root_object_member() -> None:
+    digest = "0" * 64
+    payload = (
+        '{"version":1,"version":1,"nutrient_id":"crab:ci:cache","files":['
+        f'{{"path":"generated/cache.yml","sha256":"{digest}"}}]}}'
+    )
+
+    with pytest.raises(CrabError, match="invalid publication handoff") as raised:
+        load_publication_handoff(payload)
+
+    assert raised.value.hint == "duplicate JSON object member: version"
+
+
+def test_handoff_rejects_duplicate_file_object_member() -> None:
+    digest = "0" * 64
+    payload = (
+        '{"version":1,"nutrient_id":"crab:ci:cache","files":['
+        '{"path":"generated/cache.yml","path":"generated/other.yml",'
+        f'"sha256":"{digest}"}}]}}'
+    )
+
+    with pytest.raises(CrabError, match="invalid publication handoff") as raised:
+        load_publication_handoff(payload)
+
+    assert raised.value.hint == "duplicate JSON object member: path"
+
+
+@pytest.mark.parametrize("version", [True, 1.0], ids=["boolean", "float"])
+def test_handoff_rejects_non_integer_version(version: object) -> None:
+    payload = json.dumps(
+        {
+            "version": version,
+            "nutrient_id": "crab:ci:cache",
+            "files": [{"path": "generated/cache.yml", "sha256": "0" * 64}],
+        }
+    )
+
+    with pytest.raises(CrabError, match="invalid publication handoff") as raised:
+        load_publication_handoff(payload)
+
+    assert raised.value.hint == f"unsupported handoff version: {version!r}"
+
+
 def test_handoff_rejects_missing_or_stale_declared_file() -> None:
     handoff = load_publication_handoff(_handoff_payload())
 
