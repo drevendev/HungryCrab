@@ -29,9 +29,7 @@ def test_receipt_stream_binds_multiple_documents_by_nutrient_id() -> None:
     loaded = load_cleanroom_receipts(f"\n{first}\n\n{second}\n")
 
     assert set(loaded) == {"crab:ci:ci.cache", "crab:tests:tests.smoke"}
-    assert json.loads(loaded["crab:ci:ci.cache"])["changed_paths"] == [
-        ".github/workflows/ci.yml"
-    ]
+    assert json.loads(loaded["crab:ci:ci.cache"])["changed_paths"] == [".github/workflows/ci.yml"]
 
 
 def test_receipt_stream_rejects_duplicate_nutrient_receipts() -> None:
