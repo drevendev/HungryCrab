@@ -10,8 +10,8 @@ from hungry_crab.errors import CrabError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import MawConfig
 from hungry_crab.nutrients import Candidate
-from hungry_crab.pr_publication import PullRequestPublication
-from hungry_crab.pr_serve import publish_cleanroom_git_pull_request
+from hungry_crab.pr_publication import PreparedPullRequest, PullRequestPublication
+from hungry_crab.pr_serve import prepare_cleanroom_pull_request, publish_cleanroom_git_pull_request
 from hungry_crab.pr_serving import serve_cleanroom_pull_requests
 
 TRACE = "implemented from a specification, without access to the prey source"
@@ -41,6 +41,19 @@ def _receipt(card: Candidate) -> str:
     )
 
 
+def _prepared(card: Candidate) -> PreparedPullRequest:
+    return PreparedPullRequest(
+        title=card.title,
+        body=f"<!-- {card.id} -->\n\nCarry the prepared nutrient.\n",
+        files=(),
+    )
+
+
+def _prepare_stub(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+    assert json.loads(receipt_payload)["nutrient_id"] == card.id
+    return _prepared(card)
+
+
 def test_ask_requires_explicit_selection_before_provider_access(tmp_path: Path) -> None:
     card = _card("cache")
     config = MawConfig(root=tmp_path)
@@ -54,6 +67,7 @@ def test_ask_requires_explicit_selection_before_provider_access(tmp_path: Path) 
             config=config,
             ledger=Ledger(None),
             explicit_selection=False,
+            preparer=lambda *_: calls.append("prepare") or _prepared(card),
             publisher=lambda *_: calls.append("publish") or None,
         )
 
@@ -74,6 +88,40 @@ def test_all_receipts_preflight_before_first_provider_effect(tmp_path: Path) -> 
             config=config,
             ledger=Ledger(None),
             explicit_selection=False,
+            preparer=_prepare_stub,
+            publisher=lambda *_: calls.append("publish") or None,
+        )
+
+    assert calls == []
+
+
+def test_all_filesystem_preparation_finishes_before_first_provider_effect(tmp_path: Path) -> None:
+    first = _card("cache")
+    second = _card("matrix")
+    generated = tmp_path / "generated"
+    generated.mkdir()
+    (generated / "cache.yml").write_text("cache: true\n", encoding="utf-8")
+    config = MawConfig(root=tmp_path)
+    config.serve.prs = "auto"
+    calls: list[str] = []
+
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        return prepare_cleanroom_pull_request(
+            card.id,
+            card.title,
+            f"<!-- {card.id} -->\n\nCarry the nutrient.\n",
+            receipt_payload,
+            tmp_path,
+        )
+
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt"):
+        serve_cleanroom_pull_requests(
+            [first, second],
+            {first.id: _receipt(first), second.id: _receipt(second)},
+            config=config,
+            ledger=Ledger(None),
+            explicit_selection=False,
+            preparer=prepare,
             publisher=lambda *_: calls.append("publish") or None,
         )
 
@@ -93,6 +141,7 @@ def test_non_reimplement_mode_fails_closed_before_provider_effects(tmp_path: Pat
             config=config,
             ledger=Ledger(None),
             explicit_selection=False,
+            preparer=lambda *_: calls.append("prepare") or _prepared(card),
             publisher=lambda *_: calls.append("publish") or None,
         )
 
@@ -112,9 +161,9 @@ def test_creation_limit_counts_only_new_prs_and_commits_provider_receipts(tmp_pa
     calls: list[tuple[str, bool]] = []
 
     def publisher(
-        card: Candidate, receipt_payload: str, allow_create: bool
+        card: Candidate, prepared: PreparedPullRequest, allow_create: bool
     ) -> PullRequestPublication | None:
-        assert json.loads(receipt_payload)["nutrient_id"] == card.id
+        assert prepared.body.startswith(f"<!-- {card.id} -->")
         calls.append((card.id, allow_create))
         if card is existing:
             return PullRequestPublication(
@@ -133,6 +182,7 @@ def test_creation_limit_counts_only_new_prs_and_commits_provider_receipts(tmp_pa
         config=config,
         ledger=ledger,
         explicit_selection=False,
+        preparer=_prepare_stub,
         publisher=publisher,
     )
 
@@ -170,6 +220,7 @@ def test_terminal_ledger_entry_needs_no_receipt_or_provider_read(tmp_path: Path)
         config=config,
         ledger=ledger,
         explicit_selection=False,
+        preparer=lambda *_: calls.append("prepare") or _prepared(card),
         publisher=lambda *_: calls.append("publish") or None,
     )
 
