@@ -28,6 +28,10 @@ MarkedPullRequests = Callable[[], Mapping[str, Mapping[str, object]]]
 GhRunner = Callable[..., str]
 
 
+class _CreationDeferredError(Exception):
+    """Internal signal: reconciliation found no PR, but this run has no creation budget left."""
+
+
 def _read_maw_text(maw_root: Path, path: str) -> str:
     """Read one handoff path only after proving its resolved target stays inside the maw."""
 
@@ -109,6 +113,47 @@ def prepare_cleanroom_pull_request(
     return PreparedPullRequest(title=title, body=rendered_body, files=files)
 
 
+def publish_prepared_cleanroom_git_pull_request(
+    nutrient_id: str,
+    prepared: PreparedPullRequest,
+    maw_root: Path,
+    slug: Slug,
+    *,
+    list_marked_prs: MarkedPullRequests,
+    run_gh: GhRunner,
+    git: GitRunner | None = None,
+    allow_create: bool = True,
+) -> PullRequestPublication | None:
+    """Publish an already frozen clean-room payload through the guarded provider transaction.
+
+    Callers that batch nutrients must prepare every selected nutrient before calling this function
+    for the first one. This function therefore performs no receipt or maw-content discovery: it
+    scans the immutable prepared bytes, reconciles provider truth and only then permits effects.
+    """
+
+    def publish_effect(branch: str, payload: PreparedPullRequest) -> str:
+        if not allow_create:
+            raise _CreationDeferredError
+        return publish_git_pull_request(
+            slug,
+            maw_root,
+            branch,
+            payload,
+            run_gh=run_gh,
+            git=git,
+        )
+
+    try:
+        return publish_prepared_transaction(
+            nutrient_id,
+            prepared,
+            list_marked_prs,
+            publish_effect,
+        )
+    except _CreationDeferredError:
+        return None
+
+
 def publish_cleanroom_git_pull_request(
     nutrient_id: str,
     title: str,
@@ -120,12 +165,14 @@ def publish_cleanroom_git_pull_request(
     list_marked_prs: MarkedPullRequests,
     run_gh: GhRunner,
     git: GitRunner | None = None,
-) -> PullRequestPublication:
-    """Publish one clean-room nutrient through the guarded deterministic PR transaction.
+    allow_create: bool = True,
+) -> PullRequestPublication | None:
+    """Prepare and publish one clean-room nutrient through the guarded PR transaction.
 
-    PREPARE happens entirely before provider reads. ``publish_prepared_transaction`` then scans
-    every generated file plus PR title/body, reconciles a marker-bearing PR, and invokes the
-    concrete detached-worktree adapter only when a new provider effect is necessary.
+    This convenience wrapper is safe for a single nutrient. Batch orchestration must call
+    ``prepare_cleanroom_pull_request`` for every actionable nutrient first, then publish those
+    immutable payloads with ``publish_prepared_cleanroom_git_pull_request`` so a later PREPARE
+    failure cannot follow an earlier provider effect.
     """
 
     prepared = prepare_cleanroom_pull_request(
@@ -135,16 +182,13 @@ def publish_cleanroom_git_pull_request(
         receipt_payload,
         maw_root,
     )
-    return publish_prepared_transaction(
+    return publish_prepared_cleanroom_git_pull_request(
         nutrient_id,
         prepared,
-        list_marked_prs,
-        lambda branch, payload: publish_git_pull_request(
-            slug,
-            maw_root,
-            branch,
-            payload,
-            run_gh=run_gh,
-            git=git,
-        ),
+        maw_root,
+        slug,
+        list_marked_prs=list_marked_prs,
+        run_gh=run_gh,
+        git=git,
+        allow_create=allow_create,
     )
