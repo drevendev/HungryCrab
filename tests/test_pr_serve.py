@@ -13,7 +13,6 @@ from hungry_crab.pr_serve import (
     publish_cleanroom_git_pull_request,
 )
 
-
 TRACE = "implemented from a specification, without access to the prey source"
 
 
