@@ -48,10 +48,10 @@ def test_receipt_stream_preserves_strict_receipt_validation() -> None:
         f'"summary":{json.dumps(TRACE)},"checks":["pytest -q"]}}'
     )
 
-    with pytest.raises(CrabError, match="duplicate JSON object member"):
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt"):
         load_cleanroom_receipts(ambiguous)
 
 
 def test_empty_receipt_stream_fails_closed() -> None:
-    with pytest.raises(UsageError, match="no clean-room implementation receipt"):
+    with pytest.raises(CrabError, match=r"milestone 0\.3"):
         load_cleanroom_receipts(" \n\t")
