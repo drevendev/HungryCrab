@@ -59,7 +59,9 @@ def test_receipt_filesystem_boundary_rejects_unproven_reader(tmp_path: Path) -> 
     target = generated / "cache.yml"
     target.write_text("cache: true\n", encoding="utf-8")
 
-    unsafe_reader = lambda path: (maw / path).read_text()
+    def unsafe_reader(path: str) -> str:
+        return (maw / path).read_text()
+
     with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
         publication_handoff_from_receipt(_receipt(), unsafe_reader)  # type: ignore[arg-type]
 
