@@ -230,8 +230,7 @@ def dump_publication_handoff(handoff: PublicationHandoff) -> str:
                 "version": _HANDOFF_VERSION,
                 "nutrient_id": handoff.nutrient_id,
                 "files": [
-                    {"path": declared.path, "sha256": declared.sha256}
-                    for declared in handoff.files
+                    {"path": declared.path, "sha256": declared.sha256} for declared in handoff.files
                 ],
             },
             sort_keys=True,
