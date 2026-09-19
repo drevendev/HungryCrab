@@ -28,6 +28,10 @@ MarkedPullRequests = Callable[[], Mapping[str, Mapping[str, object]]]
 GhRunner = Callable[..., str]
 
 
+class _CreationDeferred(Exception):
+    """Internal signal: reconciliation found no PR, but this run has no creation budget left."""
+
+
 def _read_maw_text(maw_root: Path, path: str) -> str:
     """Read one handoff path only after proving its resolved target stays inside the maw."""
 
@@ -120,12 +124,14 @@ def publish_cleanroom_git_pull_request(
     list_marked_prs: MarkedPullRequests,
     run_gh: GhRunner,
     git: GitRunner | None = None,
-) -> PullRequestPublication:
+    allow_create: bool = True,
+) -> PullRequestPublication | None:
     """Publish one clean-room nutrient through the guarded deterministic PR transaction.
 
     PREPARE happens entirely before provider reads. ``publish_prepared_transaction`` then scans
-    every generated file plus PR title/body, reconciles a marker-bearing PR, and invokes the
-    concrete detached-worktree adapter only when a new provider effect is necessary.
+    every generated file plus PR title/body and reconciles a marker-bearing PR. When
+    ``allow_create`` is false, reconciliation still runs but the effect callback stops before any
+    git/GitHub publication effect and this function returns ``None`` if no existing PR was found.
     """
 
     prepared = prepare_cleanroom_pull_request(
@@ -135,16 +141,25 @@ def publish_cleanroom_git_pull_request(
         receipt_payload,
         maw_root,
     )
-    return publish_prepared_transaction(
-        nutrient_id,
-        prepared,
-        list_marked_prs,
-        lambda branch, payload: publish_git_pull_request(
+
+    def publish_effect(branch: str, payload: PreparedPullRequest) -> str:
+        if not allow_create:
+            raise _CreationDeferred
+        return publish_git_pull_request(
             slug,
             maw_root,
             branch,
             payload,
             run_gh=run_gh,
             git=git,
-        ),
-    )
+        )
+
+    try:
+        return publish_prepared_transaction(
+            nutrient_id,
+            prepared,
+            list_marked_prs,
+            publish_effect,
+        )
+    except _CreationDeferred:
+        return None
