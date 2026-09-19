@@ -26,7 +26,7 @@ before Stage B. Record the prey URL/SHA and nutrient id as provenance, not prey 
 
 Invoke the `crab-cleanroom-impl` subagent with a fresh context. Give it only:
 
-1. the `.crab/specs/<nutrient-id>.md` path;
+1. the exact `crab:` nutrient id and `.crab/specs/<nutrient-id>.md` path;
 2. the maw path and the maw files/tests it may need;
 3. the expected verification commands.
 
@@ -34,9 +34,18 @@ Do not pass the prey cache path, prey source, copied snippets, or a source URL a
 material. The plugin's `PreToolUse` guard mechanically denies Hungry Crab cache access for this
 agent's tool calls.
 
-The implementer changes only the maw and has no shell/network tools. After it returns, the caller
-runs the maw's relevant tests/static checks in the ordinary trusted maw context. A failed or
-unavailable check is not a pass.
+The implementer changes only the maw and has no shell/network tools. It must return the strict JSON
+implementation receipt defined by `agents/crab-cleanroom-impl.md`: exact nutrient id, exact changed
+maw paths, the clean-room trace summary, and checks for the trusted caller. Reject malformed,
+duplicate, non-canonical, empty, or guessed path declarations instead of falling back to a dirty
+working-tree diff.
+
+After it returns, the trusted caller parses that receipt and hashes the current UTF-8 content of
+**exactly** the receipt-declared paths into the publication handoff. Missing files or an invalid
+receipt block publication. Later changes are detected by the handoff content hashes; unrelated
+dirty maw files never become publication candidates. The caller then runs the maw's relevant
+tests/static checks in the ordinary trusted maw context. A failed or unavailable check is not a
+pass.
 
 ## Trace
 
