@@ -221,11 +221,7 @@ def _mapping_from_legacy_reader(source: object) -> Mapping[object, object] | Non
 
 
 def _read_receipt_maw_text(maw: object, path: str) -> str:
-    mapping: Mapping[object, object] | None
-    if isinstance(maw, Mapping):
-        mapping = maw
-    else:
-        mapping = _mapping_from_legacy_reader(maw)
+    mapping = maw if isinstance(maw, Mapping) else _mapping_from_legacy_reader(maw)
     if mapping is not None:
         try:
             content = mapping[path]
