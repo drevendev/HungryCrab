@@ -1,10 +1,9 @@
-"""``crab serve``: turn approved nutrients into GitHub issues with trace.
+"""``crab serve``: turn approved nutrients into GitHub issues or guarded pull requests.
 
-Every issue carries a hidden ``<!-- crab:<id> -->`` marker so that later runs (and other
-machines) can see it was already served, a label, and a trace footer naming the prey, the
-commit, the license and the mode. The marker is the first line of the body, and dedup relies on
-that: a quote of a served issue carries the marker too, further down. Pull-request branches
-arrive with milestone 0.3.
+Every issue and pull request carries a hidden ``<!-- crab:<id> -->`` marker so later runs (and
+other machines) can reconcile provider truth before creating another artifact. Pull-request mode
+accepts only the strict clean-room implementation receipts produced by the isolated REIMPLEMENT
+worker; it never infers publication membership from a dirty maw working tree.
 """
 
 from __future__ import annotations
@@ -16,11 +15,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from .cache import Slug
 from .compare import load_menu, menu_candidates
@@ -28,6 +27,13 @@ from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageErro
 from .ledger import Ledger
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
+from .pr_publication import (
+    PreparedPullRequest,
+    PullRequestPublication,
+    load_cleanroom_implementation_receipt,
+)
+from .pr_serve import prepare_cleanroom_pull_request, publish_prepared_cleanroom_git_pull_request
+from .pr_serving import serve_cleanroom_pull_requests
 from .typeutil import as_dict, as_list
 
 MARKER_RE = re.compile(r"<!--\s*(crab:[^\s>]+)\s*-->")
@@ -75,20 +81,28 @@ class IssueClient(Protocol):
         ...
 
 
+class PullRequestClient(Protocol):
+    """The provider surface needed after the complete PR payload is prepared and scanned."""
+
+    def list_marked_prs(self, slug: Slug) -> dict[str, dict[str, Any]]: ...
+
+    def run_gh(self, *args: str) -> str: ...
+
+    def identity(self) -> str: ...
+
+
 def _opens_with(body: str, marker: str) -> bool:
-    """A Hungry Crab issue starts with its marker; a quote of one carries it further down."""
+    """A Hungry Crab artifact starts with its marker; a quote carries it further down."""
     match = MARKER_RE.match(body.lstrip())
     return match is not None and match.group(1) == marker
 
 
 def parse_markers(issues: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Map ``crab:<id>`` markers found in issue bodies to the issue that carries them.
+    """Map ``crab:<id>`` markers to the direct artifact that carries them.
 
-    A marker can be in more than one issue, because an HTML comment survives a quote. The issue
-    the crab filed is the one whose body *opens* with the marker, as ``render_issue`` writes it;
-    among several of those, or failing any, the oldest wins. The answer does not depend on the
-    order the issues arrive in — ``gh`` returns newest first, and "first seen wins" let a quote
-    steal the real issue's number and state.
+    A marker can be in more than one issue because an HTML comment survives a quote. The artifact
+    the crab filed is the one whose body opens with the marker; among several direct carriers, or
+    failing any, the oldest wins. The answer does not depend on provider result order.
     """
     ranked: dict[str, tuple[tuple[int, int], dict[str, Any]]] = {}
     for issue in issues:
@@ -132,13 +146,7 @@ def _json_documents(text: str) -> list[Any]:
 
 
 class GhIssueClient:
-    """Issue operations through the gh CLI.
-
-    ``token_env`` names an environment variable holding the token to act as. gh reads
-    ``GH_TOKEN``, so a GitHub App installation token or a machine account's token there is all
-    it takes for the crab to file issues under its own name instead of the maintainer's. Unset,
-    or naming an empty variable, means gh's own stored authentication: the human.
-    """
+    """Issue and pull-request provider operations through the gh CLI."""
 
     def __init__(
         self, gh: str | None = None, *, timeout: float = 120.0, token_env: str = ""
@@ -154,7 +162,6 @@ class GhIssueClient:
         env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
         token = env.get(self.token_env, "").strip() if self.token_env else ""
         if token:
-            # gh prefers GH_TOKEN over everything it has stored, which is exactly the point.
             env["GH_TOKEN"] = token
             env.pop("GITHUB_TOKEN", None)
         assert self.gh is not None
@@ -169,17 +176,13 @@ class GhIssueClient:
             raise ExternalCommandError(f"gh {' '.join(args[:2])} failed: {stderr[-500:]}")
         return proc.stdout.decode("utf-8", errors="replace")
 
-    def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
-        """Markers in every issue of the repository, whatever its label, however many.
+    def run_gh(self, *args: str) -> str:
+        """Expose the same authenticated gh runner to the guarded PR effect adapter."""
+        return self._run(*args)
 
-        ``gh issue list --limit 500`` was a cliff: past five hundred issues the crab's markers
-        fell off the end and the next serve filed everything again — on exactly the repository
-        where the maw's ledger is not there to catch it, one the crab is a visitor to. The label
-        is no filter either: a repository the crab cannot label gets its issues without one, so
-        filtering by it would hide the very issues dedup exists to find. The issues endpoint
-        also returns pull requests; those are dropped.
-        """
-        del label  # dedup reads the marker in the body, never the label
+    def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
+        """Markers in every issue of the repository, whatever its label, however many."""
+        del label
         out = self._run(
             "api", "--paginate", f"repos/{slug}/issues?state=all&per_page=100&direction=asc"
         )
@@ -201,14 +204,7 @@ class GhIssueClient:
         return parse_markers(issues)
 
     def list_marked_prs(self, slug: Slug) -> dict[str, dict[str, Any]]:
-        """Markers in every pull request, across all pages and states.
-
-        GitHub's issues endpoint is intentionally reused here because it gives one paginated
-        stream containing both issues and pull requests. Issue serving drops PR items; PR
-        reconciliation does the inverse. Keeping the marker parser identical preserves the
-        anti-quote rule: a body that opens with ``<!-- crab:<id> -->`` outranks one that merely
-        quotes it, and the oldest direct carrier wins after a historical race.
-        """
+        """Markers in every pull request, across all pages and states."""
         out = self._run(
             "api", "--paginate", f"repos/{slug}/issues?state=all&per_page=100&direction=asc"
         )
@@ -230,16 +226,20 @@ class GhIssueClient:
         return parse_markers(pull_requests)
 
     def ensure_label(self, slug: Slug, label: str) -> bool:
-        """Creating a label needs write access; filing an issue does not.
-
-        On a repository the crab is only a visitor to, this is the first thing that fails, and
-        failing it must not cost the meal.
-        """
+        """Creating a label needs write access; filing an issue does not."""
         try:
             self._run(
-                "label", "create", label, "--repo", str(slug), "--color", "1D76DB",
-                "--description", "Served by Hungry Crab", "--force",
-            )  # fmt: skip
+                "label",
+                "create",
+                label,
+                "--repo",
+                str(slug),
+                "--color",
+                "1D76DB",
+                "--description",
+                "Served by Hungry Crab",
+                "--force",
+            )
         except CrabError:
             return False
         return True
@@ -252,7 +252,6 @@ class GhIssueClient:
         try:
             login = self._run("api", "user", "-q", ".login").strip()
         except CrabError:
-            # A GitHub App installation token cannot call /user, which is itself an answer.
             return f"the app installation in ${self.token_env}" if source else ""
         return f"{login}{source}" if login else ""
 
@@ -287,7 +286,6 @@ class GhIssueClient:
 
 
 def _maw_state(card: Candidate) -> str:
-    """`maw_state` is a rendered trait value, and a bare "no" reads badly in an issue."""
     state = card.maw_state.strip()
     if state.lower() in ("", "no", "none", "false"):
         return "nothing comparable"
@@ -347,6 +345,48 @@ def load_notes(path: Path) -> dict[str, dict[str, Any]]:
     return notes
 
 
+def load_cleanroom_receipts(payload: str) -> dict[str, str]:
+    """Parse one or more strict receipt JSON documents from the trusted caller stream.
+
+    Documents may be separated by arbitrary whitespace. Each raw document is passed through the
+    strict receipt parser independently, so duplicate object members and unknown fields still fail
+    closed. The stream is transport only: it is never persisted as a second publication state.
+    """
+    decoder = json.JSONDecoder()
+    receipts: dict[str, str] = {}
+    index = 0
+    while index < len(payload):
+        while index < len(payload) and payload[index].isspace():
+            index += 1
+        if index >= len(payload):
+            break
+        start = index
+        try:
+            _, index = decoder.raw_decode(payload, index)
+        except ValueError as exc:
+            raise UsageError(
+                "invalid clean-room receipt stream",
+                hint="pipe one or more complete clean-room receipt JSON objects to stdin",
+            ) from exc
+        raw = payload[start:index]
+        receipt = load_cleanroom_implementation_receipt(raw)
+        if receipt.nutrient_id in receipts:
+            raise UsageError(
+                f"duplicate clean-room receipt for {receipt.nutrient_id}",
+                hint="provide exactly one implementation receipt per selected nutrient",
+            )
+        receipts[receipt.nutrient_id] = raw
+    if not receipts:
+        raise CrabError(
+            "milestone 0.3 pull-request serving requires a clean-room implementation receipt",
+            hint=(
+                "pipe one strict implementer receipt JSON object per selected REIMPLEMENT "
+                "nutrient to stdin"
+            ),
+        )
+    return receipts
+
+
 @dataclass
 class ServeOptions:
     ids: list[str] = field(default_factory=list)
@@ -400,6 +440,74 @@ def select_cards(
     raise UsageError("nothing selected", hint="pass --ids id1,id2 or --top N")
 
 
+def _read_receipt_stream() -> dict[str, str]:
+    if sys.stdin.isatty():
+        return load_cleanroom_receipts("")
+    try:
+        payload = sys.stdin.read()
+    except OSError:
+        payload = ""
+    return load_cleanroom_receipts(payload)
+
+
+def _serve_pull_requests(
+    cards: list[Candidate],
+    receipts: Mapping[str, str],
+    *,
+    menu: dict[str, Any],
+    maw_root: Path,
+    config: MawConfig,
+    ledger: Ledger,
+    client: PullRequestClient,
+    explicit_selection: bool,
+    now: datetime | None,
+    log: Callable[[str], None],
+    slug: Slug,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        title, body = render_issue(card, menu)
+        return prepare_cleanroom_pull_request(card.id, title, body, receipt_payload, maw_root)
+
+    def publish(
+        card: Candidate, prepared: PreparedPullRequest, allow_create: bool
+    ) -> PullRequestPublication | None:
+        return publish_prepared_cleanroom_git_pull_request(
+            card.id,
+            prepared,
+            maw_root,
+            slug,
+            list_marked_prs=lambda: client.list_marked_prs(slug),
+            run_gh=client.run_gh,
+            allow_create=allow_create,
+        )
+
+    result = serve_cleanroom_pull_requests(
+        cards,
+        receipts,
+        config=config,
+        ledger=ledger,
+        explicit_selection=explicit_selection,
+        preparer=prepare,
+        publisher=publish,
+        now=now,
+    )
+    served: list[dict[str, Any]] = []
+    skipped = list(result.skipped)
+    for item in result.served:
+        if item.get("created"):
+            served.append(item)
+            log(f"served {item['id']} -> {item['url']}")
+        else:
+            skipped.append(
+                {
+                    "id": item["id"],
+                    "reason": f"pull request exists {item['url']}; ledger reconciled",
+                }
+            )
+            log(f"reconciled {item['id']} -> {item['url']}")
+    return served, skipped
+
+
 def serve(
     meal_dir: Path,
     maw_root: Path,
@@ -411,13 +519,12 @@ def serve(
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
     slug_lookup: Callable[[Path], Slug | None] = maw_slug,
+    receipt_payloads: Mapping[str, str] | None = None,
 ) -> ServeReport:
-    if options.mode == "pr-branch":
-        raise CrabError(
-            "pull request branches arrive with milestone 0.3", hint="use --as issue or --as dry-run"
+    if options.mode not in ("dry-run", "issue", "pr-branch"):
+        raise UsageError(
+            f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch"
         )
-    if options.mode not in ("dry-run", "issue"):
-        raise UsageError(f"unknown serve mode {options.mode!r}", hint="use dry-run or issue")
     menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
@@ -432,6 +539,41 @@ def serve(
     report = ServeReport(mode=options.mode, maw=str(maw_root), skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     slug = slug_lookup(maw_root)
+
+    if options.mode == "pr-branch":
+        receipts = (
+            dict(receipt_payloads) if receipt_payloads is not None else _read_receipt_stream()
+        )
+        if slug is None:
+            raise CrabError(
+                "the maw has no GitHub origin remote, cannot create pull requests",
+                hint="add a remote or use --as dry-run",
+            )
+        pr_client = (
+            cast(PullRequestClient, client)
+            if client is not None
+            else GhIssueClient(token_env=config.serve.token_env)
+        )
+        who = pr_client.identity()
+        target = f"serving pull requests into {slug}"
+        log(f"{target} as {who}" if who else target)
+        served, pr_skipped = _serve_pull_requests(
+            cards,
+            receipts,
+            menu=menu,
+            maw_root=maw_root,
+            config=config,
+            ledger=ledger,
+            client=pr_client,
+            explicit_selection=bool(options.ids),
+            now=now,
+            log=log,
+            slug=slug,
+        )
+        report.served.extend(served)
+        report.skipped.extend(pr_skipped)
+        return report
+
     existing: dict[str, dict[str, Any]] = {}
     label = config.serve.label
     if client is not None and slug is not None:
