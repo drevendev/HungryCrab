@@ -14,6 +14,8 @@ import json
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
+from types import BuiltinMethodType
 from typing import TypeVar
 
 from .errors import CrabError
@@ -24,6 +26,8 @@ _BRANCH_SAFE_RE = re.compile(r"[^a-z0-9._-]+")
 _BRANCH_REPEAT_RE = re.compile(r"[.-]{2,}")
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _HANDOFF_VERSION = 1
+_CLEANROOM_RECEIPT_VERSION = 1
+_CLEANROOM_TRACE = "implemented from a specification, without access to the prey source"
 
 
 @dataclass(frozen=True)
@@ -48,6 +52,16 @@ class PublicationHandoff:
 
     nutrient_id: str
     files: tuple[HandoffFile, ...]
+
+
+@dataclass(frozen=True)
+class CleanroomImplementationReceipt:
+    """Exact paths declared by the isolated clean-room producer after implementation."""
+
+    nutrient_id: str
+    changed_paths: tuple[str, ...]
+    summary: str
+    checks: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -82,6 +96,13 @@ def _handoff_error(detail: str) -> CrabError:
     )
 
 
+def _receipt_error(detail: str) -> CrabError:
+    return CrabError(
+        "invalid clean-room implementation receipt; refusing to infer files from the maw",
+        hint=detail,
+    )
+
+
 def _reject_duplicate_object_members(
     pairs: list[tuple[str, object]],
 ) -> dict[str, object]:
@@ -93,17 +114,192 @@ def _reject_duplicate_object_members(
     return parsed
 
 
-def _validate_handoff_path(path: str) -> None:
+def _is_canonical_maw_path(path: str) -> bool:
     parts = path.split("/")
-    if (
+    return not (
         not path
         or path.startswith("/")
         or "\\" in path
         or "\x00" in path
         or any(not part or part in {".", ".."} for part in parts)
         or ":" in parts[0]
-    ):
+    )
+
+
+def _validate_handoff_path(path: str) -> None:
+    if not _is_canonical_maw_path(path):
         raise _handoff_error("file paths must be canonical maw-relative POSIX paths")
+
+
+def _validate_receipt_path(path: str) -> None:
+    if not _is_canonical_maw_path(path):
+        raise _receipt_error("changed paths must be canonical maw-relative POSIX paths")
+
+
+def load_cleanroom_implementation_receipt(payload: str) -> CleanroomImplementationReceipt:
+    """Parse the isolated implementer's exact machine-readable changed-path declaration.
+
+    The receipt is the only producer-side source of path membership. The trusted caller hashes the
+    current content of exactly these paths into a publication handoff; it never discovers files by
+    diffing whatever happens to be dirty in the maw.
+    """
+
+    try:
+        raw: object = json.loads(payload, object_pairs_hook=_reject_duplicate_object_members)
+    except _DuplicateObjectMemberError as exc:
+        raise _receipt_error(f"duplicate JSON object member: {exc.key}") from exc
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise _receipt_error("receipt must be valid JSON") from exc
+    if not isinstance(raw, dict):
+        raise _receipt_error("receipt root must be an object")
+    if set(raw) != {"version", "nutrient_id", "changed_paths", "summary", "checks"}:
+        raise _receipt_error(
+            "receipt must contain only version, nutrient_id, changed_paths, summary, and checks"
+        )
+
+    version = raw["version"]
+    if (
+        isinstance(version, bool)
+        or not isinstance(version, int)
+        or version != _CLEANROOM_RECEIPT_VERSION
+    ):
+        raise _receipt_error(f"unsupported receipt version: {version!r}")
+
+    nutrient_id = raw["nutrient_id"]
+    if not isinstance(nutrient_id, str) or not nutrient_id.startswith("crab:"):
+        raise _receipt_error("nutrient_id must be a crab nutrient id")
+
+    raw_paths = raw["changed_paths"]
+    if not isinstance(raw_paths, list) or not raw_paths:
+        raise _receipt_error("receipt must declare at least one changed path")
+    changed_paths: list[str] = []
+    seen_paths: set[str] = set()
+    for path in raw_paths:
+        if not isinstance(path, str):
+            raise _receipt_error("changed path must be a string")
+        _validate_receipt_path(path)
+        if path in seen_paths:
+            raise _receipt_error(f"duplicate changed path: {path}")
+        seen_paths.add(path)
+        changed_paths.append(path)
+
+    summary = raw["summary"]
+    if not isinstance(summary, str) or _CLEANROOM_TRACE not in summary:
+        raise _receipt_error("summary must contain the clean-room trace sentence")
+
+    raw_checks = raw["checks"]
+    if (
+        not isinstance(raw_checks, list)
+        or not raw_checks
+        or any(not isinstance(check, str) or not check.strip() for check in raw_checks)
+    ):
+        raise _receipt_error("checks must be a non-empty list of command strings")
+
+    return CleanroomImplementationReceipt(
+        nutrient_id=nutrient_id,
+        changed_paths=tuple(changed_paths),
+        summary=summary,
+        checks=tuple(raw_checks),
+    )
+
+
+def _mapping_from_legacy_reader(source: object) -> Mapping[object, object] | None:
+    """Recover only a bound in-memory mapping reader used by unit tests.
+
+    Filesystem callbacks are deliberately not accepted here: they cannot prove that a lexical maw
+    path resolves inside the actual maw root. A mapping has no filesystem aliasing semantics, so it
+    remains a useful deterministic seam for existing pure unit tests.
+    """
+
+    if (
+        isinstance(source, BuiltinMethodType)
+        and source.__name__ == "__getitem__"
+        and isinstance(source.__self__, Mapping)
+    ):
+        return source.__self__
+    return None
+
+
+def _read_receipt_maw_text(maw: object, path: str) -> str:
+    mapping = maw if isinstance(maw, Mapping) else _mapping_from_legacy_reader(maw)
+    if mapping is not None:
+        try:
+            content = mapping[path]
+        except KeyError as exc:
+            raise _receipt_error(f"declared changed file is missing: {path}") from exc
+        if not isinstance(content, str):
+            raise _receipt_error(f"declared changed file is not UTF-8 text: {path}")
+        return content
+
+    if not isinstance(maw, Path):
+        raise _receipt_error(
+            "maw source must be a root Path so resolved containment can be proven before reading"
+        )
+
+    try:
+        root = maw.resolve(strict=True)
+    except OSError as exc:
+        raise _receipt_error("maw root cannot be resolved safely") from exc
+
+    try:
+        resolved = (root / path).resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise _receipt_error(f"declared changed file is missing: {path}") from exc
+    except OSError as exc:
+        raise _receipt_error(f"declared changed file cannot be resolved safely: {path}") from exc
+
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise _receipt_error(f"declared changed file resolves outside the maw: {path}") from exc
+
+    if not resolved.is_file():
+        raise _receipt_error(f"declared changed path is not a regular file: {path}")
+    try:
+        return resolved.read_text(encoding="utf-8")
+    except UnicodeError as exc:
+        raise _receipt_error(f"declared changed file is not UTF-8 text: {path}") from exc
+    except OSError as exc:
+        raise _receipt_error(f"declared changed file cannot be read safely: {path}") from exc
+
+
+def publication_handoff_from_receipt(
+    receipt: CleanroomImplementationReceipt,
+    maw: Path | Mapping[str, str],
+) -> PublicationHandoff:
+    """Hash exact receipt files after proving filesystem containment under the maw root.
+
+    Production callers pass the actual maw root. Resolution happens before reading and the resolved
+    target itself is read, so symlinks, junctions, and other aliases cannot redirect publication
+    bytes outside the maw. In-memory mappings are supported only as an alias-free unit-test seam.
+    """
+
+    files: list[HandoffFile] = []
+    for path in receipt.changed_paths:
+        content = _read_receipt_maw_text(maw, path)
+        files.append(
+            HandoffFile(path=path, sha256=hashlib.sha256(content.encode("utf-8")).hexdigest())
+        )
+    return PublicationHandoff(nutrient_id=receipt.nutrient_id, files=tuple(files))
+
+
+def dump_publication_handoff(handoff: PublicationHandoff) -> str:
+    """Serialize a handoff canonically so it can be persisted or passed across processes."""
+
+    return (
+        json.dumps(
+            {
+                "version": _HANDOFF_VERSION,
+                "nutrient_id": handoff.nutrient_id,
+                "files": [
+                    {"path": declared.path, "sha256": declared.sha256} for declared in handoff.files
+                ],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
 
 
 def load_publication_handoff(payload: str) -> PublicationHandoff:
