@@ -448,7 +448,11 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     meal_dir = meal_for(prey, maw, DigestOptions(cache_root=args.cache_dir))
     ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
     options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
-    client = GhIssueClient() if (args.mode == "issue" or shutil.which("gh")) else None
+    client = (
+        GhIssueClient(token_env=config.serve.token_env)
+        if (args.mode == "issue" or shutil.which("gh"))
+        else None
+    )
     report = serve(meal_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
     if args.json:
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
