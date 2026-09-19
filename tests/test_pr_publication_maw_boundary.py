@@ -47,7 +47,9 @@ def test_receipt_filesystem_boundary_rejects_symlink_escape(tmp_path: Path) -> N
     with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
         publication_handoff_from_receipt(_receipt(), maw)
 
-    assert raised.value.hint == "declared changed file resolves outside the maw: generated/cache.yml"
+    assert raised.value.hint == (
+        "declared changed file resolves outside the maw: generated/cache.yml"
+    )
 
 
 def test_receipt_filesystem_boundary_rejects_unproven_reader(tmp_path: Path) -> None:
@@ -57,8 +59,9 @@ def test_receipt_filesystem_boundary_rejects_unproven_reader(tmp_path: Path) -> 
     target = generated / "cache.yml"
     target.write_text("cache: true\n", encoding="utf-8")
 
+    unsafe_reader = lambda path: (maw / path).read_text()
     with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
-        publication_handoff_from_receipt(_receipt(), lambda path: (maw / path).read_text())  # type: ignore[arg-type]
+        publication_handoff_from_receipt(_receipt(), unsafe_reader)  # type: ignore[arg-type]
 
     assert raised.value.hint == (
         "maw source must be a root Path so resolved containment can be proven before reading"
