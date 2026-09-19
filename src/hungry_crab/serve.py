@@ -377,11 +377,11 @@ def load_cleanroom_receipts(payload: str) -> dict[str, str]:
             )
         receipts[receipt.nutrient_id] = raw
     if not receipts:
-        raise UsageError(
-            "no clean-room implementation receipt supplied for pull-request serving",
+        raise CrabError(
+            "milestone 0.3 pull-request serving requires a clean-room implementation receipt",
             hint=(
-                "milestone 0.3 PR serving reads the strict implementer receipt from stdin; "
-                "pipe one receipt JSON object per selected REIMPLEMENT nutrient"
+                "pipe one strict implementer receipt JSON object per selected REIMPLEMENT "
+                "nutrient to stdin"
             ),
         )
     return receipts
@@ -541,7 +541,11 @@ def serve(
     slug = slug_lookup(maw_root)
 
     if options.mode == "pr-branch":
-        receipts = dict(receipt_payloads) if receipt_payloads is not None else _read_receipt_stream()
+        receipts = (
+            dict(receipt_payloads)
+            if receipt_payloads is not None
+            else _read_receipt_stream()
+        )
         if slug is None:
             raise CrabError(
                 "the maw has no GitHub origin remote, cannot create pull requests",
