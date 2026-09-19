@@ -198,7 +198,7 @@ def test_reconcile_only_publisher_has_zero_git_or_gh_effects_when_pr_is_absent(
         _receipt(card),
         tmp_path,
         Slug("example", "maw"),
-        list_marked_prs=lambda: {},
+        list_marked_prs=dict,
         run_gh=lambda *args: gh_calls.append(args) or "",
         allow_create=False,
     )
