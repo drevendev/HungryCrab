@@ -27,7 +27,11 @@ from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageErro
 from .ledger import Ledger
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
-from .pr_publication import load_cleanroom_implementation_receipt
+from .pr_publication import (
+    PreparedPullRequest,
+    PullRequestPublication,
+    load_cleanroom_implementation_receipt,
+)
 from .pr_serve import prepare_cleanroom_pull_request, publish_prepared_cleanroom_git_pull_request
 from .pr_serving import serve_cleanroom_pull_requests
 from .typeutil import as_dict, as_list
@@ -460,11 +464,13 @@ def _serve_pull_requests(
     log: Callable[[str], None],
     slug: Slug,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    def prepare(card: Candidate, receipt_payload: str):  # type: ignore[no-untyped-def]
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
         return prepare_cleanroom_pull_request(card.id, title, body, receipt_payload, maw_root)
 
-    def publish(card: Candidate, prepared: Any, allow_create: bool):  # type: ignore[no-untyped-def]
+    def publish(
+        card: Candidate, prepared: PreparedPullRequest, allow_create: bool
+    ) -> PullRequestPublication | None:
         return publish_prepared_cleanroom_git_pull_request(
             card.id,
             prepared,
@@ -516,7 +522,9 @@ def serve(
     receipt_payloads: Mapping[str, str] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
-        raise UsageError(f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch")
+        raise UsageError(
+            f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch"
+        )
     menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
@@ -533,19 +541,20 @@ def serve(
     slug = slug_lookup(maw_root)
 
     if options.mode == "pr-branch":
+        receipts = dict(receipt_payloads) if receipt_payloads is not None else _read_receipt_stream()
         if slug is None:
             raise CrabError(
                 "the maw has no GitHub origin remote, cannot create pull requests",
                 hint="add a remote or use --as dry-run",
             )
-        receipts = dict(receipt_payloads) if receipt_payloads is not None else _read_receipt_stream()
         pr_client = (
             cast(PullRequestClient, client)
             if client is not None
             else GhIssueClient(token_env=config.serve.token_env)
         )
         who = pr_client.identity()
-        log(f"serving pull requests into {slug} as {who}" if who else f"serving pull requests into {slug}")
+        target = f"serving pull requests into {slug}"
+        log(f"{target} as {who}" if who else target)
         served, pr_skipped = _serve_pull_requests(
             cards,
             receipts,
