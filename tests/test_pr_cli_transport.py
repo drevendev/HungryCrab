@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -53,3 +55,60 @@ def test_receipt_stream_preserves_strict_receipt_validation() -> None:
 def test_empty_receipt_stream_fails_closed() -> None:
     with pytest.raises(CrabError, match=r"milestone 0\.3"):
         load_cleanroom_receipts(" \n\t")
+
+
+def test_pr_branch_cli_threads_configured_provider_identity(monkeypatch, tmp_path) -> None:
+    from hungry_crab import cli
+
+    token_env = "CRAB_APP_TOKEN"
+    config = SimpleNamespace(
+        serve=SimpleNamespace(token_env=token_env),
+        ledger_path=lambda _cache_dir: tmp_path / "ledger.json",
+    )
+    ledger = object()
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(cli, "resolve_target", lambda _prey: object())
+    monkeypatch.setattr(cli.MawConfig, "load", lambda _maw: config)
+    monkeypatch.setattr(cli.Ledger, "load", lambda *_args, **_kwargs: ledger)
+    monkeypatch.setattr(cli, "meal_for", lambda *_args, **_kwargs: tmp_path / "meal")
+    monkeypatch.setattr(cli.shutil, "which", lambda name: "/usr/bin/gh" if name == "gh" else None)
+
+    class RecordingClient:
+        def __init__(self, *, token_env: str = "") -> None:
+            captured["token_env"] = token_env
+
+    monkeypatch.setattr(cli, "GhIssueClient", RecordingClient)
+
+    def recording_serve(
+        _meal_dir,
+        _maw,
+        options,
+        *,
+        config,
+        ledger,
+        client,
+        log,
+    ):
+        del config, ledger, log
+        captured["mode"] = options.mode
+        captured["client"] = client
+        return cli.ServeReport(mode=options.mode, maw=str(tmp_path))
+
+    monkeypatch.setattr(cli, "serve", recording_serve)
+
+    args = argparse.Namespace(
+        prey="owner/prey",
+        maw=tmp_path,
+        cache_dir=None,
+        ids="crab:ci:ci.cache",
+        top=None,
+        mode="pr-branch",
+        notes=None,
+        json=True,
+    )
+
+    assert cli.cmd_serve(args, lambda _message: None) == 0
+    assert captured["mode"] == "pr-branch"
+    assert captured["token_env"] == token_env
+    assert isinstance(captured["client"], RecordingClient)
