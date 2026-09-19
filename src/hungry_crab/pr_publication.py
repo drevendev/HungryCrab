@@ -15,6 +15,7 @@ import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import BuiltinMethodType
 from typing import TypeVar
 
 from .errors import CrabError
@@ -202,7 +203,7 @@ def load_cleanroom_implementation_receipt(payload: str) -> CleanroomImplementati
     )
 
 
-def _mapping_from_legacy_reader(source: object) -> Mapping[str, str] | None:
+def _mapping_from_legacy_reader(source: object) -> Mapping[object, object] | None:
     """Recover only a bound in-memory mapping reader used by unit tests.
 
     Filesystem callbacks are deliberately not accepted here: they cannot prove that a lexical maw
@@ -210,15 +211,17 @@ def _mapping_from_legacy_reader(source: object) -> Mapping[str, str] | None:
     remains a useful deterministic seam for existing pure unit tests.
     """
 
-    owner = getattr(source, "__self__", None)
-    name = getattr(source, "__name__", None)
-    if name == "__getitem__" and isinstance(owner, Mapping):
-        return owner
+    if (
+        isinstance(source, BuiltinMethodType)
+        and source.__name__ == "__getitem__"
+        and isinstance(source.__self__, Mapping)
+    ):
+        return source.__self__
     return None
 
 
 def _read_receipt_maw_text(maw: object, path: str) -> str:
-    mapping: Mapping[str, str] | None
+    mapping: Mapping[object, object] | None
     if isinstance(maw, Mapping):
         mapping = maw
     else:
@@ -435,7 +438,7 @@ def publish_prepared_transaction(
     list_marked_prs: Callable[[], Mapping[str, Mapping[str, object]]],
     publish: Callable[[str, PreparedPullRequest], str],
 ) -> PullRequestPublication:
-    """Reconcile provider truth before creating one nutrient's deterministic pull request.
+    """Reconcile provider truth before creating one nutrient's branch and pull request.
 
     The body marker and the branch name are deterministic identities. The complete payload is
     scanned before even the provider reconciliation read. If a marker-bearing pull request already
