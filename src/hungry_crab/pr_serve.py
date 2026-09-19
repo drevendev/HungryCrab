@@ -28,7 +28,7 @@ MarkedPullRequests = Callable[[], Mapping[str, Mapping[str, object]]]
 GhRunner = Callable[..., str]
 
 
-class _CreationDeferred(Exception):
+class _CreationDeferredError(Exception):
     """Internal signal: reconciliation found no PR, but this run has no creation budget left."""
 
 
@@ -144,7 +144,7 @@ def publish_cleanroom_git_pull_request(
 
     def publish_effect(branch: str, payload: PreparedPullRequest) -> str:
         if not allow_create:
-            raise _CreationDeferred
+            raise _CreationDeferredError
         return publish_git_pull_request(
             slug,
             maw_root,
@@ -161,5 +161,5 @@ def publish_cleanroom_git_pull_request(
             list_marked_prs,
             publish_effect,
         )
-    except _CreationDeferred:
+    except _CreationDeferredError:
         return None
