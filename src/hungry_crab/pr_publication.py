@@ -14,6 +14,7 @@ import json
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TypeVar
 
 from .errors import CrabError
@@ -201,20 +202,82 @@ def load_cleanroom_implementation_receipt(payload: str) -> CleanroomImplementati
     )
 
 
-def publication_handoff_from_receipt(
-    receipt: CleanroomImplementationReceipt,
-    read_maw_text: Callable[[str], str],
-) -> PublicationHandoff:
-    """Hash exactly the receipt-declared maw files into the trusted publication boundary."""
+def _mapping_from_legacy_reader(source: object) -> Mapping[str, str] | None:
+    """Recover only a bound in-memory mapping reader used by unit tests.
 
-    files: list[HandoffFile] = []
-    for path in receipt.changed_paths:
+    Filesystem callbacks are deliberately not accepted here: they cannot prove that a lexical maw
+    path resolves inside the actual maw root. A mapping has no filesystem aliasing semantics, so it
+    remains a useful deterministic seam for existing pure unit tests.
+    """
+
+    owner = getattr(source, "__self__", None)
+    name = getattr(source, "__name__", None)
+    if name == "__getitem__" and isinstance(owner, Mapping):
+        return owner
+    return None
+
+
+def _read_receipt_maw_text(maw: object, path: str) -> str:
+    mapping: Mapping[str, str] | None
+    if isinstance(maw, Mapping):
+        mapping = maw
+    else:
+        mapping = _mapping_from_legacy_reader(maw)
+    if mapping is not None:
         try:
-            content = read_maw_text(path)
-        except (KeyError, OSError) as exc:
+            content = mapping[path]
+        except KeyError as exc:
             raise _receipt_error(f"declared changed file is missing: {path}") from exc
         if not isinstance(content, str):
             raise _receipt_error(f"declared changed file is not UTF-8 text: {path}")
+        return content
+
+    if not isinstance(maw, Path):
+        raise _receipt_error(
+            "maw source must be a root Path so resolved containment can be proven before reading"
+        )
+
+    try:
+        root = maw.resolve(strict=True)
+    except OSError as exc:
+        raise _receipt_error("maw root cannot be resolved safely") from exc
+
+    try:
+        resolved = (root / path).resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise _receipt_error(f"declared changed file is missing: {path}") from exc
+    except OSError as exc:
+        raise _receipt_error(f"declared changed file cannot be resolved safely: {path}") from exc
+
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise _receipt_error(f"declared changed file resolves outside the maw: {path}") from exc
+
+    if not resolved.is_file():
+        raise _receipt_error(f"declared changed path is not a regular file: {path}")
+    try:
+        return resolved.read_text(encoding="utf-8")
+    except UnicodeError as exc:
+        raise _receipt_error(f"declared changed file is not UTF-8 text: {path}") from exc
+    except OSError as exc:
+        raise _receipt_error(f"declared changed file cannot be read safely: {path}") from exc
+
+
+def publication_handoff_from_receipt(
+    receipt: CleanroomImplementationReceipt,
+    maw: Path | Mapping[str, str],
+) -> PublicationHandoff:
+    """Hash exact receipt files after proving filesystem containment under the maw root.
+
+    Production callers pass the actual maw root. Resolution happens before reading and the resolved
+    target itself is read, so symlinks, junctions, and other aliases cannot redirect publication
+    bytes outside the maw. In-memory mappings are supported only as an alias-free unit-test seam.
+    """
+
+    files: list[HandoffFile] = []
+    for path in receipt.changed_paths:
+        content = _read_receipt_maw_text(maw, path)
         files.append(
             HandoffFile(path=path, sha256=hashlib.sha256(content.encode("utf-8")).hexdigest())
         )
@@ -372,7 +435,7 @@ def publish_prepared_transaction(
     list_marked_prs: Callable[[], Mapping[str, Mapping[str, object]]],
     publish: Callable[[str, PreparedPullRequest], str],
 ) -> PullRequestPublication:
-    """Reconcile provider truth before creating one nutrient's branch and pull request.
+    """Reconcile provider truth before creating one nutrient's deterministic pull request.
 
     The body marker and the branch name are deterministic identities. The complete payload is
     scanned before even the provider reconciliation read. If a marker-bearing pull request already
