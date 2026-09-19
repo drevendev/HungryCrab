@@ -80,9 +80,7 @@ def test_publish_reconciles_existing_pr_without_git_or_gh_effects(tmp_path: Path
         _receipt(),
         tmp_path,
         Slug("example", "maw"),
-        list_marked_prs=lambda: {
-            "crab:ci:cache": {"url": "https://github.com/example/maw/pull/7"}
-        },
+        list_marked_prs=lambda: {"crab:ci:cache": {"url": "https://github.com/example/maw/pull/7"}},
         run_gh=lambda *args: gh_calls.append(args) or "",
     )
 
