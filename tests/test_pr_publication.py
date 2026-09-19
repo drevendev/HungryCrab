@@ -11,9 +11,12 @@ from hungry_crab.pr_publication import (
     GeneratedFile,
     PreparedPullRequest,
     PullRequestPublication,
+    dump_publication_handoff,
     generated_files_from_handoff,
+    load_cleanroom_implementation_receipt,
     load_publication_handoff,
     nutrient_branch_name,
+    publication_handoff_from_receipt,
     publication_items,
     publish_prepared_pull_request,
     publish_prepared_transaction,
@@ -44,6 +47,102 @@ def _handoff_payload(
             }
         ]
     return json.dumps({"version": 1, "nutrient_id": nutrient_id, "files": files})
+
+
+def _receipt_payload(
+    *,
+    version: object = 1,
+    nutrient_id: str = "crab:ci:cache",
+    changed_paths: list[str] | None = None,
+    summary: str = "implemented from a specification, without access to the prey source",
+    checks: list[str] | None = None,
+) -> str:
+    return json.dumps(
+        {
+            "version": version,
+            "nutrient_id": nutrient_id,
+            "changed_paths": changed_paths or ["generated/cache.yml"],
+            "summary": summary,
+            "checks": checks or ["pytest -q"],
+        }
+    )
+
+
+def test_cleanroom_receipt_builds_exact_handoff_without_dirty_tree_discovery() -> None:
+    content = "cache: true\n"
+    receipt = load_cleanroom_implementation_receipt(_receipt_payload())
+    maw = {
+        "generated/cache.yml": content,
+        "unrelated/dirty.txt": "must never be inferred\n",
+    }
+
+    handoff = publication_handoff_from_receipt(receipt, maw.__getitem__)
+    round_tripped = load_publication_handoff(dump_publication_handoff(handoff))
+    generated = generated_files_from_handoff("crab:ci:cache", round_tripped, maw.__getitem__)
+
+    assert [declared.path for declared in handoff.files] == ["generated/cache.yml"]
+    assert handoff.files[0].sha256 == hashlib.sha256(content.encode("utf-8")).hexdigest()
+    assert generated == (GeneratedFile("generated/cache.yml", content),)
+
+
+@pytest.mark.parametrize("version", [True, 1.0], ids=["boolean", "float"])
+def test_cleanroom_receipt_rejects_non_integer_version(version: object) -> None:
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
+        load_cleanroom_implementation_receipt(_receipt_payload(version=version))
+
+    assert raised.value.hint == f"unsupported receipt version: {version!r}"
+
+
+def test_cleanroom_receipt_rejects_duplicate_json_member() -> None:
+    payload = (
+        '{"version":1,"version":1,"nutrient_id":"crab:ci:cache",'
+        '"changed_paths":["generated/cache.yml"],'
+        '"summary":"implemented from a specification, without access to the prey source",'
+        '"checks":["pytest -q"]}'
+    )
+
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
+        load_cleanroom_implementation_receipt(payload)
+
+    assert raised.value.hint == "duplicate JSON object member: version"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "../secret.txt",
+        "generated/../secret.txt",
+        "/tmp/secret.txt",
+        "C:/tmp/secret.txt",
+        r"generated\secret.txt",
+    ],
+)
+def test_cleanroom_receipt_rejects_noncanonical_or_outside_maw_paths(path: str) -> None:
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt") as raised:
+        load_cleanroom_implementation_receipt(_receipt_payload(changed_paths=[path]))
+
+    assert raised.value.hint == "changed paths must be canonical maw-relative POSIX paths"
+
+
+def test_cleanroom_receipt_rejects_duplicate_paths_and_missing_trace() -> None:
+    with pytest.raises(CrabError) as duplicate:
+        load_cleanroom_implementation_receipt(
+            _receipt_payload(changed_paths=["generated/cache.yml", "generated/cache.yml"])
+        )
+    assert duplicate.value.hint == "duplicate changed path: generated/cache.yml"
+
+    with pytest.raises(CrabError) as missing_trace:
+        load_cleanroom_implementation_receipt(_receipt_payload(summary="implemented cleanly"))
+    assert missing_trace.value.hint == "summary must contain the clean-room trace sentence"
+
+
+def test_cleanroom_receipt_fails_closed_when_declared_file_is_missing() -> None:
+    receipt = load_cleanroom_implementation_receipt(_receipt_payload())
+
+    with pytest.raises(CrabError) as raised:
+        publication_handoff_from_receipt(receipt, {}.__getitem__)
+
+    assert raised.value.hint == "declared changed file is missing: generated/cache.yml"
 
 
 def test_handoff_freezes_only_declared_files_with_matching_content_identity() -> None:
