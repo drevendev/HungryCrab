@@ -68,7 +68,7 @@ class PullRequestPublication:
     created: bool
 
 
-class _DuplicateObjectMember(ValueError):
+class _DuplicateObjectMemberError(ValueError):
     """Raised when the JSON wire payload contains an ambiguous object member."""
 
     def __init__(self, key: str) -> None:
@@ -88,7 +88,7 @@ def _reject_duplicate_object_members(
     parsed: dict[str, object] = {}
     for key, value in pairs:
         if key in parsed:
-            raise _DuplicateObjectMember(key)
+            raise _DuplicateObjectMemberError(key)
         parsed[key] = value
     return parsed
 
@@ -116,7 +116,7 @@ def load_publication_handoff(payload: str) -> PublicationHandoff:
 
     try:
         raw: object = json.loads(payload, object_pairs_hook=_reject_duplicate_object_members)
-    except _DuplicateObjectMember as exc:
+    except _DuplicateObjectMemberError as exc:
         raise _handoff_error(f"duplicate JSON object member: {exc.key}") from exc
     except (json.JSONDecodeError, TypeError) as exc:
         raise _handoff_error("handoff must be valid JSON") from exc
