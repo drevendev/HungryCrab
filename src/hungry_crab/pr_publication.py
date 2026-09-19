@@ -68,10 +68,29 @@ class PullRequestPublication:
     created: bool
 
 
+class _DuplicateObjectMember(ValueError):
+    """Raised when the JSON wire payload contains an ambiguous object member."""
+
+    def __init__(self, key: str) -> None:
+        self.key = key
+        super().__init__(key)
+
+
 def _handoff_error(detail: str) -> CrabError:
     return CrabError(
         "invalid publication handoff; refusing to infer files from the maw", hint=detail
     )
+
+
+def _reject_duplicate_object_members(
+    pairs: list[tuple[str, object]],
+) -> dict[str, object]:
+    parsed: dict[str, object] = {}
+    for key, value in pairs:
+        if key in parsed:
+            raise _DuplicateObjectMember(key)
+        parsed[key] = value
+    return parsed
 
 
 def _validate_handoff_path(path: str) -> None:
@@ -91,20 +110,24 @@ def load_publication_handoff(payload: str) -> PublicationHandoff:
     """Parse the exact nutrient/file declaration emitted before PR preparation.
 
     The schema is intentionally small and strict so producer and publisher cannot disagree about
-    which files belong to a nutrient. Unknown fields, duplicate paths, path traversal, and malformed
-    digests fail closed instead of falling back to working-tree discovery.
+    which files belong to a nutrient. Unknown or duplicate object members, duplicate paths, path
+    traversal, and malformed digests fail closed instead of falling back to working-tree discovery.
     """
 
     try:
-        raw: object = json.loads(payload)
+        raw: object = json.loads(payload, object_pairs_hook=_reject_duplicate_object_members)
+    except _DuplicateObjectMember as exc:
+        raise _handoff_error(f"duplicate JSON object member: {exc.key}") from exc
     except (json.JSONDecodeError, TypeError) as exc:
         raise _handoff_error("handoff must be valid JSON") from exc
     if not isinstance(raw, dict):
         raise _handoff_error("handoff root must be an object")
     if set(raw) != {"version", "nutrient_id", "files"}:
         raise _handoff_error("handoff must contain only version, nutrient_id, and files")
-    if raw["version"] != _HANDOFF_VERSION:
-        raise _handoff_error(f"unsupported handoff version: {raw['version']!r}")
+
+    version = raw["version"]
+    if isinstance(version, bool) or not isinstance(version, int) or version != _HANDOFF_VERSION:
+        raise _handoff_error(f"unsupported handoff version: {version!r}")
 
     nutrient_id = raw["nutrient_id"]
     if not isinstance(nutrient_id, str) or not nutrient_id.startswith("crab:"):
