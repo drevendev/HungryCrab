@@ -217,7 +217,8 @@ def publish_git_pull_request(
                 )
             elif not branch_exists:
                 raise CrabError(
-                    "prepared pull request makes no file changes; refusing to create an empty branch"
+                    "prepared pull request makes no file changes; "
+                    "refusing to create an empty branch"
                 )
 
             body_path = scratch / "pull-request-body.md"
@@ -239,7 +240,8 @@ def publish_git_pull_request(
             lines = [line.strip() for line in output.splitlines() if line.strip()]
             if not lines:
                 raise CrabError(
-                    "pull request publication returned no URL; reconcile provider state before retrying"
+                    "pull request publication returned no URL; "
+                    "reconcile provider state before retrying"
                 )
             return lines[-1]
         finally:
