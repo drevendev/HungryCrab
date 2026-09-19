@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -83,6 +84,45 @@ def test_publisher_uses_isolated_worktree_and_exact_prepared_files(tmp_path: Pat
     assert remote_git.run("show", f"refs/heads/{BRANCH}:generated/cache.yml") == "cache: true\n"
     assert gh.created_bodies == ["<!-- crab:ci:cache -->\nTrace: generated safely.\n"]
     assert any(call[:2] == ("pr", "create") for call in gh.calls)
+
+
+def test_publisher_bypasses_clean_filters_and_commits_exact_bytes(tmp_path: Path) -> None:
+    maw, _, git, remote_git = _git_repo(tmp_path)
+    gh = FakeGh()
+    marker = tmp_path / "filter-ran.txt"
+    script = tmp_path / "clean-filter.py"
+    script.write_text(
+        "from pathlib import Path\n"
+        "import sys\n"
+        "Path(sys.argv[1]).write_text('ran\\n', encoding='utf-8')\n"
+        "sys.stdin.buffer.read()\n"
+        "sys.stdout.buffer.write(b'cache: rewritten\\n')\n",
+        encoding="utf-8",
+    )
+    executable = Path(sys.executable).as_posix()
+    command = f'"{executable}" "{script.as_posix()}" "{marker.as_posix()}"'
+    git.run("config", "filter.crab-rewrite.clean", command)
+    git.run("config", "filter.crab-rewrite.required", "true")
+    (maw / ".gitattributes").write_text(
+        "generated/cache.yml filter=crab-rewrite\n",
+        encoding="utf-8",
+    )
+    git.run("add", ".gitattributes")
+    git.run("commit", "-m", "test: configure rewriting clean filter")
+    git.run("push", "origin", "master")
+
+    url = publish_git_pull_request(
+        MAW_SLUG,
+        maw,
+        BRANCH,
+        _prepared(),
+        run_gh=gh,
+        git=git,
+    )
+
+    assert url == "https://github.com/example/maw/pull/9"
+    assert not marker.exists(), "publication must not execute the configured clean filter"
+    assert remote_git.run("show", f"refs/heads/{BRANCH}:generated/cache.yml") == "cache: true\n"
 
 
 def test_retry_reuses_branch_after_push_succeeds_but_pr_create_fails(tmp_path: Path) -> None:

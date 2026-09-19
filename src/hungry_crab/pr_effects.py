@@ -15,7 +15,7 @@ from pathlib import Path
 from .cache import Slug
 from .errors import CrabError
 from .fetch.git import GitRunner
-from .pr_publication import PreparedPullRequest
+from .pr_publication import GeneratedFile, PreparedPullRequest
 
 GhRunner = Callable[..., str]
 
@@ -54,59 +54,52 @@ def _prepared_paths(prepared: PreparedPullRequest) -> tuple[str, ...]:
     return tuple(paths)
 
 
-def _write_exact_file(root: Path, path: str, content: str) -> None:
-    """Write one prepared file without following a path outside the temporary worktree."""
+def _index_mode(git: GitRunner, path: str) -> str:
+    """Return a regular-file mode for ``path`` without consulting worktree attributes."""
 
-    root = root.resolve(strict=True)
-    current = root
-    parts = path.split("/")
-    for part in parts[:-1]:
-        child = current / part
-        if child.exists() or child.is_symlink():
-            if child.is_symlink():
-                raise CrabError(
-                    "prepared pull request path crosses a symlink",
-                    hint=f"refusing path: {path}",
-                )
-            if not child.is_dir():
-                raise CrabError(
-                    "prepared pull request path crosses a non-directory",
-                    hint=f"refusing path: {path}",
-                )
-            resolved = child.resolve(strict=True)
-            try:
-                resolved.relative_to(root)
-            except ValueError as exc:
-                raise CrabError(
-                    "prepared pull request path resolves outside the temporary worktree",
-                    hint=f"refusing path: {path}",
-                ) from exc
-            current = resolved
-            continue
-        child.mkdir()
-        current = child
+    entry = git.run("ls-files", "--stage", "--", path).strip()
+    if not entry:
+        return "100644"
+    mode = entry.split(" ", 1)[0]
+    if mode not in {"100644", "100755"}:
+        raise CrabError(
+            "prepared pull request target has an unsupported git mode",
+            hint=f"refusing {path}: mode {mode}",
+        )
+    return mode
 
-    target = current / parts[-1]
-    if target.is_symlink():
+
+def _stage_exact_file(
+    git: GitRunner,
+    scratch: Path,
+    ordinal: int,
+    generated: GeneratedFile,
+) -> None:
+    """Stage exact prepared bytes without invoking repository clean filters."""
+
+    payload = scratch / f"prepared-{ordinal}.bin"
+    payload.write_bytes(generated.content.encode("utf-8"))
+    mode = _index_mode(git, generated.path)
+    blob = git.run(
+        "hash-object",
+        "-w",
+        "--no-filters",
+        "--",
+        str(payload),
+    ).strip()
+    if not blob:
         raise CrabError(
-            "prepared pull request target is a symlink",
-            hint=f"refusing path: {path}",
+            "git returned no object id for prepared pull request content",
+            hint=f"refusing path: {generated.path}",
         )
-    if target.exists() and not target.is_file():
-        raise CrabError(
-            "prepared pull request target is not a regular file",
-            hint=f"refusing path: {path}",
-        )
-    if target.exists():
-        resolved_target = target.resolve(strict=True)
-        try:
-            resolved_target.relative_to(root)
-        except ValueError as exc:
-            raise CrabError(
-                "prepared pull request target resolves outside the temporary worktree",
-                hint=f"refusing path: {path}",
-            ) from exc
-    target.write_bytes(content.encode("utf-8"))
+    git.run(
+        "update-index",
+        "--add",
+        "--cacheinfo",
+        mode,
+        blob,
+        generated.path,
+    )
 
 
 def publish_git_pull_request(
@@ -126,9 +119,11 @@ def publish_git_pull_request(
     be a subset of the current prepared set, but it may not contain any extra path: preserving a
     stale file would make the branch broader than the immutable publication payload.
 
-    Repository hooks are disabled for worktree, commit, and push operations.  Only the prepared
-    paths are written and staged, from a detached temporary worktree, so the maintainer's current
-    worktree and unrelated dirty files are untouched.
+    The detached temporary worktree is created without checkout, then its index is populated
+    directly from HEAD.  Prepared UTF-8 bytes are hashed with ``--no-filters`` and inserted into
+    that index with ``update-index``.  Repository clean/smudge filters therefore cannot rewrite
+    or execute on the already-scanned payload.  The maintainer's current worktree and unrelated
+    dirty files are never publication inputs.
     """
 
     paths = _prepared_paths(prepared)
@@ -186,20 +181,27 @@ def publish_git_pull_request(
                 "worktree",
                 "add",
                 "--detach",
+                "--no-checkout",
                 str(worktree),
                 source,
             )
             added = True
-            for generated in prepared.files:
-                _write_exact_file(worktree, generated.path, generated.content)
-
             work_git = GitRunner(worktree, timeout=git.timeout)
-            work_git.run("add", "--", *paths)
+            work_git.run("read-tree", "HEAD")
+            for ordinal, generated in enumerate(prepared.files):
+                _stage_exact_file(work_git, scratch, ordinal, generated)
+
             staged = [
                 line
                 for line in work_git.run("diff", "--cached", "--name-only").splitlines()
                 if line
             ]
+            unexpected = sorted(set(staged) - path_set)
+            if unexpected:
+                raise CrabError(
+                    "git index contains paths outside the prepared publication payload",
+                    hint="unexpected paths: " + ", ".join(unexpected),
+                )
             if staged:
                 work_git.run(
                     "-c",
