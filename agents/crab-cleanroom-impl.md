@@ -28,12 +28,32 @@ implementation details from the prey repository.
    cases. Match the maw's architecture and naming; do not reconstruct prey internals.
 3. Add or update maw tests for the specified behaviour when the repository's conventions call for
    them.
-4. Return the implementation to the caller. Verification runs outside this restricted context; do not
-   claim tests or static checks passed unless the caller supplies that evidence afterwards.
+4. Return an exact implementation receipt to the caller. Verification runs outside this restricted
+   context; do not claim tests or static checks passed unless the caller supplies that evidence
+   afterwards.
 
 ## Output
 
-Return a short implementation report containing changed maw paths and the checks the caller should
-run afterwards, plus this trace sentence exactly:
+Return **only** one JSON object, with no Markdown fence or surrounding prose. The caller supplies
+an exact `crab:` nutrient id; echo it unchanged. `changed_paths` is the complete set of maw-relative
+POSIX paths you changed during this implementation, and must never be inferred from unrelated dirty
+files. `checks` lists the commands the trusted caller should run afterwards; they are not claims of
+success.
+
+```json
+{
+  "version": 1,
+  "nutrient_id": "crab:<exact-id-from-caller>",
+  "changed_paths": ["path/changed/in/the-maw"],
+  "summary": "implemented from a specification, without access to the prey source",
+  "checks": ["<verification command for the caller>"]
+}
+```
+
+The `summary` may add concise implementation detail, but it must contain this trace sentence
+exactly:
 
 `implemented from a specification, without access to the prey source`
+
+Do not include a path you only read. If you cannot determine the exact changed-path set or cannot
+complete the implementation, stop instead of guessing a receipt.
