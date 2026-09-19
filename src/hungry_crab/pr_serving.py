@@ -2,7 +2,7 @@
 
 The publication modules own payload safety, provider reconciliation and git/GitHub effects. This
 module owns the layer around them that ``crab serve --as pr-branch`` needs: configuration gates,
-receipt preflight, per-run creation limits and committing provider receipts into the maw ledger.
+batch preparation, per-run creation limits and committing provider receipts into the maw ledger.
 """
 
 from __future__ import annotations
@@ -16,9 +16,14 @@ from .errors import CrabError
 from .ledger import Ledger
 from .maw import MawConfig
 from .nutrients import Candidate
-from .pr_publication import PullRequestPublication, load_cleanroom_implementation_receipt
+from .pr_publication import (
+    PreparedPullRequest,
+    PullRequestPublication,
+    load_cleanroom_implementation_receipt,
+)
 
-PrPublisher = Callable[[Candidate, str, bool], PullRequestPublication | None]
+PrPreparer = Callable[[Candidate, str], PreparedPullRequest]
+PrPublisher = Callable[[Candidate, PreparedPullRequest, bool], PullRequestPublication | None]
 _TERMINAL_STATUSES = frozenset({"served", "merged", "rejected", "ignored"})
 
 
@@ -31,12 +36,15 @@ class PullRequestServeReport:
     ledger_path: str | None = None
 
 
-def _preflight_receipts(
-    cards: Sequence[Candidate], receipts: Mapping[str, str], ledger: Ledger
-) -> tuple[list[tuple[Candidate, str]], list[dict[str, Any]]]:
-    """Validate every actionable card before the first provider read or effect."""
+def _prepare_publications(
+    cards: Sequence[Candidate],
+    receipts: Mapping[str, str],
+    ledger: Ledger,
+    preparer: PrPreparer,
+) -> tuple[list[tuple[Candidate, PreparedPullRequest]], list[dict[str, Any]]]:
+    """Freeze every actionable card before the first provider read or effect."""
 
-    planned: list[tuple[Candidate, str]] = []
+    planned: list[tuple[Candidate, PreparedPullRequest]] = []
     skipped: list[dict[str, Any]] = []
     for card in cards:
         entry = ledger.entries.get(card.id)
@@ -68,7 +76,7 @@ def _preflight_receipts(
                 "clean-room receipt nutrient does not match the selected nutrient",
                 hint=f"expected {card.id}, got {receipt.nutrient_id}",
             )
-        planned.append((card, payload))
+        planned.append((card, preparer(card, payload)))
     return planned, skipped
 
 
@@ -79,15 +87,17 @@ def serve_cleanroom_pull_requests(
     config: MawConfig,
     ledger: Ledger,
     explicit_selection: bool,
+    preparer: PrPreparer,
     publisher: PrPublisher,
     now: datetime | None = None,
 ) -> PullRequestServeReport:
     """Apply PR serving policy around the already guarded clean-room publisher.
 
     ``serve.prs: ask`` requires an explicit nutrient selection; automatic ``--top`` style
-    selection is reserved for ``auto``. Receipt and license-mode validation for every actionable
-    card completes before ``publisher`` is called, so a later invalid card cannot leave earlier
-    provider effects behind.
+    selection is reserved for ``auto``. Every actionable card is fully prepared into an immutable
+    publication payload before ``publisher`` is called for any card. Receipt structure, nutrient
+    identity, maw path containment, UTF-8 readability, file identity and drift detection therefore
+    all complete before the first provider reconciliation/read/effect.
 
     ``publisher`` receives ``allow_create=False`` after the configured creation budget is spent.
     It must still perform the safe scan + provider reconciliation and return an existing PR when
@@ -103,15 +113,15 @@ def serve_cleanroom_pull_requests(
             hint="review the menu and pass explicit nutrient ids before publishing pull requests",
         )
 
-    planned, skipped = _preflight_receipts(cards, receipts, ledger)
+    planned, skipped = _prepare_publications(cards, receipts, ledger, preparer)
     report = PullRequestServeReport(skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     creation_limit = max(0, config.serve.max_prs_per_run)
     created = 0
 
-    for card, payload in planned:
+    for card, prepared in planned:
         allow_create = created < creation_limit
-        publication = publisher(card, payload, allow_create)
+        publication = publisher(card, prepared, allow_create)
         if publication is None:
             if allow_create:
                 raise CrabError(
