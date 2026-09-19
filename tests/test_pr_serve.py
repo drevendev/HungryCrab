@@ -8,7 +8,10 @@ import pytest
 from hungry_crab.cache import Slug
 from hungry_crab.errors import CrabError
 from hungry_crab.pr_publication import GeneratedFile
-from hungry_crab.pr_serve import prepare_cleanroom_pull_request, publish_cleanroom_git_pull_request
+from hungry_crab.pr_serve import (
+    prepare_cleanroom_pull_request,
+    publish_cleanroom_git_pull_request,
+)
 
 
 TRACE = "implemented from a specification, without access to the prey source"
