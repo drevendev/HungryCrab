@@ -542,9 +542,7 @@ def serve(
 
     if options.mode == "pr-branch":
         receipts = (
-            dict(receipt_payloads)
-            if receipt_payloads is not None
-            else _read_receipt_stream()
+            dict(receipt_payloads) if receipt_payloads is not None else _read_receipt_stream()
         )
         if slug is None:
             raise CrabError(
