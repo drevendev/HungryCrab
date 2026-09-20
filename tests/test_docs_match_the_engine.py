@@ -14,11 +14,14 @@ rot too.
 
 from __future__ import annotations
 
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
+import yaml
 
 from hungry_crab.licensing import Mode, decide
+from hungry_crab.maw import DEFAULT_CONFIG_TEXT, MawConfig
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS = sorted(
@@ -125,3 +128,16 @@ def test_the_decision_time_skill_separates_review_from_the_mode() -> None:
     )
     assert "No license at all is `IDEAS_ONLY` with human review" in text
     assert "Review is a flag, not a mode" in text
+
+
+def test_readme_configuration_tracks_maw_config_surface() -> None:
+    """README configuration bullets must name every user-facing top-level maw key."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("## Configuration", 1)[1].split("\n## ", 1)[0]
+    documented = {
+        line.split("`", 2)[1] for line in section.splitlines() if line.startswith("- `")
+    }
+
+    defaults = set(yaml.safe_load(DEFAULT_CONFIG_TEXT))
+    model = {item.name for item in fields(MawConfig)} - {"root", "exists", "raw"}
+    assert documented == defaults == model
