@@ -12,6 +12,7 @@ import hashlib
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any
 
+from .licensing.origin import ContentOrigin, cap_mode_for_origin, normalize_origin
 from .typeutil import as_list
 
 CATEGORIES: tuple[str, ...] = (
@@ -90,12 +91,69 @@ class Candidate:
     uptake: float = 1.0
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    origin: str = ContentOrigin.LICENSED.value
+    license_reason: str = ""
     license_mode: str = "HUMAN"
     score: float = 0.0
     why: str = ""
     how: str = ""
     status: str = "proposed"
     trace: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # Issue titles and discussion prose are not licensed by the repository. Treat legacy
+        # issue-lesson cards that predate the origin field as commenter-origin too.
+        if self.category == "issue-lesson" and self.origin == ContentOrigin.LICENSED.value:
+            self.origin = ContentOrigin.COMMENTERS.value
+        else:
+            self.origin = normalize_origin(self.origin).value
+        self._enforce_origin_policy()
+        self.license_mode = self.license_mode
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "origin":
+            object.__setattr__(self, name, normalize_origin(value).value)
+            return
+        if name == "license_mode":
+            origin = getattr(self, "origin", ContentOrigin.LICENSED.value)
+            capped = cap_mode_for_origin(value, origin)
+            object.__setattr__(self, name, capped.mode.value)
+            object.__setattr__(self, "license_reason", capped.reason)
+            self._refresh_trace()
+            return
+        if name == "trace" and isinstance(value, dict):
+            enriched = dict(value)
+            origin = getattr(self, "origin", ContentOrigin.LICENSED.value)
+            enriched["content_origin"] = origin
+            reason = getattr(self, "license_reason", "")
+            if reason:
+                enriched["origin_license_reason"] = reason
+            object.__setattr__(self, name, enriched)
+            return
+        object.__setattr__(self, name, value)
+
+    def _refresh_trace(self) -> None:
+        trace = getattr(self, "trace", None)
+        if not isinstance(trace, dict):
+            return
+        trace["content_origin"] = getattr(self, "origin", ContentOrigin.LICENSED.value)
+        reason = getattr(self, "license_reason", "")
+        if reason:
+            trace["origin_license_reason"] = reason
+        else:
+            trace.pop("origin_license_reason", None)
+
+    def _enforce_origin_policy(self) -> None:
+        if self.origin == ContentOrigin.LICENSED.value:
+            return
+        # The card may carry the need and the evidence link, but never third-party prose. Keep
+        # the wording intentionally generic so a sentinel issue title cannot travel through a
+        # menu or a model-written note under IDEAS_ONLY.
+        self.title = "Issue-derived demand signal"
+        self.what = (
+            "Issue metadata indicates unmet demand in the prey. Follow the linked issue evidence "
+            "to understand the need; commenter text is intentionally not carried into this card."
+        )
 
     @property
     def id(self) -> str:
@@ -117,6 +175,8 @@ class Candidate:
             for item in as_list(data.get("evidence"))
             if isinstance(item, dict)
         ]
+        card._enforce_origin_policy()
+        card._refresh_trace()
         return card
 
 
@@ -126,4 +186,5 @@ def merge_notes(card: Candidate, notes: dict[str, Any]) -> Candidate:
         value = notes.get(key)
         if isinstance(value, str) and value.strip():
             setattr(card, key, value.strip())
+    card._enforce_origin_policy()
     return card

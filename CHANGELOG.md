@@ -110,6 +110,10 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Issue-derived nutrients no longer inherit permissive licence modes from commenter-controlled prose.**
+  `issue-lesson` cards are treated as commenter-origin and capped at `IDEAS_ONLY`; unknown or
+  future content origins fail closed to `HUMAN`, while the structured trace records the
+  normalized origin and the reason for the cap ([#84](https://github.com/drevendev/HungryCrab/issues/84)).
 - **A healthy digest no longer trusts producer metadata after its artifact disappears or changes.**
   `crab digest` now invalidates and repairs a cached digest when a successful miner's declared
   artifact is missing, corrupt, mis-owned, the wrong size, or not a JSON object where JSON is
