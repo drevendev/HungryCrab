@@ -43,12 +43,13 @@ versions that have a tag.
 
 1. Decide the version. On `master` it is always a development version, `X.Y.Z.dev0`; the release
    drops the suffix.
-2. Bump it in **five** places, which must agree:
+2. Bump it in **six** places, which must agree:
    - `pyproject.toml` → `[project].version`
    - `src/hungry_crab/__init__.py` → `__version__`
    - `.claude-plugin/plugin.json` → `version`, with `.dev` spelled `-dev.` (`0.3.0-dev.0`)
    - `.claude-plugin/marketplace.json` → the `crab` entry's `version` (**not** the top-level
      `metadata.version`, which is the marketplace's own schema version)
+   - `plugin.json` → the portable Agent Plugins manifest's `version`, also using `-dev.`
    - `uv.lock` → refresh with `uv sync` rather than editing it
 3. Move the `[Unreleased]` entries under a new `## [X.Y.Z] - YYYY-MM-DD` heading, and update the
    link references at the bottom of `CHANGELOG.md`: `[Unreleased]` compares the new tag to `HEAD`,
@@ -58,13 +59,14 @@ versions that have a tag.
    `git tag -a vX.Y.Z -m "X.Y.Z" && git push origin vX.Y.Z`. `claude plugin tag --push` makes the
    plugin's own `crab--vX.Y.Z` tag.
 6. `gh release create vX.Y.Z --notes-file` with the changelog section.
-7. **Reopen `master`** with a `chore: open X.Y+1.0.dev0 on master` commit, bumping the same five
+7. **Reopen `master`** with a `chore: open X.Y+1.0.dev0 on master` commit, bumping the same six
    places. Skipping this is what leaves every later commit reporting a released version — and the
    digest cache keys on that version, so two different crabs then look identical to it.
 
-Step 2 is guarded: `tests/test_plugin.py` ties `__init__.py` to both plugin manifests and to
-`pyproject.toml`, and CI runs `uv sync --locked`, which fails when `uv.lock` still holds the old
-version. All five places therefore break the build if one of them is forgotten.
+Step 2 is guarded: `tests/test_plugin.py` and `tests/test_agent_plugin.py` tie `__init__.py` to the
+Claude and portable Agent Plugins manifests and to `pyproject.toml`, and CI runs
+`uv sync --locked`, which fails when `uv.lock` still holds the old version. All six places
+therefore break the build if one of them is forgotten.
 
 ## Reporting bugs
 

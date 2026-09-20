@@ -139,10 +139,11 @@ def plugin_version(agent: AgentSpec, payload: Any) -> str | None:
 
 @dataclass
 class Remote:
-    """What master currently holds."""
+    """What master currently holds for the CLI and each agent's plugin manifest."""
 
     cli_version: str | None = None
-    plugin_version: str | None = None
+    claude_plugin_version: str | None = None
+    codex_plugin_version: str | None = None
     sha: str | None = None
     date: str | None = None
     error: str | None = None
@@ -150,6 +151,13 @@ class Remote:
     @property
     def short_sha(self) -> str | None:
         return self.sha[:7] if self.sha else None
+
+    def plugin_version_for(self, agent: AgentSpec) -> str | None:
+        if agent.key == "claude":
+            return self.claude_plugin_version
+        if agent.key == "codex":
+            return self.codex_plugin_version
+        return None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -171,9 +179,15 @@ def fetch_remote(client: GitHubClient | None = None) -> Remote:
         pyproject = tomllib.loads(_file_at_master(api, "pyproject.toml"))
         version = as_dict(pyproject.get("project")).get("version")
         remote.cli_version = str(version) if version is not None else None
-        manifest = json.loads(_file_at_master(api, ".claude-plugin/plugin.json"))
-        plugin = as_dict(manifest).get("version")
-        remote.plugin_version = str(plugin) if plugin is not None else None
+
+        claude_manifest = json.loads(_file_at_master(api, ".claude-plugin/plugin.json"))
+        claude_version = as_dict(claude_manifest).get("version")
+        remote.claude_plugin_version = str(claude_version) if claude_version is not None else None
+
+        codex_manifest = json.loads(_file_at_master(api, "plugin.json"))
+        codex_version = as_dict(codex_manifest).get("version")
+        remote.codex_plugin_version = str(codex_version) if codex_version is not None else None
+
         commit = as_dict(api.get(f"repos/{REPO}/commits/{BRANCH}"))
         sha = commit.get("sha")
         remote.sha = str(sha) if sha else None
@@ -292,26 +306,37 @@ def check_agent(
     agent: AgentSpec, remote: Remote, *, runner: Callable[[Sequence[str]], tuple[bool, str]]
 ) -> Component:
     name = f"{agent.label} plugin"
+    available = remote.plugin_version_for(agent)
     if shutil.which(agent.exe) is None:
-        return Component(name, None, remote.plugin_version, ABSENT, f"`{agent.exe}` not on PATH")
+        return Component(name, None, available, ABSENT, f"`{agent.exe}` not on PATH")
     ok, output = runner(agent.command(agent.list_args))
     if not ok:
-        return Component(name, None, remote.plugin_version, UNKNOWN, output[-200:])
+        return Component(name, None, available, UNKNOWN, output[-200:])
     try:
         payload = json.loads(output or "null")
     except ValueError:
-        return Component(name, None, remote.plugin_version, UNKNOWN, "unreadable plugin list")
+        return Component(name, None, available, UNKNOWN, "unreadable plugin list")
     installed = plugin_version(agent, payload)
     if installed is None:
         commands = [agent.command(agent.add_marketplace), agent.command(agent.install)]
         detail = f"`{agent.exe}` is here but the plugin is not installed"
-        return Component(name, None, remote.plugin_version, MISSING, detail, commands)
+        return Component(name, None, available, MISSING, detail, commands)
     commands = [agent.command(agent.refresh_marketplace), agent.command(agent.update)]
-    if remote.plugin_version and remote.plugin_version != installed:
-        detail = f"marketplace has {remote.plugin_version}"
-        return Component(name, installed, remote.plugin_version, OUTDATED, detail, commands)
-    detail = "same version as master" if not remote.error else remote.error
-    return Component(name, installed, remote.plugin_version, OK, detail, commands)
+    if remote.error:
+        return Component(name, installed, available, UNKNOWN, remote.error, commands)
+    if available is None:
+        return Component(
+            name,
+            installed,
+            None,
+            UNKNOWN,
+            f"master's {agent.label} manifest has no version",
+            commands,
+        )
+    if available != installed:
+        detail = f"marketplace has {available}"
+        return Component(name, installed, available, OUTDATED, detail, commands)
+    return Component(name, installed, available, OK, "same version as master", commands)
 
 
 def check(
