@@ -134,9 +134,7 @@ def test_readme_configuration_tracks_maw_config_surface() -> None:
     """README configuration bullets must name every user-facing top-level maw key."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     section = readme.split("## Configuration", 1)[1].split("\n## ", 1)[0]
-    documented = {
-        line.split("`", 2)[1] for line in section.splitlines() if line.startswith("- `")
-    }
+    documented = {line.split("`", 2)[1] for line in section.splitlines() if line.startswith("- `")}
 
     defaults = set(yaml.safe_load(DEFAULT_CONFIG_TEXT))
     model = {item.name for item in fields(MawConfig)} - {"root", "exists", "raw"}
