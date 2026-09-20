@@ -6,7 +6,7 @@
      /\                                                     /\
     /  \       _____________________________________       /  \
    |    |     /                                     \     |    |
-   | /\ |     |     \\\\\\\             ///////     |     | /\ |
+   | /\ |     |     \\\\\             ///////     |     | /\ |
    | \/ |     |      (@@@)               (@@@)      |     | \/ |
     \  /      |                                     |      \  /
      \ \      |      /\/\/\/\/\/\/\/\/\/\/\/\/      |      / /
@@ -141,6 +141,69 @@ crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is 
 `crab compare` catches and digests the prey the first time; digests are addressed by commit SHA,
 so eating the same commit twice is free. Giants take `--since 2y` (history newer than two years)
 or `--shallow` (default branch, tree only).
+
+## Configuration
+
+`crab init` writes `.crab.yml` in the maw. Every key is optional; omitted keys use the defaults
+below.
+
+- `license`: SPDX id for the maw, or auto-detect from `LICENSE` when omitted.
+- `mode`: `normal` or `strict`; `strict` is accepted today but intentionally not enforced until 0.3.
+- `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
+- `ignore`: maw-side git-style paths excluded from its own digest.
+- `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` is accepted but PR serving arrives with 0.3.
+- `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
+- `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution` when it arrives with 0.3.
+- `ledger`: store meal history in the repository, cache, or nowhere.
+- `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
+
+This is the current commented template written by `crab init`:
+
+```yaml
+# Hungry Crab maw configuration. Every key is optional; these are the defaults.
+license: null              # SPDX id of this repository; detected from LICENSE when null
+mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
+                           # code and copies only configs and templates. It arrives with
+                           # 0.3; today the setting is accepted and ignored.
+hunger:                    # per nutrient category: true | false | issues-only | ideas-only
+  security: true
+  ci: true
+  tests: true
+  tooling: true
+  ai-config: true
+  hygiene: true
+  docs: true
+  deps: true
+  history-lesson: true
+  issue-lesson: true
+  architecture: issues-only
+  code: ideas-only         # declared, and produced by nothing until 0.4: accepted and inert
+ignore: []                 # globs excluded from this repository's own digest, so that test
+                           # fixtures and vendored trees are not mistaken for your code, e.g.
+                           # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on
+                           # every platform, like the git paths they match.
+serve:
+  issues: ask              # auto | ask | off
+  prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
+  max_prs_per_run: 3
+  labels: [hungry-crab]
+  assignees: []
+  token_env: ""            # environment variable holding the token to file issues as, e.g.
+                           # CRAB_BOT_TOKEN with a GitHub App installation token. Empty means
+                           # gh's own login: your issues carry your name, not the crab's.
+trust:                     # a license is a promise to strangers; these are not strangers
+  same_owner: true         # prey owned by the account that owns this repository is your own code
+  owners: []               # other accounts whose repositories count as your own, e.g. [acme-inc]
+  bypass_license: false    # last resort: treat every prey as COPY. Every card says so, and the
+                           # verdict is flagged for human review, because this is not a finding
+                           # about the license but a decision to stop asking.
+attribution_file: THIRD_PARTY_NOTICES.md
+                           # where COPY records its sources. The file is written by
+                           # `crab attribution`, which arrives with 0.3; until then nothing
+                           # reads this setting.
+ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
+scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
+```
 
 ## What the miners extract
 
