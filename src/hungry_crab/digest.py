@@ -92,7 +92,8 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     if git is None:
         return ""
     diff = git.try_run("diff", "HEAD")
-    untracked = git.try_run("ls-files", "--others", "--exclude-standard")
+    # Include ignored files: miners can still observe them, so they must block cache reuse too.
+    untracked = git.try_run("ls-files", "--others")
     if diff is None or untracked is None:
         # A repository git cannot answer questions about is not one this can vouch for.
         return "unknown"
