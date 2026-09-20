@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..digest import failed_miners
 from ..fs import read_text
 from ..nutrients import Candidate, Evidence, slugify
 from ..safety import is_suspicious
@@ -124,6 +125,16 @@ class Side:
     @property
     def short_sha(self) -> str:
         return self.sha[:7]
+
+    @property
+    def failed_miners(self) -> list[str]:
+        """Producers that raised while this digest was made.
+
+        ``_load`` turns a missing file into ``{}``, so a miner that crashed and a repository
+        that genuinely has nothing to say are the same empty mapping by the time a candidate
+        builder sees them. The manifest is the only place the difference survives.
+        """
+        return failed_miners(self.manifest)
 
     @property
     def ecosystems(self) -> set[str]:

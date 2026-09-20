@@ -74,6 +74,38 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
+    """What the working tree adds to ``HEAD``, as a short hash.
+
+    A digest is addressed by commit and the miners read the filesystem, so two different
+    worktrees at the same commit are the same cache entry and the second one is served the
+    first one's facts. Uncommitted changes are part of the question being asked.
+
+    Tracked changes come from ``git diff HEAD``, which carries their content. Untracked files
+    are not represented there, and filesystem metadata is not a content identity, so any
+    untracked file makes the worktree deliberately non-cacheable rather than stale-prone.
+
+    A prey clone is expected to be clean and answers ``"clean"`` for the price of an empty
+    diff. It is asked anyway, because "a clone is never edited" is an assumption about a
+    directory on someone's disk, and an interrupted fetch is enough to break it.
+    """
+    if git is None:
+        return ""
+    diff = git.try_run("diff", "HEAD")
+    untracked = git.try_run("ls-files", "--others", "--exclude-standard")
+    if diff is None or untracked is None:
+        # A repository git cannot answer questions about is not one this can vouch for.
+        return "unknown"
+    names = [line.strip() for line in untracked.splitlines() if line.strip()]
+    if names:
+        # Hashing arbitrary untracked prey can cost as much as digesting it. More importantly,
+        # name/size/mtime metadata cannot prove byte equality. Fail closed on reuse instead.
+        return "unknown"
+    if not diff:
+        return "clean"
+    return hashlib.sha1(diff.encode("utf-8", "replace")).hexdigest()[:12]
+
+
 def prepare_context(
     target: Target, options: DigestOptions, *, log: Callable[[str], None] = _noop
 ) -> tuple[MineContext, Path]:
@@ -120,10 +152,14 @@ def prepare_context(
         sha = git.head_sha()
         ref = git.current_branch() or git.default_branch()
         shallow = git.is_shallow()
+        worktree = worktree_fingerprint(git, root)
     else:
         sha = "nogit-" + hashlib.sha1(str(root.resolve()).encode("utf-8")).hexdigest()[:12]
         ref = "worktree"
         shallow = False
+        # The pseudo-SHA above identifies the directory, not its bytes. Until non-Git inputs
+        # have a content identity, they are deliberately non-cacheable rather than stale-prone.
+        worktree = "unknown"
 
     out_dir = options.out or (digests_dir / sha)
     ctx = MineContext(
@@ -137,9 +173,14 @@ def prepare_context(
         api=api,
         maw_license=options.maw_license,
         now=options.now or datetime.now(UTC),
-        md_budget=options.md_budget or MD_BUDGET.get(options.depth, MD_BUDGET["normal"]),
+        md_budget=(
+            options.md_budget
+            if options.md_budget is not None
+            else MD_BUDGET.get(options.depth, MD_BUDGET["normal"])
+        ),
         shallow=shallow,
         ignore=ignore,
+        worktree=worktree,
     )
     return ctx, out_dir
 
@@ -165,6 +206,7 @@ def run_miners(
         record: dict[str, Any] = {
             "name": miner.name,
             "ok": True,
+            "status": "ok",
             "error": None,
             "warnings": [],
             "files": [],
@@ -172,15 +214,18 @@ def run_miners(
         missing = [name for name in miner.requires if name not in ctx.results]
         if missing:
             record["ok"] = False
+            record["status"] = "blocked"
+            record["blocked_by"] = missing
             record["error"] = f"required miner(s) did not run: {', '.join(missing)}"
             record["ms"] = 0
             records.append(record)
-            log(f"  {miner.name}: skipped ({record['error']})")
+            log(f"  {miner.name}: blocked ({record['error']})")
             continue
         try:
             result = miner.run(ctx)
         except Exception as exc:
             record["ok"] = False
+            record["status"] = "failed"
             record["error"] = f"{type(exc).__name__}: {exc}"
             record["traceback"] = traceback.format_exc(limit=6)
             record["ms"] = round((perf_counter() - started) * 1000)
@@ -278,6 +323,7 @@ def build_manifest(
             "ref": ctx.ref,
             "shallow": ctx.shallow,
             "root": str(ctx.root),
+            "worktree": ctx.worktree,
         },
         "depth": options.depth,
         "ignore": list(ctx.ignore),
@@ -399,6 +445,46 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
     return manifest
 
 
+def _miner_status(record: dict[str, Any]) -> str:
+    """Normalize current and pre-status manifests to one causal miner-health vocabulary."""
+    status = record.get("status")
+    if status in {"failed", "blocked"}:
+        return str(status)
+    if record.get("ok"):
+        return "ok"
+    error = str(record.get("error") or "")
+    if error.startswith("required miner(s) did not run:"):
+        return "blocked"
+    return "failed"
+
+
+def failed_miners(manifest: dict[str, Any]) -> list[str]:
+    """Root producer failures, excluding miners blocked by those failures."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) == "failed"
+    ]
+
+
+def blocked_miners(manifest: dict[str, Any]) -> list[str]:
+    """Producers that did not run because a required producer was unavailable."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) == "blocked"
+    ]
+
+
+def incomplete_miners(manifest: dict[str, Any]) -> list[str]:
+    """All requested producers that did not complete, preserving run order."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) != "ok"
+    ]
+
+
 def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOptions) -> bool:
     """Is a digest on disk still an answer to the question being asked?
 
@@ -407,14 +493,30 @@ def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOption
     document. The `eat` protocol tells an agent to fix `ignore` in `.crab.yml` and rerun when the
     maw reads as the wrong stack; without this, that rerun returned the cached answer and the
     remedy did nothing.
+
+    The working tree and rendering budget are inputs too. Unknown/non-Git worktrees are not a
+    cache identity: two failed probes, or two reads of the same directory path, do not prove the
+    bytes are equal. Finally, every requested miner must have completed; blocked and failed
+    producers are both partial evidence, while intentionally unrequested miners are absent.
     """
+    prey = cached.get("prey")
+    budget = cached.get("budget")
+    if not isinstance(prey, dict) or not isinstance(budget, dict):
+        return False
+    cached_worktree = prey.get("worktree", "")
+    if ctx.worktree == "unknown" or cached_worktree == "unknown":
+        return False
     return (
         cached.get("schema") == SCHEMA
         and cached.get("crab_version") == __version__
-        and cached.get("prey", {}).get("sha") == ctx.sha
+        and prey.get("sha") == ctx.sha
+        and cached_worktree == ctx.worktree
         and cached.get("depth") == options.depth
         and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
         and cached.get("maw_license") == options.maw_license
+        and budget.get("per_markdown_file") == ctx.md_budget
+        and budget.get("markdown_total") == options.total_budget
+        and not incomplete_miners(cached)
     )
 
 
