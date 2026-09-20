@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from conftest import FIXED_NOW
+from fixture_builder import git
 from helpers import copy_repo
 
 import hungry_crab.digest as digest_module
@@ -63,6 +64,26 @@ def test_markdown_budget_participates_in_cache_identity(npm_app: Path, tmp_path:
 
     unchanged_again = run_digest(Target(path=work), DigestOptions(**changed_options.__dict__))
     assert unchanged_again.cached
+
+
+def test_gitignored_untracked_file_prevents_cache_reuse(npm_app: Path, tmp_path: Path) -> None:
+    work = copy_repo(npm_app, tmp_path / "work", with_git=True)
+    (work / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+    git(work, "add", ".gitignore")
+    git(work, "commit", "-m", "test: ignore scratch file")
+
+    ignored = work / "ignored.txt"
+    ignored.write_text("alpha\n", encoding="utf-8")
+    assert git(work, "check-ignore", "ignored.txt") == "ignored.txt"
+
+    options = _options(tmp_path)
+    first = run_digest(Target(path=work), options)
+    assert not first.cached
+    assert first.manifest["prey"]["worktree"] == "unknown"
+
+    ignored.write_text("omega\n", encoding="utf-8")
+    changed = run_digest(Target(path=work), DigestOptions(**options.__dict__))
+    assert not changed.cached, "ignored untracked prey can still change miner evidence"
 
 
 def test_unknown_worktree_fingerprint_never_becomes_identity(
