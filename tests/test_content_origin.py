@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hungry_crab.licensing import cap_mode_for_origin, ContentOrigin, Mode
+from hungry_crab.licensing import ContentOrigin, Mode, cap_mode_for_origin
 from hungry_crab.nutrients import Candidate, Evidence, merge_notes
 
 
