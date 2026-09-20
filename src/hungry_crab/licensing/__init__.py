@@ -31,14 +31,18 @@ from .matrix import (
     modes_by_maw_class,
     normalize,
 )
+from .origin import ContentOrigin, OriginVerdict, cap_mode_for_origin, normalize_origin
 
 __all__ = [
+    "ContentOrigin",
     "LicenseClass",
     "LicenseFindings",
     "MawClass",
     "Mode",
+    "OriginVerdict",
     "Relationship",
     "Verdict",
+    "cap_mode_for_origin",
     "classify",
     "decide",
     "decide_for_class",
@@ -52,4 +56,5 @@ __all__ = [
     "maw_class",
     "modes_by_maw_class",
     "normalize",
+    "normalize_origin",
 ]
