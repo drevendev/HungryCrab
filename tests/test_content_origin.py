@@ -5,7 +5,6 @@ from __future__ import annotations
 from hungry_crab.licensing import ContentOrigin, Mode, cap_mode_for_origin
 from hungry_crab.nutrients import Candidate, Evidence, merge_notes
 
-
 SENTINEL = "COMMENTER_SENTINEL_DO_NOT_COPY"
 
 
