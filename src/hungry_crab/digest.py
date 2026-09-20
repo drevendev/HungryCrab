@@ -19,6 +19,7 @@ from typing import Any
 
 from . import __version__
 from .cache import Target, maw_paths, prey_paths
+from .digest_integrity import digest_integrity_errors
 from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
@@ -486,7 +487,9 @@ def incomplete_miners(manifest: dict[str, Any]) -> list[str]:
     ]
 
 
-def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOptions) -> bool:
+def _is_reusable(
+    cached: dict[str, Any], ctx: MineContext, options: DigestOptions, out_dir: Path
+) -> bool:
     """Is a digest on disk still an answer to the question being asked?
 
     The commit is not the only input. A digest of the same commit produced by an older crab, or
@@ -497,8 +500,9 @@ def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOption
 
     The working tree and rendering budget are inputs too. Unknown/non-Git worktrees are not a
     cache identity: two failed probes, or two reads of the same directory path, do not prove the
-    bytes are equal. Finally, every requested miner must have completed; blocked and failed
-    producers are both partial evidence, while intentionally unrequested miners are absent.
+    bytes are equal. Every requested miner must have completed; blocked and failed producers are
+    both partial evidence, while intentionally unrequested miners are absent. Finally, a healthy
+    producer's declared artifacts must still match the manifest that vouched for them.
     """
     prey = cached.get("prey")
     budget = cached.get("budget")
@@ -518,6 +522,7 @@ def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOption
         and budget.get("per_markdown_file") == ctx.md_budget
         and budget.get("markdown_total") == options.total_budget
         and not incomplete_miners(cached)
+        and not digest_integrity_errors(out_dir, cached)
     )
 
 
@@ -537,7 +542,7 @@ def run_digest(
     manifest_path = out_dir / "manifest.json"
     if not opts.force:
         cached = _load_json(manifest_path)
-        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts):
+        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts, out_dir):
             log(f"digest for {ctx.label}@{ctx.short_sha} is cached at {out_dir}")
             return DigestResult(out_dir, cached, cached=True)
     try:

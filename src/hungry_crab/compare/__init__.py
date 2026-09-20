@@ -17,6 +17,7 @@ from typing import Any
 
 from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, locate_digest, run_digest
+from ..digest_integrity import digest_integrity_errors
 from ..errors import CrabError
 from ..ledger import Ledger
 from ..licensing import Relationship, decide
@@ -98,16 +99,27 @@ def apply_hunger(
     return kept, hidden
 
 
-def _refuse_partial(prey: Side, maw: Side) -> None:
-    """Stop before a menu is built out of facts a crashed miner never produced."""
+def _refuse_partial(prey: Side, maw: Side, prey_dir: Path, maw_dir: Path) -> None:
+    """Stop before a menu is built out of evidence a producer did not actually provide."""
     broken = [(side.label, side.failed_miners) for side in (prey, maw) if side.failed_miners]
-    if not broken:
-        return
-    detail = "; ".join(f"{label}: {', '.join(names)}" for label, names in broken)
-    raise CrabError(
-        f"the digest is missing a producer that failed ({detail})",
-        hint="re-run the digest with --force, or pass --allow-partial to compare it anyway",
-    )
+    if broken:
+        detail = "; ".join(f"{label}: {', '.join(names)}" for label, names in broken)
+        raise CrabError(
+            f"the digest is missing a producer that failed ({detail})",
+            hint="re-run the digest with --force, or pass --allow-partial to compare it anyway",
+        )
+
+    damaged = [
+        (side.label, digest_integrity_errors(path, side.manifest))
+        for side, path in ((prey, prey_dir), (maw, maw_dir))
+    ]
+    damaged = [(label, errors) for label, errors in damaged if errors]
+    if damaged:
+        detail = "; ".join(f"{label}: {', '.join(errors)}" for label, errors in damaged)
+        raise CrabError(
+            f"the digest has an inconsistent producer artifact ({detail})",
+            hint="re-run the digest with --force, or pass --allow-partial to compare it anyway",
+        )
 
 
 def compare_digests(
@@ -122,7 +134,7 @@ def compare_digests(
     prey = Side.load(prey_dir, root=prey_root)
     maw = Side.load(maw_dir, root=maw_root)
     if not opts.allow_partial:
-        _refuse_partial(prey, maw)
+        _refuse_partial(prey, maw, prey_dir, maw_dir)
     maw_spdx = opts.maw_license or maw.spdx
     verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship).to_dict()
     scoring = Scoring.default().merged(opts.scoring)

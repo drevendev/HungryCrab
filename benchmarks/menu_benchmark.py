@@ -2,11 +2,14 @@
 
     uv run python benchmarks/menu_benchmark.py [--json] [--top 30]
 
-Everything here is frozen. The prey and maw digests under ``menu/`` are the ones that were on
-disk when the maintainer judged these three repositories, and ``menu/golden.yml`` is that
-judgement: ``must`` was served, ``must_not`` was rejected, with the reason kept. So the benchmark
-asks one question and needs no model to ask it: with today's rules and weights, would the same
-menu still put the accepted nutrients in the top 30, and would it still show the rejected ones?
+Everything here is frozen. The prey and maw digests under ``menu/`` preserve the facts that were
+used when the maintainer judged these three repositories, and ``menu/golden.yml`` is that
+judgement: ``must`` was served, ``must_not`` was rejected, with the reason kept. The checked-in
+benchmark fixtures deliberately omit bulky producer Markdown and compact some JSON, so their
+historical manifest byte counts are not an operational cache-integrity contract. The benchmark
+therefore opts into partial comparison explicitly and asks one question: with today's rules and
+weights, would the same menu still put the accepted nutrients in the top 30, and would it still
+show the rejected ones?
 
 Two numbers come out:
 
@@ -76,7 +79,9 @@ def run(root: Path = ROOT, *, top: int = TOP) -> tuple[list[PairResult], dict[st
         comparison = compare_digests(
             root / pair["digest"],
             root / maw["digest"],
-            options=CompareOptions(maw_license=maw["license"], top=top, now=FIXED_NOW),
+            options=CompareOptions(
+                maw_license=maw["license"], top=top, now=FIXED_NOW, allow_partial=True
+            ),
         )
         shown = [card.key for card in comparison.candidates][:top]
         must = [str(key) for key in pair.get("must") or []]
