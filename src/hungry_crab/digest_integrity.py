@@ -1,11 +1,11 @@
 """Integrity checks for cached digest producer artifacts.
 
 The digest manifest already records which files each successful miner wrote and the byte
-size/producer for every digest file.  Treat that metadata as an integrity contract before a
+size/producer for every digest file. Treat that metadata as an integrity contract before a
 cached digest is reused or compared: absent, truncated, corrupt, or mis-owned evidence must not
 silently become an empty fact.
 
-This is intentionally not tamper evidence.  A local actor that coherently rewrites an artifact
+This is intentionally not tamper evidence. A local actor that coherently rewrites an artifact
 and its manifest can still evade it; adding cryptographic hashes would be a separate schema
 contract.
 """
@@ -29,11 +29,19 @@ def _strings(value: object) -> list[str]:
     return [item for item in value if isinstance(item, str) and item]
 
 
+def _safe_artifact_path(out_dir: Path, name: str) -> Path | None:
+    """Resolve only the flat artifact names that digest miners themselves can produce."""
+    relative = Path(name)
+    if relative.is_absolute() or relative.name != name or "/" in name or "\\" in name:
+        return None
+    return out_dir / relative
+
+
 def digest_integrity_errors(out_dir: Path, manifest: dict[str, Any]) -> list[str]:
     """Return inconsistencies between successful producers and their declared artifacts.
 
     Failed/blocked miners are deliberately skipped: their partial-evidence semantics are owned
-    by the miner-health contract.  A successful producer, however, has claimed that every file
+    by the miner-health contract. A successful producer, however, has claimed that every file
     in ``miners[*].files`` exists and is represented by ``manifest.files``.
     """
     entries = {
@@ -56,12 +64,18 @@ def digest_integrity_errors(out_dir: Path, manifest: dict[str, Any]) -> list[str
                 errors.append(f"{miner}: producer ownership mismatch: {name}")
                 continue
 
-            path = out_dir / name
+            path = _safe_artifact_path(out_dir, name)
+            if path is None:
+                errors.append(f"{miner}: invalid producer artifact path: {name}")
+                continue
+            if path.is_symlink():
+                errors.append(f"{miner}: producer artifact is a symlink: {name}")
+                continue
             if not path.is_file():
                 errors.append(f"{miner}: missing producer artifact: {name}")
                 continue
 
-            # JSON miners write object-shaped payloads.  Parse before checking size so a corrupt
+            # JSON miners write object-shaped payloads. Parse before checking size so a corrupt
             # replacement is reported as corruption rather than only as a byte-count mismatch.
             if path.suffix == ".json":
                 try:
