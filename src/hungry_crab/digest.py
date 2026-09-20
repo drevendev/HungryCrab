@@ -162,7 +162,9 @@ def prepare_context(
         sha = "nogit-" + hashlib.sha1(str(root.resolve()).encode("utf-8")).hexdigest()[:12]
         ref = "worktree"
         shallow = False
-        worktree = ""
+        # The pseudo-SHA above identifies the directory, not its bytes. Until non-Git inputs
+        # have a content identity, they are deliberately non-cacheable rather than stale-prone.
+        worktree = "unknown"
 
     out_dir = options.out or (digests_dir / sha)
     ctx = MineContext(
@@ -176,7 +178,11 @@ def prepare_context(
         api=api,
         maw_license=options.maw_license,
         now=options.now or datetime.now(UTC),
-        md_budget=options.md_budget or MD_BUDGET.get(options.depth, MD_BUDGET["normal"]),
+        md_budget=(
+            options.md_budget
+            if options.md_budget is not None
+            else MD_BUDGET.get(options.depth, MD_BUDGET["normal"])
+        ),
         shallow=shallow,
         ignore=ignore,
         worktree=worktree,
@@ -205,6 +211,7 @@ def run_miners(
         record: dict[str, Any] = {
             "name": miner.name,
             "ok": True,
+            "status": "ok",
             "error": None,
             "warnings": [],
             "files": [],
@@ -212,15 +219,18 @@ def run_miners(
         missing = [name for name in miner.requires if name not in ctx.results]
         if missing:
             record["ok"] = False
+            record["status"] = "blocked"
+            record["blocked_by"] = missing
             record["error"] = f"required miner(s) did not run: {', '.join(missing)}"
             record["ms"] = 0
             records.append(record)
-            log(f"  {miner.name}: skipped ({record['error']})")
+            log(f"  {miner.name}: blocked ({record['error']})")
             continue
         try:
             result = miner.run(ctx)
         except Exception as exc:
             record["ok"] = False
+            record["status"] = "failed"
             record["error"] = f"{type(exc).__name__}: {exc}"
             record["traceback"] = traceback.format_exc(limit=6)
             record["ms"] = round((perf_counter() - started) * 1000)
@@ -440,6 +450,46 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
     return manifest
 
 
+def _miner_status(record: dict[str, Any]) -> str:
+    """Normalize current and pre-status manifests to one causal miner-health vocabulary."""
+    status = record.get("status")
+    if status in {"ok", "failed", "blocked"}:
+        return str(status)
+    if record.get("ok"):
+        return "ok"
+    error = str(record.get("error") or "")
+    if error.startswith("required miner(s) did not run:"):
+        return "blocked"
+    return "failed"
+
+
+def failed_miners(manifest: dict[str, Any]) -> list[str]:
+    """Root producer failures, excluding miners blocked by those failures."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) == "failed"
+    ]
+
+
+def blocked_miners(manifest: dict[str, Any]) -> list[str]:
+    """Producers that did not run because a required producer was unavailable."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) == "blocked"
+    ]
+
+
+def incomplete_miners(manifest: dict[str, Any]) -> list[str]:
+    """All requested producers that did not complete, preserving run order."""
+    return [
+        str(record.get("name") or "?")
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict) and _miner_status(record) != "ok"
+    ]
+
+
 def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOptions) -> bool:
     """Is a digest on disk still an answer to the question being asked?
 
@@ -449,31 +499,30 @@ def _is_reusable(cached: dict[str, Any], ctx: MineContext, options: DigestOption
     maw reads as the wrong stack; without this, that rerun returned the cached answer and the
     remedy did nothing.
 
-    Two more inputs join them. The working tree, because the miners read files and not the
-    commit, so an edited checkout at the same ``HEAD`` used to be served the previous checkout's
-    facts. And whether every miner succeeded, because a digest missing a producer is not a
-    cheaper version of the same document — it is a document that says the repository has no
-    dependencies when the deps miner crashed. Re-running it is the only way to find out which.
+    The working tree and rendering budget are inputs too. Unknown/non-Git worktrees are not a
+    cache identity: two failed probes, or two reads of the same directory path, do not prove the
+    bytes are equal. Finally, every requested miner must have completed; blocked and failed
+    producers are both partial evidence, while intentionally unrequested miners are absent.
     """
+    prey = cached.get("prey")
+    budget = cached.get("budget")
+    if not isinstance(prey, dict) or not isinstance(budget, dict):
+        return False
+    cached_worktree = prey.get("worktree", "")
+    if ctx.worktree == "unknown" or cached_worktree == "unknown":
+        return False
     return (
         cached.get("schema") == SCHEMA
         and cached.get("crab_version") == __version__
-        and cached.get("prey", {}).get("sha") == ctx.sha
-        and cached.get("prey", {}).get("worktree", "") == ctx.worktree
+        and prey.get("sha") == ctx.sha
+        and cached_worktree == ctx.worktree
         and cached.get("depth") == options.depth
         and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
         and cached.get("maw_license") == options.maw_license
-        and not failed_miners(cached)
+        and budget.get("per_markdown_file") == ctx.md_budget
+        and budget.get("markdown_total") == options.total_budget
+        and not incomplete_miners(cached)
     )
-
-
-def failed_miners(manifest: dict[str, Any]) -> list[str]:
-    """The miners that raised, in the order the digest ran them."""
-    return [
-        str(record.get("name") or "?")
-        for record in as_list(manifest.get("miners"))
-        if isinstance(record, dict) and not record.get("ok")
-    ]
 
 
 def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
