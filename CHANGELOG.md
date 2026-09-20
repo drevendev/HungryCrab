@@ -256,6 +256,10 @@ repository.
 
 ### Documentation
 
+- **The README now documents the current `.crab.yml` surface instead of making users reverse-engineer it.**
+  It lists every top-level key, includes the commented defaults written by `crab init`, and calls
+  out settings accepted before their behavior arrives; a regression keeps the README,
+  `MawConfig`, and `DEFAULT_CONFIG_TEXT` aligned ([#27](https://github.com/drevendev/HungryCrab/issues/27)).
 - `docs/design/02-mvp.md` defers to the roadmap on what a milestone contains, and says so. It
   had `npx skills add` in 0.3 while the roadmap — the authority — has it in 0.6, the same way
   the two once disagreed about digest coverage; a test pins the item that drifted
