@@ -110,6 +110,10 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Served issues now show the content-origin licence ceiling that produced their mode.**
+  `crab serve` renders the normalized content origin, final licence mode and deterministic cap
+  reason when one applies, so the same trace recorded in `menu.json` remains visible at the
+  publication boundary ([#58](https://github.com/drevendev/HungryCrab/issues/58)).
 - **Issue-derived nutrients no longer inherit permissive licence modes from commenter-controlled prose.**
   `issue-lesson` cards are treated as commenter-origin and capped at `IDEAS_ONLY`; unknown or
   future content origins fail closed to `HUMAN`, while the structured trace records the
