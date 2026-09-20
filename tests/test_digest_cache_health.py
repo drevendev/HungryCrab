@@ -74,7 +74,7 @@ def test_gitignored_untracked_file_prevents_cache_reuse(npm_app: Path, tmp_path:
 
     ignored = work / "ignored.txt"
     ignored.write_text("alpha\n", encoding="utf-8")
-    assert git(work, "check-ignore", "ignored.txt") == "ignored.txt"
+    assert git(work, "check-ignore", "ignored.txt").strip() == "ignored.txt"
 
     options = _options(tmp_path)
     first = run_digest(Target(path=work), options)
