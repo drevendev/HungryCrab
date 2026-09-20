@@ -453,7 +453,7 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
 def _miner_status(record: dict[str, Any]) -> str:
     """Normalize current and pre-status manifests to one causal miner-health vocabulary."""
     status = record.get("status")
-    if status in {"ok", "failed", "blocked"}:
+    if status in {"failed", "blocked"}:
         return str(status)
     if record.get("ok"):
         return "ok"
