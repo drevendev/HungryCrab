@@ -116,7 +116,7 @@ def test_a_narrow_lead_is_not_a_corpus(prey_count: int, maw_count: int) -> None:
     assert ai_config_candidates(prey, maw) == []
 
 
-def test_issue_clusters_are_capped_and_titled_by_their_largest_issue() -> None:
+def test_issue_clusters_are_capped_without_carrying_commenter_text() -> None:
     clusters = [
         {
             "size": 30 - index,
@@ -143,18 +143,21 @@ def test_issue_clusters_are_capped_and_titled_by_their_largest_issue() -> None:
     clustered = [c for c in out if "cluster-" in c.key]
     assert len(clustered) == MAX_ISSUE_CLUSTERS
     assert len(out) == MAX_ISSUE_CLUSTERS + MAX_TOP_ISSUES
-    assert clustered[0].title == "Recurring pain in prey: pipx install fails on 0"
-    assert "term0, install" in clustered[0].what
+    assert clustered[0].title == "Issue-derived demand signal"
+    assert "pipx install fails" not in clustered[0].what
+    assert "term0, install" not in clustered[0].what
     assert clustered[0].prey_state == "30 issues, 0 reactions"
     sizes = [int(c.prey_state.split()[0]) for c in clustered]
     assert sizes == sorted(sizes, reverse=True), "the biggest clusters win the cap"
 
 
-def test_a_cluster_without_sample_titles_falls_back_to_its_terms() -> None:
+def test_a_cluster_without_sample_titles_still_does_not_carry_terms() -> None:
     prey = side(
         "prey",
         {},
         issues={"available": True, "clusters": [{"size": 9, "terms": ["windows", "path"]}]},
     )
     out = issue_candidates(prey, side("maw", {}))
-    assert out[0].title == "Recurring pain in prey: windows, path"
+    assert out[0].title == "Issue-derived demand signal"
+    assert "windows" not in out[0].what
+    assert "path" not in out[0].what
