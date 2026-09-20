@@ -182,9 +182,7 @@ def fetch_remote(client: GitHubClient | None = None) -> Remote:
 
         claude_manifest = json.loads(_file_at_master(api, ".claude-plugin/plugin.json"))
         claude_version = as_dict(claude_manifest).get("version")
-        remote.claude_plugin_version = (
-            str(claude_version) if claude_version is not None else None
-        )
+        remote.claude_plugin_version = str(claude_version) if claude_version is not None else None
 
         codex_manifest = json.loads(_file_at_master(api, "plugin.json"))
         codex_version = as_dict(codex_manifest).get("version")
