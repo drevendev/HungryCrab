@@ -69,7 +69,9 @@ def cap_mode_for_origin(mode: object, origin: object) -> OriginVerdict:
 
     capped = max((repository_mode, ceiling), key=_MODE_RANK.index)
     if normalized_origin is ContentOrigin.COMMENTERS:
-        reason = "commenter-origin text is capped at IDEAS_ONLY; carry the need and link, not the text"
+        reason = (
+            "commenter-origin text is capped at IDEAS_ONLY; carry the need and link, not the text"
+        )
     else:
         reason = "unrecognised content origin fails closed at HUMAN"
     return OriginVerdict(capped, normalized_origin, reason)
