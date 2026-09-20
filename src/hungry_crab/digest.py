@@ -82,8 +82,8 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     first one's facts. Uncommitted changes are part of the question being asked.
 
     Tracked changes come from ``git diff HEAD``, which carries their content. Untracked files
-    contribute name, size and modification time: hashing their contents would cost more than
-    re-digesting, and a needless re-digest is the cheap direction to be wrong in.
+    are not represented there, and filesystem metadata is not a content identity, so any
+    untracked file makes the worktree deliberately non-cacheable rather than stale-prone.
 
     A prey clone is expected to be clean and answers ``"clean"`` for the price of an empty
     diff. It is asked anyway, because "a clone is never edited" is an assumption about a
@@ -97,18 +97,13 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
         # A repository git cannot answer questions about is not one this can vouch for.
         return "unknown"
     names = [line.strip() for line in untracked.splitlines() if line.strip()]
-    if not diff and not names:
+    if names:
+        # Hashing arbitrary untracked prey can cost as much as digesting it. More importantly,
+        # name/size/mtime metadata cannot prove byte equality. Fail closed on reuse instead.
+        return "unknown"
+    if not diff:
         return "clean"
-    parts = [diff]
-    for name in sorted(names):
-        try:
-            stat = (root / name).stat()
-        except OSError:
-            parts.append(f"{name}\0missing")
-            continue
-        parts.append(f"{name}\0{stat.st_size}\0{stat.st_mtime_ns}")
-    payload = "\0".join(parts).encode("utf-8", "replace")
-    return hashlib.sha1(payload).hexdigest()[:12]
+    return hashlib.sha1(diff.encode("utf-8", "replace")).hexdigest()[:12]
 
 
 def prepare_context(
