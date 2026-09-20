@@ -110,6 +110,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A healthy digest no longer trusts producer metadata after its artifact disappears or changes.**
+  `crab digest` now invalidates and repairs a cached digest when a successful miner's declared
+  artifact is missing, corrupt, mis-owned, the wrong size, or not a JSON object where JSON is
+  expected; `crab compare` refuses that inconsistent evidence by default unless the caller
+  explicitly opts into `--allow-partial` ([#87](https://github.com/drevendev/HungryCrab/issues/87)).
 - **Ignore globs matched by case on Windows and not on Linux.** `is_ignored` ran the path and
   the pattern through `fnmatch.fnmatch`, which lowercases both on Windows and neither on Linux,
   so one `.crab.yml` produced two different digests of one commit — file counts, languages,
