@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "crab",
+  "version": "0.3.0-dev.0",
+  "description": "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses.",
+  "author": {
+    "name": "Dreven",
+    "url": "https://github.com/drevendev"
+  },
+  "homepage": "https://github.com/drevendev/HungryCrab",
+  "repository": "https://github.com/drevendev/HungryCrab",
+  "license": "MIT",
+  "keywords": ["repository-mining", "license-compliance", "agent-skills", "nutrients"]
+}
