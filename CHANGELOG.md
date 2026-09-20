@@ -14,6 +14,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Codex now gets native Hungry Crab branding without borrowing Claude's manifest as its identity.**
+  A portable Agent Plugins v1 `plugin.json` carries the repository and version, a Codex overlay
+  supplies the red crab presentation and website, and `.agents/plugins/marketplace.json` installs
+  the repository root without duplicating the existing skills. The temporary OpenMoji crab keeps
+  its adjacent CC BY-SA 4.0 attribution. `crab update` now reads Claude and Codex manifest versions
+  separately, so one drifting manifest cannot make the other agent look current
+  ([#99](https://github.com/drevendev/HungryCrab/issues/99)).
 - **A declared nutrient category is produced by something or deferred by name.** `code` sat in
   `CATEGORIES`, in `scoring.yml` and in every generated `.crab.yml` as a hunger knob while no
   candidate builder could emit it, so the setting could not affect a single meal — and the
