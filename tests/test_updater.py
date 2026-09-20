@@ -32,11 +32,18 @@ CLAUDE, CODEX = AGENTS
 
 
 class FakeGitHub:
-    """Serves the three files `fetch_remote` reads, or raises."""
+    """Serves the files `fetch_remote` reads, or raises."""
 
-    def __init__(self, cli: str = "9.9.9", plugin: str = "9.9.9", fail: bool = False) -> None:
+    def __init__(
+        self,
+        cli: str = "9.9.9",
+        plugin: str = "9.9.9",
+        codex_plugin: str | None = None,
+        fail: bool = False,
+    ) -> None:
         self.cli = cli
         self.plugin = plugin
+        self.codex_plugin = codex_plugin if codex_plugin is not None else plugin
         self.fail = fail
         self.paths: list[str] = []
 
@@ -49,8 +56,11 @@ class FakeGitHub:
         if "pyproject.toml" in path:
             body = f'[project]\nname = "hungry-crab"\nversion = "{self.cli}"\n'
             return {"content": b64encode(body.encode()).decode(), "encoding": "base64"}
-        if "plugin.json" in path:
+        if "/contents/.claude-plugin/plugin.json?" in path:
             body = json.dumps({"name": "crab", "version": self.plugin})
+            return {"content": b64encode(body.encode()).decode(), "encoding": "base64"}
+        if "/contents/plugin.json?" in path:
+            body = json.dumps({"name": "crab", "version": self.codex_plugin})
             return {"content": b64encode(body.encode()).decode(), "encoding": "base64"}
         return {"sha": "a" * 40, "commit": {"committer": {"date": "2026-09-06T10:00:00Z"}}}
 
@@ -95,11 +105,13 @@ def test_fetch_remote_reads_master() -> None:
     client = FakeGitHub(cli="0.3.0", plugin="0.3.0")
     remote = fetch_remote(client)  # type: ignore[arg-type]
     assert remote.cli_version == "0.3.0"
-    assert remote.plugin_version == "0.3.0"
+    assert remote.claude_plugin_version == "0.3.0"
+    assert remote.codex_plugin_version == "0.3.0"
     assert remote.short_sha == "aaaaaaa"
     assert remote.date == "2026-09-06"
     assert remote.error is None
-    assert any("ref=master" in path for path in client.paths)
+    assert any(".claude-plugin/plugin.json?ref=master" in path for path in client.paths)
+    assert any("/contents/plugin.json?ref=master" in path for path in client.paths)
 
 
 def test_fetch_remote_survives_no_network() -> None:
@@ -148,7 +160,7 @@ def test_cli_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_agent_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
-    remote = Remote(plugin_version="0.3.0")
+    remote = Remote(claude_plugin_version="0.3.0", codex_plugin_version="0.3.0")
     monkeypatch.setattr(updater.shutil, "which", lambda exe: None)
     absent = check_agent(CLAUDE, remote, runner=fake_runner({}))
     assert absent.status == ABSENT and absent.commands == []
@@ -184,6 +196,23 @@ def test_agent_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
     assert garbled.status == UNKNOWN
 
 
+def test_agent_checks_use_their_own_remote_manifest(monkeypatch: pytest.MonkeyPatch) -> None:
+    remote = fetch_remote(
+        FakeGitHub(cli="0.3.0", plugin="0.3.0", codex_plugin="0.4.0")  # type: ignore[arg-type]
+    )
+    monkeypatch.setattr(updater.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+
+    claude = check_agent(
+        CLAUDE, remote, runner=fake_runner({"plugin list": (True, claude_list("0.3.0"))})
+    )
+    codex = check_agent(
+        CODEX, remote, runner=fake_runner({"plugin list": (True, codex_list("0.3.0"))})
+    )
+
+    assert claude.status == OK and claude.available == "0.3.0"
+    assert codex.status == OUTDATED and codex.available == "0.4.0"
+
+
 def test_check_reports_every_component(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(updater, "cli_install_kind", lambda: "uv-tool")
     monkeypatch.setattr(updater.shutil, "which", lambda exe: f"/usr/bin/{exe}")
@@ -204,6 +233,8 @@ def test_check_reports_every_component(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "codex plugin add crab@hungry-crab" in text
     payload = report.to_dict()
     assert payload["remote"]["cli_version"] == "0.3.0"
+    assert payload["remote"]["claude_plugin_version"] == "0.3.0"
+    assert payload["remote"]["codex_plugin_version"] == "0.3.0"
     assert payload["components"][0]["commands"] == [
         f'uv tool install --force "{updater.REQUIREMENT}"'
     ]
