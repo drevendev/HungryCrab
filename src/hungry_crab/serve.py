@@ -292,6 +292,16 @@ def _maw_state(card: Candidate) -> str:
     return state
 
 
+def _license_trace(card: Candidate) -> str:
+    lines = [
+        f"- content origin: `{card.origin}`",
+        f"- license mode: `{card.license_mode}`",
+    ]
+    if card.license_reason:
+        lines.append(f"- origin cap: {card.license_reason}")
+    return "\n".join(lines)
+
+
 def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     prey = as_dict(menu.get("prey"))
     sha = str(prey.get("sha", ""))
@@ -315,6 +325,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"<!-- {card.id} -->\n"
         f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
         f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
+        f"## License trace\n\n{_license_trace(card)}\n\n"
         f"## What the prey does\n\n{card.what}\n{evidence}\n\n"
         f"## What this repository has\n\n{_maw_state(card)}\n\n"
         f"## Why it matters here\n\n{why}\n\n"
