@@ -72,9 +72,7 @@ def test_forced_rerun_failure_cannot_reuse_previous_successful_json(
         DigestOptions(out=out_dir, now=FIXED_NOW, force=True, miners=["deps"]),
     )
 
-    deps_record = next(
-        record for record in failed.manifest["miners"] if record["name"] == "deps"
-    )
+    deps_record = next(record for record in failed.manifest["miners"] if record["name"] == "deps")
     assert deps_record["status"] == "failed"
     assert not (out_dir / "deps.json").exists()
     assert Side.load(out_dir).deps == {}
