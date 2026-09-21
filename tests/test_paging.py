@@ -72,7 +72,7 @@ def test_run_miners_owns_page_family_and_removes_stale_siblings(tmp_path: Path) 
     first_files = first[0]["files"]
     assert first_files[0] == "docs.md"
     assert len(first_files) > 1
-    assert first[0]["page_priorities"] == {name: 7 for name in first_files}
+    assert first[0]["page_priorities"] == dict.fromkeys(first_files, 7)
     assert all((out_dir / name).is_file() for name in first_files)
     assert _reading_order(set(first_files)) == first_files
 
