@@ -18,6 +18,7 @@ from time import perf_counter
 from typing import Any
 
 from . import __version__
+from .budget import BUDGET_POLICIES, apply_markdown_policy
 from .cache import Target, maw_paths, prey_paths
 from .digest_integrity import digest_integrity_errors
 from .errors import CrabError
@@ -49,6 +50,7 @@ class DigestOptions:
     now: datetime | None = None
     md_budget: int | None = None
     total_budget: int = TOTAL_BUDGET
+    budget_policy: str = "warn"
     cache_root: Path | None = None
     catch_options: CatchOptions = field(default_factory=CatchOptions)
     ignore: list[str] = field(default_factory=list)
@@ -318,6 +320,13 @@ def build_manifest(
     options: DigestOptions,
     elapsed: float,
 ) -> dict[str, Any]:
+    budget_result = apply_markdown_policy(
+        records,
+        out_dir,
+        total_budget=options.total_budget,
+        policy=options.budget_policy,
+        exclude_names=MEAL_OWNED,
+    )
     files: list[dict[str, Any]] = []
     md_tokens = 0
     total_tokens = 0
@@ -347,6 +356,14 @@ def build_manifest(
             }
         )
     warnings = [f"{r['name']}: {w}" for r in records for w in r["warnings"]]
+    if options.budget_policy == "warn" and budget_result.over_by_tokens:
+        warnings.append(
+            f"digest: markdown budget exceeded by {budget_result.over_by_tokens} estimated tokens"
+        )
+    if budget_result.dropped_pages:
+        warnings.append(
+            f"digest: budget policy dropped {len(budget_result.dropped_pages)} markdown page(s)"
+        )
     return {
         "schema": SCHEMA,
         "crab_version": __version__,
@@ -363,10 +380,17 @@ def build_manifest(
         "depth": options.depth,
         "ignore": list(ctx.ignore),
         "maw_license": options.maw_license,
-        "budget": {"per_markdown_file": ctx.md_budget, "markdown_total": options.total_budget},
+        "budget": {
+            "per_markdown_file": ctx.md_budget,
+            "markdown_total": options.total_budget,
+            "policy": options.budget_policy,
+            "over_by_tokens_est": budget_result.over_by_tokens,
+        },
+        "markdown_tokens_before_policy_est": budget_result.before_tokens,
         "markdown_tokens_est": md_tokens,
         "total_tokens_est": total_tokens,
-        "over_budget": md_tokens > options.total_budget,
+        "over_budget": options.budget_policy != "off" and md_tokens > options.total_budget,
+        "dropped_pages": budget_result.dropped_pages,
         "elapsed_seconds": round(elapsed, 2),
         "files": files,
         "miners": records,
@@ -473,7 +497,8 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
     total_budget = (
         budget.get("markdown_total", TOTAL_BUDGET) if isinstance(budget, dict) else TOTAL_BUDGET
     )
-    manifest["over_budget"] = md_tokens > int(total_budget)
+    policy = budget.get("policy", "warn") if isinstance(budget, dict) else "warn"
+    manifest["over_budget"] = policy != "off" and md_tokens > int(total_budget)
     manifest["reading_order"] = _reading_order({entry["name"] for entry in files})
     _write_json(manifest_path, manifest)
     return manifest
@@ -553,6 +578,7 @@ def _is_reusable(
         and cached.get("maw_license") == options.maw_license
         and budget.get("per_markdown_file") == ctx.md_budget
         and budget.get("markdown_total") == options.total_budget
+        and budget.get("policy") == options.budget_policy
         and not incomplete_miners(cached)
         and not digest_integrity_errors(out_dir, cached)
     )
@@ -570,6 +596,13 @@ def run_digest(
     opts = options or DigestOptions()
     if opts.depth not in MD_BUDGET:
         raise CrabError(f"unknown depth {opts.depth!r}", hint="use normal or deep")
+    if opts.budget_policy not in BUDGET_POLICIES:
+        raise CrabError(
+            f"unknown budget policy {opts.budget_policy!r}",
+            hint=f"use one of: {', '.join(BUDGET_POLICIES)}",
+        )
+    if opts.total_budget < 0:
+        raise CrabError("markdown total budget must not be negative")
     ctx, out_dir = prepare_context(target, opts, log=log)
     manifest_path = out_dir / "manifest.json"
     if not opts.force:
