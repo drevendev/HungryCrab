@@ -84,9 +84,13 @@ def test_cleanroom_agent_is_guarded_and_can_implement() -> None:
 def test_cleanroom_hook_is_plugin_scoped() -> None:
     hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     pre_tool_use = hooks["hooks"]["PreToolUse"]
-    assert len(pre_tool_use) == 1
-    assert pre_tool_use[0]["matcher"] == "Read|Grep|Glob|Write|Edit"
-    handler = pre_tool_use[0]["hooks"][0]
+    cleanroom = next(
+        entry
+        for entry in pre_tool_use
+        if entry["hooks"][0].get("command") == "crab-cleanroom-guard"
+    )
+    assert cleanroom["matcher"] == "Read|Grep|Glob|Write|Edit"
+    handler = cleanroom["hooks"][0]
     assert handler["type"] == "command"
     assert handler["command"] == "crab-cleanroom-guard"
     assert "args" not in handler
