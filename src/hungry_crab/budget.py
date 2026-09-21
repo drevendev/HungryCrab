@@ -129,10 +129,7 @@ def _reconcile_current_outputs(
     explicitly outside this lifecycle and arrive through ``exclude_names``.
     """
     current = {
-        str(name)
-        for record in records
-        for name in record.get("files", [])
-        if isinstance(name, str)
+        str(name) for record in records for name in record.get("files", []) if isinstance(name, str)
     }
     protected = {"manifest.json", *exclude_names}
     for path in out_dir.iterdir():
