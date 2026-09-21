@@ -26,7 +26,7 @@ PREY = "/tmp/crab-prey/github/acme/widget/repo"
         "python ${CRAB_CACHE_DIR}/github/acme/widget/repo/setup.py",
         r"python %CRAB_CACHE_DIR%\github\acme\widget\repo\setup.py",
         r"python $env:CRAB_CACHE_DIR\github\acme\widget\repo\setup.py",
-        "echo \"$(python ~/.cache/hungry-crab/github/acme/widget/repo/setup.py)\"",
+        'echo "$(python ~/.cache/hungry-crab/github/acme/widget/repo/setup.py)"',
         "cat <(python ~/.cache/hungry-crab/github/acme/widget/repo/setup.py)",
         "printf '%s\\n' `~/.cache/hungry-crab/github/acme/widget/repo/bin/tool`",
         (
