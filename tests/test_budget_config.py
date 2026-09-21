@@ -26,7 +26,7 @@ def test_budget_policy_rejects_unknown_value(tmp_path: Path) -> None:
         "budget:\n  policy: explode\n",
         encoding="utf-8",
     )
-    with pytest.raises(UsageError, match="invalid budget.policy"):
+    with pytest.raises(UsageError, match=r"invalid budget.policy"):
         MawConfig.load(tmp_path)
 
 
