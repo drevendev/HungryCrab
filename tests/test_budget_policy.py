@@ -18,9 +18,9 @@ def test_enforce_drops_low_priority_pages_and_repairs_next_link(tmp_path: Path) 
     first = "# Docs\n\nimportant\n\n> Next: `docs.2.md`\n"
     low = "# Docs\n\nlow priority " + "x" * 100 + "\n"
     medium = "# CI\n\nmedium\n"
-    (out / "docs.md").write_text(first, encoding="utf-8")
-    (out / "docs.2.md").write_text(low, encoding="utf-8")
-    (out / "ci.md").write_text(medium, encoding="utf-8")
+    (out / "docs.md").write_text(first, encoding="utf-8", newline="\n")
+    (out / "docs.2.md").write_text(low, encoding="utf-8", newline="\n")
+    (out / "ci.md").write_text(medium, encoding="utf-8", newline="\n")
     records = [
         {
             "name": "docs",
@@ -49,10 +49,8 @@ def test_warn_and_off_keep_complete_digest(tmp_path: Path) -> None:
     out = tmp_path / "digest"
     out.mkdir()
     text = "# Docs\n\n" + "x" * 100 + "\n"
-    (out / "docs.md").write_text(text, encoding="utf-8")
-    records = [
-        {"name": "docs", "files": ["docs.md"], "page_priorities": {"docs.md": 5}}
-    ]
+    (out / "docs.md").write_text(text, encoding="utf-8", newline="\n")
+    records = [{"name": "docs", "files": ["docs.md"], "page_priorities": {"docs.md": 5}}]
 
     warned = apply_markdown_policy(records, out, total_budget=1, policy="warn")
     assert warned.dropped_pages == []
@@ -93,9 +91,7 @@ def test_budget_policy_is_cache_identity(npm_app: Path, tmp_path: Path) -> None:
     assert enforced.manifest["dropped_pages"]
     dropped = {page["name"] for page in enforced.manifest["dropped_pages"]}
     assert dropped.isdisjoint({entry["name"] for entry in enforced.manifest["files"]})
-    assert all(
-        dropped.isdisjoint(set(record["files"])) for record in enforced.manifest["miners"]
-    )
+    assert all(dropped.isdisjoint(set(record["files"])) for record in enforced.manifest["miners"])
 
 
 def test_unknown_budget_policy_is_rejected(npm_app: Path) -> None:
