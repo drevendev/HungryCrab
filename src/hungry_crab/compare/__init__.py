@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -298,7 +298,7 @@ def compare_for_maw(
 ) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
     """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
     config = MawConfig.load(maw_root)
-    d_opts = digest_options or DigestOptions()
+    d_opts = replace(digest_options or DigestOptions(), budget_policy=config.budget.policy)
     ledger = Ledger.load(config.ledger_path(d_opts.cache_root), maw=maw_root.name)
     hidden = ledger.hidden_ids()
     if issue_lookup is not None:
@@ -354,6 +354,9 @@ def run_compare(
         force=d_opts.force,
         maw_license=opts.maw_license or d_opts.maw_license,
         now=d_opts.now,
+        md_budget=d_opts.md_budget,
+        total_budget=d_opts.total_budget,
+        budget_policy=d_opts.budget_policy,
         cache_root=d_opts.cache_root,
         ignore=opts.ignore,
     )

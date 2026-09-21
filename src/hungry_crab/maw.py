@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 
+from .budget import BUDGET_POLICIES
 from .cache import Slug, Target, maw_paths
 from .errors import CrabError, UsageError
 from .fetch.git import GitRunner
@@ -58,6 +59,8 @@ ignore: []                 # globs excluded from this repository's own digest, s
                            # fixtures and vendored trees are not mistaken for your code, e.g.
                            # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on
                            # every platform, like the git paths they match.
+budget:
+  policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
@@ -111,6 +114,11 @@ def _choice(value: object, allowed: tuple[str, ...], what: str) -> str:
 
 
 @dataclass
+class BudgetSettings:
+    policy: str = "warn"
+
+
+@dataclass
 class ServeSettings:
     issues: str = "ask"
     prs: str = "ask"
@@ -151,6 +159,7 @@ class MawConfig:
     mode: str = "normal"
     hunger: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_HUNGER))
     ignore: list[str] = field(default_factory=list)
+    budget: BudgetSettings = field(default_factory=BudgetSettings)
     serve: ServeSettings = field(default_factory=ServeSettings)
     trust: TrustSettings = field(default_factory=TrustSettings)
     attribution_file: str = "THIRD_PARTY_NOTICES.md"
@@ -190,6 +199,10 @@ class MawConfig:
             hunger[str(key)] = _hunger_value(value)
         config.hunger = hunger
         config.ignore = [str(pattern) for pattern in as_list(data.get("ignore"))]
+        budget = as_dict(data.get("budget"))
+        config.budget = BudgetSettings(
+            policy=_choice(budget.get("policy", "warn"), BUDGET_POLICIES, "budget.policy")
+        )
         serve = as_dict(data.get("serve"))
         max_prs = serve.get("max_prs_per_run", 3)
         labels = [str(label) for label in as_list(serve.get("labels")) if str(label).strip()]
