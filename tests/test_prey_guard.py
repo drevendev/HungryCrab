@@ -73,7 +73,8 @@ def test_guard_has_no_opinion_without_a_cache_reference() -> None:
 
 
 def test_malformed_cache_touching_shell_fails_closed() -> None:
-    assert guard_reason(f"cat '{PREY}/README.md", root=CACHE) is not None
+    command = "cat '~/.cache/hungry-crab/github/acme/widget/repo/README.md"
+    assert guard_reason(command, root=CACHE) is not None
 
 
 def test_hook_denies_a_valid_bash_event(monkeypatch: pytest.MonkeyPatch) -> None:
