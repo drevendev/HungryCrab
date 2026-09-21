@@ -34,6 +34,7 @@ dependencies = ["pyyaml>=6.0.2"]
 [project.scripts]
 crab = "hungry_crab.cli:main"
 crab-cleanroom-guard = "hungry_crab.cleanroom_guard:main"
+crab-prey-guard = "hungry_crab.prey_guard:main"
 
 [project.urls]
 Homepage = "https://github.com/drevendev/HungryCrab"
