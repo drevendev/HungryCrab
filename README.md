@@ -156,7 +156,7 @@ below.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
 - `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution` when it arrives with 0.3.
 - `ledger`: store meal history in the repository, cache, or nowhere.
-- `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
+- `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` suggests them.
 
 This is the current commented template written by `crab init`:
 
