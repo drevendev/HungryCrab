@@ -32,9 +32,8 @@ The crab reads them for you. It drags the prey into a local cache, dissects it w
 deterministic miners, and boils a whole repository down to a digest small enough for an agent to
 actually read. Then it holds that digest against *your* repository and serves a ranked menu:
 what they have, what you lack, what it would cost you, and exactly what their license lets you
-take. Approve a few and they land as issues in your tracker, each with evidence links to the
-prey and a precise license verdict. The agent does the final judgment; the crab supplies the
-facts.
+take. Approve a few and they land as issues in your tracker, each with evidence links and a
+trace footer. Say no to one and the crab remembers, so it never offers it again.
 
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
