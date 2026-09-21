@@ -613,7 +613,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "serve":
             return cmd_serve(args, log)
         if args.command == "tune":
-            return cmd_tune(args)
+            return cmd_tune(args, log)
         if args.command == "update":
             return cmd_update(args, log)
         if args.command == "cache":
