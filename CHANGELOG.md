@@ -117,6 +117,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Prey-cache shell guards now fail closed on executable provenance, not just command names.**
+  A cache-touching command is denied when its executable path points into prey even if the file
+  is named like an allowed reader, and leading environment assignments are rejected so `PATH`
+  or loader variables cannot turn an allowed `cat`/`rg`/`git` shape into prey execution. Ordinary
+  read-only cache inspection stays allowed ([#85](https://github.com/drevendev/HungryCrab/issues/85)).
 - **Served issues now show the content-origin licence ceiling that produced their mode.**
   `crab serve` renders the normalized content origin, final licence mode and deterministic cap
   reason when one applies, so the same trace recorded in `menu.json` remains visible at the
