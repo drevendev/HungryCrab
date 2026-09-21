@@ -32,8 +32,9 @@ The crab reads them for you. It drags the prey into a local cache, dissects it w
 deterministic miners, and boils a whole repository down to a digest small enough for an agent to
 actually read. Then it holds that digest against *your* repository and serves a ranked menu:
 what they have, what you lack, what it would cost you, and exactly what their license lets you
-take. Approve a few and they land as issues in your tracker, each with evidence links and a
-trace footer. Say no to one and the crab remembers, so it never offers it again.
+take. Approve a few and they land as issues in your tracker, each with evidence links to the
+prey and a precise license verdict. The agent does the final judgment; the crab supplies the
+facts.
 
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
@@ -156,7 +157,7 @@ below.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
 - `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution` when it arrives with 0.3.
 - `ledger`: store meal history in the repository, cache, or nowhere.
-- `scoring`: per-section overrides for `data/scoring.yml` sections; `crab tune` can suggest them.
+- `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
 
 This is the current commented template written by `crab init`:
 
@@ -276,10 +277,10 @@ commenters. This is a compliance aid, not legal advice.
 ## Safety
 
 - **Prey code is never executed.** The miners read files and run read-only git plumbing. No
-  `npm install`, `pytest` or `make` ever runs inside the cache directory, ever.
-- **Prey content is untrusted data.** Markdown summaries carry structure (headings, names, counts),
-  never the body of README or agent-instruction files, and instruction-like fragments are flagged
-  in the JSON.
+  `npm install`, `pytest` or `make` ever runs inside the cache.
+- **Prey content is untrusted data.** Markdown summaries carry structure (headings, names,
+  counts), never the body of README or agent-instruction files, and instruction-like fragments
+  are flagged in the JSON.
 - **Least privilege.** `sniff` and `catch` need read access to the GitHub API; `serve` uses your
   own authenticated `gh` and creates nothing until you ask it to.
 
