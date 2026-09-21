@@ -6,7 +6,7 @@
      /\                                                     /\
     /  \       _____________________________________       /  \
    |    |     /                                     \     |    |
-   | /\ |     |     \\\\\\\             ///////     |     | /\ |
+   | /\ |     |     \\\\\             ///////     |     | /\ |
    | \/ |     |      (@@@)               (@@@)      |     | \/ |
     \  /      |                                     |      \  /
      \ \      |      /\/\/\/\/\/\/\/\/\/\/\/\/      |      / /
@@ -151,6 +151,7 @@ below.
 - `mode`: `normal` or `strict`; `strict` is accepted today but intentionally not enforced until 0.3.
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
 - `ignore`: maw-side git-style paths excluded from its own digest.
+- `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
 - `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` is accepted but PR serving arrives with 0.3.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
 - `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution` when it arrives with 0.3.
@@ -182,6 +183,8 @@ ignore: []                 # globs excluded from this repository's own digest, s
                            # fixtures and vendored trees are not mistaken for your code, e.g.
                            # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on
                            # every platform, like the git paths they match.
+budget:
+  policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
