@@ -96,6 +96,30 @@ def _program(token: str) -> str:
     return Path(token).name.casefold().removesuffix(".exe")
 
 
+def _program_token_points_into_cache(token: str, *, root: Path, cwd: Path) -> bool:
+    """Return whether an explicit executable token can resolve inside the prey cache."""
+    if _ENV_CACHE_REF.search(token) or _DEFAULT_CACHE_REF.search(token):
+        return True
+
+    normalized = token.replace("\\", "/").casefold()
+    root_text = str(root).replace("\\", "/").casefold()
+    if root_text and root_text in normalized:
+        return True
+
+    # A bare command name such as ``cat`` is resolved by the trusted host PATH. Only explicit
+    # path-shaped program tokens are resolved against cwd here; otherwise a cache cwd would make
+    # every ordinary reader look like ``<cache>/cat`` even though the shell does not resolve it
+    # that way.
+    if "/" not in token and "\\" not in token:
+        return False
+    try:
+        return _is_within(_canonical(Path(token), cwd=cwd), root)
+    except (OSError, RuntimeError, ValueError):
+        # This is already a cache-touching command. If an explicit executable path cannot be
+        # classified, fail closed rather than applying the basename allowlist.
+        return True
+
+
 def _git_is_read_only(tokens: list[str]) -> bool:
     index = 1
     while index < len(tokens):
@@ -136,17 +160,21 @@ def _git_is_read_only(tokens: list[str]) -> bool:
     )
 
 
-def _simple_read_only(tokens: list[str]) -> bool:
-    index = 0
-    while index < len(tokens) and _ASSIGNMENT.match(tokens[index]):
-        index += 1
-    if index >= len(tokens):
+def _simple_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
+    if not tokens or _ASSIGNMENT.match(tokens[0]):
+        # Environment prefixes can change executable resolution (PATH) or inject code into an
+        # otherwise allowed reader (for example LD_PRELOAD). A cache-touching command therefore
+        # cannot carry assignment prefixes unless a future audited subset is introduced.
         return False
 
-    command = _program(tokens[index])
-    args = tokens[index + 1 :]
+    program_token = tokens[0]
+    if _program_token_points_into_cache(program_token, root=root, cwd=cwd):
+        return False
+
+    command = _program(program_token)
+    args = tokens[1:]
     if command == "git":
-        return _git_is_read_only(tokens[index:])
+        return _git_is_read_only(tokens)
     if command not in _READ_ONLY_COMMANDS:
         return False
     return not (command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args))
@@ -179,7 +207,7 @@ def guard_reason(
             "cache-touching shell composition or redirection is not established read-only "
             "(AGENTS.md rule 3)"
         )
-    if not _simple_read_only(tokens):
+    if not _simple_read_only(tokens, root=cache, cwd=here):
         return "cache-touching command is not in the audited read-only allowlist (AGENTS.md rule 3)"
     return None
 
