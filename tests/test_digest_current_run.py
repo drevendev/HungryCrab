@@ -8,7 +8,7 @@ from conftest import FIXED_NOW
 from hungry_crab.cache import Target
 from hungry_crab.compare.candidates import Side
 from hungry_crab.digest import DigestOptions, run_digest
-from hungry_crab.miners import ALL_MINERS
+from hungry_crab.miners.deps import DepsMiner
 
 
 def _emitted_files(manifest: dict[str, object]) -> dict[str, str]:
@@ -63,18 +63,18 @@ def test_forced_rerun_failure_cannot_reuse_previous_successful_json(
     run_digest(target, DigestOptions(out=out_dir, now=FIXED_NOW))
     assert (out_dir / "deps.json").is_file()
 
-    deps_miner = next(miner for miner in ALL_MINERS if miner.name == "deps")
-
-    def fail_deps(_ctx: object) -> object:
+    def fail_deps(self: object, _ctx: object) -> object:
         raise RuntimeError("forced deps failure")
 
-    monkeypatch.setattr(deps_miner, "run", fail_deps)
+    monkeypatch.setattr(DepsMiner, "run", fail_deps)
     failed = run_digest(
         target,
         DigestOptions(out=out_dir, now=FIXED_NOW, force=True, miners=["deps"]),
     )
 
-    deps_record = next(record for record in failed.manifest["miners"] if record["name"] == "deps")
+    deps_record = next(
+        record for record in failed.manifest["miners"] if record["name"] == "deps"
+    )
     assert deps_record["status"] == "failed"
     assert not (out_dir / "deps.json").exists()
     assert Side.load(out_dir).deps == {}
