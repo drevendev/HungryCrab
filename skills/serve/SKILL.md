@@ -1,6 +1,6 @@
 ---
 name: serve
-description: Write and create issues or guarded pull requests for approved nutrients with trace and deduplication markers, using crab serve. Use when serving a menu, writing the why and how of a nutrient, explaining the trace footer, or checking why a nutrient was skipped.
+description: Write and create issues or guarded pull requests for approved nutrients with trace and deduplication markers, using crab serve. Use when serving a menu, writing the why and how of a nutrient, explaining the trace footer, or checking why a nutrient was skipped. Do not use for ordinary issue or pull-request authoring unrelated to a Hungry Crab nutrient, menu, or implementation receipt.
 ---
 
 # Serve nutrients
