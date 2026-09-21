@@ -20,6 +20,11 @@ PREY = "/tmp/crab-prey/github/acme/widget/repo"
     "command",
     [
         f"{PREY}/bin/tool --version",
+        f"{PREY}/bin/cat {PREY}/README.md",
+        f'"$CRAB_CACHE_DIR/github/acme/widget/repo/bin/cat" {PREY}/README.md',
+        f"PATH={PREY}/bin:$PATH cat {PREY}/README.md",
+        f"LD_PRELOAD={PREY}/evil.so cat {PREY}/README.md",
+        f"LC_ALL=C cat {PREY}/README.md",
         f"cd {PREY} && ./install.sh",
         f"python {PREY}/setup.py",
         'python "$CRAB_CACHE_DIR/github/acme/widget/repo/setup.py"',
@@ -65,6 +70,10 @@ def test_cache_touching_execution_or_unknown_shapes_fail_closed(command: str) ->
 )
 def test_small_audited_read_only_shapes_remain_allowed(command: str) -> None:
     assert guard_reason(command, root=CACHE) is None
+
+
+def test_bare_reader_remains_allowed_when_cwd_is_inside_cache() -> None:
+    assert guard_reason("cat README.md", root=CACHE, cwd=Path(PREY)) is None
 
 
 def test_guard_has_no_opinion_without_a_cache_reference() -> None:
