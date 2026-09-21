@@ -154,9 +154,9 @@ def _simple_read_only(tokens: list[str]) -> bool:
         return _git_is_read_only(tokens[index:])
     if command not in _READ_ONLY_COMMANDS:
         return False
-    if command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args):
-        return False
-    return True
+    return not (
+        command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args)
+    )
 
 
 def guard_reason(
