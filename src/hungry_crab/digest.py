@@ -261,8 +261,7 @@ def run_miners(
         if miner.md_file and result.doc is not None:
             pages = result.doc.render_pages(ctx.md_budget, miner.md_file)
             page_names = [
-                _markdown_page_name(miner.md_file, index)
-                for index in range(1, len(pages) + 1)
+                _markdown_page_name(miner.md_file, index) for index in range(1, len(pages) + 1)
             ]
             priorities: dict[str, int] = {}
             for page_name, page in zip(page_names, pages, strict=True):
