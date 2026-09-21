@@ -358,8 +358,7 @@ def build_manifest(
     warnings = [f"{r['name']}: {w}" for r in records for w in r["warnings"]]
     if options.budget_policy == "warn" and budget_result.over_by_tokens:
         warnings.append(
-            "digest: markdown budget exceeded by "
-            f"{budget_result.over_by_tokens} estimated tokens"
+            f"digest: markdown budget exceeded by {budget_result.over_by_tokens} estimated tokens"
         )
     if budget_result.dropped_pages:
         warnings.append(
