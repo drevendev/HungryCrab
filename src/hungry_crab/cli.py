@@ -313,6 +313,10 @@ def print_digest_summary(result: DigestResult) -> None:
 def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     target = resolve_target(args.target)
     maw_license = _resolve_maw_license(args.maw, args.maw_license)
+    budget_root = args.maw if args.maw is not None else target.path
+    budget_policy = (
+        MawConfig.load(_maw_dir(budget_root)).budget.policy if budget_root is not None else "warn"
+    )
     miners = [m.strip() for m in args.miners.split(",") if m.strip()] if args.miners else None
     options = DigestOptions(
         depth=args.depth,
@@ -321,6 +325,7 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         miners=miners,
         maw_license=maw_license,
         md_budget=args.md_budget,
+        budget_policy=budget_policy,
         cache_root=args.cache_dir,
         catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
     )
