@@ -1,8 +1,9 @@
-"""Aggregate Markdown budget policy for digest page families.
+"""Aggregate Markdown budget policy and current-run digest artifact reconciliation.
 
 Per-file paging is lossless. This module decides what the whole digest does when the
 sum of those pages exceeds its aggregate reading budget: warn, enforce, or ignore the
-ceiling. Enforcement removes complete pages only and records every removal.
+ceiling. Before budgeting, it also removes digest artifacts that no current-run producer
+emitted, so selective and failed reruns cannot leave stale evidence behind.
 """
 
 from __future__ import annotations
@@ -117,6 +118,25 @@ def _forget_page(records: list[dict[str, Any]], name: str) -> None:
             priorities.pop(name, None)
 
 
+def _reconcile_current_outputs(
+    records: list[dict[str, Any]], out_dir: Path, exclude_names: set[str]
+) -> None:
+    """Remove derived files no producer emitted during this recomputation.
+
+    A digest directory is reused for the same commit, so selective reruns and producer
+    failures can otherwise leave a previous run's files on disk. Those files are not current
+    evidence. ``manifest.json`` is replaced after reconciliation, while meal-owned files are
+    explicitly outside this lifecycle and arrive through ``exclude_names``.
+    """
+    current = {
+        str(name) for record in records for name in record.get("files", []) if isinstance(name, str)
+    }
+    protected = {"manifest.json", *exclude_names}
+    for path in out_dir.iterdir():
+        if path.is_file() and path.name not in current and path.name not in protected:
+            path.unlink()
+
+
 def apply_markdown_policy(
     records: list[dict[str, Any]],
     out_dir: Path,
@@ -125,7 +145,7 @@ def apply_markdown_policy(
     policy: str,
     exclude_names: set[str] | None = None,
 ) -> BudgetResult:
-    """Apply a whole-digest Markdown policy after lossless page production.
+    """Reconcile current outputs, then apply the whole-digest Markdown policy.
 
     Page priority is explicit producer metadata. Higher numbers are less important and
     are removed first; filename is only a deterministic tie-break between equal-priority
@@ -133,6 +153,7 @@ def apply_markdown_policy(
     never points at a page that enforcement removed.
     """
     excluded = exclude_names or set()
+    _reconcile_current_outputs(records, out_dir, excluded)
     before = _markdown_tokens(out_dir, excluded)
     over_by = max(0, before - total_budget) if policy != "off" else 0
     if policy != "enforce" or before <= total_budget:
