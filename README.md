@@ -205,7 +205,7 @@ attribution_file: THIRD_PARTY_NOTICES.md
                            # `crab attribution`, which arrives with 0.3; until then nothing
                            # reads this setting.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
-scoring: {}                # overrides for data/scoring.yml sections; `crab tune` can suggest them
+scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 ```
 
 ## What the miners extract
