@@ -19,9 +19,7 @@ from .cache import cache_root
 _ENV_CACHE_REF = re.compile(
     r"(?:\$\{?CRAB_CACHE_DIR\}?|%CRAB_CACHE_DIR%|\$env:CRAB_CACHE_DIR)", re.IGNORECASE
 )
-_DEFAULT_CACHE_REF = re.compile(
-    r"(?:^|[/\\])\.cache[/\\]hungry-crab(?:[/\\]|$)", re.IGNORECASE
-)
+_DEFAULT_CACHE_REF = re.compile(r"(?:^|[/\\])\.cache[/\\]hungry-crab(?:[/\\]|$)", re.IGNORECASE)
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _EXECUTION_SUBSTITUTION = re.compile(r"\$\(|[<>]\(|`")
 _READ_ONLY_COMMANDS = frozenset({"cat", "grep", "head", "ls", "rg", "stat", "tail", "wc"})
@@ -91,9 +89,7 @@ def _mentions_cache(command: str, *, root: Path, cwd: Path) -> bool:
         return True
 
     tokens = _shell_tokens(command)
-    return bool(
-        tokens and any(_token_mentions_root(token, root=root, cwd=cwd) for token in tokens)
-    )
+    return bool(tokens and any(_token_mentions_root(token, root=root, cwd=cwd) for token in tokens))
 
 
 def _program(token: str) -> str:
@@ -136,8 +132,7 @@ def _git_is_read_only(tokens: list[str]) -> bool:
 
     args = tokens[index + 1 :]
     return not any(
-        arg == "-c" or any(arg.startswith(prefix) for prefix in _GIT_DANGEROUS_ARGS)
-        for arg in args
+        arg == "-c" or any(arg.startswith(prefix) for prefix in _GIT_DANGEROUS_ARGS) for arg in args
     )
 
 
@@ -154,9 +149,7 @@ def _simple_read_only(tokens: list[str]) -> bool:
         return _git_is_read_only(tokens[index:])
     if command not in _READ_ONLY_COMMANDS:
         return False
-    return not (
-        command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args)
-    )
+    return not (command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args))
 
 
 def guard_reason(
