@@ -83,6 +83,29 @@ gem "rack"
     assert packages["rack"]["kind"] == "runtime"
 
 
+def test_gemfile_nested_end_block_preserves_enclosing_dev_scope(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "Gemfile",
+        """group :development do
+  if ENV["WITH_EXTRA"]
+    gem "debug"
+  end
+
+  gem "rspec"
+end
+
+gem "rack"
+""",
+    )
+
+    result = _deps(tmp_path)
+    packages = {row["name"]: row for row in result.data["packages"]}
+    assert packages["debug"]["kind"] == "dev"
+    assert packages["rspec"]["kind"] == "dev"
+    assert packages["rack"]["kind"] == "runtime"
+
+
 def test_gemspec_only_library_is_ruby_and_keeps_nested_tooling_auxiliary(tmp_path: Path) -> None:
     _write(
         tmp_path,
