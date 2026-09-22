@@ -45,7 +45,7 @@ authority when a document disagrees with it. The decisions log is at the end of
 uv sync
 uv run pytest
 uv run ruff check . && uv run ruff format . && uv run mypy
-uv run crab digest . --out /tmp/self-digest --maw-license MIT
+uv run crab digest . --maw . --out /tmp/self-digest --maw-license MIT
 ```
 
 ## Rules

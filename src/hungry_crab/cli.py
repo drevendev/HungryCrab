@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, updater
-from .cache import Slug, cache_root, prey_paths, resolve_target
+from .cache import Slug, Target, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, failed_miners, run_digest
@@ -107,7 +107,8 @@ def build_parser() -> argparse.ArgumentParser:
         "digest", help="run the miners; write digest/ for owner/repo or a local path"
     )
     p_digest.add_argument(
-        "target", help="owner/repo, a GitHub URL, or a local directory (e.g. . for the maw)"
+        "target",
+        help="owner/repo, a GitHub URL, or a local directory (pass --maw . to digest the maw)",
     )
     p_digest.add_argument("--depth", choices=("normal", "deep"), default="normal")
     p_digest.add_argument(
@@ -121,7 +122,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_digest.add_argument("--maw-license", default=None, help="maw license SPDX id for the verdict")
     p_digest.add_argument(
-        "--maw", type=Path, default=None, help="local maw repository; detect its license"
+        "--maw",
+        type=Path,
+        default=None,
+        help=(
+            "local maw repository: detect its license and read its .crab.yml budget policy; "
+            "when the target is the maw itself, its ignore list applies too"
+        ),
     )
     p_digest.add_argument("--md-budget", type=int, default=None, help="token cap per Markdown file")
     p_digest.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
@@ -310,12 +317,24 @@ def print_digest_summary(result: DigestResult) -> None:
         print(f"  warning: {warning}")
 
 
+def _maw_ignore_for(target: Target, config: MawConfig | None) -> list[str]:
+    """The maw's ``ignore`` list, and only when the target is the maw itself.
+
+    ``ignore`` says what is not the maw's own code, so it applies to the maw's digest and to
+    nothing else: a foreign local directory keeps its whole tree, and its own ``.crab.yml`` is
+    prey data that nobody reads (#128).
+    """
+    if config is None or target.path is None:
+        return []
+    return list(config.ignore) if target.path.resolve() == config.root else []
+
+
 def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     target = resolve_target(args.target)
     maw_license = _resolve_maw_license(args.maw, args.maw_license)
-    budget_policy = (
-        MawConfig.load(_maw_dir(args.maw)).budget.policy if args.maw is not None else "warn"
-    )
+    # `.crab.yml` is control-plane configuration and comes from an explicit --maw only; a local
+    # target is prey, whatever files it carries.
+    config = MawConfig.load(_maw_dir(args.maw)) if args.maw is not None else None
     miners = [m.strip() for m in args.miners.split(",") if m.strip()] if args.miners else None
     options = DigestOptions(
         depth=args.depth,
@@ -324,9 +343,10 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         miners=miners,
         maw_license=maw_license,
         md_budget=args.md_budget,
-        budget_policy=budget_policy,
+        budget_policy=config.budget.policy if config is not None else "warn",
         cache_root=args.cache_dir,
         catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
+        ignore=_maw_ignore_for(target, config),
     )
     result = run_digest(target, options, log=log)
     if args.json:

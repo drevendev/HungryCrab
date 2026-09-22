@@ -125,6 +125,16 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   and `manifest.json` all stop at that boundary: a stranger's `notes.md` is neither deleted,
   nor budgeted, nor listed as evidence
   ([#126](https://github.com/drevendev/HungryCrab/issues/126)).
+- **A local prey's `.crab.yml` no longer decides what the crab reads.** `crab digest <path>`
+  loaded the target's own `.crab.yml` for `ignore` whenever the caller passed none, so a
+  directory being eaten could hide any part of its tree from every miner, and a broken
+  maw-only setting in that file (`mode`, `hunger`, `budget.policy`, a YAML error) aborted the
+  digest before a miner ran — through `crab compare`, `crab menu` and `crab serve` on a local
+  prey as well. Configuration now comes from an explicit `--maw` only, and its `ignore` list
+  applies when the target is that maw: `crab digest . --maw .` is how the crab eats itself
+  (the README, `AGENTS.md` and the CI smoke test say so), `crab compare` is unchanged because
+  it always knew which side was the maw, and a foreign local directory keeps its whole tree
+  ([#128](https://github.com/drevendev/HungryCrab/issues/128)).
 - **Prey-cache shell guards now fail closed on executable provenance, not just command names.**
   A cache-touching command is denied when its executable path points into prey even if the file
   is named like an allowed reader, and leading environment assignments are rejected so `PATH`

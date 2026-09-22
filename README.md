@@ -150,7 +150,8 @@ below.
 - `license`: SPDX id for the maw, or auto-detect from `LICENSE` when omitted.
 - `mode`: `normal` or `strict`; `strict` is accepted today but intentionally not enforced until 0.3.
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
-- `ignore`: maw-side git-style paths excluded from its own digest.
+- `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
+  `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
 - `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` is accepted but PR serving arrives with 0.3.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
@@ -312,7 +313,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy
 ```
 
 ```bash
-uv run crab digest . --out digest-out --maw-license MIT   # the crab eats itself
+uv run crab digest . --maw . --out digest-out --maw-license MIT   # the crab eats itself
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md), the guide coding agents read.

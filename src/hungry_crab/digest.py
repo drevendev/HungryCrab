@@ -33,7 +33,6 @@ from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import read_text
-from .maw import MawConfig
 from .miners import MineContext, Miner, select_miners
 from .tokens import estimate_tokens
 from .typeutil import as_list
@@ -151,10 +150,9 @@ def prepare_context(
         if not root.is_dir():
             raise CrabError(f"{root} is not a directory")
         digests_dir = maw_paths(root, options.cache_root).digests
-        # A local target is usually the maw, and its own .crab.yml says what is not its code.
-        # Without this, a repository's test fixtures are digested as if they were the maw.
-        if not ignore:
-            ignore = MawConfig.load(root).ignore
+        # A local directory is prey like any other: its own `.crab.yml`, if it has one, is
+        # untrusted data and is never read here. The maw's `ignore` reaches the maw's own
+        # digest through `options.ignore`, from a caller that knows which directory is the maw.
 
     git: GitRunner | None = GitRunner(root) if GitRunner.available() else None
     if git is not None and not (git.is_repo() and git.has_commits()):
