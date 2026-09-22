@@ -20,7 +20,8 @@ from hungry_crab.digest import (
     run_digest,
     run_miners,
 )
-from hungry_crab.miners import MineContext, MinerResult
+from hungry_crab.errors import CrabError
+from hungry_crab.miners import MINER_NAMES, MineContext, MinerResult
 
 
 def _options(tmp_path: Path, *, md_budget: int | None = None) -> DigestOptions:
@@ -84,6 +85,36 @@ def test_gitignored_untracked_file_prevents_cache_reuse(npm_app: Path, tmp_path:
     ignored.write_text("omega\n", encoding="utf-8")
     changed = run_digest(Target(path=work), DigestOptions(**options.__dict__))
     assert not changed.cached, "ignored untracked prey can still change miner evidence"
+
+
+def test_a_selective_run_is_not_reused_as_a_complete_digest(npm_app: Path, tmp_path: Path) -> None:
+    """`--miners license` writes into the shared entry; the next full run must not trust it."""
+    work = copy_repo(npm_app, tmp_path / "work", with_git=True)
+    options = _options(tmp_path)
+    full = run_digest(Target(path=work), options)
+    assert not full.cached
+    assert {record["name"] for record in full.manifest["miners"]} == set(MINER_NAMES)
+
+    partial = run_digest(
+        Target(path=work), DigestOptions(**{**options.__dict__, "miners": ["license"]})
+    )
+    assert not partial.cached
+    assert {record["name"] for record in partial.manifest["miners"]} < set(MINER_NAMES)
+
+    again = run_digest(Target(path=work), DigestOptions(**options.__dict__))
+    assert not again.cached, "a selective run left a partial answer in the shared entry"
+    assert {record["name"] for record in again.manifest["miners"]} == set(MINER_NAMES)
+    assert run_digest(Target(path=work), DigestOptions(**options.__dict__)).cached
+
+
+def test_a_markdown_budget_no_page_header_fits_in_is_an_error_not_a_traceback(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    with pytest.raises(CrabError, match="must be positive"):
+        run_digest(Target(path=npm_app), _options(tmp_path, md_budget=0))
+    with pytest.raises(CrabError, match="cannot page") as excinfo:
+        run_digest(Target(path=npm_app), _options(tmp_path, md_budget=5))
+    assert excinfo.value.hint is not None and "--md-budget" in excinfo.value.hint
 
 
 def test_unknown_worktree_fingerprint_never_becomes_identity(

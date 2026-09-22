@@ -117,6 +117,17 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A selective run is not a complete digest, and enforcement drops pages from the tail.**
+  `crab digest <prey> --miners license` writes into the same `digests/<sha>` entry as a full
+  run and cleans the other miners' files out of it; the next `crab compare` then reused that
+  entry as complete evidence — no failed miner, no integrity error, an empty stack and a menu
+  with nothing on it until someone passed `--force`. Reuse now requires a record for every
+  registered miner. In the same area: under `enforce`, pages of equal priority were dropped by
+  file name, and `docs.md` sorts after `docs.3.md`, so the page a reader opens first went
+  before its continuations; the last page of a family goes first now. And a `--md-budget` too
+  small for a page header — `0`, or `20` — raised a `ValueError` after the miners had run,
+  with JSON files written and no manifest; it is a usage error with a hint before anything
+  runs, or a named miner's error if a header still does not fit.
 - **The prey guard reads a line break as the command separator it is.** `shlex` reads a
   newline as whitespace, so `cat <cache>/README.md` on one line and `python <cache>/setup.py`
   on the next were judged as one long `cat` and allowed; a cache-touching command with a line

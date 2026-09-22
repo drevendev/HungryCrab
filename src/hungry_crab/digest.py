@@ -33,7 +33,7 @@ from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import read_text
-from .miners import MineContext, Miner, select_miners
+from .miners import MINER_NAMES, MineContext, Miner, select_miners
 from .tokens import estimate_tokens
 from .typeutil import as_list
 
@@ -246,7 +246,15 @@ def run_miners(
             _write_json(out_dir / miner.json_file, result.data)
             record["files"].append(miner.json_file)
         if miner.md_file and result.doc is not None:
-            pages = result.doc.render_pages(ctx.md_budget, miner.md_file)
+            try:
+                pages = result.doc.render_pages(ctx.md_budget, miner.md_file)
+            except ValueError as exc:
+                # The pager refuses a budget its own page header does not fit in. That is a
+                # usage error about `--md-budget`, not a miner failure and not a traceback.
+                raise CrabError(
+                    f"{miner.name}: cannot page {miner.md_file} within {ctx.md_budget} tokens",
+                    hint="raise --md-budget; a page header alone needs more than that",
+                ) from exc
             page_names = [page_name(miner.md_file, index) for index in range(1, len(pages) + 1)]
             priorities: dict[str, int] = {}
             for name, page in zip(page_names, pages, strict=True):
@@ -533,8 +541,9 @@ def _is_reusable(
 
     The working tree and rendering budget are inputs too. Unknown/non-Git worktrees are not a
     cache identity: two failed probes, or two reads of the same directory path, do not prove the
-    bytes are equal. Every requested miner must have completed; blocked and failed producers are
-    both partial evidence, while intentionally unrequested miners are absent. Finally, a healthy
+    bytes are equal. Every registered miner must have run and completed: a selective
+    ``--miners`` run writes into the same directory as a full one and is not an answer to the
+    full question, and blocked and failed producers are partial evidence. Finally, a healthy
     producer's declared artifacts must still match the manifest that vouched for them.
     """
     prey = cached.get("prey")
@@ -555,9 +564,20 @@ def _is_reusable(
         and budget.get("per_markdown_file") == ctx.md_budget
         and budget.get("markdown_total") == options.total_budget
         and budget.get("policy") == options.budget_policy
+        and _covers_every_miner(cached)
         and not incomplete_miners(cached)
         and not digest_integrity_errors(out_dir, cached)
     )
+
+
+def _covers_every_miner(manifest: dict[str, Any]) -> bool:
+    """Whether the manifest has a record for every registered miner."""
+    present = {
+        str(record.get("name"))
+        for record in as_list(manifest.get("miners"))
+        if isinstance(record, dict)
+    }
+    return present >= set(MINER_NAMES)
 
 
 def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
@@ -579,6 +599,10 @@ def run_digest(
         )
     if opts.total_budget < 0:
         raise CrabError("markdown total budget must not be negative")
+    if opts.md_budget is not None and opts.md_budget <= 0:
+        raise CrabError(
+            "markdown budget per file must be positive", hint="--md-budget takes a token count"
+        )
     ctx, out_dir = prepare_context(target, opts, log=log)
     manifest_path = out_dir / MANIFEST_NAME
     if not opts.force:

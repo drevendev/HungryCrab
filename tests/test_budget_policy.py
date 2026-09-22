@@ -45,6 +45,36 @@ def test_enforce_drops_low_priority_pages_and_repairs_next_link(tmp_path: Path) 
     assert result.after_tokens <= total - estimate_tokens(low)
 
 
+def test_enforce_drops_continuation_pages_before_the_first_page(tmp_path: Path) -> None:
+    """At equal priority `docs.md` sorted after `docs.3.md`, so page 1 went first."""
+    out = tmp_path / "digest"
+    out.mkdir()
+    pages = {
+        "docs.md": "# Docs\n\nhead\n\n> Next: `docs.2.md`\n",
+        "docs.2.md": "# Docs\n\nmiddle\n\n> Next: `docs.3.md`\n",
+        "docs.3.md": "# Docs\n\ntail " + "x" * 50 + "\n",
+    }
+    for name, text in pages.items():
+        (out / name).write_text(text, encoding="utf-8", newline="\n")
+    records = [
+        {
+            "name": "docs",
+            "files": list(pages),
+            "page_priorities": dict.fromkeys(pages, 5),
+        }
+    ]
+    total = sum(estimate_tokens(text) for text in pages.values())
+    result = apply_markdown_policy(
+        records, out, total_budget=total - estimate_tokens(pages["docs.3.md"]), policy="enforce"
+    )
+
+    assert [page["name"] for page in result.dropped_pages] == ["docs.3.md"]
+    assert (out / "docs.md").is_file() and (out / "docs.2.md").is_file()
+    assert "> Next: `docs.2.md`" in (out / "docs.md").read_text(encoding="utf-8")
+    assert "> Next:" not in (out / "docs.2.md").read_text(encoding="utf-8")
+    assert records[0]["files"] == ["docs.md", "docs.2.md"]
+
+
 def test_warn_and_off_keep_complete_digest(tmp_path: Path) -> None:
     out = tmp_path / "digest"
     out.mkdir()

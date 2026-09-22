@@ -79,6 +79,20 @@ def artifact_owner(name: str) -> str | None:
     return None
 
 
+def _page_index(name: str) -> int:
+    """The page's number within its family: continuation pages go before the first page.
+
+    At equal priority the tie-break used to be the file name, and ``docs.md`` sorts after
+    ``docs.3.md``, so enforcement removed the page a reader opens first and left its
+    continuations orphaned.
+    """
+    for base_name in _MARKDOWN_OWNERS:
+        number = page_number(base_name, name)
+        if number is not None:
+            return number
+    return 1
+
+
 def is_digest_artifact(name: str) -> bool:
     """Whether ``name`` belongs to a digest: the manifest, or a registered miner's artifact."""
     return name == MANIFEST_NAME or artifact_owner(name) is not None
@@ -187,10 +201,10 @@ def apply_markdown_policy(
     """Reconcile current outputs, then apply the whole-digest Markdown policy.
 
     Page priority is explicit producer metadata. Higher numbers are less important and
-    are removed first; filename is only a deterministic tie-break between equal-priority
-    pages. After each removal the remaining pager chain is repaired so a surviving page
-    never points at a page that enforcement removed. Files the crab does not own are
-    invisible to both steps.
+    are removed first; at equal priority the last page of a family goes before its first,
+    and the file name is only the final deterministic tie-break. After each removal the
+    remaining pager chain is repaired so a surviving page never points at a page that
+    enforcement removed. Files the crab does not own are invisible to both steps.
     """
     _reconcile_current_outputs(records, out_dir)
     before = _markdown_tokens(out_dir)
@@ -204,7 +218,10 @@ def apply_markdown_policy(
         candidates = _markdown_paths(out_dir)
         if not candidates:
             break
-        victim = max(candidates, key=lambda path: (priorities.get(path.name, 5), path.name))
+        victim = max(
+            candidates,
+            key=lambda path: (priorities.get(path.name, 5), _page_index(path.name), path.name),
+        )
         text = read_text(victim, limit=50_000_000)
         dropped.append(
             {
