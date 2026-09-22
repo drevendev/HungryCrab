@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from conftest import FIXED_NOW
 from helpers import copy_repo, read_json, write_tree
 
 from hungry_crab.cache import Target
+from hungry_crab.cli import main
 from hungry_crab.compare import compare_for_maw
 from hungry_crab.digest import DigestOptions, run_digest
 from hungry_crab.fs import is_ignored
@@ -64,7 +66,8 @@ def test_a_tree_under_an_unconventional_name_still_needs_ignore(
     assert traits["has_e2e_tests"] is True
 
 
-def test_ignore_keeps_the_fixtures_out_of_the_digest(npm_app: Path, tmp_path: Path) -> None:
+def test_ignore_keeps_the_fixtures_out_of_the_maw_digest(npm_app: Path, tmp_path: Path) -> None:
+    """`crab digest <maw> --maw <maw>`: the maw's own `.crab.yml` governs the maw's digest."""
     maw = tmp_path / "maw"
     write_tree(
         maw,
@@ -75,21 +78,44 @@ def test_ignore_keeps_the_fixtures_out_of_the_digest(npm_app: Path, tmp_path: Pa
         },
     )
     copy_repo(npm_app, maw / "tests" / "fixtures" / "npm-app")
-    result = run_digest(Target(path=maw), DigestOptions(out=tmp_path / "d2", now=FIXED_NOW))
-    inventory = read_json(result, "inventory.json")
-    traits = read_json(result, "traits.json")["traits"]
+    out = tmp_path / "d2"
+    code = main(["-q", "digest", str(maw), "--maw", str(maw), "--out", str(out)])
+    assert code == 0
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    inventory = json.loads((out / "inventory.json").read_text(encoding="utf-8"))
+    traits = json.loads((out / "traits.json").read_text(encoding="utf-8"))["traits"]
     assert inventory["ignored"]["patterns"] == ["tests/fixtures/**"]
     assert inventory["ignored"]["files"] > 20
     assert traits["ecosystems"] == ["python"], "the npm fixture is not this maw's stack"
     assert traits["linters"] == [] and traits["formatters"] == []
     assert traits["has_e2e_tests"] is False
     assert traits["test_frameworks"] == []
-    assert result.manifest["ignore"] == ["tests/fixtures/**"]
+    assert manifest["ignore"] == ["tests/fixtures/**"]
     top = {row["path"] for row in inventory["top_level"]}
     assert "tests" not in top
 
 
-def test_explicit_ignore_option_wins_over_the_config(npm_app: Path, tmp_path: Path) -> None:
+def test_a_local_target_without_maw_is_prey_and_its_config_is_data(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    """The same tree digested as prey keeps its fixtures: nobody asked for its `.crab.yml`."""
+    prey = tmp_path / "prey"
+    write_tree(
+        prey,
+        {
+            "pyproject.toml": '[project]\nname = "thing"\nversion = "0.1.0"\n',
+            "src/thing/__init__.py": "x = 1\n",
+            CONFIG_FILE: "ignore:\n  - tests/fixtures/**\n",
+        },
+    )
+    copy_repo(npm_app, prey / "tests" / "fixtures" / "npm-app")
+    result = run_digest(Target(path=prey), DigestOptions(out=tmp_path / "d4", now=FIXED_NOW))
+    assert result.manifest["ignore"] == []
+    assert read_json(result, "inventory.json")["ignored"]["patterns"] == []
+    assert "npm" in read_json(result, "traits.json")["traits"]["ecosystems"]
+
+
+def test_explicit_ignore_option_applies_to_a_local_target(npm_app: Path, tmp_path: Path) -> None:
     maw = tmp_path / "maw"
     write_tree(maw, {"pyproject.toml": '[project]\nname = "t"\nversion = "0"\n'})
     copy_repo(npm_app, maw / "vendored")
