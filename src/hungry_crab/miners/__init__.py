@@ -7,13 +7,12 @@ from .architecture import ArchitectureMiner
 from .base import FileInfo, MineContext, Miner, MinerResult
 from .branches import BranchesMiner
 from .ci import CiMiner
-from .deps import DepsMiner
 from .docs import DocsMiner
 from .history import HistoryMiner
 from .inventory import InventoryMiner
 from .issues import IssuesMiner
 from .license import LicenseMiner
-from .testing import TestingMiner
+from .scope import ProjectDepsMiner, ProjectTestingMiner
 from .traits import TraitsMiner
 
 __all__ = [
@@ -29,9 +28,9 @@ __all__ = [
 ALL_MINERS: tuple[Miner, ...] = (
     InventoryMiner(),
     LicenseMiner(),
-    DepsMiner(),
+    ProjectDepsMiner(),
     CiMiner(),
-    TestingMiner(),
+    ProjectTestingMiner(),
     DocsMiner(),
     AiConfigMiner(),
     HistoryMiner(),
