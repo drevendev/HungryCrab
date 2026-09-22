@@ -30,6 +30,11 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
    digests the prey if needed, digests the maw, applies the hunger and scoring from
    `.crab.yml`, hides nutrients the ledger or existing issues already cover, and prints the path
    of the meal it wrote. It never executes anything inside the prey.
+   **Fail closed:** if `sniff` or `compare` fails or is interrupted, or if `compare` does not
+   produce a readable fresh meal and manifests for this prey+maw state, stop before judgement or
+   `serve`. Report which gate failed and the available error/evidence. Do not reuse an older meal
+   or digest or treat partial/blocked output as success; fix the blocker and rerun successfully
+   first.
 4. **Check the maw was read correctly.** Open `gap.md` and look at the maw column: the
    ecosystems, linters and test frameworks it lists must be the ones this repository really
    uses. A maw that vendors or fixtures foreign code reads as a foreign stack, and then every

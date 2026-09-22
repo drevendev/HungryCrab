@@ -110,6 +110,20 @@ def test_skill_protocol_mentions_every_cli_step() -> None:
     assert "untrusted" in text and "dry-run" in text
 
 
+def test_eat_skill_fails_closed_on_incomplete_evidence() -> None:
+    text = (ROOT / "skills" / "eat" / "SKILL.md").read_text(encoding="utf-8")
+    match = re.search(r"\*\*Fail closed:\*\*(.*?)(?=\n4\. \*\*)", text, re.DOTALL)
+    assert match, "eat must define a fail-closed gate before judgement"
+    gate = match.group(1).lower()
+    for concepts in (
+        ("sniff", "compare", "interrupted"),
+        ("fresh", "meal", "manifest"),
+        ("older meal", "partial", "blocked", "success"),
+        ("judgement", "serve"),
+    ):
+        assert all(concept in gate for concept in concepts), concepts
+
+
 def test_the_packaging_version_and_the_importable_one_agree() -> None:
     """`pyproject.toml` was the one version file nothing checked.
 
