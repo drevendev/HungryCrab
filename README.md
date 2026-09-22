@@ -40,8 +40,10 @@ it may.
 
 **Status: [0.2.0 "Menu"](https://github.com/drevendev/HungryCrab/releases/latest) is the latest
 release; `master` is ahead of it by the 0.2.1 and 0.2.2 milestones — self-feeding, the licence
-resolutions and the menu benchmark — and is where the install below points.** Pull-request
-serving and the clean-room protocol arrive with 0.3 (see the
+resolutions and the menu benchmark — and by most of 0.3: the budget policy with paged
+documents, the two safety hooks, the clean-room protocol and pull-request serving for
+REIMPLEMENT nutrients. It is where the install below points.** COPY pull requests wait for
+`crab attribution`, and the wiki miner and strict mode are still to come (see the
 [roadmap](docs/design/03-roadmap.md)).
 
 ## The metaphor, in five words
@@ -70,7 +72,8 @@ while it is pre-1.0. If you want a fixed version instead, append `@v0.2.0` to th
 the only tag so far, and it predates the licence resolutions and the menu benchmark — and take
 care of updates yourself.
 
-**Claude Code**, which adds `/crab:eat`, `/crab:sniff` and `/crab:menu`:
+**Claude Code**, which adds the `/crab:eat`, `/crab:license`, `/crab:serve` and `/crab:cleanroom`
+skills, the `/crab:sniff` and `/crab:menu` commands, three subagents and two `PreToolUse` hooks:
 
 ```bash
 claude plugin marketplace add drevendev/HungryCrab
@@ -92,7 +95,9 @@ codex plugin add crab@hungry-crab
 
 Restart the agent session afterwards so it picks the plugin up. Cursor and anything else that
 reads the open `SKILL.md` format can use the `skills/` folder of this repository directly; the
-only hard requirement is `crab` on `PATH`.
+only hard requirement is `crab` on `PATH` — and, for the two safety hooks to do anything,
+`crab-prey-guard` and `crab-cleanroom-guard` next to it, which `uv tool install` provides and a
+plugin-only install does not ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
 
 To see what is out of date across the CLI and every agent you have, ask the crab:
 
@@ -148,14 +153,14 @@ or `--shallow` (default branch, tree only).
 below.
 
 - `license`: SPDX id for the maw, or auto-detect from `LICENSE` when omitted.
-- `mode`: `normal` or `strict`; `strict` is accepted today but intentionally not enforced until 0.3.
+- `mode`: `normal` or `strict`; `strict` is accepted today and not enforced yet ([#74](https://github.com/drevendev/HungryCrab/issues/74)).
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
 - `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
   `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
-- `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` is accepted but PR serving arrives with 0.3.
+- `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` gates `crab serve --as pr-branch`, which publishes REIMPLEMENT nutrients from clean-room receipts, while COPY pull requests wait for `crab attribution` ([#70](https://github.com/drevendev/HungryCrab/issues/70)).
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
-- `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution` when it arrives with 0.3.
+- `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution`, which is not built yet ([#70](https://github.com/drevendev/HungryCrab/issues/70)).
 - `ledger`: store meal history in the repository, cache, or nowhere.
 - `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
 
@@ -165,8 +170,8 @@ This is the current commented template written by `crab init`:
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
 mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
-                           # code and copies only configs and templates. It arrives with
-                           # 0.3; today the setting is accepted and ignored.
+                           # code and copies only configs and templates. Not enforced
+                           # yet: today the setting is accepted and ignored.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
@@ -188,7 +193,7 @@ budget:
   policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
-  prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
+  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT nutrients)
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []
@@ -203,7 +208,7 @@ trust:                     # a license is a promise to strangers; these are not 
                            # about the license but a decision to stop asking.
 attribution_file: THIRD_PARTY_NOTICES.md
                            # where COPY records its sources. The file is written by
-                           # `crab attribution`, which arrives with 0.3; until then nothing
+                           # `crab attribution`, which is not built yet; until then nothing
                            # reads this setting.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
@@ -230,8 +235,11 @@ progressively:
 | `traits` | a flat matrix of ~120 comparable traits derived from all of the above | `traits.json` |
 
 `manifest.json` is the entry point: every file with a token estimate, the miners that ran, a
-small summary and the suggested reading order. Markdown stays within a budget (3,500 tokens per
-file by default, 30,000 for the whole digest); JSON keeps the full data for scripts.
+small summary and the suggested reading order. Markdown is paged at 3,500 tokens per page by
+default (`history.md`, `history.2.md`, and so on; nothing is dropped), and the whole digest has
+a policy for its 30,000-token reading budget — `warn` by default, `enforce` for a budgeted
+loop, `off` for a human, set under `budget` in `.crab.yml`; JSON keeps the full data for
+scripts.
 
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
 model is spent only on judgment.**
@@ -283,6 +291,14 @@ commenters. This is a compliance aid, not legal advice.
   are flagged in the JSON.
 - **Least privilege.** `sniff` and `catch` need read access to the GitHub API; `serve` uses your
   own authenticated `gh` and creates nothing until you ask it to.
+- **Two `PreToolUse` hooks make the first rule mechanical in Claude Code.** `crab-prey-guard`
+  refuses a Bash command that touches the prey cache unless it is one of a few audited
+  read-only shapes, and `crab-cleanroom-guard` keeps the clean-room implementer out of the
+  cache altogether. They guard the Bash tool only, need their console scripts on `PATH`, and
+  are inert — not failing, inert — when those are missing; Codex asks you to trust plugin hooks
+  before it runs them. Their wiring has not yet been observed in a live session
+  ([#83](https://github.com/drevendev/HungryCrab/issues/83),
+  [#141](https://github.com/drevendev/HungryCrab/issues/141)).
 
 ## Benchmarks
 

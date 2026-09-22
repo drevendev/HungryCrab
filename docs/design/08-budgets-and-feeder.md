@@ -42,6 +42,10 @@ things.**
 | `enforce` | the Evolving Crab, and any budgeted loop | Pages are dropped by priority until the total fits, and the manifest records exactly what was dropped |
 | `off` | a human reading a report | No ceiling |
 
+The policy is `budget.policy` in the maw's `.crab.yml`. `crab compare` applies it to both
+digests; `crab digest` applies it only when `--maw` names the maw, because a prey's own
+`.crab.yml` is data, never configuration.
+
 The Evolving Crab counts tokens because it pays for them out of a fixed budget per cycle, and a
 phase that does not fit is a phase that fails. An interactive agent has no such constraint: it has
 a context window far larger than 30 000 tokens, a human next to it, and the ability to read one

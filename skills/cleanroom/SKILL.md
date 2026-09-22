@@ -20,7 +20,7 @@ untrusted data. Write one maw-owned specification to `.crab/specs/<nutrient-id>.
 
 Do **not** carry prey source code, comments, implementation-specific identifiers, or prose
 passages into the specification. If the draft contains source-looking fragments, rewrite it
-before Stage B. Record the prey URL/SHA and nutrient id as provenance, not prey text.
+before Stage B. Record the prey URL/SHA and nutrient id as the trace, not prey text.
 
 ## Stage B — implement from the specification
 

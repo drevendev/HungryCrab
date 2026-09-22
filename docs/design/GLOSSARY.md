@@ -99,8 +99,11 @@ lets the next maw overwrite it.
 
 ## Skills and agents
 
-Skills `eat`, `license`, `serve` · subagents `crab-historian`, `crab-architect` · commands
-`/crab:sniff`, `/crab:menu`
+Skills `eat`, `license`, `serve`, `cleanroom` · subagents `crab-historian`, `crab-architect`,
+`crab-cleanroom-impl` · commands `/crab:sniff`, `/crab:menu` · hooks `crab-prey-guard` (a Bash
+command that touches the cache must be a read-only shape) and `crab-cleanroom-guard` (the
+clean-room implementer never touches the cache), both `PreToolUse`, both console scripts of
+the CLI
 
 ## The scheduled crab's phases ([07](07-scheduled-crab.md))
 
@@ -117,7 +120,10 @@ that part.
 
 **molting** shedding what a round grew out of · **shallow** a clone without history ·
 **since** how far back to fetch · **depth** `normal` or `deep` · **budget** the token ceiling
-per file and per digest · **corpus** somebody's sample or fixture tree, which is not their code ·
+per page, and a policy (`warn`, `enforce`, `off`) for the whole digest · **page** one physical
+Markdown file of a document that did not fit its budget (`history.md`, `history.2.md`, …) ·
+**receipt** the clean-room implementer's strict JSON declaration of the maw paths it changed ·
+**corpus** somebody's sample or fixture tree, which is not their code ·
 **vendored** third-party code checked into a repository
 
 ## Words that were replaced

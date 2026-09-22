@@ -1,8 +1,9 @@
 """A small Markdown builder with deterministic, lossless paging support.
 
-Miners describe their findings as sections with a priority. ``MdDoc.render(max_tokens)`` keeps
-the legacy truncating behaviour until digest writers migrate; ``MdDoc.render_pages`` is the
-lossless path: it splits a document into bounded Markdown pages without mutating the source doc.
+Miners describe their findings as sections with a priority. ``MdDoc.render_pages`` is the
+lossless path every digest file takes: it splits a document into bounded Markdown pages without
+mutating the source doc. ``MdDoc.render(max_tokens)`` is the older truncating path, which the
+meal files (``menu.md``, ``gap.md``) still use (HungryCrab#140).
 """
 
 from __future__ import annotations
@@ -117,10 +118,10 @@ class MdDoc:
     def render_pages(self, max_tokens: int, filename: str) -> list[MdPage]:
         """Render deterministic pages without dropping source lines or mutating the document.
 
-        Every page repeats the document title/source for provenance. Non-final pages name the
-        next physical file. If one generated line is too large to fit on an otherwise empty page,
-        it is split into character chunks; this may wrap Markdown syntax, but no characters are
-        discarded.
+        Every page repeats the document title and source, so the trace travels with each page.
+        Non-final pages name the next physical file. If one generated line is too large to fit
+        on an otherwise empty page, it is split into character chunks; this may wrap Markdown
+        syntax, but no characters are discarded.
         """
         if max_tokens <= 0:
             raise ValueError("max_tokens must be positive")

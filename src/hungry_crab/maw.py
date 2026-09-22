@@ -40,8 +40,8 @@ DEFAULT_CONFIG_TEXT = """\
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
 mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
-                           # code and copies only configs and templates. It arrives with
-                           # 0.3; today the setting is accepted and ignored.
+                           # code and copies only configs and templates. Not enforced
+                           # yet: today the setting is accepted and ignored.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
@@ -63,7 +63,7 @@ budget:
   policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
-  prs: ask                 # auto | ask | off (pull requests arrive with 0.3)
+  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT nutrients)
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []
@@ -78,7 +78,7 @@ trust:                     # a license is a promise to strangers; these are not 
                            # about the license but a decision to stop asking.
 attribution_file: THIRD_PARTY_NOTICES.md
                            # where COPY records its sources. The file is written by
-                           # `crab attribution`, which arrives with 0.3; until then nothing
+                           # `crab attribution`, which is not built yet; until then nothing
                            # reads this setting.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them

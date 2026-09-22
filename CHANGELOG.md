@@ -14,6 +14,42 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **`crab serve --as pr-branch`: a REIMPLEMENT nutrient becomes a pull request, through a
+  transaction that scans before it touches anything.** The clean-room implementer returns a
+  strict JSON receipt naming the exact maw paths it changed; the crab freezes those bytes,
+  scans every file plus the title and body for secrets, reconciles marker-bearing pull
+  requests already on GitHub, and only then stages the frozen bytes in a detached temporary
+  worktree, pushes the deterministic `crab/<nutrient>-<hash>` branch and opens the pull
+  request with the same `<!-- crab:<id> -->` marker issues carry. `serve.prs` (`ask` requires
+  explicit `--ids`, `auto` allows `--top`) and `serve.max_prs_per_run` in `.crab.yml` govern
+  it, and a rerun after a crash reconciles instead of duplicating. COPY nutrients are refused
+  until `crab attribution` exists ([#69](https://github.com/drevendev/HungryCrab/issues/69),
+  [#77](https://github.com/drevendev/HungryCrab/issues/77), pull requests #101–#112).
+- **The clean-room protocol, and the hooks that make "never execute prey" mechanical.** The
+  `cleanroom` skill writes a code-free specification from the prey evidence; the
+  `crab-cleanroom-impl` subagent implements from it in a fresh context and returns the
+  receipt. Two `PreToolUse` hooks ship with the plugin: `crab-cleanroom-guard` refuses that
+  agent every tool call that names the cache, and `crab-prey-guard` refuses any Bash command
+  that touches the cache unless it is one of a few audited read-only shapes, judging the
+  executable's provenance rather than its name
+  ([#71](https://github.com/drevendev/HungryCrab/issues/71),
+  [#72](https://github.com/drevendev/HungryCrab/issues/72), #105, #119).
+- **Documents are paged, and the whole digest has a budget policy.** A Markdown file that
+  does not fit its per-file budget is split into `history.md`, `history.2.md`, … each naming
+  the next, and nothing is dropped. The 30,000-token total is a policy: `warn` (default)
+  records how far over the digest went, `enforce` drops whole pages by priority and records
+  which, `off` has no ceiling — set as `budget.policy` in `.crab.yml` and read from an
+  explicit `--maw` ([#75](https://github.com/drevendev/HungryCrab/issues/75), #120–#122,
+  [#129](https://github.com/drevendev/HungryCrab/issues/129)).
+- **A digest says what it did not read, and `compare` refuses partial evidence.**
+  `crab digest --fail-on-miner-error` exits non-zero when a miner failed, so the CI smoke
+  test can fail; a miner blocked by a failed dependency is recorded as `blocked` rather than
+  failed; the working tree is part of the cache key, so an edited checkout is never served
+  the digest of its last commit; and `crab compare` refuses a digest with a failed miner or a
+  damaged artifact unless `--allow-partial` says otherwise
+  ([#61](https://github.com/drevendev/HungryCrab/issues/61),
+  [#65](https://github.com/drevendev/HungryCrab/issues/65),
+  [#67](https://github.com/drevendev/HungryCrab/issues/67), #80, #113, #114).
 - **Codex now gets native Hungry Crab branding without borrowing Claude's manifest as its identity.**
   A portable Agent Plugins v1 `plugin.json` carries the repository and version, a Codex overlay
   supplies the red crab presentation and website, and `.agents/plugins/marketplace.json` installs
@@ -97,6 +133,7 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   and `meal.json`. `crab menu` takes `--maw`, because a menu belongs to one.
 - `applicability` is `uptake`, the term nutrition already uses for the fraction of a nutrient
   that is actually absorbed.
+- `menu.md` calls its `serve_as` column `Serve as`, as the glossary says, not `Artifact`.
 - `docs/design/GLOSSARY.md`: every term in one place, with the words that were replaced and why.
   The vocabulary lived in seven documents, which is how "host" survived as long as it did.
 
@@ -286,7 +323,9 @@ repository.
   (`pytest-cov` next to "Measure test coverage").
 - Issue lessons are capped at three clusters and three popular issues, sorted by size, and titled
   after their largest issue instead of a bare list of TF-IDF terms. They were thirteen of
-  twenty-four candidates, all scored the same.
+  twenty-four candidates, all scored the same. (Since the content-origin ceiling above, the
+  title is generic again, because an issue title is commenter prose; giving the card back its
+  structure without the prose is [#130](https://github.com/drevendev/HungryCrab/issues/130).)
 - `crab compare` writes the resolved license verdict into the prey digest's `manifest.json`,
   which said `null` while `menu.md` said `COPY`.
 - An issue for a nutrient the maw lacks entirely no longer reads "What this repository has: no".

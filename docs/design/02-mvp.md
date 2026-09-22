@@ -104,7 +104,7 @@ the category list with "what counts as valuable" criteria, examples of good card
 |---|---|---|
 | `crab-historian` | Read (digest), Bash (`git log` in the cache — read-only) | turns history/branch metrics into 3–7 lessons with evidence |
 | `crab-architect` | Read (maw and prey digests) | compares structure, proposes 1–3 architectural issues |
-| `crab-cleanroom-impl` | Read/Edit/Write/Bash **in the maw only**, `deny Read(~/.cache/hungry-crab/**)` | implements `REIMPLEMENT` nutrients from a specification |
+| `crab-cleanroom-impl` | Read/Grep/Glob/Write/Edit **in the maw only**, no shell; the `crab-cleanroom-guard` hook refuses any tool call that names the cache | implements `REIMPLEMENT` nutrients from a specification and returns a receipt of the paths it changed |
 
 `crab-license-auditor` comes after MVP (in MVP, ambiguous cases are simply flagged `HUMAN`).
 
@@ -136,7 +136,8 @@ that belonged elsewhere.
 
 ### 0.3 "Serve" — PRs and the clean room
 - `serve --as pr-branch`, PR template with trace, `THIRD_PARTY_NOTICES.md`, secret scan.
-- `crab-cleanroom` skill and subagent with the deny rule; the "never execute prey" hook.
+- the `cleanroom` skill and the `crab-cleanroom-impl` subagent, isolated by the
+  `crab-cleanroom-guard` hook; the "never execute prey" hook (`crab-prey-guard`).
 - Wiki miner, `strict` mode, `--shallow/--since` for giants.
 - README, docs, disclaimer. (`npx skills add` compatibility is 0.6 "Everywhere", with the MCP
   server and the PyPI package.)
