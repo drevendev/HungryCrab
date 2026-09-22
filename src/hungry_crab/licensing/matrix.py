@@ -191,6 +191,11 @@ _RANK: tuple[LicenseClass, ...] = (
 
 
 _OPERATORS = frozenset({"AND", "OR"})
+# Exceptions are semantic input, not ignorable suffixes. Keep the support list intentionally
+# bounded until HungryCrab has an explicit compatibility rule for each additional exception.
+_EXCEPTION_CANONICAL: dict[str, str] = {
+    "classpath-exception-2.0": "Classpath-exception-2.0",
+}
 # A capture-less ``re.split`` would drop the brackets, which is the whole point of parsing.
 _TOKEN_RE = re.compile(r"[()]|[^\s()]+")
 
@@ -199,13 +204,13 @@ _TOKEN_RE = re.compile(r"[()]|[^\s()]+")
 class _Expr:
     """A parsed SPDX expression: a leaf identifier, or an ``AND``/``OR`` of operands.
 
-    ``WITH`` is deliberately not an operator here. ``GPL-2.0-only WITH Classpath-exception-2.0``
-    stays one leaf, classified by its base identifier, which is what an exception can only make
-    more permissive and never less.
+    A leaf may carry one explicit SPDX ``WITH`` exception. Unknown exceptions stay parsed so the
+    expression can be explained, but they are never allowed to inherit the base license verdict.
     """
 
     op: str = ""
     ident: str = ""
+    exception: str = ""
     operands: tuple[_Expr, ...] = ()
 
 
@@ -233,7 +238,17 @@ def _parse_primary(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
         pos += 1
     if not words:
         return None
-    return _Expr(ident=" ".join(words)), pos
+    with_positions = [index for index, word in enumerate(words) if word.upper() == "WITH"]
+    if not with_positions:
+        return _Expr(ident=" ".join(words)), pos
+    if len(with_positions) != 1:
+        return None
+    with_pos = with_positions[0]
+    # LicenseExceptionId is one SPDX token. Requiring exactly one token after WITH also rejects
+    # missing exceptions and prevents a second free-form suffix from inheriting the base verdict.
+    if with_pos == 0 or with_pos != len(words) - 2:
+        return None
+    return _Expr(ident=" ".join(words[:with_pos]), exception=words[-1]), pos
 
 
 def _parse_and(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
@@ -285,10 +300,26 @@ def _normalize_id(text: str) -> str:
     return text
 
 
+def _normalize_exception(text: str) -> str:
+    return _EXCEPTION_CANONICAL.get(text.lower(), text)
+
+
+def _leaf_license_id(expr: _Expr) -> str | None:
+    """Return a leaf's base license only when every explicit exception is understood."""
+    if expr.op:
+        return None
+    if expr.exception and _normalize_exception(expr.exception) not in _EXCEPTION_CANONICAL.values():
+        return None
+    return _normalize_id(expr.ident)
+
+
 def _render(expr: _Expr, *, parent: str = "") -> str:
     """Canonical text, with the parentheses the meaning needs and no others."""
     if not expr.op:
-        return _normalize_id(expr.ident)
+        ident = _normalize_id(expr.ident)
+        if expr.exception:
+            return f"{ident} WITH {_normalize_exception(expr.exception)}"
+        return ident
     joined = f" {expr.op} ".join(_render(operand, parent=expr.op) for operand in expr.operands)
     # AND binds tighter than OR, so only an OR nested inside an AND has to keep its brackets.
     return f"({joined})" if expr.op == "OR" and parent == "AND" else joined
@@ -315,8 +346,11 @@ def normalize(spdx: str | None) -> str | None:
 def _evaluate(expr: _Expr) -> tuple[LicenseClass, str]:
     """(class, the identifier that decided it)."""
     if not expr.op:
-        ident = _normalize_id(expr.ident)
-        return _classify_id(ident), ident
+        rendered = _render(expr)
+        ident = _leaf_license_id(expr)
+        if ident is None:
+            return LicenseClass.UNKNOWN, rendered
+        return _classify_id(ident), rendered
     results = [_evaluate(operand) for operand in expr.operands]
     if expr.op == "OR":
         # A choice: the recipient may take the least restrictive branch.
@@ -353,7 +387,8 @@ def _fits_gpl_maw(expr: _Expr, maw_spdx: str | None) -> bool:
     whichever term happened to come first.
     """
     if not expr.op:
-        return _leaf_fits_gpl_maw(_normalize_id(expr.ident), maw_spdx)
+        ident = _leaf_license_id(expr)
+        return False if ident is None else _leaf_fits_gpl_maw(ident, maw_spdx)
     if expr.op == "OR":
         return any(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)
     return all(_fits_gpl_maw(operand, maw_spdx) for operand in expr.operands)
