@@ -65,6 +65,24 @@ BUNDLED WITH
     assert result.data["policies"]["ruby"]["pinned_ratio"] == 0.5
 
 
+def test_gemfile_group_end_with_comment_restores_runtime_scope(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "Gemfile",
+        """group :development do
+  gem "rspec"
+end # development
+
+gem "rack"
+""",
+    )
+
+    result = _deps(tmp_path)
+    packages = {row["name"]: row for row in result.data["packages"]}
+    assert packages["rspec"]["kind"] == "dev"
+    assert packages["rack"]["kind"] == "runtime"
+
+
 def test_gemspec_only_library_is_ruby_and_keeps_nested_tooling_auxiliary(tmp_path: Path) -> None:
     _write(
         tmp_path,

@@ -27,6 +27,7 @@ _GROUP_NAME_RE = re.compile(r":([A-Za-z_][A-Za-z0-9_]*)")
 _INLINE_DEV_GROUP_RE = re.compile(
     r"\bgroup(?:s)?\s*:\s*(?:\[[^\]]*)?:(?:development|test)\b", re.IGNORECASE
 )
+_END_BLOCK_RE = re.compile(r"^end\s*(?:#.*)?$")
 _GENERIC_BLOCK_RE = re.compile(r"\bdo(?:\s*\|[^|]*\|)?\s*(?:#.*)?$")
 _LOCK_SPEC_RE = re.compile(r"^\s{4}([A-Za-z0-9_.-]+)\s+\(([^)]+)\)\s*$")
 _LOCK_DEP_RE = re.compile(r"^\s{2}([A-Za-z0-9_.-]+)(?:\s+\([^)]+\))?[! ]*\s*$")
@@ -80,7 +81,7 @@ def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
         if group is not None:
             block_dev.append(any(block_dev) or _development_group(group.group("groups")))
             continue
-        if stripped == "end" and block_dev:
+        if _END_BLOCK_RE.fullmatch(stripped) is not None and block_dev:
             block_dev.pop()
             continue
         if _GENERIC_BLOCK_RE.search(raw):
