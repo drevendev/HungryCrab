@@ -19,11 +19,12 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, TextIO, cast
 
 from .cache import Slug
 from .compare import load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
+from .fetch.git import GitRunner
 from .ledger import Ledger
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
@@ -451,14 +452,53 @@ def select_cards(
     raise UsageError("nothing selected", hint="pass --ids id1,id2 or --top N")
 
 
+def decode_receipt_stream(stream: TextIO) -> str:
+    """The receipt stream as text, decoded as UTF-8 whatever the console believes.
+
+    On Windows ``sys.stdin`` decodes with the console code page, so a UTF-8 receipt whose
+    summary carries an em dash or an accented word arrives as mojibake with lone surrogates:
+    the scan and the reconciliation pass, the branch is pushed, and the encode before
+    ``gh pr create`` raises. The bytes are read raw and decoded once; a BOM is tolerated.
+    """
+    buffer = getattr(stream, "buffer", None)
+    if buffer is None:
+        return str(stream.read())
+    raw = bytes(buffer.read())
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise UsageError(
+            "clean-room receipt stream is not UTF-8",
+            hint="write the receipt as UTF-8 and pipe its bytes unchanged",
+        ) from exc
+
+
 def _read_receipt_stream() -> dict[str, str]:
     if sys.stdin.isatty():
         return load_cleanroom_receipts("")
     try:
-        payload = sys.stdin.read()
+        payload = decode_receipt_stream(sys.stdin)
     except OSError:
         payload = ""
     return load_cleanroom_receipts(payload)
+
+
+def _require_repository_root(maw_root: Path) -> None:
+    """Pull-request publication stages files relative to the repository root.
+
+    ``--maw packages/app`` reads ``src/x.py`` under ``packages/app`` and would push it as
+    ``src/x.py`` at the root: a plausible pull request that changes the wrong file. The maw of
+    a pull request must be the root of the repository the pull request goes into.
+    """
+    git = GitRunner(maw_root) if GitRunner.available() else None
+    toplevel = git.toplevel() if git is not None and git.is_repo() else None
+    if toplevel is None:
+        raise CrabError("the maw is not a git repository; cannot publish a pull request")
+    if toplevel.resolve() != maw_root.resolve():
+        raise CrabError(
+            "pull-request publication needs the maw to be the repository root",
+            hint=f"pass --maw {toplevel}",
+        )
 
 
 def _serve_pull_requests(
@@ -560,6 +600,7 @@ def serve(
                 "the maw has no GitHub origin remote, cannot create pull requests",
                 hint="add a remote or use --as dry-run",
             )
+        _require_repository_root(maw_root)
         pr_client = (
             cast(PullRequestClient, client)
             if client is not None
@@ -591,6 +632,13 @@ def serve(
         try:
             existing = client.list_marked(slug, label)
         except CrabError as exc:
+            if options.mode == "issue":
+                # The listing is the only deduplication on a repository without a ledger, or
+                # from a second machine. Filing without it is filing duplicates.
+                raise CrabError(
+                    "could not list the existing issues; refusing to file what may be duplicates",
+                    hint=exc.message,
+                ) from exc
             log(f"warning: could not list existing issues: {exc.message}")
     if options.mode == "issue":
         if slug is None:

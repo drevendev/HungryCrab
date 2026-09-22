@@ -52,7 +52,9 @@ cat receipt.json | crab serve <prey> --maw . --ids id1 --notes notes.json --as p
 - COPY pull-request serving remains blocked until its attribution/materialization contract lands;
   do not route it through the clean-room REIMPLEMENT path.
 - The maw must have a GitHub `origin` remote; `gh` must be authenticated. Pull-request publication
-  also requires the maw to be a git repository with its `origin` fetchable.
+  also requires the maw to be the root of a git repository with its `origin` fetchable: files are
+  staged relative to that root, so `--maw packages/app` is refused rather than published wrong.
+- The receipt on stdin is read as UTF-8 bytes, whatever the console's own code page is.
 
 ## Pull-request transaction
 
