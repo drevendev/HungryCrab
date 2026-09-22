@@ -1,6 +1,6 @@
 ---
 name: license
-description: Decide what may be carried over from a prey repository under its license. Modes are COPY, COPY_FILE, REIMPLEMENT, IDEAS_ONLY and HUMAN. Use when a nutrient's license mode is unclear, when asked whether code or configs from another repository may be copied, or when a sniff verdict says HUMAN.
+description: Decide what may be carried over from a prey repository under its license. Modes are COPY, COPY_FILE, REIMPLEMENT, IDEAS_ONLY and HUMAN. Use when a nutrient's license mode is unclear, when asked whether code or configs from another repository may be copied, or when a sniff verdict says HUMAN. Do not use to choose the maw's own license, for general legal advice, or for licensing questions unrelated to prey-to-maw transfer.
 ---
 
 # License rules

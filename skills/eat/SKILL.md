@@ -1,6 +1,6 @@
 ---
 name: eat
-description: Eat a foreign repository and turn everything useful for the current repository into issues without violating licenses. Use when the user asks to eat, consume, digest or chew a repo, or asks what to borrow from another project.
+description: Eat a foreign repository and turn everything useful for the current repository into issues without violating licenses. Use when the user asks to eat, consume, digest or chew a repo, or asks what to borrow from another project. Do not use for questions about the current repository alone, generic licensing, or ordinary code review without a prey repository.
 ---
 
 # Eat a repository
