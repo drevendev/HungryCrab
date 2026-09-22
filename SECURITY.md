@@ -19,6 +19,20 @@ malicious prey repository cannot:
    directories and commit counts are all capped, so a prey larger than the caps yields a thinner
    digest rather than a longer one.
 
+### What the agent-side guard covers
+
+The first promise is mechanical inside Claude Code, and only there. The plugin ships two
+`PreToolUse` hooks: `crab-prey-guard` refuses a Bash command that touches the prey cache unless
+it is one of a few audited read-only shapes, and `crab-cleanroom-guard` keeps the clean-room
+implementer out of the cache altogether. Both are console scripts of the `hungry-crab`
+distribution, so they exist only where the CLI was installed (`uv tool install`), and a hook
+whose command is missing does not block — Claude Code treats that as a non-blocking error and
+the tool call proceeds. They see the Bash tool, not PowerShell; Codex runs plugin hooks only
+after you trust them; and neither has yet been observed refusing a command in a live session.
+Treat them as a second line behind the rule in `AGENTS.md`, not as a sandbox
+([#83](https://github.com/drevendev/HungryCrab/issues/83),
+[#141](https://github.com/drevendev/HungryCrab/issues/141)).
+
 ### What is not bounded: acquisition
 
 Those caps apply to what a miner reads, not to what `crab catch` downloads. By default `catch`

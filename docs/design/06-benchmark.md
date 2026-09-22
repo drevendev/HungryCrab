@@ -36,9 +36,9 @@ Nothing moves between runs, or the numbers are not comparable.
 we know exactly what it lacks (no release automation, no coverage, no security scanning,
 hand-written language and license maps, a characters-over-3.5 token estimate).
 
-**Donors,** pinned to a commit SHA recorded in the run manifest:
+**Prey,** pinned to a commit SHA recorded in the run manifest:
 
-| Donor | License | Why this one |
+| Prey | License | Why this one |
 |---|---|---|
 | `pypa/pipx` | MIT | small, same stack, rich in exactly the CI and release nutrients the maw lacks |
 | `github-linguist/linguist` | MIT | large, permissive, exercises the `code` category and evidence links |

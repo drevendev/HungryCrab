@@ -169,7 +169,7 @@ def menu_doc(
     )
     table = doc.section("Ranked candidates", priority=1)
     table.table(
-        ["#", "Score", "Category", "Nutrient", "Mode", "Effort", "Risk", "Artifact", "Id"],
+        ["#", "Score", "Category", "Nutrient", "Mode", "Effort", "Risk", "Serve as", "Id"],
         (
             [i, c.score, c.category, c.title, c.license_mode, c.effort, c.risk, c.serve_as, c.id]
             for i, c in enumerate(shown, start=1)

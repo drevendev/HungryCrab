@@ -181,14 +181,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_mark.add_argument("--url", default=None, help="issue or pull request URL")
 
     p_serve = sub.add_parser(
-        "serve", help="turn approved nutrients into issues (dry-run by default)"
+        "serve",
+        help="turn approved nutrients into issues or clean-room pull requests (dry-run by default)",
     )
     p_serve.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
     p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
     p_serve.add_argument(
-        "--as", dest="mode", choices=("dry-run", "issue", "pr-branch"), default="dry-run"
+        "--as",
+        dest="mode",
+        choices=("dry-run", "issue", "pr-branch"),
+        default="dry-run",
+        help=(
+            "dry-run previews; issue files issues; pr-branch publishes REIMPLEMENT nutrients "
+            "from the clean-room receipts piped to stdin"
+        ),
     )
     p_serve.add_argument(
         "--notes", type=Path, default=None, help="JSON with why/how per id (model-written)"
@@ -374,7 +382,8 @@ def print_menu(
         f"default mode {verdict.get('mode', '?')})"
     )
     print(
-        f"{'#':>3} {'score':>5}  {'category':<15}{'nutrient':<52}{'mode':<12}{'eff':<4}{'art':<6}id"
+        f"{'#':>3} {'score':>5}  {'category':<15}{'nutrient':<52}{'mode':<12}{'eff':<4}"
+        f"{'serve':<6}id"
     )
     for index, card in enumerate(cards[:top], start=1):
         title = card.title if len(card.title) <= 50 else card.title[:47] + "..."

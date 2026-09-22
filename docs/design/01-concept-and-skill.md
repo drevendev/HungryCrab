@@ -279,9 +279,12 @@ Special rules:
 1. **Stage A (specifier)** — an agent with access to the digest and the prey code writes a
    functional specification: behavior, interface, edge cases, example tests. Forbidden: code,
    internal identifiers, comments from the original.
-2. **Stage B (implementer)** — the `crab-cleanroom-impl` subagent with a **fresh context** and the
-   rule `deny: Read(~/.cache/hungry-crab/**)` implements from the specification in the maw
-   repository.
+2. **Stage B (implementer)** — the `crab-cleanroom-impl` subagent with a **fresh context**
+   implements from the specification in the maw repository. Subagent frontmatter cannot carry a
+   path-scoped deny, so the plugin's `crab-cleanroom-guard` `PreToolUse` hook refuses that
+   agent every tool call that names the cache; the implementer has no shell tool at all. It
+   returns a strict JSON receipt naming the exact maw paths it changed, and `crab serve --as
+   pr-branch` publishes those bytes and nothing else.
 3. The PR trace records: "implemented from a specification, without access to the prey
    source", with a link to the spec in `.crab/specs/<id>.md`.
 
@@ -367,3 +370,10 @@ Regardless of mode, dedup against open issues via the `crab:<id>` marker is alwa
 | First maw | a private sandbox repository built from the npm-app fixture, then the author's real repositories | issues created while the menu is being tuned must not pollute real projects |
 | Prey owned by the maw's owner | a `Relationship` alongside the two licenses: `own` (same owner, or an owner listed in `trust.owners`) is `COPY`; `bypass` is an explicit, always-visible override | a license is a promise to strangers, and the matrix had no way to say that both repositories belong to one person. The fleet's own repositories carry no LICENSE and were all answered with `IDEAS_ONLY` |
 | Licenses the engine cannot reduce to one identifier | four named resolutions instead of one `NOASSERTION`: `dual` (alternatives, `OR`), `split` (different parts, `AND`, most restrictive wins; when the root declares the split, the nested licence files join it, unreadable ones as `NOASSERTION`), `per-path` (nothing at the root, packages license themselves) and `unreadable` (`HUMAN`) | the four situations need four different actions, and the single verdict hid two outright bugs: `apache-2.0.LICENSE` was invisible and `LICENSE.md` was read as a license named `md` |
+| Prose the repository does not license | a content origin on every card: `licensed`, `commenters` (issue and discussion text, capped at `IDEAS_ONLY` by the engine) or `unknown` (capped at `HUMAN`); the cap and its reason travel in the trace | a repository licence governs the repository's material; the rule "issue text is always IDEAS_ONLY" lived only in a skill's prose, and a card built from commenter titles was stamped `COPY` under an MIT prey |
+| Which nutrients become pull requests | `serve --as pr-branch` publishes REIMPLEMENT nutrients only, from the clean-room receipt; COPY waits for `crab attribution`, because a COPY pull request without its notice is a licence violation the crab would have authored | the receipt is the only producer-side statement of which files belong to a nutrient; a dirty working tree is never inferred as the payload |
+| When the secret scan runs | once, over the complete prepared payload (files, title, body), before the first provider read or git effect; a finding names path, line and rule, never the value | a scanner that runs after the push has already published the secret; one that echoes the match publishes it again in the log |
+| Isolating the clean-room implementer | a `PreToolUse` hook (`crab-cleanroom-guard`) keyed on the agent, not a frontmatter deny rule | plugin subagents cannot carry path-scoped permissions in their frontmatter; the hook is the only mechanical boundary available, and it is only as present as the console script on PATH |
+| Per-file budget | page, never truncate: `history.md`, `history.2.md`, … each naming the next; the per-digest total is a policy (`warn` / `enforce` / `off`) in the maw's `.crab.yml`, read from an explicit `--maw` | dropping the tail of a section was defensible only because the JSON kept everything, which argues that the loss is survivable, not that it should happen; an agent session and a budgeted loop want opposite things from one number |
+| A digest with a failed miner | `compare` refuses it unless `--allow-partial`; `digest --fail-on-miner-error` exits non-zero; a cached digest is reused only when every registered miner ran, the working tree matches, and every declared artifact is intact | an absent producer reads as an absent fact, and the menu cannot tell the two apart |
+| A local path as prey | prey, whatever it carries: a local directory's `.crab.yml` is data, never configuration; the maw's config reaches only the maw's own digest, through an explicit `--maw` | a directory being eaten could otherwise hide its tree from every miner, or abort the digest with a broken maw-only setting |
