@@ -13,6 +13,7 @@ from typing import Any
 from .base import FileInfo, MineContext, MinerResult
 from .deps import DepsMiner
 from .inventory import ROLE_BY_NAME
+from .ruby import enrich_ruby_dependencies
 from .testing import TestingMiner
 
 _AUXILIARY_LAYOUT_ROLES = frozenset({"scripts"})
@@ -23,6 +24,12 @@ def _layout_role(info: FileInfo) -> str | None:
     if not separator:
         return None
     return ROLE_BY_NAME.get(head)
+
+
+def _is_stack_declaration(info: FileInfo) -> bool:
+    """Whether one inventory row can declare a project dependency ecosystem."""
+
+    return info.manifest_kind is not None or info.lockfile or info.ext == ".gemspec"
 
 
 def _has_project_declaration(files: list[FileInfo]) -> bool:
@@ -36,7 +43,7 @@ def _has_project_declaration(files: list[FileInfo]) -> bool:
     return any(
         not info.vendored
         and not info.generated
-        and (info.manifest_kind is not None or info.lockfile)
+        and _is_stack_declaration(info)
         and _layout_role(info) not in _AUXILIARY_LAYOUT_ROLES
         for info in files
     )
@@ -85,7 +92,7 @@ class ProjectDepsMiner(DepsMiner):
     def run(self, ctx: MineContext) -> MinerResult:
         project_ctx, auxiliary_paths = _project_context(ctx)
         if not auxiliary_paths:
-            result = super().run(ctx)
+            result = enrich_ruby_dependencies(super().run(ctx), ctx)
             result.data["manifests"] = _tag_rows(result.data["manifests"], "project")
             result.data["packages"] = _tag_rows(result.data["packages"], "project")
             result.data["lockfiles"] = _tag_rows(result.data["lockfiles"], "project")
@@ -94,8 +101,8 @@ class ProjectDepsMiner(DepsMiner):
             result.data["auxiliary_lockfiles"] = []
             return result
 
-        full = super().run(ctx)
-        project = super().run(project_ctx)
+        full = enrich_ruby_dependencies(super().run(ctx), ctx)
+        project = enrich_ruby_dependencies(super().run(project_ctx), project_ctx)
         project_manifest_paths = {row["path"] for row in project.data["manifests"]}
         project_lock_paths = {row["path"] for row in project.data["lockfiles"]}
 

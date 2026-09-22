@@ -47,9 +47,9 @@ def test_auxiliary_tooling_stays_visible_without_becoming_project_stack(tmp_path
     ctx.results["ci"] = MinerResult("ci", {"workflows": []})
     testing = ProjectTestingMiner().run(ctx)
 
-    assert deps.data["ecosystems"] == []
+    assert deps.data["ecosystems"] == ["ruby"]
     assert deps.data["packages"] == []
-    assert deps.extra["names"] == {}
+    assert deps.extra["names"] == {"ruby": []}
     assert {row["ecosystem"] for row in deps.data["auxiliary_manifests"]} == {"go", "rust"}
     assert {row["ecosystem"] for row in deps.data["auxiliary_packages"]} == {"go", "rust"}
     assert {row["ecosystem"] for row in deps.data["auxiliary_lockfiles"]} == {"go", "rust"}
