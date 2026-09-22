@@ -117,6 +117,14 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **`crab digest --out` deleted files it had not written.** Rerun cleanup treated every file
+  in the output directory as a stale artifact unless the current run had just produced it, so
+  a directory the caller already used lost its own files, and `--out .` emptied the top level
+  of the repository being digested. A digest now owns exactly what a registered miner
+  declares — its JSON file and its Markdown page family — and cleanup, the aggregate budget
+  and `manifest.json` all stop at that boundary: a stranger's `notes.md` is neither deleted,
+  nor budgeted, nor listed as evidence
+  ([#126](https://github.com/drevendev/HungryCrab/issues/126)).
 - **Prey-cache shell guards now fail closed on executable provenance, not just command names.**
   A cache-touching command is denied when its executable path points into prey even if the file
   is named like an allowed reader, and leading environment assignments are rejected so `PATH`
