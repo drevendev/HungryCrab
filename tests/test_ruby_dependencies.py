@@ -19,7 +19,9 @@ def _deps(root: Path) -> MinerResult:
     return ProjectDepsMiner().run(ctx)
 
 
-def test_ruby_application_keeps_declared_specs_separate_from_lock_resolution(tmp_path: Path) -> None:
+def test_ruby_application_keeps_declared_specs_separate_from_lock_resolution(
+    tmp_path: Path,
+) -> None:
     _write(
         tmp_path,
         "Gemfile",
