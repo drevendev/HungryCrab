@@ -105,9 +105,10 @@ def main() -> int:
     """Read one PreToolUse event from stdin; exit 2 when the clean-room call is denied."""
     try:
         event = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        # Without a valid event we cannot establish that this is the clean-room agent. Do not
-        # break unrelated plugin sessions on hook transport/schema failure.
+    except (OSError, ValueError):
+        # Without a valid event — unreadable, undecodable or malformed — we cannot establish
+        # that this is the clean-room agent. Do not break unrelated plugin sessions on hook
+        # transport/schema failure; a traceback would exit 1, which is also "allow".
         return 0
 
     reason = cleanroom_guard_reason(event)

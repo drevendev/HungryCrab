@@ -19,19 +19,35 @@ from .cache import cache_root
 _ENV_CACHE_REF = re.compile(
     r"(?:\$\{?CRAB_CACHE_DIR\}?|%CRAB_CACHE_DIR%|\$env:CRAB_CACHE_DIR)", re.IGNORECASE
 )
-_DEFAULT_CACHE_REF = re.compile(r"(?:^|[/\\])\.cache[/\\]hungry-crab(?:[/\\]|$)", re.IGNORECASE)
+# The cache root, and nothing that merely starts with its name: `hungry-crab-other` and
+# `hungry-crab.old` are siblings, not the cache.
+_PATH_BOUNDARY = r"(?![a-z0-9._-])"
+_DEFAULT_CACHE_REF = re.compile(
+    r"(?:^|[/\\])\.cache[/\\]hungry-crab" + _PATH_BOUNDARY, re.IGNORECASE
+)
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _EXECUTION_SUBSTITUTION = re.compile(r"\$\(|[<>]\(|`")
+_LINE_BREAK = re.compile(r"[\r\n]")
 _READ_ONLY_COMMANDS = frozenset({"cat", "grep", "head", "ls", "rg", "stat", "tail", "wc"})
+# Plumbing and porcelain that only read the repository. `show`, `diff`, `blame`, `shortlog`,
+# `describe` and `grep` are what the historian agent is told to run in a clone; the arguments
+# that would make any of them run something are refused below.
 _READ_ONLY_GIT_SUBCOMMANDS = frozenset(
     {
+        "blame",
         "cat-file",
+        "describe",
+        "diff",
         "for-each-ref",
+        "grep",
         "log",
         "ls-files",
         "ls-tree",
         "rev-list",
         "rev-parse",
+        "shortlog",
+        "show",
+        "show-ref",
         "status",
         "symbolic-ref",
     }
@@ -40,7 +56,18 @@ _GIT_GLOBAL_OPTIONS_WITH_VALUE = frozenset({"-C", "--git-dir", "--work-tree", "-
 _GIT_GLOBAL_SAFE_FLAGS = frozenset(
     {"--no-pager", "--literal-pathspecs", "--no-optional-locks", "--no-replace-objects"}
 )
-_GIT_DANGEROUS_ARGS = ("--ext-diff", "--textconv", "--exec-path", "--config-env")
+# `--output` writes what git prints to any path, which turns `log` into a way to land prey
+# bytes where a later command runs them; `-O` hands `grep`'s matches to a program of the
+# caller's choosing.
+_GIT_DANGEROUS_ARGS = (
+    "--ext-diff",
+    "--textconv",
+    "--exec-path",
+    "--config-env",
+    "--output",
+    "--open-files-in-pager",
+    "-O",
+)
 _SHELL_PUNCTUATION = frozenset(
     {";", "&", "&&", "|", "||", "<", ">", "<<", ">>", "<<<", "<>", ">&", "<&", "&>"}
 )
@@ -79,13 +106,19 @@ def _token_mentions_root(token: str, *, root: Path, cwd: Path) -> bool:
         return False
 
 
+def _names_root(text: str, root: Path) -> bool:
+    """Whether ``text`` spells the cache root, with a path boundary after it."""
+    root_text = str(root).replace("\\", "/").casefold()
+    if not root_text:
+        return False
+    normalized = text.replace("\\", "/").casefold()
+    return re.search(re.escape(root_text) + _PATH_BOUNDARY, normalized) is not None
+
+
 def _mentions_cache(command: str, *, root: Path, cwd: Path) -> bool:
     if _ENV_CACHE_REF.search(command) or _DEFAULT_CACHE_REF.search(command):
         return True
-
-    normalized = command.replace("\\", "/").casefold()
-    root_text = str(root).replace("\\", "/").casefold()
-    if root_text and root_text in normalized:
+    if _names_root(command, root):
         return True
 
     tokens = _shell_tokens(command)
@@ -100,10 +133,7 @@ def _program_token_points_into_cache(token: str, *, root: Path, cwd: Path) -> bo
     """Return whether an explicit executable token can resolve inside the prey cache."""
     if _ENV_CACHE_REF.search(token) or _DEFAULT_CACHE_REF.search(token):
         return True
-
-    normalized = token.replace("\\", "/").casefold()
-    root_text = str(root).replace("\\", "/").casefold()
-    if root_text and root_text in normalized:
+    if _names_root(token, root):
         return True
 
     # A bare command name such as ``cat`` is resolved by the trusted host PATH. Only explicit
@@ -196,6 +226,11 @@ def guard_reason(
     cache = _canonical(root or cache_root(), cwd=here)
     if not command.strip() or not _mentions_cache(command, root=cache, cwd=here):
         return None
+    if _LINE_BREAK.search(command):
+        # A line break separates commands exactly as `;` does, and `shlex` reads it as
+        # whitespace: `cat <cache>/README.md` on one line and `python <cache>/setup.py` on the
+        # next would otherwise be judged as one long `cat`.
+        return "cache-touching multi-line command is not established read-only (AGENTS.md rule 3)"
     if _EXECUTION_SUBSTITUTION.search(command):
         return "cache-touching shell substitution is not established read-only (AGENTS.md rule 3)"
 
@@ -245,9 +280,11 @@ def main(*, stdin: TextIO | None = None) -> int:
     stream = stdin if stdin is not None else sys.stdin
     try:
         event = json.loads(stream.read())
-    except (OSError, json.JSONDecodeError):
-        # A transport failure does not establish that a Bash command touched the cache. The live
-        # hook/protocol proof is tracked separately from the decision logic in issue #83.
+    except (OSError, ValueError):
+        # A transport failure — unreadable, undecodable or malformed input — does not establish
+        # that a Bash command touched the cache. A traceback here would exit 1, which the agent
+        # also reads as "allow", only louder. The live hook/protocol proof is tracked separately
+        # from the decision logic in issue #83.
         return 0
 
     reason = event_guard_reason(event)

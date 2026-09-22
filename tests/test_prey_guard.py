@@ -119,3 +119,88 @@ def test_hook_manifest_uses_the_packaged_guard_executable() -> None:
     assert handler["command"] == "crab-prey-guard"
     assert scripts[handler["command"]] == "hungry_crab.prey_guard:main"
     assert handler["timeout"] == 5
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"cat {PREY}/README.md\npython {PREY}/setup.py",
+        f"cat {PREY}/README.md\r\npython {PREY}/setup.py",
+        f"git -C {PREY} log -1\nmake -C {PREY}",
+        f"cat {PREY}/README.md\n{PREY}/bin/tool",
+        f"cat {PREY}/README.md\n",
+    ],
+)
+def test_a_line_break_is_a_command_separator(command: str) -> None:
+    """`shlex` reads a newline as whitespace; the shell reads it as `;`."""
+    reason = guard_reason(command, root=CACHE)
+    assert reason is not None
+    assert "multi-line" in reason
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"git -C {PREY} log -1 --format=%B --output=/tmp/x.sh",
+        f"git -C {PREY} log -1 --format=%B --output /tmp/x.sh",
+        f"git -C {PREY} show --output=/tmp/x.sh HEAD",
+        f"git -C {PREY} grep -O needle",
+        f"git -C {PREY} grep -Ovim needle",
+        f"git -C {PREY} grep --open-files-in-pager=vim needle",
+        f"git -C {PREY} show --ext-diff HEAD",
+        f"git -C {PREY} diff --textconv HEAD~ HEAD",
+    ],
+)
+def test_git_options_that_write_or_run_something_fail_closed(command: str) -> None:
+    assert guard_reason(command, root=CACHE) is not None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"git -C {PREY} show --stat HEAD",
+        f"git -C {PREY} show HEAD:README.md",
+        f"git -C {PREY} blame README.md",
+        f"git -C {PREY} diff HEAD~ HEAD -- src/",
+        f"git -C {PREY} shortlog -sn",
+        f"git -C {PREY} describe --tags",
+        f"git -C {PREY} show-ref --heads",
+        f"git -C {PREY} grep -n TODO",
+    ],
+)
+def test_the_historians_read_only_git_verbs_are_allowed(command: str) -> None:
+    """`agents/crab-historian.md` tells the agent to run these in the clone."""
+    assert guard_reason(command, root=CACHE) is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python /tmp/crab-prey-other/setup.py",
+        "python /tmp/crab-prey.old/setup.py",
+        "python /tmp/crab-prey_backup/setup.py",
+        "python ~/.cache/hungry-crab-other/setup.py",
+    ],
+)
+def test_a_sibling_that_starts_with_the_cache_name_is_not_the_cache(command: str) -> None:
+    assert guard_reason(command, root=CACHE) is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python /tmp/crab-prey/setup.py",
+        'python "/tmp/crab-prey"/setup.py',
+        "ls /tmp/crab-prey",
+        'ls "/tmp/crab-prey"',
+    ],
+)
+def test_the_cache_root_itself_is_still_recognised(command: str) -> None:
+    expected_allowed = command.startswith("ls")
+    assert (guard_reason(command, root=CACHE) is None) is expected_allowed
+
+
+def test_hook_treats_undecodable_input_like_any_other_transport_failure() -> None:
+    """A traceback would exit 1, which the agent also reads as allow, only louder."""
+    stream = io.TextIOWrapper(io.BytesIO(b"\xff\xfe{"), encoding="utf-8")
+    assert main(stdin=stream) == 0
