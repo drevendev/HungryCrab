@@ -140,6 +140,18 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   `show-ref`, `grep`) are allowed under the same dangerous-argument filter; and both hook
   entry points take undecodable input down the documented transport-failure path instead of
   dying with a traceback, which exited 1 and was read as "allow" too, only louder.
+- **Three ways `crab serve` could do the wrong thing with a straight face.** On Windows the
+  clean-room receipt on stdin was decoded with the console code page, so a summary with an em
+  dash or an accented word became mojibake with lone surrogates that passed the scan and the
+  reconciliation, pushed the branch, and only then crashed on the encode before
+  `gh pr create` — every rerun the same, so the nutrient was unpublishable; the stream is read
+  as bytes and decoded as UTF-8 once. `--maw <subdirectory>` read the receipt's files under the
+  subdirectory and staged them relative to the repository root, a plausible pull request that
+  changed the wrong file; pr-branch mode now requires the maw to be the repository root and
+  says which path to pass. And when the listing of existing issues failed, `--as issue` logged
+  a warning and filed everything again, which on a repository without a ledger is exactly the
+  duplicate the marker exists to prevent; an effectful serve now refuses, while a dry run still
+  warns and goes on.
 - **`crab digest --out` deleted files it had not written.** Rerun cleanup treated every file
   in the output directory as a stale artifact unless the current run had just produced it, so
   a directory the caller already used lost its own files, and `--out .` emptied the top level

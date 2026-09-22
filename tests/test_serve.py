@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,7 +17,14 @@ from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import CONFIG_FILE, MawConfig
 from hungry_crab.nutrients import Candidate, Evidence
-from hungry_crab.serve import GhIssueClient, ServeOptions, parse_markers, render_issue, serve
+from hungry_crab.serve import (
+    GhIssueClient,
+    ServeOptions,
+    decode_receipt_stream,
+    parse_markers,
+    render_issue,
+    serve,
+)
 
 NOW = datetime(2025, 6, 3, tzinfo=UTC)
 MAW_SLUG = Slug("example", "maw")
@@ -335,6 +343,52 @@ def test_serve_guards(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> Non
     )  # fmt: skip
     assert len(report.previews) == 2
     assert any("could not list existing issues" in line for line in logged)
+
+
+def test_issue_mode_refuses_to_file_when_the_marker_listing_fails(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path
+) -> None:
+    """A dry run may warn and go on; an effectful serve without dedup files duplicates."""
+    prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
+    broken = FakeIssues()
+    broken.fail_list = True
+    with pytest.raises(CrabError, match="refusing to file") as excinfo:
+        serve(
+            prey_dir, pyproject_cli, ServeOptions(top=2, mode="issue"),
+            config=MawConfig.load(pyproject_cli), ledger=Ledger(None), client=broken,
+            slug_lookup=lambda _: MAW_SLUG,
+        )  # fmt: skip
+    assert excinfo.value.hint == "boom"
+    assert broken.created == []
+
+
+def test_receipt_stream_is_decoded_as_utf8_whatever_the_console_says() -> None:
+    """Windows decodes stdin with the console code page; the receipt is UTF-8 regardless."""
+    text = '{"summary": "implemented from a specification — café"}'
+    stream = io.TextIOWrapper(io.BytesIO(text.encode("utf-8")), encoding="cp1252")
+    assert decode_receipt_stream(stream) == text
+    with_bom = io.TextIOWrapper(io.BytesIO(text.encode("utf-8-sig")), encoding="cp1252")
+    assert decode_receipt_stream(with_bom) == text
+    not_utf8 = io.TextIOWrapper(io.BytesIO(text.encode("cp1252")), encoding="utf-8")
+    with pytest.raises(UsageError, match="not UTF-8"):
+        decode_receipt_stream(not_utf8)
+    assert decode_receipt_stream(io.StringIO(text)) == text, "a plain text stream still works"
+
+
+def test_pr_branch_needs_the_repository_root(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path
+) -> None:
+    """Files are read under the maw and staged relative to the git root; the two must agree."""
+    prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
+    subdirectory = pyproject_cli / "docs"
+    assert subdirectory.is_dir()
+    with pytest.raises(CrabError, match="repository root") as excinfo:
+        serve(
+            prey_dir, subdirectory, ServeOptions(ids=["crab:ci:ci.cache"], mode="pr-branch"),
+            config=MawConfig.load(pyproject_cli), ledger=Ledger(None), client=FakeIssues(),
+            slug_lookup=lambda _: MAW_SLUG, receipt_payloads={"crab:ci:ci.cache": "{}"},
+        )  # fmt: skip
+    assert excinfo.value.hint is not None and "--maw" in excinfo.value.hint
 
 
 def test_compare_for_maw_uses_config_ledger_and_issues(
