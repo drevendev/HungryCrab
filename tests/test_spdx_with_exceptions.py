@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from hungry_crab.licensing import LicenseClass, MawClass, Mode, classify, decide_for_class, normalize
+from hungry_crab.licensing import (
+    LicenseClass,
+    MawClass,
+    Mode,
+    classify,
+    decide,
+    decide_for_class,
+    normalize,
+)
 from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id
 
 
@@ -13,6 +21,7 @@ def test_supported_with_exception_keeps_base_license_semantics() -> None:
     assert governing_id(prey) == normalized
     assert fits_gpl_maw(prey, "GPL-2.0-only")
     assert decide_for_class(prey, MawClass.GPL, "GPL-2.0-only").mode is Mode.COPY
+    assert decide(prey, "GPL-2.0-only").mode is Mode.COPY
 
 
 def test_unknown_with_exception_fails_closed_across_all_entry_points() -> None:
@@ -25,6 +34,9 @@ def test_unknown_with_exception_fails_closed_across_all_entry_points() -> None:
     verdict = decide_for_class(prey, MawClass.GPL, "GPL-2.0-only")
     assert verdict.mode is Mode.HUMAN
     assert verdict.human_review
+    public_verdict = decide(prey, "GPL-2.0-only")
+    assert public_verdict.mode is Mode.HUMAN
+    assert public_verdict.human_review
 
 
 def test_multiple_with_operators_fail_closed() -> None:
@@ -32,7 +44,7 @@ def test_multiple_with_operators_fail_closed() -> None:
 
     assert classify(prey) is LicenseClass.UNKNOWN
     assert not fits_gpl_maw(prey, "GPL-2.0-only")
-    verdict = decide_for_class(prey, MawClass.GPL, "GPL-2.0-only")
+    verdict = decide(prey, "GPL-2.0-only")
     assert verdict.mode is Mode.HUMAN
     assert verdict.human_review
 
@@ -42,6 +54,6 @@ def test_with_on_a_compound_expression_fails_closed() -> None:
 
     assert classify(prey) is LicenseClass.UNKNOWN
     assert not fits_gpl_maw(prey, "GPL-2.0-only")
-    verdict = decide_for_class(prey, MawClass.GPL, "GPL-2.0-only")
+    verdict = decide(prey, "GPL-2.0-only")
     assert verdict.mode is Mode.HUMAN
     assert verdict.human_review
