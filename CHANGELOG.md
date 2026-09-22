@@ -117,6 +117,18 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **The prey guard reads a line break as the command separator it is.** `shlex` reads a
+  newline as whitespace, so `cat <cache>/README.md` on one line and `python <cache>/setup.py`
+  on the next were judged as one long `cat` and allowed; a cache-touching command with a line
+  break is now refused like one with `;`. In the same pass: `git log --output=<file>` was an
+  allowed write primitive that lands prey bytes wherever a later command runs them, and
+  `git grep -O` hands the matches to a program of the caller's choosing — both refused; a
+  sibling directory that merely starts with the cache's name (`hungry-crab-other`,
+  `crab-prey.old`) is no longer read as the cache; the read-only verbs the `crab-historian`
+  agent is told to run in a clone (`show`, `diff`, `blame`, `shortlog`, `describe`,
+  `show-ref`, `grep`) are allowed under the same dangerous-argument filter; and both hook
+  entry points take undecodable input down the documented transport-failure path instead of
+  dying with a traceback, which exited 1 and was read as "allow" too, only louder.
 - **`crab digest --out` deleted files it had not written.** Rerun cleanup treated every file
   in the output directory as a stale artifact unless the current run had just produced it, so
   a directory the caller already used lost its own files, and `--out .` emptied the top level
