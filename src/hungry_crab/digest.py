@@ -18,7 +18,14 @@ from time import perf_counter
 from typing import Any
 
 from . import __version__
-from .budget import BUDGET_POLICIES, apply_markdown_policy
+from .budget import (
+    BUDGET_POLICIES,
+    MANIFEST_NAME,
+    apply_markdown_policy,
+    artifact_owner,
+    page_name,
+    page_number,
+)
 from .cache import Target, maw_paths, prey_paths
 from .digest_integrity import digest_integrity_errors
 from .errors import CrabError
@@ -197,26 +204,6 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     )
 
 
-def _markdown_page_name(base_name: str, page_number: int) -> str:
-    if page_number <= 1:
-        return base_name
-    base = Path(base_name)
-    return f"{base.stem}.{page_number}{base.suffix}"
-
-
-def _markdown_page_number(base_name: str, candidate: str) -> int | None:
-    if candidate == base_name:
-        return 1
-    base = Path(base_name)
-    prefix = f"{base.stem}."
-    if not candidate.startswith(prefix) or not candidate.endswith(base.suffix):
-        return None
-    number = candidate[len(prefix) : -len(base.suffix)]
-    if not number.isdigit() or int(number) < 2:
-        return None
-    return int(number)
-
-
 def run_miners(
     ctx: MineContext,
     miners: list[Miner],
@@ -262,19 +249,17 @@ def run_miners(
             record["files"].append(miner.json_file)
         if miner.md_file and result.doc is not None:
             pages = result.doc.render_pages(ctx.md_budget, miner.md_file)
-            page_names = [
-                _markdown_page_name(miner.md_file, index) for index in range(1, len(pages) + 1)
-            ]
+            page_names = [page_name(miner.md_file, index) for index in range(1, len(pages) + 1)]
             priorities: dict[str, int] = {}
-            for page_name, page in zip(page_names, pages, strict=True):
-                (out_dir / page_name).write_text(page.text, encoding="utf-8", newline="\n")
-                record["files"].append(page_name)
-                priorities[page_name] = page.priority
+            for name, page in zip(page_names, pages, strict=True):
+                (out_dir / name).write_text(page.text, encoding="utf-8", newline="\n")
+                record["files"].append(name)
+                priorities[name] = page.priority
             # A miner owns its entire numeric page family. Only remove siblings after every new
             # page has landed, so a failed write cannot first destroy the last usable artifact.
             for path in out_dir.iterdir():
-                page_number = _markdown_page_number(miner.md_file, path.name)
-                if page_number is not None and page_number >= 2 and path.name not in page_names:
+                number = page_number(miner.md_file, path.name)
+                if number is not None and number >= 2 and path.name not in page_names:
                     path.unlink()
             record["page_priorities"] = priorities
         record["warnings"] = list(result.warnings)
@@ -321,18 +306,16 @@ def build_manifest(
     elapsed: float,
 ) -> dict[str, Any]:
     budget_result = apply_markdown_policy(
-        records,
-        out_dir,
-        total_budget=options.total_budget,
-        policy=options.budget_policy,
-        exclude_names=MEAL_OWNED,
+        records, out_dir, total_budget=options.total_budget, policy=options.budget_policy
     )
     files: list[dict[str, Any]] = []
     md_tokens = 0
     total_tokens = 0
     owner = {name: r["name"] for r in records for name in r["files"]}
     for path in sorted(out_dir.iterdir()):
-        if not path.is_file() or path.name == "manifest.json" or path.name in MEAL_OWNED:
+        # Only the crab's own artifacts are evidence. The caller's files, and meal files an
+        # older cache may still hold, are neither listed nor counted.
+        if not path.is_file() or artifact_owner(path.name) is None:
             continue
         text = read_text(path, limit=50_000_000)
         tokens = estimate_tokens(text)
@@ -404,9 +387,6 @@ def build_manifest(
     }
 
 
-# A meal describes a pair and lives under the maw. These names never belong to a digest, and
-# a cache written before that was true can still have them lying about.
-MEAL_OWNED = {"gap.md", "menu.md", "menu.json", "meal.json", "compare.json"}
 READING_ORDER = (
     "inventory.md",
     "ci.md",
@@ -424,9 +404,7 @@ def _reading_order(names: set[str]) -> list[str]:
     ordered: list[str] = []
     for base_name in READING_ORDER:
         family = [
-            (page_number, name)
-            for name in names
-            if (page_number := _markdown_page_number(base_name, name)) is not None
+            (number, name) for name in names if (number := page_number(base_name, name)) is not None
         ]
         ordered.extend(name for _, name in sorted(family))
     return ordered
@@ -439,7 +417,7 @@ def _file_entries(
     md_tokens = 0
     total_tokens = 0
     for path in sorted(out_dir.iterdir()):
-        if not path.is_file() or path.name == "manifest.json":
+        if not path.is_file() or artifact_owner(path.name) is None:
             continue
         text = read_text(path, limit=50_000_000)
         tokens = estimate_tokens(text)
@@ -470,7 +448,7 @@ def refresh_manifest(out_dir: Path, summary: dict[str, Any] | None = None) -> di
     prey's licence but not the verdict, and the comparison that resolves it must not leave the
     manifest saying ``null`` while ``menu.md`` says ``COPY``.
     """
-    manifest_path = out_dir / "manifest.json"
+    manifest_path = out_dir / MANIFEST_NAME
     manifest = _load_json(manifest_path)
     if manifest is None:
         return None
@@ -604,7 +582,7 @@ def run_digest(
     if opts.total_budget < 0:
         raise CrabError("markdown total budget must not be negative")
     ctx, out_dir = prepare_context(target, opts, log=log)
-    manifest_path = out_dir / "manifest.json"
+    manifest_path = out_dir / MANIFEST_NAME
     if not opts.force:
         cached = _load_json(manifest_path)
         if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts, out_dir):
