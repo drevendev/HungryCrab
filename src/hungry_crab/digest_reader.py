@@ -13,6 +13,13 @@ from .digest import DigestOptions, prepare_context
 from .digest_location import DigestLocation, resolve_canonical_digest
 
 
+def locate_digest_sha(target: Target, options: DigestOptions | None = None) -> str:
+    """Resolve only the logical digest SHA, without reading publication refs."""
+    opts = options or DigestOptions()
+    ctx, _ = prepare_context(target, opts)
+    return ctx.sha
+
+
 def locate_digest_location(target: Target, options: DigestOptions | None = None) -> DigestLocation:
     """Resolve ``target`` once into its logical SHA and physical digest directory.
 
