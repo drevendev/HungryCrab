@@ -18,7 +18,7 @@ from typing import Any
 from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, run_digest
 from ..digest_integrity import digest_integrity_errors
-from ..digest_reader import locate_digest_location
+from ..digest_reader import locate_digest_sha
 from ..errors import CrabError
 from ..ledger import Ledger
 from ..licensing import Relationship, decide
@@ -264,8 +264,8 @@ def locate_meal(
 def meal_for(prey: Target, maw_root: Path, options: DigestOptions | None = None) -> Path:
     """The same, for a caller that has a target rather than a digested prey."""
     opts = options or DigestOptions()
-    prey_location = locate_digest_location(prey, opts)
-    return locate_meal(prey.label, prey_location.sha, maw_root, opts)
+    prey_sha = locate_digest_sha(prey, opts)
+    return locate_meal(prey.label, prey_sha, maw_root, opts)
 
 
 def load_menu(meal_dir: Path) -> dict[str, Any] | None:
