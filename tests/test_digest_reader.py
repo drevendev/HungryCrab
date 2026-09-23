@@ -54,6 +54,24 @@ def test_clean_canonical_target_resolves_active_generation(
     assert location.path == generation
 
 
+def test_clean_full_target_preselected_as_noncanonical_keeps_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out_dir = tmp_path / "digests" / ".scratch" / SHA / "future-policy"
+    _stub_context(monkeypatch, out_dir)
+
+    def fail_if_refs_are_consulted(digests: Path, sha: str) -> None:
+        del digests, sha
+        raise AssertionError("non-canonical selected output must not consult generation refs")
+
+    monkeypatch.setattr(digest_reader, "resolve_canonical_digest", fail_if_refs_are_consulted)
+
+    location = digest_reader.locate_digest_location(Target(path=tmp_path / "prey"))
+
+    assert location.sha == SHA
+    assert location.path == out_dir
+
+
 @pytest.mark.parametrize(
     ("options", "worktree", "relative_out"),
     [
