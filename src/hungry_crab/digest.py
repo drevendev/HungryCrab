@@ -116,6 +116,26 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     return hashlib.sha1(diff.encode("utf-8", "replace")).hexdigest()[:12]
 
 
+def _scratch_output_dir(digests_dir: Path, ctx: MineContext, options: DigestOptions) -> Path:
+    """Stable non-canonical output for an implicit selective digest request."""
+    identity = {
+        "schema": SCHEMA,
+        "crab_version": __version__,
+        "sha": ctx.sha,
+        "worktree": ctx.worktree,
+        "depth": options.depth,
+        "miners": sorted(options.miners or []),
+        "ignore": list(ctx.ignore),
+        "maw_license": options.maw_license,
+        "md_budget": ctx.md_budget,
+        "total_budget": options.total_budget,
+        "budget_policy": options.budget_policy,
+    }
+    encoded = json.dumps(identity, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    request_key = hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+    return digests_dir / ".scratch" / ctx.sha / request_key
+
+
 def prepare_context(
     target: Target, options: DigestOptions, *, log: Callable[[str], None] = _noop
 ) -> tuple[MineContext, Path]:
@@ -170,7 +190,6 @@ def prepare_context(
         # have a content identity, they are deliberately non-cacheable rather than stale-prone.
         worktree = "unknown"
 
-    out_dir = options.out or (digests_dir / sha)
     ctx = MineContext(
         root=root,
         sha=sha,
@@ -191,6 +210,12 @@ def prepare_context(
         ignore=ignore,
         worktree=worktree,
     )
+    if options.out is not None:
+        out_dir = options.out
+    elif options.miners is not None:
+        out_dir = _scratch_output_dir(digests_dir, ctx, options)
+    else:
+        out_dir = digests_dir / sha
     return ctx, out_dir
 
 
@@ -541,10 +566,9 @@ def _is_reusable(
 
     The working tree and rendering budget are inputs too. Unknown/non-Git worktrees are not a
     cache identity: two failed probes, or two reads of the same directory path, do not prove the
-    bytes are equal. Every registered miner must have run and completed: a selective
-    ``--miners`` run writes into the same directory as a full one and is not an answer to the
-    full question, and blocked and failed producers are partial evidence. Finally, a healthy
-    producer's declared artifacts must still match the manifest that vouched for them.
+    bytes are equal. Every registered miner must have run and completed for a canonical entry;
+    explicit selective requests are routed to non-canonical scratch output instead. Finally, a
+    healthy producer's declared artifacts must still match the manifest that vouched for them.
     """
     prey = cached.get("prey")
     budget = cached.get("budget")
