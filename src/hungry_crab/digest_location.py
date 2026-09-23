@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -50,8 +51,14 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
 
     legacy = digests_dir / sha
     ref_path = digests_dir / ".refs" / f"{sha}.json"
-    if not ref_path.is_file():
+    try:
+        ref_mode = ref_path.lstat().st_mode
+    except FileNotFoundError:
         return DigestLocation(sha=sha, path=legacy)
+    except OSError as exc:
+        raise CrabError(f"cannot inspect digest ref {ref_path}") from exc
+    if not stat.S_ISREG(ref_mode):
+        raise CrabError(f"invalid digest ref {ref_path}: expected a regular file")
 
     ref = _load_ref(ref_path)
     if ref.get("schema") != REF_SCHEMA:
