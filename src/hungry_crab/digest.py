@@ -117,7 +117,7 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
 
 
 def _scratch_output_dir(digests_dir: Path, ctx: MineContext, options: DigestOptions) -> Path:
-    """Stable non-canonical output for an implicit selective digest request."""
+    """Stable non-canonical output for an implicit non-canonical digest request."""
     identity = {
         "schema": SCHEMA,
         "crab_version": __version__,
@@ -212,7 +212,7 @@ def prepare_context(
     )
     if options.out is not None:
         out_dir = options.out
-    elif options.miners is not None:
+    elif options.miners is not None or worktree != "clean":
         out_dir = _scratch_output_dir(digests_dir, ctx, options)
     else:
         out_dir = digests_dir / sha
