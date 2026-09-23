@@ -63,3 +63,14 @@ def test_present_but_broken_ref_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(CrabError, match="points to missing generation"):
         resolve_canonical_digest(digests, SHA)
+
+
+def test_present_non_file_ref_fails_closed(tmp_path: Path) -> None:
+    digests = tmp_path / "digests"
+    legacy = digests / SHA
+    legacy.mkdir(parents=True)
+    ref_path = digests / ".refs" / f"{SHA}.json"
+    ref_path.mkdir(parents=True)
+
+    with pytest.raises(CrabError, match="expected a regular file"):
+        resolve_canonical_digest(digests, SHA)
