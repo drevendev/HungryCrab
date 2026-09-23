@@ -16,13 +16,15 @@ from .digest_location import DigestLocation, resolve_canonical_digest
 def locate_digest_location(target: Target, options: DigestOptions | None = None) -> DigestLocation:
     """Resolve ``target`` once into its logical SHA and physical digest directory.
 
-    Canonical clean full-digest reads honor an active immutable-generation ref. Explicit
-    outputs, selective runs, and dirty/unknown worktrees are non-canonical and keep the
-    physical path selected by ``prepare_context`` while retaining ``ctx.sha`` as their
-    logical prey identity.
+    The path selected by ``prepare_context`` is authoritative. An implicit selection of
+    the legacy ``<digests>/<sha>`` slot is canonical and may resolve through an active
+    immutable-generation ref. Any other selected path stays non-canonical, including
+    future scratch-routing reasons that this reader does not know about. Explicit outputs
+    remain non-canonical even if the caller makes their path resemble the canonical slot.
     """
     opts = options or DigestOptions()
     ctx, out_dir = prepare_context(target, opts)
-    if opts.out is None and opts.miners is None and ctx.worktree == "clean":
+    selected_canonical = opts.out is None and out_dir == out_dir.parent / ctx.sha
+    if selected_canonical:
         return resolve_canonical_digest(out_dir.parent, ctx.sha)
     return DigestLocation(sha=ctx.sha, path=out_dir)
