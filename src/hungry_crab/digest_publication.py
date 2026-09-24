@@ -1,16 +1,16 @@
 """Writer-side primitives for immutable canonical digest generations.
 
-Canonical readers resolve a small ref to one physical generation.  Writers build into a
-fresh generation and only switch that ref after the generation is complete.  These helpers
-own allocation and the atomic visibility boundary; deciding whether a digest is complete
-remains the digest orchestrator's responsibility.
+Canonical readers resolve a small ref to one physical generation. Writers build into a fresh
+generation and only switch that ref after the generation is complete. These helpers own
+allocation and the atomic visibility boundary; deciding whether a digest is complete remains
+the digest orchestrator's responsibility.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
@@ -60,10 +60,12 @@ def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
     raise CrabError(f"could not allocate a unique digest generation for {sha}")
 
 
-def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -> DigestLocation:
+def publish_digest_generation(
+    digests_dir: Path, generation: DigestGeneration
+) -> DigestLocation:
     """Atomically make an already-complete generation visible to future readers.
 
-    This function deliberately does not remove the previously published generation.  A reader
+    This function deliberately does not remove the previously published generation. A reader
     may have resolved the old path immediately before the ref switch and is allowed to keep that
     snapshot for the rest of its operation.
 
@@ -93,16 +95,14 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
             encoding="utf-8",
             newline="\n",
         )
-        os.replace(temp_path, ref_path)
+        temp_path.replace(ref_path)
     except OSError as exc:
         raise CrabError(
             f"could not publish digest generation {generation.name!r}",
             hint=str(exc),
         ) from exc
     finally:
-        try:
+        with suppress(OSError):
             temp_path.unlink(missing_ok=True)
-        except OSError:
-            pass
 
     return DigestLocation(sha=generation.sha, path=generation.path)
