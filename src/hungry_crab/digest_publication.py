@@ -101,7 +101,12 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
         ) from exc
 
     refs_dir = digests_dir / ".refs"
-    refs_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        refs_dir.mkdir(exist_ok=True)
+        _require_real_directory(refs_dir, label="digest refs root")
+    except OSError as exc:
+        raise CrabError("could not prepare digest refs root", hint=str(exc)) from exc
+
     ref_path = refs_dir / f"{generation.sha}.json"
     temp_path = refs_dir / f".{generation.sha}.{uuid4().hex}.tmp"
     payload = {"schema": REF_SCHEMA, "generation": generation.name}
