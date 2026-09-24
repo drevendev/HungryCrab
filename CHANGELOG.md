@@ -155,6 +155,20 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
+  scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
+  was installed with `uv tool install`, and on a Windows machine whose application control
+  refuses unsigned launchers they existed and did nothing: `crab-cleanroom-guard.exe` exited
+  126, which Claude Code reads as "proceed". Each hook now runs `hooks/guard.py` from
+  `${CLAUDE_PLUGIN_ROOT}` with the first Python the shell finds (`python` first on Windows,
+  `python3` elsewhere), and the launcher imports the guard from the plugin's own `src/` —
+  nothing installed, nothing signed, and always the guard version that shipped with the plugin.
+  Its exit codes are the contract: `2` is a guard's refusal and nothing else; `1` with a reason
+  is "could not guard" — no Python 3.11+, an unreadable source tree — which Claude Code shows
+  and proceeds on, because a hook that blocked every tool call over its own environment would
+  be switched off rather than fixed. An interpreter older than 3.11 hands over to a newer one
+  found on `PATH` or through `uv python find`. The console scripts stay for manual use
+  ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
 - **Codex can install the plugin again.** The Codex presentation shipped as a
   `.codex-plugin/plugin.json` overlay with no `name` and no `version`. When that file exists,
   Codex takes the plugin's identity from it rather than from the root `plugin.json`: a missing

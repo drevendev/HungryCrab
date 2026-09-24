@@ -77,14 +77,23 @@ def test_cleanroom_agent_allows_sibling_with_cache_prefix(monkeypatch, tmp_path:
     assert cleanroom_guard_reason(_event({"file_path": str(sibling)})) is None
 
 
-def test_cleanroom_hook_uses_packaged_guard_executable() -> None:
+def test_cleanroom_hook_runs_the_packaged_guard_through_the_launcher() -> None:
+    """The clean-room hook runs this module from the plugin's own ``src/``.
+
+    ``hooks/guard.py`` maps ``cleanroom`` to the module the ``crab-cleanroom-guard`` console
+    script names, so the hook and the manual command are one guard; the launcher itself is
+    covered in ``tests/test_hooks.py``.
+    """
     hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     handler = hooks["hooks"]["PreToolUse"][0]["hooks"][0]
+    assert '"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"' in handler["command"]
+    assert '"$g" cleanroom;' in handler["command"]
+    assert "args" not in handler
+    launcher = (ROOT / "hooks" / "guard.py").read_text(encoding="utf-8")
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     scripts = pyproject["project"]["scripts"]
-    assert handler["command"] == "crab-cleanroom-guard"
-    assert scripts[handler["command"]] == "hungry_crab.cleanroom_guard:main"
-    assert "args" not in handler
+    assert '"cleanroom": "hungry_crab.cleanroom_guard"' in launcher
+    assert scripts["crab-cleanroom-guard"] == "hungry_crab.cleanroom_guard:main"
 
 
 def test_cleanroom_agent_may_use_maw_and_spec() -> None:

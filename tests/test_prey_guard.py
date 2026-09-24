@@ -110,15 +110,24 @@ def test_non_bash_event_is_outside_this_guard() -> None:
     assert event_guard_reason(event, root=CACHE) is None
 
 
-def test_hook_manifest_uses_the_packaged_guard_executable() -> None:
+def test_hook_manifest_runs_the_packaged_guard_through_the_launcher() -> None:
+    """The Bash hook runs this module, from the plugin's own ``src/``, not a console script.
+
+    ``hooks/guard.py`` maps ``prey`` to the same module the ``crab-prey-guard`` console script
+    names, so the hook and the manual command are one guard; the launcher's own behaviour is
+    covered in ``tests/test_hooks.py``.
+    """
     hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     entry = next(item for item in hooks["hooks"]["PreToolUse"] if item["matcher"] == "Bash")
     handler = entry["hooks"][0]
+    assert '"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"' in handler["command"]
+    assert '"$g" prey;' in handler["command"]
+    assert handler["timeout"] >= 5
+    launcher = (ROOT / "hooks" / "guard.py").read_text(encoding="utf-8")
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     scripts = pyproject["project"]["scripts"]
-    assert handler["command"] == "crab-prey-guard"
-    assert scripts[handler["command"]] == "hungry_crab.prey_guard:main"
-    assert handler["timeout"] == 5
+    assert '"prey": "hungry_crab.prey_guard"' in launcher
+    assert scripts["crab-prey-guard"] == "hungry_crab.prey_guard:main"
 
 
 @pytest.mark.parametrize(

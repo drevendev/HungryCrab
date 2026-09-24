@@ -85,14 +85,13 @@ def test_cleanroom_hook_is_plugin_scoped() -> None:
     hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     pre_tool_use = hooks["hooks"]["PreToolUse"]
     cleanroom = next(
-        entry
-        for entry in pre_tool_use
-        if entry["hooks"][0].get("command") == "crab-cleanroom-guard"
+        entry for entry in pre_tool_use if '"$g" cleanroom;' in entry["hooks"][0].get("command", "")
     )
     assert cleanroom["matcher"] == "Read|Grep|Glob|Write|Edit"
     handler = cleanroom["hooks"][0]
     assert handler["type"] == "command"
-    assert handler["command"] == "crab-cleanroom-guard"
+    # The shell form, run from the plugin root: tests/test_hooks.py covers the launcher.
+    assert '"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"' in handler["command"]
     assert "args" not in handler
 
 
