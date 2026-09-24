@@ -22,10 +22,7 @@ SHA = "a" * 40
 def _write_artifact(path: Path, value: str) -> None:
     manifest = {
         "value": value,
-        "miners": [
-            {"name": name, "ok": True, "status": "ok"}
-            for name in MINER_NAMES
-        ],
+        "miners": [{"name": name, "ok": True, "status": "ok"} for name in MINER_NAMES],
     }
     (path / "manifest.json").write_text(
         json.dumps(manifest, sort_keys=True) + "\n",
