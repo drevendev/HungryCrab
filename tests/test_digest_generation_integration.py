@@ -68,6 +68,35 @@ def test_force_publishes_fresh_generation_without_mutating_previous_snapshot(
     assert first.manifest_path.is_file(), "an already-resolved reader must retain its snapshot"
 
 
+def test_policy_variant_uses_scratch_without_replacing_canonical_snapshot(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    target = Target(path=npm_app)
+    first = run_digest(target, _canonical_options(tmp_path))
+    sha = first.manifest["prey"]["sha"]
+    digests_dir = _digests_dir(first.out_dir)
+    manifest_before = first.manifest_path.read_bytes()
+
+    variant = run_digest(
+        target,
+        DigestOptions(
+            now=FIXED_NOW,
+            cache_root=tmp_path / "cache",
+            total_budget=1,
+            budget_policy="enforce",
+        ),
+    )
+
+    assert not variant.cached
+    assert variant.out_dir.is_relative_to(digests_dir / ".scratch" / sha)
+    assert resolve_canonical_digest(digests_dir, sha).path == first.out_dir
+    assert first.manifest_path.read_bytes() == manifest_before
+
+    again = run_digest(target, _canonical_options(tmp_path))
+    assert again.cached
+    assert again.out_dir == first.out_dir
+
+
 def test_normal_lookup_fails_closed_on_malformed_ref_but_force_repairs_it(
     npm_app: Path, tmp_path: Path
 ) -> None:
