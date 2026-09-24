@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -13,12 +14,24 @@ from hungry_crab.digest_publication import (
     publish_digest_generation,
 )
 from hungry_crab.errors import CrabError
+from hungry_crab.miners import MINER_NAMES
 
 SHA = "a" * 40
 
 
 def _write_artifact(path: Path, value: str) -> None:
-    (path / "manifest.json").write_text(value, encoding="utf-8", newline="\n")
+    manifest = {
+        "value": value,
+        "miners": [
+            {"name": name, "ok": True, "status": "ok"}
+            for name in MINER_NAMES
+        ],
+    }
+    (path / "manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def _symlink_directory(target: Path, link: Path) -> None:
@@ -70,27 +83,28 @@ def test_generation_allocation_rejects_symlinked_sha_root(tmp_path: Path) -> Non
 def test_ref_switch_retains_the_previous_reader_snapshot(tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation_a = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation_a.path, "generation-a\n")
+    _write_artifact(generation_a.path, "generation-a")
     publish_digest_generation(digests, generation_a)
 
     reader_a = resolve_canonical_digest(digests, SHA)
     assert reader_a.path == generation_a.path
 
     generation_b = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation_b.path, "generation-b\n")
+    _write_artifact(generation_b.path, "generation-b")
     publish_digest_generation(digests, generation_b)
 
     reader_b = resolve_canonical_digest(digests, SHA)
     assert reader_b.path == generation_b.path
     assert reader_a.path == generation_a.path
-    assert (reader_a.path / "manifest.json").read_text(encoding="utf-8") == "generation-a\n"
+    manifest_a = json.loads((reader_a.path / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest_a["value"] == "generation-a"
     assert generation_a.path.is_dir(), "publication must not reclaim a live reader snapshot"
 
 
 def test_invalid_new_generation_cannot_replace_the_active_ref(tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation_a = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation_a.path, "generation-a\n")
+    _write_artifact(generation_a.path, "generation-a")
     publish_digest_generation(digests, generation_a)
 
     missing = DigestGeneration(
@@ -109,7 +123,7 @@ def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
     generation = allocate_digest_generation(digests, SHA)
     outside = tmp_path / "outside"
     outside.mkdir()
-    _write_artifact(outside, "outside\n")
+    _write_artifact(outside, "outside")
 
     generation.path.rmdir()
     _symlink_directory(outside, generation.path)
@@ -123,7 +137,7 @@ def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
 def test_refs_root_symlink_cannot_redirect_publication_or_resolution(tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation.path, "complete\n")
+    _write_artifact(generation.path, "complete")
     outside = tmp_path / "outside"
     outside.mkdir()
     _symlink_directory(outside, digests / ".refs")
@@ -145,14 +159,14 @@ def test_refs_root_symlink_cannot_redirect_publication_or_resolution(tmp_path: P
 def test_resolution_rejects_generation_replaced_by_symlink(tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation.path, "complete\n")
+    _write_artifact(generation.path, "complete")
     publish_digest_generation(digests, generation)
 
     (generation.path / "manifest.json").unlink()
     generation.path.rmdir()
     outside = tmp_path / "outside"
     outside.mkdir()
-    _write_artifact(outside, "outside\n")
+    _write_artifact(outside, "outside")
     _symlink_directory(outside, generation.path)
 
     with pytest.raises(CrabError, match="does not resolve to a safe generation"):
@@ -162,7 +176,7 @@ def test_resolution_rejects_generation_replaced_by_symlink(tmp_path: Path) -> No
 def test_publication_ref_is_a_regular_small_pointer_file(tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
-    _write_artifact(generation.path, "complete\n")
+    _write_artifact(generation.path, "complete")
 
     published = publish_digest_generation(digests, generation)
     ref_path = digests / ".refs" / f"{SHA}.json"
