@@ -101,23 +101,33 @@ def test_force_repairs_ref_to_missing_generation(npm_app: Path, tmp_path: Path) 
     assert resolve_canonical_digest(digests_dir, sha).path == repaired.out_dir
 
 
-def test_failed_rebuild_leaves_previous_generation_active(
+def test_failed_miner_rebuild_leaves_previous_generation_active(
     npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     target = Target(path=npm_app)
     first = run_digest(target, _canonical_options(tmp_path))
     sha = first.manifest["prey"]["sha"]
     digests_dir = _digests_dir(first.out_dir)
+    generations_dir = digests_dir / ".generations" / sha
+    before_generations = set(generations_dir.iterdir())
+    manifest_before = first.manifest_path.read_bytes()
 
-    def fail_manifest(*args: object, **kwargs: object) -> dict[str, object]:
-        raise RuntimeError("injected build failure")
+    def fail_inventory(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("injected miner failure")
 
-    monkeypatch.setattr("hungry_crab.digest.build_manifest", fail_manifest)
-    with pytest.raises(RuntimeError, match="injected build failure"):
+    monkeypatch.setattr("hungry_crab.miners.inventory.InventoryMiner.run", fail_inventory)
+    with pytest.raises(CrabError, match="cannot publish incomplete digest generation"):
         run_digest(target, _canonical_options(tmp_path, force=True))
 
+    after_generations = set(generations_dir.iterdir())
+    failed_generations = after_generations - before_generations
+    assert len(failed_generations) == 1
+    failed_generation = failed_generations.pop()
+    failed_manifest = json.loads((failed_generation / "manifest.json").read_text(encoding="utf-8"))
+    inventory = next(record for record in failed_manifest["miners"] if record["name"] == "inventory")
+    assert inventory["status"] == "failed"
     assert resolve_canonical_digest(digests_dir, sha).path == first.out_dir
-    assert first.manifest_path.is_file()
+    assert first.manifest_path.read_bytes() == manifest_before
 
 
 def test_force_does_not_write_through_unsafe_refs_root(npm_app: Path, tmp_path: Path) -> None:
