@@ -60,9 +60,7 @@ def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
     raise CrabError(f"could not allocate a unique digest generation for {sha}")
 
 
-def publish_digest_generation(
-    digests_dir: Path, generation: DigestGeneration
-) -> DigestLocation:
+def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -> DigestLocation:
     """Atomically make an already-complete generation visible to future readers.
 
     This function deliberately does not remove the previously published generation. A reader
