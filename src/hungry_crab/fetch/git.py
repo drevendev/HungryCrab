@@ -143,8 +143,9 @@ class GitRunner:
         return "HEAD"
 
     def is_shallow(self) -> bool:
+        """Whether history provenance is incomplete or cannot be established safely."""
         out = self.try_run("rev-parse", "--is-shallow-repository")
-        return (out or "").strip() == "true"
+        return (out or "").strip() != "false"
 
     def has_commits(self) -> bool:
         return self.ok("rev-parse", "--verify", "-q", "HEAD")
