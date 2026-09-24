@@ -49,7 +49,9 @@ def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
         parent.mkdir(exist_ok=True)
         _require_real_directory(parent, label="digest SHA generation root")
     except OSError as exc:
-        raise CrabError(f"could not prepare digest generation root for {sha}", hint=str(exc)) from exc
+        raise CrabError(
+            f"could not prepare digest generation root for {sha}", hint=str(exc)
+        ) from exc
 
     # UUID collisions are already vanishingly unlikely, but mkdir(exist_ok=False) is the
     # ownership primitive: a previously used generation path is never reopened for mutation.
