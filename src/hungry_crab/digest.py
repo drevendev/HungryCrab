@@ -28,6 +28,8 @@ from .budget import (
 )
 from .cache import Target, maw_paths, prey_paths
 from .digest_integrity import digest_integrity_errors
+from .digest_location import resolve_canonical_digest
+from .digest_publication import allocate_digest_generation, publish_digest_generation
 from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
@@ -136,6 +138,21 @@ def _scratch_output_dir(digests_dir: Path, ctx: MineContext, options: DigestOpti
     return digests_dir / ".scratch" / ctx.sha / request_key
 
 
+def _is_canonical_request(ctx: MineContext, options: DigestOptions) -> bool:
+    """Whether one request matches the single shared canonical digest contract."""
+    return (
+        options.out is None
+        and options.miners is None
+        and ctx.worktree == "clean"
+        and options.depth == "normal"
+        and not ctx.ignore
+        and options.maw_license is None
+        and ctx.md_budget == MD_BUDGET["normal"]
+        and options.total_budget == TOTAL_BUDGET
+        and options.budget_policy == "warn"
+    )
+
+
 def prepare_context(
     target: Target, options: DigestOptions, *, log: Callable[[str], None] = _noop
 ) -> tuple[MineContext, Path]:
@@ -212,7 +229,7 @@ def prepare_context(
     )
     if options.out is not None:
         out_dir = options.out
-    elif options.miners is not None or worktree != "clean":
+    elif not _is_canonical_request(ctx, options):
         out_dir = _scratch_output_dir(digests_dir, ctx, options)
     else:
         out_dir = digests_dir / sha
@@ -627,21 +644,43 @@ def run_digest(
         raise CrabError(
             "markdown budget per file must be positive", hint="--md-budget takes a token count"
         )
-    ctx, out_dir = prepare_context(target, opts, log=log)
-    manifest_path = out_dir / MANIFEST_NAME
+    ctx, requested_out_dir = prepare_context(target, opts, log=log)
+    canonical = _is_canonical_request(ctx, opts)
+    digests_dir = requested_out_dir.parent if canonical else None
+
     if not opts.force:
-        cached = _load_json(manifest_path)
-        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts, out_dir):
-            log(f"digest for {ctx.label}@{ctx.short_sha} is cached at {out_dir}")
-            return DigestResult(out_dir, cached, cached=True)
+        cache_dir = requested_out_dir
+        if canonical:
+            assert digests_dir is not None
+            cache_dir = resolve_canonical_digest(digests_dir, ctx.sha).path
+        cached = _load_json(cache_dir / MANIFEST_NAME)
+        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts, cache_dir):
+            log(f"digest for {ctx.label}@{ctx.short_sha} is cached at {cache_dir}")
+            return DigestResult(cache_dir, cached, cached=True)
+
     try:
         miners = select_miners(opts.miners)
     except ValueError as exc:
         raise CrabError(str(exc)) from exc
-    out_dir.mkdir(parents=True, exist_ok=True)
+
+    generation = None
+    out_dir = requested_out_dir
+    if canonical:
+        assert digests_dir is not None
+        generation = allocate_digest_generation(digests_dir, ctx.sha)
+        out_dir = generation.path
+    else:
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest_path = out_dir / MANIFEST_NAME
     log(f"digesting {ctx.label}@{ctx.short_sha} ({opts.depth}) into {out_dir}")
     started = perf_counter()
     records = run_miners(ctx, miners, out_dir, log=log)
     manifest = build_manifest(ctx, records, out_dir, opts, perf_counter() - started)
     _write_json(manifest_path, manifest)
+
+    if generation is not None:
+        assert digests_dir is not None
+        publish_digest_generation(digests_dir, generation)
+
     return DigestResult(out_dir, manifest, cached=False)

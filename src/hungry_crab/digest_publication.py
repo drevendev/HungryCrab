@@ -2,8 +2,8 @@
 
 Canonical readers resolve a small ref to one physical generation. Writers build into a fresh
 generation and only switch that ref after the generation is complete. These helpers own
-allocation and the atomic visibility boundary; deciding whether a digest is complete remains
-the digest orchestrator's responsibility.
+allocation and the atomic visibility boundary, including the final producer-health check that
+prevents an incomplete generation from becoming authoritative.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from uuid import uuid4
 
 from .digest_location import REF_SCHEMA, DigestLocation, _require_real_directory
 from .errors import CrabError
+from .miners import MINER_NAMES
 
 _SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
@@ -33,6 +34,50 @@ class DigestGeneration:
 def _require_safe_component(value: str, *, label: str) -> None:
     if not _SAFE_COMPONENT.fullmatch(value):
         raise CrabError(f"invalid canonical digest {label} {value!r}")
+
+
+def _require_complete_manifest(generation: DigestGeneration) -> None:
+    """Fail closed unless every registered producer completed successfully."""
+    manifest_path = generation.path / "manifest.json"
+    try:
+        loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise CrabError(
+            "cannot publish digest generation without a readable manifest",
+            hint=str(exc),
+        ) from exc
+    if not isinstance(loaded, dict):
+        raise CrabError("cannot publish digest generation with an invalid manifest")
+
+    records = loaded.get("miners")
+    if not isinstance(records, list):
+        raise CrabError(
+            "cannot publish incomplete digest generation",
+            hint="manifest has no miners list",
+        )
+
+    by_name = {
+        str(record.get("name")): record
+        for record in records
+        if isinstance(record, dict) and record.get("name") is not None
+    }
+    missing = [name for name in MINER_NAMES if name not in by_name]
+    unhealthy = [
+        name
+        for name in MINER_NAMES
+        if name in by_name
+        and (by_name[name].get("ok") is not True or by_name[name].get("status", "ok") != "ok")
+    ]
+    if missing or unhealthy:
+        details: list[str] = []
+        if missing:
+            details.append(f"missing producers: {', '.join(missing)}")
+        if unhealthy:
+            details.append(f"incomplete producers: {', '.join(unhealthy)}")
+        raise CrabError(
+            "cannot publish incomplete digest generation",
+            hint="; ".join(details),
+        )
 
 
 def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
@@ -74,14 +119,15 @@ def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
 
 
 def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -> DigestLocation:
-    """Atomically make an already-complete generation visible to future readers.
+    """Atomically make one complete generation visible to future readers.
 
     This function deliberately does not remove the previously published generation. A reader
     may have resolved the old path immediately before the ref switch and is allowed to keep that
     snapshot for the rest of its operation.
 
     The ref replacement is an atomic visibility boundary, not a claim of power-loss durability.
-    The caller must validate completeness before calling this function.
+    A generation must also contain a readable manifest proving every registered producer
+    completed successfully before the ref may advance.
     """
     _require_safe_component(generation.sha, label="sha")
     _require_safe_component(generation.name, label="generation")
@@ -99,6 +145,8 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
             f"cannot publish unsafe digest generation {generation.name!r}",
             hint="build and validate a real generation directory before publishing it",
         ) from exc
+
+    _require_complete_manifest(generation)
 
     refs_dir = digests_dir / ".refs"
     try:
