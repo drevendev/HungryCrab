@@ -29,6 +29,18 @@ class DigestLocation:
     path: Path
 
 
+def _require_real_directory(path: Path, *, label: str) -> None:
+    """Require one cache-path component to be a directory itself, never a symlink."""
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError as exc:
+        raise CrabError(f"missing {label} {path}") from exc
+    except OSError as exc:
+        raise CrabError(f"cannot inspect {label} {path}", hint=str(exc)) from exc
+    if not stat.S_ISDIR(mode):
+        raise CrabError(f"invalid {label} {path}: expected a real directory")
+
+
 def _load_ref(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -42,15 +54,24 @@ def _load_ref(path: Path) -> dict[str, Any]:
 def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
     """Resolve ``sha`` once, preferring an active immutable generation when declared.
 
-    Old caches have no ref and remain readable at ``digests/<sha>/``.  Once a ref exists it is
-    authoritative: malformed refs or missing generations fail closed rather than silently
-    falling back to a potentially stale legacy directory.
+    Old caches have no ref and remain readable at ``digests/<sha>/``.  Once the refs root exists
+    it is cache-owned and must itself be a real directory.  Once a ref exists it is authoritative:
+    malformed refs or missing generations fail closed rather than silently falling back to a
+    potentially stale legacy directory.
     """
     if not _SAFE_NAME.fullmatch(sha):
         raise CrabError(f"invalid digest identity {sha!r}")
 
     legacy = digests_dir / sha
-    ref_path = digests_dir / ".refs" / f"{sha}.json"
+    refs_dir = digests_dir / ".refs"
+    try:
+        _require_real_directory(refs_dir, label="digest refs root")
+    except CrabError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return DigestLocation(sha=sha, path=legacy)
+        raise
+
+    ref_path = refs_dir / f"{sha}.json"
     try:
         ref_mode = ref_path.lstat().st_mode
     except FileNotFoundError:
@@ -67,10 +88,21 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
     if not isinstance(generation, str) or not _SAFE_NAME.fullmatch(generation):
         raise CrabError(f"invalid digest ref {ref_path}: invalid generation")
 
-    generation_dir = digests_dir / ".generations" / sha / generation
-    if not generation_dir.is_dir():
+    generations_dir = digests_dir / ".generations"
+    sha_dir = generations_dir / sha
+    generation_dir = sha_dir / generation
+    try:
+        _require_real_directory(generations_dir, label="digest generations root")
+        _require_real_directory(sha_dir, label="digest SHA generation root")
+        _require_real_directory(generation_dir, label="digest generation")
+    except CrabError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            raise CrabError(
+                f"digest ref {ref_path} points to missing generation {generation!r}",
+                hint="re-run the digest to publish a complete canonical generation",
+            ) from exc
         raise CrabError(
-            f"digest ref {ref_path} points to missing generation {generation!r}",
-            hint="re-run the digest to publish a complete canonical generation",
-        )
+            f"digest ref {ref_path} does not resolve to a safe generation {generation!r}",
+            hint="canonical generation path components must be real directories, not symlinks",
+        ) from exc
     return DigestLocation(sha=sha, path=generation_dir)
