@@ -140,7 +140,8 @@ def test_local_digest_defaults_to_the_maws_cache(npm_app: Path, tmp_path: Path) 
         Target(path=npm_app), DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache")
     )
     assert result.out_dir.is_relative_to(tmp_path / "cache" / "maws")
-    assert result.out_dir.name == result.manifest["prey"]["sha"]
+    assert result.out_dir.parent.name == result.manifest["prey"]["sha"]
+    assert result.out_dir.parent.parent.name == ".generations"
 
 
 def test_subset_of_miners(npm_app: Path, tmp_path: Path) -> None:
