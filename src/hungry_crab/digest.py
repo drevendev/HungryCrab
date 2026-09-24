@@ -144,6 +144,7 @@ def _is_canonical_request(ctx: MineContext, options: DigestOptions) -> bool:
         options.out is None
         and options.miners is None
         and ctx.worktree == "clean"
+        and not ctx.shallow
         and options.depth == "normal"
         and not ctx.ignore
         and options.maw_license is None
