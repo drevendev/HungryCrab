@@ -123,9 +123,7 @@ def test_failed_miner_rebuild_leaves_previous_generation_active(
     failed_generations = after_generations - before_generations
     assert len(failed_generations) == 1
     failed_generation = failed_generations.pop()
-    failed_manifest = json.loads(
-        (failed_generation / "manifest.json").read_text(encoding="utf-8")
-    )
+    failed_manifest = json.loads((failed_generation / "manifest.json").read_text(encoding="utf-8"))
     inventory = next(
         record for record in failed_manifest["miners"] if record["name"] == "inventory"
     )
