@@ -44,7 +44,9 @@ authority when a document disagrees with it. The decisions log is at the end of
   `license`, `serve`, `cleanroom`), the subagents (`crab-historian`, `crab-architect`,
   `crab-cleanroom-impl`), the `/crab:sniff` and `/crab:menu` commands, the two `PreToolUse`
   hooks, and the plugin plus marketplace manifests — Claude Code's under `.claude-plugin/`,
-  Codex's as the root `plugin.json`, `.codex-plugin/` and `.agents/plugins/`.
+  Codex's as the root `plugin.json` (identity, and the presentation under
+  `extensions.com.openai`; never a `.codex-plugin/plugin.json`, which would override the name
+  and version), `.codex-plugin/assets/` and `.agents/plugins/`.
   `tests/test_plugin.py` and `tests/test_agent_plugin.py` keep them well-formed.
 - `tests/fixtures/`: three synthetic repositories; `tests/fixture_builder.py` turns them into real
   git repositories with history, tags and branches.

@@ -295,8 +295,9 @@ commenters. This is a compliance aid, not legal advice.
   refuses a Bash command that touches the prey cache unless it is one of a few audited
   read-only shapes, and `crab-cleanroom-guard` keeps the clean-room implementer out of the
   cache altogether. They guard the Bash tool only, need their console scripts on `PATH`, and
-  are inert — not failing, inert — when those are missing; Codex asks you to trust plugin hooks
-  before it runs them. Their wiring has not yet been observed in a live session
+  are inert — not failing, inert — when those are missing. Codex does not run them at all: a
+  plugin with a root `plugin.json` is loaded through its Agent Plugins loader, which has no hook
+  support (openai/codex#39895). Their wiring has not yet been observed in a live session
   ([#83](https://github.com/drevendev/HungryCrab/issues/83),
   [#141](https://github.com/drevendev/HungryCrab/issues/141)).
 
