@@ -87,8 +87,13 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
         _require_real_directory(sha_dir, label="digest SHA generation root")
         _require_real_directory(generation_dir, label="digest generation")
     except CrabError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            raise CrabError(
+                f"digest ref {ref_path} points to missing generation {generation!r}",
+                hint="re-run the digest to publish a complete canonical generation",
+            ) from exc
         raise CrabError(
             f"digest ref {ref_path} does not resolve to a safe generation {generation!r}",
-            hint="re-run the digest to publish a complete canonical generation",
+            hint="canonical generation path components must be real directories, not symlinks",
         ) from exc
     return DigestLocation(sha=sha, path=generation_dir)
