@@ -49,7 +49,7 @@ def test_ref_switch_retains_the_previous_reader_snapshot(tmp_path: Path) -> None
     reader_b = resolve_canonical_digest(digests, SHA)
     assert reader_b.path == generation_b.path
     assert reader_a.path == generation_a.path
-    assert reader_a.path.read_text(encoding="utf-8") == "generation-a\n"
+    assert (reader_a.path / "manifest.json").read_text(encoding="utf-8") == "generation-a\n"
     assert generation_a.path.is_dir(), "publication must not reclaim a live reader snapshot"
 
 
