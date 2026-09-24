@@ -43,7 +43,9 @@ def test_shallow_history_stays_scratch_until_full_history_is_available(
     assert again.out_dir == full.out_dir
 
 
-def test_unknown_shallow_probe_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unknown_shallow_probe_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     runner = GitRunner(tmp_path)
 
     def unavailable(*args: str, timeout: float | None = None) -> str | None:
