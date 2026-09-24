@@ -51,7 +51,10 @@ def _require_complete_manifest(generation: DigestGeneration) -> None:
 
     records = loaded.get("miners")
     if not isinstance(records, list):
-        raise CrabError("cannot publish incomplete digest generation", hint="manifest has no miners list")
+        raise CrabError(
+            "cannot publish incomplete digest generation",
+            hint="manifest has no miners list",
+        )
 
     by_name = {
         str(record.get("name")): record
