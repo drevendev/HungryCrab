@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
-from .digest_location import REF_SCHEMA, DigestLocation
+from .digest_location import REF_SCHEMA, DigestLocation, _require_real_directory
 from .errors import CrabError
 
 _SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -38,8 +38,18 @@ def _require_safe_component(value: str, *, label: str) -> None:
 def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
     """Allocate a never-reused physical generation directory for one logical digest."""
     _require_safe_component(sha, label="sha")
-    parent = digests_dir / ".generations" / sha
-    parent.mkdir(parents=True, exist_ok=True)
+    generations_dir = digests_dir / ".generations"
+    parent = generations_dir / sha
+    try:
+        # ``digests_dir`` is the configured trusted root. Every cache-owned component below it
+        # is inspected with lstat before we descend into the next component.
+        digests_dir.mkdir(parents=True, exist_ok=True)
+        generations_dir.mkdir(exist_ok=True)
+        _require_real_directory(generations_dir, label="digest generations root")
+        parent.mkdir(exist_ok=True)
+        _require_real_directory(parent, label="digest SHA generation root")
+    except OSError as exc:
+        raise CrabError(f"could not prepare digest generation root for {sha}", hint=str(exc)) from exc
 
     # UUID collisions are already vanishingly unlikely, but mkdir(exist_ok=False) is the
     # ownership primitive: a previously used generation path is never reopened for mutation.
@@ -48,6 +58,7 @@ def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
         path = parent / name
         try:
             path.mkdir()
+            _require_real_directory(path, label="digest generation")
         except FileExistsError:
             continue
         except OSError as exc:
@@ -72,14 +83,20 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
     """
     _require_safe_component(generation.sha, label="sha")
     _require_safe_component(generation.name, label="generation")
-    expected = digests_dir / ".generations" / generation.sha / generation.name
+    generations_dir = digests_dir / ".generations"
+    sha_dir = generations_dir / generation.sha
+    expected = sha_dir / generation.name
     if generation.path != expected:
         raise CrabError("digest generation path does not match its canonical identity")
-    if not generation.path.is_dir():
+    try:
+        _require_real_directory(generations_dir, label="digest generations root")
+        _require_real_directory(sha_dir, label="digest SHA generation root")
+        _require_real_directory(generation.path, label="digest generation")
+    except CrabError as exc:
         raise CrabError(
-            f"cannot publish missing digest generation {generation.name!r}",
-            hint="build and validate the generation before publishing it",
-        )
+            f"cannot publish unsafe digest generation {generation.name!r}",
+            hint="build and validate a real generation directory before publishing it",
+        ) from exc
 
     refs_dir = digests_dir / ".refs"
     refs_dir.mkdir(parents=True, exist_ok=True)
