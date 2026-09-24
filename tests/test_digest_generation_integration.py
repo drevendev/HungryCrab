@@ -123,8 +123,12 @@ def test_failed_miner_rebuild_leaves_previous_generation_active(
     failed_generations = after_generations - before_generations
     assert len(failed_generations) == 1
     failed_generation = failed_generations.pop()
-    failed_manifest = json.loads((failed_generation / "manifest.json").read_text(encoding="utf-8"))
-    inventory = next(record for record in failed_manifest["miners"] if record["name"] == "inventory")
+    failed_manifest = json.loads(
+        (failed_generation / "manifest.json").read_text(encoding="utf-8")
+    )
+    inventory = next(
+        record for record in failed_manifest["miners"] if record["name"] == "inventory"
+    )
     assert inventory["status"] == "failed"
     assert resolve_canonical_digest(digests_dir, sha).path == first.out_dir
     assert first.manifest_path.read_bytes() == manifest_before
