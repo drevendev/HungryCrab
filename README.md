@@ -95,9 +95,10 @@ codex plugin add crab@hungry-crab
 
 Restart the agent session afterwards so it picks the plugin up. Cursor and anything else that
 reads the open `SKILL.md` format can use the `skills/` folder of this repository directly; the
-only hard requirement is `crab` on `PATH` — and, for the two safety hooks to do anything,
-`crab-prey-guard` and `crab-cleanroom-guard` next to it, which `uv tool install` provides and a
-plugin-only install does not ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
+only hard requirement is `crab` on `PATH`. The two safety hooks need no install of their own:
+each runs `hooks/guard.py` from the plugin with the first Python 3.11+ the shell finds
+(`python`, `python3`, or one `uv python find` knows), and the launcher imports the guard from
+the plugin's own `src/`, so a plugin-only install is guarded too.
 
 To see what is out of date across the CLI and every agent you have, ask the crab:
 
@@ -294,11 +295,14 @@ commenters. This is a compliance aid, not legal advice.
 - **Two `PreToolUse` hooks make the first rule mechanical in Claude Code.** `crab-prey-guard`
   refuses a Bash command that touches the prey cache unless it is one of a few audited
   read-only shapes, and `crab-cleanroom-guard` keeps the clean-room implementer out of the
-  cache altogether. They guard the Bash tool only, need their console scripts on `PATH`, and
-  are inert — not failing, inert — when those are missing. Codex does not run them at all: a
-  plugin with a root `plugin.json` is loaded through its Agent Plugins loader, which has no hook
-  support (openai/codex#39895). Their wiring has not yet been observed in a live session
-  ([#83](https://github.com/drevendev/HungryCrab/issues/83),
+  cache altogether. They guard the Bash tool only. They run from the plugin's own source tree
+  through `hooks/guard.py`, with the first Python 3.11+ the shell finds, so nothing has to be
+  installed or signed for them; when not even an interpreter is there, the hook says so and the
+  call proceeds, because a guard that blocked every call over its own setup would be switched
+  off rather than fixed. Codex does not run them at all: a plugin with a root `plugin.json` is
+  loaded through its Agent Plugins loader, which has no hook support (openai/codex#39895). The
+  prey guard has been observed refusing a command in a live session; the clean-room guard has
+  not yet ([#83](https://github.com/drevendev/HungryCrab/issues/83),
   [#141](https://github.com/drevendev/HungryCrab/issues/141)).
 
 ## Benchmarks

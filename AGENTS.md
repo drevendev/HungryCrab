@@ -20,7 +20,9 @@ authority when a document disagrees with it. The decisions log is at the end of
 - `src/hungry_crab/prey_guard.py`: fail-closed `PreToolUse` decision logic for shell commands
   that touch the prey cache; only a small audited read-only command surface is allowed.
   `cleanroom_guard.py` is the second hook, which keeps the clean-room implementer out of the
-  cache. Both are wired in `hooks/hooks.json` and need their console scripts on PATH.
+  cache. Both are wired in `hooks/hooks.json`, which runs `hooks/guard.py` from the plugin root
+  with the first Python the shell finds; the launcher imports them from `src/`, so no console
+  script is needed. Nothing in that launcher may exit 2 except a guard's refusal.
 - `src/hungry_crab/updater.py`: `crab update`, which checks the CLI and the agent plugins against
   master. It must never reinstall the CLI in-process: uv cannot replace a running tool on Windows
   and leaves it broken.

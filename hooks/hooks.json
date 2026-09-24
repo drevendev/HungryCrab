@@ -1,5 +1,5 @@
 {
-  "description": "Keep clean-room work away from prey and block unsafe prey-cache shell commands.",
+  "description": "Keep clean-room work away from prey and block unsafe prey-cache shell commands. Each hook runs hooks/guard.py from the plugin root with the first Python the shell finds; the launcher imports the guard from the plugin's own src/, so nothing has to be installed. Exit 2 is a guard's refusal and nothing else; a launcher that cannot run says so and exits 1, which Claude Code shows and proceeds on.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "crab-cleanroom-guard",
-            "timeout": 5
+            "command": "g=\"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py\"; [ -f \"$g\" ] || { echo \"crab: guard launcher missing at $g; the tool call proceeds unguarded\" >&2; exit 1; }; case \"$(uname -s 2>/dev/null)\" in MINGW*|MSYS*|CYGWIN*) c=\"python python3\";; *) c=\"python3 python\";; esac; for p in $c; do command -v \"$p\" >/dev/null 2>&1 && exec \"$p\" -I \"$g\" cleanroom; done; echo \"crab: no python on PATH to run the clean-room guard; the tool call proceeds unguarded\" >&2; exit 1",
+            "timeout": 10
           }
         ]
       },
@@ -17,8 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "crab-prey-guard",
-            "timeout": 5
+            "command": "g=\"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py\"; [ -f \"$g\" ] || { echo \"crab: guard launcher missing at $g; the tool call proceeds unguarded\" >&2; exit 1; }; case \"$(uname -s 2>/dev/null)\" in MINGW*|MSYS*|CYGWIN*) c=\"python python3\";; *) c=\"python3 python\";; esac; for p in $c; do command -v \"$p\" >/dev/null 2>&1 && exec \"$p\" -I \"$g\" prey; done; echo \"crab: no python on PATH to run the prey guard; the tool call proceeds unguarded\" >&2; exit 1",
+            "timeout": 10
           }
         ]
       }
