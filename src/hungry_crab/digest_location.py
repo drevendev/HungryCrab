@@ -54,15 +54,24 @@ def _load_ref(path: Path) -> dict[str, Any]:
 def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
     """Resolve ``sha`` once, preferring an active immutable generation when declared.
 
-    Old caches have no ref and remain readable at ``digests/<sha>/``.  Once a ref exists it is
-    authoritative: malformed refs or missing generations fail closed rather than silently
-    falling back to a potentially stale legacy directory.
+    Old caches have no ref and remain readable at ``digests/<sha>/``.  Once the refs root exists
+    it is cache-owned and must itself be a real directory.  Once a ref exists it is authoritative:
+    malformed refs or missing generations fail closed rather than silently falling back to a
+    potentially stale legacy directory.
     """
     if not _SAFE_NAME.fullmatch(sha):
         raise CrabError(f"invalid digest identity {sha!r}")
 
     legacy = digests_dir / sha
-    ref_path = digests_dir / ".refs" / f"{sha}.json"
+    refs_dir = digests_dir / ".refs"
+    try:
+        _require_real_directory(refs_dir, label="digest refs root")
+    except CrabError as exc:
+        if isinstance(exc.__cause__, FileNotFoundError):
+            return DigestLocation(sha=sha, path=legacy)
+        raise
+
+    ref_path = refs_dir / f"{sha}.json"
     try:
         ref_mode = ref_path.lstat().st_mode
     except FileNotFoundError:
