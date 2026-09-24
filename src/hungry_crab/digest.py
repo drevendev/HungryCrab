@@ -138,6 +138,21 @@ def _scratch_output_dir(digests_dir: Path, ctx: MineContext, options: DigestOpti
     return digests_dir / ".scratch" / ctx.sha / request_key
 
 
+def _is_canonical_request(ctx: MineContext, options: DigestOptions) -> bool:
+    """Whether one request matches the single shared canonical digest contract."""
+    return (
+        options.out is None
+        and options.miners is None
+        and ctx.worktree == "clean"
+        and options.depth == "normal"
+        and not ctx.ignore
+        and options.maw_license is None
+        and ctx.md_budget == MD_BUDGET["normal"]
+        and options.total_budget == TOTAL_BUDGET
+        and options.budget_policy == "warn"
+    )
+
+
 def prepare_context(
     target: Target, options: DigestOptions, *, log: Callable[[str], None] = _noop
 ) -> tuple[MineContext, Path]:
@@ -214,7 +229,7 @@ def prepare_context(
     )
     if options.out is not None:
         out_dir = options.out
-    elif options.miners is not None or worktree != "clean":
+    elif not _is_canonical_request(ctx, options):
         out_dir = _scratch_output_dir(digests_dir, ctx, options)
     else:
         out_dir = digests_dir / sha
@@ -630,7 +645,7 @@ def run_digest(
             "markdown budget per file must be positive", hint="--md-budget takes a token count"
         )
     ctx, requested_out_dir = prepare_context(target, opts, log=log)
-    canonical = opts.out is None and opts.miners is None and ctx.worktree == "clean"
+    canonical = _is_canonical_request(ctx, opts)
     digests_dir = requested_out_dir.parent if canonical else None
 
     if not opts.force:
