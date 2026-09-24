@@ -66,10 +66,7 @@ def _require_complete_manifest(generation: DigestGeneration) -> None:
         name
         for name in MINER_NAMES
         if name in by_name
-        and (
-            by_name[name].get("ok") is not True
-            or by_name[name].get("status", "ok") != "ok"
-        )
+        and (by_name[name].get("ok") is not True or by_name[name].get("status", "ok") != "ok")
     ]
     if missing or unhealthy:
         details: list[str] = []
