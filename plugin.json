@@ -10,5 +10,25 @@
   "homepage": "https://github.com/drevendev/HungryCrab",
   "repository": "https://github.com/drevendev/HungryCrab",
   "license": "MIT",
-  "keywords": ["repository-mining", "license-compliance", "agent-skills", "nutrients"]
+  "keywords": ["repository-mining", "license-compliance", "agent-skills", "nutrients"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Hungry Crab",
+        "shortDescription": "Digest repositories into safe, useful nutrients.",
+        "longDescription": "Inspect foreign repositories, build deterministic digests, compare useful patterns, and carry ideas forward with explicit license-aware guidance.",
+        "developerName": "Dreven",
+        "category": "Developer Tools",
+        "capabilities": ["Interactive", "Read", "Write"],
+        "websiteURL": "https://github.com/drevendev/HungryCrab",
+        "defaultPrompt": [
+          "Digest this repository with Hungry Crab.",
+          "Compare this project with a useful prey repository."
+        ],
+        "brandColor": "#D22F27",
+        "composerIcon": "./.codex-plugin/assets/openmoji-crab.svg",
+        "logo": "./.codex-plugin/assets/openmoji-crab.svg"
+      }
+    }
+  }
 }

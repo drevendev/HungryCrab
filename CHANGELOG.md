@@ -51,9 +51,10 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   [#65](https://github.com/drevendev/HungryCrab/issues/65),
   [#67](https://github.com/drevendev/HungryCrab/issues/67), #80, #113, #114).
 - **Codex now gets native Hungry Crab branding without borrowing Claude's manifest as its identity.**
-  A portable Agent Plugins v1 `plugin.json` carries the repository and version, a Codex overlay
-  supplies the red crab presentation and website, and `.agents/plugins/marketplace.json` installs
-  the repository root without duplicating the existing skills. The temporary OpenMoji crab keeps
+  A portable Agent Plugins v1 `plugin.json` carries the repository, the version and, under
+  `extensions.com.openai`, the red crab presentation and website, and
+  `.agents/plugins/marketplace.json` installs the repository root without duplicating the
+  existing skills. The temporary OpenMoji crab keeps
   its adjacent CC BY-SA 4.0 attribution. `crab update` now reads Claude and Codex manifest versions
   separately, so one drifting manifest cannot make the other agent look current
   ([#99](https://github.com/drevendev/HungryCrab/issues/99)).
@@ -154,6 +155,19 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Codex can install the plugin again.** The Codex presentation shipped as a
+  `.codex-plugin/plugin.json` overlay with no `name` and no `version`. When that file exists,
+  Codex takes the plugin's identity from it rather than from the root `plugin.json`: a missing
+  name falls back to the directory the marketplace snapshot was checked out into, `hungry-crab`,
+  and a missing version to `local`, so `codex plugin add crab@hungry-crab` and every
+  `codex plugin marketplace upgrade hungry-crab` since #118 stopped with "plugin.json name
+  `hungry-crab` does not match marketplace plugin name `crab`". The overlay is gone: the
+  presentation lives under `extensions.com.openai` in the portable `plugin.json`, which Codex's
+  documentation names as the overlay's replacement, the name and version stay in the one file
+  `crab update` already reads, and a test refuses the overlay's return. Hooks are a separate
+  matter — a plugin with a root manifest goes through Codex's Agent Plugins loader, which has no
+  hook support (openai/codex#39895), so the two guards stay Claude Code's until Codex wires them
+  ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
 - **A selective run is not a complete digest, and enforcement drops pages from the tail.**
   `crab digest <prey> --miners license` writes into the same `digests/<sha>` entry as a full
   run and cleans the other miners' files out of it; the next `crab compare` then reused that
