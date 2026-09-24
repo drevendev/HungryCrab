@@ -144,6 +144,7 @@ def _is_canonical_request(ctx: MineContext, options: DigestOptions) -> bool:
         options.out is None
         and options.miners is None
         and ctx.worktree == "clean"
+        and not ctx.shallow
         and options.depth == "normal"
         and not ctx.ignore
         and options.maw_license is None
@@ -598,6 +599,7 @@ def _is_reusable(
         cached.get("schema") == SCHEMA
         and cached.get("crab_version") == __version__
         and prey.get("sha") == ctx.sha
+        and prey.get("shallow") is False
         and cached_worktree == ctx.worktree
         and cached.get("depth") == options.depth
         and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
