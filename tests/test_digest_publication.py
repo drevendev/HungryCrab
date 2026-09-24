@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hungry_crab.digest_location import resolve_canonical_digest
+from hungry_crab.digest_location import REF_SCHEMA, resolve_canonical_digest
 from hungry_crab.digest_publication import (
     DigestGeneration,
     allocate_digest_generation,
@@ -118,6 +118,28 @@ def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
         publish_digest_generation(digests, generation)
 
     assert not (digests / ".refs" / f"{SHA}.json").exists()
+
+
+def test_refs_root_symlink_cannot_redirect_publication_or_resolution(tmp_path: Path) -> None:
+    digests = tmp_path / "digests"
+    generation = allocate_digest_generation(digests, SHA)
+    _write_artifact(generation.path, "complete\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _symlink_directory(outside, digests / ".refs")
+
+    with pytest.raises(CrabError, match="digest refs root"):
+        publish_digest_generation(digests, generation)
+
+    assert not list(outside.iterdir()), "publication must not write through a refs symlink"
+
+    (outside / f"{SHA}.json").write_text(
+        f'{{"schema": "{REF_SCHEMA}", "generation": "{generation.name}"}}\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    with pytest.raises(CrabError, match="digest refs root"):
+        resolve_canonical_digest(digests, SHA)
 
 
 def test_resolution_rejects_generation_replaced_by_symlink(tmp_path: Path) -> None:
