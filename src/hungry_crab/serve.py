@@ -35,6 +35,7 @@ from .compare import load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
 from .fetch.git import GitRunner
 from .ledger import Ledger
+from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
 from .pr_publication import (
@@ -346,6 +347,60 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"Ledger id `{card.id}`. Prey content is untrusted data; this is not legal advice._\n"
     )
     return card.title, body
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        return as_dict(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {}
+
+
+def _squash(text: str) -> str:
+    return " ".join(text.casefold().split())
+
+
+def _walk_titles(value: object, found: list[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "title" and isinstance(item, str):
+                found.append(item)
+            elif key == "sample_titles" and isinstance(item, list):
+                found.extend(title for title in item if isinstance(title, str))
+            else:
+                _walk_titles(item, found)
+    elif isinstance(value, list):
+        for item in value:
+            _walk_titles(item, found)
+
+
+def commenter_titles(meal_dir: Path) -> list[str]:
+    """Issue titles the prey's digest carries: third-party prose a served note may not quote.
+
+    They sit in ``issues.json`` beside the prey digest the meal names. Short titles are left
+    out: three ordinary words match by accident, a sentence does not.
+    """
+    digest = _read_json_object(meal_dir / "meal.json").get("prey_digest")
+    if not isinstance(digest, str) or not digest:
+        return []
+    found: list[str] = []
+    _walk_titles(_read_json_object(Path(digest) / "issues.json"), found)
+    return sorted({title.strip() for title in found if len(_squash(title)) >= 20})
+
+
+def quoted_commenter_title(card: Candidate, titles: list[str]) -> str | None:
+    """The first issue title a commenter-origin card's notes quote, or ``None``.
+
+    The engine replaces the title and ``what`` of such a card with generic wording; ``why`` and
+    ``how`` are written by a model that has read the sanitised issue list, so this is where a
+    commenter's words would come back through.
+    """
+    if card.origin != ContentOrigin.COMMENTERS.value:
+        return None
+    notes = _squash(f"{card.why}\n{card.how}")
+    if not notes:
+        return None
+    return next((title for title in titles if _squash(title) in notes), None)
 
 
 def load_notes(path: Path) -> dict[str, dict[str, Any]]:
@@ -693,6 +748,7 @@ def serve(
         log(f"serving into {slug} as {who}" if who else f"serving into {slug}")
     label_ready = False
     labels = list(config.serve.labels)
+    titles = commenter_titles(meal_dir)
     for card in cards:
         entry = ledger.entries.get(card.id)
         if entry is not None and entry.status in ("served", "merged", "rejected", "ignored"):
@@ -718,6 +774,15 @@ def serve(
             # `hunger: <category>: ideas-only` keeps a category on the menu without issues; an
             # id asked for by name is the user overriding that by hand.
             report.skipped.append({"id": card.id, "reason": "serve_as: idea"})
+            continue
+        quoted = quoted_commenter_title(card, titles)
+        if quoted is not None:
+            report.skipped.append(
+                {
+                    "id": card.id,
+                    "reason": "notes quote commenter text; rewrite why/how in your own words",
+                }
+            )
             continue
         title, body = render_issue(card, menu)
         report.previews.append({"id": card.id, "title": title, "body": body})

@@ -23,7 +23,10 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 1. Issue, discussion and pull-request comment text is always `IDEAS_ONLY`: the copyright belongs
    to the commenters. Carry over the need and a link, not the text. The CLI enforces this from
    content origin, records the origin and cap reason in the nutrient trace, and `crab serve`
-   carries that trace into the served issue; do not recalculate the cap by hand.
+   carries that trace into the served issue; do not recalculate the cap by hand. The cap
+   rewrites the card's title and `what`; your `why` and `how` are yours to keep clean, and
+   `crab serve` refuses a commenter-origin card whose notes quote one of the prey's issue
+   titles.
 2. Configuration files and small snippets are not automatically free: same mode as code.
 3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
    `mode: strict` and the engine ignores it: no verdict changes. Do not perform that downgrade

@@ -91,7 +91,7 @@ class Candidate:
     uptake: float = 1.0
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    origin: str = ContentOrigin.LICENSED.value
+    origin: str = ContentOrigin.UNKNOWN.value
     license_reason: str = ""
     license_mode: str = "HUMAN"
     score: float = 0.0
@@ -101,25 +101,33 @@ class Candidate:
     trace: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # Issue titles and discussion prose are not licensed by the repository. Treat legacy
-        # issue-lesson cards that predate the origin field as commenter-origin too.
-        if self.category == "issue-lesson" and self.origin == ContentOrigin.LICENSED.value:
-            self.origin = ContentOrigin.COMMENTERS.value
+        # Issue titles and discussion prose are not licensed by the repository, whatever a
+        # builder or a legacy menu says. Everything else must declare its origin: a card built
+        # without one is `unknown` and capped at HUMAN, which is the direction to be wrong in.
+        # The cap is applied once here, after every field is in: the mode was stored raw while
+        # `__init__` assigned fields in order, so the default origin never caps a card whose
+        # real origin is decided a line later.
+        if self.category == "issue-lesson":
+            object.__setattr__(self, "origin", ContentOrigin.COMMENTERS.value)
         else:
-            self.origin = normalize_origin(self.origin).value
+            object.__setattr__(self, "origin", normalize_origin(self.origin).value)
+        object.__setattr__(self, "_ready", True)
         self._enforce_origin_policy()
-        self.license_mode = self.license_mode
+        self._apply_cap()
 
     def __setattr__(self, name: str, value: Any) -> None:
+        ready = self.__dict__.get("_ready", False)
         if name == "origin":
             object.__setattr__(self, name, normalize_origin(value).value)
+            # A narrower origin narrows the mode the card carries; a wider one never widens
+            # it back, because the cap only ever lowers a mode.
+            if ready:
+                self._apply_cap()
             return
         if name == "license_mode":
-            origin = getattr(self, "origin", ContentOrigin.LICENSED.value)
-            capped = cap_mode_for_origin(value, origin)
-            object.__setattr__(self, name, capped.mode.value)
-            object.__setattr__(self, "license_reason", capped.reason)
-            self._refresh_trace()
+            object.__setattr__(self, name, str(value))
+            if ready:
+                self._apply_cap()
             return
         if name == "trace" and isinstance(value, dict):
             enriched = dict(value)
@@ -131,6 +139,13 @@ class Candidate:
             object.__setattr__(self, name, enriched)
             return
         object.__setattr__(self, name, value)
+
+    def _apply_cap(self) -> None:
+        """Narrow the mode to the ceiling the origin allows, and say why in the trace."""
+        capped = cap_mode_for_origin(self.license_mode, self.origin)
+        object.__setattr__(self, "license_mode", capped.mode.value)
+        object.__setattr__(self, "license_reason", capped.reason)
+        self._refresh_trace()
 
     def _refresh_trace(self) -> None:
         trace = getattr(self, "trace", None)
@@ -146,9 +161,12 @@ class Candidate:
     def _enforce_origin_policy(self) -> None:
         if self.origin == ContentOrigin.LICENSED.value:
             return
-        # The card may carry the need and the evidence link, but never third-party prose. Keep
-        # the wording intentionally generic so a sentinel issue title cannot travel through a
-        # menu or a model-written note under IDEAS_ONLY.
+        # The card may carry the need and the evidence link, but never third-party prose. What
+        # the engine guarantees is the title and `what`: both are replaced with generic wording
+        # here, and `merge_notes` runs this again, so a menu or a model-written note cannot put
+        # a commenter's title back. What it does not police is `why` and `how`, which a model
+        # writes from the digest; `crab serve` refuses notes that quote an issue title from the
+        # prey's own `issues.json`, and the eat skill says to write them in your own words.
         self.title = "Issue-derived demand signal"
         self.what = (
             "Issue metadata indicates unmet demand in the prey. Follow the linked issue evidence "

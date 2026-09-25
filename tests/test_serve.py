@@ -99,7 +99,7 @@ def test_parse_markers_and_render_issue() -> None:
         "ci", "ci.cache", "Cache dependencies in CI", "npm-app caches dependencies",
         maw_state="no", serve_as="pr", effort="S", risk="low",
         evidence=[Evidence(".github/workflows/ci.yml", "https://x/ci.yml")],
-        license_mode="COPY", score=0.81,
+        origin="licensed", license_mode="COPY", score=0.81,
     )  # fmt: skip
     title, body = render_issue(
         card,
@@ -486,3 +486,58 @@ def test_ideas_only_hunger_keeps_a_category_out_of_the_issues(
     )  # fmt: skip
     assert [p["id"] for p in explicit.previews] == [ci[0]]
     assert explicit.skipped == []
+
+
+def test_notes_that_quote_a_commenter_title_are_refused(tmp_path: Path) -> None:
+    """`why` and `how` are the one channel the origin cap does not police (#137)."""
+    digest = tmp_path / "digest"
+    digest.mkdir()
+    quoted = "Please add a dark mode toggle to the settings page"
+    (digest / "issues.json").write_text(
+        json.dumps(
+            {
+                "top": [{"number": 7, "title": quoted}],
+                "clusters": [{"sample_titles": ["Support Windows paths in the CLI"]}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    card = Candidate(
+        "issue-lesson", "prey.cluster-1", "unsafe", "unsafe", serve_as="idea", score=0.4
+    )
+    card.license_mode = "COPY"
+    card.trace = {"prey": "prey", "sha": "abc1234"}
+    meal = tmp_path / "meal"
+    meal.mkdir()
+    (meal / "menu.json").write_text(
+        json.dumps({"prey": {"label": "prey", "sha": "abc1234"}, "candidates": [card.to_dict()]}),
+        encoding="utf-8",
+    )
+    (meal / "meal.json").write_text(json.dumps({"prey_digest": str(digest)}), encoding="utf-8")
+    notes = tmp_path / "notes.json"
+    notes.write_text(
+        json.dumps([{"id": card.id, "why": f"Users keep asking: {quoted.lower()}.", "how": "x"}]),
+        encoding="utf-8",
+    )
+    config = MawConfig(root=tmp_path)
+
+    report = serve(
+        meal, tmp_path, ServeOptions(ids=[card.id], notes=notes),
+        config=config, ledger=Ledger(None), slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert report.previews == []
+    assert report.skipped == [
+        {"id": card.id, "reason": "notes quote commenter text; rewrite why/how in your own words"}
+    ]
+
+    # the same card with notes in the agent's own words is served
+    notes.write_text(
+        json.dumps([{"id": card.id, "why": "Several issues ask for a theme switch.", "how": "x"}]),
+        encoding="utf-8",
+    )
+    report = serve(
+        meal, tmp_path, ServeOptions(ids=[card.id], notes=notes),
+        config=config, ledger=Ledger(None), slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert [p["id"] for p in report.previews] == [card.id]
+    assert quoted not in report.previews[0]["body"]

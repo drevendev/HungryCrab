@@ -91,7 +91,13 @@ def _payload(**overrides: Any) -> str:
 
 def _card(mode: str = "COPY", key: str = "ci.cache") -> Candidate:
     return Candidate(
-        "ci", key, "Cache the dependencies", "The prey caches.", license_mode=mode, serve_as="pr"
+        "ci",
+        key,
+        "Cache the dependencies",
+        "The prey caches.",
+        origin="licensed",
+        license_mode=mode,
+        serve_as="pr",
     )
 
 
