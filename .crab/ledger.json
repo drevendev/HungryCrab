@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.ledger/1",
   "maw": "HungryCrab",
-  "updated_at": "2026-09-25T17:40:57+00:00",
+  "updated_at": "2026-09-25T17:45:11+00:00",
   "meals": [
     {
       "prey": "pypa/pipx",
@@ -222,6 +222,36 @@
       "date": "2026-09-25T17:37:00+00:00",
       "candidates": 1,
       "new": 1
+    },
+    {
+      "prey": "google/langextract",
+      "sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "url": "https://github.com/google/langextract",
+      "license": "Apache-2.0",
+      "mode": "COPY",
+      "date": "2026-09-25T17:43:48+00:00",
+      "candidates": 4,
+      "new": 4
+    },
+    {
+      "prey": "openai/tiktoken",
+      "sha": "4e71bbe0c078468e00fefbf94b39849389f346e5",
+      "url": "https://github.com/openai/tiktoken",
+      "license": "MIT",
+      "mode": "COPY",
+      "date": "2026-09-25T17:43:58+00:00",
+      "candidates": 1,
+      "new": 1
+    },
+    {
+      "prey": "Comfy-Org/ComfyUI",
+      "sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "url": "https://github.com/Comfy-Org/ComfyUI",
+      "license": "GPL-3.0-only",
+      "mode": "REIMPLEMENT",
+      "date": "2026-09-25T17:44:22+00:00",
+      "candidates": 4,
+      "new": 3
     }
   ],
   "entries": [
@@ -283,6 +313,25 @@
       "url": null
     },
     {
+      "id": "crab:architecture:architecture.comfy-org-comfyui.raw",
+      "category": "architecture",
+      "key": "architecture.comfy-org-comfyui.raw",
+      "title": "Architecture of Comfy-Org/ComfyUI: hubs and layering (raw material)",
+      "status": "rejected",
+      "prey": "Comfy-Org/ComfyUI",
+      "sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "score": 0.05,
+      "serve_as": "idea",
+      "first_seen": "2026-09-25T17:44:22+00:00",
+      "last_seen": "2026-09-25T17:44:22+00:00",
+      "last_prey": "Comfy-Org/ComfyUI",
+      "last_sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:11+00:00",
+      "reason": "architecture of an unrelated stack; nothing structural to borrow into a Python CLI",
+      "url": null
+    },
+    {
       "id": "crab:architecture:architecture.github-linguist-linguist.raw",
       "category": "architecture",
       "key": "architecture.github-linguist-linguist.raw",
@@ -302,6 +351,25 @@
       "url": null
     },
     {
+      "id": "crab:architecture:architecture.google-langextract.raw",
+      "category": "architecture",
+      "key": "architecture.google-langextract.raw",
+      "title": "Architecture of google/langextract: hubs and layering (raw material)",
+      "status": "rejected",
+      "prey": "google/langextract",
+      "sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "score": 0.08,
+      "serve_as": "idea",
+      "first_seen": "2026-09-25T17:43:48+00:00",
+      "last_seen": "2026-09-25T17:43:48+00:00",
+      "last_prey": "google/langextract",
+      "last_sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:10+00:00",
+      "reason": "architecture of an unrelated stack; nothing structural to borrow into a Python CLI",
+      "url": null
+    },
+    {
       "id": "crab:architecture:architecture.hynek-structlog.raw",
       "category": "architecture",
       "key": "architecture.hynek-structlog.raw",
@@ -317,6 +385,25 @@
       "last_sha": "73393f34b40c15688b3fdd0982889b225f11b59b",
       "sightings": 1,
       "decided_at": "2026-09-25T17:39:44+00:00",
+      "reason": "architecture of an unrelated stack; nothing structural to borrow into a Python CLI",
+      "url": null
+    },
+    {
+      "id": "crab:architecture:architecture.openai-tiktoken.raw",
+      "category": "architecture",
+      "key": "architecture.openai-tiktoken.raw",
+      "title": "Architecture of openai/tiktoken: hubs and layering (raw material)",
+      "status": "rejected",
+      "prey": "openai/tiktoken",
+      "sha": "4e71bbe0c078468e00fefbf94b39849389f346e5",
+      "score": 0.08,
+      "serve_as": "idea",
+      "first_seen": "2026-09-25T17:43:58+00:00",
+      "last_seen": "2026-09-25T17:43:58+00:00",
+      "last_prey": "openai/tiktoken",
+      "last_sha": "4e71bbe0c078468e00fefbf94b39849389f346e5",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:11+00:00",
       "reason": "architecture of an unrelated stack; nothing structural to borrow into a Python CLI",
       "url": null
     },
@@ -530,6 +617,25 @@
       "url": null
     },
     {
+      "id": "crab:deps:deps.python.pydantic",
+      "category": "deps",
+      "key": "deps.python.pydantic",
+      "title": "Consider pydantic (data validation)",
+      "status": "rejected",
+      "prey": "google/langextract",
+      "sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "score": 0.14,
+      "serve_as": "issue",
+      "first_seen": "2026-09-25T17:43:48+00:00",
+      "last_seen": "2026-09-25T17:44:22+00:00",
+      "last_prey": "Comfy-Org/ComfyUI",
+      "last_sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "sightings": 2,
+      "decided_at": "2026-09-25T17:45:10+00:00",
+      "reason": "dependencies stay minimal, standard library plus PyYAML (AGENTS.md rule 5); dataclasses carry the schemas",
+      "url": null
+    },
+    {
       "id": "crab:deps:deps.python.pytest-cov",
       "category": "deps",
       "key": "deps.python.pytest-cov",
@@ -565,6 +671,25 @@
       "sightings": 2,
       "decided_at": "2026-09-25T17:39:45+00:00",
       "reason": "dependencies stay minimal, standard library plus PyYAML (AGENTS.md rule 5)",
+      "url": null
+    },
+    {
+      "id": "crab:deps:deps.python.tox",
+      "category": "deps",
+      "key": "deps.python.tox",
+      "title": "Consider tox (test automation across environments)",
+      "status": "rejected",
+      "prey": "google/langextract",
+      "sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "score": 0.23,
+      "serve_as": "issue",
+      "first_seen": "2026-09-25T17:43:48+00:00",
+      "last_seen": "2026-09-25T17:43:48+00:00",
+      "last_prey": "google/langextract",
+      "last_sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:10+00:00",
+      "reason": "uv run pytest under a CI matrix already spans the Python versions; tox would duplicate the matrix",
       "url": null
     },
     {
@@ -644,6 +769,25 @@
       "url": null
     },
     {
+      "id": "crab:history-lesson:history-lesson.comfy-org-comfyui.fix-prone",
+      "category": "history-lesson",
+      "key": "history-lesson.comfy-org-comfyui.fix-prone",
+      "title": "Lessons from Comfy-Org/ComfyUI's history: fix-prone areas",
+      "status": "rejected",
+      "prey": "Comfy-Org/ComfyUI",
+      "sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "score": 0.15,
+      "serve_as": "issue",
+      "first_seen": "2026-09-25T17:44:22+00:00",
+      "last_seen": "2026-09-25T17:44:22+00:00",
+      "last_prey": "Comfy-Org/ComfyUI",
+      "last_sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:09+00:00",
+      "reason": "prey-specific history of a web UI serving models; nothing a CLI can act on",
+      "url": null
+    },
+    {
       "id": "crab:history-lesson:history-lesson.github-gitignore.fix-prone",
       "category": "history-lesson",
       "key": "history-lesson.github-gitignore.fix-prone",
@@ -679,6 +823,25 @@
       "sightings": 1,
       "decided_at": "2026-09-06T12:55:52+00:00",
       "reason": "the fix-prone files are language grammars and docs, not structure a repo-mining CLI can learn from",
+      "url": null
+    },
+    {
+      "id": "crab:history-lesson:history-lesson.google-langextract.fix-prone",
+      "category": "history-lesson",
+      "key": "history-lesson.google-langextract.fix-prone",
+      "title": "Lessons from google/langextract's history: fix-prone areas",
+      "status": "rejected",
+      "prey": "google/langextract",
+      "sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "score": 0.25,
+      "serve_as": "issue",
+      "first_seen": "2026-09-25T17:43:48+00:00",
+      "last_seen": "2026-09-25T17:43:48+00:00",
+      "last_prey": "google/langextract",
+      "last_sha": "62b933a2c757fd2bbb100498571b8d1692db4344",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:09+00:00",
+      "reason": "prey-specific history of an unrelated project; nothing a young CLI can act on",
       "url": null
     },
     {
@@ -1420,6 +1583,25 @@
       "sightings": 1,
       "decided_at": null,
       "reason": "",
+      "url": null
+    },
+    {
+      "id": "crab:security:security.comfy-org-comfyui.history",
+      "category": "security",
+      "key": "security.comfy-org-comfyui.history",
+      "title": "Security fixes in Comfy-Org/ComfyUI's history (5)",
+      "status": "rejected",
+      "prey": "Comfy-Org/ComfyUI",
+      "sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "score": 0.27,
+      "serve_as": "idea",
+      "first_seen": "2026-09-25T17:44:22+00:00",
+      "last_seen": "2026-09-25T17:44:22+00:00",
+      "last_prey": "Comfy-Org/ComfyUI",
+      "last_sha": "88ab4a06566454ad89db8f0bedb970d6c08cd1b7",
+      "sightings": 1,
+      "decided_at": "2026-09-25T17:45:11+00:00",
+      "reason": "security fixes of a web UI serving models over HTTP; the crab has no server surface",
       "url": null
     },
     {
