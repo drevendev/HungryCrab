@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, updater
+from .attribution import load_attributions, render_notices
 from .cache import Slug, Target, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
@@ -195,14 +196,27 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("dry-run", "issue", "pr-branch"),
         default="dry-run",
         help=(
-            "dry-run previews; issue files issues; pr-branch publishes REIMPLEMENT nutrients "
-            "from the clean-room receipts piped to stdin"
+            "dry-run previews; issue files issues; pr-branch publishes REIMPLEMENT and COPY "
+            "nutrients from the receipts piped to stdin"
         ),
     )
     p_serve.add_argument(
         "--notes", type=Path, default=None, help="JSON with why/how per id (model-written)"
     )
     p_serve.add_argument("--json", action="store_true")
+
+    p_attribution = sub.add_parser(
+        "attribution",
+        help="write the maw's third-party notice file from its attribution receipts",
+    )
+    p_attribution.add_argument(
+        "--maw", type=Path, default=Path(), help="maw repository (default: .)"
+    )
+    p_attribution.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 1 when the notice file is missing or stale instead of writing it",
+    )
 
     p_spec = sub.add_parser(
         "spec",
@@ -514,11 +528,62 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         if (args.mode == "issue" or shutil.which("gh"))
         else None
     )
-    report = serve(meal_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
+    # A COPY nutrient's receipt names prey paths; they are checked against the prey's own
+    # history, which lives in the cached clone (or the local directory being eaten).
+    if prey.path is not None:
+        prey_repo = prey.path
+    else:
+        assert prey.slug is not None
+        prey_repo = prey_paths(prey.slug, args.cache_dir).repo
+    report = serve(
+        meal_dir,
+        maw,
+        options,
+        config=config,
+        ledger=ledger,
+        client=client,
+        log=log,
+        prey_repo=prey_repo,
+    )
     if args.json:
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         return 0
     print_serve_report(report)
+    return 0
+
+
+def cmd_attribution(args: argparse.Namespace) -> int:
+    """Render the notice file from the receipts; ``--check`` is the CI gate.
+
+    The receipts in ``.crab/attributions.json`` are written by ``crab serve --as pr-branch``
+    when a COPY nutrient's files are published, so the file this renders names only what the
+    crab actually carried in — never a nutrient that was merely filed as an issue.
+    """
+    maw = _maw_dir(args.maw)
+    config = MawConfig.load(maw)
+    records = load_attributions(maw)
+    rendered = render_notices(records)
+    target = maw / config.attribution_file
+    try:
+        current = target.read_text(encoding="utf-8") if target.is_file() else None
+    except (OSError, UnicodeError) as exc:
+        raise CrabError(f"cannot read {config.attribution_file}: {exc}") from exc
+    count = f"{len(records)} receipt(s)"
+    if args.check:
+        if current == rendered or (current is None and not records):
+            print(f"{config.attribution_file} is up to date ({count})")
+            return 0
+        state = "missing" if current is None else "stale"
+        raise CrabError(
+            f"{config.attribution_file} is {state}",
+            hint=f"run `crab attribution --maw {args.maw}` and commit the result",
+        )
+    if current == rendered:
+        print(f"{config.attribution_file} unchanged ({count})")
+        return 0
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(rendered, encoding="utf-8", newline="\n")
+    print(f"wrote {config.attribution_file} from {count}")
     return 0
 
 
@@ -665,6 +730,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_serve(args, log)
         if args.command == "spec":
             return cmd_spec(args)
+        if args.command == "attribution":
+            return cmd_attribution(args)
         if args.command == "tune":
             return cmd_tune(args)
         if args.command == "update":

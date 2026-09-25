@@ -12,6 +12,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from .attribution import (
+    COPY_MODES,
+    MATERIALIZATION_KIND,
+    load_materialization_receipt,
+    receipt_kind,
+)
 from .errors import CrabError
 from .ledger import Ledger
 from .maw import MawConfig
@@ -48,7 +54,8 @@ def _prepare_publications(
     batch: a terminal ledger entry, a ``serve_as`` other than ``pr`` (an ``idea`` or an
     ``issue`` card is never published as a pull request, whoever selected it), a license mode
     without a publication path, or a missing receipt. ``--top`` therefore serves what it can.
-    A receipt that is present but malformed still fails closed: it is input, not selection.
+    A receipt that is present but malformed, or of the wrong kind for the card's license mode,
+    still fails closed: it is input, not selection.
     """
 
     planned: list[tuple[Candidate, PreparedPullRequest]] = []
@@ -66,23 +73,38 @@ def _prepare_publications(
         if card.serve_as != "pr":
             skipped.append({"id": card.id, "reason": f"serve_as: {card.serve_as}"})
             continue
-        if card.license_mode != "REIMPLEMENT":
+        copying = card.license_mode in COPY_MODES
+        if card.license_mode != "REIMPLEMENT" and not copying:
             skipped.append(
                 {
                     "id": card.id,
-                    "reason": f"license mode {card.license_mode} has no pull-request path yet",
+                    "reason": f"license mode {card.license_mode} has no pull-request path",
                 }
             )
             continue
+        expected_kind = MATERIALIZATION_KIND if copying else "cleanroom"
+        label = "materialization" if copying else "clean-room"
         payload = receipts.get(card.id)
         if payload is None:
-            skipped.append({"id": card.id, "reason": "no clean-room receipt"})
+            skipped.append({"id": card.id, "reason": f"no {label} receipt"})
             continue
-        receipt = load_cleanroom_implementation_receipt(payload)
-        if receipt.nutrient_id != card.id:
+        if receipt_kind(payload) != expected_kind:
             raise CrabError(
-                "clean-room receipt nutrient does not match the selected nutrient",
-                hint=f"expected {card.id}, got {receipt.nutrient_id}",
+                f"the receipt for {card.id} is not a {label} receipt",
+                hint=(
+                    "COPY and COPY_FILE nutrients take a materialization receipt; "
+                    "REIMPLEMENT takes the clean-room implementer's receipt"
+                ),
+            )
+        receipt_id = (
+            load_materialization_receipt(payload).nutrient_id
+            if copying
+            else load_cleanroom_implementation_receipt(payload).nutrient_id
+        )
+        if receipt_id != card.id:
+            raise CrabError(
+                f"{label} receipt nutrient does not match the selected nutrient",
+                hint=f"expected {card.id}, got {receipt_id}",
             )
         planned.append((card, preparer(card, payload)))
     return planned, skipped

@@ -35,7 +35,7 @@ class _CreationDeferredError(Exception):
     """Internal signal: reconciliation found no PR, but this run has no creation budget left."""
 
 
-def _read_maw_text(maw_root: Path, path: str) -> str:
+def read_maw_text(maw_root: Path, path: str) -> str:
     """Read one handoff path only after proving its resolved target stays inside the maw."""
 
     try:
@@ -151,7 +151,7 @@ def prepare_cleanroom_pull_request(
         generated_files_from_handoff(
             nutrient_id,
             handoff,
-            lambda path: _read_maw_text(maw_root, path),
+            lambda path: read_maw_text(maw_root, path),
         )
     )
     spec = _read_specification(maw_root, nutrient_id)

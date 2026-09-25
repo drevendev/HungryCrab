@@ -16,7 +16,7 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | spec | ledger | tune | init | update | cache`).
+  serve | spec | attribution | ledger | tune | init | update | cache`).
 - `src/hungry_crab/prey_guard.py`: fail-closed `PreToolUse` decision logic for shell commands
   that touch the prey cache; only a small audited read-only command surface is allowed.
   `cleanroom_guard.py` is the second hook, which keeps the clean-room implementer out of the
@@ -40,6 +40,8 @@ authority when a document disagrees with it. The decisions log is at the end of
 - `src/hungry_crab/pr_publication.py`, `pr_effects.py`, `pr_serve.py`, `pr_serving.py`,
   `publication_safety.py`: `serve --as pr-branch` — clean-room receipts, the secret scan,
   provider reconciliation, the git and gh effects, and the serve policy around them.
+  `attribution.py` is the COPY side: the materialization receipt, its verification against the
+  prey at that commit, `.crab/attributions.json` and the notice file `crab attribution` renders.
 - `src/hungry_crab/mdutil.py`, `tokens.py`, `safety.py`: Markdown builder with a token budget,
   token estimate, prompt-injection heuristics.
 - `skills/`, `agents/`, `commands/`, `hooks/`, `.claude-plugin/`: the Agent Skills (`eat`,

@@ -21,6 +21,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol, TextIO, cast
 
+from .attribution import (
+    COPY_MODES,
+    MATERIALIZATION_KIND,
+    GitSourceReader,
+    SourceReader,
+    load_materialization_receipt,
+    prepare_copy_pull_request,
+    receipt_kind,
+)
 from .cache import Slug
 from .compare import load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
@@ -381,19 +390,23 @@ def load_cleanroom_receipts(payload: str) -> dict[str, str]:
                 hint="pipe one or more complete clean-room receipt JSON objects to stdin",
             ) from exc
         raw = payload[start:index]
-        receipt = load_cleanroom_implementation_receipt(raw)
-        if receipt.nutrient_id in receipts:
+        nutrient_id = (
+            load_materialization_receipt(raw).nutrient_id
+            if receipt_kind(raw) == MATERIALIZATION_KIND
+            else load_cleanroom_implementation_receipt(raw).nutrient_id
+        )
+        if nutrient_id in receipts:
             raise UsageError(
-                f"duplicate clean-room receipt for {receipt.nutrient_id}",
-                hint="provide exactly one implementation receipt per selected nutrient",
+                f"duplicate receipt for {nutrient_id}",
+                hint="provide exactly one receipt per selected nutrient",
             )
-        receipts[receipt.nutrient_id] = raw
+        receipts[nutrient_id] = raw
     if not receipts:
         raise CrabError(
-            "pull-request serving needs the clean-room implementation receipts on stdin",
+            "pull-request serving needs the implementation receipts on stdin",
             hint=(
-                "pipe one strict implementer receipt JSON object per selected REIMPLEMENT "
-                "nutrient to stdin"
+                "pipe one receipt JSON object per selected nutrient: the clean-room "
+                "implementer's for REIMPLEMENT, a materialization receipt for COPY"
             ),
         )
     return receipts
@@ -514,9 +527,31 @@ def _serve_pull_requests(
     now: datetime | None,
     log: Callable[[str], None],
     slug: Slug,
+    prey_repo: Path | None = None,
+    source_reader: SourceReader | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
+        if card.license_mode in COPY_MODES:
+            reader = source_reader
+            if reader is None and prey_repo is not None:
+                reader = GitSourceReader(prey_repo)
+            if reader is None:
+                raise CrabError(
+                    "cannot verify the sources of a COPY nutrient without the prey's clone",
+                    hint="serve from the machine that digested the prey; its clone is in the cache",
+                )
+            return prepare_copy_pull_request(
+                card,
+                menu,
+                receipt_payload,
+                maw_root,
+                title=title,
+                body=body,
+                attribution_file=config.attribution_file,
+                source_reader=reader,
+                now=now,
+            )
         return prepare_cleanroom_pull_request(
             card.id, title, body, receipt_payload, maw_root, slug=slug
         )
@@ -573,6 +608,8 @@ def serve(
     log: Callable[[str], None] = _noop,
     slug_lookup: Callable[[Path], Slug | None] = maw_slug,
     receipt_payloads: Mapping[str, str] | None = None,
+    prey_repo: Path | None = None,
+    source_reader: SourceReader | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -623,6 +660,8 @@ def serve(
             now=now,
             log=log,
             slug=slug,
+            prey_repo=prey_repo,
+            source_reader=source_reader,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)
