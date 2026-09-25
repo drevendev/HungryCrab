@@ -29,6 +29,7 @@ from .licensing.detect import detect_in_repo
 from .licensing.matrix import Relationship
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
+from .miners.inventory import describe_coverage
 from .nutrients import STATUSES, Candidate
 from .pr_publication import nutrient_spec_path
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
@@ -140,6 +141,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--fail-on-miner-error",
         action="store_true",
         help="exit non-zero when any miner failed (for CI; a human sees the FAILED lines)",
+    )
+    p_digest.add_argument(
+        "--fail-on-loss",
+        action="store_true",
+        help=(
+            "exit non-zero when the digest did not see the whole tree: the file list was "
+            "truncated at the cap, or paths failed to stat (for CI; deliberate exclusions "
+            "such as vendored trees and sample corpora are not a loss)"
+        ),
     )
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
 
@@ -340,6 +350,9 @@ def print_digest_summary(result: DigestResult) -> None:
     ok = sum(1 for m in manifest["miners"] if m["ok"])
     failed = [m for m in manifest["miners"] if not m["ok"]]
     print(f"miners: {ok} ok, {len(failed)} failed; {manifest['elapsed_seconds']} s")
+    coverage = manifest.get("coverage")
+    if isinstance(coverage, dict):
+        print(f"coverage: {describe_coverage(coverage)}")
     for miner in failed:
         print(f"  FAILED {miner['name']}: {miner['error']}")
     for warning in manifest["warnings"]:
@@ -387,6 +400,14 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         # A digest missing a producer is still useful to a human, who can see which one is gone.
         # It is not useful to a machine that will compare it, so the caller decides.
         raise CrabError(f"{len(broken)} miner(s) failed: {', '.join(broken)}")
+    coverage = result.manifest.get("coverage")
+    if args.fail_on_loss and isinstance(coverage, dict) and not coverage.get("healthy"):
+        # The share of files analysed is informational; what a machine may refuse is a digest
+        # that never saw part of the tree, because absent facts read as absent traits.
+        raise CrabError(
+            "the digest did not see the whole tree: " + describe_coverage(coverage),
+            hint="--depth deep raises the file cap; a stat error is a filesystem problem",
+        )
     return 0
 
 
