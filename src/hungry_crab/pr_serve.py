@@ -16,10 +16,13 @@ from .errors import CrabError
 from .fetch.git import GitRunner
 from .pr_effects import publish_git_pull_request
 from .pr_publication import (
+    GeneratedFile,
     PreparedPullRequest,
     PullRequestPublication,
     generated_files_from_handoff,
     load_cleanroom_implementation_receipt,
+    nutrient_branch_name,
+    nutrient_spec_path,
     publication_handoff_from_receipt,
     publish_prepared_transaction,
 )
@@ -77,19 +80,63 @@ def _read_maw_text(maw_root: Path, path: str) -> str:
         ) from exc
 
 
+def _read_specification(maw_root: Path, nutrient_id: str) -> GeneratedFile:
+    """Read the Stage A specification under the maw; without it there is nothing to publish.
+
+    The specification is the auditable half of the clean-room separation: the pull request
+    carries it and links it. It is resolved under the same containment rule as the receipt's
+    files, so an alias cannot point it outside the maw.
+    """
+
+    path = nutrient_spec_path(nutrient_id)
+    try:
+        root = maw_root.resolve(strict=True)
+    except OSError as exc:
+        raise CrabError("cannot resolve the maw safely for pull-request publication") from exc
+    try:
+        target = (root / path).resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise CrabError(
+            "clean-room specification missing; refusing to publish without it",
+            hint=(
+                f"write the Stage A specification to {path} before serving "
+                f"(`crab spec {nutrient_id}` prints the path)"
+            ),
+        ) from exc
+    except OSError as exc:
+        raise CrabError("clean-room specification cannot be resolved safely", hint=path) from exc
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise CrabError("clean-room specification resolves outside the maw", hint=path) from exc
+    if not target.is_file():
+        raise CrabError("clean-room specification is not a regular file", hint=path)
+    try:
+        return GeneratedFile(path=path, content=target.read_text(encoding="utf-8"))
+    except UnicodeError as exc:
+        raise CrabError("clean-room specification is not UTF-8 text", hint=path) from exc
+    except OSError as exc:
+        raise CrabError("clean-room specification cannot be read safely", hint=path) from exc
+
+
 def prepare_cleanroom_pull_request(
     nutrient_id: str,
     title: str,
     body: str,
     receipt_payload: str,
     maw_root: Path,
+    *,
+    slug: Slug | None = None,
 ) -> PreparedPullRequest:
-    """Freeze exactly one clean-room receipt into an immutable PR payload.
+    """Freeze one clean-room receipt, plus its specification, into an immutable PR payload.
 
     The receipt is parsed before any provider access. Its declared files are first hashed through
     the containment-checking handoff producer, then read again through the same containment rule;
     the handoff hash check rejects any file that changed between those two reads. Unrelated dirty
-    maw files are never discovered or included.
+    maw files are never discovered or included. The Stage A specification at
+    ``nutrient_spec_path(nutrient_id)`` is read under the same rule and travels in the pull
+    request as provenance, linked from the body — on the nutrient branch when the maw's ``slug``
+    is known, else by its maw-relative path. A missing specification refuses the publication.
     """
 
     receipt = load_cleanroom_implementation_receipt(receipt_payload)
@@ -100,17 +147,29 @@ def prepare_cleanroom_pull_request(
         )
 
     handoff = publication_handoff_from_receipt(receipt, maw_root)
-    files = generated_files_from_handoff(
-        nutrient_id,
-        handoff,
-        lambda path: _read_maw_text(maw_root, path),
+    files = list(
+        generated_files_from_handoff(
+            nutrient_id,
+            handoff,
+            lambda path: _read_maw_text(maw_root, path),
+        )
     )
+    spec = _read_specification(maw_root, nutrient_id)
+    if all(generated.path != spec.path for generated in files):
+        files.append(spec)
 
+    link = spec.path
+    if slug is not None:
+        link = f"{slug.url}/blob/{nutrient_branch_name(nutrient_id)}/{spec.path}"
     rendered_body = body.rstrip()
     if receipt.summary not in rendered_body:
         rendered_body += f"\n\n## Clean-room implementation\n\n{receipt.summary}"
+    if spec.path not in rendered_body:
+        rendered_body += (
+            f"\n\nSpecification: [`{spec.path}`]({link}), carried in this pull request."
+        )
     rendered_body += "\n"
-    return PreparedPullRequest(title=title, body=rendered_body, files=files)
+    return PreparedPullRequest(title=title, body=rendered_body, files=tuple(files))
 
 
 def publish_prepared_cleanroom_git_pull_request(
@@ -181,6 +240,7 @@ def publish_cleanroom_git_pull_request(
         body,
         receipt_payload,
         maw_root,
+        slug=slug,
     )
     return publish_prepared_cleanroom_git_pull_request(
         nutrient_id,

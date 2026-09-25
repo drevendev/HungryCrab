@@ -287,7 +287,10 @@ Special rules:
    returns a strict JSON receipt naming the exact maw paths it changed, and `crab serve --as
    pr-branch` publishes those bytes and nothing else.
 3. The PR trace records: "implemented from a specification, without access to the prey
-   source", with a link to the spec in `.crab/specs/<id>.md`.
+   source", with a link to the specification, whose path the CLI derives from the nutrient id
+   the way it derives the branch name (`crab spec <id>` prints
+   `.crab/specs/<readable>-<hash>.md`, legal on NTFS, where a raw id's colons are not) and
+   which the pull request carries; without the specification `serve` refuses to publish.
 
 ## 11. Security
 

@@ -155,6 +155,25 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **The clean-room specification has a path that exists on Windows, and the pull request
+  carries it.** The skill told the caller to write the Stage A specification to
+  `.crab/specs/<nutrient-id>.md`; a nutrient id has colons, NTFS refuses them in a file name, so
+  Stage A could not complete on Windows, and a Linux maw that committed the file could not be
+  checked out there. The path is the CLI's now, derived like the branch name —
+  `.crab/specs/<readable>-<8 hex>.md`, printed by the new `crab spec <nutrient-id>` — and the
+  promise that the pull request links the specification is kept by the transaction rather than
+  by a sentence in a skill: `crab serve --as pr-branch` reads the specification under the maw,
+  scans it with the rest of the payload, carries it in the pull request and links it from the
+  body, and refuses to publish an implementation without one
+  ([#131](https://github.com/drevendev/HungryCrab/issues/131)).
+- **`crab serve` honours `serve_as`.** `ideas-only` in the `hunger` block produced cards marked
+  `idea`, and nothing downstream read the mark: `--as issue` filed them, `--top` filed every one
+  in the top N, and pull-request mode published a REIMPLEMENT card whatever its mark. An `idea`
+  card is now skipped with the reason `serve_as: idea` unless its id was asked for by name; in
+  pull-request mode the selection is filtered before anything is prepared — REIMPLEMENT, marked
+  `pr`, with a receipt — and everything else is reported as skipped with its reason, so `--top`
+  serves what it can instead of raising on the first COPY card
+  ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

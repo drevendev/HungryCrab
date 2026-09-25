@@ -29,6 +29,7 @@ from .licensing.matrix import Relationship
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
 from .nutrients import STATUSES, Candidate
+from .pr_publication import nutrient_spec_path
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
 from .sniff import format_report, sniff
 from .tune import analyse
@@ -202,6 +203,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--notes", type=Path, default=None, help="JSON with why/how per id (model-written)"
     )
     p_serve.add_argument("--json", action="store_true")
+
+    p_spec = sub.add_parser(
+        "spec",
+        help="print the maw-relative path of a nutrient's clean-room specification",
+    )
+    p_spec.add_argument("nutrient_id", help="a nutrient id from menu.md, crab:<category>:<key>")
 
     p_tune = sub.add_parser("tune", help="suggest scoring weight changes from the ledger")
     p_tune.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
@@ -515,6 +522,22 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     return 0
 
 
+def cmd_spec(args: argparse.Namespace) -> int:
+    """The CLI owns the specification path the way it owns the branch name.
+
+    A nutrient id carries colons, which NTFS refuses in a file name; composing the path by hand
+    is how Stage A of the clean-room protocol failed on Windows.
+    """
+    nutrient_id = str(args.nutrient_id).strip()
+    if not nutrient_id.startswith("crab:"):
+        raise UsageError(
+            f"{nutrient_id!r} is not a nutrient id",
+            hint="nutrient ids look like crab:<category>:<key>; menu.md lists them",
+        )
+    print(nutrient_spec_path(nutrient_id))
+    return 0
+
+
 def cmd_tune(args: argparse.Namespace) -> int:
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
@@ -640,6 +663,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_ledger(args)
         if args.command == "serve":
             return cmd_serve(args, log)
+        if args.command == "spec":
+            return cmd_spec(args)
         if args.command == "tune":
             return cmd_tune(args)
         if args.command == "update":
