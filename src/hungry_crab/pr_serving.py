@@ -42,7 +42,14 @@ def _prepare_publications(
     ledger: Ledger,
     preparer: PrPreparer,
 ) -> tuple[list[tuple[Candidate, PreparedPullRequest]], list[dict[str, Any]]]:
-    """Freeze every actionable card before the first provider read or effect."""
+    """Freeze every actionable card before the first provider read or effect.
+
+    A card that has no pull-request path is skipped with its reason rather than failing the
+    batch: a terminal ledger entry, a ``serve_as`` other than ``pr`` (an ``idea`` or an
+    ``issue`` card is never published as a pull request, whoever selected it), a license mode
+    without a publication path, or a missing receipt. ``--top`` therefore serves what it can.
+    A receipt that is present but malformed still fails closed: it is input, not selection.
+    """
 
     planned: list[tuple[Candidate, PreparedPullRequest]] = []
     skipped: list[dict[str, Any]] = []
@@ -56,20 +63,21 @@ def _prepare_publications(
                 }
             )
             continue
+        if card.serve_as != "pr":
+            skipped.append({"id": card.id, "reason": f"serve_as: {card.serve_as}"})
+            continue
         if card.license_mode != "REIMPLEMENT":
-            raise CrabError(
-                f"pull-request serving for license mode {card.license_mode} is not wired yet",
-                hint=(
-                    "REIMPLEMENT uses the clean-room receipt path; COPY must wait for its "
-                    "attribution/materialization path instead of bypassing the license verdict"
-                ),
+            skipped.append(
+                {
+                    "id": card.id,
+                    "reason": f"license mode {card.license_mode} has no pull-request path yet",
+                }
             )
+            continue
         payload = receipts.get(card.id)
         if payload is None:
-            raise CrabError(
-                "missing clean-room implementation receipt for pull-request serving",
-                hint=f"no receipt was supplied for {card.id}",
-            )
+            skipped.append({"id": card.id, "reason": "no clean-room receipt"})
+            continue
         receipt = load_cleanroom_implementation_receipt(payload)
         if receipt.nutrient_id != card.id:
             raise CrabError(

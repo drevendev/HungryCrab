@@ -10,7 +10,11 @@ from hungry_crab.errors import CrabError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import MawConfig
 from hungry_crab.nutrients import Candidate
-from hungry_crab.pr_publication import PreparedPullRequest, PullRequestPublication
+from hungry_crab.pr_publication import (
+    PreparedPullRequest,
+    PullRequestPublication,
+    nutrient_spec_path,
+)
 from hungry_crab.pr_serve import prepare_cleanroom_pull_request, publish_cleanroom_git_pull_request
 from hungry_crab.pr_serving import serve_cleanroom_pull_requests
 
@@ -101,6 +105,9 @@ def test_all_filesystem_preparation_finishes_before_first_provider_effect(tmp_pa
     generated = tmp_path / "generated"
     generated.mkdir()
     (generated / "cache.yml").write_text("cache: true\n", encoding="utf-8")
+    spec = tmp_path / nutrient_spec_path(first.id)
+    spec.parent.mkdir(parents=True)
+    spec.write_text("# Behaviour\n\nCache between runs.\n", encoding="utf-8")
     config = MawConfig(root=tmp_path)
     config.serve.prs = "auto"
     calls: list[str] = []
@@ -128,19 +135,61 @@ def test_all_filesystem_preparation_finishes_before_first_provider_effect(tmp_pa
     assert calls == []
 
 
-def test_non_reimplement_mode_fails_closed_before_provider_effects(tmp_path: Path) -> None:
-    card = _card("cache", mode="COPY")
+def test_cards_without_a_pull_request_path_are_skipped_with_reasons(tmp_path: Path) -> None:
+    """`--top` serves what it can; the first COPY card used to fail the whole batch (#136)."""
+    copy = _card("copy", mode="COPY")
+    idea = _card("idea")
+    idea.serve_as = "idea"
+    issue = _card("issue")
+    issue.serve_as = "issue"
+    unreceipted = _card("unreceipted")
+    ready = _card("ready")
+    config = MawConfig(root=tmp_path)
+    config.serve.prs = "auto"
+    published: list[str] = []
+
+    def publisher(
+        card: Candidate, prepared: PreparedPullRequest, allow_create: bool
+    ) -> PullRequestPublication:
+        published.append(card.id)
+        return PullRequestPublication(
+            branch="crab/ready", url="https://example.test/pr/9", created=True
+        )
+
+    report = serve_cleanroom_pull_requests(
+        [copy, idea, issue, unreceipted, ready],
+        {ready.id: _receipt(ready)},
+        config=config,
+        ledger=Ledger(None),
+        explicit_selection=False,
+        preparer=_prepare_stub,
+        publisher=publisher,
+    )
+
+    assert published == [ready.id]
+    assert [item["id"] for item in report.served] == [ready.id]
+    assert report.skipped == [
+        {"id": copy.id, "reason": "license mode COPY has no pull-request path yet"},
+        {"id": idea.id, "reason": "serve_as: idea"},
+        {"id": issue.id, "reason": "serve_as: issue"},
+        {"id": unreceipted.id, "reason": "no clean-room receipt"},
+    ]
+
+
+def test_a_malformed_receipt_still_fails_the_batch_before_effects(tmp_path: Path) -> None:
+    """Selection is filtered; input is not — a receipt that is present but broken is an error."""
+    card = _card("cache")
     config = MawConfig(root=tmp_path)
     config.serve.prs = "auto"
     calls: list[str] = []
 
-    with pytest.raises(CrabError, match="license mode COPY"):
+    with pytest.raises(CrabError, match="invalid clean-room implementation receipt"):
         serve_cleanroom_pull_requests(
             [card],
-            {},
+            {card.id: "{}"},
             config=config,
             ledger=Ledger(None),
-            explicit_selection=False,
+            explicit_selection=True,
             preparer=lambda *_: calls.append("prepare") or _prepared(card),
             publisher=lambda *_: calls.append("publish") or None,
         )
@@ -236,6 +285,9 @@ def test_reconcile_only_publisher_has_zero_git_or_gh_effects_when_pr_is_absent(
     generated.mkdir()
     (generated / "cache.yml").write_text("cache: true\n", encoding="utf-8")
     card = _card("cache")
+    spec = tmp_path / nutrient_spec_path(card.id)
+    spec.parent.mkdir(parents=True)
+    spec.write_text("# Behaviour\n\nCache between runs.\n", encoding="utf-8")
     gh_calls: list[tuple[str, ...]] = []
 
     result = publish_cleanroom_git_pull_request(

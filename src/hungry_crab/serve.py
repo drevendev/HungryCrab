@@ -390,7 +390,7 @@ def load_cleanroom_receipts(payload: str) -> dict[str, str]:
         receipts[receipt.nutrient_id] = raw
     if not receipts:
         raise CrabError(
-            "milestone 0.3 pull-request serving requires a clean-room implementation receipt",
+            "pull-request serving needs the clean-room implementation receipts on stdin",
             hint=(
                 "pipe one strict implementer receipt JSON object per selected REIMPLEMENT "
                 "nutrient to stdin"
@@ -517,7 +517,9 @@ def _serve_pull_requests(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
-        return prepare_cleanroom_pull_request(card.id, title, body, receipt_payload, maw_root)
+        return prepare_cleanroom_pull_request(
+            card.id, title, body, receipt_payload, maw_root, slug=slug
+        )
 
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
@@ -672,6 +674,11 @@ def serve(
             )
             ledger.ensure(card, now=now)
             ledger.mark(card.id, "served", url=str(known.get("url") or "") or None, now=now)
+            continue
+        if card.serve_as == "idea" and card.id not in options.ids:
+            # `hunger: <category>: ideas-only` keeps a category on the menu without issues; an
+            # id asked for by name is the user overriding that by hand.
+            report.skipped.append({"id": card.id, "reason": "serve_as: idea"})
             continue
         title, body = render_issue(card, menu)
         report.previews.append({"id": card.id, "title": title, "body": body})

@@ -10,6 +10,7 @@ from helpers import copy_repo
 from hungry_crab import __version__
 from hungry_crab.cli import build_parser, detect_maw_license, main
 from hungry_crab.licensing.matrix import Relationship
+from hungry_crab.pr_publication import nutrient_spec_path
 
 
 def test_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
@@ -27,6 +28,14 @@ def test_version_command(capsys: pytest.CaptureFixture[str]) -> None:
 def test_no_command_prints_help(capsys: pytest.CaptureFixture[str]) -> None:
     assert main([]) == 0
     assert "sniff" in capsys.readouterr().out
+
+
+def test_spec_prints_the_clean_room_specification_path(capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["spec", "crab:ci:ci.cache"]) == 0
+    printed = capsys.readouterr().out.strip()
+    assert printed == nutrient_spec_path("crab:ci:ci.cache")
+    assert printed.startswith(".crab/specs/") and ":" not in printed
+    assert main(["spec", "ci.cache"]) == 2, "not a nutrient id is a usage error"
 
 
 def test_every_subcommand_has_help() -> None:
@@ -235,7 +244,7 @@ def test_init_ledger_serve_and_tune_commands(
         ]
     )
     assert code == 1
-    assert "0.3" in capsys.readouterr().err
+    assert "receipts on stdin" in capsys.readouterr().err
 
     assert main(["tune", "--maw", str(maw)]) == 0
     out = capsys.readouterr().out

@@ -28,6 +28,7 @@ _SHA256_RE = re.compile(r"[0-9a-f]{64}")
 _HANDOFF_VERSION = 1
 _CLEANROOM_RECEIPT_VERSION = 1
 _CLEANROOM_TRACE = "implemented from a specification, without access to the prey source"
+SPEC_DIR = ".crab/specs"
 
 
 @dataclass(frozen=True)
@@ -393,15 +394,34 @@ def publication_items(prepared: PreparedPullRequest) -> Iterable[tuple[str, str]
     yield "PR_BODY", prepared.body
 
 
-def nutrient_branch_name(nutrient_id: str) -> str:
-    """Return a stable, collision-resistant branch name for one nutrient id."""
+def _nutrient_slug(nutrient_id: str) -> str:
+    """The readable, ref- and file-safe form of a nutrient id plus eight hex digits of its hash."""
 
     if not nutrient_id.startswith("crab:"):
         raise CrabError("pull-request publication requires a crab nutrient id")
     readable = _BRANCH_SAFE_RE.sub("-", nutrient_id.removeprefix("crab:").lower())
     readable = _BRANCH_REPEAT_RE.sub("-", readable).strip("-.") or "nutrient"
     digest = hashlib.sha256(nutrient_id.encode("utf-8")).hexdigest()[:8]
-    return f"crab/{readable[:48]}-{digest}"
+    return f"{readable[:48]}-{digest}"
+
+
+def nutrient_branch_name(nutrient_id: str) -> str:
+    """Return a stable, collision-resistant branch name for one nutrient id."""
+
+    return f"crab/{_nutrient_slug(nutrient_id)}"
+
+
+def nutrient_spec_path(nutrient_id: str) -> str:
+    """The maw-relative POSIX path of one nutrient's clean-room specification.
+
+    A nutrient id carries colons, which NTFS refuses in a file name, so the path is derived the
+    way the branch name is: the readable part of the id under the branch's character rules, then
+    eight hex digits of the id's SHA-256 so that two ids which sanitise alike stay apart. The
+    result is legal and identical on every platform and stable per nutrient. The clean-room skill
+    writes the Stage A specification there, and the pull request carries and links it.
+    """
+
+    return f"{SPEC_DIR}/{_nutrient_slug(nutrient_id)}.md"
 
 
 def _required_marker(nutrient_id: str) -> str:

@@ -301,7 +301,7 @@ def test_serve_guards(npm_app: Path, pyproject_cli: Path, tmp_path: Path) -> Non
     prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
     config = MawConfig.load(pyproject_cli)
     ledger = Ledger(None)
-    with pytest.raises(CrabError, match=r"0\.3"):
+    with pytest.raises(CrabError, match="receipts on stdin"):
         serve(
             prey_dir,
             pyproject_cli,
@@ -442,3 +442,47 @@ def test_compare_for_maw_uses_config_ledger_and_issues(
     assert "crab:ci:ci.cache" not in {c.id for c in second.candidates}
     assert {"id": "crab:ci:ci.cache", "reason": "ledger: rejected (no)"} in second.hidden
     assert len(ledger2.meals) == 2 and ledger2.meals[1].new == 0
+
+
+def test_ideas_only_hunger_keeps_a_category_out_of_the_issues(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path
+) -> None:
+    """`hunger: {ci: ideas-only}` promises the category on the menu and no issue for it (#136)."""
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    for path in pyproject_cli.rglob("*"):
+        if ".git" in path.parts or not path.is_file():
+            continue
+        target = maw / path.relative_to(pyproject_cli)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(path.read_bytes())
+    write_tree(maw, {CONFIG_FILE: "hunger:\n  ci: ideas-only\nledger: none\n"})
+    result, _, ledger, config = compare_for_maw(
+        Target(path=npm_app), maw,
+        digest_options=DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache"),
+        now=NOW,
+    )  # fmt: skip
+    assert result.meal_dir is not None
+    ci = [c.id for c in result.candidates if c.category == "ci"]
+    assert ci, "the fixture pair yields ci cards"
+    assert all(c.serve_as == "idea" for c in result.candidates if c.category == "ci")
+
+    client = FakeIssues()
+    report = serve(
+        result.meal_dir, maw, ServeOptions(top=len(result.candidates), mode="issue"),
+        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert not {s["id"] for s in report.served} & set(ci)
+    assert not {c["title"] for c in client.created} & {
+        c.title for c in result.candidates if c.category == "ci"
+    }
+    reasons = {s["id"]: s["reason"] for s in report.skipped}
+    assert all(reasons[nutrient_id] == "serve_as: idea" for nutrient_id in ci)
+
+    # an id asked for by name is the user overriding the hunger by hand
+    explicit = serve(
+        result.meal_dir, maw, ServeOptions(ids=[ci[0]]),
+        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert [p["id"] for p in explicit.previews] == [ci[0]]
+    assert explicit.skipped == []

@@ -16,7 +16,7 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | ledger | tune | init | update | cache`).
+  serve | spec | ledger | tune | init | update | cache`).
 - `src/hungry_crab/prey_guard.py`: fail-closed `PreToolUse` decision logic for shell commands
   that touch the prey cache; only a small audited read-only command surface is allowed.
   `cleanroom_guard.py` is the second hook, which keeps the clean-room implementer out of the

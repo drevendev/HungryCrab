@@ -53,7 +53,7 @@ def test_receipt_stream_preserves_strict_receipt_validation() -> None:
 
 
 def test_empty_receipt_stream_fails_closed() -> None:
-    with pytest.raises(CrabError, match=r"milestone 0\.3"):
+    with pytest.raises(CrabError, match="receipts on stdin"):
         load_cleanroom_receipts(" \n\t")
 
 
