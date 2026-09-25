@@ -14,6 +14,18 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Digest coverage is two numbers, and one of them is a gate.** `files_counted / files` could
+  not tell a sample corpus the crab skipped on purpose from prey it failed to read, and it
+  moved when somebody ran `npm ci`. The inventory now records a `coverage` block, lifted into
+  `manifest.json`: the *analysis share* (`files_counted / files_seen`, informational) with every
+  excluded file reported beside it by reason — vendored, corpus, examples, ignored, build
+  output, generated, binary, LFS — and *visibility*, the explicit losses of the walk: a file
+  list truncated at the cap, paths that failed to stat, plus the symlinks skipped by policy
+  and files behind a capped vendored directory, which are reported and are not a loss.
+  `healthy` is visibility alone. `crab digest` prints the line, `inventory.md` carries it, and
+  `crab digest --fail-on-loss` exits non-zero on an unhealthy digest for CI, where an absent
+  fact would otherwise read as an absent trait
+  ([#76](https://github.com/drevendev/HungryCrab/issues/76)).
 - **COPY nutrients become pull requests, with the notice they owe.** A `COPY` or `COPY_FILE`
   card is served with `--as pr-branch` and a *materialization receipt*: the trusted caller's
   statement, after it carried the files into the maw, of which maw path came from which prey

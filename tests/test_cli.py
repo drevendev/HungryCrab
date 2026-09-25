@@ -38,6 +38,56 @@ def test_spec_prints_the_clean_room_specification_path(capsys: pytest.CaptureFix
     assert main(["spec", "ci.cache"]) == 2, "not a nutrient id is a usage error"
 
 
+def test_digest_fail_on_loss_gates_on_visibility_not_on_the_share(
+    npm_app: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A truncated walk fails the gate; excluded example trees never do (#76)."""
+    out = tmp_path / "d"
+    assert (
+        main(
+            [
+                "-q",
+                "digest",
+                str(npm_app),
+                "--out",
+                str(out),
+                "--maw-license",
+                "MIT",
+                "--fail-on-loss",
+            ]
+        )
+        == 0
+    )
+    assert "visibility healthy" in capsys.readouterr().out
+
+    from hungry_crab.miners import inventory
+
+    monkeypatch.setattr(inventory, "MAX_FILES", {"normal": 2, "deep": 2})
+    code = main(
+        ["-q", "digest", str(npm_app), "--out", str(out), "--maw-license", "MIT", "--force"]
+    )
+    assert code == 0, "without the flag a truncated digest is reported, not refused"
+    assert "visibility LOSS: file list truncated at 2" in capsys.readouterr().out
+    code = main(
+        [
+            "-q",
+            "digest",
+            str(npm_app),
+            "--out",
+            str(out),
+            "--maw-license",
+            "MIT",
+            "--force",
+            "--fail-on-loss",
+        ]
+    )
+    assert code == 1
+    assert "did not see the whole tree" in capsys.readouterr().err
+
+
 def test_every_subcommand_has_help() -> None:
     parser = build_parser()
     text = parser.format_help()

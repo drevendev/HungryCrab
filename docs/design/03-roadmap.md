@@ -64,10 +64,14 @@ Cross-cutting themes of track A:
   is not yet a metric: `files_counted / files` counts a deliberately excluded sample corpus
   and an unread prey the same way, so a repository whose examples the crab skips correctly
   scores like one it failed to read — the maw digesting itself scores 0.065, and `.venv` is
-  the whole of the difference. The denominator has to become the files the crab meant to
-  read, with exclusions reported beside the ratio rather than inside it. That is the work
-  0.3 owes; it is not the same number as a prey's own test coverage, which the crab reads
-  from the prey and gets wrong for a different reason
+  the whole of the difference. So it became two numbers
+  ([#76](https://github.com/drevendev/HungryCrab/issues/76)): the *analysis share*,
+  `files_counted / files_seen`, informational, with every excluded file reported beside it by
+  reason (vendored, corpus, examples, ignored, generated, binary, LFS); and *visibility*, the
+  explicit losses of the walk — a list truncated at the cap, paths that failed to stat — which
+  is the only thing a machine may refuse a digest over (`crab digest --fail-on-loss`). Neither
+  is the same number as a prey's own test coverage, which the crab reads from the prey and
+  gets wrong for a different reason
   ([#53](https://github.com/drevendev/HungryCrab/issues/53)).
 
 ## Track B · Evolving Hungry Crab

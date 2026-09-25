@@ -71,6 +71,11 @@ def test_manifest_lists_every_file_with_token_estimates(npm_digest: DigestResult
     assert manifest["summary"]["primary_language"] == "TypeScript"
     assert manifest["summary"]["commits"] == 13
     assert manifest["generated_at"].startswith(FIXED_NOW.date().isoformat())
+    # the inventory's coverage block is lifted to the manifest so a gate can read it (#76)
+    coverage = manifest["coverage"]
+    assert coverage["healthy"] is True
+    assert coverage["files_seen"] == manifest["summary"]["files"]
+    assert "examples" in coverage["excluded"]
 
 
 def test_markdown_files_respect_the_budget(npm_digest: DigestResult) -> None:
