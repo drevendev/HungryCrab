@@ -12,8 +12,8 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 
 | Mode | Allowed | Required |
 |---|---|---|
-| `COPY` | copy code, configs and text | keep the copyright notice; record the source in `THIRD_PARTY_NOTICES.md`; Apache-2.0 also needs the NOTICE file carried over |
-| `COPY_FILE` | copy whole files (MPL-2.0, EPL, CC-BY-SA documents) | the file keeps its own license header; do not merge it into files under the maw license |
+| `COPY` | copy code, configs and text | keep the copyright notice; publish through `crab serve --as pr-branch` with a materialization receipt (the `serve` skill), which records the source in `.crab/attributions.json` and renders `THIRD_PARTY_NOTICES.md`; Apache-2.0 also needs the NOTICE file's attribution notices carried over |
+| `COPY_FILE` | copy whole files (MPL-2.0, EPL, CC-BY-SA documents) | the file keeps its own license header; do not merge it into files under the maw license; every file in the receipt is verbatim |
 | `REIMPLEMENT` | use the prey as a specification | clean room: a spec without code, then the `crab-cleanroom-impl` subagent without prey-cache access; record "implemented from a specification" in the trace |
 | `IDEAS_ONLY` | ideas, architecture, approaches, facts | not a line of code, configuration or documentation text |
 | `HUMAN` | nothing yet | a person decides; present the evidence (`license.json`: files, manifests, headers, conflicts) |

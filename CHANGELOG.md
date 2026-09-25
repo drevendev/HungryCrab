@@ -14,6 +14,21 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **COPY nutrients become pull requests, with the notice they owe.** A `COPY` or `COPY_FILE`
+  card is served with `--as pr-branch` and a *materialization receipt*: the trusted caller's
+  statement, after it carried the files into the maw, of which maw path came from which prey
+  path, verbatim or adapted. The crab checks the receipt against the meal's prey — label, URL,
+  commit and licence — and against the prey's own history through read-only git plumbing in
+  the cache (a verbatim file byte for byte; under COPY_FILE every file), appends it to
+  `.crab/attributions.json` under an identity of nutrient and commit (a rerun adds nothing, the
+  same nutrient from another commit is a second receipt that never rewrites the first), renders
+  the notice file named by `attribution_file` from all receipts with a structured obligation —
+  Apache's NOTICE file is not a copyright line, and one's own code owes none — and carries files,
+  receipts and notice in one pull request. `crab attribution` rewrites the notice file from the
+  receipts; `--check` makes it a CI gate. The notice names only what the crab carried in: a COPY
+  nutrient filed as an issue took nothing and appears nowhere
+  ([#70](https://github.com/drevendev/HungryCrab/issues/70),
+  [#22](https://github.com/drevendev/HungryCrab/issues/22)).
 - **`crab serve --as pr-branch`: a REIMPLEMENT nutrient becomes a pull request, through a
   transaction that scans before it touches anything.** The clean-room implementer returns a
   strict JSON receipt naming the exact maw paths it changed; the crab freezes those bytes,
@@ -22,8 +37,8 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   worktree, pushes the deterministic `crab/<nutrient>-<hash>` branch and opens the pull
   request with the same `<!-- crab:<id> -->` marker issues carry. `serve.prs` (`ask` requires
   explicit `--ids`, `auto` allows `--top`) and `serve.max_prs_per_run` in `.crab.yml` govern
-  it, and a rerun after a crash reconciles instead of duplicating. COPY nutrients are refused
-  until `crab attribution` exists ([#69](https://github.com/drevendev/HungryCrab/issues/69),
+  it, and a rerun after a crash reconciles instead of duplicating
+  ([#69](https://github.com/drevendev/HungryCrab/issues/69),
   [#77](https://github.com/drevendev/HungryCrab/issues/77), pull requests #101–#112).
 - **The clean-room protocol, and the hooks that make "never execute prey" mechanical.** The
   `cleanroom` skill writes a code-free specification from the prey evidence; the
@@ -170,10 +185,10 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   `idea`, and nothing downstream read the mark: `--as issue` filed them, `--top` filed every one
   in the top N, and pull-request mode published a REIMPLEMENT card whatever its mark. An `idea`
   card is now skipped with the reason `serve_as: idea` unless its id was asked for by name; in
-  pull-request mode the selection is filtered before anything is prepared — REIMPLEMENT, marked
-  `pr`, with a receipt — and everything else is reported as skipped with its reason, so `--top`
-  serves what it can instead of raising on the first COPY card
-  ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
+  pull-request mode the selection is filtered before anything is prepared — a licence mode
+  with a pull-request path, marked `pr`, with a receipt — and everything else is reported as
+  skipped with its reason, so `--top` serves what it can instead of raising on the first card
+  it cannot ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

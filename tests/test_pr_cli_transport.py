@@ -37,7 +37,7 @@ def test_receipt_stream_binds_multiple_documents_by_nutrient_id() -> None:
 def test_receipt_stream_rejects_duplicate_nutrient_receipts() -> None:
     receipt = _receipt("crab:ci:ci.cache", ".github/workflows/ci.yml")
 
-    with pytest.raises(UsageError, match="duplicate clean-room receipt"):
+    with pytest.raises(UsageError, match="duplicate receipt"):
         load_cleanroom_receipts(f"{receipt}\n{receipt}")
 
 
@@ -68,7 +68,10 @@ def test_pr_branch_cli_threads_configured_provider_identity(monkeypatch, tmp_pat
     ledger = object()
     captured: dict[str, object] = {}
 
-    monkeypatch.setattr(cli, "resolve_target", lambda _prey: object())
+    prey_clone = tmp_path / "prey"
+    monkeypatch.setattr(
+        cli, "resolve_target", lambda _prey: SimpleNamespace(path=prey_clone, slug=None)
+    )
     monkeypatch.setattr(cli.MawConfig, "load", lambda _maw: config)
     monkeypatch.setattr(cli.Ledger, "load", lambda *_args, **_kwargs: ledger)
     monkeypatch.setattr(cli, "meal_for", lambda *_args, **_kwargs: tmp_path / "meal")
@@ -89,10 +92,12 @@ def test_pr_branch_cli_threads_configured_provider_identity(monkeypatch, tmp_pat
         ledger,
         client,
         log,
+        prey_repo,
     ):
         del config, ledger, log
         captured["mode"] = options.mode
         captured["client"] = client
+        captured["prey_repo"] = prey_repo
         return cli.ServeReport(mode=options.mode, maw=str(tmp_path))
 
     monkeypatch.setattr(cli, "serve", recording_serve)
@@ -112,3 +117,5 @@ def test_pr_branch_cli_threads_configured_provider_identity(monkeypatch, tmp_pat
     assert captured["mode"] == "pr-branch"
     assert captured["token_env"] == token_env
     assert isinstance(captured["client"], RecordingClient)
+    # a COPY receipt's source paths are checked against the prey's own clone
+    assert captured["prey_repo"] == prey_clone

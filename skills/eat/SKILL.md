@@ -75,8 +75,12 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
    previews, then after confirmation `--as issue`. Every issue carries a hidden `crab:<id>`
    marker, the `hungry-crab` label and a trace footer, so a rerun creates no duplicates.
    A REIMPLEMENT nutrient marked `pr` goes through the `cleanroom` skill first and is then
-   published with `--as pr-branch` and its receipt; a COPY nutrient marked `pr` is served as
-   an issue until `crab attribution` lands (#70).
+   published with `--as pr-branch` and its receipt. A COPY or COPY_FILE nutrient marked `pr`
+   is materialized: copy or adapt the prey files into the maw, keep every notice the licence
+   asks for, write the materialization receipt the `serve` skill describes (which maw path
+   came from which prey path, verbatim or adapted), and publish with `--as pr-branch`; the
+   crab verifies the sources against the prey at that commit and carries the receipt and the
+   notice file in the same pull request.
 10. **Close the meal.** Commit `.crab/ledger.json` when the ledger mode is `repo`. Report the
     created issues with links, what was skipped and why, and suggest `crab tune` once the ledger
     holds a few decisions.

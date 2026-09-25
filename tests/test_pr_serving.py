@@ -137,6 +137,7 @@ def test_all_filesystem_preparation_finishes_before_first_provider_effect(tmp_pa
 
 def test_cards_without_a_pull_request_path_are_skipped_with_reasons(tmp_path: Path) -> None:
     """`--top` serves what it can; the first COPY card used to fail the whole batch (#136)."""
+    ideas = _card("ideas", mode="IDEAS_ONLY")
     copy = _card("copy", mode="COPY")
     idea = _card("idea")
     idea.serve_as = "idea"
@@ -157,7 +158,7 @@ def test_cards_without_a_pull_request_path_are_skipped_with_reasons(tmp_path: Pa
         )
 
     report = serve_cleanroom_pull_requests(
-        [copy, idea, issue, unreceipted, ready],
+        [ideas, copy, idea, issue, unreceipted, ready],
         {ready.id: _receipt(ready)},
         config=config,
         ledger=Ledger(None),
@@ -169,11 +170,33 @@ def test_cards_without_a_pull_request_path_are_skipped_with_reasons(tmp_path: Pa
     assert published == [ready.id]
     assert [item["id"] for item in report.served] == [ready.id]
     assert report.skipped == [
-        {"id": copy.id, "reason": "license mode COPY has no pull-request path yet"},
+        {"id": ideas.id, "reason": "license mode IDEAS_ONLY has no pull-request path"},
+        {"id": copy.id, "reason": "no materialization receipt"},
         {"id": idea.id, "reason": "serve_as: idea"},
         {"id": issue.id, "reason": "serve_as: issue"},
         {"id": unreceipted.id, "reason": "no clean-room receipt"},
     ]
+
+
+def test_a_receipt_of_the_wrong_kind_fails_the_batch_before_effects(tmp_path: Path) -> None:
+    """A clean-room receipt on a COPY card, or the reverse, is a caller error, not a skip."""
+    copy = _card("copy", mode="COPY")
+    config = MawConfig(root=tmp_path)
+    config.serve.prs = "auto"
+    calls: list[str] = []
+
+    with pytest.raises(CrabError, match="not a materialization receipt"):
+        serve_cleanroom_pull_requests(
+            [copy],
+            {copy.id: _receipt(copy)},
+            config=config,
+            ledger=Ledger(None),
+            explicit_selection=True,
+            preparer=lambda *_: calls.append("prepare") or _prepared(copy),
+            publisher=lambda *_: calls.append("publish") or None,
+        )
+
+    assert calls == []
 
 
 def test_a_malformed_receipt_still_fails_the_batch_before_effects(tmp_path: Path) -> None:

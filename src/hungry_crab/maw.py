@@ -63,7 +63,7 @@ budget:
   policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
-  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT nutrients)
+  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT and COPY)
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []
@@ -77,9 +77,9 @@ trust:                     # a license is a promise to strangers; these are not 
                            # verdict is flagged for human review, because this is not a finding
                            # about the license but a decision to stop asking.
 attribution_file: THIRD_PARTY_NOTICES.md
-                           # where COPY records its sources. The file is written by
-                           # `crab attribution`, which is not built yet; until then nothing
-                           # reads this setting.
+                           # where COPY records its sources: rendered by `crab attribution`
+                           # from the receipts in .crab/attributions.json, which
+                           # `crab serve --as pr-branch` writes when it carries prey files in.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 """
