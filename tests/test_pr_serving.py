@@ -27,6 +27,7 @@ def _card(key: str, *, mode: str = "REIMPLEMENT") -> Candidate:
         key,
         f"Carry {key}",
         "The prey has the behaviour.",
+        origin="licensed",
         license_mode=mode,
         serve_as="pr",
         score=0.8,

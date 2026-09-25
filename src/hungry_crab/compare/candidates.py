@@ -9,6 +9,7 @@ from typing import Any
 
 from ..digest import failed_miners
 from ..fs import read_text
+from ..licensing.origin import ContentOrigin
 from ..nutrients import Candidate, Evidence, slugify
 from ..safety import is_suspicious
 from ..typeutil import as_dict, as_list
@@ -290,6 +291,7 @@ def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category=rule.category,
+                origin=ContentOrigin.LICENSED.value,
                 key=rule.key,
                 title=rule.title,
                 what=f"{prey.label} {_fill(rule.what, prey.traits)}",
@@ -327,6 +329,7 @@ def tool_candidates(prey: Side, maw: Side) -> list[Candidate]:
             out.append(
                 Candidate(
                     category="tooling",
+                    origin=ContentOrigin.LICENSED.value,
                     key=f"tooling.{kind[:-1] if kind.endswith('s') else kind}.{slugify(tool)}",
                     title=title.format(tool=tool),
                     what=f"{prey.label} uses {tool} ({kind.replace('_', ' ')})",
@@ -345,6 +348,7 @@ def tool_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="tooling",
+                origin=ContentOrigin.LICENSED.value,
                 key="tooling.typescript-strict",
                 title="Enable TypeScript strict mode",
                 what=f"{prey.label} compiles with strict: true",
@@ -366,6 +370,7 @@ def tool_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="tooling",
+                origin=ContentOrigin.LICENSED.value,
                 key="tooling.task-runner",
                 title="Add a task runner for common commands",
                 what=f"{prey.label} uses {', '.join(which)}",
@@ -393,6 +398,7 @@ def tool_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="tooling",
+                origin=ContentOrigin.LICENSED.value,
                 key=key,
                 title=title,
                 what=f"{prey.label} pins its runtime version ({trait.removeprefix('has_')})",
@@ -428,6 +434,7 @@ def ai_config_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="ai-config",
+                origin=ContentOrigin.LICENSED.value,
                 key="ai-config.skills-corpus",
                 title=f"Measure your {maw_skills} skills against {prey.label}'s {prey_skills}",
                 what=(
@@ -459,6 +466,7 @@ def readme_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="hygiene",
+                origin=ContentOrigin.LICENSED.value,
                 key="hygiene.readme-sections",
                 title=f"README: add {', '.join(missing)} sections",
                 what=f"{prey.label}'s README covers {', '.join(sorted(prey_sections))}",
@@ -481,6 +489,7 @@ def readme_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="hygiene",
+                origin=ContentOrigin.LICENSED.value,
                 key="hygiene.readme-badges",
                 title="README: add status badges",
                 what=f"{prey.label}'s README shows {prey_badges} badges",
@@ -509,6 +518,7 @@ def test_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="tests",
+                origin=ContentOrigin.LICENSED.value,
                 key=f"tests.{kind}",
                 title=title,
                 what=f"{prey.label} has {kind} tests" + (f" ({', '.join(used)})" if used else ""),
@@ -531,6 +541,7 @@ def test_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="tests",
+                origin=ContentOrigin.LICENSED.value,
                 key="tests.coverage-threshold",
                 title=f"Fail CI below a coverage threshold ({prey_threshold}%)",
                 what=f"{prey.label} enforces {prey_threshold}% coverage",
@@ -562,6 +573,7 @@ def commit_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="hygiene",
+                origin=ContentOrigin.LICENSED.value,
                 key="hygiene.conventional-commits",
                 title="Adopt Conventional Commits",
                 what=f"{prey.label} writes {prey_ratio * 100:.0f}% conventional commit subjects",
@@ -579,6 +591,7 @@ def commit_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="hygiene",
+                origin=ContentOrigin.LICENSED.value,
                 key="hygiene.semver-tags",
                 title="Tag releases with semantic versions",
                 what=(
@@ -615,6 +628,7 @@ def changelog_candidates(prey: Side, maw: Side) -> list[Candidate]:
         return [
             Candidate(
                 category="hygiene",
+                origin=ContentOrigin.LICENSED.value,
                 key="hygiene.changelog-format",
                 title=f"Structure the changelog ({prey_format})",
                 what=f"{prey.label} keeps a {prey_format} changelog",
@@ -672,6 +686,7 @@ def deps_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, l
             out.append(
                 Candidate(
                     category="deps",
+                    origin=ContentOrigin.LICENSED.value,
                     key=f"deps.{ecosystem}.{slugify(name)}",
                     title=f"Consider {name} ({description})",
                     what=f"{prey.label} depends on {name}: {description}",
@@ -688,6 +703,7 @@ def deps_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, l
             out.append(
                 Candidate(
                     category="deps",
+                    origin=ContentOrigin.LICENSED.value,
                     key=f"deps.{ecosystem}.others",
                     title=f"{len(rest)} {ecosystem} dependencies the prey uses and you do not",
                     what=f"{prey.label} also uses: {', '.join(rest[:30])}"
@@ -723,6 +739,7 @@ def history_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="history-lesson",
+                origin=ContentOrigin.LICENSED.value,
                 key=f"history-lesson.{slug}.fix-prone",
                 title=f"Lessons from {prey.label}'s history: fix-prone areas",
                 what=what,
@@ -741,6 +758,7 @@ def history_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="security",
+                origin=ContentOrigin.LICENSED.value,
                 key=f"security.{slug}.history",
                 title=f"Security fixes in {prey.label}'s history ({security})",
                 what=(
@@ -780,6 +798,7 @@ def issue_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="issue-lesson",
+                origin=ContentOrigin.COMMENTERS.value,
                 key=f"issue-lesson.{slug}.cluster-{index}",
                 title=f"Recurring pain in {prey.label}: {headline}",
                 what=f"{size} issues cluster around {terms}; the largest is: {headline}",
@@ -802,6 +821,7 @@ def issue_candidates(prey: Side, maw: Side) -> list[Candidate]:
         out.append(
             Candidate(
                 category="issue-lesson",
+                origin=ContentOrigin.COMMENTERS.value,
                 key=f"issue-lesson.{slug}.top-{number}",
                 title=f"Popular request in {prey.label}: {title[:80]}",
                 what=f"issue #{number} has {reactions} reactions",
@@ -830,6 +850,7 @@ def architecture_candidates(prey: Side, maw: Side) -> list[Candidate]:
     return [
         Candidate(
             category="architecture",
+            origin=ContentOrigin.LICENSED.value,
             key=f"architecture.{slugify(prey.label)}.raw",
             title=f"Architecture of {prey.label}: hubs and layering (raw material)",
             what="import-graph hubs: " + ", ".join(str(h.get("path")) for h in hubs),

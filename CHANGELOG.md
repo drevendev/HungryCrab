@@ -170,6 +170,16 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A nutrient with no declared origin fails closed, and notes cannot smuggle commenter prose
+  past the cap.** `Candidate.origin` defaulted to `licensed`, so a builder that forgot to say
+  where its text came from inherited the repository's COPY — and the next builders on the
+  roadmap read discussions and review comments, exactly the prose the origin ceiling exists
+  for. The default is `unknown` now, capped at HUMAN; all twenty builders declare `licensed` or
+  `commenters` explicitly, and a test walks a whole menu to see that none forgot. Reassigning
+  `origin` re-caps the mode the card carries and refreshes its trace, never widening it. And
+  `crab serve` refuses a commenter-origin card whose `why` or `how` quotes an issue title from
+  the prey's own `issues.json`: the one channel the engine never policed, while a comment
+  claimed it did ([#137](https://github.com/drevendev/HungryCrab/issues/137)).
 - **The clean-room specification has a path that exists on Windows, and the pull request
   carries it.** The skill told the caller to write the Stage A specification to
   `.crab/specs/<nutrient-id>.md`; a nutrient id has colons, NTFS refuses them in a file name, so

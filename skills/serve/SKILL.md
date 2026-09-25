@@ -160,3 +160,4 @@ or added.
 | `license mode IDEAS_ONLY has no pull-request path` | only REIMPLEMENT, COPY and COPY_FILE become pull requests; serve the card as an issue |
 | `no clean-room receipt` | pull-request mode found no receipt for a REIMPLEMENT card on stdin; run the clean-room protocol first |
 | `no materialization receipt` | pull-request mode found no receipt for a COPY card on stdin; carry the files and write the receipt first |
+| `notes quote commenter text; rewrite why/how in your own words` | the card comes from issue text and your `why` or `how` repeats one of the prey's issue titles; state the need in your own words and link the issue |

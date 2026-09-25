@@ -62,7 +62,8 @@ Run `crab --version`. If it is not installed, use one of these, in order of pref
 7. **Judge.** For each shown candidate decide keep or drop for *this* maw. The score is a
    deterministic pre-ranking, not a verdict. For kept ones write two things, concrete and short:
    `why` (what improves here, 1-3 sentences) and `how` (the first steps, adapted to this
-   repository's toolchain). Save them as JSON:
+   repository's toolchain). Write both in your own words: for a card built from issue text,
+   `crab serve` refuses notes that quote an issue title. Save them as JSON:
    `[{"id": "crab:ci:ci.cache", "why": "...", "how": "..."}]` in a scratch file.
 8. **Ask.** Show the menu as a table: id, category, title, license mode, effort, your verdict.
    Ask which items to serve. In CI, follow the `serve` policy in `.crab.yml` instead.
