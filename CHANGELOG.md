@@ -182,6 +182,19 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **The notice file survives the maw's formatter.** The notice was a table, and every Markdown
+  formatter realigns a table: the first COPY pull request into a maw whose gate is
+  `prettier --check .` would have turned that gate red on merge, while `crab attribution --check`
+  compares bytes, so the two gates could not both be green. The notice is headings and
+  paragraphs now, wrapped at 80 columns, with no table, no list, no hard line break and no
+  trailing whitespace — a fixed point of Prettier's defaults, of `--tab-width 4` and of
+  `--prose-wrap always` — and its layout is held byte for byte by a test, because changing it
+  makes every maw's notice stale. Names are data: a receipt path with a control character is
+  refused, and whatever else a path holds stays inside a code span, in the notice and in the
+  pull-request body. The body also says what no check has seen: the receipts and the notice are
+  written at publication, after the caller's checks ran, and the `serve` skill sends the maw's
+  own gate to the branch before anyone merges
+  ([#173](https://github.com/drevendev/HungryCrab/issues/173)).
 - **A nutrient with no declared origin fails closed, and notes cannot smuggle commenter prose
   past the cap.** `Candidate.origin` defaulted to `licensed`, so a builder that forgot to say
   where its text came from inherited the repository's COPY — and the next builders on the

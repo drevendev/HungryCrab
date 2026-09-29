@@ -118,6 +118,13 @@ the licence asks for.
 is missing or stale, which makes it a CI gate. The notice names only what the crab actually
 carried in: a COPY nutrient filed as an issue took nothing and appears nowhere.
 
+The receipts and the notice are written at publication and were never in the working tree, so
+the `checks` of your receipt did not see them. After serving, let the maw's own gate run on the
+branch — its CI, or the gate by hand in a checkout of the branch where there is no CI — and fix
+the branch before anyone merges it. The notice is headings and paragraphs only, which a Markdown
+formatter's defaults leave alone; where the maw's formatter rewrites it anyway, exclude the file
+from the formatter, never from `crab attribution --check`.
+
 ## Whose name the artifacts carry
 
 Issues and pull requests go into **the maw**, so serving into another repository means digesting

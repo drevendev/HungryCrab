@@ -8,7 +8,9 @@ never reconstructed from a ledger status or from whichever prey proposed the nut
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,7 @@ import pytest
 
 from hungry_crab.attribution import (
     ATTRIBUTIONS_PATH,
+    NOTICE_WIDTH,
     AttributionRecord,
     Obligation,
     SourceRef,
@@ -174,6 +177,8 @@ def test_receipt_parses_strictly() -> None:
         {"taken": [{"maw_path": "../ci.yml", "prey_path": "x", "verbatim": True}]},
         {"taken": [{"maw_path": "ci.yml", "prey_path": "/etc/passwd", "verbatim": True}]},
         {"taken": [{"maw_path": "ci.yml", "prey_path": "x", "verbatim": "yes"}]},
+        {"taken": [{"maw_path": "ci.yml", "prey_path": "a\n\n# b.md", "verbatim": True}]},
+        {"taken": [{"maw_path": "ci\tx.yml", "prey_path": "x", "verbatim": True}]},
         {
             "taken": [
                 {"maw_path": "ci.yml", "prey_path": "x", "verbatim": True},
@@ -299,9 +304,41 @@ def test_attributions_file_round_trips_and_rejects_strangers(tmp_path: Path) -> 
 # --- the notice file ---------------------------------------------------------------------
 
 
-def test_notice_is_byte_stable_grouped_by_source_and_says_the_obligation() -> None:
-    assert "Nothing has been carried over yet." in render_notices([])
-    records = [
+NOTICE = """\
+# Third-party notices
+
+Written by `crab attribution` from `.crab/attributions.json`, the receipts of
+material Hungry Crab carried into this repository. Edit the receipts, not this
+file; rerunning the command reproduces it byte for byte. It is headings and
+paragraphs on purpose: a Markdown formatter has nothing to rewrite here.
+
+## anthropics/skills @ 41bbe19 — MIT
+
+Source:
+<https://github.com/anthropics/skills/tree/41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f>
+
+Obligation (notice-file): keep the notice.
+
+`.github/workflows/ci.yml`: adapted from `.github/workflows/test.yml`; COPY,
+`crab:ci:ci.cache`.
+
+## pypa/pipx @ c490b45 — MIT
+
+Source:
+<https://github.com/pypa/pipx/tree/c490b45bc4d18f8968d527ec2d37b8af36eb4361>
+
+Obligation (copyright-notice): keep the notice.
+
+`.github/workflows/ci.yml`: adapted from `.github/workflows/test.yml`; COPY,
+`crab:ci:ci.cache`.
+
+`.pre-commit-config.yaml`: copied unchanged from `.pre-commit-config.yaml`;
+COPY, `crab:tooling:tooling.pre-commit`.
+"""
+
+
+def _three_records() -> list[AttributionRecord]:
+    return [
         _record(sha=OTHER_SHA, label="anthropics/skills", kind="notice-file"),
         _record(),
         _record(
@@ -309,24 +346,85 @@ def test_notice_is_byte_stable_grouped_by_source_and_says_the_obligation() -> No
             taken=(TakenFile(".pre-commit-config.yaml", ".pre-commit-config.yaml", True),),
         ),
     ]
+
+
+def test_notice_is_byte_stable_grouped_by_source_and_says_the_obligation() -> None:
+    """The layout is a contract: the day these bytes change, every maw's notice is stale."""
+    assert "Nothing has been carried over yet." in render_notices([])
+    records = _three_records()
     text = render_notices(records)
     assert text == render_notices(list(reversed(records)))
-    skills = text.index("## anthropics/skills @ 41bbe19")
-    pipx = text.index("## pypa/pipx @ c490b45 — MIT")
-    assert skills < pipx
-    assert "Obligation (notice-file): keep the notice" in text
-    cache_row = (
-        "| `crab:ci:ci.cache` | `.github/workflows/ci.yml` "
-        "| `.github/workflows/test.yml` (adapted) | COPY |"
-    )
-    precommit_row = (
-        "| `crab:tooling:tooling.pre-commit` | `.pre-commit-config.yaml` "
-        "| `.pre-commit-config.yaml` | COPY |"
-    )
-    assert cache_row in text
-    assert precommit_row in text
+    assert text == NOTICE
     assert text.count("## pypa/pipx") == 1, "two nutrients from one commit share a section"
-    assert f"<https://github.com/pypa/pipx/tree/{SHA}>" in text
+
+
+def _assert_a_formatter_has_nothing_to_rewrite(text: str) -> None:
+    lines = text.split("\n")
+    assert text.endswith("\n") and not text.endswith("\n\n")
+    assert lines[0].startswith("# ")
+    for previous, line in pairwise(lines):
+        assert line == line.rstrip(), "no trailing whitespace, so no hard line break either"
+        assert not line.startswith("|"), "a table is realigned by every Markdown formatter"
+        assert not (previous == "" and line == ""), "one blank line between blocks"
+        if " " in line:
+            assert len(line) <= NOTICE_WIDTH or line.startswith("`"), line
+        if previous != "" and line != "":
+            assert re.match(r"[-+*>#=~]|\d+[.)]|_{3}", line) is None, (
+                "a continuation line must not read as a list, a quote, a heading or a rule"
+            )
+
+
+def test_notice_is_headings_and_paragraphs_a_formatter_leaves_alone() -> None:
+    """A maw's gate may be `prettier --check .`, and the table this file used to carry failed it.
+
+    Prettier is not available to this suite, so the properties that make the file a fixed point
+    of its defaults are asserted instead. The layout was run through Prettier 3 when it was
+    chosen: the defaults, `--tab-width 4`, `--use-tabs` and `--prose-wrap always` leave it alone.
+    """
+    _assert_a_formatter_has_nothing_to_rewrite(render_notices([]))
+    _assert_a_formatter_has_nothing_to_rewrite(render_notices(_three_records()))
+
+
+def test_notice_survives_the_names_a_source_gives_its_files() -> None:
+    """Prey names its own files, and a name is data: it must not become Markdown."""
+    weird = AttributionRecord(
+        nutrient_id="crab:docs:docs.weird",
+        source=SourceRef("_x_/*y* [z](u) <b>", "https://example.com/a b", SHA, "MIT"),
+        taken=(
+            TakenFile("docs/My File.md", "docs/a`b``c.md", False),
+            TakenFile("docs/pipe|name.md", "`lead.md", True),
+            TakenFile("d/" + "long/" * 20 + "x.md", "- dash/# hash/> quote/1. one.md", False),
+        ),
+        mode="COPY",
+        obligation=Obligation("review", "- a person decides  # and 1. nothing > else ---"),
+        summary="carried over",
+        branch="crab/x",
+        recorded_at="2026-09-25T12:00:00+00:00",
+    )
+    own = AttributionRecord(
+        nutrient_id="crab:docs:docs.own",
+        source=weird.source,
+        taken=(TakenFile("b.md", "b.md", True),),
+        mode="COPY",
+        obligation=Obligation("none", "same owner: no notice is owed."),
+        summary="carried over",
+        branch="crab/y",
+        recorded_at="2026-09-25T12:00:00+00:00",
+    )
+    text = render_notices([weird, own])
+    _assert_a_formatter_has_nothing_to_rewrite(text)
+    assert "## `_x_/*y* [z](u) <b>` @ c490b45 — MIT" in text
+    assert f"Source: `https://example.com/a b/tree/{SHA}`\n" in text
+    assert "<https://" not in text, "what is not a link is not written as one"
+    assert "`docs/My File.md`: adapted from ```docs/a`b``c.md```; COPY," in text
+    assert "`docs/pipe|name.md`: copied unchanged from `` `lead.md ``; COPY," in text
+    assert "adapted from `- dash/# hash/> quote/1. one.md`; COPY," in text
+    assert "Obligation (none): same owner: no notice is owed.\n" in text
+    assert "Obligation (review): - a person decides # and 1. nothing > else ---.\n" in text
+    assert text.index("Obligation (none)") < text.index("`b.md`: copied unchanged")
+    assert text.index("`b.md`: copied") < text.index("Obligation (review)"), (
+        "an obligation is said again where it changes inside one source"
+    )
 
 
 # --- preparing the pull request ----------------------------------------------------------
@@ -346,7 +444,10 @@ def test_prepare_carries_the_files_the_receipt_and_the_notice(tmp_path: Path) ->
     assert receipts[0]["branch"] == nutrient_branch_name("crab:ci:ci.cache")
     assert receipts[0]["recorded_at"] == "2026-09-25T12:00:00+00:00"
     assert receipts[0]["obligation"]["kind"] == "copyright-notice"
-    assert "| `crab:ci:ci.cache` | `.github/workflows/ci.yml` |" in prepared.files[2].content
+    assert (
+        "`.github/workflows/ci.yml`: adapted from `.github/workflows/test.yml`; COPY,\n"
+        "`crab:ci:ci.cache`." in prepared.files[2].content
+    )
     assert prepared.body.startswith("<!-- crab:ci:ci.cache -->")
     assert "## Attribution" in prepared.body
     assert "Taken from `pypa/pipx@c490b45` (MIT, mode COPY)" in prepared.body
@@ -354,6 +455,7 @@ def test_prepare_carries_the_files_the_receipt_and_the_notice(tmp_path: Path) ->
         "| `.github/workflows/ci.yml` | `.github/workflows/test.yml` | adapted |" in prepared.body
     )
     assert "carried the cache step over, adapted to uv" in prepared.body
+    assert "no check that ran in the working tree has seen them" in prepared.body
 
 
 def test_prepare_extends_the_maws_existing_receipts_and_reruns_are_stable(tmp_path: Path) -> None:
@@ -482,7 +584,7 @@ def test_attribution_command_writes_checks_and_ignores_issue_only_entries(
     assert "stale" in capsys.readouterr().err
     assert main(["attribution", "--maw", str(maw)]) == 0
     assert "wrote THIRD_PARTY_NOTICES.md from 1 receipt(s)" in capsys.readouterr().out
-    assert "| `crab:ci:ci.cache` |" in notice.read_text(encoding="utf-8")
+    assert "`crab:ci:ci.cache`." in notice.read_text(encoding="utf-8")
     assert main(["attribution", "--maw", str(maw)]) == 0
     assert "unchanged" in capsys.readouterr().out
     assert main(["attribution", "--maw", str(maw), "--check"]) == 0

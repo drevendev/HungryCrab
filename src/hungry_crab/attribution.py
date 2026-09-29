@@ -24,6 +24,7 @@ from typing import Any, Protocol
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .licensing.matrix import LicenseClass, classify, normalize
+from .mdutil import cell
 from .nutrients import Candidate
 from .pr_publication import GeneratedFile, PreparedPullRequest, nutrient_branch_name
 from .pr_serve import read_maw_text
@@ -33,8 +34,14 @@ ATTRIBUTIONS_PATH = ".crab/attributions.json"
 ATTRIBUTIONS_SCHEMA = "hungry-crab.attributions/1"
 MATERIALIZATION_KIND = "materialization"
 COPY_MODES = frozenset({"COPY", "COPY_FILE"})
+NOTICE_WIDTH = 80
 _RECEIPT_VERSION = 1
 _SHA_RE = re.compile(r"[0-9a-f]{7,40}")
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_PLAIN_RE = re.compile(r"[A-Za-z0-9(][A-Za-z0-9 ._/+()-]*")
+_LINK_RE = re.compile(r"https://[^\s<>`]+")
+_ATOM_RE = re.compile(r"(?:`[^`]*`|\S)+")
+_BLOCK_START_RE = re.compile(r"(?:[-+*>#=~]|<(?!https://)|\d+[.)]|_{3})")
 _RECEIPT_KEYS = frozenset(
     {"version", "kind", "nutrient_id", "source", "taken", "summary", "checks"}
 )
@@ -54,12 +61,17 @@ def _receipt_error(detail: str) -> CrabError:
 
 
 def _canonical(path: str) -> bool:
+    """A relative POSIX path that can be written into a notice as it stands.
+
+    A file name may hold a line break on the systems prey comes from, and two of them would end
+    the paragraph the notice puts the path in, so control characters are refused with the rest.
+    """
     parts = path.split("/")
     return not (
         not path
         or path.startswith("/")
         or "\\" in path
-        or "\x00" in path
+        or _CONTROL_RE.search(path) is not None
         or any(not part or part in {".", ".."} for part in parts)
         or ":" in parts[0]
     )
@@ -424,45 +436,109 @@ def add_attribution(
     return [*records, record]
 
 
+def _code(text: str) -> str:
+    """An inline code span around whatever a path holds, backticks included."""
+
+    runs = {len(run) for run in re.findall(r"`+", text)}
+    fence = "`" * next(count for count in range(1, len(text) + 2) if count not in runs)
+    pad = " " if text.startswith("`") or text.endswith("`") else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
+
+
+def _inline(text: str) -> str:
+    """A name the source gave itself: as it is when it is plain, a code span when it is not."""
+
+    flat = " ".join(text.split())
+    return flat if _PLAIN_RE.fullmatch(flat) else _code(flat)
+
+
+def _atoms(text: str) -> list[str]:
+    """Prose as the pieces a line may break between: words, and code spans kept whole."""
+
+    return _ATOM_RE.findall(text)
+
+
+def _wrapped(atoms: Iterable[str]) -> list[str]:
+    """One paragraph, broken between atoms only, so a code span or a link is never split.
+
+    An atom longer than the width gets a line of its own, which no line-length rule objects to
+    because nothing on it can be broken. An atom that would read as a list marker, a quote, a
+    heading or a rule at the start of a line never starts one.
+    """
+
+    lines: list[str] = []
+    current = ""
+    for atom in atoms:
+        if not current:
+            current = atom
+        elif len(current) + 1 + len(atom) <= NOTICE_WIDTH or _BLOCK_START_RE.match(atom):
+            current = f"{current} {atom}"
+        else:
+            lines.append(current)
+            current = atom
+    if current:
+        lines.append(current)
+    return lines
+
+
+def _sentence(text: str) -> str:
+    flat = " ".join(text.split())
+    return flat if flat.endswith((".", "!", "?")) else f"{flat}."
+
+
+def _taken_sentence(record: AttributionRecord, item: TakenFile) -> list[str]:
+    how = "copied unchanged from" if item.verbatim else "adapted from"
+    return [
+        f"{_code(item.maw_path)}:",
+        *how.split(),
+        f"{_code(item.prey_path)};",
+        f"{_inline(record.mode)},",
+        f"{_code(record.nutrient_id)}.",
+    ]
+
+
 def render_notices(records: Iterable[AttributionRecord]) -> str:
-    """The notice file: one section per source commit, one row per file taken, byte-stable."""
+    """The notice file: one section per source commit, one sentence per file taken, byte-stable.
+
+    The layout is headings and paragraphs wrapped at ``NOTICE_WIDTH``, with no table, no list,
+    no hard line break and no trailing whitespace. A maw's formatter runs over this file like
+    over any other, and what it rewrites `crab attribution --check` reports as stale; a table is
+    realigned by every Markdown formatter, a paragraph is left alone by their defaults.
+    """
 
     ordered = sorted(records, key=_record_key)
-    lines = [
-        "# Third-party notices",
-        "",
-        f"Written by `crab attribution` from `{ATTRIBUTIONS_PATH}`, the receipts of material",
-        "Hungry Crab carried into this repository. Edit the receipts, not this file; rerunning",
-        "the command reproduces it byte for byte.",
-        "",
-    ]
+    intro = (
+        f"Written by `crab attribution` from `{ATTRIBUTIONS_PATH}`, the receipts of material "
+        "Hungry Crab carried into this repository. Edit the receipts, not this file; rerunning "
+        "the command reproduces it byte for byte. It is headings and paragraphs on purpose: a "
+        "Markdown formatter has nothing to rewrite here."
+    )
+    lines = ["# Third-party notices", "", *_wrapped(_atoms(intro)), ""]
     if not ordered:
         lines.extend(["Nothing has been carried over yet.", ""])
         return "\n".join(lines)
 
     current: tuple[str, str] | None = None
+    obligation: Obligation | None = None
     for record in ordered:
         source = record.source
         key = (source.label, source.sha)
         if key != current:
-            if current is not None:
-                lines.append("")
             current = key
-            spdx = source.license or "no licence declared"
-            lines.append(f"## {source.label} @ {source.sha[:7]} — {spdx}")
-            lines.append("")
+            obligation = None
+            spdx = _inline(source.license) if source.license else "no licence declared"
+            commit = _inline(source.sha[:7])
+            lines.extend([f"## {_inline(source.label)} @ {commit} — {spdx}", ""])
             if source.url:
-                lines.append(f"Source: <{source.url}/tree/{source.sha}>  ")
-            lines.append(f"Obligation ({record.obligation.kind}): {record.obligation.text}")
-            lines.append("")
-            lines.append("| Nutrient | Into | From | Mode |")
-            lines.append("|---|---|---|---|")
+                tree = f"{source.url}/tree/{source.sha}"
+                link = f"<{tree}>" if _LINK_RE.fullmatch(tree) else _code(tree)
+                lines.extend([*_wrapped(["Source:", link]), ""])
+        if record.obligation != obligation:
+            obligation = record.obligation
+            owed = f"Obligation ({obligation.kind}): {_sentence(obligation.text)}"
+            lines.extend([*_wrapped(_atoms(owed)), ""])
         for item in sorted(record.taken, key=_taken_key):
-            origin = f"`{item.prey_path}`" + ("" if item.verbatim else " (adapted)")
-            lines.append(
-                f"| `{record.nutrient_id}` | `{item.maw_path}` | {origin} | {record.mode} |"
-            )
-    lines.append("")
+            lines.extend([*_wrapped(_taken_sentence(record, item)), ""])
     return "\n".join(lines)
 
 
@@ -574,18 +650,20 @@ def _check_against_meal(
 
 def _attribution_section(record: AttributionRecord, attribution_file: str) -> str:
     source = record.source
+    spdx = _inline(source.license) if source.license else "no licence declared"
     taken_from = (
-        f"Taken from `{source.label}@{source.sha[:7]}` "
-        f"({source.license or 'no licence declared'}, mode {record.mode}): "
-        f"{record.obligation.text}."
+        f"Taken from {_code(f'{source.label}@{source.sha[:7]}')} "
+        f"({spdx}, mode {_inline(record.mode)}): {_sentence(record.obligation.text)}"
     )
     lines = ["## Attribution", "", taken_from, "", "| Into | From | |", "|---|---|---|"]
     for item in sorted(record.taken, key=_taken_key):
         how = "verbatim" if item.verbatim else "adapted"
-        lines.append(f"| `{item.maw_path}` | `{item.prey_path}` | {how} |")
+        lines.append(f"| {cell(_code(item.maw_path))} | {cell(_code(item.prey_path))} | {how} |")
     carried = (
         f"The receipt is recorded in `{ATTRIBUTIONS_PATH}` and rendered into "
-        f"`{attribution_file}`; both are carried in this pull request."
+        f"`{attribution_file}`; both are carried in this pull request. The crab wrote them "
+        "when it published, so no check that ran in the working tree has seen them: this "
+        "repository's own gate sees them when it runs on this branch."
     )
     lines.extend(["", record.summary, "", carried])
     return "\n".join(lines)

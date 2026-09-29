@@ -139,3 +139,15 @@ def test_readme_configuration_tracks_maw_config_surface() -> None:
     defaults = set(yaml.safe_load(DEFAULT_CONFIG_TEXT))
     model = {item.name for item in fields(MawConfig)} - {"root", "exists", "raw"}
     assert documented == defaults == model
+
+
+def test_readme_shows_the_template_crab_init_writes() -> None:
+    """The README calls its block the template `crab init` writes, so it has to be that one.
+
+    It drifted once: the block went on saying `crab attribution` was not built yet after the
+    command shipped, in the one place a reader looks for what a setting does.
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    section = readme.split("## Configuration", 1)[1].split("\n## ", 1)[0]
+    block = section.split("```yaml\n", 1)[1].split("```", 1)[0]
+    assert block == DEFAULT_CONFIG_TEXT
