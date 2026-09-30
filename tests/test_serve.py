@@ -22,6 +22,7 @@ from hungry_crab.serve import (
     ServeOptions,
     decode_receipt_stream,
     parse_markers,
+    quoted_commenter_title,
     render_issue,
     serve,
 )
@@ -541,3 +542,60 @@ def test_notes_that_quote_a_commenter_title_are_refused(tmp_path: Path) -> None:
     )  # fmt: skip
     assert [p["id"] for p in report.previews] == [card.id]
     assert quoted not in report.previews[0]["body"]
+
+
+@pytest.mark.parametrize(
+    "why",
+    [
+        "Users keep asking: Can we get `dark mode` in the settings page",
+        "Users keep asking: can we get dark mode in the settings page?!",
+        "Users keep asking: can we get dark mode in the settings\u200b page",
+        r"Users keep asking: can we get dark mode in the settings \| page",
+        "One issue says to support Windows paths in the CLI with drive letters and UNC shares.",
+    ],
+)
+def test_a_quote_is_its_words_not_its_punctuation(why: str) -> None:
+    titles = [
+        "Can we get dark mode in the settings page?",
+        "Support Windows paths in the CLI with drive letters, UNC shares and long paths",
+    ]
+    card = Candidate("issue-lesson", "prey.cluster-1", "t", "w", why=why)
+    assert quoted_commenter_title(card, titles) is not None
+    card.why = "Several issues ask for a theme switch."
+    assert quoted_commenter_title(card, titles) is None
+
+
+def test_notes_on_a_card_of_undeclared_origin_are_checked_too() -> None:
+    card = Candidate("ci", "ci.x", "t", "w", why="can we get dark mode in the settings page")
+    assert card.origin == "unknown"
+    assert quoted_commenter_title(card, ["Can we get dark mode in the settings page?"])
+
+
+def test_notes_that_cannot_be_checked_are_not_served(tmp_path: Path) -> None:
+    """The quote check fails closed when the prey's issue titles are gone from the cache."""
+    card = Candidate("issue-lesson", "prey.cluster-1", "t", "w", serve_as="idea", score=0.4)
+    card.trace = {"prey": "prey", "sha": "abc1234"}
+    meal = tmp_path / "meal"
+    meal.mkdir()
+    (meal / "menu.json").write_text(
+        json.dumps({"prey": {"label": "prey", "sha": "abc1234"}, "candidates": [card.to_dict()]}),
+        encoding="utf-8",
+    )
+    (meal / "meal.json").write_text(
+        json.dumps({"prey_digest": str(tmp_path / "gone")}), encoding="utf-8"
+    )
+    notes = tmp_path / "notes.json"
+    notes.write_text(json.dumps([{"id": card.id, "why": "My own words.", "how": "x"}]), "utf-8")
+    report = serve(
+        meal, tmp_path, ServeOptions(ids=[card.id], notes=notes),
+        config=MawConfig(root=tmp_path), ledger=Ledger(None), slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert report.previews == []
+    assert report.skipped[0]["reason"].startswith("the prey's issue titles cannot be read")
+
+    # without notes there is nothing to check, and the card previews
+    report = serve(
+        meal, tmp_path, ServeOptions(ids=[card.id]),
+        config=MawConfig(root=tmp_path), ledger=Ledger(None), slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert [p["id"] for p in report.previews] == [card.id]

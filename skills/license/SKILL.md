@@ -25,8 +25,8 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
    content origin, records the origin and cap reason in the nutrient trace, and `crab serve`
    carries that trace into the served issue; do not recalculate the cap by hand. The cap
    rewrites the card's title and `what`; your `why` and `how` are yours to keep clean, and
-   `crab serve` refuses a commenter-origin card whose notes quote one of the prey's issue
-   titles.
+   `crab serve` refuses a card of any origin but `licensed` whose notes quote one of the prey's
+   issue titles, in any punctuation or case, or whose notes cannot be checked.
 2. Configuration files and small snippets are not automatically free: same mode as code.
 3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
    `mode: strict` and the engine ignores it: no verdict changes. Do not perform that downgrade

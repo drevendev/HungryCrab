@@ -167,10 +167,21 @@ class Candidate:
         # a commenter's title back. What it does not police is `why` and `how`, which a model
         # writes from the digest; `crab serve` refuses notes that quote an issue title from the
         # prey's own `issues.json`, and the eat skill says to write them in your own words.
-        self.title = "Issue-derived demand signal"
+        if self.origin == ContentOrigin.COMMENTERS.value:
+            self.title = "Issue-derived demand signal"
+            self.what = (
+                "Issue metadata indicates unmet demand in the prey. Follow the linked issue "
+                "evidence to understand the need; commenter text is intentionally not carried "
+                "into this card."
+            )
+            return
+        # An undeclared origin is a builder that forgot to say where its text came from, not an
+        # issue: saying "issue" here would send a reader looking for a discussion that is not
+        # there.
+        self.title = "Nutrient of undeclared origin"
         self.what = (
-            "Issue metadata indicates unmet demand in the prey. Follow the linked issue evidence "
-            "to understand the need; commenter text is intentionally not carried into this card."
+            "The crab cannot say where this card's text came from, so none of it is carried. "
+            "Follow the linked evidence and decide by hand."
         )
 
     @property

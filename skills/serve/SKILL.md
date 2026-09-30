@@ -160,4 +160,5 @@ or added.
 | `license mode IDEAS_ONLY has no pull-request path` | only REIMPLEMENT, COPY and COPY_FILE become pull requests; serve the card as an issue |
 | `no clean-room receipt` | pull-request mode found no receipt for a REIMPLEMENT card on stdin; run the clean-room protocol first |
 | `no materialization receipt` | pull-request mode found no receipt for a COPY card on stdin; carry the files and write the receipt first |
-| `notes quote commenter text; rewrite why/how in your own words` | the card comes from issue text and your `why` or `how` repeats one of the prey's issue titles; state the need in your own words and link the issue |
+| `notes quote commenter text; rewrite why/how in your own words` | the card is not of licensed origin and your `why` or `how` repeats one of the prey's issue titles, or eight words in a row of one; state the need in your own words and link the issue |
+| `the prey's issue titles cannot be read, so these notes cannot be checked; run crab compare again` | the prey digest the meal names is gone from the cache; recompare, then serve |
