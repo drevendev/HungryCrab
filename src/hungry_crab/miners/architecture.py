@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, TypeVar
 
 from ..mdutil import MdDoc
 from .base import FileInfo, MineContext, MinerResult
@@ -151,6 +152,19 @@ def _namespace_parents(namespace: str) -> list[str]:
     return [".".join(parts[:i]) for i in range(len(parts) - 1, 0, -1)]
 
 
+_Key = TypeVar("_Key", str, tuple[str, str])
+
+
+def _ranked(counts: Mapping[_Key, int], limit: int) -> list[tuple[_Key, int]]:
+    """The ``limit`` largest counts, ties broken by the key.
+
+    ``Counter.most_common`` breaks ties by insertion order, and a counter filled from a set of
+    paths is filled in the order of the interpreter's hash seed, so two digests of one commit
+    listed different hubs.
+    """
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
+
+
 class ArchitectureMiner:
     name = "architecture"
     requires: tuple[str, ...] = ("inventory",)
@@ -266,11 +280,11 @@ class ArchitectureMiner:
         )
         hubs = [
             {"path": path, "imported_by": in_degree[path], "imports": out_degree[path]}
-            for path, _ in in_degree.most_common(10)
+            for path, _ in _ranked(in_degree, 10)
         ]
         orchestrators = [
             {"path": path, "imports": out_degree[path], "imported_by": in_degree[path]}
-            for path, _ in out_degree.most_common(10)
+            for path, _ in _ranked(out_degree, 10)
         ]
         by_symbols = sorted(
             symbols.items(), key=lambda kv: (-(kv[1]["functions"] + kv[1]["classes"]), kv[0])
@@ -307,12 +321,12 @@ class ArchitectureMiner:
                 "hubs": hubs,
                 "orchestrators": orchestrators,
                 "dir_edges": [
-                    {"from": s, "to": t, "count": c} for (s, t), c in dir_edges.most_common(30)
+                    {"from": s, "to": t, "count": c} for (s, t), c in _ranked(dir_edges, 30)
                 ],
                 "dir_cycles": [list(pair) for pair in dir_cycles[:10]],
                 "layers": layer_rows[:15],
                 "external_top": [
-                    {"name": name, "imports": count} for name, count in external.most_common(15)
+                    {"name": name, "imports": count} for name, count in _ranked(external, 15)
                 ],
             },
             "edges": [list(edge) for edge in sorted(edges)[:2000]],

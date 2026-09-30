@@ -170,6 +170,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Two digests of one commit list the same import-graph hubs.** Hubs, orchestrators, directory
+  edges and external imports were the `most_common` of counters filled from a set of paths, so
+  ties followed the interpreter's hash seed: six seeds gave this repository four hub orders, and
+  the architecture card's `what` and evidence changed from run to run. Ties are broken by path
+  now ([#197](https://github.com/drevendev/HungryCrab/issues/197)).
 - **A nutrient with no declared origin fails closed, and notes cannot smuggle commenter prose
   past the cap.** `Candidate.origin` defaulted to `licensed`, so a builder that forgot to say
   where its text came from inherited the repository's COPY — and the next builders on the
