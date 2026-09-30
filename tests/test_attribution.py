@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+from dataclasses import replace
 from datetime import UTC, datetime
 from itertools import pairwise
 from pathlib import Path
@@ -20,10 +22,14 @@ from hungry_crab.attribution import (
     ATTRIBUTIONS_PATH,
     NOTICE_WIDTH,
     AttributionRecord,
+    CarriedText,
+    GitSourceReader,
     Obligation,
     SourceRef,
     TakenFile,
     add_attribution,
+    carried_texts,
+    clean_text,
     dump_attributions,
     load_attributions,
     load_materialization_receipt,
@@ -116,9 +122,27 @@ class FakePrey:
     def read(self, sha: str, path: str) -> str | None:
         return self.files.get((sha, path))
 
+    def entries(self, sha: str) -> list[str] | None:
+        return sorted(path for at, path in self.files if at == sha and "/" not in path)
+
+
+MIT_TEXT = """\
+MIT License
+
+Copyright (c) 2024 Prey Owner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software").
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+"""
+
 
 def _prey() -> FakePrey:
-    return FakePrey({(SHA, ".github/workflows/test.yml"): "name: test\n"})
+    return FakePrey(
+        {(SHA, ".github/workflows/test.yml"): "name: test\n", (SHA, "LICENSE"): MIT_TEXT}
+    )
 
 
 def _maw(tmp_path: Path, files: dict[str, str] | None = None) -> Path:
@@ -362,16 +386,28 @@ def _assert_a_formatter_has_nothing_to_rewrite(text: str) -> None:
     lines = text.split("\n")
     assert text.endswith("\n") and not text.endswith("\n\n")
     assert lines[0].startswith("# ")
+    fence = ""
     for previous, line in pairwise(lines):
         assert line == line.rstrip(), "no trailing whitespace, so no hard line break either"
+        if fence:
+            # a formatter does not touch the inside of a fenced block: the carried licence text
+            if line == fence:
+                fence = ""
+            continue
+        opened = re.fullmatch(r"(`{3,})text", line)
+        if opened:
+            assert previous == "", "a fence opens its own block"
+            fence = opened.group(1)
+            continue
         assert not line.startswith("|"), "a table is realigned by every Markdown formatter"
         assert not (previous == "" and line == ""), "one blank line between blocks"
         if " " in line:
             assert len(line) <= NOTICE_WIDTH or line.startswith("`"), line
-        if previous != "" and line != "":
+        if previous != "" and line != "" and not re.fullmatch(r"`{3,}", previous):
             assert re.match(r"[-+*>#=~]|\d+[.)]|_{3}", line) is None, (
                 "a continuation line must not read as a list, a quote, a heading or a rule"
             )
+    assert not fence, "every fence is closed"
 
 
 def test_notice_is_headings_and_paragraphs_a_formatter_leaves_alone() -> None:
@@ -444,10 +480,18 @@ def test_prepare_carries_the_files_the_receipt_and_the_notice(tmp_path: Path) ->
     assert receipts[0]["branch"] == nutrient_branch_name("crab:ci:ci.cache")
     assert receipts[0]["recorded_at"] == "2026-09-25T12:00:00+00:00"
     assert receipts[0]["obligation"]["kind"] == "copyright-notice"
+    assert receipts[0]["texts"] == [{"path": "LICENSE", "text": MIT_TEXT.rstrip("\n")}]
+    notice = prepared.files[2].content
     assert (
         "`.github/workflows/ci.yml`: adapted from `.github/workflows/test.yml`; COPY,\n"
-        "`crab:ci:ci.cache`." in prepared.files[2].content
+        "`crab:ci:ci.cache`." in notice
     )
+    # the obligation is discharged, not only named: the copyright and permission notice travel
+    assert "`LICENSE` of the source at c490b45:\n\n```text\nMIT License\n" in notice
+    assert "Copyright (c) 2024 Prey Owner" in notice
+    assert "The above copyright notice and this permission notice shall be included" in notice
+    _assert_a_formatter_has_nothing_to_rewrite(notice)
+    assert "The notice reproduces the source's `LICENSE`" in prepared.body
     assert prepared.body.startswith("<!-- crab:ci:ci.cache -->")
     assert "## Attribution" in prepared.body
     assert "Taken from `pypa/pipx@c490b45` (MIT, mode COPY)" in prepared.body
@@ -511,6 +555,91 @@ def test_prepare_refuses_receipts_that_contradict_the_meal(
             source_reader=prey,
             now=NOW,
         )
+
+
+def test_an_apache_source_carries_its_licence_and_its_notice_file(tmp_path: Path) -> None:
+    menu = {**MENU, "prey": {**PREY, "license": "Apache-2.0"}}
+    prey = FakePrey(
+        {
+            (SHA, ".github/workflows/test.yml"): "name: test\n",
+            (SHA, "LICENSE"): "Apache License\nVersion 2.0, January 2004\n",
+            (SHA, "NOTICE"): "Widget\nCopyright 2020 The Widget Authors\n",
+            (SHA, "README.md"): "# widget\n",
+        }
+    )
+    prepared = prepare_copy_pull_request(
+        _card(), menu, _payload(source={**PREY, "license": "Apache-2.0"}), _maw(tmp_path),
+        title="t", body="<!-- crab:ci:ci.cache -->\n", attribution_file="THIRD_PARTY_NOTICES.md",
+        source_reader=prey, now=NOW,
+    )  # fmt: skip
+    record = parse_attributions(prepared.files[1].content)[0]
+    assert record.obligation.kind == "notice-file"
+    assert [item.path for item in record.texts] == ["LICENSE", "NOTICE"]
+    notice = prepared.files[2].content
+    assert "Copyright 2020 The Widget Authors" in notice
+    assert "# widget" not in notice, "only licence and NOTICE files travel"
+    _assert_a_formatter_has_nothing_to_rewrite(notice)
+
+
+def test_a_licence_that_asks_for_its_notice_and_a_prey_with_none_to_carry_is_refused(
+    tmp_path: Path,
+) -> None:
+    prey = FakePrey({(SHA, ".github/workflows/test.yml"): "name: test\n"})
+    with pytest.raises(CrabError, match="no licence file to carry"):
+        _prepare(_maw(tmp_path), source_reader=prey)
+
+
+def test_ones_own_code_carries_no_licence_text(tmp_path: Path) -> None:
+    menu = {**MENU, "verdict": {**MENU["verdict"], "reason": "same owner: one's own code"}}
+    prepared = prepare_copy_pull_request(
+        _card(), menu, _payload(), _maw(tmp_path),
+        title="t", body="<!-- crab:ci:ci.cache -->\n", attribution_file="THIRD_PARTY_NOTICES.md",
+        source_reader=FakePrey({(SHA, ".github/workflows/test.yml"): "name: test\n"}), now=NOW,
+    )  # fmt: skip
+    record = parse_attributions(prepared.files[1].content)[0]
+    assert record.obligation.kind == "none"
+    assert record.texts == ()
+
+
+def test_a_carried_text_is_fenced_past_its_own_backticks_and_cleaned() -> None:
+    text = "Line with ``` inside\r\n\r\nTabs\there   \r\n\x1bescape\x0c\n\n\n"
+    record = replace(_record(), texts=(CarriedText("LICENSE.md", text),))
+    notice = render_notices([record])
+    assert "````text\nLine with ``` inside\n\nTabs\there\nescape\n````\n" in notice
+    _assert_a_formatter_has_nothing_to_rewrite(notice)
+    assert clean_text(text) == "Line with ``` inside\n\nTabs\there\nescape"
+
+
+def test_a_record_without_texts_gains_them_and_nothing_else() -> None:
+    old = _record()
+    carried = replace(old, texts=(CarriedText("LICENSE", MIT_TEXT),))
+    records = add_attribution([old], carried)
+    assert records == [carried]
+    assert add_attribution(records, old) == records, "a later sighting never removes them"
+
+
+def test_the_git_reader_lists_the_files_at_the_root_of_the_prey(tmp_path: Path) -> None:
+    repo = tmp_path / "mono"
+    (repo / "packages" / "lib").mkdir(parents=True)
+    (repo / "LICENSE").write_text("Apache License\n", encoding="utf-8")
+    (repo / "packages" / "lib" / "LICENSE").write_text("MIT License\n", encoding="utf-8")
+    (repo / "packages" / "lib" / "index.js").write_text("x\n", encoding="utf-8")
+    run = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    subprocess.run([*run, "init", "-q"], cwd=repo, check=True)
+    subprocess.run([*run, "add", "-A"], cwd=repo, check=True)
+    subprocess.run([*run, "commit", "-qm", "init"], cwd=repo, check=True)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    assert GitSourceReader(repo).entries(sha) == ["LICENSE"], "files only, not directories"
+    lib = GitSourceReader(repo / "packages" / "lib")
+    assert lib.entries(sha) == ["LICENSE", "index.js"], "a subdirectory prey has its own root"
+    assert [t.text for t in carried_texts(sha, lib)] == ["MIT License"]
+    assert GitSourceReader(repo).entries("0" * 40) is None
+    # a subdirectory prey's paths are its own, not the monorepo root's
+    assert lib.exists(sha, "index.js") and not GitSourceReader(repo).exists(sha, "index.js")
+    assert lib.read(sha, "LICENSE") == "MIT License\n"
 
 
 def test_prepare_refuses_a_missing_maw_file(tmp_path: Path) -> None:

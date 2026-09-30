@@ -89,7 +89,10 @@ new PRs only; reconciliation does not spend creation budget.
 A COPY verdict lets prey files travel; COPY_FILE lets whole files travel with their own licence
 header. You do the carrying, in the maw's working tree, before serving: copy or adapt the prey
 file, keep the copyright and permission notice it came with, and never mix in text the verdict
-does not cover. Then write one receipt per nutrient and pipe it to `--as pr-branch`:
+does not cover. The crab reads the source's licence and NOTICE files at that commit and the
+notice reproduces them; a licence that asks for its notice to travel, from a prey with no
+licence file to carry, is refused. Then write one receipt per nutrient and pipe it to
+`--as pr-branch`:
 
 ```json
 {

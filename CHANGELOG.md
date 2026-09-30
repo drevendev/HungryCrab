@@ -184,6 +184,17 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **The notice carries the licence it owes, not a sentence about it.** A COPY notice named the
+  obligation — "keep the source's copyright and permission notice" — and reproduced none of it,
+  while MIT, BSD, ISC and Boost ask for that notice itself to go with the copy and Apache for
+  the licence and the NOTICE file's attributions. `crab serve --as pr-branch` now reads the
+  source's licence and NOTICE files at the commit the material came from, keeps them with the
+  receipt in `.crab/attributions.json`, and the notice reproduces them at the end of each source
+  section in fenced blocks, which a formatter leaves alone. A licence that asks for its notice
+  to travel, from a prey with no licence file at its root, is refused. A subdirectory prey's
+  paths — the files taken, and its licence — are read from its own directory rather than from
+  the top of the repository around it
+  ([#183](https://github.com/drevendev/HungryCrab/issues/183)).
 - **The notice file survives the maw's formatter.** The notice was a table, and every Markdown
   formatter realigns a table: the first COPY pull request into a maw whose gate is
   `prettier --check .` would have turned that gate red on merge, while `crab attribution --check`

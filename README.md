@@ -161,7 +161,7 @@ below.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
 - `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` gates `crab serve --as pr-branch`, which publishes REIMPLEMENT nutrients from clean-room receipts and COPY nutrients from materialization receipts, with their attribution.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
-- `attribution_file`: the notice file for copied sources, rendered by `crab attribution` from the receipts in `.crab/attributions.json` that `crab serve --as pr-branch` writes when it carries prey files in; `crab attribution --check` is the CI gate. The file is headings and paragraphs only, so that a Markdown formatter's defaults leave it alone; if yours rewrites it anyway, exclude the file from the formatter, not from the check.
+- `attribution_file`: the notice file for copied sources, rendered by `crab attribution` from the receipts in `.crab/attributions.json` that `crab serve --as pr-branch` writes when it carries prey files in; `crab attribution --check` is the CI gate. The file is headings and paragraphs, plus the source's licence and NOTICE texts in fenced blocks, so that a Markdown formatter's defaults leave it alone; if yours rewrites it anyway, exclude the file from the formatter, not from the check.
 - `ledger`: store meal history in the repository, cache, or nowhere.
 - `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
 

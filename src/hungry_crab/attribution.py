@@ -16,13 +16,14 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from .errors import CrabError
 from .fetch.git import GitRunner
+from .licensing.detect import is_license_file_name
 from .licensing.matrix import LicenseClass, classify, normalize
 from .mdutil import cell
 from .nutrients import Candidate
@@ -38,6 +39,7 @@ NOTICE_WIDTH = 80
 _RECEIPT_VERSION = 1
 _SHA_RE = re.compile(r"[0-9a-f]{7,40}")
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_TEXT_CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 _PLAIN_RE = re.compile(r"[A-Za-z0-9(][A-Za-z0-9 ._/+()-]*")
 _LINK_RE = re.compile(r"https://[^\s<>`]+")
 _ATOM_RE = re.compile(r"(?:`[^`]*`|\S)+")
@@ -155,6 +157,27 @@ class TakenFile:
             prey_path=str(data.get("prey_path", "")),
             verbatim=data.get("verbatim") is True,
         )
+
+
+@dataclass(frozen=True)
+class CarriedText:
+    """A licence or NOTICE file of the source, as it stood at the commit the material came from.
+
+    A notice that only *names* an obligation discharges none: MIT, BSD, ISC and Boost ask for
+    the copyright and permission notice itself to travel with the copy, and Apache for the
+    licence and the NOTICE file's attributions. The text is kept with the receipt so that
+    ``crab attribution`` can render it without the prey at hand.
+    """
+
+    path: str
+    text: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"path": self.path, "text": self.text}
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> CarriedText:
+        return cls(path=str(data.get("path", "")), text=str(data.get("text", "")))
 
 
 @dataclass(frozen=True)
@@ -283,12 +306,15 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
     if cls is LicenseClass.PERMISSIVE:
         return Obligation(
             "copyright-notice",
-            "keep the source's copyright and permission notice with the material",
+            "the source's copyright and permission notice travel with the material; its licence "
+            "file is reproduced below",
         )
     if cls is LicenseClass.PERMISSIVE_NOTICE:
         return Obligation(
             "notice-file",
-            "Apache-2.0: carry the attribution notices of the source's NOTICE file, if it has one",
+            "Apache-2.0: the licence and the attribution notices of the source's NOTICE file "
+            "travel with the material (both reproduced below), and a modified file says that it "
+            "was changed",
         )
     if cls is LicenseClass.DOCS_ATTRIBUTION:
         return Obligation("attribution", "CC-BY: credit the source and link its licence")
@@ -313,6 +339,7 @@ class AttributionRecord:
     summary: str
     branch: str
     recorded_at: str
+    texts: tuple[CarriedText, ...] = ()
 
     @property
     def identity(self) -> tuple[str, str]:
@@ -320,7 +347,11 @@ class AttributionRecord:
 
     @property
     def material(self) -> tuple[Any, ...]:
-        """What must not silently change under an existing identity."""
+        """What must not silently change under an existing identity.
+
+        The carried texts are not part of it: they are the source's files at that commit, which
+        the identity already fixes.
+        """
         return (self.mode, self.obligation.kind, tuple(sorted(self.taken, key=_taken_key)))
 
     def to_dict(self) -> dict[str, Any]:
@@ -333,6 +364,7 @@ class AttributionRecord:
             "summary": self.summary,
             "branch": self.branch,
             "recorded_at": self.recorded_at,
+            "texts": [item.to_dict() for item in self.texts],
         }
 
     @classmethod
@@ -350,6 +382,11 @@ class AttributionRecord:
             summary=str(data.get("summary", "")),
             branch=str(data.get("branch", "")),
             recorded_at=str(data.get("recorded_at", "")),
+            texts=tuple(
+                CarriedText.from_dict(as_dict(item))
+                for item in as_list(data.get("texts"))
+                if isinstance(item, dict)
+            ),
         )
 
 
@@ -419,10 +456,12 @@ def add_attribution(
     reconciles an existing pull request, carry the same receipt and must not duplicate it; the
     same nutrient taken later from another prey or another commit is a second receipt, and the
     first is never rewritten. The same identity with *different* material is refused: that is
-    a receipt contradicting a record, and a person has to say which one is true.
+    a receipt contradicting a record, and a person has to say which one is true. The one thing
+    a later sighting adds to a record is the source's licence texts, where a record written
+    before they were carried has none.
     """
 
-    for existing in records:
+    for index, existing in enumerate(records):
         if existing.identity != record.identity:
             continue
         if existing.material != record.material:
@@ -432,6 +471,8 @@ def add_attribution(
                 "material",
                 hint=f"edit or remove the recorded receipt in {ATTRIBUTIONS_PATH} first",
             )
+        if record.texts and not existing.texts:
+            return [*records[:index], replace(existing, texts=record.texts), *records[index + 1 :]]
         return list(records)
     return [*records, record]
 
@@ -497,13 +538,52 @@ def _taken_sentence(record: AttributionRecord, item: TakenFile) -> list[str]:
     ]
 
 
+def clean_text(text: str) -> str:
+    """A carried text as the notice prints it: LF line ends, no control characters but tabs, no
+    trailing whitespace, no blank lines around it. Nothing a reader of the licence would see
+    changes, and nothing a formatter would rewrite remains."""
+
+    unified = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [_TEXT_CONTROL_RE.sub("", line).rstrip() for line in unified.split("\n")]
+    while lines and not lines[0]:
+        lines.pop(0)
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines)
+
+
+def _carried(records: Sequence[AttributionRecord], commit: str) -> list[str]:
+    """Each licence and NOTICE text of one source commit, once, in a fence of its own.
+
+    A formatter leaves the inside of a fenced block alone, so the text keeps its own line
+    breaks; the fence is longer than any run of backticks in it, so no line of it can close
+    the block early.
+    """
+
+    lines: list[str] = []
+    seen: set[str] = set()
+    for record in records:
+        for item in record.texts:
+            if item.path in seen:
+                continue
+            seen.add(item.path)
+            text = clean_text(item.text)
+            longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+            fence = "`" * max(3, longest + 1)
+            said = [_code(item.path), "of", "the", "source", "at", f"{commit}:"]
+            lines.extend([*_wrapped(said), "", f"{fence}text", *text.split("\n"), fence, ""])
+    return lines
+
+
 def render_notices(records: Iterable[AttributionRecord]) -> str:
     """The notice file: one section per source commit, one sentence per file taken, byte-stable.
 
     The layout is headings and paragraphs wrapped at ``NOTICE_WIDTH``, with no table, no list,
     no hard line break and no trailing whitespace. A maw's formatter runs over this file like
     over any other, and what it rewrites `crab attribution --check` reports as stale; a table is
-    realigned by every Markdown formatter, a paragraph is left alone by their defaults.
+    realigned by every Markdown formatter, a paragraph is left alone by their defaults. Each
+    section ends with the source's licence and NOTICE texts, which is what the obligation it
+    names is discharged with, in fenced blocks a formatter does not touch.
     """
 
     ordered = sorted(records, key=_record_key)
@@ -518,27 +598,31 @@ def render_notices(records: Iterable[AttributionRecord]) -> str:
         lines.extend(["Nothing has been carried over yet.", ""])
         return "\n".join(lines)
 
-    current: tuple[str, str] | None = None
-    obligation: Obligation | None = None
+    groups: list[list[AttributionRecord]] = []
     for record in ordered:
-        source = record.source
-        key = (source.label, source.sha)
-        if key != current:
-            current = key
-            obligation = None
-            spdx = _inline(source.license) if source.license else "no licence declared"
-            commit = _inline(source.sha[:7])
-            lines.extend([f"## {_inline(source.label)} @ {commit} — {spdx}", ""])
-            if source.url:
-                tree = f"{source.url}/tree/{source.sha}"
-                link = f"<{tree}>" if _LINK_RE.fullmatch(tree) else _code(tree)
-                lines.extend([*_wrapped(["Source:", link]), ""])
-        if record.obligation != obligation:
-            obligation = record.obligation
-            owed = f"Obligation ({obligation.kind}): {_sentence(obligation.text)}"
-            lines.extend([*_wrapped(_atoms(owed)), ""])
-        for item in sorted(record.taken, key=_taken_key):
-            lines.extend([*_wrapped(_taken_sentence(record, item)), ""])
+        key = (record.source.label, record.source.sha)
+        if groups and (groups[-1][0].source.label, groups[-1][0].source.sha) == key:
+            groups[-1].append(record)
+        else:
+            groups.append([record])
+    for members in groups:
+        source = members[0].source
+        spdx = _inline(source.license) if source.license else "no licence declared"
+        commit = _inline(source.sha[:7])
+        lines.extend([f"## {_inline(source.label)} @ {commit} — {spdx}", ""])
+        if source.url:
+            tree = f"{source.url}/tree/{source.sha}"
+            link = f"<{tree}>" if _LINK_RE.fullmatch(tree) else _code(tree)
+            lines.extend([*_wrapped(["Source:", link]), ""])
+        obligation: Obligation | None = None
+        for record in members:
+            if record.obligation != obligation:
+                obligation = record.obligation
+                owed = f"Obligation ({obligation.kind}): {_sentence(obligation.text)}"
+                lines.extend([*_wrapped(_atoms(owed)), ""])
+            for item in sorted(record.taken, key=_taken_key):
+                lines.extend([*_wrapped(_taken_sentence(record, item)), ""])
+        lines.extend(_carried(members, commit))
     return "\n".join(lines)
 
 
@@ -549,6 +633,10 @@ class SourceReader(Protocol):
 
     def read(self, sha: str, path: str) -> str | None: ...
 
+    def entries(self, sha: str) -> list[str] | None:
+        """The names of the files (not directories) at the root of the prey at ``sha``."""
+        ...
+
 
 class GitSourceReader:
     """The prey's cached clone, read through git plumbing only."""
@@ -557,11 +645,56 @@ class GitSourceReader:
         self.repo = repo
         self.git = GitRunner(repo)
 
+    # A path after `<sha>:` resolves from the top of the repository; `./` resolves it from the
+    # directory the reader was opened at, which is the prey when the prey is a subdirectory.
     def exists(self, sha: str, path: str) -> bool:
-        return self.git.ok("cat-file", "-e", f"{sha}:{path}")
+        return self.git.ok("cat-file", "-e", f"{sha}:./{path}")
 
     def read(self, sha: str, path: str) -> str | None:
-        return self.git.try_run("show", f"{sha}:{path}")
+        return self.git.try_run("show", f"{sha}:./{path}")
+
+    def entries(self, sha: str) -> list[str] | None:
+        # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
+        # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
+        # ls-tree from filtering that tree's entries by the same directory a second time.
+        listing = self.git.try_run("ls-tree", "--full-tree", "-z", f"{sha}:./")
+        if listing is None:
+            return None
+        names: list[str] = []
+        for entry in listing.split("\0"):
+            meta, _, name = entry.partition("\t")
+            if name and meta.split(" ")[1:2] == ["blob"]:
+                names.append(name)
+        return names
+
+
+# A licence obligation that asks for the source's own notice to travel with the material.
+_NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution"})
+_SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
+_MAX_CARRIED = 100_000
+
+
+def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
+    """The licence and NOTICE files at the root of the source at ``sha``, in name order."""
+
+    names = reader.entries(sha)
+    if names is None:
+        raise CrabError(
+            "cannot list the prey's files at the commit the material came from",
+            hint=f"{sha[:7]} is not in the prey's clone; catch it again without --shallow",
+        )
+    texts: list[CarriedText] = []
+    for name in sorted(names):
+        if not (is_license_file_name(name) or _SOURCE_NOTICE_RE.fullmatch(name)):
+            continue
+        text = reader.read(sha, name)
+        if text is None or len(text) > _MAX_CARRIED:
+            raise CrabError(
+                "cannot carry a licence file of the prey",
+                hint=f"{name} at {sha[:7]} is unreadable or longer than {_MAX_CARRIED} characters",
+            )
+        texts.append(CarriedText(name, clean_text(text)))
+    return tuple(texts)
 
 
 def _normalized(text: str) -> str:
@@ -665,6 +798,9 @@ def _attribution_section(record: AttributionRecord, attribution_file: str) -> st
         "when it published, so no check that ran in the working tree has seen them: this "
         "repository's own gate sees them when it runs on this branch."
     )
+    if record.texts:
+        names = ", ".join(_code(item.path) for item in record.texts)
+        carried += f" The notice reproduces the source's {names} as they stood at that commit."
     lines.extend(["", record.summary, "", carried])
     return "\n".join(lines)
 
@@ -685,9 +821,11 @@ def prepare_copy_pull_request(
 
     Order of proof: the receipt is parsed strictly, checked against the card and the meal's prey,
     its maw files are read under the maw's containment rule, its prey paths are checked against
-    the prey's own history (a verbatim copy byte for byte), the receipt is appended to the maw's
-    attributions under the identity rule, and the notice file is rendered from all of them. Only
-    then is there a payload; the transaction scans it before any provider effect.
+    the prey's own history (a verbatim copy byte for byte), the source's licence and NOTICE files
+    are read at that commit — a licence that asks for its notice to travel and a prey that has
+    none to carry is refused — the receipt is appended to the maw's attributions under the
+    identity rule, and the notice file is rendered from all of them. Only then is there a
+    payload; the transaction scans it before any provider effect.
     """
 
     receipt = load_materialization_receipt(receipt_payload)
@@ -703,15 +841,29 @@ def prepare_copy_pull_request(
             ) from exc
     verify_sources(receipt, source_reader, maw_files)
 
+    obligation = obligation_for(receipt.source.license, as_dict(menu.get("verdict")))
+    texts: tuple[CarriedText, ...] = ()
+    if obligation.kind != "none":
+        texts = carried_texts(receipt.source.sha, source_reader)
+    if obligation.kind in _NOTICE_OWED and not any(is_license_file_name(t.path) for t in texts):
+        raise CrabError(
+            "the source's licence asks for its notice to travel with the material, and the "
+            "prey has no licence file to carry",
+            hint=(
+                f"{receipt.source.label} at {receipt.source.sha[:7]} has no licence file at its "
+                "root; serve the nutrient as an issue, or carry the notice by hand"
+            ),
+        )
     record = AttributionRecord(
         nutrient_id=card.id,
         source=receipt.source,
         taken=receipt.taken,
         mode=card.license_mode,
-        obligation=obligation_for(receipt.source.license, as_dict(menu.get("verdict"))),
+        obligation=obligation,
         summary=receipt.summary,
         branch=nutrient_branch_name(card.id),
         recorded_at=_stamp(now),
+        texts=texts,
     )
     records = add_attribution(load_attributions(maw_root), record)
     recorded = next(item for item in records if item.identity == record.identity)
