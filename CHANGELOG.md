@@ -20,11 +20,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   `manifest.json`: the *analysis share* (`files_counted / files_seen`, informational) with every
   excluded file reported beside it by reason — vendored, corpus, examples, ignored, build
   output, generated, binary, LFS — and *visibility*, the explicit losses of the walk: a file
-  list truncated at the cap, paths that failed to stat, plus the symlinks skipped by policy
-  and files behind a capped vendored directory, which are reported and are not a loss.
-  `healthy` is visibility alone. `crab digest` prints the line, `inventory.md` carries it, and
+  list truncated at the cap, paths that failed to stat, directories that could not be listed,
+  files that stat but cannot be read, plus the symlinks skipped by policy and files behind a
+  capped vendored directory, which are reported and are not a loss. `healthy` is visibility
+  alone. `crab digest` prints the line, `inventory.md` carries it, and
   `crab digest --fail-on-loss` exits non-zero on an unhealthy digest for CI, where an absent
-  fact would otherwise read as an absent trait
+  fact would otherwise read as an absent trait — and on a digest with no coverage record at
+  all, which a cached digest from before this change is not reused as
   ([#76](https://github.com/drevendev/HungryCrab/issues/76)).
 - **COPY nutrients become pull requests, with the notice they owe.** A `COPY` or `COPY_FILE`
   card is served with `--as pr-branch` and a *materialization receipt*: the trusted caller's

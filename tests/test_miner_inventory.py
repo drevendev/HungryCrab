@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+import pytest
 from conftest import FIXED_NOW
 from helpers import read_json, read_md, write_tree
 
 from hungry_crab.cache import Target
 from hungry_crab.digest import DigestOptions, DigestResult, run_digest
+from hungry_crab.miners import inventory
 from hungry_crab.miners.inventory import (
     MAX_FILES,
     coverage_block,
@@ -34,6 +37,8 @@ def test_coverage_says_what_was_analysed_left_out_and_seen(npm_digest: DigestRes
         "truncated": False,
         "max_files": MAX_FILES["normal"],
         "stat_errors": 0,
+        "walk_errors": 0,
+        "read_errors": 0,
         "special_files": 0,
         "symlinks_skipped": 0,
         "vendored_capped_files": 0,
@@ -246,3 +251,44 @@ def test_a_short_text_file_is_still_source(tmp_path: Path) -> None:
     files, _ = walk_tree(prey, max_files=MAX_FILES["normal"])
     assert [f.path for f in files if f.lfs] == []
     assert next(f for f in files if f.path == "a.py").loc == 1
+
+
+def test_a_directory_that_cannot_be_listed_is_a_loss(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`os.walk` drops an unlistable directory and its subtree without a word (#76)."""
+    root = tmp_path / "prey"
+    write_tree(root, {"a.py": "x = 1\n", "locked/b.py": "y = 2\n", "locked/deep/c.py": "z\n"})
+    real_scandir = os.scandir
+
+    def scandir(path: str) -> object:
+        if Path(path).name == "locked":
+            raise PermissionError(13, "Permission denied", str(path))
+        return real_scandir(path)
+
+    monkeypatch.setattr(os, "scandir", scandir)
+    files, stats = walk_tree(root, max_files=MAX_FILES["normal"])
+    assert [info.path for info in files] == ["a.py"]
+    assert stats["walk_errors"] == 1
+    coverage = coverage_block(files, stats, 0)
+    assert coverage["healthy"] is False
+    assert "1 directory(ies) could not be listed" in describe_coverage(coverage)
+
+
+def test_a_file_that_stats_but_cannot_be_read_is_a_loss(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A locked file used to count as zero lines of code in a healthy digest."""
+    root = tmp_path / "prey"
+    write_tree(root, {"a.py": "x = 1\n", "big.py": "y = 2\n" * 10})
+    real_read_head = inventory.read_head
+
+    def read_head(full: str, limit: int | None = None) -> bytes | None:
+        return None if full.endswith("big.py") else real_read_head(full, limit)
+
+    monkeypatch.setattr(inventory, "read_head", read_head)
+    files, stats = walk_tree(root, max_files=MAX_FILES["normal"])
+    assert stats["read_errors"] == 1
+    coverage = coverage_block(files, stats, 0)
+    assert coverage["healthy"] is False
+    assert "1 file(s) could not be read" in describe_coverage(coverage)

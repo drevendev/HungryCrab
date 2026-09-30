@@ -88,6 +88,26 @@ def test_digest_fail_on_loss_gates_on_visibility_not_on_the_share(
     assert "did not see the whole tree" in capsys.readouterr().err
 
 
+def test_digest_fail_on_loss_refuses_a_digest_with_no_coverage_record(
+    npm_app: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A failed inventory miner leaves no record, and no record is not a clean one."""
+    from hungry_crab.miners import inventory
+
+    def broken(self: object, ctx: object) -> object:
+        raise RuntimeError("the walk broke")
+
+    monkeypatch.setattr(inventory.InventoryMiner, "run", broken)
+    argv = ["-q", "digest", str(npm_app), "--out", str(tmp_path / "d"), "--maw-license", "MIT"]
+    assert main(argv) == 0, "without the flag a broken digest is reported, not refused"
+    capsys.readouterr()
+    assert main([*argv, "--force", "--fail-on-loss"]) == 1
+    assert "no coverage record" in capsys.readouterr().err
+
+
 def test_every_subcommand_has_help() -> None:
     parser = build_parser()
     text = parser.format_help()

@@ -140,6 +140,19 @@ def test_a_digest_from_an_older_crab_is_not_reused(npm_app: Path, tmp_path: Path
     assert not run_digest(Target(path=npm_app), DigestOptions(**options.__dict__)).cached
 
 
+def test_a_digest_without_a_coverage_record_is_not_reused(npm_app: Path, tmp_path: Path) -> None:
+    """Every development build is `0.3.0.dev0`; the missing block is what dates a digest."""
+    options = DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache")
+    run_digest(Target(path=npm_app), options)
+    manifest_path = tmp_path / "out" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    del manifest["coverage"]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    again = run_digest(Target(path=npm_app), DigestOptions(**options.__dict__))
+    assert not again.cached
+    assert isinstance(again.manifest["coverage"], dict)
+
+
 def test_local_digest_defaults_to_the_maws_cache(npm_app: Path, tmp_path: Path) -> None:
     result = run_digest(
         Target(path=npm_app), DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache")
