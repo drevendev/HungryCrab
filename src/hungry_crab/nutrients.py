@@ -180,11 +180,39 @@ class Candidate:
         return card
 
 
-def merge_notes(card: Candidate, notes: dict[str, Any]) -> Candidate:
-    """Apply model-written fields (title, why, how, serve_as, ...) onto a card."""
+# What a card is served as, from the least to the most: an idea stays on the menu, an issue asks
+# a person, a pull request changes the maw.
+_SERVE_AS_RANK: dict[str, int] = {"idea": 0, "issue": 1, "pr": 2}
+_NOTE_VOCABULARIES: dict[str, tuple[str, ...]] = {
+    "serve_as": SERVE_AS,
+    "effort": EFFORTS,
+    "risk": RISKS,
+}
+
+
+def merge_notes(card: Candidate, notes: dict[str, Any]) -> list[str]:
+    """Apply model-written fields (title, why, how, serve_as, ...) onto a card.
+
+    The model words a card; it does not widen what the maw agreed to have served. A note may
+    narrow ``serve_as`` (a pull request down to an issue, an issue down to an idea) and never
+    widen it, and a ``serve_as``, ``effort`` or ``risk`` outside its vocabulary is ignored.
+    Returns what was ignored and why, for the caller to report.
+    """
+    ignored: list[str] = []
     for key in ("title", "what", "why", "how", "serve_as", "effort", "risk"):
         value = notes.get(key)
-        if isinstance(value, str) and value.strip():
-            setattr(card, key, value.strip())
+        if not (isinstance(value, str) and value.strip()):
+            continue
+        value = value.strip()
+        allowed = _NOTE_VOCABULARIES.get(key)
+        if allowed is not None and value not in allowed:
+            ignored.append(f"{key} {value!r} is not one of {', '.join(allowed)}")
+            continue
+        if key == "serve_as" and _SERVE_AS_RANK[value] > _SERVE_AS_RANK.get(card.serve_as, -1):
+            ignored.append(
+                f"serve_as {value!r} would widen {card.serve_as!r}; notes only narrow it"
+            )
+            continue
+        setattr(card, key, value)
     card._enforce_origin_policy()
-    return card
+    return ignored

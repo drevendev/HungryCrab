@@ -27,7 +27,9 @@ Rules for `why` and `how`:
 - `how` names files and tools of the maw, adapted to its toolchain; it is the first step, not a
   full plan.
 - Never paste prey text unless the license mode is `COPY`; even then cite the path.
-- Optional fields: `title` (if the generated one is off), `serve_as`, `effort`, `risk`.
+- Optional fields: `title` (if the generated one is off), `serve_as`, `effort`, `risk`. A note
+  may narrow `serve_as` (`pr` → `issue` → `idea`) but never widen it; values outside the
+  vocabulary are ignored with a warning.
 
 ## Commands
 
@@ -55,7 +57,8 @@ crab spec crab:ci:ci.cache      # the maw-relative path of a nutrient's clean-ro
   declared files, and a missing specification, fail closed before provider effects.
 - `serve_as` is honoured in every mode: an `idea` card (`hunger: <category>: ideas-only`, or an
   issue lesson) is skipped unless its id is passed explicitly, and then only as an issue; an
-  `issue` card is never published as a pull request.
+  `issue` card is never published as a pull request. `serve` reads the `hunger` block of
+  `.crab.yml` again, so a category switched off or narrowed after compare holds.
 - COPY pull-request serving remains blocked until its attribution/materialization contract lands;
   do not route it through the clean-room REIMPLEMENT path.
 - The maw must have a GitHub `origin` remote; `gh` must be authenticated. Pull-request publication
@@ -119,5 +122,6 @@ or added.
 | `not in the menu` | run `crab compare` again or check the id |
 | `serve_as: idea` | the hunger block or the card itself keeps it an idea; pass the id explicitly to file it as an issue anyway, never as a pull request |
 | `serve_as: issue` | (pull-request mode) the card is an issue, not a pull request; serve it with `--as issue` |
+| `hunger: <category> is off` | the maw switched the category off in `.crab.yml`; nothing of it is served |
 | `license mode COPY has no pull-request path yet` | COPY pull requests wait for `crab attribution` (#70); serve the card as an issue |
 | `no clean-room receipt` | pull-request mode found no receipt for the card on stdin; run the clean-room protocol first |
