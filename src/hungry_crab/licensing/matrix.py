@@ -531,16 +531,18 @@ _GPL_FAMILY_MAWS = frozenset(
 )  # fmt: skip
 
 
-def _lgpl_version(ident: str) -> tuple[str, bool]:
-    """('2.0' | '2.1' | '3.0', or_later) for an LGPL identifier.
+def _lgpl_version(ident: str) -> tuple[str, bool] | None:
+    """Return a supported LGPL generation and whether it is offered "or later".
 
-    `_gpl_version` folds 2.1 into 2.0, which is right for converting to the GPL — both convert to
-    "GPL version 2 or any later version" — and wrong between LGPL versions: LGPL-2.1-only code
-    cannot be relicensed as LGPL-2.0, nor the other way round.
+    A family-shaped identifier is not a compatibility rule. Only the LGPL generations whose
+    semantics are implemented here may reach those rules; malformed or future versions fail
+    closed instead of being aliased to a known generation (#93).
     """
     body = ident.split("-", 1)[1] if "-" in ident else ""
-    version = "2.1" if body.startswith("2.1") else "2.0" if body.startswith("2") else "3.0"
-    return version, body.endswith(("or-later", "+"))
+    match = re.fullmatch(r"(2\.0|2\.1|3\.0)(?:-(?:only|or-later)|\+)?", body)
+    if match is None:
+        return None
+    return match.group(1), body.endswith(("or-later", "+"))
 
 
 def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
@@ -560,9 +562,15 @@ def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     A maw this does not recognise as GPL-family gets no, which is the direction to be wrong in.
     """
     maw_id = normalize(maw) or ""
-    prey_version, prey_later = _lgpl_version(prey)
+    prey_info = _lgpl_version(prey)
+    if prey_info is None:
+        return False
+    prey_version, prey_later = prey_info
     if maw_id.startswith("LGPL-"):
-        maw_version, maw_later = _lgpl_version(maw_id)
+        maw_info = _lgpl_version(maw_id)
+        if maw_info is None:
+            return False
+        maw_version, maw_later = maw_info
         return (
             prey_version == maw_version
             or (prey_later and prey_version < maw_version)

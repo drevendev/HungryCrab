@@ -155,6 +155,8 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Unknown LGPL versions fail closed.** Family-shaped identifiers such as `LGPL-2.2-only` and `LGPL-4.0-only` no longer inherit the 2.x/3.x compatibility rules and cannot receive `COPY` merely from the `LGPL-` prefix ([#93](https://github.com/drevendev/HungryCrab/issues/93)).
+
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

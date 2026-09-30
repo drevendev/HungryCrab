@@ -629,6 +629,16 @@ def test_lgpl_versions_the_gnu_table_does_not_equate(prey: str, maw: str, mode: 
     assert decide(prey, maw).mode is mode
 
 
+@pytest.mark.parametrize("prey", ["LGPL-2.2-only", "LGPL-4.0-only"])
+def test_unknown_lgpl_versions_do_not_inherit_known_copy_rules(prey: str) -> None:
+    """A family prefix is not evidence for a supported compatibility rule (#93)."""
+    assert decide(prey, "GPL-3.0-only").mode is Mode.IDEAS_ONLY
+    assert decide(prey, "LGPL-3.0-only").mode is Mode.IDEAS_ONLY
+
+
+def test_unknown_lgpl_maw_version_does_not_accept_known_lgpl() -> None:
+    assert decide("LGPL-3.0-only", "LGPL-4.0-only").mode is Mode.IDEAS_ONLY
+
 # --- a licence is not the licence it mentions (#86) -------------------------------------------
 #
 # A source-available licence names the licence it converts to, and a custom licence names the
