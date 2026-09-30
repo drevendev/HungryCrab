@@ -68,6 +68,11 @@ _GIT_DANGEROUS_ARGS = (
     "--open-files-in-pager",
     "-O",
 )
+# ripgrep reads, except where an option hands work to another program: `--pre` runs a
+# preprocessor on every file, `--hostname-bin` runs a program to name the host in a hyperlink,
+# and `-z`/`--search-zip` starts a decompressor for every compressed file the prey chose to
+# ship. ripgrep takes no abbreviations of long options, so the exact names are the whole set.
+_RG_SPAWNING_OPTIONS = ("--pre", "--hostname-bin", "--search-zip")
 _SHELL_PUNCTUATION = frozenset(
     {";", "&", "&&", "|", "||", "<", ">", "<<", ">>", "<<<", "<>", ">&", "<&", "&>"}
 )
@@ -207,7 +212,21 @@ def _simple_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
         return _git_is_read_only(tokens)
     if command not in _READ_ONLY_COMMANDS:
         return False
-    return not (command == "rg" and any(arg == "--pre" or arg.startswith("--pre=") for arg in args))
+    return command != "rg" or _rg_is_read_only(args)
+
+
+def _rg_is_read_only(args: list[str]) -> bool:
+    """No option that makes ripgrep start a program, spelled out or in a cluster of short flags.
+
+    A short cluster such as ``-iz`` carries ``-z``; one that attaches a value (``-ezip``) is
+    refused too, which is a false refusal the guard prefers to reading the value's grammar.
+    """
+    for arg in args:
+        if any(arg == option or arg.startswith(f"{option}=") for option in _RG_SPAWNING_OPTIONS):
+            return False
+        if arg.startswith("-") and not arg.startswith("--") and "z" in arg[1:]:
+            return False
+    return True
 
 
 def guard_reason(

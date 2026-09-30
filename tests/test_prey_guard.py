@@ -43,6 +43,12 @@ PREY = "/tmp/crab-prey/github/acme/widget/repo"
         f"git -c core.pager={PREY}/bin/tool -C {PREY} log",
         f"git -C {PREY} log --ext-diff",
         f"rg --pre={PREY}/bin/tool needle {PREY}",
+        f"rg --pre {PREY}/bin/tool needle {PREY}",
+        f"rg --hostname-bin={PREY}/bin/tool --hyperlink-format=default needle {PREY}",
+        f"rg --hostname-bin {PREY}/bin/tool needle {PREY}",
+        f"rg -z needle {PREY}",
+        f"rg -inz needle {PREY}",
+        f"rg --search-zip needle {PREY}",
     ],
 )
 def test_cache_touching_execution_or_unknown_shapes_fail_closed(command: str) -> None:
@@ -59,6 +65,7 @@ def test_cache_touching_execution_or_unknown_shapes_fail_closed(command: str) ->
         f"tail -20 {PREY}/README.md",
         f"wc -l {PREY}/README.md",
         f"rg -n TODO {PREY}",
+        f"rg -in --no-search-zip --pre-glob=*.txt TODO {PREY}",
         f"grep -R TODO {PREY}",
         f"ls -la {PREY}",
         f"stat {PREY}/README.md",
