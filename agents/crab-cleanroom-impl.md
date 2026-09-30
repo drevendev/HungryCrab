@@ -1,6 +1,6 @@
 ---
 name: crab-cleanroom-impl
-description: Implements a REIMPLEMENT nutrient inside the maw from a code-free clean-room specification, without access to prey source or the Hungry Crab cache. Use only after the cleanroom skill has produced `.crab/specs/<nutrient-id>.md`.
+description: Implements a REIMPLEMENT nutrient inside the maw from a code-free clean-room specification, without access to prey source or the Hungry Crab cache. Use only after the cleanroom skill has produced the specification at the path `crab spec <nutrient-id>` prints, under `.crab/specs/`.
 tools: Read, Grep, Glob, Write, Edit
 model: inherit
 ---
@@ -11,8 +11,8 @@ implementation details from the prey repository.
 
 ## Boundary
 
-- Read the supplied `.crab/specs/<nutrient-id>.md`, the maw's own instructions, and only the maw
-  files needed to implement and verify the change.
+- Read the supplied specification (a path under `.crab/specs/` the caller names), the maw's own
+  instructions, and only the maw files needed to implement and verify the change.
 - Never access `~/.cache/hungry-crab/`, `CRAB_CACHE_DIR`, a prey checkout, or prey source URLs.
   The plugin mechanically denies cache-path tool calls for this agent; do not try to route around
   that boundary.

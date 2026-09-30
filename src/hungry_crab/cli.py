@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, updater
+from .attribution import load_attributions, render_notices
 from .cache import Slug, Target, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
@@ -28,7 +29,9 @@ from .licensing.detect import detect_in_repo
 from .licensing.matrix import Relationship
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
+from .miners.inventory import describe_coverage
 from .nutrients import STATUSES, Candidate
+from .pr_publication import nutrient_spec_path
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
 from .sniff import format_report, sniff
 from .tune import analyse
@@ -139,6 +142,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="exit non-zero when any miner failed (for CI; a human sees the FAILED lines)",
     )
+    p_digest.add_argument(
+        "--fail-on-loss",
+        action="store_true",
+        help=(
+            "exit non-zero when the digest did not see the whole tree: the file list was "
+            "truncated at the cap, or paths failed to stat (for CI; deliberate exclusions "
+            "such as vendored trees and sample corpora are not a loss)"
+        ),
+    )
     p_digest.add_argument("--json", action="store_true", help="print manifest.json")
 
     p_compare = sub.add_parser(
@@ -194,14 +206,33 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("dry-run", "issue", "pr-branch"),
         default="dry-run",
         help=(
-            "dry-run previews; issue files issues; pr-branch publishes REIMPLEMENT nutrients "
-            "from the clean-room receipts piped to stdin"
+            "dry-run previews; issue files issues; pr-branch publishes REIMPLEMENT and COPY "
+            "nutrients from the receipts piped to stdin"
         ),
     )
     p_serve.add_argument(
         "--notes", type=Path, default=None, help="JSON with why/how per id (model-written)"
     )
     p_serve.add_argument("--json", action="store_true")
+
+    p_attribution = sub.add_parser(
+        "attribution",
+        help="write the maw's third-party notice file from its attribution receipts",
+    )
+    p_attribution.add_argument(
+        "--maw", type=Path, default=Path(), help="maw repository (default: .)"
+    )
+    p_attribution.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 1 when the notice file is missing or stale instead of writing it",
+    )
+
+    p_spec = sub.add_parser(
+        "spec",
+        help="print the maw-relative path of a nutrient's clean-room specification",
+    )
+    p_spec.add_argument("nutrient_id", help="a nutrient id from menu.md, crab:<category>:<key>")
 
     p_tune = sub.add_parser("tune", help="suggest scoring weight changes from the ledger")
     p_tune.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
@@ -319,6 +350,9 @@ def print_digest_summary(result: DigestResult) -> None:
     ok = sum(1 for m in manifest["miners"] if m["ok"])
     failed = [m for m in manifest["miners"] if not m["ok"]]
     print(f"miners: {ok} ok, {len(failed)} failed; {manifest['elapsed_seconds']} s")
+    coverage = manifest.get("coverage")
+    if isinstance(coverage, dict):
+        print(f"coverage: {describe_coverage(coverage)}")
     for miner in failed:
         print(f"  FAILED {miner['name']}: {miner['error']}")
     for warning in manifest["warnings"]:
@@ -366,6 +400,21 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         # A digest missing a producer is still useful to a human, who can see which one is gone.
         # It is not useful to a machine that will compare it, so the caller decides.
         raise CrabError(f"{len(broken)} miner(s) failed: {', '.join(broken)}")
+    coverage = result.manifest.get("coverage")
+    if args.fail_on_loss and not isinstance(coverage, dict):
+        # No record is not a clean record: a failed inventory miner, or a digest written before
+        # coverage existed, says nothing about what the walk saw.
+        raise CrabError(
+            "the digest has no coverage record, so what it saw is unknown",
+            hint="rerun with --force; a failed inventory miner is listed above",
+        )
+    if args.fail_on_loss and isinstance(coverage, dict) and not coverage.get("healthy"):
+        # The share of files analysed is informational; what a machine may refuse is a digest
+        # that never saw part of the tree, because absent facts read as absent traits.
+        raise CrabError(
+            "the digest did not see the whole tree: " + describe_coverage(coverage),
+            hint="--depth deep raises the file cap; the other losses are filesystem problems",
+        )
     return 0
 
 
@@ -507,11 +556,78 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         if (args.mode == "issue" or shutil.which("gh"))
         else None
     )
-    report = serve(meal_dir, maw, options, config=config, ledger=ledger, client=client, log=log)
+    # A COPY nutrient's receipt names prey paths; they are checked against the prey's own
+    # history, which lives in the cached clone (or the local directory being eaten).
+    if prey.path is not None:
+        prey_repo = prey.path
+    else:
+        assert prey.slug is not None
+        prey_repo = prey_paths(prey.slug, args.cache_dir).repo
+    report = serve(
+        meal_dir,
+        maw,
+        options,
+        config=config,
+        ledger=ledger,
+        client=client,
+        log=log,
+        prey_repo=prey_repo,
+    )
     if args.json:
         print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
         return 0
     print_serve_report(report)
+    return 0
+
+
+def cmd_attribution(args: argparse.Namespace) -> int:
+    """Render the notice file from the receipts; ``--check`` is the CI gate.
+
+    The receipts in ``.crab/attributions.json`` are written by ``crab serve --as pr-branch``
+    when a COPY nutrient's files are published, so the file this renders names only what the
+    crab actually carried in — never a nutrient that was merely filed as an issue.
+    """
+    maw = _maw_dir(args.maw)
+    config = MawConfig.load(maw)
+    records = load_attributions(maw)
+    rendered = render_notices(records)
+    target = maw / config.attribution_file
+    try:
+        current = target.read_text(encoding="utf-8") if target.is_file() else None
+    except (OSError, UnicodeError) as exc:
+        raise CrabError(f"cannot read {config.attribution_file}: {exc}") from exc
+    count = f"{len(records)} receipt(s)"
+    if args.check:
+        if current == rendered or (current is None and not records):
+            print(f"{config.attribution_file} is up to date ({count})")
+            return 0
+        state = "missing" if current is None else "stale"
+        raise CrabError(
+            f"{config.attribution_file} is {state}",
+            hint=f"run `crab attribution --maw {args.maw}` and commit the result",
+        )
+    if current == rendered:
+        print(f"{config.attribution_file} unchanged ({count})")
+        return 0
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(rendered, encoding="utf-8", newline="\n")
+    print(f"wrote {config.attribution_file} from {count}")
+    return 0
+
+
+def cmd_spec(args: argparse.Namespace) -> int:
+    """The CLI owns the specification path the way it owns the branch name.
+
+    A nutrient id carries colons, which NTFS refuses in a file name; composing the path by hand
+    is how Stage A of the clean-room protocol failed on Windows.
+    """
+    nutrient_id = str(args.nutrient_id).strip()
+    if not nutrient_id.startswith("crab:"):
+        raise UsageError(
+            f"{nutrient_id!r} is not a nutrient id",
+            hint="nutrient ids look like crab:<category>:<key>; menu.md lists them",
+        )
+    print(nutrient_spec_path(nutrient_id))
     return 0
 
 
@@ -640,6 +756,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_ledger(args)
         if args.command == "serve":
             return cmd_serve(args, log)
+        if args.command == "spec":
+            return cmd_spec(args)
+        if args.command == "attribution":
+            return cmd_attribution(args)
         if args.command == "tune":
             return cmd_tune(args)
         if args.command == "update":

@@ -9,9 +9,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request makes the older run moot; a push to master never does: every
+# master commit keeps its own finished run, so "master is green" can be checked per commit.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PYTHONIOENCODING: utf-8

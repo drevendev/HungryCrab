@@ -12,8 +12,8 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 
 | Mode | Allowed | Required |
 |---|---|---|
-| `COPY` | copy code, configs and text | keep the copyright notice; record the source in `THIRD_PARTY_NOTICES.md`; Apache-2.0 also needs the NOTICE file carried over |
-| `COPY_FILE` | copy whole files (MPL-2.0, EPL, CC-BY-SA documents) | the file keeps its own license header; do not merge it into files under the maw license |
+| `COPY` | copy code, configs and text | keep the copyright notice; publish through `crab serve --as pr-branch` with a materialization receipt (the `serve` skill), which records the source in `.crab/attributions.json` and renders `THIRD_PARTY_NOTICES.md`; Apache-2.0 also needs the NOTICE file's attribution notices carried over |
+| `COPY_FILE` | copy whole files (MPL-2.0, EPL, CC-BY-SA documents) | the file keeps its own license header; do not merge it into files under the maw license; every file in the receipt is verbatim |
 | `REIMPLEMENT` | use the prey as a specification | clean room: a spec without code, then the `crab-cleanroom-impl` subagent without prey-cache access; record "implemented from a specification" in the trace |
 | `IDEAS_ONLY` | ideas, architecture, approaches, facts | not a line of code, configuration or documentation text |
 | `HUMAN` | nothing yet | a person decides; present the evidence (`license.json`: files, manifests, headers, conflicts) |
@@ -23,7 +23,10 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 1. Issue, discussion and pull-request comment text is always `IDEAS_ONLY`: the copyright belongs
    to the commenters. Carry over the need and a link, not the text. The CLI enforces this from
    content origin, records the origin and cap reason in the nutrient trace, and `crab serve`
-   carries that trace into the served issue; do not recalculate the cap by hand.
+   carries that trace into the served issue; do not recalculate the cap by hand. The cap
+   rewrites the card's title and `what`; your `why` and `how` are yours to keep clean, and
+   `crab serve` refuses a card of any origin but `licensed` whose notes quote one of the prey's
+   issue titles, in any punctuation or case, or whose notes cannot be checked.
 2. Configuration files and small snippets are not automatically free: same mode as code.
 3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
    `mode: strict` and the engine ignores it: no verdict changes. Do not perform that downgrade
