@@ -27,6 +27,15 @@ _GO_KEYWORDS = frozenset({"module", "go", "require", "toolchain", "replace", "ex
 
 MAX_MANIFESTS = 40
 MAX_PACKAGES = 800
+# Every ecosystem the miner reads names packages from this alphabet: npm scopes (`@a/b`), Go
+# module paths, Maven coordinates, NuGet and Python names. A manifest key outside it — a line
+# break, a space, a bracket, a Markdown image — is not a package, and it is prey text that would
+# otherwise travel into cards, `gap.md` and served issues.
+_PACKAGE_NAME_RE = re.compile(r"[A-Za-z0-9@][A-Za-z0-9@._/+:~^-]{0,213}")
+
+
+def plausible_package_name(name: str) -> bool:
+    return _PACKAGE_NAME_RE.fullmatch(name) is not None
 
 
 @dataclass
@@ -376,7 +385,13 @@ class DepsMiner:
             if parsed is None:
                 continue
             found, meta = parsed
-            packages.extend(found)
+            named = [package for package in found if plausible_package_name(package.name)]
+            if len(named) < len(found):
+                warnings.append(
+                    f"{len(found) - len(named)} dependency name(s) in {info.path} are not package "
+                    "names and were dropped"
+                )
+            packages.extend(named)
             infos.append(meta)
         if len(manifests) > MAX_MANIFESTS:
             warnings.append(f"{len(manifests) - MAX_MANIFESTS} manifests not parsed (limit)")

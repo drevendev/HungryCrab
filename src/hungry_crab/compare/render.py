@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..mdutil import MdDoc
+from ..mdutil import MdDoc, inline
 from ..nutrients import Candidate
 from ..typeutil import as_dict, as_list
 from .candidates import Side
@@ -109,8 +109,8 @@ def gap_doc(
     if deps_only:
         deps = doc.section("Dependencies only in the prey (shared ecosystems)", priority=3)
         for ecosystem, names in deps_only.items():
-            listed = [str(n) for n in as_list(names)]
-            deps.line(f"- **{ecosystem}** ({len(listed)}): {', '.join(listed[:40])}")
+            listed = [inline(n) for n in as_list(names)]
+            deps.line(f"- **{inline(ecosystem)}** ({len(listed)}): {', '.join(listed[:40])}")
         deps.line("")
     signals = doc.section("History signals of the prey", priority=3)
     fix_prone = [as_dict(f) for f in as_list(prey.history.get("fix_prone"))[:8]]
@@ -177,22 +177,24 @@ def menu_doc(
     )
     details = doc.section("Details", priority=2)
     for index, candidate in enumerate(shown, start=1):
-        details.line(f"### {index}. {candidate.title}")
+        # Titles, `what` and evidence carry names the prey chose; each stays on its own line.
+        details.line(f"### {index}. {inline(candidate.title)}")
         details.line("")
         details.line(f"- **Id:** `{candidate.id}`")
-        details.line(f"- **Prey:** {candidate.what}")
-        details.line(f"- **Maw:** {candidate.maw_state}")
+        details.line(f"- **Prey:** {inline(candidate.what)}")
+        details.line(f"- **Maw:** {inline(candidate.maw_state)}")
         if candidate.evidence:
             cited = ", ".join(
-                f"[{e.path}]({e.url})" if e.url else e.path for e in candidate.evidence[:3]
+                f"[{inline(e.path)}]({inline(e.url)})" if e.url else inline(e.path)
+                for e in candidate.evidence[:3]
             )
             details.line(f"- **Evidence:** {cited}")
         if explain and candidate.id in explain:
             details.line(f"- **Score:** {candidate.score} = {explain[candidate.id]}")
         if candidate.why:
-            details.line(f"- **Why for the maw:** {candidate.why}")
+            details.line(f"- **Why for the maw:** {inline(candidate.why)}")
         if candidate.how:
-            details.line(f"- **How:** {candidate.how}")
+            details.line(f"- **How:** {inline(candidate.how)}")
         details.line("")
     if hidden:
         hidden_section = doc.section("Hidden", priority=4)

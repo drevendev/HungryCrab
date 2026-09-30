@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from helpers import read_json, read_md
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from helpers import read_json, read_md, write_tree
 
 from hungry_crab.digest import DigestResult
 from hungry_crab.miners.architecture import _resolve_py, _resolve_ts
@@ -62,3 +68,35 @@ def test_python_and_dotnet_architecture(
     dir_edges = {(e["from"], e["to"]) for e in dotnet["graph"]["dir_edges"]}
     assert ("tests/Crustacean.Tests", "src/Crustacean") in dir_edges
     assert dotnet["graph"]["dir_cycles"] == []
+
+
+_SEEDED_DIGEST = """
+import json, sys
+from hungry_crab.cli import main
+main(["-q", "digest", sys.argv[1], "--out", sys.argv[2], "--miners", "architecture"])
+data = json.load(open(sys.argv[2] + "/architecture.json", encoding="utf-8"))
+print(json.dumps(data["graph"], sort_keys=True))
+"""
+
+
+def test_the_import_graph_does_not_depend_on_the_hash_seed(tmp_path: Path) -> None:
+    """Tied in-degrees used to follow set order, which follows PYTHONHASHSEED."""
+    prey = tmp_path / "prey"
+    files = {f"pkg/hub{i}.py": "X = 1\n" for i in range(12)}
+    for j in range(6):
+        imports = "".join(f"from pkg.hub{i} import X\n" for i in range(12))
+        files[f"app/user{j}.py"] = imports + "import os\nimport sys\n"
+    files["pkg/__init__.py"] = ""
+    files["app/__init__.py"] = ""
+    write_tree(prey, files)
+    graphs = set()
+    for seed in ("0", "1", "2", "3"):
+        env = {**os.environ, "PYTHONHASHSEED": seed}
+        result = subprocess.run(
+            [sys.executable, "-c", _SEEDED_DIGEST, str(prey), str(tmp_path / f"out-{seed}")],
+            capture_output=True, text=True, encoding="utf-8", env=env, check=True,
+        )  # fmt: skip
+        graphs.add(result.stdout.strip().splitlines()[-1])
+    assert len(graphs) == 1
+    hubs = json.loads(graphs.pop())["hubs"]
+    assert [hub["path"] for hub in hubs] == sorted(hub["path"] for hub in hubs)

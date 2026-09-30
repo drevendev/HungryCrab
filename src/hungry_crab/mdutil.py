@@ -8,11 +8,26 @@ meal files (``menu.md``, ``gap.md``) still use (HungryCrab#140).
 
 from __future__ import annotations
 
+import re
 from collections import deque
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
 from .tokens import estimate_tokens
+
+_BREAKS_RE = re.compile(r"[\x00-\x1f\x7f\u0085\u2028\u2029]")
+
+
+def inline(value: object) -> str:
+    """One line of text from a value that may carry prey strings.
+
+    A package name, a path or a title the prey chose can hold line breaks; spliced into a list
+    item they end it, and the next line is a heading, a list or a fence of the prey's choosing.
+    Every break and control character becomes a space, so the value stays inside its line.
+    """
+    if value is None:
+        return ""
+    return " ".join(_BREAKS_RE.sub(" ", str(value)).split())
 
 
 def cell(value: object) -> str:
