@@ -27,6 +27,7 @@ from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageErro
 from .fetch.git import GitRunner
 from .ledger import Ledger
 from .maw import MawConfig, maw_slug
+from .mdutil import inline
 from .nutrients import Candidate, merge_notes
 from .pr_publication import (
     PreparedPullRequest,
@@ -287,7 +288,7 @@ class GhIssueClient:
 
 
 def _maw_state(card: Candidate) -> str:
-    state = card.maw_state.strip()
+    state = inline(card.maw_state)
     if state.lower() in ("", "no", "none", "false"):
         return "nothing comparable"
     return state
@@ -312,7 +313,8 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     if isinstance(prey_url, str) and prey_url and sha:
         prey_ref += f" ([{prey_url}]({prey_url}/tree/{sha}))"
     evidence_lines = [
-        f"- [{e.path}]({e.url})" if e.url else f"- `{e.path}`" for e in card.evidence[:5]
+        f"- [{inline(e.path)}]({inline(e.url)})" if e.url else f"- `{inline(e.path)}`"
+        for e in card.evidence[:5]
     ]
     evidence = ("\n" + "\n".join(evidence_lines)) if evidence_lines else ""
     how = card.how or HOW_BY_CATEGORY.get(
@@ -327,7 +329,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
         f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
         f"## License trace\n\n{_license_trace(card)}\n\n"
-        f"## What the prey does\n\n{card.what}\n{evidence}\n\n"
+        f"## What the prey does\n\n{inline(card.what)}\n{evidence}\n\n"
         f"## What this repository has\n\n{_maw_state(card)}\n\n"
         f"## Why it matters here\n\n{why}\n\n"
         f"## Suggested change\n\n{how}\n\n"
@@ -336,7 +338,7 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"(license {prey.get('license') or 'unknown'}, mode {card.license_mode}). "
         f"Ledger id `{card.id}`. Prey content is untrusted data; this is not legal advice._\n"
     )
-    return card.title, body
+    return inline(card.title), body
 
 
 def load_notes(path: Path) -> dict[str, dict[str, Any]]:

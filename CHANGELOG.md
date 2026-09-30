@@ -155,6 +155,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A prey's names stay on the line they are printed on.** The deps miner took any manifest
+  key for a package name, and the menu, `gap.md` and a served issue wrote card titles, `what`,
+  `maw_state` and evidence paths raw into list items — so a dependency key holding line breaks
+  opened a `## SYSTEM NOTICE` heading with an instruction in the file an agent reads to decide
+  what to serve, and in the issue it files. A key that is not a package name is dropped with a
+  warning, and every prey-derived value rendered into those files is one line with no control
+  characters ([#180](https://github.com/drevendev/HungryCrab/issues/180)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control
