@@ -635,9 +635,11 @@ class SourceReader(Protocol):
 
     def read(self, sha: str, path: str) -> str | None: ...
 
-    def entries(self, sha: str, directory: str = "") -> list[str] | None:
-        """The names of the files (not directories) in one directory of the prey at ``sha``,
-        its root by default; ``None`` when that directory is not there."""
+    def entries(self, sha: str, directory: str = "") -> dict[str, str] | None:
+        """The files (not directories) in one directory of the prey at ``sha``, its root by
+        default, by name, with their git mode: ``100644`` or ``100755`` for a file, ``120000``
+        for a symbolic link, ``160000`` for a submodule; ``None`` when there is no such
+        directory."""
         ...
 
 
@@ -656,25 +658,28 @@ class GitSourceReader:
     def read(self, sha: str, path: str) -> str | None:
         return self.git.try_run("show", f"{sha}:./{path}")
 
-    def entries(self, sha: str, directory: str = "") -> list[str] | None:
+    def entries(self, sha: str, directory: str = "") -> dict[str, str] | None:
         # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
         # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
         # ls-tree from filtering that tree's entries by the same directory a second time.
         listing = self.git.try_run("ls-tree", "--full-tree", "-z", f"{sha}:./{directory}")
         if listing is None:
             return None
-        names: list[str] = []
+        files: dict[str, str] = {}
         for entry in listing.split("\0"):
             meta, _, name = entry.partition("\t")
-            if name and meta.split(" ")[1:2] == ["blob"]:
-                names.append(name)
-        return names
+            mode, kind = [*meta.split(" "), "", ""][:2]
+            if name and kind in ("blob", "commit"):
+                files[name] = mode
+        return files
 
 
 # A licence obligation that asks for the source's own notice to travel with the material.
 _NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution"})
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
+# A regular file, executable or not; a link (120000) or a submodule (160000) is not material.
+_FILE_MODES = frozenset({"100644", "100755"})
 
 
 def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
@@ -690,6 +695,13 @@ def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
     for name in sorted(names):
         if not (is_license_file_name(name) or _SOURCE_NOTICE_RE.fullmatch(name)):
             continue
+        if names[name] not in _FILE_MODES:
+            # A link's blob is the path it points at; carried as text it would be a notice that
+            # reproduces a file name, and it would satisfy the refusal below by its name alone.
+            raise CrabError(
+                "a licence file of the prey is a symbolic link, which the crab does not follow",
+                hint=f"{name} at {sha[:7]} points at another file; carry the notice by hand",
+            )
         text = reader.read(sha, name)
         if text is None or len(text) > _MAX_CARRIED:
             raise CrabError(
@@ -718,14 +730,18 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
                 "a taken file lives in vendored code, which the source's licence does not cover",
                 hint=f"{item.prey_path} is under {vendored}/; take it from its own upstream",
             )
-        for depth in range(1, len(parts)):
+        listed: dict[str, str] = {}
+        for depth in range(len(parts)):
             directory = "/".join(parts[:depth])
             names = reader.entries(sha, directory)
             if names is None:
                 raise CrabError(
                     "cannot list a directory of the prey at the commit the material came from",
-                    hint=f"{directory} at {sha[:7]}",
+                    hint=f"{directory or 'the root'} at {sha[:7]}",
                 )
+            listed = names
+            if not directory:
+                continue  # the root's licence is the verdict's own
             own = next((name for name in sorted(names) if is_license_file_name(name)), None)
             if own is not None:
                 raise CrabError(
@@ -733,6 +749,14 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
                     "answer for",
                     hint=f"{item.prey_path} is under {directory}/{own}; a person decides",
                 )
+        if listed.get(parts[-1]) not in _FILE_MODES:
+            # A directory, a link or a submodule is not material: git would hand back a tree
+            # listing, the path a link points at, or nothing, and any of them would pass as
+            # the source of an adapted file.
+            raise CrabError(
+                "a taken prey path is not a regular file at that commit",
+                hint=f"{item.prey_path} is a directory, a link or a submodule; take a file",
+            )
         declared = find_spdx_identifier((reader.read(sha, item.prey_path) or "")[:4000])
         if declared and normalize(declared) != normalize(receipt.source.license):
             raise CrabError(

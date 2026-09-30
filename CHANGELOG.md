@@ -188,7 +188,9 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose
   header names another licence — under the same-owner verdict even as "no notice owed". Such a
-  file is refused now. A checkout behind the default branch built a branch whose
+  file is refused now, and so is a taken path that is not a regular file at that commit: a
+  directory, a link or a submodule passed as the source of an adapted file. A checkout behind
+  the default branch built a branch whose
   `.crab/attributions.json` lacked receipts merged since, which merged cleanly and left a
   merged file attributed nowhere while `crab attribution --check` stayed green; the effect now
   reads the default branch's receipts after the fetch and refuses that branch before any push.
