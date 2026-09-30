@@ -35,6 +35,7 @@ def test_licensed_nutrient_served_trace_does_not_invent_an_origin_cap() -> None:
         "ci.cache",
         "Cache dependencies in CI",
         "The prey caches dependencies",
+        origin="licensed",
         license_mode="COPY",
     )
 

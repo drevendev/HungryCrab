@@ -73,5 +73,5 @@ def cap_mode_for_origin(mode: object, origin: object) -> OriginVerdict:
             "commenter-origin text is capped at IDEAS_ONLY; carry the need and link, not the text"
         )
     else:
-        reason = "unrecognised content origin fails closed at HUMAN"
+        reason = "undeclared or unrecognised content origin fails closed at HUMAN"
     return OriginVerdict(capped, normalized_origin, reason)

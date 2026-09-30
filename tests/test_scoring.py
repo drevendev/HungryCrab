@@ -17,6 +17,7 @@ def _card(**overrides: object) -> Candidate:
         "risk": "low",
         "value": 0.9,
         "uptake": 1.0,
+        "origin": "licensed",
         "license_mode": "COPY",
     }
     base.update(overrides)

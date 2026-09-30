@@ -14,6 +14,35 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Digest coverage is two numbers, and one of them is a gate.** `files_counted / files` could
+  not tell a sample corpus the crab skipped on purpose from prey it failed to read, and it
+  moved when somebody ran `npm ci`. The inventory now records a `coverage` block, lifted into
+  `manifest.json`: the *analysis share* (`files_counted / files_seen`, informational) with every
+  excluded file reported beside it by reason — vendored, corpus, examples, ignored, build
+  output, generated, binary, LFS — and *visibility*, the explicit losses of the walk: a file
+  list truncated at the cap, paths that failed to stat, directories that could not be listed,
+  files that stat but cannot be read, plus the symlinks skipped by policy and files behind a
+  capped vendored directory, which are reported and are not a loss. `healthy` is visibility
+  alone. `crab digest` prints the line, `inventory.md` carries it, and
+  `crab digest --fail-on-loss` exits non-zero on an unhealthy digest for CI, where an absent
+  fact would otherwise read as an absent trait — and on a digest with no coverage record at
+  all, which a cached digest from before this change is not reused as
+  ([#76](https://github.com/drevendev/HungryCrab/issues/76)).
+- **COPY nutrients become pull requests, with the notice they owe.** A `COPY` or `COPY_FILE`
+  card is served with `--as pr-branch` and a *materialization receipt*: the trusted caller's
+  statement, after it carried the files into the maw, of which maw path came from which prey
+  path, verbatim or adapted. The crab checks the receipt against the meal's prey — label, URL,
+  commit and licence — and against the prey's own history through read-only git plumbing in
+  the cache (a verbatim file byte for byte; under COPY_FILE every file), appends it to
+  `.crab/attributions.json` under an identity of nutrient and commit (a rerun adds nothing, the
+  same nutrient from another commit is a second receipt that never rewrites the first), renders
+  the notice file named by `attribution_file` from all receipts with a structured obligation —
+  Apache's NOTICE file is not a copyright line, and one's own code owes none — and carries files,
+  receipts and notice in one pull request. `crab attribution` rewrites the notice file from the
+  receipts; `--check` makes it a CI gate. The notice names only what the crab carried in: a COPY
+  nutrient filed as an issue took nothing and appears nowhere
+  ([#70](https://github.com/drevendev/HungryCrab/issues/70),
+  [#22](https://github.com/drevendev/HungryCrab/issues/22)).
 - **`crab serve --as pr-branch`: a REIMPLEMENT nutrient becomes a pull request, through a
   transaction that scans before it touches anything.** The clean-room implementer returns a
   strict JSON receipt naming the exact maw paths it changed; the crab freezes those bytes,
@@ -22,8 +51,8 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   worktree, pushes the deterministic `crab/<nutrient>-<hash>` branch and opens the pull
   request with the same `<!-- crab:<id> -->` marker issues carry. `serve.prs` (`ask` requires
   explicit `--ids`, `auto` allows `--top`) and `serve.max_prs_per_run` in `.crab.yml` govern
-  it, and a rerun after a crash reconciles instead of duplicating. COPY nutrients are refused
-  until `crab attribution` exists ([#69](https://github.com/drevendev/HungryCrab/issues/69),
+  it, and a rerun after a crash reconciles instead of duplicating
+  ([#69](https://github.com/drevendev/HungryCrab/issues/69),
   [#77](https://github.com/drevendev/HungryCrab/issues/77), pull requests #101–#112).
 - **The clean-room protocol, and the hooks that make "never execute prey" mechanical.** The
   `cleanroom` skill writes a code-free specification from the prey evidence; the
@@ -155,6 +184,42 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A nutrient with no declared origin fails closed, and notes cannot smuggle commenter prose
+  past the cap.** `Candidate.origin` defaulted to `licensed`, so a builder that forgot to say
+  where its text came from inherited the repository's COPY — and the next builders on the
+  roadmap read discussions and review comments, exactly the prose the origin ceiling exists
+  for. The default is `unknown` now, capped at HUMAN; all twenty builders declare `licensed` or
+  `commenters` explicitly, and a test walks a whole menu to see that none forgot. Reassigning
+  `origin` re-caps the mode the card carries and refreshes its trace, never widening it. And
+  `crab serve` refuses a card of any origin but `licensed` whose `why` or `how` quotes an issue
+  title from the prey's own `issues.json`: the one channel the engine never policed, while a
+  comment claimed it did. A quote is its words — case, width, punctuation, escapes and
+  invisible characters are not compared, and eight consecutive words of a longer title are a
+  quote — and notes that cannot be checked, because the prey digest is gone, are not served
+  ([#137](https://github.com/drevendev/HungryCrab/issues/137)).
+- **The clean-room specification has a path that exists on Windows, and the pull request
+  carries it.** The skill told the caller to write the Stage A specification to
+  `.crab/specs/<nutrient-id>.md`; a nutrient id has colons, NTFS refuses them in a file name, so
+  Stage A could not complete on Windows, and a Linux maw that committed the file could not be
+  checked out there. The path is the CLI's now, derived like the branch name —
+  `.crab/specs/<readable>-<8 hex>.md`, printed by the new `crab spec <nutrient-id>` — and the
+  promise that the pull request links the specification is kept by the transaction rather than
+  by a sentence in a skill: `crab serve --as pr-branch` reads the specification under the maw,
+  scans it with the rest of the payload, carries it in the pull request and links it from the
+  body, and refuses to publish an implementation without one
+  ([#131](https://github.com/drevendev/HungryCrab/issues/131)).
+- **`crab serve` honours `serve_as`.** `ideas-only` in the `hunger` block produced cards marked
+  `idea`, and nothing downstream read the mark: `--as issue` filed them, `--top` filed every one
+  in the top N, and pull-request mode published a REIMPLEMENT card whatever its mark. An `idea`
+  card is now skipped with the reason `serve_as: idea` unless its id was asked for by name; in
+  pull-request mode the selection is filtered before anything is prepared — a licence mode
+  with a pull-request path, marked `pr`, with a receipt — and everything else is reported as
+  skipped with its reason, so `--top` serves what it can instead of raising on the first card
+  it cannot. The mark is the maw's, not the model's: `serve` reads the `hunger` block again, so
+  a category switched off or narrowed after compare holds from the next serve on, and a note
+  may narrow `serve_as` but never widen it — a `serve_as`, `effort` or `risk` outside its
+  vocabulary is ignored with a warning
+  ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
 - **ripgrep cannot start a program through the prey guard.** The guard's read-only surface
   refused `rg --pre` and nothing else, but `--hostname-bin=<program>` runs a program to name
   the host in a hyperlink and `-z`/`--search-zip` starts a decompressor for every compressed

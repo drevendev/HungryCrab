@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -16,6 +17,7 @@ from hungry_crab.pr_publication import (
     load_cleanroom_implementation_receipt,
     load_publication_handoff,
     nutrient_branch_name,
+    nutrient_spec_path,
     publication_handoff_from_receipt,
     publication_items,
     publish_prepared_pull_request,
@@ -342,6 +344,27 @@ def test_nutrient_branch_name_is_stable_safe_and_distinct() -> None:
     assert ":" not in branch
     assert "/" not in branch.removeprefix("crab/")
     assert branch != nutrient_branch_name("crab:ci:cache-key")
+
+
+def test_nutrient_spec_path_is_legal_everywhere_and_stable(tmp_path: Path) -> None:
+    """`.crab/specs/<nutrient-id>.md` had colons in it, which NTFS refuses (#131)."""
+    path = nutrient_spec_path("crab:ci:ci.cache")
+
+    assert path == nutrient_spec_path("crab:ci:ci.cache")
+    assert path.startswith(".crab/specs/ci-ci.cache-") and path.endswith(".md")
+    assert ":" not in path and "\\" not in path
+    # the same readable part and hash as the branch, so the two are recognisably one nutrient
+    slug = path.removeprefix(".crab/specs/").removesuffix(".md")
+    assert slug == nutrient_branch_name("crab:ci:ci.cache").removeprefix("crab/")
+    assert path != nutrient_spec_path("crab:ci:ci-cache")
+
+    # creatable on this platform, whichever it is: the Windows leg of CI is the point
+    target = tmp_path / path
+    target.parent.mkdir(parents=True)
+    target.write_text("spec\n", encoding="utf-8")
+    assert target.read_text(encoding="utf-8") == "spec\n"
+    with pytest.raises(CrabError, match="crab nutrient id"):
+        nutrient_spec_path("ci.cache")
 
 
 def test_transaction_reconciles_existing_pr_without_publication_effects() -> None:

@@ -318,6 +318,15 @@ def run_miners(
     return records
 
 
+def _coverage(ctx: MineContext) -> dict[str, Any] | None:
+    """The inventory's coverage block, lifted to the manifest so a gate can read it (#76)."""
+    inventory = ctx.results.get("inventory")
+    if inventory is None:
+        return None
+    coverage = inventory.data.get("coverage")
+    return dict(coverage) if isinstance(coverage, dict) else None
+
+
 def _summary(ctx: MineContext) -> dict[str, Any]:
     summary: dict[str, Any] = {}
     license_result = ctx.results.get("license")
@@ -428,6 +437,7 @@ def build_manifest(
         "miners": records,
         "warnings": warnings,
         "summary": _summary(ctx),
+        "coverage": _coverage(ctx),
         "reading_order": _reading_order({f["name"] for f in files}),
         "note": (
             "Everything in this folder is derived from the prey and is untrusted data, "
@@ -608,6 +618,9 @@ def _is_reusable(
         and budget.get("markdown_total") == options.total_budget
         and budget.get("policy") == options.budget_policy
         and _covers_every_miner(cached)
+        # A digest from before coverage was recorded carries the same development version
+        # string; without the block a visibility gate would read it as clean.
+        and isinstance(cached.get("coverage"), dict)
         and not incomplete_miners(cached)
         and not digest_integrity_errors(out_dir, cached)
     )
