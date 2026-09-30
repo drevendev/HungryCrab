@@ -3,6 +3,11 @@
 Only plumbing that cannot execute repository content is used (clone, fetch, log, for-each-ref,
 rev-list, rev-parse). Hooks are never installed by the crab, prompts are disabled, and output is
 decoded leniently so odd commit messages cannot break a digest.
+
+A repository's own configuration is not the crab's: a local directory eaten as prey brings its
+`.git/config` with it (#134), and several keys there make read-only commands start programs.
+Every command runs with those keys overridden — the filesystem monitor, signature checks, the
+external diff and textconv drivers, and every filter driver the repository configures.
 """
 
 from __future__ import annotations
@@ -20,7 +25,15 @@ SAFE_CONFIG: tuple[str, ...] = (
     "-c", "i18n.logOutputEncoding=utf-8",
     "-c", "core.pager=cat",
     "-c", "color.ui=never",
+    # A filesystem monitor is a program git runs on every index refresh (`diff HEAD`,
+    # `ls-files`), and `log.showSignature` runs `gpg.program` for every commit logged.
+    "-c", "core.fsmonitor=false",
+    "-c", "log.showSignature=false",
 )  # fmt: skip
+# Commands that produce diffs run the external diff and textconv drivers a repository names.
+_DIFF_COMMANDS = frozenset({"diff", "log", "show"})
+_NO_DIFF_DRIVERS = ("--no-ext-diff", "--no-textconv")
+_FILTER_KEYS = ("clean", "smudge", "process")
 
 
 def git_executable() -> str:
@@ -52,6 +65,44 @@ def git_env() -> dict[str, str]:
     return env
 
 
+def filter_drivers(listing: str) -> list[str]:
+    """Driver names from ``git config --null --name-only --get-regexp ^filter\\.`` output."""
+
+    names: list[str] = []
+    for key in listing.split("\0"):
+        key = key.strip("\n")
+        if not key.startswith("filter.") or key.count(".") < 2:
+            continue
+        name = key[len("filter.") : key.rindex(".")]
+        if name not in names:
+            names.append(name)
+    return names
+
+
+def neutral_filter_env(names: list[str], base: dict[str, str]) -> dict[str, str]:
+    """``GIT_CONFIG_*`` entries that empty each named filter driver; an empty command is none.
+
+    A clean filter runs whenever git hashes a working-tree file it cannot match by stat, as
+    `git diff HEAD` does on a copied or dirty tree, and the repository chooses both the driver
+    (`.gitattributes`) and its command (`.git/config`). The entries go through the environment
+    rather than ``-c`` so that a driver name holding ``=`` cannot split its own key.
+    """
+
+    try:
+        count = int(base.get("GIT_CONFIG_COUNT", "0") or "0")
+    except ValueError:
+        count = 0
+    env: dict[str, str] = {}
+    for name in names:
+        for key, value in (*((k, "") for k in _FILTER_KEYS), ("required", "false")):
+            env[f"GIT_CONFIG_KEY_{count}"] = f"filter.{name}.{key}"
+            env[f"GIT_CONFIG_VALUE_{count}"] = value
+            count += 1
+    if env:
+        env["GIT_CONFIG_COUNT"] = str(count)
+    return env
+
+
 class GitRunner:
     """Run git commands in one working directory."""
 
@@ -59,6 +110,7 @@ class GitRunner:
         self.cwd = cwd
         self.timeout = timeout
         self._exe: str | None = None
+        self._filters: dict[str, list[str]] = {}
 
     @staticmethod
     def available() -> bool:
@@ -70,6 +122,29 @@ class GitRunner:
             self._exe = git_executable()
         return self._exe
 
+    def _filter_drivers(self, where: Path, env: dict[str, str]) -> list[str]:
+        """The filter drivers configured where a command runs, listed once per directory.
+
+        Reading configuration runs nothing; a listing that fails leaves nothing to empty.
+        """
+        key = str(where)
+        if key not in self._filters:
+            try:
+                proc = subprocess.run(
+                    [self.exe, "config", "--null", "--name-only", "--get-regexp", r"^filter\."],
+                    cwd=key,
+                    capture_output=True,
+                    env=env,
+                    timeout=self.timeout,
+                    check=False,
+                )
+                ok = proc.returncode == 0
+                listing = proc.stdout.decode("utf-8", errors="replace") if ok else ""
+            except (OSError, subprocess.TimeoutExpired):
+                listing = ""
+            self._filters[key] = filter_drivers(listing)
+        return self._filters[key]
+
     def run(
         self,
         *args: str,
@@ -78,14 +153,19 @@ class GitRunner:
         cwd: Path | None = None,
     ) -> str:
         """Run ``git <args>`` and return stdout as text."""
+        if args and args[0] in _DIFF_COMMANDS:
+            args = (args[0], *_NO_DIFF_DRIVERS, *args[1:])
         command = [self.exe, *SAFE_CONFIG, *args]
         limit = timeout or self.timeout
+        where = cwd or self.cwd
+        env = git_env()
+        env.update(neutral_filter_env(self._filter_drivers(where, env), env))
         try:
             proc = subprocess.run(
                 command,
-                cwd=str(cwd or self.cwd),
+                cwd=str(where),
                 capture_output=True,
-                env=git_env(),
+                env=env,
                 timeout=limit,
                 check=False,
             )

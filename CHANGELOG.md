@@ -155,6 +155,14 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A local prey's `.git/config` cannot make the crab run a program.** A local directory is
+  prey, and its git configuration came with it: `core.fsmonitor` ran on every `diff HEAD` and
+  `ls-files` of the worktree fingerprint, a filter driver the prey's `.gitattributes` selected
+  ran when git hashed a copied or dirty tree, `diff.external` and textconv drivers ran on a
+  dirty tree, and `log.showSignature` ran `gpg.program`. Every git command the crab runs now
+  switches the monitor and signature checks off, passes `--no-ext-diff --no-textconv` to
+  `diff`, `log` and `show`, and empties every filter driver the repository configures
+  ([#178](https://github.com/drevendev/HungryCrab/issues/178)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control
