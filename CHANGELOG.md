@@ -184,11 +184,6 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
-- **Two digests of one commit list the same import-graph hubs.** Hubs, orchestrators, directory
-  edges and external imports were the `most_common` of counters filled from a set of paths, so
-  ties followed the interpreter's hash seed: six seeds gave this repository four hub orders, and
-  the architecture card's `what` and evidence changed from run to run. Ties are broken by path
-  now ([#197](https://github.com/drevendev/HungryCrab/issues/197)).
 - **A nutrient with no declared origin fails closed, and notes cannot smuggle commenter prose
   past the cap.** `Candidate.origin` defaulted to `licensed`, so a builder that forgot to say
   where its text came from inherited the repository's COPY — and the next builders on the
@@ -263,6 +258,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   small for a page header — `0`, or `20` — raised a `ValueError` after the miners had run,
   with JSON files written and no manifest; it is a usage error with a hint before anything
   runs, or a named miner's error if a header still does not fit.
+- **Two digests of one commit list the same import-graph hubs.** Hubs, orchestrators, directory
+  edges and external imports were the `most_common` of counters filled from a set of paths, so
+  ties followed the interpreter's hash seed: six seeds gave this repository four hub orders, and
+  the architecture card's `what` and evidence changed from run to run. Ties are broken by path
+  now ([#197](https://github.com/drevendev/HungryCrab/issues/197)).
 - **The prey guard reads a line break as the command separator it is.** `shlex` reads a
   newline as whitespace, so `cat <cache>/README.md` on one line and `python <cache>/setup.py`
   on the next were judged as one long `cat` and allowed; a cache-touching command with a line
