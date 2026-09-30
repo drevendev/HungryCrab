@@ -106,6 +106,17 @@ def test_each_hook_runs_its_guard_through_the_launcher(matcher: str, which: str)
     assert _entry(matcher)["hooks"][0]["timeout"] >= 5
 
 
+def test_cleanroom_matcher_covers_every_tool_the_implementer_has() -> None:
+    """The clean-room guard inspects any tool input, but it runs only where the matcher sends
+    it: a tool the implementer gains and the matcher lacks reaches the cache unguarded."""
+    text = (ROOT / "agents" / "crab-cleanroom-impl.md").read_text(encoding="utf-8")
+    frontmatter = text.split("---", 2)[1]
+    line = next(item for item in frontmatter.splitlines() if item.startswith("tools:"))
+    tools = {tool.strip() for tool in line.removeprefix("tools:").split(",") if tool.strip()}
+    assert tools
+    assert tools <= set(CLEANROOM_MATCHER.split("|"))
+
+
 # --- the launcher's exit codes ------------------------------------------------------------
 
 

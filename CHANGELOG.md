@@ -155,6 +155,14 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **ripgrep cannot start a program through the prey guard.** The guard's read-only surface
+  refused `rg --pre` and nothing else, but `--hostname-bin=<program>` runs a program to name
+  the host in a hyperlink and `-z`/`--search-zip` starts a decompressor for every compressed
+  file the prey ships. A cache-touching `rg` now refuses all three, spelled out or inside a
+  cluster of short flags; `--no-search-zip` and `--pre-glob` stay allowed. A test also holds
+  the clean-room hook's matcher to the implementer's tool list, since the guard runs only
+  where the matcher sends it
+  ([#176](https://github.com/drevendev/HungryCrab/issues/176)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control
