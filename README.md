@@ -42,8 +42,8 @@ it may.
 release; `master` is ahead of it by the 0.2.1 and 0.2.2 milestones — self-feeding, the licence
 resolutions and the menu benchmark — and by most of 0.3: the budget policy with paged
 documents, the two safety hooks, the clean-room protocol and pull-request serving for
-REIMPLEMENT nutrients. It is where the install below points.** COPY pull requests wait for
-`crab attribution`, and the wiki miner and strict mode are still to come (see the
+REIMPLEMENT nutrients and, with attribution receipts, for COPY. It is where the install below
+points.** The wiki miner and strict mode are still to come (see the
 [roadmap](docs/design/03-roadmap.md)).
 
 ## The metaphor, in five words
@@ -159,9 +159,9 @@ below.
 - `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
   `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
-- `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` gates `crab serve --as pr-branch`, which publishes REIMPLEMENT nutrients from clean-room receipts, while COPY pull requests wait for `crab attribution` ([#70](https://github.com/drevendev/HungryCrab/issues/70)).
+- `serve`: issue/PR serving policy, labels, assignees and token source; `serve.prs` gates `crab serve --as pr-branch`, which publishes REIMPLEMENT nutrients from clean-room receipts and COPY nutrients from materialization receipts, with their attribution.
 - `trust`: same-owner and explicit-owner relationships plus the visible license-bypass escape hatch.
-- `attribution_file`: destination for copied-source notices; accepted now, written by `crab attribution`, which is not built yet ([#70](https://github.com/drevendev/HungryCrab/issues/70)).
+- `attribution_file`: the notice file for copied sources, rendered by `crab attribution` from the receipts in `.crab/attributions.json` that `crab serve --as pr-branch` writes when it carries prey files in; `crab attribution --check` is the CI gate.
 - `ledger`: store meal history in the repository, cache, or nowhere.
 - `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
 
@@ -194,7 +194,7 @@ budget:
   policy: warn             # warn | enforce | off for the whole digest Markdown budget
 serve:
   issues: ask              # auto | ask | off
-  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT nutrients)
+  prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT and COPY)
   max_prs_per_run: 3
   labels: [hungry-crab]
   assignees: []

@@ -91,7 +91,7 @@ class Candidate:
     uptake: float = 1.0
     evidence: list[Evidence] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    origin: str = ContentOrigin.LICENSED.value
+    origin: str = ContentOrigin.UNKNOWN.value
     license_reason: str = ""
     license_mode: str = "HUMAN"
     score: float = 0.0
@@ -101,25 +101,33 @@ class Candidate:
     trace: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # Issue titles and discussion prose are not licensed by the repository. Treat legacy
-        # issue-lesson cards that predate the origin field as commenter-origin too.
-        if self.category == "issue-lesson" and self.origin == ContentOrigin.LICENSED.value:
-            self.origin = ContentOrigin.COMMENTERS.value
+        # Issue titles and discussion prose are not licensed by the repository, whatever a
+        # builder or a legacy menu says. Everything else must declare its origin: a card built
+        # without one is `unknown` and capped at HUMAN, which is the direction to be wrong in.
+        # The cap is applied once here, after every field is in: the mode was stored raw while
+        # `__init__` assigned fields in order, so the default origin never caps a card whose
+        # real origin is decided a line later.
+        if self.category == "issue-lesson":
+            object.__setattr__(self, "origin", ContentOrigin.COMMENTERS.value)
         else:
-            self.origin = normalize_origin(self.origin).value
+            object.__setattr__(self, "origin", normalize_origin(self.origin).value)
+        object.__setattr__(self, "_ready", True)
         self._enforce_origin_policy()
-        self.license_mode = self.license_mode
+        self._apply_cap()
 
     def __setattr__(self, name: str, value: Any) -> None:
+        ready = self.__dict__.get("_ready", False)
         if name == "origin":
             object.__setattr__(self, name, normalize_origin(value).value)
+            # A narrower origin narrows the mode the card carries; a wider one never widens
+            # it back, because the cap only ever lowers a mode.
+            if ready:
+                self._apply_cap()
             return
         if name == "license_mode":
-            origin = getattr(self, "origin", ContentOrigin.LICENSED.value)
-            capped = cap_mode_for_origin(value, origin)
-            object.__setattr__(self, name, capped.mode.value)
-            object.__setattr__(self, "license_reason", capped.reason)
-            self._refresh_trace()
+            object.__setattr__(self, name, str(value))
+            if ready:
+                self._apply_cap()
             return
         if name == "trace" and isinstance(value, dict):
             enriched = dict(value)
@@ -131,6 +139,13 @@ class Candidate:
             object.__setattr__(self, name, enriched)
             return
         object.__setattr__(self, name, value)
+
+    def _apply_cap(self) -> None:
+        """Narrow the mode to the ceiling the origin allows, and say why in the trace."""
+        capped = cap_mode_for_origin(self.license_mode, self.origin)
+        object.__setattr__(self, "license_mode", capped.mode.value)
+        object.__setattr__(self, "license_reason", capped.reason)
+        self._refresh_trace()
 
     def _refresh_trace(self) -> None:
         trace = getattr(self, "trace", None)
@@ -146,13 +161,27 @@ class Candidate:
     def _enforce_origin_policy(self) -> None:
         if self.origin == ContentOrigin.LICENSED.value:
             return
-        # The card may carry the need and the evidence link, but never third-party prose. Keep
-        # the wording intentionally generic so a sentinel issue title cannot travel through a
-        # menu or a model-written note under IDEAS_ONLY.
-        self.title = "Issue-derived demand signal"
+        # The card may carry the need and the evidence link, but never third-party prose. What
+        # the engine guarantees is the title and `what`: both are replaced with generic wording
+        # here, and `merge_notes` runs this again, so a menu or a model-written note cannot put
+        # a commenter's title back. What it does not police is `why` and `how`, which a model
+        # writes from the digest; `crab serve` refuses notes that quote an issue title from the
+        # prey's own `issues.json`, and the eat skill says to write them in your own words.
+        if self.origin == ContentOrigin.COMMENTERS.value:
+            self.title = "Issue-derived demand signal"
+            self.what = (
+                "Issue metadata indicates unmet demand in the prey. Follow the linked issue "
+                "evidence to understand the need; commenter text is intentionally not carried "
+                "into this card."
+            )
+            return
+        # An undeclared origin is a builder that forgot to say where its text came from, not an
+        # issue: saying "issue" here would send a reader looking for a discussion that is not
+        # there.
+        self.title = "Nutrient of undeclared origin"
         self.what = (
-            "Issue metadata indicates unmet demand in the prey. Follow the linked issue evidence "
-            "to understand the need; commenter text is intentionally not carried into this card."
+            "The crab cannot say where this card's text came from, so none of it is carried. "
+            "Follow the linked evidence and decide by hand."
         )
 
     @property
@@ -180,11 +209,39 @@ class Candidate:
         return card
 
 
-def merge_notes(card: Candidate, notes: dict[str, Any]) -> Candidate:
-    """Apply model-written fields (title, why, how, serve_as, ...) onto a card."""
+# What a card is served as, from the least to the most: an idea stays on the menu, an issue asks
+# a person, a pull request changes the maw.
+_SERVE_AS_RANK: dict[str, int] = {"idea": 0, "issue": 1, "pr": 2}
+_NOTE_VOCABULARIES: dict[str, tuple[str, ...]] = {
+    "serve_as": SERVE_AS,
+    "effort": EFFORTS,
+    "risk": RISKS,
+}
+
+
+def merge_notes(card: Candidate, notes: dict[str, Any]) -> list[str]:
+    """Apply model-written fields (title, why, how, serve_as, ...) onto a card.
+
+    The model words a card; it does not widen what the maw agreed to have served. A note may
+    narrow ``serve_as`` (a pull request down to an issue, an issue down to an idea) and never
+    widen it, and a ``serve_as``, ``effort`` or ``risk`` outside its vocabulary is ignored.
+    Returns what was ignored and why, for the caller to report.
+    """
+    ignored: list[str] = []
     for key in ("title", "what", "why", "how", "serve_as", "effort", "risk"):
         value = notes.get(key)
-        if isinstance(value, str) and value.strip():
-            setattr(card, key, value.strip())
+        if not (isinstance(value, str) and value.strip()):
+            continue
+        value = value.strip()
+        allowed = _NOTE_VOCABULARIES.get(key)
+        if allowed is not None and value not in allowed:
+            ignored.append(f"{key} {value!r} is not one of {', '.join(allowed)}")
+            continue
+        if key == "serve_as" and _SERVE_AS_RANK[value] > _SERVE_AS_RANK.get(card.serve_as, -1):
+            ignored.append(
+                f"serve_as {value!r} would widen {card.serve_as!r}; notes only narrow it"
+            )
+            continue
+        setattr(card, key, value)
     card._enforce_origin_policy()
-    return card
+    return ignored

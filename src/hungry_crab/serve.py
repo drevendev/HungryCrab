@@ -15,17 +15,28 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol, TextIO, cast
 
+from .attribution import (
+    COPY_MODES,
+    MATERIALIZATION_KIND,
+    GitSourceReader,
+    SourceReader,
+    load_materialization_receipt,
+    prepare_copy_pull_request,
+    receipt_kind,
+)
 from .cache import Slug
-from .compare import load_menu, menu_candidates
+from .compare import apply_hunger, load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
 from .fetch.git import GitRunner
 from .ledger import Ledger
+from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes
 from .pr_publication import (
@@ -339,6 +350,89 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     return card.title, body
 
 
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        return as_dict(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {}
+
+
+# A run this long of a title's words is a quote, not a coincidence; shorter titles have to be
+# quoted whole.
+_QUOTE_RUN = 8
+_NOT_A_WORD_RE = re.compile(r"[\W_]+")
+
+
+def _squash(text: str) -> str:
+    """Words only: width, case, punctuation and invisible characters are not what a quote is.
+
+    A copied title keeps its words when a model drops the question mark, the backticks around
+    a name, swaps a typographic apostrophe, copies `issues.md`'s escaped pipe or carries a
+    zero-width space; comparing the words catches all of them.
+    """
+    folded = unicodedata.normalize("NFKC", text).casefold()
+    visible = "".join(ch for ch in folded if unicodedata.category(ch) != "Cf")
+    return " ".join(_NOT_A_WORD_RE.sub(" ", visible).split())
+
+
+def _walk_titles(value: object, found: list[str]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "title" and isinstance(item, str):
+                found.append(item)
+            elif key == "sample_titles" and isinstance(item, list):
+                found.extend(title for title in item if isinstance(title, str))
+            else:
+                _walk_titles(item, found)
+    elif isinstance(value, list):
+        for item in value:
+            _walk_titles(item, found)
+
+
+def commenter_titles(meal_dir: Path) -> list[str] | None:
+    """Issue titles the prey's digest carries: third-party prose a served note may not quote.
+
+    They sit in ``issues.json`` beside the prey digest the meal names. Short titles are left
+    out: three ordinary words match by accident, a sentence does not. ``None`` means the titles
+    cannot be read — no digest named, the digest gone from the cache, the file unreadable — and
+    then no note can be checked against them.
+    """
+    digest = _read_json_object(meal_dir / "meal.json").get("prey_digest")
+    if not isinstance(digest, str) or not digest:
+        return None
+    try:
+        loaded = json.loads((Path(digest) / "issues.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    found: list[str] = []
+    _walk_titles(loaded, found)
+    return sorted({title.strip() for title in found if len(_squash(title)) >= 20})
+
+
+def _quotes(notes: str, title: str) -> bool:
+    words = _squash(title).split()
+    if len(words) <= _QUOTE_RUN:
+        return f" {' '.join(words)} " in f" {notes} "
+    runs = (" ".join(words[i : i + _QUOTE_RUN]) for i in range(len(words) - _QUOTE_RUN + 1))
+    return any(f" {run} " in f" {notes} " for run in runs)
+
+
+def quoted_commenter_title(card: Candidate, titles: list[str]) -> str | None:
+    """The first issue title a non-licensed card's notes quote, or ``None``.
+
+    The engine replaces the title and ``what`` of such a card with generic wording; ``why`` and
+    ``how`` are written by a model that has read the sanitised issue list, so this is where a
+    commenter's words would come back through. A title of more than ``_QUOTE_RUN`` words is
+    quoted by any run of that many of its words.
+    """
+    if card.origin == ContentOrigin.LICENSED.value:
+        return None
+    notes = _squash(f"{card.why}\n{card.how}")
+    if not notes:
+        return None
+    return next((title for title in titles if _quotes(notes, title)), None)
+
+
 def load_notes(path: Path) -> dict[str, dict[str, Any]]:
     """Model-written notes: a JSON list of cards with ``id`` or a mapping ``id -> fields``."""
     try:
@@ -381,19 +475,23 @@ def load_cleanroom_receipts(payload: str) -> dict[str, str]:
                 hint="pipe one or more complete clean-room receipt JSON objects to stdin",
             ) from exc
         raw = payload[start:index]
-        receipt = load_cleanroom_implementation_receipt(raw)
-        if receipt.nutrient_id in receipts:
+        nutrient_id = (
+            load_materialization_receipt(raw).nutrient_id
+            if receipt_kind(raw) == MATERIALIZATION_KIND
+            else load_cleanroom_implementation_receipt(raw).nutrient_id
+        )
+        if nutrient_id in receipts:
             raise UsageError(
-                f"duplicate clean-room receipt for {receipt.nutrient_id}",
-                hint="provide exactly one implementation receipt per selected nutrient",
+                f"duplicate receipt for {nutrient_id}",
+                hint="provide exactly one receipt per selected nutrient",
             )
-        receipts[receipt.nutrient_id] = raw
+        receipts[nutrient_id] = raw
     if not receipts:
         raise CrabError(
-            "milestone 0.3 pull-request serving requires a clean-room implementation receipt",
+            "pull-request serving needs the implementation receipts on stdin",
             hint=(
-                "pipe one strict implementer receipt JSON object per selected REIMPLEMENT "
-                "nutrient to stdin"
+                "pipe one receipt JSON object per selected nutrient: the clean-room "
+                "implementer's for REIMPLEMENT, a materialization receipt for COPY"
             ),
         )
     return receipts
@@ -514,10 +612,34 @@ def _serve_pull_requests(
     now: datetime | None,
     log: Callable[[str], None],
     slug: Slug,
+    prey_repo: Path | None = None,
+    source_reader: SourceReader | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
-        return prepare_cleanroom_pull_request(card.id, title, body, receipt_payload, maw_root)
+        if card.license_mode in COPY_MODES:
+            reader = source_reader
+            if reader is None and prey_repo is not None:
+                reader = GitSourceReader(prey_repo)
+            if reader is None:
+                raise CrabError(
+                    "cannot verify the sources of a COPY nutrient without the prey's clone",
+                    hint="serve from the machine that digested the prey; its clone is in the cache",
+                )
+            return prepare_copy_pull_request(
+                card,
+                menu,
+                receipt_payload,
+                maw_root,
+                title=title,
+                body=body,
+                attribution_file=config.attribution_file,
+                source_reader=reader,
+                now=now,
+            )
+        return prepare_cleanroom_pull_request(
+            card.id, title, body, receipt_payload, maw_root, slug=slug
+        )
 
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
@@ -571,6 +693,8 @@ def serve(
     log: Callable[[str], None] = _noop,
     slug_lookup: Callable[[Path], Slug | None] = maw_slug,
     receipt_payloads: Mapping[str, str] | None = None,
+    prey_repo: Path | None = None,
+    source_reader: SourceReader | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -586,7 +710,13 @@ def serve(
         notes = load_notes(options.notes)
         for card in cards:
             if card.id in notes:
-                merge_notes(card, notes[card.id])
+                for problem in merge_notes(card, notes[card.id]):
+                    log(f"warning: {card.id}: notes {problem}")
+    # The hunger block is a ceiling the maw sets, read again here rather than trusted from the
+    # menu: a category switched off or narrowed after compare holds from the next serve on, and
+    # nothing a note said can lift a card over it.
+    cards, hidden = apply_hunger(cards, config.hunger)
+    skipped.extend(hidden)
     report = ServeReport(mode=options.mode, maw=str(maw_root), skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     slug = slug_lookup(maw_root)
@@ -621,6 +751,8 @@ def serve(
             now=now,
             log=log,
             slug=slug,
+            prey_repo=prey_repo,
+            source_reader=source_reader,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)
@@ -652,6 +784,7 @@ def serve(
         log(f"serving into {slug} as {who}" if who else f"serving into {slug}")
     label_ready = False
     labels = list(config.serve.labels)
+    titles = commenter_titles(meal_dir)
     for card in cards:
         entry = ledger.entries.get(card.id)
         if entry is not None and entry.status in ("served", "merged", "rejected", "ignored"):
@@ -673,6 +806,33 @@ def serve(
             ledger.ensure(card, now=now)
             ledger.mark(card.id, "served", url=str(known.get("url") or "") or None, now=now)
             continue
+        if card.serve_as not in ("issue", "pr") and card.id not in options.ids:
+            # `hunger: <category>: ideas-only` keeps a category on the menu without issues; an
+            # id asked for by name is the user overriding that by hand. Anything that is not a
+            # known way to serve (a hand-edited menu) is held back like an idea.
+            report.skipped.append({"id": card.id, "reason": f"serve_as: {card.serve_as}"})
+            continue
+        if card.origin != ContentOrigin.LICENSED.value and (card.why.strip() or card.how.strip()):
+            if titles is None:
+                # Fail closed: a note that cannot be checked is not a note that passed.
+                report.skipped.append(
+                    {
+                        "id": card.id,
+                        "reason": (
+                            "the prey's issue titles cannot be read, so these notes cannot be "
+                            "checked; run crab compare again"
+                        ),
+                    }
+                )
+                continue
+            if quoted_commenter_title(card, titles) is not None:
+                report.skipped.append(
+                    {
+                        "id": card.id,
+                        "reason": "notes quote commenter text; rewrite why/how in your own words",
+                    }
+                )
+                continue
         title, body = render_issue(card, menu)
         report.previews.append({"id": card.id, "title": title, "body": body})
         if options.mode != "issue":
