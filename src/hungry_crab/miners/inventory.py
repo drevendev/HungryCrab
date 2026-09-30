@@ -132,13 +132,13 @@ def _human_bytes(total: int) -> str:
     return f"{megabytes / 1024:.1f} GB" if megabytes >= 1024 else f"{megabytes:.0f} MB"
 
 
-def read_head(full: str, limit: int) -> bytes:
-    """The first ``limit`` bytes, or empty when the file cannot be read."""
+def read_head(full: str, limit: int | None = None) -> bytes | None:
+    """The first ``limit`` bytes (all of them without a limit), or ``None`` when unreadable."""
     try:
         with open(full, "rb") as handle:
-            return handle.read(limit)
+            return handle.read() if limit is None else handle.read(limit)
     except OSError:
-        return b""
+        return None
 
 
 def lfs_pointer_size(data: bytes) -> int | None:
@@ -201,8 +201,26 @@ ROLE_BY_NAME: dict[str, str] = {
 
 
 def describe_file(
-    full: str, rel: str, name: str, depth: int, size: int, *, vendored: bool, build_output: bool
+    full: str,
+    rel: str,
+    name: str,
+    depth: int,
+    size: int,
+    *,
+    vendored: bool,
+    build_output: bool,
+    unreadable: list[str] | None = None,
 ) -> FileInfo:
+    """One file's facts; a file that stats but cannot be read is appended to ``unreadable``."""
+
+    def read(limit: int | None = None) -> bytes:
+        data = read_head(full, limit)
+        if data is None:
+            if unreadable is not None:
+                unreadable.append(rel)
+            return b""
+        return data
+
     ext = os.path.splitext(name)[1].lower()
     language = LANGUAGE_BY_NAME.get(name) or LANGUAGE_BY_EXT.get(ext)
     if language is None and name.lower().startswith("dockerfile"):
@@ -220,7 +238,7 @@ def describe_file(
         # `.safetensors`, `.psd` — so the probe has to precede BINARY_EXTENSIONS, or every
         # pointer that matters is missed. A file this small is read whole either way, so the
         # check costs no I/O of its own.
-        data = read_head(full, LFS_POINTER_MAX)
+        data = read(LFS_POINTER_MAX)
         lfs_size = lfs_pointer_size(data)
         if lfs_size is None:
             if ext in BINARY_EXTENSIONS or looks_binary(data):
@@ -230,11 +248,7 @@ def describe_file(
     elif ext in BINARY_EXTENSIONS:
         binary = True
     elif size and size <= MAX_TEXT_SIZE and not vendored:
-        try:
-            with open(full, "rb") as handle:
-                data = handle.read()
-        except OSError:
-            data = b""
+        data = read()
         if looks_binary(data):
             binary = True
         else:
@@ -265,11 +279,29 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
         "dirs": 0,
         "symlinks": 0,
         "truncated": False,
+        "max_files": max_files,
         "vendored_dirs_capped": [],
+        # What the walk could not see, counted so that a digest can say how much it missed
+        # (#76): files behind a capped vendored directory, paths that failed to stat,
+        # directories that could not be listed, files that stat but cannot be read, and
+        # entries that are neither regular files nor symlinks.
+        "vendored_capped_files": 0,
+        "stat_errors": 0,
+        "walk_errors": 0,
+        "read_errors": 0,
+        "special_files": 0,
     }
     vendored_counts: dict[str, int] = defaultdict(int)
+    unreadable: list[str] = []
     root_str = str(root)
-    for dirpath, dirnames, filenames in os.walk(root_str, topdown=True, followlinks=False):
+
+    def unlisted(_error: OSError) -> None:
+        # `os.walk` drops a directory it cannot list, and everything under it, without a word.
+        stats["walk_errors"] += 1
+
+    for dirpath, dirnames, filenames in os.walk(
+        root_str, topdown=True, followlinks=False, onerror=unlisted
+    ):
         rel_dir = os.path.relpath(dirpath, root_str)
         parts: tuple[str, ...] = ()
         if rel_dir != ".":
@@ -292,6 +324,7 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
             dirnames[:] = []
             if vendored_key not in stats["vendored_dirs_capped"]:
                 stats["vendored_dirs_capped"].append(vendored_key)
+            stats["vendored_capped_files"] += len(filenames)
             continue
         build_output = any(p in BUILD_OUTPUT_DIRS for p in parts)
 
@@ -307,8 +340,10 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
             try:
                 st = os.stat(full)
             except OSError:
+                stats["stat_errors"] += 1
                 continue
             if not stat.S_ISREG(st.st_mode):
+                stats["special_files"] += 1
                 continue
             rel = "/".join((*parts, name))
             if vendored:
@@ -322,8 +357,10 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
                     st.st_size,
                     vendored=vendored,
                     build_output=build_output,
+                    unreadable=unreadable,
                 )
             )
+    stats["read_errors"] = len(unreadable)
     return files, stats
 
 
@@ -341,6 +378,7 @@ def mark_build_outputs(files: list[FileInfo]) -> None:
         parts = info.path.split("/")[:-1]
         if any(part in outputs for part in parts):
             info.generated = True
+            info.exclusion = "build-output"
 
 
 def mark_sample_corpora(files: list[FileInfo]) -> None:
@@ -363,6 +401,7 @@ def mark_sample_corpora(files: list[FileInfo]) -> None:
         return
     for info in marked:
         info.vendored = True
+        info.exclusion = "corpus"
 
 
 def mark_example_trees(files: list[FileInfo]) -> None:
@@ -398,6 +437,88 @@ def mark_example_trees(files: list[FileInfo]) -> None:
         return
     for info in marked:
         info.vendored = True
+        info.exclusion = "examples"
+
+
+def exclusion_reason(info: FileInfo) -> str | None:
+    """Why a file is not analysed, or ``None`` when it counts."""
+    if info.counted:
+        return None
+    if info.exclusion:
+        return info.exclusion
+    if info.vendored:
+        return "vendored"
+    if info.generated:
+        return "generated"
+    if info.binary:
+        return "binary"
+    return "lfs"
+
+
+def coverage_block(files: list[FileInfo], stats: dict[str, Any], ignored: int) -> dict[str, Any]:
+    """What the crab analysed, what it left out on purpose, and what it could not see (#76).
+
+    Two numbers that used to share one word. The *analysis share* is
+    ``files_counted / files_seen``: informational, because a repository that is mostly a sample
+    corpus scores low while the crab is doing exactly the right thing, and every excluded file
+    is reported beside it by reason. *Visibility* is the other question — did the walk see the
+    whole tree? — answered by explicit loss conditions: a list truncated at the miner's cap, a
+    path that failed to stat, a directory that could not be listed, a file that could not be
+    read. ``healthy`` is visibility, not the share, and it is what a CI gate
+    (``crab digest --fail-on-loss``) reads. Symlinks are skipped by policy and files behind a
+    capped vendored directory were never going to be analysed; both are reported, neither is a
+    loss.
+    """
+    counted = sum(1 for info in files if info.counted)
+    seen = len(files) + ignored
+    excluded: dict[str, int] = {}
+    for info in files:
+        reason = exclusion_reason(info)
+        if reason is not None:
+            excluded[reason] = excluded.get(reason, 0) + 1
+    if ignored:
+        excluded["ignored"] = ignored
+    loss = {
+        "truncated": bool(stats.get("truncated")),
+        "max_files": stats.get("max_files"),
+        "stat_errors": int(stats.get("stat_errors", 0)),
+        "walk_errors": int(stats.get("walk_errors", 0)),
+        "read_errors": int(stats.get("read_errors", 0)),
+        "special_files": int(stats.get("special_files", 0)),
+        "symlinks_skipped": int(stats.get("symlinks", 0)),
+        "vendored_capped_files": int(stats.get("vendored_capped_files", 0)),
+    }
+    return {
+        "files_seen": seen,
+        "files_counted": counted,
+        "analysis_share": round(counted / seen, 4) if seen else None,
+        "excluded": dict(sorted(excluded.items())),
+        "loss": loss,
+        "healthy": not loss["truncated"]
+        and not any(loss[key] for key in ("stat_errors", "walk_errors", "read_errors")),
+    }
+
+
+def describe_coverage(coverage: dict[str, Any]) -> str:
+    """One line for a manifest summary or a terminal: the share, the reasons, the health."""
+    excluded = coverage.get("excluded") or {}
+    reasons = ", ".join(f"{name} {count}" for name, count in excluded.items())
+    line = f"{coverage.get('files_counted')} of {coverage.get('files_seen')} files analysed"
+    if reasons:
+        line += f" (excluded: {reasons})"
+    loss = coverage.get("loss") or {}
+    if coverage.get("healthy"):
+        return line + "; visibility healthy"
+    problems = []
+    if loss.get("truncated"):
+        problems.append(f"file list truncated at {loss.get('max_files')}")
+    if loss.get("stat_errors"):
+        problems.append(f"{loss['stat_errors']} path(s) failed to stat")
+    if loss.get("walk_errors"):
+        problems.append(f"{loss['walk_errors']} directory(ies) could not be listed")
+    if loss.get("read_errors"):
+        problems.append(f"{loss['read_errors']} file(s) could not be read")
+    return line + "; visibility LOSS: " + ", ".join(problems)
 
 
 def _first_str(value: object) -> str | None:
@@ -621,9 +742,19 @@ class InventoryMiner:
             root_entries = []
         data, extra = summarize(ctx.root, files, stats, root_entries)
         data["ignored"] = {"patterns": list(ctx.ignore), "files": ignored}
+        data["coverage"] = coverage_block(files, stats, ignored)
         warnings: list[str] = []
         if stats["truncated"]:
             warnings.append("file list truncated; use --depth deep for more")
+        if stats["stat_errors"]:
+            warnings.append(f"{stats['stat_errors']} path(s) could not be stat-ed and were skipped")
+        if stats["walk_errors"]:
+            warnings.append(
+                f"{stats['walk_errors']} directory(ies) could not be listed; nothing under them "
+                "was seen"
+            )
+        if stats["read_errors"]:
+            warnings.append(f"{stats['read_errors']} file(s) could not be read")
         if stats["vendored_dirs_capped"]:
             warnings.append(
                 "vendored directories capped: " + ", ".join(stats["vendored_dirs_capped"])
@@ -638,6 +769,7 @@ class InventoryMiner:
         summary.kv(
             [
                 ("Files", f"{data['files_counted']} ({data['files']} including excluded trees)"),
+                ("Coverage", describe_coverage(data["coverage"])),
                 ("Directories", data["dirs"]),
                 ("Size", f"{data['bytes'] / 1024:.0f} KB"),
                 ("Lines of code (excluding vendored, sample, generated, binary)", data["loc"]),
@@ -704,6 +836,18 @@ class InventoryMiner:
         note_lines = []
         if data["truncated"]:
             note_lines.append("The file list was truncated at the miner's limit.")
+        if data["coverage"]["loss"]["stat_errors"]:
+            note_lines.append(
+                f"{data['coverage']['loss']['stat_errors']} path(s) could not be stat-ed."
+            )
+        if data["coverage"]["loss"]["walk_errors"]:
+            note_lines.append(
+                f"{data['coverage']['loss']['walk_errors']} directory(ies) could not be listed."
+            )
+        if data["coverage"]["loss"]["read_errors"]:
+            note_lines.append(
+                f"{data['coverage']['loss']['read_errors']} file(s) could not be read."
+            )
         if data["symlinks"]:
             note_lines.append(f"{data['symlinks']} symlinks were skipped.")
         if data["vendored_dirs_capped"]:
