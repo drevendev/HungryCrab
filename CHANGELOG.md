@@ -201,7 +201,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   pull-request mode the selection is filtered before anything is prepared — a licence mode
   with a pull-request path, marked `pr`, with a receipt — and everything else is reported as
   skipped with its reason, so `--top` serves what it can instead of raising on the first card
-  it cannot ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
+  it cannot. The mark is the maw's, not the model's: `serve` reads the `hunger` block again, so
+  a category switched off or narrowed after compare holds from the next serve on, and a note
+  may narrow `serve_as` but never widen it — a `serve_as`, `effort` or `risk` outside its
+  vocabulary is ignored with a warning
+  ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

@@ -16,7 +16,7 @@ from hungry_crab.digest import DigestOptions
 from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import CONFIG_FILE, MawConfig
-from hungry_crab.nutrients import Candidate, Evidence
+from hungry_crab.nutrients import Candidate, Evidence, merge_notes
 from hungry_crab.serve import (
     GhIssueClient,
     ServeOptions,
@@ -599,3 +599,65 @@ def test_notes_that_cannot_be_checked_are_not_served(tmp_path: Path) -> None:
         config=MawConfig(root=tmp_path), ledger=Ledger(None), slug_lookup=lambda _: MAW_SLUG,
     )  # fmt: skip
     assert [p["id"] for p in report.previews] == [card.id]
+
+
+def test_notes_narrow_serve_as_and_never_widen_it() -> None:
+    card = Candidate("ci", "ci.cache", "Cache", "x", serve_as="issue", origin="licensed")
+    assert merge_notes(card, {"serve_as": "pr"}) == [
+        "serve_as 'pr' would widen 'issue'; notes only narrow it"
+    ]
+    assert card.serve_as == "issue"
+    assert merge_notes(card, {"serve_as": "idea"}) == []
+    assert card.serve_as == "idea"
+
+    ignored = merge_notes(card, {"serve_as": "Issue", "effort": "XL", "risk": "none", "why": "ok"})
+    assert [problem.split()[0] for problem in ignored] == ["serve_as", "effort", "risk"]
+    assert (card.serve_as, card.effort, card.risk, card.why) == ("idea", "M", "low", "ok")
+
+
+def test_notes_and_a_later_hunger_cannot_lift_a_card_over_the_maw(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path
+) -> None:
+    """The hunger block is read at serve time, and a note cannot undo it (#136)."""
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    for path in pyproject_cli.rglob("*"):
+        if ".git" in path.parts or not path.is_file():
+            continue
+        target = maw / path.relative_to(pyproject_cli)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(path.read_bytes())
+    write_tree(maw, {CONFIG_FILE: "hunger:\n  ci: ideas-only\nledger: none\n"})
+    result, _, ledger, config = compare_for_maw(
+        Target(path=npm_app), maw,
+        digest_options=DigestOptions(now=FIXED_NOW, cache_root=tmp_path / "cache"),
+        now=NOW,
+    )  # fmt: skip
+    assert result.meal_dir is not None
+    ci = [c.id for c in result.candidates if c.category == "ci"]
+    assert ci
+    notes = tmp_path / "notes.json"
+    notes.write_text(
+        json.dumps([{"id": nutrient_id, "serve_as": "issue"} for nutrient_id in ci]),
+        encoding="utf-8",
+    )
+    logged: list[str] = []
+    client = FakeIssues()
+    report = serve(
+        result.meal_dir, maw, ServeOptions(top=len(result.candidates), mode="issue", notes=notes),
+        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: MAW_SLUG,
+        log=logged.append,
+    )  # fmt: skip
+    assert not {s["id"] for s in report.served} & set(ci)
+    reasons = {s["id"]: s["reason"] for s in report.skipped}
+    assert all(reasons[nutrient_id] == "serve_as: idea" for nutrient_id in ci)
+    assert any("notes only narrow it" in line for line in logged)
+
+    # switching the category off after compare holds from the next serve on
+    config.hunger["ci"] = False
+    later = serve(
+        result.meal_dir, maw, ServeOptions(ids=[ci[0]]),
+        config=config, ledger=ledger, client=client, now=NOW, slug_lookup=lambda _: MAW_SLUG,
+    )  # fmt: skip
+    assert later.previews == []
+    assert later.skipped == [{"id": ci[0], "reason": "hunger: ci is off"}]
