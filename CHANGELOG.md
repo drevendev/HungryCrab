@@ -20,11 +20,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   `manifest.json`: the *analysis share* (`files_counted / files_seen`, informational) with every
   excluded file reported beside it by reason — vendored, corpus, examples, ignored, build
   output, generated, binary, LFS — and *visibility*, the explicit losses of the walk: a file
-  list truncated at the cap, paths that failed to stat, plus the symlinks skipped by policy
-  and files behind a capped vendored directory, which are reported and are not a loss.
-  `healthy` is visibility alone. `crab digest` prints the line, `inventory.md` carries it, and
+  list truncated at the cap, paths that failed to stat, directories that could not be listed,
+  files that stat but cannot be read, plus the symlinks skipped by policy and files behind a
+  capped vendored directory, which are reported and are not a loss. `healthy` is visibility
+  alone. `crab digest` prints the line, `inventory.md` carries it, and
   `crab digest --fail-on-loss` exits non-zero on an unhealthy digest for CI, where an absent
-  fact would otherwise read as an absent trait
+  fact would otherwise read as an absent trait — and on a digest with no coverage record at
+  all, which a cached digest from before this change is not reused as
   ([#76](https://github.com/drevendev/HungryCrab/issues/76)).
 - **COPY nutrients become pull requests, with the notice they owe.** A `COPY` or `COPY_FILE`
   card is served with `--as pr-branch` and a *materialization receipt*: the trusted caller's
@@ -202,9 +204,12 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   for. The default is `unknown` now, capped at HUMAN; all twenty builders declare `licensed` or
   `commenters` explicitly, and a test walks a whole menu to see that none forgot. Reassigning
   `origin` re-caps the mode the card carries and refreshes its trace, never widening it. And
-  `crab serve` refuses a commenter-origin card whose `why` or `how` quotes an issue title from
-  the prey's own `issues.json`: the one channel the engine never policed, while a comment
-  claimed it did ([#137](https://github.com/drevendev/HungryCrab/issues/137)).
+  `crab serve` refuses a card of any origin but `licensed` whose `why` or `how` quotes an issue
+  title from the prey's own `issues.json`: the one channel the engine never policed, while a
+  comment claimed it did. A quote is its words — case, width, punctuation, escapes and
+  invisible characters are not compared, and eight consecutive words of a longer title are a
+  quote — and notes that cannot be checked, because the prey digest is gone, are not served
+  ([#137](https://github.com/drevendev/HungryCrab/issues/137)).
 - **The clean-room specification has a path that exists on Windows, and the pull request
   carries it.** The skill told the caller to write the Stage A specification to
   `.crab/specs/<nutrient-id>.md`; a nutrient id has colons, NTFS refuses them in a file name, so
@@ -223,7 +228,11 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   pull-request mode the selection is filtered before anything is prepared — a licence mode
   with a pull-request path, marked `pr`, with a receipt — and everything else is reported as
   skipped with its reason, so `--top` serves what it can instead of raising on the first card
-  it cannot ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
+  it cannot. The mark is the maw's, not the model's: `serve` reads the `hunger` block again, so
+  a category switched off or narrowed after compare holds from the next serve on, and a note
+  may narrow `serve_as` but never widen it — a `serve_as`, `effort` or `risk` outside its
+  vocabulary is ignored with a warning
+  ([#136](https://github.com/drevendev/HungryCrab/issues/136)).
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

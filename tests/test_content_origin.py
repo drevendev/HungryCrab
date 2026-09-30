@@ -24,6 +24,10 @@ def test_a_card_that_declares_no_origin_fails_closed() -> None:
     card.license_mode = Mode.COPY.value
     assert card.license_mode == Mode.HUMAN.value
     assert "fails closed" in card.license_reason
+    # its text is withheld, and not described as an issue it never came from
+    assert card.title == "Nutrient of undeclared origin"
+    assert "issue" not in card.what.lower()
+    assert "undeclared" in card.license_reason
 
 
 def test_reassigning_the_origin_recaps_the_mode_and_refreshes_the_trace() -> None:

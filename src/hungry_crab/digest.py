@@ -618,6 +618,9 @@ def _is_reusable(
         and budget.get("markdown_total") == options.total_budget
         and budget.get("policy") == options.budget_policy
         and _covers_every_miner(cached)
+        # A digest from before coverage was recorded carries the same development version
+        # string; without the block a visibility gate would read it as clean.
+        and isinstance(cached.get("coverage"), dict)
         and not incomplete_miners(cached)
         and not digest_integrity_errors(out_dir, cached)
     )

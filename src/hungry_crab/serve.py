@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -31,7 +32,7 @@ from .attribution import (
     receipt_kind,
 )
 from .cache import Slug
-from .compare import load_menu, menu_candidates
+from .compare import apply_hunger, load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
 from .fetch.git import GitRunner
 from .ledger import Ledger
@@ -356,8 +357,22 @@ def _read_json_object(path: Path) -> dict[str, Any]:
         return {}
 
 
+# A run this long of a title's words is a quote, not a coincidence; shorter titles have to be
+# quoted whole.
+_QUOTE_RUN = 8
+_NOT_A_WORD_RE = re.compile(r"[\W_]+")
+
+
 def _squash(text: str) -> str:
-    return " ".join(text.casefold().split())
+    """Words only: width, case, punctuation and invisible characters are not what a quote is.
+
+    A copied title keeps its words when a model drops the question mark, the backticks around
+    a name, swaps a typographic apostrophe, copies `issues.md`'s escaped pipe or carries a
+    zero-width space; comparing the words catches all of them.
+    """
+    folded = unicodedata.normalize("NFKC", text).casefold()
+    visible = "".join(ch for ch in folded if unicodedata.category(ch) != "Cf")
+    return " ".join(_NOT_A_WORD_RE.sub(" ", visible).split())
 
 
 def _walk_titles(value: object, found: list[str]) -> None:
@@ -374,33 +389,48 @@ def _walk_titles(value: object, found: list[str]) -> None:
             _walk_titles(item, found)
 
 
-def commenter_titles(meal_dir: Path) -> list[str]:
+def commenter_titles(meal_dir: Path) -> list[str] | None:
     """Issue titles the prey's digest carries: third-party prose a served note may not quote.
 
     They sit in ``issues.json`` beside the prey digest the meal names. Short titles are left
-    out: three ordinary words match by accident, a sentence does not.
+    out: three ordinary words match by accident, a sentence does not. ``None`` means the titles
+    cannot be read — no digest named, the digest gone from the cache, the file unreadable — and
+    then no note can be checked against them.
     """
     digest = _read_json_object(meal_dir / "meal.json").get("prey_digest")
     if not isinstance(digest, str) or not digest:
-        return []
+        return None
+    try:
+        loaded = json.loads((Path(digest) / "issues.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
     found: list[str] = []
-    _walk_titles(_read_json_object(Path(digest) / "issues.json"), found)
+    _walk_titles(loaded, found)
     return sorted({title.strip() for title in found if len(_squash(title)) >= 20})
 
 
+def _quotes(notes: str, title: str) -> bool:
+    words = _squash(title).split()
+    if len(words) <= _QUOTE_RUN:
+        return f" {' '.join(words)} " in f" {notes} "
+    runs = (" ".join(words[i : i + _QUOTE_RUN]) for i in range(len(words) - _QUOTE_RUN + 1))
+    return any(f" {run} " in f" {notes} " for run in runs)
+
+
 def quoted_commenter_title(card: Candidate, titles: list[str]) -> str | None:
-    """The first issue title a commenter-origin card's notes quote, or ``None``.
+    """The first issue title a non-licensed card's notes quote, or ``None``.
 
     The engine replaces the title and ``what`` of such a card with generic wording; ``why`` and
     ``how`` are written by a model that has read the sanitised issue list, so this is where a
-    commenter's words would come back through.
+    commenter's words would come back through. A title of more than ``_QUOTE_RUN`` words is
+    quoted by any run of that many of its words.
     """
-    if card.origin != ContentOrigin.COMMENTERS.value:
+    if card.origin == ContentOrigin.LICENSED.value:
         return None
     notes = _squash(f"{card.why}\n{card.how}")
     if not notes:
         return None
-    return next((title for title in titles if _squash(title) in notes), None)
+    return next((title for title in titles if _quotes(notes, title)), None)
 
 
 def load_notes(path: Path) -> dict[str, dict[str, Any]]:
@@ -680,7 +710,13 @@ def serve(
         notes = load_notes(options.notes)
         for card in cards:
             if card.id in notes:
-                merge_notes(card, notes[card.id])
+                for problem in merge_notes(card, notes[card.id]):
+                    log(f"warning: {card.id}: notes {problem}")
+    # The hunger block is a ceiling the maw sets, read again here rather than trusted from the
+    # menu: a category switched off or narrowed after compare holds from the next serve on, and
+    # nothing a note said can lift a card over it.
+    cards, hidden = apply_hunger(cards, config.hunger)
+    skipped.extend(hidden)
     report = ServeReport(mode=options.mode, maw=str(maw_root), skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     slug = slug_lookup(maw_root)
@@ -770,20 +806,33 @@ def serve(
             ledger.ensure(card, now=now)
             ledger.mark(card.id, "served", url=str(known.get("url") or "") or None, now=now)
             continue
-        if card.serve_as == "idea" and card.id not in options.ids:
+        if card.serve_as not in ("issue", "pr") and card.id not in options.ids:
             # `hunger: <category>: ideas-only` keeps a category on the menu without issues; an
-            # id asked for by name is the user overriding that by hand.
-            report.skipped.append({"id": card.id, "reason": "serve_as: idea"})
+            # id asked for by name is the user overriding that by hand. Anything that is not a
+            # known way to serve (a hand-edited menu) is held back like an idea.
+            report.skipped.append({"id": card.id, "reason": f"serve_as: {card.serve_as}"})
             continue
-        quoted = quoted_commenter_title(card, titles)
-        if quoted is not None:
-            report.skipped.append(
-                {
-                    "id": card.id,
-                    "reason": "notes quote commenter text; rewrite why/how in your own words",
-                }
-            )
-            continue
+        if card.origin != ContentOrigin.LICENSED.value and (card.why.strip() or card.how.strip()):
+            if titles is None:
+                # Fail closed: a note that cannot be checked is not a note that passed.
+                report.skipped.append(
+                    {
+                        "id": card.id,
+                        "reason": (
+                            "the prey's issue titles cannot be read, so these notes cannot be "
+                            "checked; run crab compare again"
+                        ),
+                    }
+                )
+                continue
+            if quoted_commenter_title(card, titles) is not None:
+                report.skipped.append(
+                    {
+                        "id": card.id,
+                        "reason": "notes quote commenter text; rewrite why/how in your own words",
+                    }
+                )
+                continue
         title, body = render_issue(card, menu)
         report.previews.append({"id": card.id, "title": title, "body": body})
         if options.mode != "issue":

@@ -401,12 +401,19 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         # It is not useful to a machine that will compare it, so the caller decides.
         raise CrabError(f"{len(broken)} miner(s) failed: {', '.join(broken)}")
     coverage = result.manifest.get("coverage")
+    if args.fail_on_loss and not isinstance(coverage, dict):
+        # No record is not a clean record: a failed inventory miner, or a digest written before
+        # coverage existed, says nothing about what the walk saw.
+        raise CrabError(
+            "the digest has no coverage record, so what it saw is unknown",
+            hint="rerun with --force; a failed inventory miner is listed above",
+        )
     if args.fail_on_loss and isinstance(coverage, dict) and not coverage.get("healthy"):
         # The share of files analysed is informational; what a machine may refuse is a digest
         # that never saw part of the tree, because absent facts read as absent traits.
         raise CrabError(
             "the digest did not see the whole tree: " + describe_coverage(coverage),
-            hint="--depth deep raises the file cap; a stat error is a filesystem problem",
+            hint="--depth deep raises the file cap; the other losses are filesystem problems",
         )
     return 0
 

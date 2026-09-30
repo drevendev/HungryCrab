@@ -27,7 +27,9 @@ Rules for `why` and `how`:
 - `how` names files and tools of the maw, adapted to its toolchain; it is the first step, not a
   full plan.
 - Never paste prey text unless the license mode is `COPY`; even then cite the path.
-- Optional fields: `title` (if the generated one is off), `serve_as`, `effort`, `risk`.
+- Optional fields: `title` (if the generated one is off), `serve_as`, `effort`, `risk`. A note
+  may narrow `serve_as` (`pr` → `issue` → `idea`) but never widen it; values outside the
+  vocabulary are ignored with a warning.
 
 ## Commands
 
@@ -55,7 +57,8 @@ crab spec crab:ci:ci.cache      # the maw-relative path of a nutrient's clean-ro
   declared files, and a missing specification, fail closed before provider effects.
 - `serve_as` is honoured in every mode: an `idea` card (`hunger: <category>: ideas-only`, or an
   issue lesson) is skipped unless its id is passed explicitly, and then only as an issue; an
-  `issue` card is never published as a pull request.
+  `issue` card is never published as a pull request. `serve` reads the `hunger` block of
+  `.crab.yml` again, so a category switched off or narrowed after compare holds.
 - A COPY or COPY_FILE nutrient takes a **materialization receipt** instead of the clean-room
   one (below); the two kinds may share one stdin stream. A receipt of the wrong kind for the
   card's licence mode fails the batch before any effect.
@@ -164,7 +167,9 @@ or added.
 | `not in the menu` | run `crab compare` again or check the id |
 | `serve_as: idea` | the hunger block or the card itself keeps it an idea; pass the id explicitly to file it as an issue anyway, never as a pull request |
 | `serve_as: issue` | (pull-request mode) the card is an issue, not a pull request; serve it with `--as issue` |
+| `hunger: <category> is off` | the maw switched the category off in `.crab.yml`; nothing of it is served |
 | `license mode IDEAS_ONLY has no pull-request path` | only REIMPLEMENT, COPY and COPY_FILE become pull requests; serve the card as an issue |
 | `no clean-room receipt` | pull-request mode found no receipt for a REIMPLEMENT card on stdin; run the clean-room protocol first |
 | `no materialization receipt` | pull-request mode found no receipt for a COPY card on stdin; carry the files and write the receipt first |
-| `notes quote commenter text; rewrite why/how in your own words` | the card comes from issue text and your `why` or `how` repeats one of the prey's issue titles; state the need in your own words and link the issue |
+| `notes quote commenter text; rewrite why/how in your own words` | the card is not of licensed origin and your `why` or `how` repeats one of the prey's issue titles, or eight words in a row of one; state the need in your own words and link the issue |
+| `the prey's issue titles cannot be read, so these notes cannot be checked; run crab compare again` | the prey digest the meal names is gone from the cache; recompare, then serve |
