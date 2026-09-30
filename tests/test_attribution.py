@@ -113,8 +113,11 @@ def _card(mode: str = "COPY", key: str = "ci.cache") -> Candidate:
 class FakePrey:
     """A source reader over an in-memory prey: (sha, path) -> content."""
 
-    def __init__(self, files: dict[tuple[str, str], str]) -> None:
+    def __init__(
+        self, files: dict[tuple[str, str], str], modes: dict[str, str] | None = None
+    ) -> None:
         self.files = files
+        self.modes = modes or {}
 
     def exists(self, sha: str, path: str) -> bool:
         return (sha, path) in self.files
@@ -122,8 +125,12 @@ class FakePrey:
     def read(self, sha: str, path: str) -> str | None:
         return self.files.get((sha, path))
 
-    def entries(self, sha: str) -> list[str] | None:
-        return sorted(path for at, path in self.files if at == sha and "/" not in path)
+    def entries(self, sha: str) -> dict[str, str] | None:
+        return {
+            path: self.modes.get(path, "100644")
+            for at, path in sorted(self.files)
+            if at == sha and "/" not in path
+        }
 
 
 MIT_TEXT = """\
@@ -632,14 +639,45 @@ def test_the_git_reader_lists_the_files_at_the_root_of_the_prey(tmp_path: Path) 
         ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
     ).stdout.strip()
 
-    assert GitSourceReader(repo).entries(sha) == ["LICENSE"], "files only, not directories"
+    root = GitSourceReader(repo)
+    assert root.entries(sha) == {"LICENSE": "100644"}, "files only, not directories"
     lib = GitSourceReader(repo / "packages" / "lib")
-    assert lib.entries(sha) == ["LICENSE", "index.js"], "a subdirectory prey has its own root"
+    assert set(lib.entries(sha) or {}) == {"LICENSE", "index.js"}, "a subdirectory has its root"
     assert [t.text for t in carried_texts(sha, lib)] == ["MIT License"]
-    assert GitSourceReader(repo).entries("0" * 40) is None
+    assert root.entries("0" * 40) is None
     # a subdirectory prey's paths are its own, not the monorepo root's
-    assert lib.exists(sha, "index.js") and not GitSourceReader(repo).exists(sha, "index.js")
+    assert lib.exists(sha, "index.js") and not root.exists(sha, "index.js")
     assert lib.read(sha, "LICENSE") == "MIT License\n"
+
+
+def test_a_symlinked_licence_is_refused_rather_than_carried_as_its_path(tmp_path: Path) -> None:
+    """A link's blob is the path it points at: carried, the notice would reproduce a file name."""
+    repo = tmp_path / "prey"
+    (repo / "docs").mkdir(parents=True)
+    (repo / "docs" / "LICENSE.txt").write_text(MIT_TEXT, encoding="utf-8")
+    run = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    subprocess.run([*run, "init", "-q"], cwd=repo, check=True)
+    subprocess.run([*run, "add", "-A"], cwd=repo, check=True)
+    # a symlink entry without a symlink on disk, which needs no privilege on Windows
+    blob = subprocess.run(
+        ["git", "hash-object", "-w", "--stdin"],
+        cwd=repo, input="docs/LICENSE.txt", check=True, capture_output=True, text=True,
+    ).stdout.strip()  # fmt: skip
+    subprocess.run(
+        ["git", "update-index", "--add", "--cacheinfo", f"120000,{blob},LICENSE"],
+        cwd=repo, check=True,
+    )  # fmt: skip
+    subprocess.run([*run, "commit", "-qm", "init"], cwd=repo, check=True)
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    assert GitSourceReader(repo).entries(sha) == {"LICENSE": "120000"}
+    with pytest.raises(CrabError, match="symbolic link"):
+        carried_texts(sha, GitSourceReader(repo))
+    fake = FakePrey({(SHA, "LICENSE"): "docs/LICENSE.txt"}, modes={"LICENSE": "120000"})
+    with pytest.raises(CrabError, match="symbolic link"):
+        carried_texts(SHA, fake)
 
 
 def test_prepare_refuses_a_missing_maw_file(tmp_path: Path) -> None:

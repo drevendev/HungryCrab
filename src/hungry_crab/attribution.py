@@ -633,8 +633,9 @@ class SourceReader(Protocol):
 
     def read(self, sha: str, path: str) -> str | None: ...
 
-    def entries(self, sha: str) -> list[str] | None:
-        """The names of the files (not directories) at the root of the prey at ``sha``."""
+    def entries(self, sha: str) -> dict[str, str] | None:
+        """The files (not directories) at the root of the prey at ``sha``, by name, with their
+        git mode: ``100644`` or ``100755`` for a file, ``120000`` for a symbolic link."""
         ...
 
 
@@ -653,25 +654,27 @@ class GitSourceReader:
     def read(self, sha: str, path: str) -> str | None:
         return self.git.try_run("show", f"{sha}:./{path}")
 
-    def entries(self, sha: str) -> list[str] | None:
+    def entries(self, sha: str) -> dict[str, str] | None:
         # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
         # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
         # ls-tree from filtering that tree's entries by the same directory a second time.
         listing = self.git.try_run("ls-tree", "--full-tree", "-z", f"{sha}:./")
         if listing is None:
             return None
-        names: list[str] = []
+        files: dict[str, str] = {}
         for entry in listing.split("\0"):
             meta, _, name = entry.partition("\t")
-            if name and meta.split(" ")[1:2] == ["blob"]:
-                names.append(name)
-        return names
+            mode, kind = [*meta.split(" "), "", ""][:2]
+            if name and kind == "blob":
+                files[name] = mode
+        return files
 
 
 # A licence obligation that asks for the source's own notice to travel with the material.
 _NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution"})
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
+_SYMLINK_MODE = "120000"
 
 
 def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
@@ -687,6 +690,13 @@ def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
     for name in sorted(names):
         if not (is_license_file_name(name) or _SOURCE_NOTICE_RE.fullmatch(name)):
             continue
+        if names[name] == _SYMLINK_MODE:
+            # A link's blob is the path it points at; carried as text it would be a notice that
+            # reproduces a file name, and it would satisfy the refusal below by its name alone.
+            raise CrabError(
+                "a licence file of the prey is a symbolic link, which the crab does not follow",
+                hint=f"{name} at {sha[:7]} points at another file; carry the notice by hand",
+            )
         text = reader.read(sha, name)
         if text is None or len(text) > _MAX_CARRIED:
             raise CrabError(
