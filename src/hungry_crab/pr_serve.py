@@ -182,6 +182,7 @@ def publish_prepared_cleanroom_git_pull_request(
     run_gh: GhRunner,
     git: GitRunner | None = None,
     allow_create: bool = True,
+    base_guard: Callable[[Callable[[str], str | None]], None] | None = None,
 ) -> PullRequestPublication | None:
     """Publish an already frozen clean-room payload through the guarded provider transaction.
 
@@ -200,6 +201,7 @@ def publish_prepared_cleanroom_git_pull_request(
             payload,
             run_gh=run_gh,
             git=git,
+            base_guard=base_guard,
         )
 
     try:

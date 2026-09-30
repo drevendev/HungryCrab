@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, updater
-from .attribution import load_attributions, render_notices
+from .attribution import checked_attribution_file, load_attributions, render_notices
 from .cache import Slug, Target, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
@@ -589,9 +589,9 @@ def cmd_attribution(args: argparse.Namespace) -> int:
     """
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
+    target = maw / checked_attribution_file(maw, config.attribution_file)
     records = load_attributions(maw)
     rendered = render_notices(records)
-    target = maw / config.attribution_file
     try:
         current = target.read_text(encoding="utf-8") if target.is_file() else None
     except (OSError, UnicodeError) as exc:

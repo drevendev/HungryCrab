@@ -113,7 +113,9 @@ licence file to carry, is refused. Then write one receipt per nutrient and pipe 
 `source` must be the meal's prey exactly as `menu.json` records it — label, URL, commit and
 licence — because the notice will cite it. Every `prey_path` is checked against the prey at that
 commit through read-only git plumbing in the cache; a `verbatim` file is compared byte for byte,
-and under COPY_FILE every file must be verbatim. The crab then appends the receipt to
+and under COPY_FILE every file must be verbatim. A file in vendored code, under a directory with
+a licence file of its own, or whose header names another licence than the source's is refused:
+the verdict is the repository's and does not answer for it. The crab then appends the receipt to
 `.crab/attributions.json` (once: a rerun or a reconciliation adds nothing, and the same nutrient
 from another commit is a second receipt that never rewrites the first), renders the notice file
 named by `attribution_file` in `.crab.yml` from all receipts, and carries the taken files, the
@@ -122,7 +124,11 @@ the licence asks for.
 
 `crab attribution --maw .` rewrites the notice file from the receipts; `--check` fails when it
 is missing or stale, which makes it a CI gate. The notice names only what the crab actually
-carried in: a COPY nutrient filed as an issue took nothing and appears nowhere.
+carried in: a COPY nutrient filed as an issue took nothing and appears nowhere. Serve from a
+checkout that is up to date with the default branch: a pull request that would drop a receipt
+the default branch already holds is refused. `attribution_file` must be a plain relative path
+in the maw, and the crab never overwrites a file it did not write. A COPY card whose licence
+verdict asks for human review is published only when you name it with `--ids`.
 
 The receipts and the notice are written at publication and were never in the working tree, so
 the `checks` of your receipt did not see them. After serving, let the maw's own gate run on the
@@ -174,5 +180,6 @@ or added.
 | `license mode IDEAS_ONLY has no pull-request path` | only REIMPLEMENT, COPY and COPY_FILE become pull requests; serve the card as an issue |
 | `no clean-room receipt` | pull-request mode found no receipt for a REIMPLEMENT card on stdin; run the clean-room protocol first |
 | `no materialization receipt` | pull-request mode found no receipt for a COPY card on stdin; carry the files and write the receipt first |
+| `the licence verdict asks for human review; name it with --ids` | the meal's verdict wants a person to look; decide, then serve the card by id |
 | `notes quote commenter text; rewrite why/how in your own words` | the card is not of licensed origin and your `why` or `how` repeats one of the prey's issue titles, or eight words in a row of one; state the need in your own words and link the issue |
 | `the prey's issue titles cannot be read, so these notes cannot be checked; run crab compare again` | the prey digest the meal names is gone from the cache; recompare, then serve |

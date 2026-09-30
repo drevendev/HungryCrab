@@ -110,6 +110,7 @@ def publish_git_pull_request(
     *,
     run_gh: GhRunner,
     git: GitRunner | None = None,
+    base_guard: Callable[[Callable[[str], str | None]], None] | None = None,
 ) -> str:
     """Publish an already scanned/reconciled payload through a deterministic branch.
 
@@ -139,6 +140,11 @@ def publish_git_pull_request(
     git.run("check-ref-format", "--branch", base)
 
     git.run("fetch", "--no-tags", "origin", f"+refs/heads/{base}:refs/remotes/origin/{base}")
+    if base_guard is not None:
+        # What the payload must agree with on the default branch as it is now, not as the
+        # maintainer's checkout last saw it; a blob read runs nothing.
+        base_ref = f"refs/remotes/origin/{base}"
+        base_guard(lambda path: git.try_run("cat-file", "blob", f"{base_ref}:{path}"))
     remote_branch = git.run("ls-remote", "--heads", "origin", f"refs/heads/{branch}").strip()
     branch_exists = bool(remote_branch)
     if branch_exists:

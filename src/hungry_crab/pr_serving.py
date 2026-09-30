@@ -47,6 +47,8 @@ def _prepare_publications(
     receipts: Mapping[str, str],
     ledger: Ledger,
     preparer: PrPreparer,
+    *,
+    copy_needs_ids: bool = False,
 ) -> tuple[list[tuple[Candidate, PreparedPullRequest]], list[dict[str, Any]]]:
     """Freeze every actionable card before the first provider read or effect.
 
@@ -79,6 +81,16 @@ def _prepare_publications(
                 {
                     "id": card.id,
                     "reason": f"license mode {card.license_mode} has no pull-request path",
+                }
+            )
+            continue
+        if copying and copy_needs_ids:
+            # The verdict asked a person to look (same owner over a copyleft licence, bypassed
+            # checks, a nested licence): ranked selection is not a person looking.
+            skipped.append(
+                {
+                    "id": card.id,
+                    "reason": "the licence verdict asks for human review; name it with --ids",
                 }
             )
             continue
@@ -120,6 +132,7 @@ def serve_cleanroom_pull_requests(
     preparer: PrPreparer,
     publisher: PrPublisher,
     now: datetime | None = None,
+    human_review: bool = False,
 ) -> PullRequestServeReport:
     """Apply PR serving policy around the already guarded clean-room publisher.
 
@@ -143,7 +156,9 @@ def serve_cleanroom_pull_requests(
             hint="review the menu and pass explicit nutrient ids before publishing pull requests",
         )
 
-    planned, skipped = _prepare_publications(cards, receipts, ledger, preparer)
+    planned, skipped = _prepare_publications(
+        cards, receipts, ledger, preparer, copy_needs_ids=human_review and not explicit_selection
+    )
     report = PullRequestServeReport(skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     creation_limit = max(0, config.serve.max_prs_per_run)

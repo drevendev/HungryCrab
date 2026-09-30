@@ -184,6 +184,19 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
+  a receipt.** A receipt could take any path of the prey and record it under the repository's
+  licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose
+  header names another licence — under the same-owner verdict even as "no notice owed". Such a
+  file is refused now. A checkout behind the default branch built a branch whose
+  `.crab/attributions.json` lacked receipts merged since, which merged cleanly and left a
+  merged file attributed nowhere while `crab attribution --check` stayed green; the effect now
+  reads the default branch's receipts after the fetch and refuses that branch before any push.
+  `attribution_file` has to be a plain relative path in the maw, never under `.git`, never the
+  receipts file and never a file the crab did not write (`README.md` would have been replaced by
+  the notice). A COPY card whose verdict asks for human review is published only when named
+  with `--ids`, and the crab's attribution section is always appended to the body
+  ([#185](https://github.com/drevendev/HungryCrab/issues/185)).
 - **The notice carries the licence it owes, not a sentence about it.** A COPY notice named the
   obligation — "keep the source's copyright and permission notice" — and reproduced none of it,
   while MIT, BSD, ISC and Boost ask for that notice itself to go with the copy and Apache for

@@ -28,7 +28,10 @@ from hungry_crab.attribution import (
     SourceRef,
     TakenFile,
     add_attribution,
+    base_receipts_kept,
     carried_texts,
+    check_taken_licences,
+    checked_attribution_file,
     clean_text,
     dump_attributions,
     load_attributions,
@@ -122,8 +125,16 @@ class FakePrey:
     def read(self, sha: str, path: str) -> str | None:
         return self.files.get((sha, path))
 
-    def entries(self, sha: str) -> list[str] | None:
-        return sorted(path for at, path in self.files if at == sha and "/" not in path)
+    def entries(self, sha: str, directory: str = "") -> list[str] | None:
+        prefix = f"{directory}/" if directory else ""
+        names = [
+            path[len(prefix) :]
+            for at, path in self.files
+            if at == sha and path.startswith(prefix) and "/" not in path[len(prefix) :]
+        ]
+        folders = {path.rsplit("/", 1)[0] for at, path in self.files if at == sha and "/" in path}
+        known = not directory or any(f == directory or f.startswith(prefix) for f in folders)
+        return sorted(names) if known else None
 
 
 MIT_TEXT = """\
@@ -160,8 +171,8 @@ def _prepare(maw: Path, payload: str | None = None, **kwargs: Any) -> PreparedPu
         payload or _payload(),
         maw,
         title="feat: cache the dependencies",
-        body="<!-- crab:ci:ci.cache -->\n\nCarry the cache step.\n",
-        attribution_file="THIRD_PARTY_NOTICES.md",
+        body=kwargs.pop("body", "<!-- crab:ci:ci.cache -->\n\nCarry the cache step.\n"),
+        attribution_file=kwargs.pop("attribution_file", "THIRD_PARTY_NOTICES.md"),
         source_reader=kwargs.pop("source_reader", _prey()),
         now=NOW,
         **kwargs,
@@ -685,6 +696,136 @@ def test_a_copy_card_is_served_through_the_guarded_transaction(tmp_path: Path) -
         "THIRD_PARTY_NOTICES.md",
     ]
     assert ledger.entries[card.id].status == "served"
+
+
+# --- what a receipt may take, where the notice goes, what a branch may drop -------------
+
+
+def _taking(prey_path: str) -> Any:
+    return load_materialization_receipt(
+        _payload(taken=[{"maw_path": "x.py", "prey_path": prey_path, "verbatim": False}])
+    )
+
+
+@pytest.mark.parametrize(
+    ("files", "prey_path", "message"),
+    [
+        ({"vendor/gplthing/core.c": "int x;\n"}, "vendor/gplthing/core.c", "vendored code"),
+        (
+            {"lib/apache_part/util.py": "x = 1\n", "lib/apache_part/LICENSE": "Apache\n"},
+            "lib/apache_part/util.py",
+            "a licence of its own",
+        ),
+        (
+            {"src/core.py": "# SPDX-License-Identifier: GPL-2.0-only\nx = 1\n"},
+            "src/core.py",
+            "declares another licence",
+        ),
+    ],
+)
+def test_a_taken_file_under_another_licence_is_refused(
+    files: dict[str, str], prey_path: str, message: str
+) -> None:
+    """The repository's verdict does not answer for someone else's material inside the prey."""
+    prey = FakePrey({(SHA, path): text for path, text in files.items()})
+    with pytest.raises(CrabError, match=message):
+        check_taken_licences(_taking(prey_path), prey)
+
+
+def test_a_taken_file_under_the_sources_own_licence_passes() -> None:
+    prey = FakePrey(
+        {
+            (SHA, "src/core.py"): "# SPDX-License-Identifier: MIT\nx = 1\n",
+            (SHA, "LICENSE"): MIT_TEXT,
+            (SHA, "src/README.md"): "# src\n",
+        }
+    )
+    check_taken_licences(_taking("src/core.py"), prey)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "",
+        "../outside.md",
+        "/etc/notice.md",
+        "./THIRD_PARTY_NOTICES.md",
+        "docs\\NOTICES.md",
+        "C:NOTICES.md",
+        ".git/config",
+        "docs/.git/x.md",
+        ATTRIBUTIONS_PATH,
+        "a\nb.md",
+    ],
+)
+def test_the_notice_path_must_be_a_plain_path_inside_the_maw(tmp_path: Path, name: str) -> None:
+    with pytest.raises(CrabError, match="not a plain path inside the maw"):
+        checked_attribution_file(tmp_path, name)
+
+
+def test_the_notice_path_never_overwrites_a_file_the_crab_did_not_write(tmp_path: Path) -> None:
+    assert checked_attribution_file(tmp_path, "THIRD_PARTY_NOTICES.md") == "THIRD_PARTY_NOTICES.md"
+    (tmp_path / "README.md").write_text("# The maw\n", encoding="utf-8")
+    with pytest.raises(CrabError, match="the crab did not write"):
+        checked_attribution_file(tmp_path, "README.md")
+    (tmp_path / "NOTICES.md").write_text(render_notices([]), encoding="utf-8")
+    assert checked_attribution_file(tmp_path, "NOTICES.md") == "NOTICES.md"
+    with pytest.raises(CrabError, match="the crab did not write"):
+        _prepare(_maw(tmp_path), attribution_file="README.md")
+
+
+def test_a_branch_never_drops_a_receipt_the_default_branch_holds(tmp_path: Path) -> None:
+    prepared = _prepare(_maw(tmp_path))
+    check = base_receipts_kept(prepared)
+    check(lambda path: None)  # a default branch with no receipts yet
+    check(lambda path: prepared.files[1].content)  # the same receipts
+    merged_since = dump_attributions([_record(nutrient_id="crab:hygiene:hygiene.security-md")])
+    with pytest.raises(CrabError, match="would drop receipts the default branch already holds"):
+        check(lambda path: merged_since if path == ATTRIBUTIONS_PATH else None)
+
+
+def test_the_attribution_section_is_the_crabs_whatever_the_notes_say(tmp_path: Path) -> None:
+    prepared = _prepare(
+        _maw(tmp_path),
+        body="<!-- crab:ci:ci.cache -->\n\n## Attribution\n\nNothing was taken, trust me.\n",
+    )
+    assert prepared.body.count("## Attribution") == 2
+    assert prepared.body.rstrip().endswith("as they stood at that commit.")
+    assert "Taken from `pypa/pipx@c490b45` (MIT, mode COPY)" in prepared.body
+
+
+def test_a_verdict_that_asks_for_review_is_never_published_by_ranked_selection(
+    tmp_path: Path,
+) -> None:
+    maw = _maw(tmp_path)
+    card = _card()
+    config = MawConfig(root=maw)
+    config.serve.prs = "auto"
+    published: list[str] = []
+
+    def preparer(card: Candidate, payload: str) -> PreparedPullRequest:
+        return _prepare(maw, payload)
+
+    def publisher(
+        card: Candidate, prepared: PreparedPullRequest, allow_create: bool
+    ) -> PullRequestPublication:
+        published.append(card.id)
+        return PullRequestPublication(branch="b", url="https://example.test/pr/1", created=True)
+
+    def run(explicit: bool) -> Any:
+        return serve_cleanroom_pull_requests(
+            [card], {card.id: _payload()}, config=config, ledger=Ledger(None),
+            explicit_selection=explicit, preparer=preparer, publisher=publisher, now=NOW,
+            human_review=True,
+        )  # fmt: skip
+
+    ranked = run(explicit=False)
+    assert published == []
+    assert ranked.skipped == [
+        {"id": card.id, "reason": "the licence verdict asks for human review; name it with --ids"}
+    ]
+    named = run(explicit=True)
+    assert published == [card.id] and named.served
 
 
 # --- crab attribution --------------------------------------------------------------------

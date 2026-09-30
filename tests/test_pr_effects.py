@@ -205,3 +205,37 @@ def test_unsafe_prepared_path_fails_before_provider_read(tmp_path: Path, path: s
         )
 
     assert gh.calls == []
+
+
+def test_a_base_guard_sees_the_default_branch_as_fetched_and_stops_before_the_push(
+    tmp_path: Path,
+) -> None:
+    """A check that needs the default branch as it is now runs after the fetch, before any push."""
+    maw, remote, git, remote_git = _git_repo(tmp_path)
+    # someone else's merge lands on the remote after this checkout last pulled
+    other = tmp_path / "other"
+    GitRunner(tmp_path).run("clone", str(remote), str(other))
+    other_git = GitRunner(other)
+    other_git.run("config", "user.name", "Other")
+    other_git.run("config", "user.email", "other@example.invalid")
+    (other / "merged.txt").write_text("merged since\n", encoding="utf-8")
+    other_git.run("add", "merged.txt")
+    other_git.run("commit", "-m", "chore: merged elsewhere")
+    other_git.run("push", "origin", "master")
+
+    seen: list[str | None] = []
+
+    def guard(read_base: object) -> None:
+        assert callable(read_base)
+        seen.append(read_base("merged.txt"))
+        seen.append(read_base("absent.txt"))
+        raise CrabError("refused by the guard")
+
+    gh = FakeGh()
+    with pytest.raises(CrabError, match="refused by the guard"):
+        publish_git_pull_request(
+            MAW_SLUG, maw, BRANCH, _prepared(), run_gh=gh, git=git, base_guard=guard
+        )
+    assert seen == ["merged since\n", None]
+    assert remote_git.try_run("rev-parse", "--verify", f"refs/heads/{BRANCH}") is None
+    assert not any(call[:2] == ("pr", "create") for call in gh.calls)

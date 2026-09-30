@@ -27,6 +27,7 @@ from .attribution import (
     MATERIALIZATION_KIND,
     GitSourceReader,
     SourceReader,
+    base_receipts_kept,
     load_materialization_receipt,
     prepare_copy_pull_request,
     receipt_kind,
@@ -652,6 +653,7 @@ def _serve_pull_requests(
             list_marked_prs=lambda: client.list_marked_prs(slug),
             run_gh=client.run_gh,
             allow_create=allow_create,
+            base_guard=base_receipts_kept(prepared) if card.license_mode in COPY_MODES else None,
         )
 
     result = serve_cleanroom_pull_requests(
@@ -663,6 +665,7 @@ def _serve_pull_requests(
         preparer=prepare,
         publisher=publish,
         now=now,
+        human_review=as_dict(menu.get("verdict")).get("human_review") is True,
     )
     served: list[dict[str, Any]] = []
     skipped = list(result.skipped)
