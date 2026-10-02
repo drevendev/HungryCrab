@@ -539,8 +539,16 @@ def print_serve_report(report: ServeReport) -> None:
         print(f"created {item['url']}  {item['id']}")
     for item in report.skipped:
         print(f"skipped {item['id']}: {item['reason']}")
-    if report.mode == "issue" and report.ledger_path:
-        print(f"ledger updated: {report.ledger_path} (commit it when the ledger mode is repo)")
+    carried = [item for item in [*report.served, *report.skipped] if item.get("working_tree_paths")]
+    for item in carried:
+        print(f"WARNING: COPY input paths remain in your working tree; also on {item['branch']}:")
+        for path in item["working_tree_paths"]:
+            print(f"  {path!r}")
+    if carried:
+        print("Save local changes and clean this checkout with: git stash push --include-untracked")
+        print("This saves all tracked and untracked changes; review the stash before restoring it.")
+    if report.mode in ("issue", "pr-branch") and report.ledger_path:
+        print(f"ledger updated: {report.ledger_path} (commit it separately on the default branch)")
 
 
 def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:

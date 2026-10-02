@@ -49,7 +49,7 @@ def _prepare_publications(
     preparer: PrPreparer,
     *,
     copy_needs_ids: bool = False,
-) -> tuple[list[tuple[Candidate, PreparedPullRequest]], list[dict[str, Any]]]:
+) -> tuple[list[tuple[Candidate, PreparedPullRequest, list[str]]], list[dict[str, Any]]]:
     """Freeze every actionable card before the first provider read or effect.
 
     A card that has no pull-request path is skipped with its reason rather than failing the
@@ -60,7 +60,7 @@ def _prepare_publications(
     still fails closed: it is input, not selection.
     """
 
-    planned: list[tuple[Candidate, PreparedPullRequest]] = []
+    planned: list[tuple[Candidate, PreparedPullRequest, list[str]]] = []
     skipped: list[dict[str, Any]] = []
     for card in cards:
         entry = ledger.entries.get(card.id)
@@ -108,17 +108,19 @@ def _prepare_publications(
                     "REIMPLEMENT takes the clean-room implementer's receipt"
                 ),
             )
-        receipt_id = (
-            load_materialization_receipt(payload).nutrient_id
-            if copying
-            else load_cleanroom_implementation_receipt(payload).nutrient_id
-        )
+        working_tree_paths: list[str] = []
+        if copying:
+            receipt = load_materialization_receipt(payload)
+            receipt_id = receipt.nutrient_id
+            working_tree_paths = [taken.maw_path for taken in receipt.taken]
+        else:
+            receipt_id = load_cleanroom_implementation_receipt(payload).nutrient_id
         if receipt_id != card.id:
             raise CrabError(
                 f"{label} receipt nutrient does not match the selected nutrient",
                 hint=f"expected {card.id}, got {receipt_id}",
             )
-        planned.append((card, preparer(card, payload)))
+        planned.append((card, preparer(card, payload), working_tree_paths))
     return planned, skipped
 
 
@@ -164,7 +166,7 @@ def serve_cleanroom_pull_requests(
     creation_limit = max(0, config.serve.max_prs_per_run)
     created = 0
 
-    for card, prepared in planned:
+    for card, prepared, working_tree_paths in planned:
         allow_create = created < creation_limit
         publication = publisher(card, prepared, allow_create)
         if publication is None:
@@ -193,6 +195,8 @@ def serve_cleanroom_pull_requests(
                 "created": publication.created,
             }
         )
+        if working_tree_paths:
+            report.served[-1]["working_tree_paths"] = working_tree_paths
         if publication.created:
             created += 1
 
