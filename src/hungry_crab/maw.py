@@ -39,9 +39,8 @@ DEFAULT_HUNGER: dict[str, Any] = {
 DEFAULT_CONFIG_TEXT = """\
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
-mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
-                           # code and copies only configs and templates. Not enforced
-                           # yet: today the setting is accepted and ignored.
+mode: normal               # normal | strict. Strict downgrades COPY code to clean-room
+                           # REIMPLEMENT; configs and templates remain copyable.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true

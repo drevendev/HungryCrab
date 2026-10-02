@@ -72,7 +72,7 @@ on:
       prey: {description: "owner/repo", required: true}
 jobs:
   eat:
-    uses: drevendev/HungryCrab/.github/workflows/feeder.yml@v0
+    uses: drevendev/HungryCrab/.github/workflows/feeder.yml@master
     with:
       prey: ${{ inputs.prey || 'pypa/pipx' }}
 ```
@@ -102,3 +102,6 @@ The prey has to be cloned on the runner, which is where the size limits in the b
 theoretical: a runner has a disk quota and a job timeout, and `--shallow --since` becomes the
 default rather than an option. The GitHub API is called from a runner without `gh auth`, on the
 job token, so the rate-limit and retry work is a prerequisite and not a nicety.
+
+Implementation and installation: [Feeder guide](../feeder.md). Pin a reviewed commit SHA in
+production; the example uses master because no Feeder release tag exists yet.

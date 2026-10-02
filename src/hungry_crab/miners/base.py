@@ -81,6 +81,8 @@ class MineContext:
     # What the working tree adds to the commit, when it adds anything. Empty for a prey
     # clone, which is never edited; "clean" or a hash for a local repository.
     worktree: str = ""
+    wiki_root: Path | None = None
+    wiki_info: dict[str, Any] = field(default_factory=dict)
 
     @property
     def deep(self) -> bool:

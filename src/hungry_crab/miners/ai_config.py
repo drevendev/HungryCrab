@@ -14,8 +14,8 @@ from ..mdutil import MdDoc
 from ..safety import is_suspicious, suspicious_fragments
 from ..typeutil import as_dict
 from .base import FileInfo, MineContext, MinerResult
+from .wiki import markdown_headings
 
-_HEADING_RE = re.compile(r"^(#{1,3})\s+(.+?)\s*#*\s*$", re.MULTILINE)
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---", re.DOTALL)
 _FM_KEY_RE = re.compile(r"^(name|description|tools|model|allowed-tools):[ \t]*(.*)$")
 _FM_BLOCK_RE = re.compile(r"^[|>][+-]?\d*$")
@@ -38,8 +38,10 @@ INSTRUCTION_FILES: dict[str, str] = {
 
 def _headings(text: str) -> list[str]:
     out: list[str] = []
-    for match in _HEADING_RE.finditer(text):
-        title = match.group(2).strip()[:80]
+    for heading in markdown_headings(text):
+        if int(str(heading["level"])) > 3:
+            continue
+        title = str(heading["text"]).strip()[:80]
         out.append("[heading omitted: instruction-like]" if is_suspicious(title) else title)
         if len(out) >= 20:
             break
