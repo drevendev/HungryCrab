@@ -222,6 +222,46 @@ class GitRunner:
                 return candidate
         return "HEAD"
 
+    def remote_default_branch(self, remote: str = "origin") -> str:
+        """Resolve the remote's current HEAD without trusting the cached origin/HEAD."""
+
+        out = self.run("ls-remote", "--symref", remote, "HEAD")
+        prefix = "ref: refs/heads/"
+        for line in out.splitlines():
+            if "\t" not in line:
+                continue
+            target, name = line.split("\t", 1)
+            if name == "HEAD" and target.startswith(prefix):
+                branch = target[len(prefix) :]
+                if branch:
+                    return branch
+        raise ExternalCommandError(f"git ls-remote could not resolve {remote}/HEAD")
+
+    def retarget_single_branch_fetch(self, branch: str, remote: str = "origin") -> bool:
+        """Move a clone's narrow fetch refspec when the remote default branch changes."""
+
+        out = self.try_run("config", "--get-all", f"remote.{remote}.fetch")
+        if out is None:
+            return False
+        specs = [line.strip() for line in out.splitlines() if line.strip()]
+        if len(specs) != 1:
+            return False
+
+        spec = specs[0]
+        normalized = spec.removeprefix("+")
+        prefix = "refs/heads/"
+        middle = f":refs/remotes/{remote}/"
+        if not normalized.startswith(prefix) or middle not in normalized:
+            return False
+        source_branch, dest_branch = normalized[len(prefix) :].split(middle, 1)
+        if not source_branch or "*" in source_branch or source_branch != dest_branch:
+            return False
+
+        updated = f"+refs/heads/{branch}:refs/remotes/{remote}/{branch}"
+        if spec != updated:
+            self.run("config", f"remote.{remote}.fetch", updated)
+        return True
+
     def is_shallow(self) -> bool:
         """Whether history provenance is incomplete or cannot be established safely."""
         out = self.try_run("rev-parse", "--is-shallow-repository")

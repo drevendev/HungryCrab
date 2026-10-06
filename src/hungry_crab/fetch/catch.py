@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from ..cache import Slug, prey_paths
-from ..errors import UsageError
+from ..errors import ExternalCommandError, UsageError
 from .git import GitRunner
 from .github import GitHubClient
 from .issues import fetch_issues, write_issues
@@ -116,10 +116,28 @@ def catch(
     if (repo_dir / ".git").exists():
         log(f"refreshing {slug} in {repo_dir}")
         git = GitRunner(repo_dir)
-        git.run("fetch", "--quiet", "--all", "--prune", "--tags", "--force")
-        branch = git.default_branch()
-        if git.ok("rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"):
+        original_fetch = git.try_run("config", "--get-all", "remote.origin.fetch")
+        retargeted = False
+        try:
+            # Probe before mutating the cache. Fetch alone never updates origin/HEAD.
+            branch = git.remote_default_branch()
+            retargeted = git.retarget_single_branch_fetch(branch)
+            fetch_args = ["fetch", "--quiet", "--all", "--prune", "--tags", "--force"]
+            if git.is_shallow() and opts.shallow and not opts.since:
+                fetch_args.append("--depth=1")
+            git.run(*fetch_args)
+            if not git.ok("rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"):
+                raise ExternalCommandError(f"remote default branch {branch!r} was not fetched")
             git.run("checkout", "--quiet", "-B", branch, f"origin/{branch}")
+        except ExternalCommandError as exc:
+            if retargeted and original_fetch is not None:
+                git.run("config", "--replace-all", "remote.origin.fetch", original_fetch.strip())
+            raise ExternalCommandError(
+                f"could not refresh {slug}: {exc.message}",
+                hint="the previous cached tree and catch record were preserved; check the remote "
+                "and retry crab catch",
+            ) from exc
+        git.run("symbolic-ref", "refs/remotes/origin/HEAD", f"refs/remotes/origin/{branch}")
         updated = True
     else:
         if repo_dir.exists():
