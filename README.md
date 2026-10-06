@@ -72,8 +72,8 @@ while it is pre-1.0. If you want a fixed version instead, append `@v0.2.0` to th
 the only tag so far, and it predates the licence resolutions and the menu benchmark — and take
 care of updates yourself.
 
-**Claude Code**, which adds the `/crab:eat`, `/crab:license`, `/crab:serve` and `/crab:cleanroom`
-skills, the `/crab:sniff` and `/crab:menu` commands, three subagents and two `PreToolUse` hooks:
+**Claude Code**, which adds the eat/license/serve/cleanroom/loop skills, sniff/menu commands,
+three subagents and two `PreToolUse` hooks:
 
 ```bash
 claude plugin marketplace add drevendev/HungryCrab
@@ -111,6 +111,11 @@ whether the plugin is installed in each, and prints exactly what to run. `crab u
 does the plugin work for you.
 
 ## Feed the crab
+
+For repeated improvement, [Scheduled Crab](docs/scheduled-crab.md) persists one phase per
+scheduler wake-up: `crab loop init`, `next`, `record`, pause/resume and measured cost history.
+The `/crab:loop` skill supplies judgement; the CLI bounds publication and waits for human merges.
+Work needs explicit maw-owner consent. Live rollout evidence is tracked separately from tests.
 
 With an agent, one line does the whole protocol: judge the menu, ask you, create the issues.
 
@@ -164,6 +169,8 @@ below.
 - `attribution_file`: the notice file for copied sources, rendered by `crab attribution` from the receipts in `.crab/attributions.json` that `crab serve --as pr-branch` writes when it carries prey files in; `crab attribution --check` is the CI gate. The file is headings and paragraphs, plus the source's licence and NOTICE texts in fenced blocks, so that a Markdown formatter's defaults leave it alone; if yours rewrites it anyway, exclude the file from the formatter, not from the check.
 - `ledger`: store meal history in the repository, cache, or nowhere.
 - `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
+- `loop`: scheduled phase policy, owner work consent, fixed prey, budgets and recovery limits;
+  see [Scheduled Crab](docs/scheduled-crab.md).
 
 This is the current commented template written by `crab init`:
 
@@ -213,6 +220,16 @@ attribution_file: THIRD_PARTY_NOTICES.md
                            # `crab serve --as pr-branch` writes when it carries prey files in.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
+loop:
+  cadence: daily           # cadence belongs to your scheduler; the CLI never starts one
+  autonomy: serve          # read | serve | work; merging always belongs to a human
+  work_authorized: false   # the maw owner must explicitly authorize work, including tags
+  prey: []                 # fixed owner/repo list; HUNT selects at most three from this list
+  budget:
+    phases_per_day: 4
+    prey_per_round: 2
+    open_issues_max: 10
+    open_prs_max: 2
 ```
 
 ## What the miners extract

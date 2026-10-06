@@ -617,8 +617,9 @@ def _serve_pull_requests(
     slug: Slug,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+    def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
         if card.license_mode in COPY_MODES:
             reader = source_reader
@@ -643,6 +644,12 @@ def _serve_pull_requests(
         return prepare_cleanroom_pull_request(
             card.id, title, body, receipt_payload, maw_root, slug=slug
         )
+
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        prepared = prepare_payload(card, receipt_payload)
+        if publication_guard is not None:
+            publication_guard(prepared)
+        return prepared
 
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
@@ -700,6 +707,7 @@ def serve(
     receipt_payloads: Mapping[str, str] | None = None,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -758,6 +766,7 @@ def serve(
             slug=slug,
             prey_repo=prey_repo,
             source_reader=source_reader,
+            publication_guard=publication_guard,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)
