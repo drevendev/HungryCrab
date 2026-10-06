@@ -242,6 +242,11 @@ a policy for its 30,000-token reading budget — `warn` by default, `enforce` fo
 loop, `off` for a human, set under `budget` in `.crab.yml`; JSON keeps the full data for
 scripts.
 
+For `crab digest --out`, use an empty directory or an existing digest directory. The crab
+replaces and removes only artifacts recorded in that directory's previous valid manifest.
+Other files are preserved; a conflicting caller-owned name is refused before publication,
+including case-insensitive collisions.
+
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
 model is spent only on judgment.**
 
