@@ -313,6 +313,8 @@ def _license_trace(card: Candidate) -> str:
     ]
     if card.license_reason:
         lines.append(f"- origin cap: {card.license_reason}")
+    if card.license_policy_reason:
+        lines.append(f"- maw policy: {card.license_policy_reason}")
     return "\n".join(lines)
 
 
@@ -617,8 +619,9 @@ def _serve_pull_requests(
     slug: Slug,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+    def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
         if card.license_mode in COPY_MODES:
             reader = source_reader
@@ -643,6 +646,12 @@ def _serve_pull_requests(
         return prepare_cleanroom_pull_request(
             card.id, title, body, receipt_payload, maw_root, slug=slug
         )
+
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        prepared = prepare_payload(card, receipt_payload)
+        if publication_guard is not None:
+            publication_guard(prepared)
+        return prepared
 
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
@@ -676,12 +685,14 @@ def _serve_pull_requests(
             served.append(item)
             log(f"served {item['id']} -> {item['url']}")
         else:
-            skipped.append(
-                {
-                    "id": item["id"],
-                    "reason": f"pull request exists {item['url']}; ledger reconciled",
-                }
-            )
+            reconciled = {
+                "id": item["id"],
+                "reason": f"pull request exists {item['url']}; ledger reconciled",
+            }
+            if item.get("working_tree_paths"):
+                reconciled["branch"] = item["branch"]
+                reconciled["working_tree_paths"] = item["working_tree_paths"]
+            skipped.append(reconciled)
             log(f"reconciled {item['id']} -> {item['url']}")
     return served, skipped
 
@@ -700,6 +711,7 @@ def serve(
     receipt_payloads: Mapping[str, str] | None = None,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -708,6 +720,11 @@ def serve(
     menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
+    if config.mode == "strict" and menu.get("mode") != "strict":
+        raise CrabError(
+            "this menu predates the maw's strict policy",
+            hint="run `crab compare <prey> --maw .` again before serving",
+        )
     if options.mode == "issue" and config.serve.issues == "off":
         raise CrabError("serve.issues is off in .crab.yml", hint="set serve.issues to ask or auto")
     cards, skipped = select_cards(menu, options, ledger)
@@ -758,6 +775,7 @@ def serve(
             slug=slug,
             prey_repo=prey_repo,
             source_reader=source_reader,
+            publication_guard=publication_guard,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)

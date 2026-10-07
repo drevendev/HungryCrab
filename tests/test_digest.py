@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from helpers import read_json, read_md, write_tree
 
 from hungry_crab.cache import Target
 from hungry_crab.digest import MD_BUDGET, SCHEMA, DigestOptions, DigestResult, run_digest
+from hungry_crab.errors import CrabError
 from hungry_crab.miners import ALL_MINERS, MINER_NAMES, select_miners
 from hungry_crab.tokens import estimate_tokens
 
@@ -35,6 +37,8 @@ EXPECTED_FILES = {
     "architecture.json",
     "architecture.md",
     "traits.json",
+    "wiki.json",
+    "wiki.md",
 }
 
 
@@ -171,6 +175,137 @@ def test_subset_of_miners(npm_app: Path, tmp_path: Path) -> None:
     assert ran == ["inventory", "license"]
     assert (result.out_dir / "license.json").is_file()
     assert not (result.out_dir / "ci.json").exists()
+
+
+def test_explicit_output_preserves_unowned_registered_name_on_selective_run(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "docs"
+    out.mkdir()
+    caller = out / "architecture.md"
+    original = b"# Human architecture\n\nDo not replace me.\n"
+    caller.write_bytes(original)
+
+    result = run_digest(
+        Target(path=npm_app),
+        DigestOptions(out=out, now=FIXED_NOW, miners=["license"]),
+    )
+
+    assert result.out_dir == out
+    assert caller.read_bytes() == original
+    assert (out / "license.json").is_file()
+    assert (out / "manifest.json").is_file()
+
+
+def test_explicit_output_preserves_year_suffixed_caller_file(npm_app: Path, tmp_path: Path) -> None:
+    out = tmp_path / "docs"
+    out.mkdir()
+    caller = out / "history.2024.md"
+    original = b"# 2024 notes\n"
+    caller.write_bytes(original)
+
+    run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+
+    assert caller.read_bytes() == original
+
+
+def test_explicit_output_refuses_to_replace_unowned_manifest(npm_app: Path, tmp_path: Path) -> None:
+    out = tmp_path / "public"
+    out.mkdir()
+    manifest = out / "manifest.json"
+    original = b'{"name":"web-app"}\n'
+    manifest.write_bytes(original)
+
+    with pytest.raises(CrabError, match=r"caller-owned file 'manifest\.json'"):
+        run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+
+    assert manifest.read_bytes() == original
+
+
+@pytest.mark.skipif(
+    os.path.normcase("A") != os.path.normcase("a"), reason="case-sensitive platform"
+)
+def test_explicit_output_refuses_case_insensitive_collision(npm_app: Path, tmp_path: Path) -> None:
+    out = tmp_path / "docs"
+    out.mkdir()
+    caller = out / "HISTORY.md"
+    original = b"# Human history\n"
+    caller.write_bytes(original)
+
+    with pytest.raises(CrabError, match=r"HISTORY\.md"):
+        run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+
+    assert caller.read_bytes() == original
+
+
+def test_explicit_output_rerun_replaces_only_previous_manifest_owned_files(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "docs"
+    run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+    assert (out / "architecture.md").is_file()
+    stranger = out / "notes.md"
+    stranger.write_bytes(b"caller data\n")
+
+    second = run_digest(
+        Target(path=npm_app),
+        DigestOptions(out=out, now=FIXED_NOW, miners=["license"]),
+    )
+
+    assert second.out_dir == out
+    assert not (out / "architecture.md").exists()
+    assert stranger.read_bytes() == b"caller data\n"
+    assert {record["name"] for record in second.manifest["miners"]} == {"inventory", "license"}
+
+
+@pytest.mark.parametrize("claimed_files", [None, "inventory.json", 7])
+def test_explicit_output_refuses_malformed_ownership_without_mutation(
+    npm_app: Path, tmp_path: Path, claimed_files: object
+) -> None:
+    out = tmp_path / "out"
+    first = run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+    first.manifest["miners"][0]["files"] = claimed_files
+    first.manifest_path.write_text(json.dumps(first.manifest), encoding="utf-8")
+    before = {path.name: path.read_bytes() for path in out.iterdir()}
+
+    with pytest.raises(CrabError, match="caller-owned file"):
+        run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW, force=True))
+
+    assert {path.name: path.read_bytes() for path in out.iterdir()} == before
+    assert not list(tmp_path.glob(".out.crab-*"))
+
+
+def test_explicit_output_collision_after_selective_digest_preserves_every_file(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW, miners=["license"]))
+    (out / "architecture.md").write_bytes(b"# Caller architecture\n")
+    before = {path.name: path.read_bytes() for path in out.iterdir()}
+
+    with pytest.raises(CrabError, match=r"caller-owned file 'architecture\.md'"):
+        run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW, force=True))
+
+    assert {path.name: path.read_bytes() for path in out.iterdir()} == before
+    assert not list(tmp_path.glob(".out.crab-*"))
+
+
+def test_explicit_output_rerun_preserves_unlisted_page_family_members(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    run_digest(Target(path=npm_app), DigestOptions(out=out, now=FIXED_NOW))
+    caller = out / "history.2024.md"
+    caller.write_bytes(b"# Caller history\n")
+
+    result = run_digest(
+        Target(path=npm_app),
+        DigestOptions(out=out, now=FIXED_NOW, force=True, budget_policy="enforce", total_budget=0),
+    )
+
+    assert caller.read_bytes() == b"# Caller history\n"
+    assert result.manifest["markdown_tokens_est"] == 0
+    assert "history.2024.md" not in {entry["name"] for entry in result.manifest["files"]}
 
 
 def test_digest_of_a_plain_directory_without_git(tmp_path: Path) -> None:

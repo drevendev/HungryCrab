@@ -28,7 +28,7 @@ Somewhere out there is a repository that fixed your flaky CI two years ago, wrot
 you keep meaning to write, and learned the hard way which file breaks every single time anyone
 touches it. Reading it properly costs you an afternoon. Reading fifty of them costs you a month.
 
-The crab reads them for you. It drags the prey into a local cache, dissects it with twelve
+The crab reads them for you. It drags the prey into a local cache, dissects it with thirteen
 deterministic miners, and boils a whole repository down to a digest small enough for an agent to
 actually read. Then it holds that digest against *your* repository and serves a ranked menu:
 what they have, what you lack, what it would cost you, and exactly what their license lets you
@@ -43,8 +43,10 @@ release; `master` is ahead of it by the 0.2.1 and 0.2.2 milestones — self-feed
 resolutions and the menu benchmark — and by most of 0.3: the budget policy with paged
 documents, the two safety hooks, the clean-room protocol and pull-request serving for
 REIMPLEMENT nutrients and, with attribution receipts, for COPY. It is where the install below
-points.** The wiki miner and strict mode are still to come (see the
-[roadmap](docs/design/03-roadmap.md)).
+points.** The Feeder now produces CI meal artifacts without an agent, with independent wiki
+snapshots and enforced strict mode. Scheduled Crab adds persisted phases and guarded
+publication. These features are unreleased; see the [roadmap](docs/design/03-roadmap.md),
+[Feeder guide](docs/feeder.md) and [Scheduled Crab guide](docs/scheduled-crab.md).
 
 ## The metaphor, in five words
 
@@ -72,8 +74,8 @@ while it is pre-1.0. If you want a fixed version instead, append `@v0.2.0` to th
 the only tag so far, and it predates the licence resolutions and the menu benchmark — and take
 care of updates yourself.
 
-**Claude Code**, which adds the `/crab:eat`, `/crab:license`, `/crab:serve` and `/crab:cleanroom`
-skills, the `/crab:sniff` and `/crab:menu` commands, three subagents and two `PreToolUse` hooks:
+**Claude Code**, which adds the eat/license/serve/cleanroom/loop skills, sniff/menu commands,
+three subagents and two `PreToolUse` hooks:
 
 ```bash
 claude plugin marketplace add drevendev/HungryCrab
@@ -112,6 +114,11 @@ does the plugin work for you.
 
 ## Feed the crab
 
+For repeated improvement, [Scheduled Crab](docs/scheduled-crab.md) persists one phase per
+scheduler wake-up: `crab loop init`, `next`, `record`, pause/resume and measured cost history.
+The `/crab:loop` skill supplies judgement; the CLI bounds publication and waits for human merges.
+Work needs explicit maw-owner consent. Live rollout evidence is tracked separately from tests.
+
 With an agent, one line does the whole protocol: judge the menu, ask you, create the issues.
 
 ```text
@@ -148,13 +155,19 @@ crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is 
 so eating the same commit twice is free. Giants take `--since 2y` (history newer than two years)
 or `--shallow` (default branch, tree only).
 
+## Feeder: a menu in CI
+
+Run `crab eat pypa/pipx --deterministic --maw .` to export a complete meal without a model,
+issue creation or ledger writes. The [Feeder guide](docs/feeder.md) shows the composite action,
+reusable workflow, weekly schedule, artifact outputs and strict mode.
+
 ## Configuration
 
 `crab init` writes `.crab.yml` in the maw. Every key is optional; omitted keys use the defaults
 below.
 
 - `license`: SPDX id for the maw, or auto-detect from `LICENSE` when omitted.
-- `mode`: `normal` or `strict`; `strict` is accepted today and not enforced yet ([#74](https://github.com/drevendev/HungryCrab/issues/74)).
+- `mode`: `normal` or `strict`; strict downgrades COPY code to clean-room REIMPLEMENT while configurations and templates stay copyable.
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
 - `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
   `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
@@ -164,15 +177,16 @@ below.
 - `attribution_file`: the notice file for copied sources, rendered by `crab attribution` from the receipts in `.crab/attributions.json` that `crab serve --as pr-branch` writes when it carries prey files in; `crab attribution --check` is the CI gate. The file is headings and paragraphs, plus the source's licence and NOTICE texts in fenced blocks, so that a Markdown formatter's defaults leave it alone; if yours rewrites it anyway, exclude the file from the formatter, not from the check.
 - `ledger`: store meal history in the repository, cache, or nowhere.
 - `scoring`: per-section overrides for `data/scoring.yml`; `crab tune` can suggest them.
+- `loop`: scheduled phase policy, owner work consent, fixed prey, budgets and recovery limits;
+  see [Scheduled Crab](docs/scheduled-crab.md).
 
 This is the current commented template written by `crab init`:
 
 ```yaml
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
-mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
-                           # code and copies only configs and templates. Not enforced
-                           # yet: today the setting is accepted and ignored.
+mode: normal               # normal | strict. Strict downgrades COPY code to clean-room
+                           # REIMPLEMENT; configs and templates remain copyable.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
@@ -213,6 +227,16 @@ attribution_file: THIRD_PARTY_NOTICES.md
                            # `crab serve --as pr-branch` writes when it carries prey files in.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
+loop:
+  cadence: daily           # cadence belongs to your scheduler; the CLI never starts one
+  autonomy: serve          # read | serve | work; merging always belongs to a human
+  work_authorized: false   # the maw owner must explicitly authorize work, including tags
+  prey: []                 # fixed owner/repo list; HUNT selects at most three from this list
+  budget:
+    phases_per_day: 4
+    prey_per_round: 2
+    open_issues_max: 10
+    open_prs_max: 2
 ```
 
 ## What the miners extract
@@ -227,6 +251,7 @@ progressively:
 | `deps` | normalized dependencies per ecosystem (npm, Python, .NET, Rust, Go), lock-file and pinning policy | `deps.json` |
 | `ci` | GitHub Actions workflows: triggers, jobs, matrix, cache, permissions, concurrency, SHA pinning, tools, secrets (names only), dependabot/renovate, other CI systems | `ci.{json,md}` |
 | `testing` | frameworks, layout, test/source ratio, coverage threshold, e2e/property/snapshot/fuzz/benchmarks | `tests.{json,md}` |
+| `wiki` | independent Git wiki snapshot, page names, counts and headings; no body text | `wiki.{json,md}` |
 | `docs` | README outline and sections, community files, changelog format, ADRs, docs site, issue/PR templates | `docs.{json,md}` |
 | `ai_config` | CLAUDE.md, AGENTS.md, cursor rules, Copilot instructions, skills, subagents, hooks, MCP servers | `ai.{json,md}` |
 | `history` | hotspots, fix ratio, reverts, co-change coupling, cadence, bus factor, tags and release cadence, conventional-commit discipline | `history.{json,md}` |
@@ -241,6 +266,11 @@ default (`history.md`, `history.2.md`, and so on; nothing is dropped), and the w
 a policy for its 30,000-token reading budget — `warn` by default, `enforce` for a budgeted
 loop, `off` for a human, set under `budget` in `.crab.yml`; JSON keeps the full data for
 scripts.
+
+For `crab digest --out`, use an empty directory or an existing digest directory. The crab
+replaces and removes only artifacts recorded in that directory's previous valid manifest.
+Other files are preserved; a conflicting caller-owned name is refused before publication,
+including case-insensitive collisions.
 
 Guiding principle: **scripts squeeze out everything that can be squeezed deterministically; the
 model is spent only on judgment.**

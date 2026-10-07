@@ -93,17 +93,20 @@ lets the next maw overwrite it.
 ## Commands
 
 `sniff` look before eating · `catch` clone into the cache · `digest` run the miners ·
-`compare` digest both sides and rank · `menu` print the ranked menu · `serve` file the issues ·
-`ledger` show or record decisions · `tune` suggest weights from the ledger · `init` write
-`.crab.yml` · `update` check the CLI and the plugins · `cache` inspect and clean
+`compare` digest both sides and rank · `eat --deterministic` export a Feeder meal bundle ·
+`menu` print the ranked menu · `serve` publish approved issues or guarded PR branches ·
+`spec` write the clean-room specification · `attribution` render or check the notice ·
+`ledger` show or record decisions · `tune` suggest weights from the ledger · `loop` manage
+persisted phases and guarded effects · `init` write `.crab.yml` · `update` check the CLI and
+the plugins · `cache` inspect and clean
 
 ## Skills and agents
 
-Skills `eat`, `license`, `serve`, `cleanroom` · subagents `crab-historian`, `crab-architect`,
+Skills `eat`, `license`, `serve`, `cleanroom`, `loop` · subagents `crab-historian`, `crab-architect`,
 `crab-cleanroom-impl` · commands `/crab:sniff`, `/crab:menu` · hooks `crab-prey-guard` (a Bash
 command that touches the cache must be a read-only shape) and `crab-cleanroom-guard` (the
-clean-room implementer never touches the cache), both `PreToolUse`, both console scripts of
-the CLI
+clean-room implementer never touches the cache), both `PreToolUse`, both loaded from the plugin
+by `hooks/guard.py` without requiring a console script on `PATH`
 
 ## The scheduled crab's phases ([07](07-scheduled-crab.md))
 

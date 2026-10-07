@@ -14,6 +14,7 @@ from .issues import IssuesMiner
 from .license import LicenseMiner
 from .scope import ProjectDepsMiner, ProjectTestingMiner
 from .traits import TraitsMiner
+from .wiki import WikiMiner
 
 __all__ = [
     "ALL_MINERS",
@@ -31,6 +32,7 @@ ALL_MINERS: tuple[Miner, ...] = (
     ProjectDepsMiner(),
     CiMiner(),
     ProjectTestingMiner(),
+    WikiMiner(),
     DocsMiner(),
     AiConfigMiner(),
     HistoryMiner(),

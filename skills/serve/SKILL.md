@@ -87,7 +87,10 @@ new PRs only; reconciliation does not spend creation budget.
 ## COPY pull requests: the materialization receipt
 
 A COPY verdict lets prey files travel; COPY_FILE lets whole files travel with their own licence
-header. You do the carrying, in the maw's working tree, before serving: copy or adapt the prey
+header. Start with a separate, temporary worktree of the maw's current default branch
+(`git worktree add --detach <carry-dir> origin/<default-branch>`). Carry there and pass
+`--maw <carry-dir>` to compare and serve, so the maintainer's checkout stays free of copied
+inputs. You do the carrying in that worktree before serving: copy or adapt the prey
 file, keep the copyright and permission notice it came with, and never mix in text the verdict
 does not cover. The crab reads the source's licence and NOTICE files at that commit and the
 notice reproduces them; a licence that asks for its notice to travel, from a prey with no
@@ -136,6 +139,19 @@ branch — its CI, or the gate by hand in a checkout of the branch where there i
 the branch before anyone merges it. The notice is headings and paragraphs only, which a Markdown
 formatter's defaults leave alone; where the maw's formatter rewrites it anyway, exclude the file
 from the formatter, never from `crab attribution --check`.
+
+Publication leaves the receipt's input paths in the worktree it read. The text and JSON reports
+name those paths and the nutrient branch, including when an existing pull request is reconciled.
+After verifying the branch contains the files, receipts and notice, clean up the disposable
+worktree. If you carried in the maintainer's checkout instead, use
+`git stash push --include-untracked` to preserve all local changes and clean that checkout;
+this also stashes unrelated edits, so inspect the stash before restoring anything. Do not sweep
+the copied inputs into an unrelated commit with `git add -A`.
+
+Keep `.crab.yml` and `.crab/ledger.json` (`ledger: repo`) on the default branch in their own
+commit. Before removing the carrying worktree, preserve its configuration and ledger updates
+separately; the nutrient pull request does not carry them. Its copied files belong only with
+their receipts and notice on the nutrient branch.
 
 ## Whose name the artifacts carry
 

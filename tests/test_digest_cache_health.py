@@ -117,6 +117,26 @@ def test_a_markdown_budget_no_page_header_fits_in_is_an_error_not_a_traceback(
     assert excinfo.value.hint is not None and "--md-budget" in excinfo.value.hint
 
 
+def test_shallow_current_context_never_reuses_full_history_cache(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work = copy_repo(npm_app, tmp_path / "work", with_git=True)
+    options = _options(tmp_path)
+
+    first = run_digest(Target(path=work), options)
+    assert not first.cached
+    assert first.manifest["prey"]["shallow"] is False
+
+    monkeypatch.setattr(digest_module.GitRunner, "is_shallow", lambda _self: True)
+
+    shallow = run_digest(Target(path=work), DigestOptions(**options.__dict__))
+    assert not shallow.cached, "shallow history is not a stable cache identity"
+    assert shallow.manifest["prey"]["shallow"] is True
+
+    shallow_again = run_digest(Target(path=work), DigestOptions(**options.__dict__))
+    assert not shallow_again.cached, "shallow history may grow without changing HEAD"
+
+
 def test_unknown_worktree_fingerprint_never_becomes_identity(
     npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
