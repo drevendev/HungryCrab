@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +84,33 @@ attribution_file: THIRD_PARTY_NOTICES.md
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 """
+
+
+def _reject_unknown_keys(
+    values: dict[str, Any], allowed: set[str], path: Path, section: str
+) -> None:
+    """A maw typo must never silently broaden the crab's appetite."""
+    for raw_key in values:
+        key = str(raw_key)
+        if key in allowed:
+            continue
+        suggestion = get_close_matches(key, sorted(allowed), n=1, cutoff=0.45)
+        hint = (
+            f"did you mean {suggestion[0]!r}?"
+            if suggestion
+            else f"allowed keys: {', '.join(sorted(allowed))}"
+        )
+        raise UsageError(f"{path}: unknown {section} key {key!r}", hint=hint)
+
+
+def _required_mapping_section(data: dict[str, Any], name: str, path: Path) -> dict[str, Any]:
+    """An explicit wrong-shaped section must never silently restore defaults."""
+    if name not in data:
+        return {}
+    value = data[name]
+    if not isinstance(value, dict):
+        raise UsageError(f"{path}: {name} must be a mapping")
+    return value
 
 
 def _hunger_value(value: object) -> Any:
@@ -177,11 +205,19 @@ class MawConfig:
         path = config.path
         if not path.is_file():
             return config
+        source_text = path.read_text(encoding="utf-8")
         try:
-            loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+            loaded = yaml.safe_load(source_text)
         except yaml.YAMLError as exc:
             raise UsageError(f"{path} is not valid YAML: {exc}") from exc
-        data = as_dict(loaded)
+        if loaded is None and all(
+            not line.strip() or line.lstrip().startswith("#")
+            for line in source_text.splitlines()
+        ):
+            loaded = {}
+        if not isinstance(loaded, dict):
+            raise UsageError(f"{path}: configuration must be a YAML mapping")
+        data = loaded
         config.exists = True
         config.raw = data
         license_value = data.get("license")
@@ -194,29 +230,53 @@ class MawConfig:
                 f"{path} uses the old key 'appetite'",
                 hint="rename it to 'hunger'; the values are unchanged",
             )
+        _reject_unknown_keys(
+            data,
+            {
+                "license", "mode", "hunger", "ignore", "budget", "serve", "trust",
+                "attribution_file", "ledger", "scoring",
+            },
+            path,
+            "top-level",
+        )
         hunger = dict(DEFAULT_HUNGER)
-        for key, value in as_dict(data.get("hunger")).items():
+        hunger_values = _required_mapping_section(data, "hunger", path)
+        _reject_unknown_keys(hunger_values, set(DEFAULT_HUNGER), path, "hunger")
+        for key, value in hunger_values.items():
             hunger[str(key)] = _hunger_value(value)
         config.hunger = hunger
         config.ignore = [str(pattern) for pattern in as_list(data.get("ignore"))]
-        budget = as_dict(data.get("budget"))
+        budget = _required_mapping_section(data, "budget", path)
+        _reject_unknown_keys(budget, {"policy"}, path, "budget")
         config.budget = BudgetSettings(
             policy=_choice(budget.get("policy", "warn"), BUDGET_POLICIES, "budget.policy")
         )
-        serve = as_dict(data.get("serve"))
+        serve = _required_mapping_section(data, "serve", path)
+        _reject_unknown_keys(
+            serve,
+            {"issues", "prs", "max_prs_per_run", "labels", "assignees", "token_env"},
+            path,
+            "serve",
+        )
         max_prs = serve.get("max_prs_per_run", 3)
+        if isinstance(max_prs, bool) or not isinstance(max_prs, int) or max_prs < 0:
+            raise UsageError(
+                f"{path}: serve.max_prs_per_run must be a non-negative integer",
+                hint="use 0, 1, 2, ...",
+            )
         labels = [str(label) for label in as_list(serve.get("labels")) if str(label).strip()]
         config.serve = ServeSettings(
             issues=_choice(serve.get("issues", "ask"), SERVE_MODES, "serve.issues"),
             prs=_choice(serve.get("prs", "ask"), SERVE_MODES, "serve.prs"),
-            max_prs_per_run=max_prs
-            if isinstance(max_prs, int) and not isinstance(max_prs, bool)
-            else 3,
+            max_prs_per_run=max_prs,
             labels=labels or [DEFAULT_LABEL],
             assignees=[str(a) for a in as_list(serve.get("assignees"))],
             token_env=str(serve.get("token_env") or "").strip(),
         )
-        trust = as_dict(data.get("trust"))
+        trust = _required_mapping_section(data, "trust", path)
+        _reject_unknown_keys(
+            trust, {"same_owner", "owners", "bypass_license"}, path, "trust"
+        )
         config.trust = TrustSettings(
             same_owner=trust.get("same_owner", True) is not False,
             owners=[
