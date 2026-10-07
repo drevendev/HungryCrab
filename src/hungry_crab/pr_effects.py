@@ -137,6 +137,8 @@ def publish_git_pull_request(
     base = run_gh("api", f"repos/{slug}", "--jq", ".default_branch").strip()
     if not base:
         raise CrabError("GitHub returned no default branch for the maw")
+    if branch == base:
+        raise CrabError("refusing to publish a nutrient to the maw's default branch")
     git.run("check-ref-format", "--branch", base)
 
     git.run("fetch", "--no-tags", "origin", f"+refs/heads/{base}:refs/remotes/origin/{base}")

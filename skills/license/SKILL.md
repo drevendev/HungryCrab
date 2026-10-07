@@ -28,11 +28,10 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
    `crab serve` refuses a card of any origin but `licensed` whose notes quote one of the prey's
    issue titles, in any punctuation or case, or whose notes cannot be checked.
 2. Configuration files and small snippets are not automatically free: same mode as code.
-3. **`strict` mode is not implemented yet, and must not be applied by hand.** `.crab.yml` accepts
-   `mode: strict` and the engine ignores it: no verdict changes. Do not perform that downgrade
-   yourself. Explicit `REIMPLEMENT` nutrients now have a clean-room destination, but that does not
-   authorize an agent to invent a `REIMPLEMENT` verdict for an ignored strict setting. When strict
-   lands, the deterministic engine must make the downgrade before the clean-room protocol is used.
+3. **Strict mode is enforced by the CLI.** `.crab.yml` `mode: strict` downgrades `COPY` code to
+   clean-room `REIMPLEMENT`; configs and templates stay copyable. `menu.json` records the material,
+   maw mode and policy reason, and served issues carry the reason in their license trace. Use that
+   verdict and the clean-room protocol; do not calculate or reverse the downgrade by hand.
 4. Per-file exceptions in `license.json` (vendored directories, headers with another SPDX id)
    override the repository license for those files.
 5. **No license at all is `IDEAS_ONLY` with human review, not `HUMAN`.** `HUMAN` is only for a

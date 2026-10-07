@@ -94,6 +94,7 @@ LOCKFILES: dict[str, str] = {
     "poetry.lock": "python", "Pipfile.lock": "python", "pdm.lock": "python",
     "packages.lock.json": "dotnet", "go.sum": "go", "Cargo.lock": "rust",
     "Gemfile.lock": "ruby", "composer.lock": "php", "pubspec.lock": "dart",
+    "gradle.lockfile": "jvm",
     "flake.lock": "nix", "deno.lock": "deno",
 }  # fmt: skip
 

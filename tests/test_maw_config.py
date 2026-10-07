@@ -106,7 +106,7 @@ def test_write_scoring_keeps_other_keys(tmp_path: Path) -> None:
     assert MawConfig.load(tmp_path / "other").scoring == {"traits": {"ci.cache": 1.0}}
 
 
-def test_maw_slug_needs_a_github_remote(tmp_path: Path, npm_app: Path) -> None:
+def test_maw_slug_recognizes_supported_forge_remotes(tmp_path: Path, npm_app: Path) -> None:
     assert maw_slug(npm_app) is None
     repo = tmp_path / "with-remote"
     repo.mkdir()
@@ -115,6 +115,9 @@ def test_maw_slug_needs_a_github_remote(tmp_path: Path, npm_app: Path) -> None:
     slug = maw_slug(repo)
     assert slug is not None and str(slug) == "example/maw"
     git(repo, "remote", "set-url", "origin", "https://gitlab.com/example/maw.git")
+    slug = maw_slug(repo)
+    assert slug is not None and slug.host == "gitlab.com" and slug.owner == "example"
+    git(repo, "remote", "set-url", "origin", "https://unsupported.example/example/maw.git")
     assert maw_slug(repo) is None
 
 

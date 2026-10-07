@@ -1,0 +1,4 @@
+[project]
+name = "polyglot-fixture"
+version = "1.0.0"
+dependencies = ["rich==13.9.0"]

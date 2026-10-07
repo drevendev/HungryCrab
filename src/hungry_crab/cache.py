@@ -48,22 +48,38 @@ class Slug:
 
     owner: str
     repo: str
+    host: str = "github.com"
 
     def __str__(self) -> str:
-        return f"{self.owner}/{self.repo}"
+        prefix = "" if self.host == "github.com" else f"{self.host}/"
+        return f"{prefix}{self.owner}/{self.repo}"
 
     @property
     def url(self) -> str:
-        return f"https://github.com/{self.owner}/{self.repo}"
+        return f"https://{self.host}/{self.owner}/{self.repo}"
 
     @property
     def clone_url(self) -> str:
         return f"{self.url}.git"
 
+    @property
+    def wiki_clone_url(self) -> str:
+        return f"{self.url}.wiki.git"
+
     @classmethod
     def parse(cls, text: str) -> Slug:
         """Accept ``owner/repo``, HTTPS and SSH GitHub URLs."""
         raw = text.strip()
+        gitlab = re.fullmatch(
+            r"(?:https://gitlab\.com/|gitlab\.com/|git@gitlab\.com:|ssh://git@gitlab\.com/)"
+            r"([^\s?#]+?)(?:\.git)?/?",
+            raw,
+        )
+        if gitlab:
+            parts = gitlab[1].split("/")
+            if len(parts) < 2 or any(not _NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts):
+                raise UsageError(f"invalid repository reference {text!r}")
+            return cls("/".join(parts[:-1]), parts[-1], "gitlab.com")
         match = _GITHUB_URL_RE.match(raw) or _GITHUB_SSH_RE.match(raw)
         if match:
             owner, repo = match.group("owner"), match.group("repo")
@@ -76,14 +92,14 @@ class Slug:
                 )
             owner, repo = parts
             repo = repo.removesuffix(".git")
-        if not (_NAME_RE.match(owner) and _NAME_RE.match(repo)):
+        if not (_NAME_RE.fullmatch(owner) and _NAME_RE.fullmatch(repo)):
             raise UsageError(f"invalid repository reference {text!r}")
         return cls(owner, repo)
 
 
 @dataclass(frozen=True)
 class PreyPaths:
-    """Cache paths for one GitHub repository."""
+    """Cache paths for one supported forge repository."""
 
     root: Path
 
@@ -94,6 +110,10 @@ class PreyPaths:
     @property
     def api(self) -> Path:
         return self.root / "api"
+
+    @property
+    def wiki(self) -> Path:
+        return self.root / "wiki"
 
     @property
     def digests(self) -> Path:
@@ -134,7 +154,8 @@ class MawPaths:
 
 
 def prey_paths(slug: Slug, root: Path | None = None) -> PreyPaths:
-    return PreyPaths((root or cache_root()) / "github" / slug.owner / slug.repo)
+    provider = "gitlab" if slug.host == "gitlab.com" else "github"
+    return PreyPaths((root or cache_root()) / provider / slug.owner / slug.repo)
 
 
 def maw_paths(path: Path, root: Path | None = None) -> MawPaths:
@@ -146,7 +167,7 @@ def maw_paths(path: Path, root: Path | None = None) -> MawPaths:
 
 @dataclass(frozen=True)
 class Target:
-    """Either a GitHub repository (``slug``) or a local directory (``path``)."""
+    """Either a forge repository (``slug``) or a local directory (``path``)."""
 
     slug: Slug | None = None
     path: Path | None = None
@@ -164,7 +185,7 @@ class Target:
 
 
 def resolve_target(text: str) -> Target:
-    """A directory that exists wins; anything else must parse as a GitHub reference."""
+    """A directory that exists wins; otherwise parse a supported forge reference."""
     candidate = Path(text).expanduser()
     if candidate.is_dir():
         return Target(path=candidate.resolve())

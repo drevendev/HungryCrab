@@ -1,6 +1,6 @@
 [project]
 name = "hungry-crab"
-version = "0.3.0.dev0"
+version = "0.4.0.dev0"
 description = "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,6 +30,20 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = ["pyyaml>=6.0.2"]
+
+[project.optional-dependencies]
+deep = [
+  "tree-sitter>=0.26,<0.27",
+  "tree-sitter-python>=0.25,<0.26",
+  "tree-sitter-javascript>=0.25,<0.26",
+  "tree-sitter-typescript>=0.23,<0.24",
+  "tree-sitter-c-sharp>=0.23,<0.24",
+  "tree-sitter-go>=0.25,<0.26",
+  "tree-sitter-rust>=0.24,<0.25",
+  "tree-sitter-java>=0.23,<0.24",
+  "tree-sitter-php>=0.24,<0.25",
+  "tree-sitter-ruby>=0.23,<0.24",
+]
 
 [project.scripts]
 crab = "hungry_crab.cli:main"

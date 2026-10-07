@@ -15,7 +15,8 @@ from typing import Any
 from ..cache import Slug
 from ..errors import CrabError
 from ..typeutil import as_dict, as_list
-from .github import GitHubClient
+from .gitlab import GitLabClient
+from .providers import RepositoryClient
 
 EXCERPT_CHARS = 600
 PER_PAGE = 100
@@ -57,13 +58,17 @@ def slim_issue(raw: dict[str, Any], *, via: str = "list") -> dict[str, Any]:
 
 
 def fetch_issues(
-    client: GitHubClient,
+    client: RepositoryClient,
     slug: Slug,
     *,
     limit: int = 300,
     top_reactions: int = 50,
     log: Callable[[str], None] = _noop,
 ) -> list[dict[str, Any]]:
+    if slug.host == "gitlab.com":
+        if not isinstance(client, GitLabClient):
+            raise CrabError("GitLab issue acquisition requires its read-only provider adapter")
+        return client.issues(slug, limit)
     items: dict[int, dict[str, Any]] = {}
     page = 1
     while len(items) < limit and page <= MAX_PAGES:

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from ..digest import failed_miners
 from ..fs import read_text
@@ -61,6 +63,8 @@ _DIGEST_FILES = {
     "license": "license.json",
     "issues": "issues.json",
     "architecture": "architecture.json",
+    "symbols": "symbols.json",
+    "signals": "signals.json",
     "manifest": "manifest.json",
 }
 
@@ -93,6 +97,8 @@ class Side:
     license: dict[str, Any] = field(default_factory=dict)
     issues: dict[str, Any] = field(default_factory=dict)
     architecture: dict[str, Any] = field(default_factory=dict)
+    symbols: dict[str, Any] = field(default_factory=dict)
+    signals: dict[str, Any] = field(default_factory=dict)
     manifest: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -120,6 +126,8 @@ class Side:
             license=data["license"],
             issues=data["issues"],
             architecture=data["architecture"],
+            symbols=data["symbols"],
+            signals=data["signals"],
             manifest=manifest,
         )
 
@@ -151,7 +159,8 @@ class Side:
 
     def blob_url(self, path: str) -> str | None:
         if self.url and self.sha and not self.sha.startswith("nogit-"):
-            return f"{self.url}/blob/{self.sha}/{path}"
+            segment = "/-/blob/" if self.url.startswith("https://gitlab.com/") else "/blob/"
+            return f"{self.url}{segment}{self.sha}/{quote(path, safe='/')}"
         return None
 
     def evidence(self, path: str, note: str = "") -> Evidence:
@@ -282,6 +291,10 @@ def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
     for rule in TRAIT_RULES:
         prey_value = prey.trait(rule.trait)
         maw_value = maw.trait(rule.trait)
+        if rule.key == "docs.directory":
+            # Preserve the stable nutrient id while treating a wiki as documentation too.
+            prey_value = prey_value or prey.trait("has_wiki")
+            maw_value = maw_value or maw.trait("has_wiki") or maw.trait("has_docs_site")
         if not _truthy(prey_value) or _truthy(maw_value):
             continue
         if any(not _truthy(maw.trait(name)) for name in rule.needs_maw):
@@ -293,8 +306,18 @@ def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
                 category=rule.category,
                 origin=ContentOrigin.LICENSED.value,
                 key=rule.key,
-                title=rule.title,
-                what=f"{prey.label} {_fill(rule.what, prey.traits)}",
+                title=(
+                    "Add structured documentation"
+                    if rule.key == "docs.directory"
+                    and prey.trait("has_wiki")
+                    and not prey.trait("docs_dir")
+                    else rule.title
+                ),
+                what=(
+                    f"{prey.label} documents {prey.trait('wiki_pages')} wiki pages"
+                    if rule.key == "docs.directory" and not prey.trait("docs_dir")
+                    else f"{prey.label} {_fill(rule.what, prey.traits)}"
+                ),
                 prey_state=_fmt(prey_value),
                 maw_state=_fmt(maw_value),
                 serve_as=rule.serve_as,
@@ -866,6 +889,149 @@ def architecture_candidates(prey: Side, maw: Side) -> list[Candidate]:
     ]
 
 
+def symbol_candidates(prey: Side, maw: Side) -> list[Candidate]:
+    """Syntax-backed review subjects, with no claim that a name proves a useful algorithm."""
+    if not prey.symbols.get("available"):
+        return []
+    symbols = [as_dict(s) for s in as_list(prey.symbols.get("symbols"))]
+    maw_names = {
+        (str(s.get("language")), str(s.get("qualified_name")))
+        for s in map(as_dict, as_list(maw.symbols.get("symbols")))
+    }
+    maw_languages = {
+        str(s.get("language")) for s in map(as_dict, as_list(maw.symbols.get("symbols")))
+    }
+    incoming: dict[str, set[str]] = {}
+    outgoing: dict[str, set[str]] = {}
+    for edge in as_list(prey.symbols.get("edges")):
+        if isinstance(edge, list) and len(edge) == 2:
+            source, target = str(edge[0]), str(edge[1])
+            incoming.setdefault(target, set()).add(source)
+            outgoing.setdefault(source, set()).add(target)
+    out: list[Candidate] = []
+    for symbol in sorted(
+        symbols, key=lambda s: (-len(incoming.get(str(s.get("id")), set())), str(s.get("id")))
+    ):
+        sid, path = str(symbol.get("id", "")), str(symbol.get("path", ""))
+        name, language = str(symbol.get("qualified_name", "")), str(symbol.get("language", ""))
+        if (
+            symbol.get("ambiguous")
+            or symbol.get("kind") not in {"function", "method"}
+            or not incoming.get(sid)
+            or language not in maw_languages
+            or (language, name) in maw_names
+            or any(p.lower() in {"test", "tests", "examples", "fixtures"} for p in path.split("/"))
+            or not isinstance(symbol.get("start_line"), int)
+            or not isinstance(symbol.get("end_line"), int)
+        ):
+            continue
+        start, end = symbol["start_line"], symbol["end_line"]
+        evidence = prey.evidence(
+            path, f"Declaration {name}, lines {start}-{end}; lexical call graph"
+        )
+        if evidence.url:
+            evidence.url += f"#L{start}-L{end}"
+        out.append(
+            Candidate(
+                category="code",
+                origin=ContentOrigin.LICENSED.value,
+                key=f"symbols.{slugify(prey.label)}."
+                + hashlib.sha256(f"{prey.label}\0{sid}".encode()).hexdigest()[:20],
+                title=f"Review the callable boundary {name}",
+                what=f"{path} declares {name}; {len(incoming[sid])} distinct lexical callers "
+                f"and {len(outgoing.get(sid, set()))} resolved outgoing references.",
+                prey_state=f"{language} declaration with line-level syntax evidence",
+                maw_state="No declaration with this qualified name in the maw's indexed files",
+                serve_as="idea",
+                effort="M",
+                value=0.45,
+                risk="medium",
+                evidence=[evidence],
+                tags=["symbols", language, "review-required"],
+                trace={"symbol_id": sid, "graph_kind": "lexical-same-file"},
+            )
+        )
+        if len(out) >= 12:
+            break
+    if out:
+        out.append(
+            Candidate(
+                category="architecture",
+                origin=ContentOrigin.LICENSED.value,
+                key=f"architecture.{slugify(prey.label)}.symbols",
+                title="Review symbol boundaries and their callers",
+                what=f"{len(out)} boundaries have declaration and lexical caller evidence.",
+                serve_as="idea",
+                effort="L",
+                value=0.4,
+                evidence=[c.evidence[0] for c in out[:3]],
+                tags=["architecture", "symbols"],
+            )
+        )
+    return out
+
+
+def signal_candidates(prey: Side, maw: Side) -> list[Candidate]:
+    out: list[Candidate] = []
+    channels = as_dict(prey.signals.get("channels"))
+    for name in ("discussions", "reviews"):
+        raw = as_dict(channels.get(name))
+        items = [as_dict(item) for item in as_list(raw.get("items"))]
+        if raw.get("status") != "available" or not items:
+            continue
+        # Generic metadata signal only; Candidate applies the commenter-origin ceiling.
+        links = [
+            Evidence(
+                path=f"provider:{name}:{item.get('id', item.get('number'))}", url=str(item["url"])
+            )
+            for item in items
+            if prey.url
+            and isinstance(item.get("url"), str)
+            and item["url"].startswith(prey.url + "/")
+        ]
+        out.append(
+            Candidate(
+                category="issue-lesson",
+                origin=ContentOrigin.COMMENTERS.value,
+                key=f"signals.{slugify(prey.label)}.{name}",
+                title="Provider demand signal",
+                what="Metadata signal",
+                prey_state=f"{len(items)} {name} records in the acquired sample",
+                serve_as="idea",
+                effort="M",
+                value=0.35,
+                evidence=links[:3],
+                tags=[name],
+            )
+        )
+    runs = as_dict(prey.signals.get("runs"))
+    recovered = runs.get("job_rerun_recoveries")
+    if isinstance(recovered, int) and recovered > 0:
+        out.append(
+            Candidate(
+                category="ci",
+                origin=ContentOrigin.LICENSED.value,
+                key=f"signals.{slugify(prey.label)}.rerun-recovery",
+                title="Investigate CI jobs that recover on rerun",
+                what=f"{recovered} jobs failed in the previous attempt and succeeded on rerun; "
+                "this does not identify a flaky test or prove nondeterminism.",
+                prey_state=f"{runs.get('count', 0)} sampled runs",
+                serve_as="idea",
+                effort="M",
+                value=0.35,
+                evidence=[
+                    Evidence(path=f"provider:runs:{run.get('id')}", url=str(run["url"]))
+                    for run in map(as_dict, as_list(as_dict(channels.get("runs")).get("items")))
+                    if prey.url
+                    and isinstance(run.get("url"), str)
+                    and run["url"].startswith(prey.url + "/")
+                ][:3],
+                tags=["ci", "reliability"],
+            )
+        )
+    return out
+
+
 def build_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, Any]]:
     """All candidates (deduplicated by id) plus extra facts for gap.md."""
     deps, only_in_prey = deps_candidates(prey, maw)
@@ -881,6 +1047,8 @@ def build_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, 
         history_candidates(prey, maw),
         issue_candidates(prey, maw),
         architecture_candidates(prey, maw),
+        symbol_candidates(prey, maw),
+        signal_candidates(prey, maw),
     ]
     seen: set[str] = set()
     out: list[Candidate] = []

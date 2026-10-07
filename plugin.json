@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "crab",
-  "version": "0.3.0-dev.0",
+  "version": "0.4.0-dev.0",
   "description": "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses.",
   "author": {
     "name": "Dreven",

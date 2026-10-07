@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .cache import Slug, prey_paths
-from .fetch.github import GitHubClient
+from .fetch.providers import RepositoryClient, client_for
 from .licensing import (
     LicenseClass,
     Relationship,
@@ -63,6 +63,7 @@ class SniffReport:
     warnings: list[str] = field(default_factory=list)
     suggestions: list[str] = field(default_factory=list)
     fetched_at: str = ""
+    size_available: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -132,6 +133,11 @@ def build_report(
     warnings: list[str] = []
     suggestions: list[str] = []
     size_kb = _int(repo.get("size"))
+    size_available = repo.get("size_available") is not False
+    if not size_available:
+        warnings.append(
+            "provider repository size is unavailable; size preflight cannot be evaluated"
+        )
     if cls is LicenseClass.NONE:
         warnings.append("no license detected: all rights reserved by default, ideas only")
     elif cls is LicenseClass.UNKNOWN:
@@ -176,6 +182,7 @@ def build_report(
         forks=_int(repo.get("forks_count")),
         open_issues=_int(repo.get("open_issues_count")),
         size_kb=size_kb,
+        size_available=size_available,
         archived=bool(repo.get("archived")),
         fork=bool(repo.get("fork")),
         parent=parent if isinstance(parent, str) else None,
@@ -212,8 +219,9 @@ def format_report(report: SniffReport) -> str:
     lines.append(f"Modes: {modes}")
     if report.maw_license:
         lines.append(f"Mode for maw ({report.maw_license}): {report.mode}")
+    size = f"{report.size_kb / 1024:.1f} MB" if report.size_available else "unknown"
     lines.append(
-        f"Size: {report.size_kb / 1024:.1f} MB | stars {report.stars} | forks {report.forks} | "
+        f"Size: {size} | stars {report.stars} | forks {report.forks} | "
         f"open issues {report.open_issues} | default branch {report.default_branch}"
     )
     if report.pushed_at:
@@ -237,7 +245,7 @@ def format_report(report: SniffReport) -> str:
 def sniff(
     slug: Slug,
     *,
-    client: GitHubClient | None = None,
+    client: RepositoryClient | None = None,
     cache_root: Path | None = None,
     maw_license: str | None = None,
     relationship: Relationship | str = Relationship.FOREIGN,
@@ -245,7 +253,7 @@ def sniff(
     log: Callable[[str], None] = _noop,
 ) -> SniffReport:
     """Fetch metadata, store the raw API responses in the cache, and build the report."""
-    api = client or GitHubClient()
+    api = client or client_for(slug)
     log(f"sniffing {slug} via {api.transport}")
     repo = api.repo(slug)
     languages = api.languages(slug)
