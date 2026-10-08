@@ -92,6 +92,72 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
         MawConfig.load(tmp_path)
 
 
+
+@pytest.mark.parametrize(
+    ("text", "unknown", "suggested"),
+    [
+        ("hunger: {ai_config: false}\n", "ai_config", "ai-config"),
+        ("hunger: {test: false}\n", "test", "tests"),
+        ("serve: {issue: off}\n", "issue", "issues"),
+        ("serve: {pr: off}\n", "pr", "prs"),
+        ("ledgr: none\n", "ledgr", "ledger"),
+        ("ignores: [tests/fixtures/**]\n", "ignores", "ignore"),
+        ("budget: {polcy: enforce}\n", "polcy", "policy"),
+        ("trust: {same_ownr: false}\n", "same_ownr", "same_owner"),
+    ],
+)
+def test_unknown_maw_keys_are_usage_errors(
+    tmp_path: Path, text: str, unknown: str, suggested: str
+) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert unknown in caught.value.message
+    assert suggested in (caught.value.hint or "")
+
+
+@pytest.mark.parametrize("value", ['"1"', "-1", "true", "1.5", "null"])
+def test_invalid_max_prs_is_a_usage_error(tmp_path: Path, value: str) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: f"serve: {{max_prs_per_run: {value}}}\n"})
+    with pytest.raises(UsageError, match="non-negative integer"):
+        MawConfig.load(tmp_path)
+
+
+def test_zero_max_prs_is_valid(tmp_path: Path) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: "serve: {max_prs_per_run: 0}\n"})
+    assert MawConfig.load(tmp_path).serve.max_prs_per_run == 0
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "hunger: false\n",
+        "hunger: []\n",
+        "serve: false\n",
+        "serve: []\n",
+        "budget: []\n",
+        "trust: 0\n",
+        "hunger: null\n",
+        "- hunger\n- serve\n",
+        "null\n",
+    ],
+)
+def test_wrong_shape_is_usage_error(tmp_path: Path, content: str) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: content})
+    with pytest.raises(UsageError):
+        MawConfig.load(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "content", ["# comment-only configuration\n", "", "hunger: {}\nserve: {}\n"]
+)
+def test_absent_or_empty_mapping_section_preserves_defaults(tmp_path: Path, content: str) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: content})
+    config = MawConfig.load(tmp_path)
+    assert config.hunger["tests"] is True
+    assert config.serve.max_prs_per_run == 3
+
+
 def test_write_scoring_keeps_other_keys(tmp_path: Path) -> None:
     write_tree(tmp_path, {CONFIG_FILE: "ledger: cache\nhunger:\n  deps: false\n"})
     config = MawConfig.load(tmp_path)
