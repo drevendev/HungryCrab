@@ -313,6 +313,8 @@ def _license_trace(card: Candidate) -> str:
     ]
     if card.license_reason:
         lines.append(f"- origin cap: {card.license_reason}")
+    if card.license_policy_reason:
+        lines.append(f"- maw policy: {card.license_policy_reason}")
     return "\n".join(lines)
 
 
@@ -393,7 +395,7 @@ def _walk_titles(value: object, found: list[str]) -> None:
 
 
 def commenter_titles(meal_dir: Path) -> list[str] | None:
-    """Issue titles the prey's digest carries: third-party prose a served note may not quote.
+    """Commenter prose the prey digest carries, which served notes may not quote.
 
     They sit in ``issues.json`` beside the prey digest the meal names. Short titles are left
     out: three ordinary words match by accident, a sentence does not. ``None`` means the titles
@@ -409,6 +411,22 @@ def commenter_titles(meal_dir: Path) -> list[str] | None:
         return None
     found: list[str] = []
     _walk_titles(loaded, found)
+    signals_file = Path(digest) / "signals.json"
+    manifest = _read_json_object(Path(digest) / "manifest.json")
+    declared = any(as_dict(m).get("name") == "signals" for m in as_list(manifest.get("miners")))
+    if declared and not signals_file.is_file():
+        return None
+    if signals_file.exists():
+        try:
+            signals = json.loads(signals_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        _walk_titles(signals, found)
+        for channel in as_dict(as_dict(signals).get("channels")).values():
+            for item in as_list(as_dict(channel).get("items")):
+                excerpt = as_dict(item).get("body_excerpt")
+                if isinstance(excerpt, str):
+                    found.append(excerpt)
     return sorted({title.strip() for title in found if len(_squash(title)) >= 20})
 
 
@@ -617,8 +635,9 @@ def _serve_pull_requests(
     slug: Slug,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+    def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
         if card.license_mode in COPY_MODES:
             reader = source_reader
@@ -643,6 +662,12 @@ def _serve_pull_requests(
         return prepare_cleanroom_pull_request(
             card.id, title, body, receipt_payload, maw_root, slug=slug
         )
+
+    def prepare(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        prepared = prepare_payload(card, receipt_payload)
+        if publication_guard is not None:
+            publication_guard(prepared)
+        return prepared
 
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
@@ -676,12 +701,14 @@ def _serve_pull_requests(
             served.append(item)
             log(f"served {item['id']} -> {item['url']}")
         else:
-            skipped.append(
-                {
-                    "id": item["id"],
-                    "reason": f"pull request exists {item['url']}; ledger reconciled",
-                }
-            )
+            reconciled = {
+                "id": item["id"],
+                "reason": f"pull request exists {item['url']}; ledger reconciled",
+            }
+            if item.get("working_tree_paths"):
+                reconciled["branch"] = item["branch"]
+                reconciled["working_tree_paths"] = item["working_tree_paths"]
+            skipped.append(reconciled)
             log(f"reconciled {item['id']} -> {item['url']}")
     return served, skipped
 
@@ -700,6 +727,7 @@ def serve(
     receipt_payloads: Mapping[str, str] | None = None,
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
+    publication_guard: Callable[[PreparedPullRequest], None] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -708,6 +736,11 @@ def serve(
     menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError("no menu to serve from", hint="run `crab compare <prey> --maw .` first")
+    if config.mode == "strict" and menu.get("mode") != "strict":
+        raise CrabError(
+            "this menu predates the maw's strict policy",
+            hint="run `crab compare <prey> --maw .` again before serving",
+        )
     if options.mode == "issue" and config.serve.issues == "off":
         raise CrabError("serve.issues is off in .crab.yml", hint="set serve.issues to ask or auto")
     cards, skipped = select_cards(menu, options, ledger)
@@ -725,6 +758,11 @@ def serve(
     report = ServeReport(mode=options.mode, maw=str(maw_root), skipped=skipped)
     report.ledger_path = str(ledger.path) if ledger.path else None
     slug = slug_lookup(maw_root)
+    if slug is not None and slug.host != "github.com" and options.mode in {"pr-branch", "issue"}:
+        raise CrabError(
+            "GitLab maws support analysis only; provider publication requires a GitHub maw",
+            hint="use --as dry-run to inspect the prepared meal",
+        )
 
     if options.mode == "pr-branch":
         receipts = (
@@ -758,6 +796,7 @@ def serve(
             slug=slug,
             prey_repo=prey_repo,
             source_reader=source_reader,
+            publication_guard=publication_guard,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)

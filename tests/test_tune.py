@@ -40,7 +40,7 @@ def test_no_decisions_means_no_suggestions() -> None:
 def test_category_weights_move_with_acceptance() -> None:
     ledger = _ledger(
         {
-            "ci": ["accepted", "served", "merged", "rejected"],
+            "ci": ["accepted", "accepted", "merged", "rejected"],
             "deps": ["rejected", "rejected", "rejected", "rejected", "rejected"],
             "docs": ["accepted", "rejected"],
             "tests": ["accepted", "rejected", "accepted", "rejected"],
@@ -96,16 +96,14 @@ def test_trait_level_suggestions_and_apply(tmp_path: Path) -> None:
     assert report.suggestions == [], "one rejection per key is not enough"
 
     ledger = _ledger({"hygiene": ["accepted", "accepted", "accepted"]})
-    for entry in ledger.entries.values():
-        entry.key = "hygiene.security-md"
     report = analyse(ledger, Scoring.default(), min_decisions=3)
     kinds = {(s.kind, s.target): s for s in report.suggestions}
     assert kinds[("category", "hygiene")].suggested == 0.8
-    assert kinds[("trait", "hygiene.security-md")].suggested == 1.0
+    assert all(item.kind != "trait" for item in report.suggestions)
 
     config = MawConfig.load(tmp_path)
     scoring = apply(report, config)
-    assert scoring == {"categories": {"hygiene": 0.8}, "traits": {"hygiene.security-md": 1.0}}
+    assert scoring == {"categories": {"hygiene": 0.8}}
     reloaded = MawConfig.load(tmp_path)
     assert reloaded.scoring == scoring
     assert Scoring.default().merged(reloaded.scoring).categories["hygiene"] == 0.8

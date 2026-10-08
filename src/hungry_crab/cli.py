@@ -12,6 +12,7 @@ import json
 import shutil
 import sys
 from collections.abc import Callable, Sequence
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -22,16 +23,23 @@ from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, failed_miners, run_digest
 from .errors import CrabError, UsageError
+from .feeder import EatOptions, eat
 from .fetch.catch import CatchOptions, catch, rmtree_force
-from .fetch.github import GitHubClient
+from .fetch.providers import client_for
+from .hunt import format_hunt, hunt
+from .hunt_config import HuntSettings
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
 from .licensing.matrix import Relationship
+from .loop_cli import add_loop_parser, cmd_loop
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
 from .miners.inventory import describe_coverage
+from .multifeed import eat_many, load_multi
+from .multiserve import serve_many
 from .nutrients import STATUSES, Candidate
 from .pr_publication import nutrient_spec_path
+from .profiles import DESCRIPTIONS, PROFILES, hunger_for, infer_profile
 from .serve import GhIssueClient, ServeOptions, ServeReport, serve
 from .sniff import format_report, sniff
 from .tune import analyse
@@ -72,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-q", "--quiet", action="store_true", help="no progress output on stderr")
     sub = parser.add_subparsers(dest="command", metavar="<command>")
+    add_loop_parser(sub)
 
     p_sniff = sub.add_parser("sniff", help="API reconnaissance: license, size, languages, verdict")
     p_sniff.add_argument("repo", help="owner/repo or a GitHub URL")
@@ -105,6 +114,51 @@ def build_parser() -> argparse.ArgumentParser:
         help="also fetch up to N issues (plus the top by reactions)",
     )
     p_catch.add_argument("--json", action="store_true")
+    p_catch.add_argument("--no-wiki", action="store_true", help="skip the independent wiki")
+
+    p_eat = sub.add_parser(
+        "eat", help="deterministic Feeder: acquire, digest, compare and export; no ledger or issues"
+    )
+    p_eat.add_argument(
+        "prey", nargs="+", help="one to ten owner/repo references or local repositories"
+    )
+    p_eat.add_argument(
+        "--deterministic",
+        action="store_true",
+        required=True,
+        help="run the Python pipeline without a model",
+    )
+    p_eat.add_argument("--maw", type=Path, default=Path())
+    p_eat.add_argument("--out", type=Path, help="new/empty bundle directory (default: cache)")
+    p_eat.add_argument("--shallow", action=argparse.BooleanOptionalAction, default=True)
+    p_eat.add_argument(
+        "--since", default="90d", help="history window; use 'all' for no date cutoff"
+    )
+    p_eat.add_argument(
+        "--issues",
+        type=int,
+        default=100,
+        help="recent issues to read; 0 disables issue acquisition",
+    )
+    p_eat.add_argument("--no-wiki", action="store_true")
+    p_eat.add_argument(
+        "--allow-unknown-size",
+        action="store_true",
+        help="explicitly accept a provider whose repository size is unavailable",
+    )
+    p_eat.add_argument("--wiki-dir", type=Path, help="independent local Git wiki fixture/checkout")
+    p_eat.add_argument("--depth", choices=("normal", "deep"), default="normal")
+    p_eat.add_argument("--top", type=int, default=30)
+    p_eat.add_argument(
+        "--max-repo-kb",
+        type=int,
+        default=300 * 1024,
+        help="provider repository size preflight; not a hard disk quota",
+    )
+    p_eat.add_argument(
+        "--allow-loss", action="store_true", help="explicitly accept inventory visibility loss"
+    )
+    p_eat.add_argument("--json", action="store_true")
 
     p_digest = sub.add_parser(
         "digest", help="run the miners; write digest/ for owner/repo or a local path"
@@ -180,6 +234,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="write a default .crab.yml into the maw repository")
     p_init.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_init.add_argument("--force", action="store_true", help="overwrite an existing file")
+    p_init.add_argument("--profile", choices=(*PROFILES, "auto"), default="balanced")
+    p_profiles = sub.add_parser("profiles", help="list reviewed hunger profiles")
+    p_profiles.add_argument("--json", action="store_true")
+    p_hunt = sub.add_parser("hunt", help="discover prey from this maw's gaps and taste memory")
+    p_hunt.add_argument("--for", dest="maw", type=Path, default=Path())
+    p_hunt.add_argument("--query", action="append", default=None)
+    p_hunt.add_argument("--limit", type=int, default=None)
+    p_hunt.add_argument("--min-stars", type=int, default=None)
+    p_hunt.add_argument("--include-seen", action="store_true")
+    p_hunt.add_argument("--allow-unknown-size", action="store_true")
+    p_hunt.add_argument("--json", action="store_true")
 
     p_ledger = sub.add_parser("ledger", help="show or update the maw ledger")
     p_ledger.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
@@ -196,7 +261,8 @@ def build_parser() -> argparse.ArgumentParser:
         "serve",
         help="turn approved nutrients into issues or clean-room pull requests (dry-run by default)",
     )
-    p_serve.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_serve.add_argument("prey", nargs="?", help="owner/repo, a GitHub URL, or a local directory")
+    p_serve.add_argument("--meal-dir", type=Path, help="verified multi-prey bundle from eat")
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
     p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
@@ -241,7 +307,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_tune.add_argument("--json", action="store_true")
 
     p_menu = sub.add_parser("menu", help="print the ranked menu from the last compare")
-    p_menu.add_argument("prey", help="owner/repo, a GitHub URL, or a local directory")
+    p_menu.add_argument("prey", nargs="?", help="owner/repo, a GitHub URL, or a local directory")
+    p_menu.add_argument("--meal-dir", type=Path, help="verified multi-prey bundle from eat")
     p_menu.add_argument(
         "--maw", type=Path, default=Path(), help="maw repository whose meal to read (default: .)"
     )
@@ -266,6 +333,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_rm.add_argument("repo")
 
     sub.add_parser("version", help="print the version")
+    for acquisition in (p_catch, p_eat, p_digest, p_compare):
+        acquisition.add_argument(
+            "--discussions",
+            type=int,
+            default=0,
+            help="acquire up to N GitHub Discussions (requires authentication)",
+        )
+        acquisition.add_argument(
+            "--reviews",
+            type=int,
+            default=0,
+            help="acquire up to N pull/merge request review comments",
+        )
+        acquisition.add_argument(
+            "--runs", type=int, default=0, help="acquire up to N CI runs and bounded job metadata"
+        )
     return parser
 
 
@@ -295,7 +378,7 @@ def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
     maw_license = _resolve_maw_license(args.maw, args.maw_license)
     relationship = _sniff_relationship(slug, args.maw)
-    client = GitHubClient(prefer_gh=not args.no_gh)
+    client = client_for(slug, prefer_gh=not args.no_gh)
     report = sniff(
         slug,
         client=client,
@@ -314,7 +397,14 @@ def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 def cmd_catch(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
     options = CatchOptions(
-        shallow=args.shallow, since=args.since, force=args.force, issues=args.issues
+        shallow=args.shallow,
+        since=args.since,
+        force=args.force,
+        issues=args.issues,
+        discussions=getattr(args, "discussions", 0),
+        reviews=getattr(args, "reviews", 0),
+        runs=getattr(args, "runs", 0),
+        wiki=not args.no_wiki,
     )
     result = catch(slug, options, cache_root=args.cache_dir, log=log)
     if args.json:
@@ -326,6 +416,38 @@ def cmd_catch(args: argparse.Namespace, log: Callable[[str], None]) -> int:
             f"HEAD {result.sha[:12]} on {result.default_branch}"
             + (" (shallow)" if result.shallow else "")
         )
+    return 0
+
+
+def cmd_eat(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    options = EatOptions(
+        out=args.out,
+        cache_root=args.cache_dir,
+        shallow=args.shallow,
+        since=None if args.since == "all" else args.since,
+        issues=args.issues,
+        discussions=args.discussions,
+        reviews=args.reviews,
+        runs=args.runs,
+        wiki=not args.no_wiki,
+        wiki_path=args.wiki_dir,
+        depth=args.depth,
+        top=args.top,
+        max_repo_kb=args.max_repo_kb,
+        allow_unknown_size=args.allow_unknown_size,
+        allow_loss=args.allow_loss,
+    )
+    preys = [resolve_target(value) for value in args.prey]
+    result = (
+        eat(preys[0], _maw_dir(args.maw), options, log=log)
+        if len(preys) == 1
+        else eat_many(preys, _maw_dir(args.maw), options, log=log)
+    )
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        print(f"Feeder: {result.manifest['counts']['total']} candidates at {result.out_dir}")
+        print("No model, issue creation or ledger writes. Read menu.md to choose the next step.")
     return 0
 
 
@@ -387,7 +509,14 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         md_budget=args.md_budget,
         budget_policy=config.budget.policy if config is not None else "warn",
         cache_root=args.cache_dir,
-        catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
+        catch_options=CatchOptions(
+            shallow=args.shallow,
+            since=args.since,
+            issues=args.issues,
+            discussions=args.discussions,
+            reviews=args.reviews,
+            runs=args.runs,
+        ),
         ignore=_maw_ignore_for(target, config),
     )
     result = run_digest(target, options, log=log)
@@ -460,7 +589,14 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         force=args.force,
         maw_license=args.maw_license,
         cache_root=args.cache_dir,
-        catch_options=CatchOptions(shallow=args.shallow, since=args.since, issues=args.issues),
+        catch_options=CatchOptions(
+            shallow=args.shallow,
+            since=args.since,
+            issues=args.issues,
+            discussions=args.discussions,
+            reviews=args.reviews,
+            runs=args.runs,
+        ),
     )
     lookup = None
     if not args.no_issues and shutil.which("gh"):
@@ -483,8 +619,31 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    path = write_default_config(_maw_dir(args.maw), force=args.force)
+    maw = _maw_dir(args.maw)
+    profile = infer_profile(maw) if args.profile == "auto" else args.profile
+    path = write_default_config(maw, force=args.force, profile=profile)
     print(f"wrote {path}")
+    return 0
+
+
+def cmd_hunt(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    maw = _maw_dir(args.maw)
+    raw = asdict(MawConfig.load(maw).hunt)
+    for name, value in (
+        ("queries", args.query),
+        ("limit", args.limit),
+        ("min_stars", args.min_stars),
+    ):
+        if value is not None:
+            raw[name] = value
+    for name in ("include_seen", "allow_unknown_size"):
+        if getattr(args, name):
+            raw[name] = True
+    report = hunt(maw, settings=HuntSettings.load(raw), cache_root=args.cache_dir, log=log)
+    print(
+        json.dumps(report, indent=2, ensure_ascii=False) if args.json else format_hunt(report),
+        end="\n" if args.json else "",
+    )
     return 0
 
 
@@ -539,11 +698,44 @@ def print_serve_report(report: ServeReport) -> None:
         print(f"created {item['url']}  {item['id']}")
     for item in report.skipped:
         print(f"skipped {item['id']}: {item['reason']}")
-    if report.mode == "issue" and report.ledger_path:
-        print(f"ledger updated: {report.ledger_path} (commit it when the ledger mode is repo)")
+    carried = [item for item in [*report.served, *report.skipped] if item.get("working_tree_paths")]
+    for item in carried:
+        print(f"WARNING: COPY input paths remain in your working tree; also on {item['branch']}:")
+        for path in item["working_tree_paths"]:
+            print(f"  {path!r}")
+    if carried:
+        print("Save local changes and clean this checkout with: git stash push --include-untracked")
+        print("This saves all tracked and untracked changes; review the stash before restoring it.")
+    if report.mode in ("issue", "pr-branch") and report.ledger_path:
+        print(f"ledger updated: {report.ledger_path} (commit it separately on the default branch)")
 
 
 def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    meal_directory = getattr(args, "meal_dir", None)
+    if bool(args.prey) == bool(meal_directory):
+        raise UsageError("serve needs exactly one prey or --meal-dir")
+    if meal_directory:
+        maw = _maw_dir(args.maw)
+        config = MawConfig.load(maw)
+        ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
+        ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
+        report = serve_many(
+            meal_directory,
+            maw,
+            ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes),
+            config=config,
+            ledger=ledger,
+            client=GhIssueClient(token_env=config.serve.token_env)
+            if args.mode != "dry-run"
+            else None,
+            cache_root=args.cache_dir,
+            log=log,
+        )
+        if args.json:
+            print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        else:
+            print_serve_report(report)
+        return 0
     prey = resolve_target(args.prey)
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
@@ -636,7 +828,7 @@ def cmd_tune(args: argparse.Namespace) -> int:
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     scoring = Scoring.default().merged(config.scoring)
-    report = analyse(ledger, scoring, min_decisions=args.min_decisions)
+    report = analyse(ledger, scoring, min_decisions=args.min_decisions, hunger=config.hunger)
     written = None
     if args.write and any(s.kind in ("category", "trait") for s in report.suggestions):
         apply_tuning(report, config)
@@ -653,12 +845,19 @@ def cmd_tune(args: argparse.Namespace) -> int:
 
 
 def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
-    prey = resolve_target(args.prey)
-    meal_dir = meal_for(prey, _maw_dir(args.maw), DigestOptions(cache_root=args.cache_dir))
-    menu = load_menu(meal_dir)
+    menu: dict[str, Any] | None
+    if bool(args.prey) == bool(args.meal_dir):
+        raise UsageError("menu needs exactly one prey or --meal-dir")
+    if args.meal_dir:
+        meal_dir = args.meal_dir
+        menu, _, _ = load_multi(meal_dir)
+    else:
+        prey = resolve_target(args.prey)
+        meal_dir = meal_for(prey, _maw_dir(args.maw), DigestOptions(cache_root=args.cache_dir))
+        menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError(
-            f"no menu for {prey.label} yet",
+            f"no menu for {args.prey} yet",
             hint=f"run: crab compare {args.prey} --maw <path to the maw repository>",
         )
     cards = menu_candidates(menu)
@@ -693,18 +892,36 @@ def cmd_cache(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         print(root)
         return 0
     if args.cache_command == "ls":
-        github = root / "github"
         found = False
-        if github.is_dir():
-            for owner in sorted(p for p in github.iterdir() if p.is_dir()):
-                for repo in sorted(p for p in owner.iterdir() if p.is_dir()):
+        for provider in ("github", "gitlab"):
+            provider_root = root / provider
+            if not provider_root.is_dir():
+                continue
+            for owner in sorted(
+                p for p in provider_root.iterdir() if p.is_dir() and not p.is_symlink()
+            ):
+                pending = [owner]
+                while pending:
+                    repo = pending.pop()
+                    if not (
+                        (repo / "repo" / ".git").exists()
+                        or (repo / "digests").is_dir()
+                        or (repo / "catch.json").is_file()
+                    ):
+                        pending.extend(
+                            sorted(p for p in repo.iterdir() if p.is_dir() and not p.is_symlink())
+                        )
+                        continue
                     found = True
                     digests = repo / "digests"
                     count = (
                         len([d for d in digests.iterdir() if d.is_dir()]) if digests.is_dir() else 0
                     )
                     clone = "clone" if (repo / "repo" / ".git").exists() else "no clone"
-                    print(f"{owner.name}/{repo.name}: {clone}, {count} digest(s)")
+                    label = repo.relative_to(provider_root).as_posix()
+                    if provider == "gitlab":
+                        label = f"gitlab.com/{label}"
+                    print(f"{label}: {clone}, {count} digest(s)")
         if not found:
             print("cache is empty")
         return 0
@@ -740,10 +957,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "version":
             print(f"crab {__version__}")
             return 0
+        if args.command == "loop":
+            return cmd_loop(args)
         if args.command == "sniff":
             return cmd_sniff(args, log)
         if args.command == "catch":
             return cmd_catch(args, log)
+        if args.command == "eat":
+            return cmd_eat(args, log)
+        if args.command == "hunt":
+            return cmd_hunt(args, log)
+        if args.command == "profiles":
+            profiles = {
+                name: {"description": DESCRIPTIONS[name], "hunger": hunger_for(name)}
+                for name in PROFILES
+            }
+            print(
+                json.dumps(profiles, indent=2)
+                if args.json
+                else "\n".join(f"{name}: {DESCRIPTIONS[name]}" for name in PROFILES)
+            )
+            return 0
         if args.command == "digest":
             return cmd_digest(args, log)
         if args.command == "compare":

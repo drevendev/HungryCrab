@@ -259,23 +259,33 @@ def parse_msbuild(text: str, manifest: str) -> tuple[list[Package], dict[str, An
 def parse_cargo(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
     data = tomllib.loads(text)
     packages: list[Package] = []
-    for section, kind in (
-        ("dependencies", "runtime"),
-        ("dev-dependencies", "dev"),
-        ("build-dependencies", "build"),
-    ):
-        block = data.get(section)
-        if isinstance(block, dict):
+    groups = [data, *[as_dict(v) for v in as_dict(data.get("target")).values()]]
+    for group in groups:
+        for section, kind in (
+            ("dependencies", "runtime"),
+            ("dev-dependencies", "dev"),
+            ("build-dependencies", "build"),
+        ):
+            block = as_dict(group.get(section))
             for name, spec in block.items():
-                version = (
-                    spec
-                    if isinstance(spec, str)
-                    else str(spec.get("version", ""))
-                    if isinstance(spec, dict)
-                    else ""
-                )
+                version = ""
+                if isinstance(spec, str):
+                    version = spec
+                elif isinstance(spec, dict):
+                    version = (
+                        "workspace"
+                        if spec.get("workspace") is True
+                        else str(spec.get("version", ""))
+                    )
                 packages.append(
-                    Package(name, version, kind, "rust", manifest, version.startswith("="))
+                    Package(
+                        name,
+                        version,
+                        kind,
+                        "rust",
+                        manifest,
+                        None if version == "workspace" else version.startswith("="),
+                    )
                 )
     package = as_dict(data.get("package"))
     info = {
@@ -284,23 +294,146 @@ def parse_cargo(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]
         "name": package.get("name"),
         "edition": package.get("edition"),
         "workspace": isinstance(data.get("workspace"), dict),
+        "workspace_members": as_dict(data.get("workspace")).get("members", []),
+        "workspace_dependencies": as_dict(as_dict(data.get("workspace")).get("dependencies")),
     }
     return packages, info
 
 
 def parse_go_mod(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
-    packages = [
-        Package(
-            m.group(1), m.group(2), "indirect" if m.group(3) else "runtime", "go", manifest, True
-        )
-        for m in _GO_REQUIRE_RE.finditer(text)
-        if m.group(1) not in _GO_KEYWORDS
-    ]
+    packages: list[Package] = []
+    block = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.endswith("("):
+            block = stripped[:-1].strip()
+            continue
+        if stripped == ")":
+            block = ""
+            continue
+        if block != "require" and not re.match(r"require\s+", stripped):
+            continue
+        match = _GO_REQUIRE_RE.match(stripped)
+        if match and match.group(1) not in _GO_KEYWORDS:
+            packages.append(
+                Package(
+                    match.group(1),
+                    match.group(2),
+                    "indirect" if match.group(3) else "runtime",
+                    "go",
+                    manifest,
+                    True,
+                )
+            )
     go_version = re.search(r"^go\s+(\S+)", text, re.MULTILINE)
     return packages, {
         "path": manifest,
         "ecosystem": "go",
         "go_version": go_version.group(1) if go_version else None,
+    }
+
+
+def parse_maven(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
+    root = ET.fromstring(text)
+    # Namespace agnostic; do not expand entities or inherit/fetch a parent POM.
+    for element in root.iter():
+        element.tag = element.tag.rsplit("}", 1)[-1]
+    props = {e.tag: (e.text or "").strip() for e in root.findall("./properties/*")}
+    managed = {
+        ((d.findtext("groupId") or "").strip(), (d.findtext("artifactId") or "").strip()): (
+            d.findtext("version") or ""
+        ).strip()
+        for d in root.findall("./dependencyManagement/dependencies/dependency")
+    }
+    packages: list[Package] = []
+    unresolved: list[str] = []
+    for dependency in root.findall("./dependencies/dependency"):
+        group = (dependency.findtext("groupId") or "").strip()
+        artifact = (dependency.findtext("artifactId") or "").strip()
+        if not group or not artifact:
+            continue
+        version = (dependency.findtext("version") or managed.get((group, artifact), "")).strip()
+        for _ in range(8):
+            replaced = re.sub(r"\$\{([^}]+)\}", lambda m: props.get(m[1], m[0]), version)
+            if replaced == version:
+                break
+            version = replaced
+        if "${" in version or not version:
+            unresolved.append(f"{group}:{artifact}")
+        scope = (dependency.findtext("scope") or "compile").strip()
+        packages.append(
+            Package(
+                f"{group}:{artifact}",
+                version,
+                "dev" if scope == "test" else "runtime",
+                "jvm",
+                manifest,
+                bool(version) and not any(c in version for c in "${[,()]+"),
+            )
+        )
+    return packages, {
+        "path": manifest,
+        "ecosystem": "jvm",
+        "package_manager": "maven",
+        "unresolved_versions": sorted(unresolved),
+        "modules": [e.text for e in root.findall("./modules/module") if e.text],
+    }
+
+
+def parse_gradle(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
+    # Only literal coordinates. Gradle is executable: interpolation/catalogs are never run.
+    cleaned = re.sub(r"/\*.*?\*/|^\s*//[^\n]*", "", text, flags=re.DOTALL | re.MULTILINE)
+    packages: list[Package] = []
+    pattern = re.compile(
+        r"(?m)^\s*(implementation|api|compileOnly|runtimeOnly|"
+        r"testImplementation|testRuntimeOnly|annotationProcessor)\s*\(?\s*"
+        r"(['\"])([\w.-]+):([\w.-]+):([^'\"\n]+)\2"
+    )
+    for match in pattern.finditer(cleaned):
+        kind, _, group, artifact, spec = match.groups()
+        packages.append(
+            Package(
+                f"{group}:{artifact}",
+                spec,
+                "dev" if kind.startswith("test") else "runtime",
+                "jvm",
+                manifest,
+                not any(c in spec for c in "$+[,]"),
+            )
+        )
+    declarations = len(
+        re.findall(
+            r"(?m)^\s*(?:implementation|api|compileOnly|runtimeOnly|"
+            r"testImplementation|testRuntimeOnly|annotationProcessor)\b",
+            cleaned,
+        )
+    )
+    return packages, {
+        "path": manifest,
+        "ecosystem": "jvm",
+        "package_manager": "gradle",
+        "unresolved_declarations": max(0, declarations - len(packages)),
+    }
+
+
+def parse_composer(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
+    data = as_dict(json.loads(text))
+    packages: list[Package] = []
+    platform: dict[str, str] = {}
+    for section, kind in (("require", "runtime"), ("require-dev", "dev")):
+        for name, value in as_dict(data.get(section)).items():
+            if not isinstance(value, str):
+                continue
+            if name == "php" or name.startswith("ext-"):
+                platform[name] = value
+            else:
+                packages.append(Package(name, value, kind, "php", manifest, npm_pinned(value)))
+    return packages, {
+        "path": manifest,
+        "ecosystem": "php",
+        "name": data.get("name"),
+        "platform": platform,
+        "autoload_kinds": sorted(as_dict(data.get("autoload"))),
     }
 
 
@@ -319,6 +452,12 @@ def parse_manifest(info: FileInfo, text: str) -> tuple[list[Package], dict[str, 
         return parse_cargo(text, info.path)
     if lowered == "go.mod":
         return parse_go_mod(text, info.path)
+    if lowered == "pom.xml":
+        return parse_maven(text, info.path)
+    if lowered in {"build.gradle", "build.gradle.kts"}:
+        return parse_gradle(text, info.path)
+    if lowered == "composer.json":
+        return parse_composer(text, info.path)
     return None
 
 
@@ -348,7 +487,7 @@ def _package_manager(ecosystem: str, lockfiles: list[str], npm_field: str | None
         return "pip"
     if ecosystem == "dotnet":
         return "nuget"
-    return {"rust": "cargo", "go": "go"}.get(ecosystem)
+    return {"rust": "cargo", "go": "go", "php": "composer", "jvm": "maven/gradle"}.get(ecosystem)
 
 
 class DepsMiner:
@@ -363,7 +502,8 @@ class DepsMiner:
             (
                 f
                 for f in files
-                if f.manifest_kind in {"npm", "python", "dotnet", "rust", "go"}
+                if f.manifest_kind
+                in {"npm", "python", "dotnet", "rust", "go", "maven", "gradle", "php"}
                 and not f.vendored
                 and not f.generated
                 and f.ext not in {".sln", ".slnx"}

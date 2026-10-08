@@ -32,3 +32,7 @@ digest-out/
 # so that a stray local copy cannot be committed by accident.
 .crab/prey-backlog.md
 .crab/researcher-prompt.md
+
+# Loop OS-lock carriers are machine-local; commit loop JSON snapshots instead.
+.crab/*.lock
+.crab/loops/*.lock

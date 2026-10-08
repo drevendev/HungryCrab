@@ -1,0 +1,5 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion><groupId>fixture</groupId><artifactId>polyglot</artifactId><version>1.0</version>
+  <properties><junit.version>5.11.0</junit.version></properties>
+  <dependencies><dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>${junit.version}</version><scope>test</scope></dependency></dependencies>
+</project>

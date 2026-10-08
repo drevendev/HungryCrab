@@ -31,7 +31,8 @@ def test_default_weights_load_from_package_data() -> None:
     assert scoring.effort["S"] == 1.0
     assert scoring.risk["low"] == 0.0
     assert scoring.uptake["other_stack"] < scoring.uptake["same_stack"]
-    assert scoring.traits == {}
+    assert scoring.traits["ci.schedule"] == 0.8
+    assert scoring.traits["hygiene.issue-templates"] == 1.0
 
 
 def test_score_formula() -> None:
@@ -48,7 +49,8 @@ def test_overrides_merge_without_touching_the_default() -> None:
     tuned = default.merged({"categories": {"ci": 0.5}, "traits": {"ci.cache": 1.0}})
     assert tuned.categories["ci"] == 0.5
     assert tuned.categories["tests"] == default.categories["tests"]
-    assert tuned.traits == {"ci.cache": 1.0}
+    assert tuned.traits == {**default.traits, "ci.cache": 1.0}
+    assert "ci.cache" not in default.traits
     assert default.categories["ci"] == 0.9
     assert tuned.score(_card()) == pytest.approx(0.5)
     assert tuned.to_dict()["categories"]["ci"] == 0.5

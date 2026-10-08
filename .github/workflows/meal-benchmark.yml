@@ -1,0 +1,43 @@
+name: Meal benchmark (B2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sweep_run:
+        description: Workflow run ID containing the completed b2-sweep artifact and judgments
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+      - run: uv sync --locked
+      - uses: actions/download-artifact@v7
+        with:
+          name: b2-sweep
+          path: ${{ runner.temp }}/b2-sweep
+          run-id: ${{ inputs.sweep_run }}
+          github-token: ${{ github.token }}
+      - name: Fetch immutable evidence objects without checking out prey
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run python benchmarks/meal_benchmark.py fetch-evidence "${{ runner.temp }}/b2-sweep" "${{ runner.temp }}/b2-evidence"
+      - name: Verify evidence and publish repeat statistics
+        run: uv run python benchmarks/meal_benchmark.py report "${{ runner.temp }}/b2-sweep" "${{ runner.temp }}/b2-evidence/roots.json"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: b2-report
+          path: |
+            ${{ runner.temp }}/b2-sweep/report.json
+            ${{ runner.temp }}/b2-sweep/report.md

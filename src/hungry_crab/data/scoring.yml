@@ -22,7 +22,13 @@ categories:
   architecture: 0.4
   code: 0.4
 
-traits: {}
+# Previously accepted priorities must survive a full top-30 candidate pool, not only
+# the historical B1 inputs with fewer than 30 cards. Maws can override each value.
+traits:
+  ci.release-automation: 1.0
+  ci.schedule: 0.8
+  hygiene.issue-templates: 1.0
+  hygiene.pr-template: 1.0
 
 modes:
   COPY: 1.0

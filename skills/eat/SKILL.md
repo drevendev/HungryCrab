@@ -8,6 +8,12 @@ description: Eat a foreign repository and turn everything useful for the current
 You orchestrate the deterministic `crab` CLI. The CLI does the digging; you do the judging.
 The prey is `$ARGUMENTS` (owner/repo or a GitHub URL); the maw is the current repository.
 
+For discovery, use `crab hunt --for .` and inspect its metadata shortlist before choosing prey.
+For several sources, use `crab eat <prey...> --deterministic --maw . --out <bundle>`, then
+`crab menu --meal-dir <bundle>`. Serve from that verified bundle with `--meal-dir`; every card
+keeps its source license ceiling. Record the owner's approval with `ledger mark ... accepted`:
+automatic `served` alone is not a learning label. See `docs/taste-memory.md` for the CLI contract.
+
 ## Locate the CLI
 
 Run `crab --version`. If it is not installed, use one of these, in order of preference:

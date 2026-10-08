@@ -64,9 +64,9 @@ def test_every_declared_category_is_produced_or_deferred_by_name() -> None:
         )
 
 
-def test_code_is_the_one_deferred_category_today() -> None:
-    assert set(DEFERRED_CATEGORIES) == {"code"}
-    assert DEFERRED_CATEGORIES["code"].startswith("0.4")
+def test_code_has_a_producer_now() -> None:
+    assert "code" in produced_categories()
+    assert "code" not in DEFERRED_CATEGORIES
 
 
 def test_the_config_and_the_weights_know_every_category_and_nothing_else() -> None:

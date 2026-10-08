@@ -1,0 +1,37 @@
+{
+  "schema": "hungry-crab.deep-smoke/1",
+  "observed_at": "2026-10-07",
+  "platform": "Windows",
+  "python": "3.11",
+  "crab_version": "0.4.0.dev0",
+  "crab_sha": "13344cbb5ffd2e2ea3868ea5cbaacddb398060af",
+  "protocol": "Public prey read as data; catch/digest/compare; no prey installs, tests or builds",
+  "gitlab_authenticated_signals_issue": "https://github.com/drevendev/HungryCrab/issues/252",
+  "results": [
+    {
+      "forge": "github",
+      "sha": "996be976cad960a726aabb94be67dfc7e31e317b",
+      "symbols": 5986,
+      "edges": 2706,
+      "symbol_coverage": {
+        "file-limit": 26,
+        "ok": 980,
+        "syntax-error": 11,
+        "unsupported-language": 9
+      },
+      "protected_signals_requested": true
+    },
+    {
+      "forge": "gitlab",
+      "sha": "41771b819e87c5ab6dac398403424cbaf16358c0",
+      "symbols": 4652,
+      "edges": 1945,
+      "symbol_coverage": {
+        "file-limit": 46,
+        "ok": 924,
+        "syntax-error": 76
+      },
+      "protected_signals_requested": false
+    }
+  ]
+}

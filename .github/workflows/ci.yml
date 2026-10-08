@@ -29,7 +29,7 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.13"
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
@@ -51,14 +51,31 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ matrix.python }}
-      - run: uv sync --locked
+      - run: uv sync --locked --all-extras
       - run: uv run pytest
       - name: Menu benchmark (B1)
         run: uv run python benchmarks/menu_benchmark.py
+      - name: Ranking pressure benchmark
+        run: uv run python benchmarks/ranking_benchmark.py
       - name: Digest this repository (smoke test)
-        run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error
+        run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error --fail-on-loss
       - uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
         with:
           name: self-digest
           path: digest-out
+
+  minimal:
+    name: Base installation without native parsers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked
+      - name: Verify optional dependency boundary
+        run: uv run python -c "from hungry_crab.miners.symbols import runtime_identity; assert runtime_identity()['tree-sitter'] == 'unavailable'"
+      - run: uv run pytest tests/test_miner_symbols.py tests/test_deep_channels.py tests/test_deep_manifests.py
+      - run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error --fail-on-loss

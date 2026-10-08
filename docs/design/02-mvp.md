@@ -138,7 +138,8 @@ that belonged elsewhere.
 - `serve --as pr-branch`, PR template with trace, `THIRD_PARTY_NOTICES.md`, secret scan.
 - the `cleanroom` skill and the `crab-cleanroom-impl` subagent, isolated by the
   `crab-cleanroom-guard` hook; the "never execute prey" hook (`crab-prey-guard`).
-- Wiki miner, `strict` mode, `--shallow/--since` for giants.
+- `--shallow/--since` for giants. Wiki mining and `strict` mode ship with the 0.3.1 Feeder;
+  the roadmap owns their milestone.
 - README, docs, disclaimer. (`npx skills add` compatibility is 0.6 "Everywhere", with the MCP
   server and the PyPI package.)
 - Exit: a run over 4 fleet repositories, ≥ 3 merged PRs on CI / tooling / AI configs.

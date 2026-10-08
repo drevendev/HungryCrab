@@ -143,7 +143,7 @@ def test_digest_of_local_fixture_prints_summary(
     stdout = capsys.readouterr().out
     assert "Digest of npm-app@" in stdout
     assert "inventory.md" in stdout
-    assert "miners: 12 ok, 0 failed" in stdout
+    assert "miners: 15 ok, 0 failed" in stdout
     assert (out / "manifest.json").is_file()
 
 
@@ -365,7 +365,7 @@ def _stub_sniff(monkeypatch: pytest.MonkeyPatch, captured: dict[str, object]) ->
         )
 
     monkeypatch.setattr(cli, "sniff", fake_sniff)
-    monkeypatch.setattr(cli, "GitHubClient", lambda **_: object())
+    monkeypatch.setattr(cli, "client_for", lambda *_args, **_kwargs: object())
 
 
 def test_sniff_needs_no_maw(

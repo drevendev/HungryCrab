@@ -1,0 +1,8 @@
+{
+  "default_branch": "main",
+  "commits": [{
+    "message": "feat: add static polyglot examples",
+    "date": "2025-01-01T09:00:00+00:00",
+    "add": ["LICENSE", "README.md", "package.json", "pyproject.toml", "library.csproj", "Cargo.toml", "go.mod", "Gemfile", "composer.json", "pom.xml", "gradle/build.gradle.kts", "src/core.py", "src/core.ts", "src/core.js", "src/core.go", "src/core.rs", "src/Core.java", "src/Core.cs", "src/core.php", "src/core.rb"]
+  }]
+}

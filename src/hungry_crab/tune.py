@@ -10,9 +10,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .compare.scoring import Scoring
-from .ledger import NEGATIVE_STATUSES, Ledger
+from .errors import UsageError
+from .learning_keys import learning_key
+from .ledger import Ledger
 from .maw import MawConfig
-from .nutrients import ACCEPTED_STATUSES
+from .memory import NEGATIVE, POSITIVE, decision
 
 STEP_UP = 0.1
 STEP_DOWN = 0.15
@@ -59,7 +61,7 @@ class TuneReport:
                 "",
                 '    crab ledger mark <id> accepted|rejected --reason "..."',
                 "",
-                "`crab serve --as issue` records `served` automatically.",
+                "Only accepted, merged and rejected decisions train taste memory.",
             ]
             return "\n".join(lines) + "\n"
         lines.append(
@@ -99,22 +101,32 @@ class TuneReport:
 
 
 def _counts(entries: list[Any]) -> dict[str, int]:
-    accepted = sum(1 for e in entries if e.status in ACCEPTED_STATUSES)
-    rejected = sum(1 for e in entries if e.status in NEGATIVE_STATUSES)
+    accepted = sum(1 for e in entries if decision(e) in POSITIVE)
+    rejected = sum(1 for e in entries if decision(e) in NEGATIVE)
     proposed = sum(1 for e in entries if e.status == "proposed")
     return {"accepted": accepted, "rejected": rejected, "proposed": proposed}
 
 
-def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> TuneReport:
+def analyse(
+    ledger: Ledger,
+    scoring: Scoring,
+    *,
+    min_decisions: int = 3,
+    hunger: dict[str, Any] | None = None,
+) -> TuneReport:
+    if isinstance(min_decisions, bool) or min_decisions < 1:
+        raise UsageError("min_decisions must be a positive integer")
+    baseline = Scoring.default()
     entries = list(ledger.entries.values())
-    decided = [e for e in entries if e.status in ACCEPTED_STATUSES | NEGATIVE_STATUSES]
+    decided = [e for e in entries if decision(e) in POSITIVE | NEGATIVE]
     report = TuneReport(decisions=len(decided), min_decisions=min_decisions)
     by_category: dict[str, list[Any]] = {}
     by_key: dict[str, list[Any]] = {}
     by_prey: dict[str, list[Any]] = {}
     for entry in entries:
         by_category.setdefault(entry.category, []).append(entry)
-        by_key.setdefault(entry.key, []).append(entry)
+        family = learning_key(entry.category, entry.key, entry.prey)
+        by_key.setdefault(family, []).append(entry)
         # `entry.prey` is the prey that first proposed the nutrient, kept through every later
         # sighting, so a decision is credited to the prey that found it rather than to whichever
         # re-proposed it last.
@@ -129,16 +141,23 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
             continue
         rate = counts["accepted"] / total
         current = scoring.categories.get(name, 0.5)
-        if rate >= HIGH and current < CEILING:
+        base = baseline.categories.get(name, 0.5)
+        desired_up = round(min(CEILING, base + STEP_UP), 2)
+        desired_down = round(max(FLOOR, base - STEP_DOWN), 2)
+        if rate >= HIGH and current < desired_up:
             report.suggestions.append(
                 Suggestion(
-                    "category", name, current, round(min(CEILING, current + STEP_UP), 2),
+                    "category", name, current, desired_up,
                     f"{counts['accepted']} of {total} decisions accepted ({rate * 100:.0f}%).",
                     total, round(rate, 2),
                 )
             )  # fmt: skip
         elif rate <= LOW:
-            if counts["accepted"] == 0 and total >= max(5, min_decisions):
+            if (
+                counts["accepted"] == 0
+                and total >= max(5, min_decisions)
+                and (hunger or {}).get(name, True) is not False
+            ):
                 report.suggestions.append(
                     Suggestion(
                         "hunger", name, "on", "off",
@@ -146,10 +165,10 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
                         total, 0.0,
                     )
                 )  # fmt: skip
-            if current > FLOOR:
+            if current > desired_down:
                 report.suggestions.append(
                     Suggestion(
-                        "category", name, current, round(max(FLOOR, current - STEP_DOWN), 2),
+                        "category", name, current, desired_down,
                         f"only {counts['accepted']} of {total} decisions accepted "
                         f"({rate * 100:.0f}%).",
                         total, round(rate, 2),
@@ -161,8 +180,8 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
         total = counts["accepted"] + counts["rejected"]
         if total < 2:
             continue
-        current_value = scoring.traits.get(key, items[0].score if False else None)
-        if counts["accepted"] == 0:
+        current_value = scoring.traits.get(key)
+        if counts["accepted"] == 0 and current_value != 0.2:
             report.suggestions.append(
                 Suggestion(
                     "trait", key, current_value, 0.2,
@@ -170,7 +189,7 @@ def analyse(ledger: Ledger, scoring: Scoring, *, min_decisions: int = 3) -> Tune
                     total, 0.0,
                 )
             )  # fmt: skip
-        elif counts["rejected"] == 0 and total >= 3:
+        elif counts["rejected"] == 0 and total >= 3 and current_value != 1.0:
             report.suggestions.append(
                 Suggestion(
                     "trait", key, current_value, 1.0,

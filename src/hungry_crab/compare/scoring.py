@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from ..learning_keys import learning_key
 from ..nutrients import Candidate
 from ..typeutil import as_dict
 
@@ -66,7 +67,10 @@ class Scoring:
         return {name: dict(getattr(self, name)) for name in SECTIONS}
 
     def value_for(self, candidate: Candidate) -> float:
-        return self.traits.get(candidate.key, candidate.value)
+        family = learning_key(
+            candidate.category, candidate.key, str(candidate.trace.get("prey", ""))
+        )
+        return self.traits.get(candidate.key, self.traits.get(family, candidate.value))
 
     def uptake_for(self, kind: str) -> float:
         return self.uptake.get(kind, 1.0)

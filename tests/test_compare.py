@@ -26,6 +26,27 @@ def _ids(candidates: list[Candidate]) -> set[str]:
     return {c.id for c in candidates}
 
 
+def test_other_stack_uptake_override_changes_cross_stack_scores(
+    npm_digest: DigestResult, py_digest: DigestResult
+) -> None:
+    baseline = compare_digests(
+        npm_digest.out_dir,
+        py_digest.out_dir,
+        options=CompareOptions(maw_license="MIT", scoring={"uptake": {"other_stack": 1.0}}),
+    )
+    zero = compare_digests(
+        npm_digest.out_dir,
+        py_digest.out_dir,
+        options=CompareOptions(maw_license="MIT", scoring={"uptake": {"other_stack": 0.0}}),
+    )
+    cross = [
+        card for card in baseline.candidates if card.uptake_kind == "other_stack" and card.score > 0
+    ]
+    assert cross, "the fixture must exercise a real cross-stack test nutrient"
+    by_id = {card.id: card for card in zero.candidates}
+    assert all(by_id[card.id].uptake == 0 and by_id[card.id].score < card.score for card in cross)
+
+
 def test_side_loads_a_digest(npm_digest: DigestResult, npm_app: Path) -> None:
     side = Side.load(npm_digest.out_dir, root=npm_app)
     assert side.label == "npm-app"
@@ -67,7 +88,7 @@ def test_python_maw_eats_npm_prey(
     assert not any(i.startswith("crab:deps:") for i in ids)
     assert not any(i.startswith("crab:tooling:tooling.linter") for i in ids)
     e2e = next(c for c in result.candidates if c.id == "crab:tests:tests.e2e")
-    assert e2e.uptake == 0.6
+    assert e2e.uptake_kind == "other_stack" and e2e.uptake == 0.25
     assert "Playwright" in e2e.what
     architecture = next(c for c in result.candidates if c.category == "architecture")
     assert architecture.id == "crab:architecture:architecture.npm-app.raw"
@@ -130,7 +151,8 @@ def test_gpl_prey_lowers_every_score(
     ids = _ids(result.candidates)
     assert {"crab:hygiene:hygiene.code-of-conduct", "crab:tests:tests.bench"} <= ids
     bench = next(c for c in result.candidates if c.id == "crab:tests:tests.bench")
-    assert bench.uptake == 0.6 and bench.license_mode == "REIMPLEMENT"
+    assert bench.uptake_kind == "other_stack" and bench.uptake == 0.25
+    assert bench.license_mode == "REIMPLEMENT"
     assert max(c.score for c in result.candidates) < 0.5
 
 

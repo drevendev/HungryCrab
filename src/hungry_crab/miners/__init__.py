@@ -13,7 +13,10 @@ from .inventory import InventoryMiner
 from .issues import IssuesMiner
 from .license import LicenseMiner
 from .scope import ProjectDepsMiner, ProjectTestingMiner
+from .signals import SignalsMiner
+from .symbols import SymbolsMiner
 from .traits import TraitsMiner
+from .wiki import WikiMiner
 
 __all__ = [
     "ALL_MINERS",
@@ -31,11 +34,14 @@ ALL_MINERS: tuple[Miner, ...] = (
     ProjectDepsMiner(),
     CiMiner(),
     ProjectTestingMiner(),
+    WikiMiner(),
     DocsMiner(),
     AiConfigMiner(),
     HistoryMiner(),
     BranchesMiner(),
     IssuesMiner(),
+    SymbolsMiner(),
+    SignalsMiner(),
     ArchitectureMiner(),
     TraitsMiner(),
 )

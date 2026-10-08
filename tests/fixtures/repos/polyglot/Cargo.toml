@@ -1,0 +1,6 @@
+[package]
+name = "polyglot-fixture"
+version = "1.0.0"
+edition = "2021"
+[dependencies]
+serde = "1.0"

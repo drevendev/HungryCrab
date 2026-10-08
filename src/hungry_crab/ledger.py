@@ -6,20 +6,33 @@ that was rejected or served is not proposed again) and it is the raw material fo
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .config_edit import atomic_text
 from .errors import CrabError
+from .file_lock import state_lock
 from .nutrients import ACCEPTED_STATUSES, STATUSES, Candidate
 from .typeutil import as_dict, as_list
 
 LEDGER_SCHEMA = "hungry-crab.ledger/1"
 NEGATIVE_STATUSES = frozenset({"rejected", "ignored"})
+
+
+def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in data:
+            raise ValueError(f"duplicate ledger JSON member {key!r}")
+        data[key] = value
+    return data
 
 
 def _stamp(now: datetime | None) -> str:
@@ -53,14 +66,19 @@ class LedgerEntry:
     decided_at: str | None = None
     reason: str = ""
     url: str | None = None
+    feedback: str | None = None
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        extra = data.pop("extra")
+        return {**extra, **data}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LedgerEntry:
-        known = {item.name for item in fields(cls)}
-        kwargs = {key: value for key, value in data.items() if key in known}
+        known = {item.name for item in fields(cls)} - {"extra"}
+        kwargs = {key: value for key, value in data.items() if key in known and key != "extra"}
+        kwargs["extra"] = {key: value for key, value in data.items() if key not in known}
         for required in ("id", "category", "key", "title"):
             kwargs.setdefault(required, "")
         try:
@@ -68,6 +86,24 @@ class LedgerEntry:
         except (TypeError, ValueError):
             kwargs["sightings"] = 1
         entry = cls(**kwargs)
+        if (
+            any(
+                not isinstance(getattr(entry, name), str)
+                for name in ("id", "category", "key", "title", "prey", "sha", "status")
+            )
+            or not entry.id
+        ):
+            raise CrabError("ledger id must be non-empty and entry metadata must be strings")
+        if (
+            isinstance(entry.score, bool)
+            or not isinstance(entry.score, int | float)
+            or not math.isfinite(entry.score)
+        ):
+            raise CrabError("ledger entry score must be a finite number")
+        if entry.feedback not in {None, "accepted", "merged", "rejected"}:
+            raise CrabError("ledger contains invalid confirmed feedback")
+        if entry.status not in STATUSES:
+            raise CrabError(f"ledger contains unknown status {entry.status!r}")
         # A ledger written before sightings were recorded knows one prey per entry: the last
         # one, because every meal overwrote it. That is still the best guess for both.
         entry.last_prey = entry.last_prey or entry.prey
@@ -106,9 +142,12 @@ class Meal:
     date: str
     candidates: int
     new: int
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        extra = data.pop("extra")
+        return {**extra, **data}
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Meal:
@@ -121,6 +160,11 @@ class Meal:
             date=str(data.get("date", "")),
             candidates=int(data.get("candidates", 0) or 0),
             new=int(data.get("new", 0) or 0),
+            extra={
+                key: value
+                for key, value in data.items()
+                if key not in {f.name for f in fields(cls)} - {"extra"}
+            },
         )
 
 
@@ -130,6 +174,8 @@ class Ledger:
         self.maw = maw
         self.entries: dict[str, LedgerEntry] = {}
         self.meals: list[Meal] = []
+        self.extra: dict[str, Any] = {}
+        self._snapshot: bytes | None = None
 
     @classmethod
     def load(cls, path: Path | None, *, maw: str = "") -> Ledger:
@@ -137,20 +183,48 @@ class Ledger:
         if path is None or not path.is_file():
             return ledger
         try:
-            data = as_dict(json.loads(path.read_text(encoding="utf-8")))
+            raw = path.read_bytes()
+            loaded = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+            ledger._snapshot = hashlib.sha256(raw).digest()
+            if not isinstance(loaded, dict):
+                raise ValueError("ledger must be an object")
+            data = loaded
         except (OSError, ValueError) as exc:
             raise CrabError(f"ledger {path} is not valid JSON: {exc}") from exc
         ledger.maw = str(data.get("maw") or maw)
+        if data.get("schema", LEDGER_SCHEMA) != LEDGER_SCHEMA:
+            raise CrabError(
+                f"unsupported ledger schema {data.get('schema')!r}; refusing to rewrite it"
+            )
+        for name in ("entries", "meals"):
+            if not isinstance(data.get(name, []), list) or any(
+                not isinstance(item, dict) for item in data.get(name, [])
+            ):
+                raise CrabError(f"ledger {name} must be a list of objects")
+        ledger.extra = {
+            key: value
+            for key, value in data.items()
+            if key not in {"schema", "maw", "updated_at", "entries", "meals"}
+        }
         for item in as_list(data.get("entries")):
-            entry = LedgerEntry.from_dict(as_dict(item))
+            try:
+                entry = LedgerEntry.from_dict(as_dict(item))
+            except (TypeError, ValueError) as exc:
+                raise CrabError("malformed ledger entry; refusing to rewrite it") from exc
             if entry.id:
+                if entry.id in ledger.entries:
+                    raise CrabError(f"ledger contains duplicate nutrient id {entry.id!r}")
                 ledger.entries[entry.id] = entry
         for item in as_list(data.get("meals")):
-            ledger.meals.append(Meal.from_dict(as_dict(item)))
+            try:
+                ledger.meals.append(Meal.from_dict(as_dict(item)))
+            except (TypeError, ValueError) as exc:
+                raise CrabError("malformed ledger meal; refusing to rewrite it") from exc
         return ledger
 
     def to_dict(self, *, now: datetime | None = None) -> dict[str, Any]:
         return {
+            **self.extra,
             "schema": LEDGER_SCHEMA,
             "maw": self.maw,
             "updated_at": _stamp(now),
@@ -161,12 +235,21 @@ class Ledger:
     def save(self, *, now: datetime | None = None) -> Path | None:
         if self.path is None:
             return None
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(self.to_dict(now=now), indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        with state_lock(self.path):
+            current = (
+                hashlib.sha256(self.path.read_bytes()).digest() if self.path.exists() else None
+            )
+            if current != self._snapshot:
+                raise CrabError(
+                    "ledger changed since it was loaded; refusing to lose decisions",
+                    hint="reload the ledger and reconcile before retrying",
+                )
+            text = (
+                json.dumps(self.to_dict(now=now), indent=2, ensure_ascii=False, allow_nan=False)
+                + "\n"
+            )
+            atomic_text(self.path, text)
+            self._snapshot = hashlib.sha256(text.encode("utf-8")).digest()
         return self.path
 
     def ensure(self, card: Candidate, *, now: datetime | None = None) -> LedgerEntry:
@@ -232,6 +315,10 @@ class Ledger:
                 hint="ids are listed in menu.md after `crab compare`",
             )
         entry.status = status
+        if status in {"accepted", "merged", "rejected"}:
+            entry.feedback = status
+        elif status in {"proposed", "ignored"}:
+            entry.feedback = None
         entry.decided_at = _stamp(now)
         if reason:
             entry.reason = reason

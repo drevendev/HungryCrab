@@ -18,6 +18,10 @@ useful for your own repository without violating licenses) and for its overlay
 
 ## Key decisions (TL;DR)
 
+The [Taste Memory operator guide](../taste-memory.md) describes the implemented 0.5 development
+contracts for confirmed feedback, bounded hunt, reviewed profiles and multi-prey serving.
+Live held-out usefulness acceptance remains [#256](https://github.com/drevendev/HungryCrab/issues/256).
+
 1. **Three layers.** A deterministic CLI `crab` (Python, minimal dependencies) does 90 % of the
    work without a model. On top of it sit Agent Skills (the open `SKILL.md` format) that teach an
    agent the protocol. Everything ships as a Claude Code plugin (skills + subagents + hooks).
