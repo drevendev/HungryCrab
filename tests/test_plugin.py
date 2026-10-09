@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import tomllib
 from pathlib import Path
@@ -138,17 +139,64 @@ def test_the_packaging_version_and_the_importable_one_agree() -> None:
     assert pyproject["project"]["version"] == __version__
 
 
-def test_master_carries_a_development_version() -> None:
-    """A released version string on `master` cannot identify the commit that produced it.
+def _release_tag_context_is_valid(
+    *, version: str, ref_type: str | None, ref_name: str | None, changelog: str
+) -> bool:
+    """Allow a release version only when the tag and dated changelog heading match."""
+    return (
+        ".dev" not in version
+        and ref_type == "tag"
+        and ref_name == f"v{version}"
+        and re.search(
+            rf"^## \\[{re.escape(version)}\\] - \\d{{4}}-\\d{{2}}-\\d{{2}}$",
+            changelog,
+            re.MULTILINE,
+        )
+        is not None
+    )
 
-    0.2.2 sat in every version file for seven commits after the release that never happened, and
-    `manifest.json` records `crab_version` as part of the digest cache's reuse key — so two crabs
-    that behave differently looked identical to it. The release procedure in `CONTRIBUTING.md`
-    ends by reopening the next `.dev0`; this is what notices when that step is skipped.
+
+def test_master_carries_a_development_version() -> None:
+    """Keep master at a dev version, but allow the exact tagged release commit.
+
+    The release PR has a release commit followed by a development-version reopen
+    commit. PR and master CI validate the reopened head. Tag CI validates the
+    earlier release commit instead of bypassing any required checks.
     """
+    if os.environ.get("GITHUB_REF_TYPE") == "tag":
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        assert _release_tag_context_is_valid(
+            version=__version__,
+            ref_type=os.environ.get("GITHUB_REF_TYPE"),
+            ref_name=os.environ.get("GITHUB_REF_NAME"),
+            changelog=changelog,
+        ), "tagged release must match the package version and dated changelog entry"
+        return
     assert ".dev" in __version__, (
-        f"master is on {__version__}, which is a release version. A release tags the commit and "
-        "then reopens the next X.Y.Z.dev0 — see the Releasing section in CONTRIBUTING.md."
+        f"master is on {__version__}, which is a release version. The release PR must reopen "
+        "a development version before merging; see Releasing in CONTRIBUTING.md."
+    )
+
+
+@pytest.mark.parametrize(
+    ("version", "ref_type", "ref_name", "changelog", "expected"),
+    [
+        ("0.3.0", "tag", "v0.3.0", "## [0.3.0] - 2026-10-09\\n", True),
+        ("0.3.0", "tag", "v0.4.0", "## [0.3.0] - 2026-10-09\\n", False),
+        ("0.3.0", "branch", "v0.3.0", "## [0.3.0] - 2026-10-09\\n", False),
+        ("0.3.0.dev0", "tag", "v0.3.0.dev0", "## [0.3.0.dev0] - 2026-10-09\\n", False),
+        ("0.3.0", "tag", "v0.3.0", "## [Unreleased]\\n", False),
+        ("0.3.0", "tag", "v0.3.0", "Narrative ## [0.3.0] - 2026-10-09\\n", False),
+    ],
+)
+def test_release_tag_context_is_strict(
+    version: str, ref_type: str, ref_name: str, changelog: str, expected: bool
+) -> None:
+    assert (
+        _release_tag_context_is_valid(
+            version=version, ref_type=ref_type, ref_name=ref_name, changelog=changelog
+        )
+        is expected
     )
 
 
