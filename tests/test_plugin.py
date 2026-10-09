@@ -148,7 +148,7 @@ def _release_tag_context_is_valid(
         and ref_type == "tag"
         and ref_name == f"v{version}"
         and re.search(
-            rf"^## \\[{re.escape(version)}\\] - \\d{{4}}-\\d{{2}}-\\d{{2}}$",
+            rf"^## \[{re.escape(version)}\] - \d{{4}}-\d{{2}}-\d{{2}}$",
             changelog,
             re.MULTILINE,
         )
@@ -181,12 +181,12 @@ def test_master_carries_a_development_version() -> None:
 @pytest.mark.parametrize(
     ("version", "ref_type", "ref_name", "changelog", "expected"),
     [
-        ("0.3.0", "tag", "v0.3.0", "## [0.3.0] - 2026-10-09\\n", True),
-        ("0.3.0", "tag", "v0.4.0", "## [0.3.0] - 2026-10-09\\n", False),
-        ("0.3.0", "branch", "v0.3.0", "## [0.3.0] - 2026-10-09\\n", False),
-        ("0.3.0.dev0", "tag", "v0.3.0.dev0", "## [0.3.0.dev0] - 2026-10-09\\n", False),
-        ("0.3.0", "tag", "v0.3.0", "## [Unreleased]\\n", False),
-        ("0.3.0", "tag", "v0.3.0", "Narrative ## [0.3.0] - 2026-10-09\\n", False),
+        ("0.3.0", "tag", "v0.3.0", "## [0.3.0] - 2026-10-09\n", True),
+        ("0.3.0", "tag", "v0.4.0", "## [0.3.0] - 2026-10-09\n", False),
+        ("0.3.0", "branch", "v0.3.0", "## [0.3.0] - 2026-10-09\n", False),
+        ("0.3.0.dev0", "tag", "v0.3.0.dev0", "## [0.3.0.dev0] - 2026-10-09\n", False),
+        ("0.3.0", "tag", "v0.3.0", "## [Unreleased]\n", False),
+        ("0.3.0", "tag", "v0.3.0", "Narrative ## [0.3.0] - 2026-10-09\n", False),
     ],
 )
 def test_release_tag_context_is_strict(
