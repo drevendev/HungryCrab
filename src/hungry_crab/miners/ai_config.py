@@ -36,6 +36,15 @@ INSTRUCTION_FILES: dict[str, str] = {
 }
 
 
+PLUGIN_MANIFESTS: dict[str, str] = {
+    ".claude-plugin/plugin.json": "claude",
+    ".claude-plugin/marketplace.json": "claude",
+    ".codex-plugin/plugin.json": "codex",
+    ".cursor-plugin/plugin.json": "cursor",
+    ".cursor-plugin/marketplace.json": "cursor",
+}
+
+
 def _headings(text: str) -> list[str]:
     out: list[str] = []
     for match in _HEADING_RE.finditer(text):
@@ -140,12 +149,22 @@ def _mcp_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
     }
 
 
-def _plugin_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
-    data = _load_json(ctx, rel) or {}
+def _plugin_scalar(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())[:160]
+    return "[omitted: instruction-like]" if is_suspicious(text) else text
+
+
+def _plugin_gist(ctx: MineContext, rel: str, tool: str) -> dict[str, Any]:
+    loaded = _load_json(ctx, rel)
+    data = loaded or {}
     return {
         "path": rel,
-        "name": data.get("name"),
-        "version": data.get("version"),
+        "tool": tool,
+        "parse_error": loaded is None,
+        "name": _plugin_scalar(data.get("name")),
+        "version": _plugin_scalar(data.get("version")),
         "keys": sorted(str(k) for k in data)[:20],
     }
 
@@ -157,7 +176,10 @@ class AiConfigMiner:
     md_file = "ai.md"
 
     def run(self, ctx: MineContext) -> MinerResult:
-        files = [f for f in ctx.files() if not f.vendored and not f.generated]
+        files = sorted(
+            (f for f in ctx.files() if not f.vendored and not f.generated),
+            key=lambda info: info.path,
+        )
         by_path = {f.path: f for f in files}
 
         instructions: list[dict[str, Any]] = []
@@ -213,8 +235,8 @@ class AiConfigMiner:
             if rel in by_path
         ]
         plugin = [
-            _plugin_gist(ctx, rel)
-            for rel in (".claude-plugin/plugin.json", ".claude-plugin/marketplace.json")
+            _plugin_gist(ctx, rel, tool)
+            for rel, tool in PLUGIN_MANIFESTS.items()
             if rel in by_path
         ]
         codex = sorted(f.path for f in files if f.path.startswith(".codex/"))[:10]
@@ -222,12 +244,17 @@ class AiConfigMiner:
             f.path.startswith(".devcontainer/") or f.name == ".devcontainer.json" for f in files
         )
 
+        # Portable skills and generic agents/hooks do not identify a particular platform.
+        claude_scoped = any(g["path"].startswith(".claude/") for g in skills + agents) or any(
+            path.startswith(".claude/hooks/") for path in hook_files
+        )
         suspicious_total = sum(len(g["suspicious"]) for g in instructions + skills + agents)
         present = sorted(
             {g["tool"] for g in instructions}
             | ({"cursor"} if cursor_rules else set())
             | ({"copilot"} if copilot_instructions or copilot_prompts else set())
-            | ({"claude"} if skills or agents or commands or settings or plugin else set())
+            | ({"claude"} if claude_scoped or commands or settings else set())
+            | {g["tool"] for g in plugin}
             | ({"mcp"} if mcp else set())
             | ({"codex"} if codex else set())
         )
@@ -257,7 +284,13 @@ class AiConfigMiner:
         doc = MdDoc(f"AI configuration: {ctx.label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data["present"]:
-            summary.para("No agent instructions, skills or MCP configuration found.")
+            if data["skills"] or data["agents"] or data["hooks"]:
+                summary.para(
+                    "Portable skills, subagents or hook files found; "
+                    "no platform-specific configuration detected."
+                )
+            else:
+                summary.para("No agent instructions, skills or MCP configuration found.")
         summary.kv(
             [
                 ("Tools configured", ", ".join(data["present"]) or "none"),
@@ -314,6 +347,19 @@ class AiConfigMiner:
                     for a in data["agents"]
                 ),
                 max_rows=20,
+            )
+        if data["plugin"]:
+            plugins = doc.section("Plugin manifests", priority=2)
+            plugins.para(
+                "Platforms are inferred from native manifest paths, not from skill text. "
+                "A manifest is not evidence that a plugin was installed or executed."
+            )
+            plugins.table(
+                ["Path", "Platform", "Metadata"],
+                (
+                    [g["path"], g["tool"], "invalid JSON" if g["parse_error"] else "parsed JSON"]
+                    for g in data["plugin"]
+                ),
             )
         if data["settings"]:
             settings = doc.section("Settings", priority=3)
