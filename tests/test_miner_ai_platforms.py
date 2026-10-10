@@ -60,9 +60,7 @@ def _markdown(result: MinerResult) -> str:
         ("hooks/preflight.py", "hooks"),
     ],
 )
-def test_portable_content_does_not_imply_claude(
-    tmp_path: Path, path: str, collection: str
-) -> None:
+def test_portable_content_does_not_imply_claude(tmp_path: Path, path: str, collection: str) -> None:
     result = AiConfigMiner().run(_context(tmp_path, {path: _SKILL}))
     assert result.data["present"] == []
     assert len(result.data[collection]) == 1
