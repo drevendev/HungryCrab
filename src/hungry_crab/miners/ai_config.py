@@ -235,9 +235,7 @@ class AiConfigMiner:
             if rel in by_path
         ]
         plugin = [
-            _plugin_gist(ctx, rel, tool)
-            for rel, tool in PLUGIN_MANIFESTS.items()
-            if rel in by_path
+            _plugin_gist(ctx, rel, tool) for rel, tool in PLUGIN_MANIFESTS.items() if rel in by_path
         ]
         codex = sorted(f.path for f in files if f.path.startswith(".codex/"))[:10]
         devcontainer = any(
