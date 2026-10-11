@@ -113,6 +113,17 @@ def _required_mapping_section(data: dict[str, Any], name: str, path: Path) -> di
     return value
 
 
+def _strict_trust_bool(values: dict[str, Any], key: str, default: bool, path: Path) -> bool:
+    """A quoted false must never silently grant same-owner trust."""
+    value = values.get(key, default)
+    if not isinstance(value, bool):
+        raise UsageError(
+            f"{path}: trust.{key} must be a boolean",
+            hint="use unquoted true or false",
+        )
+    return value
+
+
 def _hunger_value(value: object) -> Any:
     if isinstance(value, bool):
         return value
@@ -278,11 +289,11 @@ class MawConfig:
             trust, {"same_owner", "owners", "bypass_license"}, path, "trust"
         )
         config.trust = TrustSettings(
-            same_owner=trust.get("same_owner", True) is not False,
+            same_owner=_strict_trust_bool(trust, "same_owner", True, path),
             owners=[
                 str(name).strip() for name in as_list(trust.get("owners")) if str(name).strip()
             ],
-            bypass_license=trust.get("bypass_license", False) is True,
+            bypass_license=_strict_trust_bool(trust, "bypass_license", False, path),
         )
         attribution = data.get("attribution_file")
         if isinstance(attribution, str) and attribution.strip():
