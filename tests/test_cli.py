@@ -125,6 +125,42 @@ def test_bad_repository_reference_is_a_usage_error(
     assert "crab: hint:" in err
 
 
+def test_compare_rejects_unknown_hunger_before_running_a_digest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A misspelled hunger switch fails before touching either prey or maw digest."""
+    from hungry_crab import compare as compare_module
+
+    prey = tmp_path / "prey"
+    maw = tmp_path / "maw"
+    prey.mkdir()
+    maw.mkdir()
+    (maw / ".crab.yml").write_text("hunger: {test: false}\n", encoding="utf-8")
+
+    def forbidden_digest(*args: object, **kwargs: object) -> object:
+        pytest.fail("invalid maw config must be rejected before running any digest")
+
+    monkeypatch.setattr(compare_module, "run_digest", forbidden_digest)
+    code = main(
+        [
+            "-q",
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "compare",
+            str(prey),
+            "--maw",
+            str(maw),
+            "--no-issues",
+        ]
+    )
+    assert code == 2
+    stderr = capsys.readouterr().err
+    assert "test" in stderr and "tests" in stderr
+    assert not (maw / ".crab").exists()
+
+
 def test_cache_path_and_empty_listing(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     assert main(["--cache-dir", str(tmp_path), "cache", "path"]) == 0
     assert capsys.readouterr().out.strip() == str(tmp_path)

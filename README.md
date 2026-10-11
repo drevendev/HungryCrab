@@ -151,7 +151,10 @@ or `--shallow` (default branch, tree only).
 ## Configuration
 
 `crab init` writes `.crab.yml` in the maw. Every key is optional; omitted keys use the defaults
-below.
+below. Unknown top-level, `hunger`, `budget`, `serve`, and `trust` keys are usage errors (exit 2),
+with a suggested spelling where available; `scoring` retains its own flexible nested schema.
+`serve.max_prs_per_run` must be a non-negative integer. `trust.same_owner` and
+`trust.bypass_license` accept YAML booleans only: write `false`, not the string `"false"`.
 
 - `license`: SPDX id for the maw, or auto-detect from `LICENSE` when omitted.
 - `mode`: `normal` or `strict`; `strict` is accepted today and not enforced yet ([#74](https://github.com/drevendev/HungryCrab/issues/74)).

@@ -216,6 +216,26 @@ def test_trust_is_read_from_the_file(tmp_path: Path) -> None:
     assert not trust.trusts(None)
 
 
+@pytest.mark.parametrize("key", ["same_owner", "bypass_license"])
+@pytest.mark.parametrize("raw", ['"false"', '"true"', '"off"', "0", "1", "null", "[]", "{}"])
+def test_trust_rejects_non_boolean_values(tmp_path: Path, key: str, raw: str) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: f"trust: {{{key}: {raw}}}\n"})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert f"trust.{key}" in caught.value.message
+    assert "unquoted true or false" in (caught.value.hint or "")
+
+
+@pytest.mark.parametrize("key", ["same_owner", "bypass_license"])
+@pytest.mark.parametrize(("raw", "expected"), [("true", True), ("false", False)])
+def test_trust_boolean_values_are_preserved(
+    tmp_path: Path, key: str, raw: str, expected: bool
+) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: f"trust: {{{key}: {raw}}}\n"})
+    trust = MawConfig.load(tmp_path).trust
+    assert getattr(trust, key) is expected
+
+
 def test_the_default_config_file_parses_back_into_the_defaults(tmp_path: Path) -> None:
     write_default_config(tmp_path)
     config = MawConfig.load(tmp_path)
