@@ -222,8 +222,7 @@ class MawConfig:
         except yaml.YAMLError as exc:
             raise UsageError(f"{path} is not valid YAML: {exc}") from exc
         if loaded is None and all(
-            not line.strip() or line.lstrip().startswith("#")
-            for line in source_text.splitlines()
+            not line.strip() or line.lstrip().startswith("#") for line in source_text.splitlines()
         ):
             loaded = {}
         if not isinstance(loaded, dict):
@@ -244,8 +243,16 @@ class MawConfig:
         _reject_unknown_keys(
             data,
             {
-                "license", "mode", "hunger", "ignore", "budget", "serve", "trust",
-                "attribution_file", "ledger", "scoring",
+                "license",
+                "mode",
+                "hunger",
+                "ignore",
+                "budget",
+                "serve",
+                "trust",
+                "attribution_file",
+                "ledger",
+                "scoring",
             },
             path,
             "top-level",
@@ -285,9 +292,7 @@ class MawConfig:
             token_env=str(serve.get("token_env") or "").strip(),
         )
         trust = _required_mapping_section(data, "trust", path)
-        _reject_unknown_keys(
-            trust, {"same_owner", "owners", "bypass_license"}, path, "trust"
-        )
+        _reject_unknown_keys(trust, {"same_owner", "owners", "bypass_license"}, path, "trust")
         config.trust = TrustSettings(
             same_owner=_strict_trust_bool(trust, "same_owner", True, path),
             owners=[
