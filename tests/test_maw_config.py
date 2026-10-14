@@ -167,8 +167,8 @@ def test_write_scoring_keeps_other_keys(tmp_path: Path) -> None:
     assert reloaded.scoring == {"categories": {"ci": 0.95}}
     fresh = MawConfig.load(tmp_path / "other")
     (tmp_path / "other").mkdir()
-    fresh.write_scoring({"traits": {"ci": 0.95}})
-    assert MawConfig.load(tmp_path / "other").scoring == {"traits": {"ci": 0.95}}
+    fresh.write_scoring({"traits": {"ci.cache": 1.0}})
+    assert MawConfig.load(tmp_path / "other").scoring == {"traits": {"ci.cache": 1.0}}
 
 
 def test_maw_slug_needs_a_github_remote(tmp_path: Path, npm_app: Path) -> None:
