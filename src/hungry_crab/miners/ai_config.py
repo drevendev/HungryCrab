@@ -119,18 +119,26 @@ def _settings_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
     hooks = as_dict(data.get("hooks"))
     return {
         "path": rel,
-        "keys": sorted(str(k) for k in data)[:30],
+        "keys": [_plugin_scalar(k) for k in sorted(data)[:30]],
         "permissions": {
             key: len(value) if isinstance(value, list) else 0
             for key, value in permissions.items()
             if key in ("allow", "deny", "ask")
         },
-        "default_mode": permissions.get("defaultMode"),
-        "hook_events": sorted(str(k) for k in hooks),
+        "default_mode": _plugin_scalar(permissions.get("defaultMode")),
+        "hook_events": [_plugin_scalar(k) for k in sorted(hooks)[:30]],
         "enabled_plugins": len(data["enabledPlugins"])
         if isinstance(data.get("enabledPlugins"), dict | list)
         else 0,
     }
+
+
+def _mcp_transport(server: dict[str, Any]) -> str | None:
+    """Infer an absent transport, but never stringify an arbitrary JSON payload."""
+    raw = server.get("type")
+    if raw is None or raw == "":
+        return "stdio" if "command" in server else "http"
+    return _plugin_scalar(raw)
 
 
 def _mcp_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
@@ -138,14 +146,14 @@ def _mcp_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
     servers = as_dict(data.get("mcpServers")) if data else {}
     return {
         "path": rel,
-        "servers": sorted(str(k) for k in servers)[:20],
+        "servers": [_plugin_scalar(k) for k in sorted(servers)[:20]],
         "transports": sorted(
-            {
-                str(v.get("type") or ("stdio" if "command" in v else "http"))
-                for v in servers.values()
-                if isinstance(v, dict)
+            transport
+            for transport in {
+                _mcp_transport(v) for v in servers.values() if isinstance(v, dict)
             }
-        ),
+            if transport is not None
+        )[:20],
     }
 
 
@@ -165,7 +173,7 @@ def _plugin_gist(ctx: MineContext, rel: str, tool: str) -> dict[str, Any]:
         "parse_error": loaded is None,
         "name": _plugin_scalar(data.get("name")),
         "version": _plugin_scalar(data.get("version")),
-        "keys": sorted(str(k) for k in data)[:20],
+        "keys": [_plugin_scalar(k) for k in sorted(data)[:20]],
     }
 
 
