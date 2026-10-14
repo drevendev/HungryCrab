@@ -149,9 +149,7 @@ def _mcp_gist(ctx: MineContext, rel: str) -> dict[str, Any]:
         "servers": [_plugin_scalar(k) for k in sorted(servers)[:20]],
         "transports": sorted(
             transport
-            for transport in {
-                _mcp_transport(v) for v in servers.values() if isinstance(v, dict)
-            }
+            for transport in {_mcp_transport(v) for v in servers.values() if isinstance(v, dict)}
             if transport is not None
         )[:20],
     }

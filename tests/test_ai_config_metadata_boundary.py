@@ -150,8 +150,7 @@ def test_metadata_counts_and_order_are_bounded(tmp_path: Path) -> None:
             },
             ".mcp.json": {
                 "mcpServers": {
-                    f"Server{i:03d}": {"type": f"Transport{i:03d}"}
-                    for i in reversed(range(100))
+                    f"Server{i:03d}": {"type": f"Transport{i:03d}"} for i in reversed(range(100))
                 }
             },
             ".claude-plugin/plugin.json": {f"Key{i:03d}": True for i in reversed(range(100))},
