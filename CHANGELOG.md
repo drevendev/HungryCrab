@@ -14,6 +14,27 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Feeder: a full menu with no agent installed.** `crab eat --deterministic` chains sniff,
+  catch, all thirteen miners and compare, exports the meal plus both digests, and never writes
+  the ledger or creates provider issues. The composite action and reusable workflow upload
+  the bundle, expose artifact outputs, use read-only tokens directly and default to a shallow
+  90-day history window. API reads support conditional requests and bounded retries. A separate
+  weekly smoke workflow checks Linux, Windows and the reusable interface. See
+  [the Feeder guide](docs/feeder.md).
+- **Independent wiki snapshots and real strict mode** ([#73](https://github.com/drevendev/HungryCrab/issues/73),
+  [#74](https://github.com/drevendev/HungryCrab/issues/74)). Wikis contribute names, headings and
+  counts without body text, their own commit invalidates digest reuse, and documentation traits
+  recognise them. Strict maws downgrade COPY code to clean-room REIMPLEMENT while configurations
+  and templates stay copyable, with the policy reason in menu and issue traces.
+- **Scheduled Crab:** `crab loop` persists nine phases, daily budgets, exclusive expiring
+  leases, bounded retries, pause/resume, human acknowledgements and phase cost history.
+  Control repositories keep one state per maw without granting work authorization.
+  GROW retains licensed nutrient publication; MOLT/HARDEN use scanned immutable trees,
+  protected paths and deterministic PR reconciliation. Merges remain human; release tags
+  need the verified merged release head and passing CI. `/crab:loop` runs one phase per wake.
+  See [the operator guide](docs/scheduled-crab.md); live rollout evidence is in
+  [#242](https://github.com/drevendev/HungryCrab/issues/242).
+
 - **Digest coverage is two numbers, and one of them is a gate.** `files_counted / files` could
   not tell a sample corpus the crab skipped on purpose from prey it failed to read, and it
   moved when somebody ran `npm ci`. The inventory now records a `coverage` block, lifted into
@@ -184,6 +205,35 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Feeder and Scheduled Crab share the meal contract.** EAT resolves portable digest paths
+  relative to the exported `meal.json`, independent of the scheduler's working directory, and
+  refuses damaged artifacts or wiki visibility loss before advancing. Cached acquisition keeps
+  token authentication, live remote-default detection and bounded-history fallback together.
+  CI now refuses visibility loss in its self-digest as well as miner failures.
+- **COPY serving reports the inputs it leaves in the working tree.** Every published or
+  reconciled COPY pull request reports its input paths and nutrient branch, in text and JSON.
+  The text output explains how to preserve local edits in a stash before cleaning the checkout;
+  the serve skill starts carrying in a separate worktree and keeps configuration and ledger
+  commits on the default branch ([#233](https://github.com/drevendev/HungryCrab/issues/233)).
+- **A shallow request never reuses a full-history digest at an explicit output path.** Its
+  manifest and history describe the current clone, even when HEAD matches a previous full clone.
+  Shallow history can grow without changing HEAD, so repeated shallow requests also rerun the
+  miners ([#234](https://github.com/drevendev/HungryCrab/pull/234)).
+- **Explicit digest output preserves caller-owned files.** `crab digest --out` builds in a
+  sibling staging directory and checks every destination name before publishing. Only artifacts
+  listed in a previous valid digest manifest can be replaced or removed; unrelated documents,
+  year-suffixed notes and a caller's `manifest.json` survive. Case-insensitive collisions are
+  refused, and malformed ownership records grant no permission to overwrite files
+  ([#210](https://github.com/drevendev/HungryCrab/issues/210)).
+- **A cached catch follows the remote's current default branch.** Refresh probes remote HEAD
+  before mutation, retargets a single-branch fetch when necessary, checks out the new tree and
+  updates `origin/HEAD`. Full and shallow caches can switch even after the old branch is deleted;
+  a failed probe preserves the last cached tree and catch record with a retry hint
+  ([#238](https://github.com/drevendev/HungryCrab/issues/238)).
+- Cached catches honour changed history options and validate dates before mutation (#230).
+  Replacements are staged so a failed clone preserves the previous valid cache. README and
+  agent-file outlines share a fence-aware heading parser (#193).
+
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose
@@ -267,6 +317,12 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   the clean-room hook's matcher to the implementer's tool list, since the guard runs only
   where the matcher sends it
   ([#176](https://github.com/drevendev/HungryCrab/issues/176)).
+- **Unsupported LGPL versions require human review.** Identifiers such as `LGPL-2.2-only` and
+  `LGPL-4.0-only` no longer inherit COPY or clean-room permissions from the family prefix. They
+  classify as unknown and receive `HUMAN`, including when the unknown licence belongs to the
+  maw. Supported versions and deprecated spellings retain their rules
+  ([#93](https://github.com/drevendev/HungryCrab/issues/93)); other families remain tracked by #95.
+
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

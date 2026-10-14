@@ -11,13 +11,14 @@ import json
 import re
 import shutil
 import stat
+import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from ..cache import Slug, prey_paths
-from ..errors import UsageError
+from ..errors import ExternalCommandError, UsageError
 from .git import GitRunner
 from .github import GitHubClient
 from .issues import fetch_issues, write_issues
@@ -36,6 +37,7 @@ class CatchOptions:
     since: str | None = None
     force: bool = False
     issues: int = 0
+    wiki: bool = True
 
 
 @dataclass
@@ -50,6 +52,8 @@ class CatchResult:
     updated: bool
     caught_at: str
     issues_fetched: int = 0
+    wiki: dict[str, object] | None = None
+    history_window_applied: bool | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -100,34 +104,102 @@ def catch(
     log: Callable[[str], None] = _noop,
     now: datetime | None = None,
     github: GitHubClient | None = None,
+    wiki_source_url: str | None = None,
 ) -> CatchResult:
     """Clone or refresh the prey. ``source_url`` overrides the GitHub URL (used by tests)."""
     opts = options or CatchOptions()
+    # Validate before changing any cache. A bad date used to delete a valid --force clone.
+    clone_args = clone_arguments(opts, now=now)
+    if opts.issues < 0:
+        raise UsageError("--issues must not be negative")
     paths = prey_paths(slug, cache_root)
     paths.root.mkdir(parents=True, exist_ok=True)
     repo_dir = paths.repo
     url = source_url or slug.clone_url
-
-    if opts.force and repo_dir.exists():
-        log(f"removing previous clone at {repo_dir}")
-        rmtree_force(repo_dir)
+    token = github.token if github is not None and source_url is None else None
 
     updated = False
-    if (repo_dir / ".git").exists():
+    previous: dict[str, object] = {}
+    if paths.catch_file.is_file():
+        try:
+            value = json.loads(paths.catch_file.read_text(encoding="utf-8"))
+            if isinstance(value, dict):
+                previous = value
+        except (OSError, ValueError):
+            pass
+    policy_changed = previous.get("clone_policy") != clone_args
+    history_window_applied = True if opts.since else None
+    if (repo_dir / ".git").exists() and not opts.force and not policy_changed:
         log(f"refreshing {slug} in {repo_dir}")
-        git = GitRunner(repo_dir)
-        git.run("fetch", "--quiet", "--all", "--prune", "--tags", "--force")
-        branch = git.default_branch()
-        if git.ok("rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"):
+        git = GitRunner(repo_dir, github_token=token)
+        original_fetch = git.try_run("config", "--get-all", "remote.origin.fetch")
+        retargeted = False
+        try:
+            # Probe before mutating the cache. Fetch alone never updates origin/HEAD.
+            branch = git.remote_default_branch()
+            retargeted = git.retarget_single_branch_fetch(branch)
+            fetch_args = ["fetch", "--quiet", "--all", "--prune", "--force"]
+            if opts.since:
+                fetch_args += [f"--shallow-since={parse_since(opts.since, now=now).isoformat()}"]
+            elif opts.shallow:
+                fetch_args += ["--depth=1"]
+            else:
+                fetch_args += ["--tags"]
+            try:
+                git.run(*fetch_args)
+            except ExternalCommandError as exc:
+                if opts.shallow and opts.since and "no commits selected" in exc.message.lower():
+                    git.run("fetch", "--quiet", "--all", "--prune", "--force", "--depth=1")
+                    history_window_applied = False
+                    log("history window has no commits; refreshed a depth-1 tree snapshot instead")
+                else:
+                    raise
+            if not git.ok("rev-parse", "--verify", "-q", f"refs/remotes/origin/{branch}"):
+                raise ExternalCommandError(f"remote default branch {branch!r} was not fetched")
+            if opts.shallow and opts.since and history_window_applied:
+                newest = datetime.fromtimestamp(
+                    int(git.run("show", "-s", "--format=%ct", f"origin/{branch}").strip()), UTC
+                ).date()
+                # A retargeted fetch can succeed with no selected commits when the old cache
+                # already holds the history. Keep the same bounded snapshot contract as clone.
+                if newest < parse_since(opts.since, now=now):
+                    git.run("fetch", "--quiet", "--all", "--prune", "--force", "--depth=1")
+                    history_window_applied = False
+                    log("history window has no commits; refreshed a depth-1 tree snapshot instead")
             git.run("checkout", "--quiet", "-B", branch, f"origin/{branch}")
+        except ExternalCommandError as exc:
+            if retargeted and original_fetch is not None:
+                git.run("config", "--replace-all", "remote.origin.fetch", original_fetch.strip())
+            raise ExternalCommandError(
+                f"could not refresh {slug}: {exc.message}",
+                hint="the previous cached tree and catch record were preserved; check the remote "
+                "and retry crab catch",
+            ) from exc
+        git.run("symbolic-ref", "refs/remotes/origin/HEAD", f"refs/remotes/origin/{branch}")
         updated = True
     else:
-        if repo_dir.exists():
-            rmtree_force(repo_dir)
         log(f"cloning {url} into {repo_dir}")
-        parent = GitRunner(paths.root, timeout=3600)
-        parent.run(*clone_arguments(opts, now=now), url, str(repo_dir))
+        try:
+            _clone_replace(repo_dir, url, clone_args, token=token)
+        except ExternalCommandError as exc:
+            if opts.shallow and opts.since and "no commits selected" in exc.message.lower():
+                log("history window has no commits; catching a depth-1 tree snapshot instead")
+                _clone_replace(
+                    repo_dir, url, clone_arguments(CatchOptions(shallow=True)), token=token
+                )
+                history_window_applied = False
+            else:
+                raise
         git = GitRunner(repo_dir)
+
+    wiki_info: dict[str, object] = {"status": "disabled", "sha": None}
+    if opts.wiki and (source_url is None or wiki_source_url is not None):
+        wiki_info = catch_wiki(
+            paths.wiki,
+            wiki_source_url or slug.wiki_clone_url,
+            log=log,
+            token=token,
+        )
 
     issues_fetched = 0
     if opts.issues > 0:
@@ -147,6 +219,65 @@ def catch(
         updated=updated,
         caught_at=(now or datetime.now(UTC)).isoformat(timespec="seconds"),
         issues_fetched=issues_fetched,
+        wiki=wiki_info,
+        history_window_applied=history_window_applied,
     )
-    paths.catch_file.write_text(json.dumps(result.to_dict(), indent=2) + "\n", encoding="utf-8")
+    recorded = {**result.to_dict(), "clone_policy": clone_args}
+    paths.catch_file.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
     return result
+
+
+def _clone_replace(
+    destination: Path, url: str, args: list[str], *, token: str | None = None
+) -> None:
+    """Publish only a complete clone, preserving the last valid tree on failure."""
+    staged = destination.with_name(f".{destination.name}-{uuid.uuid4().hex}")
+    backup = destination.with_name(f".{destination.name}-old-{uuid.uuid4().hex}")
+    try:
+        GitRunner(destination.parent, timeout=3600, github_token=token).run(*args, url, str(staged))
+        if not GitRunner(staged).has_commits():
+            raise ExternalCommandError(f"{url} has no commits to digest")
+        if destination.exists():
+            destination.rename(backup)
+        try:
+            staged.rename(destination)
+        except OSError:
+            if backup.exists():
+                backup.rename(destination)
+            raise
+    finally:
+        if staged.exists():
+            rmtree_force(staged)
+    if backup.exists():
+        rmtree_force(backup)
+
+
+def catch_wiki(
+    destination: Path, url: str, *, log: Callable[[str], None] = _noop, token: str | None = None
+) -> dict[str, object]:
+    """Wikis are independent Git repositories. An uninitialised wiki is ordinary absence."""
+    git = GitRunner(destination.parent, timeout=120, github_token=token)
+    try:
+        remote = git.run("ls-remote", url, "HEAD")
+    except ExternalCommandError as exc:
+        if (
+            "not found" in exc.message.lower()
+            or "does not appear to be a git repository" in exc.message.lower()
+        ):
+            log("wiki: not available")
+            return {"status": "missing", "sha": None, "url": url}
+        raise
+    if not remote.strip():
+        return {"status": "missing", "sha": None, "url": url}
+    remote_sha = remote.split()[0]
+    current = GitRunner(destination)
+    if (
+        not (destination / ".git").exists()
+        or not current.has_commits()
+        or current.head_sha() != remote_sha
+    ):
+        log("catching wiki (depth 1)")
+        _clone_replace(
+            destination, url, ["clone", "--quiet", "--depth", "1", "--single-branch"], token=token
+        )
+    return {"status": "available", "sha": GitRunner(destination).head_sha(), "url": url}

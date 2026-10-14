@@ -13,6 +13,7 @@ from .cache import Slug, Target, maw_paths
 from .errors import CrabError, UsageError
 from .fetch.git import GitRunner
 from .licensing import Relationship
+from .loop_config import LoopSettings
 from .typeutil import as_dict, as_list
 
 CONFIG_FILE = ".crab.yml"
@@ -39,9 +40,8 @@ DEFAULT_HUNGER: dict[str, Any] = {
 DEFAULT_CONFIG_TEXT = """\
 # Hungry Crab maw configuration. Every key is optional; these are the defaults.
 license: null              # SPDX id of this repository; detected from LICENSE when null
-mode: normal               # normal | strict. Strict downgrades COPY to REIMPLEMENT for
-                           # code and copies only configs and templates. Not enforced
-                           # yet: today the setting is accepted and ignored.
+mode: normal               # normal | strict. Strict downgrades COPY code to clean-room
+                           # REIMPLEMENT; configs and templates remain copyable.
 hunger:                    # per nutrient category: true | false | issues-only | ideas-only
   security: true
   ci: true
@@ -82,6 +82,16 @@ attribution_file: THIRD_PARTY_NOTICES.md
                            # `crab serve --as pr-branch` writes when it carries prey files in.
 ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
+loop:
+  cadence: daily           # cadence belongs to your scheduler; the CLI never starts one
+  autonomy: serve          # read | serve | work; merging always belongs to a human
+  work_authorized: false   # the maw owner must explicitly authorize work, including tags
+  prey: []                 # fixed owner/repo list; HUNT selects at most three from this list
+  budget:
+    phases_per_day: 4
+    prey_per_round: 2
+    open_issues_max: 10
+    open_prs_max: 2
 """
 
 
@@ -165,6 +175,7 @@ class MawConfig:
     attribution_file: str = "THIRD_PARTY_NOTICES.md"
     ledger: str = "repo"
     scoring: dict[str, Any] = field(default_factory=dict)
+    loop: LoopSettings = field(default_factory=LoopSettings)
     raw: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -229,6 +240,7 @@ class MawConfig:
             config.attribution_file = attribution.strip()
         config.ledger = _choice(data.get("ledger", "repo"), LEDGER_MODES, "ledger mode")
         config.scoring = as_dict(data.get("scoring"))
+        config.loop = LoopSettings.load(data.get("loop", {}))
         return config
 
     def ledger_path(self, cache_root: Path | None = None) -> Path | None:

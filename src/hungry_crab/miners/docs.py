@@ -11,8 +11,8 @@ from typing import Any
 from ..mdutil import MdDoc
 from ..safety import is_suspicious, suspicious_fragments
 from .base import MineContext, MinerResult
+from .wiki import markdown_headings
 
-_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$", re.MULTILINE)
 _BADGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)|<img[^>]+(?:shields\.io|badge)[^>]*>")
 _LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 _WORD_RE = re.compile(r"\w+")
@@ -67,11 +67,11 @@ DOC_SITES: dict[str, str] = {
 
 def readme_outline(text: str) -> dict[str, Any]:
     headings: list[tuple[int, str]] = []
-    for match in _HEADING_RE.finditer(text):
-        title = match.group(2).strip()
+    for heading in markdown_headings(text):
+        title = str(heading["text"]).strip()
         if is_suspicious(title):
             title = "[heading omitted: instruction-like]"
-        headings.append((len(match.group(1)), title[:80]))
+        headings.append((int(str(heading["level"])), title[:80]))
     lowered = [title.lower() for _, title in headings]
     sections = sorted(
         key
@@ -108,7 +108,7 @@ def changelog_format(text: str) -> str:
 
 class DocsMiner:
     name = "docs"
-    requires: tuple[str, ...] = ("inventory",)
+    requires: tuple[str, ...] = ("inventory", "wiki")
     json_file = "docs.json"
     md_file = "docs.md"
 
@@ -230,6 +230,7 @@ class DocsMiner:
             total_words += len(_WORD_RE.findall(ctx.read(info.path, limit=200_000)))
 
         data: dict[str, Any] = {
+            "wiki": ctx.data("wiki"),
             "markdown_files": len(markdown),
             "markdown_words": total_words,
             "readme": readme,

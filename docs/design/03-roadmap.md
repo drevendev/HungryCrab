@@ -18,9 +18,9 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.2 | Menu | compare, scoring, issues/architecture miners, skills, historian/architect subagents, serve issues, ledger, plugin | end-to-end `/crab:eat` → issues, 0 duplicates on rerun |
 | 0.2.1 | Self-feeding | `/crab:eat` from a live agent session with the crab as the maw; fix what the skill gets wrong ([05-self-feeding.md](05-self-feeding.md)) | 0.2's exit criterion honestly closed: two live meals, 0 duplicates, skill defects fixed |
 | 0.2.2 | Menu benchmark | B1 from [06-benchmark.md](06-benchmark.md): frozen maw and prey, the golden set, the deterministic menu benchmark and its CI gate | **milestone done, not released.** `recall_must@30` = 1.00 (10/10) and `noise@30` = 0.66 (19/29) on master, both gating pull requests through the test suite |
-| 0.3 | Serve | PR branches, trace, attribution, clean room, safety hook, wiki, strict mode, docs; the license resolutions and the `trust` relationship; the budget policy and paged documents ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)); coverage measured and gated | ≥ 3 merged PRs in the fleet; **MVP closed** |
-| 0.3.1 | Feeder | The deterministic pipeline as a reusable GitHub workflow and a composite action: a maw names its prey, the job runs `catch → digest → compare` with no model anywhere, and uploads the meal as a build artifact. Rate limits, retries and conditional requests, because a runner has no `gh auth`; `--shallow --since` by default. Brought forward from 0.6 ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)) | a repository with no agent installed gets a menu artifact on a schedule; the Evolving Crab's CONSUME phase is this job |
-| 0.3.2 | Scheduled crab | `crab loop`: a state machine a local scheduler wakes once per phase — crave, hunt, eat, serve, grow, trial, taste, molt, harden — on this repository or on any target it is pointed at ([07-scheduled-crab.md](07-scheduled-crab.md)) | ten consecutive scheduled wake-ups with no human input except merging, one round on a repository that is not the crab, and one version the crab hardened by itself |
+| 0.3 | Serve | PR branches, trace, attribution, clean room, safety hook, docs; the license resolutions and the `trust` relationship; the budget policy and paged documents ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)); coverage measured and gated | ≥ 3 merged PRs in the fleet; **MVP closed** |
+| 0.3.1 | Feeder | Independent wiki snapshots and enforced strict mode; the deterministic pipeline as a reusable GitHub workflow and a composite action: a maw names its prey, the job runs `catch → digest → compare` with no model anywhere, and uploads the meal as a build artifact. Rate limits, retries and conditional requests, because a runner has no `gh auth`; `--shallow --since` by default. Brought forward from 0.6 ([08-budgets-and-feeder.md](08-budgets-and-feeder.md)) | a repository with no agent installed gets a menu artifact on a schedule; the Evolving Crab's CONSUME phase is this job |
+| 0.3.2 | Scheduled crab | `crab loop`: persisted phases, leases, budgets, retries, control repositories, guarded publication and `/crab:loop` ([operator guide](../scheduled-crab.md), [design](07-scheduled-crab.md)) | Implementation has deterministic tests; live exit evidence remains open in [#242](https://github.com/drevendev/HungryCrab/issues/242): ten scheduled wake-ups, a second maw round, a verified MOLT and a human-merged release/tag with measured phase costs. Not released. |
 | 0.4 | Deep Bite | Discussions (GraphQL), PR review comments, Actions runs statistics (flaky tests, durations), tree-sitter symbols and call graph — and with them the first producer of the `code` nutrient category, which has been declared, weighted and offered as a hunger knob since 0.2 without a single meal able to propose it (`DEFERRED_CATEGORIES` in `nutrients.py` says so), Go/Rust/JVM/PHP/Ruby manifests, GitLab adapter | 8+ ecosystems, architectural nutrients with symbol-level evidence |
 | 0.5 | Taste Memory | scorer learning from the ledger (accepted/rejected by category and maw), `crab hunt --for .` (finding prey for a maw via `gh search` + similarity signals), multi-prey (`eat a b c` → merged menu), hunger profiles by repository type | share of accepted issues grows between iterations on the same maw |
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | the crab is installable and usable from every harness the fleet uses, not only Claude Code |
@@ -28,6 +28,32 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 
 Released: **0.2.0**, the only tag so far. Milestones complete: **0.2.1** and **0.2.2**, both on
 `master` and in no tag. In flight: **0.3**.
+
+### Implementation and release evidence (2026-10-07)
+
+The pending work for Feeder, wiki/strict policy, Scheduled Crab, explicit-output ownership,
+remote-default refresh and recovered safety fixes is integrated together. This closes the
+implementation branches, not the release or live acceptance criteria:
+
+- **0.3:** licensed PR serving exists. CI now gates the self-digest with both
+  `--fail-on-miner-error` and `--fail-on-loss`. The fleet merge gate, the 30-repository licence
+  acceptance set, the first B2 meal sweep and release-procedure defects still belong to
+  [#224](https://github.com/drevendev/HungryCrab/issues/224).
+- **0.3.1:** the composite action and reusable workflow have live artifact evidence in
+  [#237](https://github.com/drevendev/HungryCrab/pull/237). The size preflight remains distinct
+  from the hard acquisition quota owed by
+  [#236](https://github.com/drevendev/HungryCrab/issues/236).
+- **0.3.2:** the phase protocol is implemented, including ingestion of portable Feeder bundles.
+  Longitudinal live evidence is still
+  [#242](https://github.com/drevendev/HungryCrab/issues/242); host tool-boundary enforcement is
+  [#243](https://github.com/drevendev/HungryCrab/issues/243), before widening work autonomy.
+
+Next, close the 0.3 release evidence and validate the existing scheduled pipeline. The next
+capability milestone remains **0.4 Deep Bite**, led by symbol-level `code` and architecture
+nutrients. Pair that work with a B1 set large enough to measure ranking
+([#200](https://github.com/drevendev/HungryCrab/issues/200)) and B2 comparisons of useful meals,
+cost and evidence accuracy. A new miner should improve measured usefulness before adding more
+autonomy or distribution surfaces.
 
 A milestone and a release are different things, and conflating them is what produced
 [#37](https://github.com/drevendev/HungryCrab/issues/37): 0.2.2 was declared released in three

@@ -1,0 +1,79 @@
+name: Feeder smoke
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
+permissions:
+  contents: read
+jobs:
+  composite:
+    name: Composite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare a minimal maw with no agent or dependencies installed
+        id: maw
+        shell: python
+        run: |
+          import os, subprocess, tempfile
+          from pathlib import Path
+          root = Path(tempfile.mkdtemp(prefix='feeder-maw-', dir=os.environ['RUNNER_TEMP']))
+          files = {
+              'README.md': '# Feeder smoke maw\n',
+              'LICENSE': 'SPDX-License-Identifier: MIT\n',
+              'pyproject.toml': '[project]\nname="feeder-smoke-maw"\nversion="0.0.0"\nrequires-python=">=3.11"\n',
+              'src/example/__init__.py': '"""Smoke fixture, read as data only."""\n',
+          }
+          for name, text in files.items():
+              path = root / name
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(text, encoding='utf-8')
+          def git(*args):
+              subprocess.run(['git', '-C', str(root), *args], check=True)
+          git('init', '--quiet', '--initial-branch=main')
+          git('add', '.')
+          git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+              '-c', 'commit.gpgSign=false', 'commit', '--quiet', '-m', 'test: minimal maw')
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
+              output.write(f'path={root}\n')
+      - uses: ./
+        id: feeder
+        with:
+          prey: pypa/pipx
+          maw: ${{ steps.maw.outputs.path }}
+          artifact-name: feeder-composite-${{ matrix.os }}
+          issues: '10'
+      - name: Check the exported contract and repository
+        shell: python
+        env:
+          CRAB_BUNDLE: ${{ steps.feeder.outputs.bundle-path }}
+          CRAB_MAW: ${{ steps.maw.outputs.path }}
+        run: |
+          import json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['CRAB_BUNDLE'])
+          data = json.loads((root / 'feeder.json').read_text(encoding='utf-8'))
+          assert data['side_effects'] == {'issues_created': 0, 'ledger_written': False}
+          assert (root / 'menu.json').is_file()
+          assert data['counts']['total'] > 0
+          for side in ('prey', 'maw'):
+              manifest = json.loads((root / f'{side}-digest' / 'manifest.json').read_text(encoding='utf-8'))
+              assert all(m['ok'] for m in manifest['miners'])
+          assert not subprocess.check_output(['git', 'status', '--porcelain'], text=True).strip()
+          maw = Path(os.environ['CRAB_MAW'])
+          assert not (maw / '.crab' / 'ledger.json').exists()
+          assert not subprocess.check_output(['git', '-C', str(maw), 'status', '--porcelain'], text=True).strip()
+  reusable:
+    uses: ./.github/workflows/feeder.yml
+    with:
+      prey: pypa/pipx
+      issues: 10
+      artifact-name: feeder-reusable

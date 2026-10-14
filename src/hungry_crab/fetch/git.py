@@ -12,6 +12,7 @@ external diff and textconv drivers, and every filter driver the repository confi
 
 from __future__ import annotations
 
+import base64
 import os
 import shutil
 import subprocess
@@ -106,11 +107,14 @@ def neutral_filter_env(names: list[str], base: dict[str, str]) -> dict[str, str]
 class GitRunner:
     """Run git commands in one working directory."""
 
-    def __init__(self, cwd: Path, *, timeout: float = 600.0) -> None:
+    def __init__(
+        self, cwd: Path, *, timeout: float = 600.0, github_token: str | None = None
+    ) -> None:
         self.cwd = cwd
         self.timeout = timeout
         self._exe: str | None = None
         self._filters: dict[str, list[str]] = {}
+        self._github_token = github_token
 
     @staticmethod
     def available() -> bool:
@@ -159,6 +163,13 @@ class GitRunner:
         limit = timeout or self.timeout
         where = cwd or self.cwd
         env = git_env()
+        if self._github_token:
+            # Process-local credentials never appear in argv, clone URLs or .git/config.
+            count = int(env.get("GIT_CONFIG_COUNT", "0") or "0")
+            credential = base64.b64encode(f"x-access-token:{self._github_token}".encode()).decode()
+            env[f"GIT_CONFIG_KEY_{count}"] = "http.https://github.com/.extraheader"
+            env[f"GIT_CONFIG_VALUE_{count}"] = f"AUTHORIZATION: basic {credential}"
+            env["GIT_CONFIG_COUNT"] = str(count + 1)
         env.update(neutral_filter_env(self._filter_drivers(where, env), env))
         try:
             proc = subprocess.run(
@@ -221,6 +232,46 @@ class GitRunner:
             if self.ok("rev-parse", "--verify", "-q", f"refs/heads/{candidate}"):
                 return candidate
         return "HEAD"
+
+    def remote_default_branch(self, remote: str = "origin") -> str:
+        """Resolve the remote's current HEAD without trusting the cached origin/HEAD."""
+
+        out = self.run("ls-remote", "--symref", remote, "HEAD")
+        prefix = "ref: refs/heads/"
+        for line in out.splitlines():
+            if "\t" not in line:
+                continue
+            target, name = line.split("\t", 1)
+            if name == "HEAD" and target.startswith(prefix):
+                branch = target[len(prefix) :]
+                if branch:
+                    return branch
+        raise ExternalCommandError(f"git ls-remote could not resolve {remote}/HEAD")
+
+    def retarget_single_branch_fetch(self, branch: str, remote: str = "origin") -> bool:
+        """Move a clone's narrow fetch refspec when the remote default branch changes."""
+
+        out = self.try_run("config", "--get-all", f"remote.{remote}.fetch")
+        if out is None:
+            return False
+        specs = [line.strip() for line in out.splitlines() if line.strip()]
+        if len(specs) != 1:
+            return False
+
+        spec = specs[0]
+        normalized = spec.removeprefix("+")
+        prefix = "refs/heads/"
+        middle = f":refs/remotes/{remote}/"
+        if not normalized.startswith(prefix) or middle not in normalized:
+            return False
+        source_branch, dest_branch = normalized[len(prefix) :].split(middle, 1)
+        if not source_branch or "*" in source_branch or source_branch != dest_branch:
+            return False
+
+        updated = f"+refs/heads/{branch}:refs/remotes/{remote}/{branch}"
+        if spec != updated:
+            self.run("config", f"remote.{remote}.fetch", updated)
+        return True
 
     def is_shallow(self) -> bool:
         """Whether history provenance is incomplete or cannot be established safely."""
