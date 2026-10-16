@@ -5,9 +5,11 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
+from fixture_builder import git as fixture_git
 
-from hungry_crab.cache import Slug, prey_paths
-from hungry_crab.errors import UsageError
+from hungry_crab.cache import Slug, Target, prey_paths
+from hungry_crab.digest import DigestOptions, run_digest
+from hungry_crab.errors import ExternalCommandError, UsageError
 from hungry_crab.fetch.catch import CatchOptions, catch, clone_arguments, parse_since
 from hungry_crab.fetch.git import git_env
 
@@ -107,3 +109,80 @@ def test_prey_clones_never_fetch_lfs_content() -> None:
     is ever built or run, so a pointer says as much as the object it stands in for.
     """
     assert git_env()["GIT_LFS_SKIP_SMUDGE"] == "1"
+
+
+@pytest.mark.parametrize("shallow", [False, True])
+@pytest.mark.parametrize("delete_old_branch", [False, True])
+def test_cached_catch_follows_changed_remote_default_and_digest_tree(
+    tmp_path: Path, shallow: bool, delete_old_branch: bool
+) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    fixture_git(source, "init", "-b", "main")
+    (source / "README.md").write_text("# Main tree\n", encoding="utf-8")
+    fixture_git(source, "add", ".")
+    fixture_git(source, "commit", "-m", "feat: initial tree")
+    remote = tmp_path / "remote.git"
+    fixture_git(tmp_path, "clone", "--bare", str(source), str(remote))
+    slug = Slug("example", "changing-default")
+    cache = tmp_path / "cache"
+    options = CatchOptions(shallow=shallow)
+    first = catch(slug, options, cache_root=cache, source_url=remote.as_uri())
+
+    fixture_git(source, "checkout", "-b", "next")
+    (source / "next.py").write_text("NEXT_TREE = True\n", encoding="utf-8")
+    fixture_git(source, "add", ".")
+    fixture_git(source, "commit", "-m", "feat: new default tree")
+    fixture_git(source, "push", str(remote), "next")
+    fixture_git(remote, "symbolic-ref", "HEAD", "refs/heads/next")
+    if delete_old_branch:
+        fixture_git(remote, "update-ref", "-d", "refs/heads/main")
+
+    second = catch(slug, options, cache_root=cache, source_url=remote.as_uri())
+    repo = Path(second.repo_dir)
+    assert second.updated and second.default_branch == "next"
+    assert second.sha == fixture_git(source, "rev-parse", "HEAD").strip()
+    assert second.sha != first.sha
+    assert second.shallow is shallow
+    assert fixture_git(repo, "symbolic-ref", "refs/remotes/origin/HEAD").strip().endswith("/next")
+    if shallow:
+        assert fixture_git(repo, "config", "--get", "remote.origin.fetch").strip() == (
+            "+refs/heads/next:refs/remotes/origin/next"
+        )
+    digest = run_digest(
+        Target(path=repo),
+        DigestOptions(out=tmp_path / "digest", cache_root=cache, now=NOW, miners=["inventory"]),
+    )
+    inventory = json.loads((digest.out_dir / "inventory.json").read_text(encoding="utf-8"))
+    assert digest.manifest["prey"]["sha"] == second.sha
+    assert any(entry["path"] == "next.py" for entry in inventory["top_level"])
+
+
+def test_failed_remote_probe_preserves_cached_tree_and_record(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.mkdir()
+    fixture_git(source, "init", "-b", "main")
+    (source / "README.md").write_text("# Last valid tree\n", encoding="utf-8")
+    fixture_git(source, "add", ".")
+    fixture_git(source, "commit", "-m", "feat: initial tree")
+    remote = tmp_path / "remote.git"
+    fixture_git(tmp_path, "clone", "--bare", str(source), str(remote))
+    slug = Slug("example", "unavailable-default")
+    cache = tmp_path / "cache"
+    opts = CatchOptions(shallow=True)
+    first = catch(slug, opts, cache_root=cache, source_url=remote.as_uri())
+    paths = prey_paths(slug, cache)
+    original_record = paths.catch_file.read_bytes()
+    original_config = (paths.repo / ".git" / "config").read_bytes()
+    fixture_git(paths.repo, "remote", "set-url", "origin", (tmp_path / "missing.git").as_uri())
+    failed_config = (paths.repo / ".git" / "config").read_bytes()
+
+    with pytest.raises(ExternalCommandError, match="could not refresh") as error:
+        catch(slug, opts, cache_root=cache, source_url=remote.as_uri())
+
+    assert error.value.hint and "preserved" in error.value.hint
+    assert paths.catch_file.read_bytes() == original_record
+    assert (paths.repo / "README.md").read_text(encoding="utf-8") == "# Last valid tree\n"
+    assert fixture_git(paths.repo, "rev-parse", "HEAD").strip() == first.sha
+    assert (paths.repo / ".git" / "config").read_bytes() == failed_config
+    assert original_config != failed_config

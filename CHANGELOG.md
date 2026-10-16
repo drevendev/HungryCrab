@@ -184,6 +184,12 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **A cached catch follows the remote's current default branch.** Refresh probes remote HEAD
+  before mutation, retargets a single-branch fetch when necessary, checks out the new tree and
+  updates `origin/HEAD`. Full and shallow caches can switch even after the old branch is deleted;
+  a failed probe preserves the last cached tree and catch record with a retry hint
+  ([#238](https://github.com/drevendev/HungryCrab/issues/238)).
+
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose
