@@ -184,6 +184,12 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **GitHub REST responses have a byte budget before JSON decoding.** Both `gh api` and
+  HTTPS refuse a response larger than 8 MiB instead of buffering it without a bound. The
+  `gh` transport drains both pipes concurrently, caps stderr at 64 KiB, and kills and reaps
+  its direct child on overflow or deadline; no unbounded temporary output file is used.
+  Empty responses, bounded diagnostics and optional 404 results keep their existing meaning
+  ([#267](https://github.com/drevendev/HungryCrab/issues/267)).
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose

@@ -12,6 +12,14 @@ from typing import Any
 
 from ..cache import Slug
 from ..errors import ExternalCommandError
+from .bounded import (
+    MAX_JSON_BYTES,
+    MAX_STDERR_BYTES,
+    ResponseTooLargeError,
+    read_limited,
+    run_bounded,
+    validate_timeout,
+)
 
 API_ROOT = "https://api.github.com"
 USER_AGENT = "hungry-crab (+https://github.com/drevendev/HungryCrab)"
@@ -21,6 +29,7 @@ class GitHubClient:
     """Minimal read-only client. Every call returns parsed JSON."""
 
     def __init__(self, *, prefer_gh: bool = True, timeout: float = 120.0) -> None:
+        validate_timeout(timeout)
         self.gh = shutil.which("gh") if prefer_gh else None
         self.token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
         self.timeout = timeout
@@ -60,10 +69,14 @@ class GitHubClient:
         env = dict(os.environ)
         env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
         try:
-            proc = subprocess.run(
-                command, capture_output=True, env=env, timeout=self.timeout, check=False
+            proc = run_bounded(
+                command,
+                env=env,
+                timeout=self.timeout,
+                stdout_limit=MAX_JSON_BYTES,
+                stderr_limit=MAX_STDERR_BYTES,
             )
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        except (OSError, subprocess.TimeoutExpired, ResponseTooLargeError) as exc:
             raise ExternalCommandError(f"failed to run gh api {path}: {exc}") from exc
         stdout = proc.stdout.decode("utf-8", errors="replace")
         stderr = proc.stderr.decode("utf-8", errors="replace").strip()
@@ -88,7 +101,10 @@ class GitHubClient:
         request = urllib.request.Request(url, headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                body = response.read().decode("utf-8", errors="replace")
+                raw = read_limited(response, MAX_JSON_BYTES, label="GitHub HTTPS response")
+                body = raw.decode("utf-8", errors="replace")
+        except ResponseTooLargeError as exc:
+            raise ExternalCommandError(f"GET {url} failed: {exc}") from exc
         except urllib.error.HTTPError as exc:
             if exc.code == 404 and allow_missing:
                 return None
