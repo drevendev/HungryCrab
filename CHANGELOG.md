@@ -184,6 +184,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Explicit digest output preserves caller-owned files.** `crab digest --out` builds in a
+  sibling staging directory and checks every destination name before publishing. Only artifacts
+  listed in a previous valid digest manifest can be replaced or removed; unrelated documents,
+  year-suffixed notes and a caller's `manifest.json` survive. Case-insensitive collisions are
+  refused, and malformed ownership records grant no permission to overwrite files
+  ([#210](https://github.com/drevendev/HungryCrab/issues/210)).
+
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose

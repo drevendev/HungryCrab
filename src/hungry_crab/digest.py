@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import tempfile
 import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -243,6 +245,144 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
         encoding="utf-8",
         newline="\n",
     )
+
+
+def _previous_explicit_output_ownership(out_dir: Path) -> set[str]:
+    """Names a previous valid digest proves the crab owns in an explicit output directory.
+
+    A filename alone is never ownership evidence. The previous manifest must name registered
+    producers for its artifacts and agree with every producer record it still contains.
+    Artifact damage invalidates reuse, not ownership: a rerun can still repair a missing or corrupt
+    artifact listed by a structurally valid manifest. Malformed ownership records grant no rights.
+    """
+    manifest_path = out_dir / MANIFEST_NAME
+    if manifest_path.is_symlink():
+        return set()
+    manifest = _load_json(manifest_path)
+    if manifest is None or manifest.get("schema") != SCHEMA:
+        return set()
+    entries = manifest.get("files")
+    records = manifest.get("miners")
+    if not isinstance(entries, list) or not isinstance(records, list):
+        return set()
+
+    entry_names: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+            return set()
+        name = entry["name"]
+        size = entry.get("bytes")
+        if (
+            name in entry_names
+            or artifact_owner(name) is None
+            or artifact_owner(name) != entry.get("miner")
+            or not isinstance(size, int)
+            or isinstance(size, bool)
+            or size < 0
+        ):
+            return set()
+        entry_names.add(name)
+    record_names: set[str] = set()
+    for record in records:
+        if not isinstance(record, dict) or not isinstance(record.get("files"), list):
+            return set()
+        for name in record["files"]:
+            if (
+                not isinstance(name, str)
+                or artifact_owner(name) != record.get("name")
+                or name in record_names
+            ):
+                return set()
+            record_names.add(name)
+    # Missing/failed producers invalidate reuse, but the artifact table still records historical
+    # ownership. Keep repair possible without claiming an unlisted caller file.
+    if not record_names <= entry_names:
+        return set()
+    if len({name.casefold() for name in entry_names}) != len(entry_names):
+        return set()
+    if any(
+        not name
+        or Path(name).name != name
+        or "/" in name
+        or "\\" in name
+        or artifact_owner(name) is None
+        for name in entry_names
+    ):
+        return set()
+    return entry_names | {MANIFEST_NAME}
+
+
+def _publish_explicit_output(staged: Path, destination: Path) -> None:
+    """Publish one staged explicit digest without overwriting caller-owned files.
+
+    The full digest is built in a fresh sibling directory first. Before the first destination
+    mutation, compare every staged name case-insensitively against the existing directory.
+    Existing names may be replaced or removed only when a previous valid manifest proved that
+    exact name belonged to the crab. The new manifest moves last, after all producer artifacts.
+    """
+    if destination.exists() and (destination.is_symlink() or not destination.is_dir()):
+        raise CrabError(
+            f"explicit digest output is not a real directory: {destination}",
+            hint="choose an empty directory or a previous Hungry Crab digest directory",
+        )
+    destination.mkdir(parents=True, exist_ok=True)
+
+    previous_owned = _previous_explicit_output_ownership(destination)
+    staged_paths = [path for path in staged.iterdir() if path.is_file()]
+    staged_names = {path.name for path in staged_paths}
+    if MANIFEST_NAME not in staged_names:
+        raise CrabError("cannot publish explicit digest without a manifest")
+
+    staged_by_fold: dict[str, str] = {}
+    for name in staged_names:
+        folded = name.casefold()
+        other = staged_by_fold.get(folded)
+        if other is not None and other != name:
+            raise CrabError(
+                f"explicit digest has a case-insensitive name collision: {other}, {name}"
+            )
+        staged_by_fold[folded] = name
+
+    existing_by_fold: dict[str, Path] = {}
+    for path in destination.iterdir():
+        folded = path.name.casefold()
+        other_path = existing_by_fold.get(folded)
+        if other_path is not None and other_path.name != path.name:
+            raise CrabError(
+                f"explicit digest destination has a case-insensitive name collision: "
+                f"{other_path.name}, {path.name}"
+            )
+        existing_by_fold[folded] = path
+
+    for name in staged_names:
+        incumbent = existing_by_fold.get(name.casefold())
+        if incumbent is None:
+            continue
+        if incumbent.name != name or name not in previous_owned:
+            raise CrabError(
+                f"refusing to overwrite caller-owned file {incumbent.name!r} in {destination}",
+                hint="use an empty --out directory or remove/rename the conflicting caller file",
+            )
+        if incumbent.is_symlink() or not incumbent.is_file():
+            raise CrabError(
+                f"refusing to replace non-file digest artifact {incumbent.name!r} in {destination}"
+            )
+
+    stale_names = previous_owned - staged_names - {MANIFEST_NAME}
+    for name in stale_names:
+        stale = destination / name
+        if stale.exists() and (stale.is_symlink() or not stale.is_file()):
+            raise CrabError(
+                f"refusing to remove non-file stale digest artifact {name!r} in {destination}"
+            )
+
+    for name in sorted(staged_names - {MANIFEST_NAME}):
+        (staged / name).replace(destination / name)
+    for name in sorted(stale_names):
+        stale = destination / name
+        if stale.is_file():
+            stale.unlink()
+    (staged / MANIFEST_NAME).replace(destination / MANIFEST_NAME)
 
 
 def run_miners(
@@ -679,23 +819,41 @@ def run_digest(
         raise CrabError(str(exc)) from exc
 
     generation = None
+    explicit_stage: Path | None = None
     out_dir = requested_out_dir
     if canonical:
         assert digests_dir is not None
         generation = allocate_digest_generation(digests_dir, ctx.sha)
         out_dir = generation.path
+    elif opts.out is not None:
+        parent = requested_out_dir.parent
+        parent.mkdir(parents=True, exist_ok=True)
+        explicit_stage = Path(
+            tempfile.mkdtemp(prefix=f".{requested_out_dir.name}.crab-", dir=str(parent))
+        )
+        out_dir = explicit_stage
     else:
         out_dir.mkdir(parents=True, exist_ok=True)
 
-    manifest_path = out_dir / MANIFEST_NAME
-    log(f"digesting {ctx.label}@{ctx.short_sha} ({opts.depth}) into {out_dir}")
-    started = perf_counter()
-    records = run_miners(ctx, miners, out_dir, log=log)
-    manifest = build_manifest(ctx, records, out_dir, opts, perf_counter() - started)
-    _write_json(manifest_path, manifest)
+    try:
+        manifest_path = out_dir / MANIFEST_NAME
+        log(f"digesting {ctx.label}@{ctx.short_sha} ({opts.depth}) into {requested_out_dir}")
+        started = perf_counter()
+        records = run_miners(ctx, miners, out_dir, log=log)
+        manifest = build_manifest(ctx, records, out_dir, opts, perf_counter() - started)
+        _write_json(manifest_path, manifest)
 
-    if generation is not None:
-        assert digests_dir is not None
-        publish_digest_generation(digests_dir, generation)
+        if generation is not None:
+            assert digests_dir is not None
+            publish_digest_generation(digests_dir, generation)
+            published_out = out_dir
+        elif explicit_stage is not None:
+            _publish_explicit_output(explicit_stage, requested_out_dir)
+            published_out = requested_out_dir
+        else:
+            published_out = out_dir
 
-    return DigestResult(out_dir, manifest, cached=False)
+        return DigestResult(published_out, manifest, cached=False)
+    finally:
+        if explicit_stage is not None:
+            shutil.rmtree(explicit_stage, ignore_errors=True)
