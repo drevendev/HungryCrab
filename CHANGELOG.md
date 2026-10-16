@@ -184,6 +184,16 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **COPY serving reports the inputs it leaves in the working tree.** Every published or
+  reconciled COPY pull request reports its input paths and nutrient branch, in text and JSON.
+  The text output explains how to preserve local edits in a stash before cleaning the checkout;
+  the serve skill starts carrying in a separate worktree and keeps configuration and ledger
+  commits on the default branch ([#233](https://github.com/drevendev/HungryCrab/issues/233)).
+- **A shallow request never reuses a full-history digest at an explicit output path.** Its
+  manifest and history describe the current clone, even when HEAD matches a previous full clone.
+  Shallow history can grow without changing HEAD, so repeated shallow requests also rerun the
+  miners ([#234](https://github.com/drevendev/HungryCrab/pull/234)).
+
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's
   licence: vendored GPL code, an Apache subtree with its own LICENSE and NOTICE, a file whose
@@ -267,6 +277,12 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   the clean-room hook's matcher to the implementer's tool list, since the guard runs only
   where the matcher sends it
   ([#176](https://github.com/drevendev/HungryCrab/issues/176)).
+- **Unsupported LGPL versions require human review.** Identifiers such as `LGPL-2.2-only` and
+  `LGPL-4.0-only` no longer inherit COPY or clean-room permissions from the family prefix. They
+  classify as unknown and receive `HUMAN`, including when the unknown licence belongs to the
+  maw. Supported versions and deprecated spellings retain their rules
+  ([#93](https://github.com/drevendev/HungryCrab/issues/93)); other families remain tracked by #95.
+
 - **The guards run from the plugin, not from `PATH`.** `hooks/hooks.json` named the console
   scripts `crab-prey-guard` and `crab-cleanroom-guard`, so the hooks existed only where the CLI
   was installed with `uv tool install`, and on a Windows machine whose application control

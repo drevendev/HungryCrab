@@ -629,6 +629,51 @@ def test_lgpl_versions_the_gnu_table_does_not_equate(prey: str, maw: str, mode: 
     assert decide(prey, maw).mode is mode
 
 
+@pytest.mark.parametrize(
+    "prey",
+    [
+        "LGPL-2.2-only",
+        "LGPL-4.0-only",
+        "LGPL-2.10-only",
+        "LGPL-3.0-custom",
+        "LGPL-4.0-or-later",
+        "LGPL-4.0+",
+        "LGPL-4.0",
+    ],
+)
+@pytest.mark.parametrize("maw", ["MIT", "LicenseRef-Proprietary", "GPL-3.0-only", "LGPL-3.0-only"])
+def test_unknown_lgpl_versions_do_not_inherit_known_copy_rules(prey: str, maw: str) -> None:
+    """A family prefix is not evidence for a supported compatibility rule (#93)."""
+    assert classify(prey) is LicenseClass.UNKNOWN
+    verdict = decide(prey, maw)
+    assert verdict.mode is Mode.HUMAN
+    assert verdict.human_review
+    assert "unrecognised license" in verdict.reason
+    assert not fits_gpl_maw(prey, maw)
+
+
+@pytest.mark.parametrize("prey", ["LGPL-3.0-only", "Apache-2.0", "MIT", "GPL-3.0-only"])
+@pytest.mark.parametrize("maw", ["LGPL-4.0-only", "lgpl-4.0-only"])
+def test_unknown_lgpl_maw_version_requires_review(prey: str, maw: str) -> None:
+    assert maw_class(maw) is not MawClass.GPL
+    verdict = decide(prey, maw)
+    assert verdict.mode is Mode.HUMAN
+    assert verdict.human_review
+    assert "unrecognised maw license" in verdict.reason
+
+
+def test_unknown_lgpl_in_an_expression_is_not_a_copy_permission() -> None:
+    assert decide("MIT AND LGPL-4.0-only", "GPL-3.0-only").mode is Mode.HUMAN
+    assert not fits_gpl_maw("LGPL-4.0-only AND GPL-3.0-only", "GPL-3.0-only")
+    assert decide("MIT OR LGPL-4.0-only", "GPL-3.0-only").mode is Mode.COPY
+
+
+@pytest.mark.parametrize("prey", ["LGPL-2.0", "LGPL-2.0+", "lgplv2.1", "lgplv3"])
+def test_supported_lgpl_aliases_keep_their_compatibility(prey: str) -> None:
+    assert classify(prey) is LicenseClass.LGPL
+    assert decide(prey, "GPL-3.0-only").mode is Mode.COPY
+
+
 # --- a licence is not the licence it mentions (#86) -------------------------------------------
 #
 # A source-available licence names the licence it converts to, and a custom licence names the

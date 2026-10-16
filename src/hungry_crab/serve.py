@@ -676,12 +676,14 @@ def _serve_pull_requests(
             served.append(item)
             log(f"served {item['id']} -> {item['url']}")
         else:
-            skipped.append(
-                {
-                    "id": item["id"],
-                    "reason": f"pull request exists {item['url']}; ledger reconciled",
-                }
-            )
+            reconciled = {
+                "id": item["id"],
+                "reason": f"pull request exists {item['url']}; ledger reconciled",
+            }
+            if item.get("working_tree_paths"):
+                reconciled["branch"] = item["branch"]
+                reconciled["working_tree_paths"] = item["working_tree_paths"]
+            skipped.append(reconciled)
             log(f"reconciled {item['id']} -> {item['url']}")
     return served, skipped
 
