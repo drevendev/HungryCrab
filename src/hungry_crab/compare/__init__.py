@@ -22,6 +22,7 @@ from ..digest_reader import locate_digest_sha
 from ..errors import CrabError
 from ..ledger import Ledger
 from ..licensing import Relationship, decide
+from ..licensing.policy import apply_maw_policy, nutrient_material
 from ..maw import MawConfig, maw_slug, relationship_for
 from ..nutrients import Candidate
 from ..typeutil import as_dict
@@ -54,6 +55,7 @@ class CompareOptions:
     # Compare a digest whose miners did not all succeed. Off, because an absent producer
     # reads as an absent fact, and the menu cannot tell the two apart.
     allow_partial: bool = False
+    mode: str = "normal"
 
 
 @dataclass
@@ -143,6 +145,12 @@ def compare_digests(
     now = opts.now or datetime.now(UTC)
     for candidate in candidates:
         candidate.license_mode = str(verdict["mode"])
+        candidate.material = nutrient_material(
+            candidate.category, [e.path for e in candidate.evidence]
+        )
+        candidate.license_mode, candidate.license_policy_reason = apply_maw_policy(
+            candidate.license_mode, policy=opts.mode, material=candidate.material
+        )
         candidate.uptake = round(candidate.uptake * scoring.uptake_for("same_stack"), 2)
         candidate.trace = {
             "prey": prey.label,
@@ -152,6 +160,11 @@ def compare_digests(
             "maw": maw.label,
             "maw_sha": maw.sha,
             "compared_at": now.isoformat(timespec="seconds"),
+            "maw_mode": opts.mode,
+            "material": candidate.material,
+            "maw_policy_reason": candidate.license_policy_reason,
+            "prey_wiki_sha": prey.manifest.get("wiki", {}).get("sha"),
+            "maw_wiki_sha": maw.manifest.get("wiki", {}).get("sha"),
         }
     candidates, hidden = apply_hunger(candidates, opts.hunger)
     still: list[Candidate] = []
@@ -192,6 +205,7 @@ def compare_digests(
             "root": str(maw_root) if maw_root else None,
         },
         "verdict": verdict,
+        "mode": opts.mode,
         "hunger": opts.hunger,
         "scoring": scoring.to_dict(),
         "counts": {
@@ -296,6 +310,7 @@ def compare_for_maw(
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
     allow_partial: bool = False,
+    record_ledger: bool = True,
 ) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
     """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
     config = MawConfig.load(maw_root)
@@ -325,16 +340,18 @@ def compare_for_maw(
         now=now,
         relationship=relationship.value,
         allow_partial=allow_partial,
+        mode=config.mode,
     )
     result, prey_digest, _ = run_compare(
         prey_target, maw_root, digest_options=d_opts, options=options, log=log
     )
-    new = ledger.record_meal(result.menu, result.candidates, now=now)
-    saved = ledger.save(now=now)
-    log(
-        f"ledger: {new} new nutrients, {len(ledger.entries)} known"
-        + (f", saved to {saved}" if saved else " (ledger mode: none)")
-    )
+    if record_ledger:
+        new = ledger.record_meal(result.menu, result.candidates, now=now)
+        saved = ledger.save(now=now)
+        log(
+            f"ledger: {new} new nutrients, {len(ledger.entries)} known"
+            + (f", saved to {saved}" if saved else " (ledger mode: none)")
+        )
     return result, prey_digest, ledger, config
 
 
@@ -360,6 +377,7 @@ def run_compare(
         budget_policy=d_opts.budget_policy,
         cache_root=d_opts.cache_root,
         ignore=opts.ignore,
+        wiki_path=d_opts.maw_wiki_path,
     )
     maw_result = run_digest(Target(path=maw_path), maw_options, log=log)
     prey_root_value = as_dict(prey_result.manifest.get("prey")).get("root")

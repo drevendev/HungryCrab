@@ -282,6 +282,10 @@ def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
     for rule in TRAIT_RULES:
         prey_value = prey.trait(rule.trait)
         maw_value = maw.trait(rule.trait)
+        if rule.key == "docs.directory":
+            # Preserve the stable nutrient id while treating a wiki as documentation too.
+            prey_value = prey_value or prey.trait("has_wiki")
+            maw_value = maw_value or maw.trait("has_wiki") or maw.trait("has_docs_site")
         if not _truthy(prey_value) or _truthy(maw_value):
             continue
         if any(not _truthy(maw.trait(name)) for name in rule.needs_maw):
@@ -293,8 +297,18 @@ def trait_rule_candidates(prey: Side, maw: Side) -> list[Candidate]:
                 category=rule.category,
                 origin=ContentOrigin.LICENSED.value,
                 key=rule.key,
-                title=rule.title,
-                what=f"{prey.label} {_fill(rule.what, prey.traits)}",
+                title=(
+                    "Add structured documentation"
+                    if rule.key == "docs.directory"
+                    and prey.trait("has_wiki")
+                    and not prey.trait("docs_dir")
+                    else rule.title
+                ),
+                what=(
+                    f"{prey.label} documents {prey.trait('wiki_pages')} wiki pages"
+                    if rule.key == "docs.directory" and not prey.trait("docs_dir")
+                    else f"{prey.label} {_fill(rule.what, prey.traits)}"
+                ),
                 prey_state=_fmt(prey_value),
                 maw_state=_fmt(maw_value),
                 serve_as=rule.serve_as,

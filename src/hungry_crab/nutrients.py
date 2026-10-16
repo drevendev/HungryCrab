@@ -99,6 +99,8 @@ class Candidate:
     how: str = ""
     status: str = "proposed"
     trace: dict[str, Any] = field(default_factory=dict)
+    material: str = "code"
+    license_policy_reason: str = ""
 
     def __post_init__(self) -> None:
         # Issue titles and discussion prose are not licensed by the repository, whatever a

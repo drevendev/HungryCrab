@@ -60,6 +60,10 @@ class Slug:
     def clone_url(self) -> str:
         return f"{self.url}.git"
 
+    @property
+    def wiki_clone_url(self) -> str:
+        return f"{self.url}.wiki.git"
+
     @classmethod
     def parse(cls, text: str) -> Slug:
         """Accept ``owner/repo``, HTTPS and SSH GitHub URLs."""
@@ -94,6 +98,10 @@ class PreyPaths:
     @property
     def api(self) -> Path:
         return self.root / "api"
+
+    @property
+    def wiki(self) -> Path:
+        return self.root / "wiki"
 
     @property
     def digests(self) -> Path:

@@ -22,6 +22,7 @@ from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, failed_miners, run_digest
 from .errors import CrabError, UsageError
+from .feeder import EatOptions, eat
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.github import GitHubClient
 from .ledger import Ledger
@@ -105,6 +106,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="also fetch up to N issues (plus the top by reactions)",
     )
     p_catch.add_argument("--json", action="store_true")
+    p_catch.add_argument("--no-wiki", action="store_true", help="skip the independent wiki")
+
+    p_eat = sub.add_parser(
+        "eat", help="deterministic Feeder: acquire, digest, compare and export; no ledger or issues"
+    )
+    p_eat.add_argument("prey", help="owner/repo, GitHub URL, or a local repository")
+    p_eat.add_argument(
+        "--deterministic",
+        action="store_true",
+        required=True,
+        help="run the Python pipeline without a model",
+    )
+    p_eat.add_argument("--maw", type=Path, default=Path())
+    p_eat.add_argument("--out", type=Path, help="new/empty bundle directory (default: cache)")
+    p_eat.add_argument("--shallow", action=argparse.BooleanOptionalAction, default=True)
+    p_eat.add_argument(
+        "--since", default="90d", help="history window; use 'all' for no date cutoff"
+    )
+    p_eat.add_argument(
+        "--issues",
+        type=int,
+        default=100,
+        help="recent issues to read; 0 disables issue acquisition",
+    )
+    p_eat.add_argument("--no-wiki", action="store_true")
+    p_eat.add_argument("--wiki-dir", type=Path, help="independent local Git wiki fixture/checkout")
+    p_eat.add_argument("--depth", choices=("normal", "deep"), default="normal")
+    p_eat.add_argument("--top", type=int, default=30)
+    p_eat.add_argument(
+        "--max-repo-kb",
+        type=int,
+        default=300 * 1024,
+        help="GitHub repository size preflight; not a hard disk quota",
+    )
+    p_eat.add_argument(
+        "--allow-loss", action="store_true", help="explicitly accept inventory visibility loss"
+    )
+    p_eat.add_argument("--json", action="store_true")
 
     p_digest = sub.add_parser(
         "digest", help="run the miners; write digest/ for owner/repo or a local path"
@@ -314,7 +353,11 @@ def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 def cmd_catch(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     slug = Slug.parse(args.repo)
     options = CatchOptions(
-        shallow=args.shallow, since=args.since, force=args.force, issues=args.issues
+        shallow=args.shallow,
+        since=args.since,
+        force=args.force,
+        issues=args.issues,
+        wiki=not args.no_wiki,
     )
     result = catch(slug, options, cache_root=args.cache_dir, log=log)
     if args.json:
@@ -326,6 +369,33 @@ def cmd_catch(args: argparse.Namespace, log: Callable[[str], None]) -> int:
             f"HEAD {result.sha[:12]} on {result.default_branch}"
             + (" (shallow)" if result.shallow else "")
         )
+    return 0
+
+
+def cmd_eat(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    result = eat(
+        resolve_target(args.prey),
+        _maw_dir(args.maw),
+        EatOptions(
+            out=args.out,
+            cache_root=args.cache_dir,
+            shallow=args.shallow,
+            since=None if args.since == "all" else args.since,
+            issues=args.issues,
+            wiki=not args.no_wiki,
+            wiki_path=args.wiki_dir,
+            depth=args.depth,
+            top=args.top,
+            max_repo_kb=args.max_repo_kb,
+            allow_loss=args.allow_loss,
+        ),
+        log=log,
+    )
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    else:
+        print(f"Feeder: {result.manifest['counts']['total']} candidates at {result.out_dir}")
+        print("No model, issue creation or ledger writes. Read menu.md to choose the next step.")
     return 0
 
 
@@ -744,6 +814,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_sniff(args, log)
         if args.command == "catch":
             return cmd_catch(args, log)
+        if args.command == "eat":
+            return cmd_eat(args, log)
         if args.command == "digest":
             return cmd_digest(args, log)
         if args.command == "compare":

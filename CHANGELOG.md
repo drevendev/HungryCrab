@@ -14,6 +14,19 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Feeder: a full menu with no agent installed.** `crab eat --deterministic` chains sniff,
+  catch, all thirteen miners and compare, exports the meal plus both digests, and never writes
+  the ledger or creates provider issues. The composite action and reusable workflow upload
+  the bundle, expose artifact outputs, use read-only tokens directly and default to a shallow
+  90-day history window. API reads support conditional requests and bounded retries. A separate
+  weekly smoke workflow checks Linux, Windows and the reusable interface. See
+  [the Feeder guide](docs/feeder.md).
+- **Independent wiki snapshots and real strict mode** ([#73](https://github.com/drevendev/HungryCrab/issues/73),
+  [#74](https://github.com/drevendev/HungryCrab/issues/74)). Wikis contribute names, headings and
+  counts without body text, their own commit invalidates digest reuse, and documentation traits
+  recognise them. Strict maws downgrade COPY code to clean-room REIMPLEMENT while configurations
+  and templates stay copyable, with the policy reason in menu and issue traces.
+
 - **Digest coverage is two numbers, and one of them is a gate.** `files_counted / files` could
   not tell a sample corpus the crab skipped on purpose from prey it failed to read, and it
   moved when somebody ran `npm ci`. The inventory now records a `coverage` block, lifted into
@@ -183,6 +196,10 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
   Installs track `master`; a release tag is opt-in.
 
 ### Fixed
+
+- Cached catches honour changed history options and validate dates before mutation (#230).
+  Replacements are staged so a failed clone preserves the previous valid cache. README and
+  agent-file outlines share a fence-aware heading parser (#193).
 
 - **A COPY receipt answers to the licence of each file it takes, and a pull request never drops
   a receipt.** A receipt could take any path of the prey and record it under the repository's

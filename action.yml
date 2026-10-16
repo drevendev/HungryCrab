@@ -1,0 +1,104 @@
+name: Hungry Crab Feeder
+description: Digest a prey and upload a deterministic menu without a model or repository writes
+author: Dreven
+branding:
+  icon: search
+  color: orange
+inputs:
+  prey:
+    description: GitHub owner/repo or a local repository path
+    required: true
+  maw:
+    description: Checked-out maw directory, relative to the workspace or absolute
+    default: '.'
+  token:
+    description: Read-only REST token (the job token by default); no gh authentication needed
+    default: ${{ github.token }}
+  shallow:
+    description: Fetch only the default branch
+    default: 'true'
+  since:
+    description: History window (90d, 2y, ISO date, or all)
+    default: 90d
+  issues:
+    description: Number of recent issues to read (0 disables acquisition)
+    default: '100'
+  wiki:
+    description: Read independent prey and maw wiki repositories when available
+    default: 'true'
+  depth:
+    description: Miner depth (normal or deep)
+    default: normal
+  top:
+    description: Number of candidates in the Markdown menu
+    default: '30'
+  max-repo-kb:
+    description: GitHub repository size preflight; not a hard disk quota
+    default: '307200'
+  allow-loss:
+    description: Explicitly accept inventory visibility loss
+    default: 'false'
+  out:
+    description: New or empty output directory (default is a unique runner temporary directory)
+    default: ''
+  cache-dir:
+    description: Cache directory (default is in runner temporary storage; never uploaded)
+    default: ''
+  artifact-name:
+    description: Artifact name; use a distinct name for each matrix job
+    default: crab-meal
+  retention-days:
+    description: Meal artifact retention in days
+    default: '14'
+outputs:
+  bundle-path:
+    description: Local meal bundle directory
+    value: ${{ steps.feed.outputs.bundle-path }}
+  menu-path:
+    description: Local menu.json path
+    value: ${{ steps.feed.outputs.menu-path }}
+  candidate-count:
+    description: Total candidates
+    value: ${{ steps.feed.outputs.candidate-count }}
+  artifact-id:
+    description: Uploaded artifact ID
+    value: ${{ steps.upload.outputs.artifact-id }}
+  artifact-url:
+    description: Download URL
+    value: ${{ steps.upload.outputs.artifact-url }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v7
+      with:
+        python-version: '3.11'
+        enable-cache: false
+    - name: Run the deterministic pipeline
+      id: feed
+      shell: pwsh
+      env:
+        CRAB_ACTION_PATH: ${{ github.action_path }}
+        CRAB_PREY: ${{ inputs.prey }}
+        CRAB_MAW: ${{ inputs.maw }}
+        GH_TOKEN: ${{ inputs.token }}
+        CRAB_SHALLOW: ${{ inputs.shallow }}
+        CRAB_SINCE: ${{ inputs.since }}
+        CRAB_ISSUES: ${{ inputs.issues }}
+        CRAB_WIKI: ${{ inputs.wiki }}
+        CRAB_DEPTH: ${{ inputs.depth }}
+        CRAB_TOP: ${{ inputs.top }}
+        CRAB_MAX_REPO_KB: ${{ inputs.max-repo-kb }}
+        CRAB_ALLOW_LOSS: ${{ inputs.allow-loss }}
+        CRAB_OUT: ${{ inputs.out }}
+        CRAB_CACHE: ${{ inputs.cache-dir }}
+        PYTHONIOENCODING: utf-8
+      run: |
+        uv run --directory "$env:CRAB_ACTION_PATH" --locked --no-dev python "$env:CRAB_ACTION_PATH/scripts/feeder_action.py"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - uses: actions/upload-artifact@v7
+      id: upload
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.feed.outputs.bundle-path }}
+        if-no-files-found: error
+        retention-days: ${{ inputs.retention-days }}

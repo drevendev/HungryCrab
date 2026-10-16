@@ -12,6 +12,7 @@ external diff and textconv drivers, and every filter driver the repository confi
 
 from __future__ import annotations
 
+import base64
 import os
 import shutil
 import subprocess
@@ -106,11 +107,14 @@ def neutral_filter_env(names: list[str], base: dict[str, str]) -> dict[str, str]
 class GitRunner:
     """Run git commands in one working directory."""
 
-    def __init__(self, cwd: Path, *, timeout: float = 600.0) -> None:
+    def __init__(
+        self, cwd: Path, *, timeout: float = 600.0, github_token: str | None = None
+    ) -> None:
         self.cwd = cwd
         self.timeout = timeout
         self._exe: str | None = None
         self._filters: dict[str, list[str]] = {}
+        self._github_token = github_token
 
     @staticmethod
     def available() -> bool:
@@ -159,6 +163,13 @@ class GitRunner:
         limit = timeout or self.timeout
         where = cwd or self.cwd
         env = git_env()
+        if self._github_token:
+            # Process-local credentials never appear in argv, clone URLs or .git/config.
+            count = int(env.get("GIT_CONFIG_COUNT", "0") or "0")
+            credential = base64.b64encode(f"x-access-token:{self._github_token}".encode()).decode()
+            env[f"GIT_CONFIG_KEY_{count}"] = "http.https://github.com/.extraheader"
+            env[f"GIT_CONFIG_VALUE_{count}"] = f"AUTHORIZATION: basic {credential}"
+            env["GIT_CONFIG_COUNT"] = str(count + 1)
         env.update(neutral_filter_env(self._filter_drivers(where, env), env))
         try:
             proc = subprocess.run(

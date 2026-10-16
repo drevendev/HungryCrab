@@ -1,0 +1,83 @@
+name: Feeder
+on:
+  workflow_call:
+    inputs:
+      prey:
+        type: string
+        required: true
+      since:
+        type: string
+        default: 90d
+      shallow:
+        type: boolean
+        default: true
+      issues:
+        type: number
+        default: 100
+      wiki:
+        type: boolean
+        default: true
+      depth:
+        type: string
+        default: normal
+      top:
+        type: number
+        default: 30
+      max-repo-kb:
+        type: number
+        default: 307200
+      allow-loss:
+        type: boolean
+        default: false
+      artifact-name:
+        type: string
+        default: crab-meal
+      retention-days:
+        type: number
+        default: 14
+      runner:
+        type: string
+        default: ubuntu-latest
+    secrets:
+      prey-token:
+        description: Optional read token for a private prey outside the caller repository
+        required: false
+    outputs:
+      artifact-id:
+        value: ${{ jobs.eat.outputs.artifact-id }}
+      artifact-url:
+        value: ${{ jobs.eat.outputs.artifact-url }}
+      candidate-count:
+        value: ${{ jobs.eat.outputs.candidate-count }}
+permissions:
+  contents: read
+jobs:
+  eat:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 20
+    outputs:
+      artifact-id: ${{ steps.feeder.outputs.artifact-id }}
+      artifact-url: ${{ steps.feeder.outputs.artifact-url }}
+      candidate-count: ${{ steps.feeder.outputs.candidate-count }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Resolve the action from this workflow's repository and running commit, including
+      # cross-repository callers and pinned release refs (not from the maw checkout).
+      - uses: $/.
+        id: feeder
+        with:
+          prey: ${{ inputs.prey }}
+          token: ${{ secrets.prey-token || github.token }}
+          since: ${{ inputs.since }}
+          shallow: ${{ inputs.shallow }}
+          issues: ${{ inputs.issues }}
+          wiki: ${{ inputs.wiki }}
+          depth: ${{ inputs.depth }}
+          top: ${{ inputs.top }}
+          max-repo-kb: ${{ inputs.max-repo-kb }}
+          allow-loss: ${{ inputs.allow-loss }}
+          artifact-name: ${{ inputs.artifact-name }}
+          retention-days: ${{ inputs.retention-days }}
