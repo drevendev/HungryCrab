@@ -14,6 +14,15 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Added
 
+- **Scheduled Crab:** `crab loop` persists nine phases, daily budgets, exclusive expiring
+  leases, bounded retries, pause/resume, human acknowledgements and phase cost history.
+  Control repositories keep one state per maw without granting work authorization.
+  GROW retains licensed nutrient publication; MOLT/HARDEN use scanned immutable trees,
+  protected paths and deterministic PR reconciliation. Merges remain human; release tags
+  need the verified merged release head and passing CI. `/crab:loop` runs one phase per wake.
+  See [the operator guide](docs/scheduled-crab.md); live rollout evidence is in
+  [#242](https://github.com/drevendev/HungryCrab/issues/242).
+
 - **Digest coverage is two numbers, and one of them is a gate.** `files_counted / files` could
   not tell a sample corpus the crab skipped on purpose from prey it failed to read, and it
   moved when somebody ran `npm ci`. The inventory now records a `coverage` block, lifted into

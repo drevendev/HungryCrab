@@ -27,6 +27,7 @@ from .fetch.github import GitHubClient
 from .ledger import Ledger
 from .licensing.detect import detect_in_repo
 from .licensing.matrix import Relationship
+from .loop_cli import add_loop_parser, cmd_loop
 from .maw import MawConfig, relationship_for, write_default_config
 from .miners import MINER_NAMES
 from .miners.inventory import describe_coverage
@@ -72,6 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-q", "--quiet", action="store_true", help="no progress output on stderr")
     sub = parser.add_subparsers(dest="command", metavar="<command>")
+    add_loop_parser(sub)
 
     p_sniff = sub.add_parser("sniff", help="API reconnaissance: license, size, languages, verdict")
     p_sniff.add_argument("repo", help="owner/repo or a GitHub URL")
@@ -740,6 +742,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "version":
             print(f"crab {__version__}")
             return 0
+        if args.command == "loop":
+            return cmd_loop(args)
         if args.command == "sniff":
             return cmd_sniff(args, log)
         if args.command == "catch":

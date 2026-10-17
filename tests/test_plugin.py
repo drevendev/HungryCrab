@@ -44,7 +44,7 @@ def test_plugin_manifest_and_marketplace_agree() -> None:
     assert marketplace["name"] == "hungry-crab"
 
 
-@pytest.mark.parametrize("skill", ["eat", "license", "serve", "cleanroom"])
+@pytest.mark.parametrize("skill", ["eat", "license", "serve", "cleanroom", "loop"])
 def test_skills_have_matching_names_and_descriptions(skill: str) -> None:
     fields = _frontmatter(ROOT / "skills" / skill / "SKILL.md")
     assert fields["name"] == skill

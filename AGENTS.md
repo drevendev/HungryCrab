@@ -16,7 +16,12 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | spec | attribution | ledger | tune | init | update | cache`).
+  serve | spec | attribution | ledger | tune | loop | init | update | cache`).
+- `src/hungry_crab/loop.py`, `loop_config.py`, `loop_provider.py`, `loop_work.py`, `loop_cli.py`:
+  the scheduled phase protocol, strict maw-owned policy, provider waits and guarded effects.
+  Only recording advances phases; each attempt has a bounded lease. GROW retains the licensed
+  serve transaction, MOLT stays within its round, and HARDEN tags only a verified human merge.
+  The CLI never starts a scheduler or merges. The operator guide is `docs/scheduled-crab.md`.
 - `src/hungry_crab/prey_guard.py`: fail-closed `PreToolUse` decision logic for shell commands
   that touch the prey cache; only a small audited read-only command surface is allowed.
   `cleanroom_guard.py` is the second hook, which keeps the clean-room implementer out of the
