@@ -55,13 +55,22 @@ versions that have a tag.
    link references at the bottom of `CHANGELOG.md`: `[Unreleased]` compares the new tag to `HEAD`,
    and the new version compares the previous tag to the new one.
 4. Update the **Status** line in `README.md` and the `Released:` line in the roadmap.
-5. Merge that pull request, then tag the merge commit and push the tag:
-   `git tag -a vX.Y.Z -m "X.Y.Z" && git push origin vX.Y.Z`. `claude plugin tag --push` makes the
-   plugin's own `crab--vX.Y.Z` tag.
-6. `gh release create vX.Y.Z --notes-file` with the changelog section.
-7. **Reopen `master`** with a `chore: open X.Y+1.0.dev0 on master` commit, bumping the same six
-   places. Skipping this is what leaves every later commit reporting a released version — and the
-   digest cache keys on that version, so two different crabs then look identical to it.
+5. In the **same release pull request**, add a second commit `chore: reopen next
+   X.Y.Z.dev0`, updating the same six version places (regenerate `uv.lock` with `uv sync`).
+   The first commit holds the release version and changelog; the second reopens the next
+   development version, so the PR head passes the regular dev-version CI gate.
+6. Merge this release PR using **Rebase and merge**, not squash: both commits must survive in
+   order on `master`. GitHub will change their SHAs during rebase. Identify the **rebased release
+   commit**, not `master` HEAD, and verify its version files and release changelog before tagging.
+   Confirm `master` HEAD has the reopened development version and finished green required checks.
+7. Tag the exact verified **release commit**, not the reopened `master` HEAD:
+   `git tag -a vX.Y.Z <release-commit-sha> -m "X.Y.Z" && git push origin vX.Y.Z`.
+   CI runs on `v*` tags and checks the version/changelog on the tagged commit; require a
+   completed green tag run **before** `gh release create vX.Y.Z --notes-file ...`.
+   Create the separate `crab--vX.Y.Z` plugin tag only after that, if applicable.
+
+Do not squash the release/reopen pair, create a tag from the reopened head, or bypass
+required CI. A release candidate or postponement of a milestone does not change these gates.
 
 Step 2 is guarded: `tests/test_plugin.py` and `tests/test_agent_plugin.py` tie `__init__.py` to the
 Claude and portable Agent Plugins manifests and to `pyproject.toml`, and CI runs
