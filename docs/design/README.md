@@ -4,6 +4,9 @@ Design drafts for **Hungry Crab** (eat a foreign repository, digest it, and extr
 useful for your own repository without violating licenses) and for its overlay
 **Evolving Hungry Crab** (a self-improving loop driven by active GitHub Actions).
 
+For the observed branch state, integration order, release gates and recommended next capability
+milestone, see the [project assessment dated 2026-10-07](../project-status-2026-10-07.md).
+
 | Document | Covers |
 |---|---|
 | [GLOSSARY.md](GLOSSARY.md) | Every term the project uses, in one place, plus the words that were replaced and why. Where a document disagrees with it, the document is a bug |
