@@ -1,0 +1,62 @@
+name: Verify one nutrient
+description: Check one recommendation against pinned prey and maw evidence.
+title: "nutrient audit: "
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read docs/COMMUNITY_START_HERE.md and check #277 before opening another audit.
+        A supported card, a false positive and a genuine NO_GAP are all useful findings.
+        Do not change benchmark goldens, scores or historical decisions to make a result pass.
+        This form records evidence; it does not grant reuse or publishing permission.
+  - type: input
+    id: nutrient-id
+    attributes:
+      label: Exact nutrient ID or benchmark card
+      description: Include the existing card path or permalink.
+    validations:
+      required: true
+  - type: textarea
+    id: revisions
+    attributes:
+      label: Pinned crab, corpus, prey and maw revisions
+      description: Include exact commit permalinks for the source and receiving files. Missing evidence is UNKNOWN.
+    validations:
+      required: true
+  - type: textarea
+    id: claim-evidence
+    attributes:
+      label: Claim-by-claim verification
+      description: Mark each factual claim SUPPORTED, CONTRADICTED or UNKNOWN and cite the file and lines.
+    validations:
+      required: true
+  - type: dropdown
+    id: usefulness
+    attributes:
+      label: Does this maw need the nutrient?
+      options:
+        - Useful gap supported by evidence
+        - NO_GAP or duplicate existing capability
+        - Different tool or incompatible stack, not an established improvement
+        - UNKNOWN
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason and smallest useful correction
+      description: Explain in original prose. Include licence or content-origin uncertainty and actual checks or NOT_RUN.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Audit boundaries
+      options:
+        - label: I checked for duplicate work and did not silently alter nutrient IDs, golden labels or scoring.
+          required: true
+        - label: I did not run prey code, copy upstream prose, include secrets or claim unexecuted tests passed.
+          required: true
+        - label: I understand this is an evidence submission, not licence clearance or guaranteed event credit.
+          required: true
