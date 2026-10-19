@@ -1,2 +1,58 @@
 name: Nominate one prey
- description: PLACEHOLDER
+description: Suggest one public repository and one useful nutrient, with exact evidence.
+title: "prey: "
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One repository and one concrete maw gap, please. Check #276 and existing
+        nominations first; a comment on an open intake task is preferable to a duplicate.
+        Read docs/COMMUNITY_START_HERE.md. This is intake, not qualified sniff,
+        licence clearance, incorporation or event-credit acceptance. Never run prey code.
+  - type: input
+    id: prey
+    attributes:
+      label: Public prey repository and exact commit
+      description: Use a public commit permalink, not only a moving branch.
+    validations:
+      required: true
+  - type: textarea
+    id: nutrient
+    attributes:
+      label: One nutrient and its source evidence
+      description: Name the actual file and lines. Explain the practice in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: maw-gap
+    attributes:
+      label: Receiving maw and the gap it would fill
+      description: Link its pinned revision and relevant existing code or docs. Explain why this is not already present.
+    validations:
+      required: true
+  - type: textarea
+    id: metadata
+    attributes:
+      label: Declared licence and observed repository metadata
+      description: Link the licence file; include stars, forks, observation date and GitHub API size or UNKNOWN. Note per-path or content-origin uncertainty.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How a maintainer can verify the claim
+      description: Describe a bounded read-only check. Record actual commands or NOT_RUN; do not fabricate a sniff.
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Submission boundaries
+      options:
+        - label: I checked for duplicates and am proposing one specific nutrient, not a list of links.
+          required: true
+        - label: I did not execute prey code or include private material, credentials or copied upstream prose.
+          required: true
+        - label: I understand that maintainers still perform sniff and reuse review, and no event reward is promised.
+          required: true
