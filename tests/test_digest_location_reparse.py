@@ -85,6 +85,8 @@ def test_native_windows_junction_refused(tmp_path: Path) -> None:
         text=True,
         check=False,
     )
-    assert completed.returncode == 0, f"Windows junction creation unexpectedly failed: {completed.stderr[:300]}"
+    assert completed.returncode == 0, (
+        f"Windows junction creation unexpectedly failed: {completed.stderr[:300]}"
+    )
     with pytest.raises(CrabError, match="expected a real directory"):
         _require_real_directory(link, label="digest refs root")
