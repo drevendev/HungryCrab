@@ -7,6 +7,54 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **No prey program runs through git.** No crab git command starts a child git inside a local
+  prey's submodules, so a filter named by a submodule's own configuration never runs; a
+  worktree fingerprint that cannot vouch for a populated submodule is `unknown`. The prey guard
+  lets cache-touching git open only a clone root that `crab catch` made, refuses `--git-dir`,
+  `--work-tree`, `--namespace` and every other `-C` target in the cache, and refuses `--filters`.
+- **Guards:** the prey guard judges cache paths the shell assembles (variables, substitutions,
+  globs, braces) ([#142](https://github.com/drevendev/HungryCrab/issues/142)); both guards
+  canonicalise `\\?\` device paths and 8.3 short names
+  ([#188](https://github.com/drevendev/HungryCrab/issues/188)) and read the hook event as UTF-8
+  bytes on Windows ([#315](https://github.com/drevendev/HungryCrab/issues/315)); the clean-room
+  guard refuses Grep and Glob scopes that contain the cache
+  ([#314](https://github.com/drevendev/HungryCrab/issues/314)); the PowerShell tool now goes
+  through both guards, with plain read cmdlets the only cache-touching PowerShell allowed
+  ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
+- **Scope:** MCP refuses a directory whose git directory or common directory lies outside the
+  approved roots ([#322](https://github.com/drevendev/HungryCrab/issues/322)) and checks a prey
+  path against the roots before touching it
+  ([#327](https://github.com/drevendev/HungryCrab/issues/327)); the inventory walk does not
+  follow directory junctions ([#323](https://github.com/drevendev/HungryCrab/issues/323));
+  `crab digest --out` refuses a junction, and `crab cache rm` removes only a prey directory the
+  crab recorded ([#211](https://github.com/drevendev/HungryCrab/issues/211)); every `gh api`
+  call is pinned to github.com whatever `GH_HOST` says
+  ([#318](https://github.com/drevendev/HungryCrab/issues/318)).
+- **Bounded digestion:** JUnit archives are inflated in bounded chunks and only stored or
+  deflate members are read ([#317](https://github.com/drevendev/HungryCrab/issues/317)); the
+  Gradle and other manifest patterns, the front-matter, heading, link, HTML-comment and
+  pipe-to-shell rules run in linear time
+  ([#329](https://github.com/drevendev/HungryCrab/issues/329),
+  [#331](https://github.com/drevendev/HungryCrab/issues/331),
+  [#300](https://github.com/drevendev/HungryCrab/issues/300)); deeply nested manifests and
+  expanding YAML anchors are unparseable files, not failed miners
+  ([#330](https://github.com/drevendev/HungryCrab/issues/330)); miner warnings are capped per
+  miner ([#324](https://github.com/drevendev/HungryCrab/issues/324)).
+- **No body text in summaries:** only a paragraph line can be a setext heading
+  ([#332](https://github.com/drevendev/HungryCrab/issues/332)); wiki headings carry the same
+  caps as README headings ([#337](https://github.com/drevendev/HungryCrab/issues/337)); bidi
+  controls and plural instruction comments are flagged, and instruction-like author, path,
+  workflow, tag and branch names are redacted in the Markdown summaries
+  ([#192](https://github.com/drevendev/HungryCrab/issues/192)).
+- **Publication:** the Feeder action refuses a public meal artifact unless the maw is
+  confirmed public as well as the prey
+  ([#341](https://github.com/drevendev/HungryCrab/issues/341)); the pre-push secret scan flags
+  credentials (private keys, GitLab and Slack tokens, webhooks, passwords in URLs) instead of
+  identifiers that merely contain a credential word
+  ([#135](https://github.com/drevendev/HungryCrab/issues/135)).
+
 ## [0.6.0] - 2026-10-22
 
 Everywhere is a limited stable release of deterministic, human-supervised repository analysis:
