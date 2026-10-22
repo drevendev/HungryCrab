@@ -130,3 +130,35 @@ def test_a_worktree_whose_repository_is_under_the_root_is_accepted(tmp_path: Pat
     git(main, "commit", "--quiet", "-m", "init")
     git(main, "worktree", "add", "--quiet", str(root / "wt"))
     assert AnalysisService([root], tmp_path / "cache").local("wt") == (root / "wt").resolve()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="directory junctions exist only on Windows")
+def test_a_junction_inside_the_prey_does_not_carry_the_digest_outside(tmp_path: Path) -> None:
+    """The argument passes the root check; the walk must not then read beyond it (#323)."""
+    import _winapi
+
+    outside = tmp_path / "outside-private"
+    outside.mkdir()
+    (outside / "requirements.txt").write_text("internal-billing-sdk==4.2.0\n", encoding="utf-8")
+    (outside / "salary-model.py").write_text("x = 1\n" * 50, encoding="utf-8")
+    root = tmp_path / "approved"
+    prey = root / "prey"
+    prey.mkdir(parents=True)
+    (prey / "README.md").write_text("# prey\n", encoding="utf-8")
+    git(prey, "init", "--quiet")
+    git(prey, "add", ".")
+    git(prey, "commit", "--quiet", "-m", "init")
+    (prey / ".git" / "info").mkdir(exist_ok=True)
+    (prey / ".git" / "info" / "exclude").write_text("tools\n", encoding="utf-8")
+    junction = prey / "tools"
+    _winapi.CreateJunction(str(outside), str(junction))
+    try:
+        result = AnalysisService([root], tmp_path / "cache").digest("prey")
+    finally:
+        junction.rmdir()
+    assert result["manifest"]["coverage"]["loss"]["symlinks_skipped"] == 1
+    out = Path(result["digest_dir"])
+    for artifact in out.iterdir():
+        if artifact.is_file():
+            text = artifact.read_text(encoding="utf-8", errors="replace")
+            assert "internal-billing-sdk" not in text and "salary-model" not in text, artifact.name

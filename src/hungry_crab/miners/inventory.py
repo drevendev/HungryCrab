@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, looks_binary
+from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_reparse_point, looks_binary
 from ..mdutil import MdDoc
 from .base import FileInfo, MineContext, MinerResult
 
@@ -273,8 +273,24 @@ def describe_file(
     )
 
 
+def _is_link_dir(full: str) -> bool:
+    """A symlink or a Windows reparse point, which the walk must not descend into (#323).
+
+    ``os.path.islink``, and with it ``os.walk(followlinks=False)``, sees only true symlinks: a
+    directory junction, which ``mklink /J``, ``npm link`` and other tools create without
+    privilege, reads as a plain directory and would carry the walk outside the tree. Files keep
+    the plain symlink test: a file cannot be a junction, and a file reparse point that is not a
+    symlink (a cloud placeholder, a deduplicated or compressed file) holds its own content.
+    """
+    try:
+        info = os.lstat(full)
+    except OSError:
+        return False
+    return stat.S_ISLNK(info.st_mode) or is_reparse_point(info)
+
+
 def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, Any]]:
-    """Walk ``root`` without following symlinks; cap vendored directories and total files."""
+    """Walk ``root`` without following symlinks or junctions; cap vendored dirs and total files."""
     files: list[FileInfo] = []
     stats: dict[str, Any] = {
         "dirs": 0,
@@ -311,7 +327,7 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
         for directory in sorted(dirnames):
             if directory in IGNORED_DIRS:
                 continue
-            if os.path.islink(os.path.join(dirpath, directory)):
+            if _is_link_dir(os.path.join(dirpath, directory)):
                 stats["symlinks"] += 1
                 continue
             kept.append(directory)
