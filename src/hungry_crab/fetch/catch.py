@@ -30,6 +30,14 @@ from .providers import RepositoryClient, client_for
 
 _SINCE_RE = re.compile(r"^(\d+)\s*([dwmy])$")
 _UNIT_DAYS = {"d": 1, "w": 7, "m": 30, "y": 365}
+# The cache's prey directories by provider, with the host their slugs carry.
+_PROVIDER_HOSTS = {"github": "github.com", "gitlab": "gitlab.com"}
+# The records that prove a prey directory is the crab's: what a catch and a sniff write.
+_OWNERSHIP_RECORDS = (("catch.json",), ("api", "sniff.json"))
+_LEFT_BEHIND_HINT = (
+    "Close programs holding files and inspect what remains. "
+    "No recursive chmod traversal was attempted."
+)
 
 
 def _noop(_: str) -> None:
@@ -110,6 +118,46 @@ def _require_real_entries(item: Path, *, cache_root: Path) -> os.stat_result:
     return info
 
 
+def _names_prey(record: Path, slug: str) -> bool:
+    """Whether ``record`` is a crab record, a small regular JSON file, about ``slug``."""
+    try:
+        info = record.lstat()
+        if not stat.S_ISREG(info.st_mode) or is_reparse_point(info) or info.st_size > 1 << 20:
+            return False
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    named = data.get("slug") if isinstance(data, dict) else None
+    # Forge names are case-insensitive, and so is the filesystem the cache may live on.
+    return isinstance(named, str) and named.casefold() == slug.casefold()
+
+
+def _require_crab_owned(path: Path, *, cache_root: Path) -> None:
+    """Refuse to delete a prey directory that no record of the crab's own names.
+
+    A cache directory can share its layout with a person's checkouts: ``CRAB_CACHE_DIR`` set
+    to a folder of ``github/<owner>/<repo>`` clones is a common convention, and the shape of a
+    path proves nothing. Below a provider directory, the directory deleted or a parent of it
+    must hold the ``catch.json`` a catch writes or the ``api/sniff.json`` a sniff writes, and
+    the record must name that very prey. Other deletions are staging trees the caller made.
+    """
+    parts = path.absolute().relative_to(cache_root.absolute()).parts
+    host = _PROVIDER_HOSTS.get(parts[0])
+    if host is None:
+        return
+    for depth in range(len(parts), 2, -1):
+        names = "/".join(parts[1:depth])
+        slug = names if host == "github.com" else f"{host}/{names}"
+        prey_root = cache_root.absolute().joinpath(*parts[:depth])
+        if any(_names_prey(prey_root.joinpath(*record), slug) for record in _OWNERSHIP_RECORDS):
+            return
+    raise CrabError(
+        f"refusing to remove {path}: no catch or sniff record of the crab names it",
+        hint="the crab removes only directories it caught or sniffed into its cache; "
+        "if this one should go, remove it yourself",
+    )
+
+
 def rmtree_force(path: Path, *, cache_root: Path) -> None:
     """Delete one directory inside ``cache_root`` without changing permissions outside it.
 
@@ -118,6 +166,7 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
     """
     if not stat.S_ISDIR(_require_real_entries(path, cache_root=cache_root).st_mode):
         raise CrabError(f"refusing cache deletion of {path}: not a directory")
+    _require_crab_owned(path, cache_root=cache_root)
 
     def retry_readonly(func: Callable[..., object], filename: str, _failure: object) -> None:
         """Repair only the item that failed, after refusing any link/junction component."""
@@ -129,7 +178,12 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
             item.chmod(item.lstat().st_mode | stat.S_IWRITE)
             func(filename)
         except OSError as exc:
-            raise CrabError(f"cannot remove read-only cache entry {item}: {exc}") from exc
+            # An open file on Windows ends here: the entry is half removed, and says so.
+            raise CrabError(
+                f"cannot remove cache entry {item}: {exc.strerror or exc}; "
+                f"what is left stays in {path}",
+                hint=_LEFT_BEHIND_HINT,
+            ) from exc
 
     try:
         if sys.version_info >= (3, 12):
@@ -139,10 +193,7 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
     except OSError as exc:
         raise CrabError(
             f"cannot safely remove cached files in {path}: {exc}",
-            hint=(
-                "Close programs holding files and inspect what remains. "
-                "No recursive chmod traversal was attempted."
-            ),
+            hint=_LEFT_BEHIND_HINT,
         ) from exc
 
 
