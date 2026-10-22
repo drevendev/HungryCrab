@@ -1,19 +1,21 @@
 """A repository's own configuration cannot make the crab start a program (AGENTS.md rule 3).
 
 A local directory eaten as prey brings its `.git/config` with it, and the digest runs git there:
-`diff HEAD` and `ls-files` for the worktree fingerprint, `log` for the history. The payload
-below only appends a line to a marker file in the test's own directory.
+`diff HEAD` and `ls-files` for the worktree fingerprint, `log` for the history. Its populated
+submodules bring their own configs as well. The payload below only appends a line to a marker
+file in the test's own directory.
 """
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 from conftest import FIXED_NOW
 
 from hungry_crab.cache import Target
-from hungry_crab.digest import DigestOptions, run_digest
+from hungry_crab.digest import DigestOptions, run_digest, worktree_fingerprint
 from hungry_crab.fetch.git import GitRunner, filter_drivers, neutral_filter_env
 
 
@@ -94,6 +96,93 @@ def test_a_digest_of_a_hostile_local_prey_runs_nothing(tmp_path: Path) -> None:
         DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache"),
     )
     assert not marker.exists()
+
+
+def _hostile_submodule_prey(tmp_path: Path) -> tuple[Path, Path]:
+    """A clean superproject whose populated submodule's own config names a clean filter.
+
+    The superproject's config names nothing, so the neutralised filter list is empty. The
+    submodule file is stat-dirty (same bytes, old mtime), the state of any copied tree, so a
+    git that looks inside the submodule hashes it through the filter. `.gitmodules` asks never
+    to ignore the submodule, which outranks `diff.ignoreSubmodules` in any config.
+    """
+    marker = tmp_path / "ran.txt"
+    script = tmp_path / "payload.sh"
+    script.write_text(
+        f"#!/bin/sh\necho ran >> '{marker.as_posix()}'\ncat\n", encoding="utf-8", newline="\n"
+    )
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    _git(sub, "init", "-q")
+    (sub / ".gitattributes").write_text("*.txt filter=evil\n", encoding="utf-8", newline="\n")
+    (sub / "a.txt").write_text("hello\n", encoding="utf-8", newline="\n")
+    _git(sub, "add", "-A")
+    _git(sub, "-c", "commit.gpgsign=false", "commit", "-qm", "sub")
+    repo = tmp_path / "prey"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    (repo / "top.txt").write_text("x\n", encoding="utf-8", newline="\n")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "commit.gpgsign=false", "commit", "-qm", "top")
+    added = _git(repo, "-c", "protocol.file.allow=always", "submodule", "--quiet", "add", "../sub")
+    assert added.returncode == 0, added.stderr
+    with (repo / ".gitmodules").open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write("\tignore = none\n")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "commit.gpgsign=false", "commit", "-qm", "add sub")
+    module_config = repo / ".git" / "modules" / "sub" / "config"
+    _git(repo, "config", "-f", str(module_config), "filter.evil.clean", f"sh {script.as_posix()}")
+    _stat_dirty(repo / "sub" / "a.txt")
+    return repo, marker
+
+
+def _stat_dirty(path: Path) -> None:
+    os.utime(path, (1_600_000_000, 1_600_000_000))
+
+
+def test_a_submodule_filter_is_live_without_the_runner(tmp_path: Path) -> None:
+    """The control: plain git runs the submodule's filter from a child `git status`."""
+    repo, marker = _hostile_submodule_prey(tmp_path)
+    _git(repo, "diff", "HEAD")
+    assert marker.is_file()
+
+
+def test_the_runner_starts_no_git_inside_a_submodule(tmp_path: Path) -> None:
+    repo, marker = _hostile_submodule_prey(tmp_path)
+    git = GitRunner(repo)
+    for args in (
+        ("diff", "HEAD"),
+        ("diff",),
+        ("status", "--porcelain"),
+        ("ls-files", "--others"),
+        ("ls-files", "--stage"),
+        ("log", "-p", "-1"),
+        ("show", "HEAD"),
+    ):
+        _stat_dirty(repo / "sub" / "a.txt")
+        git.try_run(*args)
+        assert not marker.exists(), args
+    # A gitlink is still a change between commits: the publication guards must see one.
+    assert "sub" in git.run("diff", "--name-only", "HEAD~1", "HEAD").split()
+
+
+def test_a_populated_submodule_makes_the_fingerprint_unknown(tmp_path: Path) -> None:
+    repo, marker = _hostile_submodule_prey(tmp_path)
+    assert worktree_fingerprint(GitRunner(repo), repo) == "unknown"
+    _stat_dirty(repo / "sub" / "a.txt")
+    run_digest(
+        Target(path=repo),
+        DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache"),
+    )
+    assert not marker.exists()
+
+
+def test_an_unpopulated_submodule_keeps_a_clean_fingerprint(tmp_path: Path) -> None:
+    repo, _marker = _hostile_submodule_prey(tmp_path)
+    clone = tmp_path / "clone"
+    _git(tmp_path, "clone", "-q", str(repo), str(clone))
+    assert (clone / "sub").is_dir() and not (clone / "sub" / ".git").exists()
+    assert worktree_fingerprint(GitRunner(clone), clone) == "clean"
 
 
 def test_filter_driver_names_survive_dots_and_equals_signs() -> None:

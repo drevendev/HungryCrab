@@ -8,6 +8,10 @@ A repository's own configuration is not the crab's: a local directory eaten as p
 `.git/config` with it (#134), and several keys there make read-only commands start programs.
 Every command runs with those keys overridden — the filesystem monitor, signature checks, the
 external diff and textconv drivers, and every filter driver the repository configures.
+
+A populated submodule is a repository of its own, with a config (`.git/modules/<name>/config`)
+that the filter listing never reads, so no command may start a child git inside one: none
+looks into a submodule's working tree, summarises it or recurses into it.
 """
 
 from __future__ import annotations
@@ -30,10 +34,25 @@ SAFE_CONFIG: tuple[str, ...] = (
     # `ls-files`), and `log.showSignature` runs `gpg.program` for every commit logged.
     "-c", "core.fsmonitor=false",
     "-c", "log.showSignature=false",
+    # Whether a submodule is dirty is asked of a child `git status` inside it; a summary
+    # (`status.submoduleSummary`, `diff.submodule=diff`) and recursion (`submodule.recurse`,
+    # fetch's on-demand default) start child commands there too. Each child reads the
+    # submodule's own config, whose filter and diff drivers nothing here has emptied.
+    "-c", "diff.ignoreSubmodules=dirty",
+    "-c", "diff.submodule=short",
+    "-c", "status.submoduleSummary=false",
+    "-c", "submodule.recurse=false",
+    "-c", "fetch.recurseSubmodules=false",
 )  # fmt: skip
 # Commands that produce diffs run the external diff and textconv drivers a repository names.
 _DIFF_COMMANDS = frozenset({"diff", "log", "show"})
 _NO_DIFF_DRIVERS = ("--no-ext-diff", "--no-textconv")
+# A submodule's `ignore` setting in `.gitmodules` or the repository config outranks
+# `diff.ignoreSubmodules`, and only the command-line option outranks it. `dirty` never looks
+# inside a submodule's working tree but still reports the commit a superproject records, so a
+# changed or added gitlink stays visible to the diffs the publication guards read.
+_SUBMODULE_COMMANDS = frozenset({*_DIFF_COMMANDS, "status"})
+_NO_SUBMODULE_WORKTREES = "--ignore-submodules=dirty"
 _FILTER_KEYS = ("clean", "smudge", "process")
 
 
@@ -165,8 +184,9 @@ class GitRunner:
         cwd: Path | None = None,
     ) -> str:
         """Run ``git <args>`` and return stdout as text."""
-        if args and args[0] in _DIFF_COMMANDS:
-            args = (args[0], *_NO_DIFF_DRIVERS, *args[1:])
+        if args and args[0] in _SUBMODULE_COMMANDS:
+            flags: tuple[str, ...] = _NO_DIFF_DRIVERS if args[0] in _DIFF_COMMANDS else ()
+            args = (args[0], *flags, _NO_SUBMODULE_WORKTREES, *args[1:])
         command = [self.exe, *SAFE_CONFIG, *args]
         limit = timeout or self.timeout
         where = cwd or self.cwd

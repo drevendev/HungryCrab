@@ -89,6 +89,21 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def _has_populated_submodule(listing: str, root: Path) -> bool:
+    """Whether ``git ls-files --stage -z`` names a gitlink whose directory holds a ``.git``.
+
+    A path that did not decode cannot be looked up, so it counts as populated.
+    """
+    for entry in listing.split("\0"):
+        meta, _, path = entry.partition("\t")
+        if not meta.startswith("160000 ") or not path:
+            continue
+        dot_git = root / path / ".git"
+        if "�" in path or dot_git.exists() or dot_git.is_symlink():
+            return True
+    return False
+
+
 def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     """What the working tree adds to ``HEAD``, as a short hash.
 
@@ -103,9 +118,16 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     A prey clone is expected to be clean and answers ``"clean"`` for the price of an empty
     diff. It is asked anyway, because "a clone is never edited" is an assumption about a
     directory on someone's disk, and an interrupted fetch is enough to break it.
+
+    A populated submodule is a working tree the diff does not look into: asking git about its
+    contents means starting a git inside it under the submodule's own config. The miners still
+    read its files, so a tree with one is not one this can vouch for either.
     """
     if git is None:
         return ""
+    index = git.try_run("ls-files", "--stage", "-z")
+    if index is None or _has_populated_submodule(index, root):
+        return "unknown"
     diff = git.try_run("diff", "HEAD")
     # Include ignored files: miners can still observe them, so they must block cache reuse too.
     untracked = git.try_run("ls-files", "--others")
