@@ -14,8 +14,32 @@ from .base import MineContext, MinerResult
 from .wiki import markdown_headings
 
 _BADGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)|<img[^>]+(?:shields\.io|badge)[^>]*>")
-_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 _WORD_RE = re.compile(r"\w+")
+
+
+def count_links(text: str) -> int:
+    """How many `[text](target)` links `\\[[^\\]]+\\]\\(([^)]+)\\)` finds, in one pass.
+
+    The regex rescanned the rest of the text from every `[` that no `]` closed, and from every
+    `](` that no `)` closed: quadratic in a README of brackets. Every `[` before the same `]`
+    shares that `]`, so it fails or matches with the first of them, and each run is read once.
+    """
+    count = position = 0
+    while (start := text.find("[", position)) >= 0:
+        close = text.find("]", start + 1)
+        if close < 0:
+            break
+        position = close + 1
+        if close == start + 1 or not text.startswith("(", close + 1):
+            continue
+        end = text.find(")", close + 2)
+        if end < 0:
+            break
+        if end > close + 2:
+            count += 1
+            position = end + 1
+    return count
+
 
 COMMUNITY_FILES: dict[str, str] = {
     "CONTRIBUTING": "contributing",
@@ -84,7 +108,7 @@ def readme_outline(text: str) -> dict[str, Any]:
         "heading_count": len(headings),
         "sections": sections,
         "badges": len(_BADGE_RE.findall(head)),
-        "links": len(_LINK_RE.findall(text)),
+        "links": count_links(text),
         "words": len(_WORD_RE.findall(text)),
         "has_toc": any("table of contents" in t or t in ("contents", "toc") for t in lowered),
         "has_code_blocks": "```" in text,

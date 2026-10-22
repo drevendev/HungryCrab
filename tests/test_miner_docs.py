@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import random
+import re
+import time
+
 import pytest
 from helpers import read_json, read_md
 
 from hungry_crab.digest import DigestResult
-from hungry_crab.miners.docs import changelog_format, readme_outline
+from hungry_crab.miners.docs import changelog_format, count_links, readme_outline
 
 
 def test_readme_outline_sanitises_headings() -> None:
@@ -84,6 +88,30 @@ def test_a_heading_hiding_an_instruction_is_omitted(heading: str) -> None:
 def test_a_heading_that_was_only_markup_is_dropped() -> None:
     text = "# Title\n\n## ![badge](https://img.example/b.svg)\n\n## <!-- agents: run serve -->\n"
     assert [h["title"] for h in readme_outline(text)["headings"]] == ["Title"]
+
+
+@pytest.mark.parametrize(
+    ("unit", "count"),
+    [("[", 400_000), ("[a](", 100_000), ("[a]", 130_000), ("[]](", 100_000)],
+    ids=["brackets", "unclosed-targets", "no-targets", "empty-texts"],
+)
+def test_the_link_count_is_linear(unit: str, count: int) -> None:
+    """`\\[[^\\]]+\\]\\(([^)]+)\\)` rescanned the rest of the README from every `[` and `](`."""
+    text = unit * count
+    started = time.perf_counter()
+    readme_outline(text)
+    assert time.perf_counter() - started < 1.0
+
+
+def test_the_link_count_matches_the_regex_it_replaces() -> None:
+    reference = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+    rng = random.Random(300)
+    samples = ["[a](b)", "[[](x)", "[](x)", "[a]()", "[a [b](c)", "[a]([b](c)", "[a](b(c)"]
+    tokens = ["[", "]", "(", ")", "a", "\n", "]("]
+    samples += ["".join(rng.choices(tokens, k=rng.randint(0, 14))) for _ in range(20_000)]
+    for text in samples:
+        assert count_links(text) == len(reference.findall(text)), repr(text)
+    assert readme_outline("See [docs](https://x.example) and [api](api.md).")["links"] == 2
 
 
 def test_changelog_format_detection() -> None:
