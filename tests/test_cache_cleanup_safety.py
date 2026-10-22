@@ -67,3 +67,40 @@ def test_locked_cache_failure_has_actionable_error(
         rmtree_force(cache)
     assert error.value.hint is not None and "Close programs" in error.value.hint
     assert sentinel.read_text(encoding="utf-8") == "keep until lock clears"
+
+
+def test_cache_root_beneath_symlinked_parent_is_allowed(tmp_path: Path) -> None:
+    physical = tmp_path / "physical-cache-disk"
+    physical.mkdir()
+    alias = tmp_path / "cache-alias"
+    try:
+        alias.symlink_to(physical, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks are unavailable here")
+
+    trusted_root = alias / "hungry-crab"
+    target = trusted_root / "github" / "owner" / "repo"
+    target.mkdir(parents=True)
+    (target / "cache.txt").write_text("disposable", encoding="utf-8")
+    rmtree_force(target, trusted_root=trusted_root)
+    assert not target.exists()
+    assert physical.is_dir()
+
+
+def test_link_inside_trusted_cache_root_is_refused(tmp_path: Path) -> None:
+    trusted_root = tmp_path / "cache"
+    trusted_root.mkdir()
+    external = tmp_path / "external"
+    victim = external / "owner" / "repo"
+    victim.mkdir(parents=True)
+    sentinel = victim / "human-notes.txt"
+    sentinel.write_text("preserve me", encoding="utf-8")
+    alias = trusted_root / "github"
+    try:
+        alias.symlink_to(external, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks are unavailable here")
+
+    with pytest.raises(CrabError, match="link/reparse"):
+        rmtree_force(alias / "owner" / "repo", trusted_root=trusted_root)
+    assert sentinel.read_text(encoding="utf-8") == "preserve me"

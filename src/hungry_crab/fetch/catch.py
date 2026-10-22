@@ -71,13 +71,20 @@ def parse_since(text: str, *, now: datetime | None = None) -> date:
         ) from exc
 
 
-def rmtree_force(path: Path) -> None:
+def rmtree_force(path: Path, *, trusted_root: Path | None = None) -> None:
     """Delete one cache tree without recursively changing permissions outside it.
 
     A failed deletion can leave cache debris. It is safer to report that state than
     to chmod symlink/junction targets or hide a partially removed checkout.
     """
-    for component in (path, *path.parents):
+    # The configured cache root (and its parents) may intentionally be mounted
+    # through a junction or symlink. Refuse links *inside* that trusted root.
+    boundary = (trusted_root if trusted_root is not None else path.parent).absolute()
+    target = path.absolute()
+    if target == boundary or not target.is_relative_to(boundary):
+        raise CrabError(f"cache deletion target {path} is outside trusted root {boundary}")
+    component = target
+    while component != boundary:
         try:
             info = component.lstat()
         except OSError as exc:
@@ -87,6 +94,7 @@ def rmtree_force(path: Path) -> None:
             & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         ):
             raise CrabError(f"refusing cache deletion through link/reparse path {component}")
+        component = component.parent
 
     def retry_readonly(func: Callable[..., object], filename: str, _failure: object) -> None:
         """Repair only the item that failed, after refusing any link/junction component."""
@@ -151,7 +159,7 @@ def catch(
 
     if opts.force and repo_dir.exists():
         log(f"removing previous clone at {repo_dir}")
-        rmtree_force(repo_dir)
+        rmtree_force(repo_dir, trusted_root=cache_root if cache_root is not None else paths.root.parent.parent.parent)
 
     updated = False
     if (repo_dir / ".git").exists():
@@ -164,7 +172,7 @@ def catch(
         updated = True
     else:
         if repo_dir.exists():
-            rmtree_force(repo_dir)
+            rmtree_force(repo_dir, trusted_root=cache_root if cache_root is not None else paths.root.parent.parent.parent)
         log(f"cloning {url} into {repo_dir}")
         parent = GitRunner(paths.root, timeout=3600)
         parent.run(*clone_arguments(opts, now=now), url, str(repo_dir))
