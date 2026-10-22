@@ -7,6 +7,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-22
+
+A security release on 0.6.0 Everywhere, with no new features. It fixes two vulnerabilities
+that let a hostile prey's own git configuration run a program, published as
+[GHSA-rjrx-3h4x-g7m4](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-rjrx-3h4x-g7m4)
+(a local prey's submodule filter during `crab digest`) and
+[GHSA-vp52-vp37-p63w](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-vp52-vp37-p63w)
+(`git -C` into a git directory shipped inside the prey, allowed by the prey guard), and every
+other finding of the 2026-10-22 review that broke a promise of the threat model in
+`SECURITY.md`, after an independent review and a re-review of the fixes
+([#380](https://github.com/drevendev/HungryCrab/pull/380)). Update the CLI and the plugins:
+Claude Code offers the plugin update with this version.
+
 ### Security
 
 - **No prey program runs through git.** No crab git command starts a child git inside a local
@@ -831,6 +844,7 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.6.0
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0
