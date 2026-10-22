@@ -36,7 +36,7 @@ from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
-from .fs import read_text
+from .fs import is_link_stat, read_text
 from .miners import MINER_NAMES, MineContext, Miner, select_miners
 from .miners.base import bounded_warnings
 from .tokens import estimate_tokens
@@ -377,6 +377,14 @@ def _previous_explicit_output_ownership(out_dir: Path) -> set[str]:
     return entry_names | {MANIFEST_NAME}
 
 
+def _is_link(path: Path) -> bool:
+    """A symlink or a Windows directory junction, which ``is_symlink`` alone misses."""
+    try:
+        return is_link_stat(path.lstat())
+    except OSError:
+        return False
+
+
 def _publish_explicit_output(staged: Path, destination: Path) -> None:
     """Publish one staged explicit digest without overwriting caller-owned files.
 
@@ -385,7 +393,7 @@ def _publish_explicit_output(staged: Path, destination: Path) -> None:
     Existing names may be replaced or removed only when a previous valid manifest proved that
     exact name belonged to the crab. The new manifest moves last, after all producer artifacts.
     """
-    if destination.exists() and (destination.is_symlink() or not destination.is_dir()):
+    if destination.exists() and (_is_link(destination) or not destination.is_dir()):
         raise CrabError(
             f"explicit digest output is not a real directory: {destination}",
             hint="choose an empty directory or a previous Hungry Crab digest directory",

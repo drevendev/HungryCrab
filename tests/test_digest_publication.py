@@ -212,3 +212,26 @@ def test_publication_ref_is_a_regular_small_pointer_file(tmp_path: Path) -> None
     assert ref_path.is_file()
     assert resolve_canonical_digest(digests, SHA).path == generation.path
     assert not list(ref_path.parent.glob(f".{SHA}.*.tmp"))
+
+
+@LINK_KINDS
+def test_explicit_output_through_a_link_is_refused(
+    kind: str, npm_app: Path, tmp_path: Path
+) -> None:
+    """`--out` that is a symlink or a junction must not carry the digest elsewhere."""
+    from conftest import FIXED_NOW
+
+    from hungry_crab.cache import Target
+    from hungry_crab.digest import DigestOptions, run_digest
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    out = tmp_path / "out"
+    _symlink_directory(outside, out, kind)
+
+    with pytest.raises(CrabError, match="not a real directory"):
+        run_digest(
+            Target(path=npm_app),
+            DigestOptions(out=out, now=FIXED_NOW, cache_root=tmp_path / "cache"),
+        )
+    assert list(outside.iterdir()) == []
