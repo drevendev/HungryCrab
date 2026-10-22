@@ -238,6 +238,183 @@ def test_the_cache_root_itself_is_still_recognised(command: str) -> None:
     assert (guard_reason(command, root=CACHE) is None) is expected_allowed
 
 
+@pytest.fixture
+def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A home directory under tmp_path, with a maw in it; the default cache root is its own."""
+    home = (tmp_path / "home").resolve()
+    (home / "work" / "maw").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    for name in ("CRAB_CACHE_DIR", "FOO", "X", "TMPDIR"):
+        monkeypatch.delenv(name, raising=False)
+    return home
+
+
+TAIL = "github/acme/widget/repo/setup.py"
+
+# Commands whose words the shell assembles into a path in the cache (HungryCrab#142).
+ASSEMBLED = [
+    f"d=hungry-crab; python ~/.cache/$d/{TAIL}",
+    f"p=$HOME/.cache; python $p/hungry-crab/{TAIL}",
+    f"python ~/.cache/hungry-{{crab,}}/{TAIL}",
+    f"python ~/.cache/hungry-cra?/{TAIL}",
+    f"python ~/.cache/hungry-*/{TAIL}",
+    f"python ~/.cache/[h]ungry-crab/{TAIL}",
+    f"python $(echo ~/.cache)/hungry-crab/{TAIL}",
+    f"python `echo ~/.cache`/hungry-crab/{TAIL}",
+    f"cd ~/.cache && python hungry-crab/{TAIL}",
+    "cd ~/.cache && cd hungry-crab/github/acme/widget/repo && python setup.py",
+    f"(cd ~/.cache; python hungry-crab/{TAIL})",
+    f"x=~/.cache; python $x/*/{TAIL}",
+    f"for d in ~/.cache; do python $d/*/{TAIL}; done",
+    f"python ${{X:-~/.cache}}/*/{TAIL}",
+    f"python ~/.c*/hungry-crab/{TAIL}",
+    f"python ~/.*/hungry-crab/{TAIL}",
+    "python ~/.cache/**/setup.py",
+    f"python ~/.cache/*/../hungry-crab/{TAIL}",
+    f"python $FOO/hungry-crab/{TAIL}",
+    f"python ${{FOO}}-crab/{TAIL}",
+    "find ~/.cache -name setup.py -exec python {} ;",
+    f"ls -d ~/.cache/* | xargs -I{{}} python {{}}/{TAIL}",
+    f"bash -c 'python $0/*/{TAIL}' ~/.cache",
+    f"~/.cache/hungry-*/{TAIL.replace('setup.py', 'bin/cat')} README.md",
+    f"python ~/.cache/hungry-*/{TAIL} $'\\''",
+    f'python ~/.cache/hungry-*/{TAIL} "',
+]
+
+# Ordinary commands that never approach the cache: the guard runs on every Bash call, so a
+# refusal here is a real cost.
+ORDINARY = [
+    "echo $HOME",
+    "echo $PATH $1 $@ $? $$",
+    "echo $FOO",
+    "python $PWD/x.py",
+    "ls ~/.cache",
+    "ls ~",
+    "cd ~ && ls",
+    "git status",
+    'git commit -m "fix: $msg"',
+    "git log --oneline HEAD~3..HEAD",
+    "git -C ../other log",
+    "npm run build",
+    "uv run pytest -q",
+    "uv tool install hungry-crab",
+    "uv run --project ~/.claude/plugins/cache/hungry-crab/crab/0.6.1-dev.0 crab menu",
+    "find . -name '*.py'",
+    "find . -name '*.py' -exec grep -l foo {} +",
+    "rg 'foo.*bar' src",
+    "ls *.md",
+    "rm -rf build/*",
+    "cp ~/*.txt /tmp",
+    'python -c "print(2*3)"',
+    "for f in *.py; do echo $f; done",
+    "cd $(git rev-parse --show-toplevel) && make",
+    'cd "$TMPDIR" && make',
+    "export PATH=$HOME/bin:$PATH",
+    "du -sh ~/.cache/pip",
+    "rm -rf ~/.cache/pip/*",
+    "python ~/.cache/pip/*.py",
+    "ls ~/.cache/hungry-crab-other/*",
+    "cat ~/.bashrc",
+    "echo {a,b} && mkdir -p src/{a,b}",
+    "echo $((1 + 2))",
+    "printf '%s\\n' \"$x\"",
+    "ls -la | grep foo",
+    "xargs -I{} echo {}",
+]
+
+
+@pytest.mark.parametrize("command", ASSEMBLED)
+def test_a_cache_path_the_shell_assembles_is_judged(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    reason = guard_reason(command, root=root, cwd=home / "work" / "maw")
+    assert reason is not None
+    assert "rule 3" in reason
+
+
+@pytest.mark.parametrize("command", ORDINARY)
+def test_ordinary_commands_stay_allowed(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
+
+
+@pytest.mark.parametrize(
+    "command", ["ls *", "echo $FOO", "grep -r foo *", "python script.py", "git status"]
+)
+def test_ordinary_commands_stay_allowed_from_the_home_directory(command: str, home: Path) -> None:
+    """A glob does not match the leading dot of `.cache`, so `*` in `~` cannot reach it."""
+    assert guard_reason(command, root=home / ".cache" / "hungry-crab", cwd=home) is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"cat ~/.cache/hungry-*/{TAIL.replace('setup.py', 'README.md')}",
+        "ls ~/.cache/*",
+        f"rg -n TODO ~/.cache/hungry-crab/{TAIL.removesuffix('/setup.py')}",
+    ],
+)
+def test_readers_over_an_assembled_cache_path_stay_allowed(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
+
+
+def test_a_custom_root_spelled_through_the_environment_is_judged(home: Path) -> None:
+    root = home / "prey"
+    commands = [
+        f"python $HOME/prey/{TAIL}",
+        f'python "${{HOME}}/prey/{TAIL}"',
+        f'python "%USERPROFILE%\\prey\\{TAIL}"',
+        f'python "$env:USERPROFILE\\prey\\{TAIL}"',
+    ]
+    for command in commands:
+        assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None, command
+    assert guard_reason("cd ~ && make", root=root, cwd=home / "work" / "maw") is None
+
+
+@pytest.mark.parametrize(
+    ("command", "from_clone"),
+    [
+        ("git -C ~/.cache/hungry-crab/github/acme/widget/repo log --oneline -- src/core.py", False),
+        ("git -C ~/.cache/hungry-crab/github/acme/widget/repo show --stat abc1234", False),
+        ("git --no-pager -C ~/.cache/hungry-crab/github/acme/widget/repo blame README.md", False),
+        ("git -C ~/.cache/hungry-crab/github/acme/widget/repo diff abc1234 def5678", False),
+        ("git log --oneline -- src/core.py", True),
+        ("git show --stat abc1234", True),
+        ("git blame -- README.md", True),
+        ("git diff abc1234 def5678 -- src/", True),
+    ],
+)
+def test_the_historians_documented_commands_run_in_the_cached_clone(
+    command: str, from_clone: bool, home: Path
+) -> None:
+    """`agents/crab-historian.md`: `git log`, `git show --stat`, `git blame`, `git diff`."""
+    root = home / ".cache" / "hungry-crab"
+    clone = root / "github" / "acme" / "widget" / "repo"
+    (clone / ".git").mkdir(parents=True)
+    cwd = clone if from_clone else home / "work" / "maw"
+    assert guard_reason(command, root=root, cwd=cwd) is None
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Git Bash drive paths exist on Windows only")
+def test_a_git_bash_drive_path_is_the_windows_path(home: Path) -> None:
+    root = home / "prey"
+    msys = f"/{home.drive[0].lower()}{home.as_posix()[2:]}/prey/{TAIL}"
+    assert guard_reason(f"python {msys}", root=root, cwd=home / "work" / "maw") is not None
+    assert guard_reason(f"cat {msys}", root=root, cwd=home / "work" / "maw") is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [f"cat {PREY}/README.md |& sh", f"cat {PREY}/README.md >| /tmp/x.sh", f"cat {PREY}/x &>> y"],
+)
+def test_every_operator_run_is_shell_composition(command: str) -> None:
+    """`shlex` keeps `|&`, `>|` and `&>>` together; each is composition, not an argument."""
+    reason = guard_reason(command, root=CACHE)
+    assert reason is not None
+    assert "composition" in reason
+
+
 def _ship_git_dir(directory: Path, *, worktree: str | None = None) -> None:
     """What a prey can commit: an ordinary directory git accepts as a repository."""
     for sub in ("objects/97", "refs/heads"):
