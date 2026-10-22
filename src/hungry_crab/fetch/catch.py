@@ -87,6 +87,7 @@ def rmtree_force(path: Path) -> None:
             & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         ):
             raise CrabError(f"refusing cache deletion through link/reparse path {component}")
+
     def retry_readonly(func: Callable[..., object], filename: str, _failure: object) -> None:
         """Repair only the item that failed, after refusing any link/junction component."""
         item = Path(filename)
@@ -98,11 +99,9 @@ def rmtree_force(path: Path) -> None:
                 info = component.lstat()
             except OSError as exc:
                 raise CrabError(f"cannot inspect cache cleanup component {component}") from exc
-            if (
-                not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode))
-                or getattr(info, "st_file_attributes", 0)
-                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
-            ):
+            if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)) or getattr(
+                info, "st_file_attributes", 0
+            ) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
                 raise CrabError(f"refusing chmod through a cache link/reparse point: {component}")
             component = component.parent
         try:
