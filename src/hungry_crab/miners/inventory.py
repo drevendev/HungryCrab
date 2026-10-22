@@ -18,6 +18,7 @@ from typing import Any
 
 from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_link_stat, looks_binary
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from .base import FileInfo, MineContext, MinerResult
 
 LANGUAGE_BY_EXT: dict[str, str] = {
@@ -798,7 +799,11 @@ class InventoryMiner:
                     else 0,
                 ),
                 ("Manifests", len(data["manifests"])),
-                ("Lock files", ", ".join(lock["path"] for lock in data["lockfiles"]) or "none"),
+                (
+                    "Lock files",
+                    ", ".join(safe_name(lock["path"], "path") for lock in data["lockfiles"])
+                    or "none",
+                ),
                 ("Git flags", ", ".join(k for k, v in data["flags"].items() if v) or "none"),
             ]
         )
@@ -817,7 +822,7 @@ class InventoryMiner:
             ["Entry", "Role", "Files", "LOC", "Main language"],
             (
                 [
-                    row["path"] + ("/" if row["kind"] == "dir" else ""),
+                    safe_name(row["path"] + ("/" if row["kind"] == "dir" else ""), "path"),
                     row["role"],
                     row["files"],
                     row["loc"],
@@ -828,24 +833,34 @@ class InventoryMiner:
             max_rows=40,
         )
         manifests = doc.section("Manifests and entry points", priority=2)
-        manifests.bullets((f"{m['path']} ({m['kind']})" for m in data["manifests"]), max_items=25)
+        manifests.bullets(
+            (f"{safe_name(m['path'], 'path')} ({m['kind']})" for m in data["manifests"]),
+            max_items=25,
+        )
         if data["entry_points"]:
             manifests.line("Entry points:")
             manifests.bullets(
-                (f"{e['kind']}: {e['value']}" for e in data["entry_points"]), max_items=15
+                (
+                    f"{e['kind']}: {safe_name(e['value'], 'entry point')}"
+                    for e in data["entry_points"]
+                ),
+                max_items=15,
             )
         largest = doc.section("Largest files", priority=3)
         largest.table(
             ["Path", "KB", "LOC", "Generated"],
             (
-                [f["path"], f"{f['bytes'] / 1024:.0f}", f["loc"], f["generated"]]
+                [safe_name(f["path"], "path"), f"{f['bytes'] / 1024:.0f}", f["loc"], f["generated"]]
                 for f in data["largest_files"]
             ),
         )
         if data["vendored_or_generated"]:
             noise = doc.section("Vendored, sample corpus, generated or build output", priority=3)
             noise.bullets(
-                (f"{n['path']}: {n['files']} files" for n in data["vendored_or_generated"]),
+                (
+                    f"{safe_name(n['path'], 'path')}: {n['files']} files"
+                    for n in data["vendored_or_generated"]
+                ),
                 max_items=15,
             )
         notes = doc.section("Notes", priority=4)

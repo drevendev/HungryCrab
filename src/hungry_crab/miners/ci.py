@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from ..typeutil import as_dict, as_list
 from .base import MineContext, MinerResult
 
@@ -675,14 +676,15 @@ class CiMiner:
                 ("Other CI systems", ", ".join(features["other_ci"]) or "none"),
             ]
         )
+        # Every name below is the prey's choice and passes the instruction gate; ci.json keeps it.
         if data["workflows"]:
             table = doc.section("Workflows", priority=1)
             table.table(
                 ["Workflow", "Triggers", "Jobs", "Matrix", "Cache", "Permissions", "Concurrency"],
                 (
                     [
-                        wf["name"],
-                        ", ".join(wf["triggers"]),
+                        safe_name(wf["name"], "workflow"),
+                        ", ".join(safe_name(t, "trigger") for t in wf["triggers"]),
                         len(wf["jobs"]),
                         wf["matrix"],
                         wf["cache"],
@@ -700,9 +702,9 @@ class CiMiner:
                 ["Workflow", "Job", "Runs on", "Matrix", "Steps", "Timeout"],
                 (
                     [
-                        wf["name"],
-                        job["name"] or job["id"],
-                        job["runs_on"],
+                        safe_name(wf["name"], "workflow"),
+                        safe_name(job["name"] or job["id"], "job"),
+                        safe_name(job["runs_on"], "runner"),
                         ", ".join(f"{k}x{v}" for k, v in job["matrix"]["axes"].items())
                         if job["matrix"] and "axes" in job["matrix"]
                         else "",
@@ -718,7 +720,12 @@ class CiMiner:
             actions.table(
                 ["Action", "Refs", "Uses", "SHA pinned"],
                 (
-                    [name, ", ".join(info["refs"]), info["count"], info["pinned_sha"]]
+                    [
+                        safe_name(name, "action"),
+                        ", ".join(safe_name(ref, "ref") for ref in info["refs"]),
+                        info["count"],
+                        info["pinned_sha"],
+                    ]
                     for name, info in data["actions"].items()
                 ),
                 max_rows=40,
@@ -730,14 +737,21 @@ class CiMiner:
             bots = doc.section("Dependency updates", priority=3)
             bots.bullets(
                 (
-                    f"dependabot: {u['ecosystem']} in {u['directory']} ({u['interval'] or 'n/a'})"
-                    + (f", groups: {', '.join(u['groups'])}" if u["groups"] else "")
+                    safe_name(
+                        f"dependabot: {u['ecosystem']} in {u['directory']} "
+                        f"({u['interval'] or 'n/a'})"
+                        + (f", groups: {', '.join(u['groups'])}" if u["groups"] else ""),
+                        "update",
+                    )
                     for u in data["dependabot"]["updates"]
                 ),
                 max_items=15,
             )
         if data["renovate"]:
             bots = doc.section("Renovate", priority=3)
-            extends = ", ".join(data["renovate"]["extends"]) or "default"
+            extends = (
+                ", ".join(safe_name(preset, "preset") for preset in data["renovate"]["extends"])
+                or "default"
+            )
             bots.bullets([f"{data['renovate']['path']}: extends {extends}"])
         return doc
