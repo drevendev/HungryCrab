@@ -35,6 +35,13 @@ def test_parse_since_rejects_nonsense() -> None:
         parse_since("yesterday", now=NOW)
 
 
+@pytest.mark.parametrize("text", ["3000y", "99999999999d"])
+def test_parse_since_rejects_values_beyond_the_date_range(text: str) -> None:
+    """A relative value that would reach before year 1 is a usage error, not a traceback."""
+    with pytest.raises(UsageError, match="cannot parse --since"):
+        parse_since(text, now=NOW)
+
+
 def test_clone_arguments() -> None:
     assert clone_arguments(CatchOptions()) == ["clone", "--quiet"]
     assert clone_arguments(CatchOptions(shallow=True)) == [
