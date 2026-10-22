@@ -305,24 +305,44 @@ def _junction_tree(tmp_path: Path) -> tuple[Path, Path]:
     return outside, prey
 
 
-def test_walk_tree_does_not_descend_into_a_reparse_point(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A directory whose lstat carries the reparse attribute is a link on every platform (#323)."""
-    _, prey = _junction_tree(tmp_path)
-    suspect = str(prey / "src")
+IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003  # a directory junction: a name surrogate
+IO_REPARSE_TAG_CLOUD_6 = 0x9000601A  # a OneDrive placeholder folder: holds its own content
+
+
+def _fake_reparse_lstat(monkeypatch: pytest.MonkeyPatch, suspect: str, tag: int) -> None:
     real_lstat = os.lstat
 
     def lstat(path: str | os.PathLike[str], *args: object, **kwargs: object) -> object:
         record = real_lstat(path, *args, **kwargs)
         if os.fspath(path) == suspect:
-            return SimpleNamespace(st_mode=record.st_mode, st_file_attributes=0x400)
+            return SimpleNamespace(
+                st_mode=record.st_mode, st_file_attributes=0x400, st_reparse_tag=tag
+            )
         return record
 
     monkeypatch.setattr(os, "lstat", lstat)
+
+
+def test_walk_tree_does_not_descend_into_a_reparse_point(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A directory whose lstat says junction is a link on every platform (#323)."""
+    _, prey = _junction_tree(tmp_path)
+    _fake_reparse_lstat(monkeypatch, str(prey / "src"), IO_REPARSE_TAG_MOUNT_POINT)
     files, stats = walk_tree(prey, max_files=MAX_FILES["normal"])
     assert [info.path for info in files] == ["a.py"]
     assert stats["symlinks"] == 1
+
+
+def test_walk_tree_enters_a_cloud_placeholder_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A OneDrive folder is a reparse point that is not a name surrogate: it is walked."""
+    _, prey = _junction_tree(tmp_path)
+    _fake_reparse_lstat(monkeypatch, str(prey / "src"), IO_REPARSE_TAG_CLOUD_6)
+    files, stats = walk_tree(prey, max_files=MAX_FILES["normal"])
+    assert sorted(info.path for info in files) == ["a.py", "src/b.py"]
+    assert stats["symlinks"] == 0
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="directory junctions exist only on Windows")

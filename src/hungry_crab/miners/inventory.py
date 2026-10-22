@@ -16,7 +16,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_reparse_point, looks_binary
+from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_link_stat, looks_binary
 from ..mdutil import MdDoc
 from .base import FileInfo, MineContext, MinerResult
 
@@ -274,19 +274,18 @@ def describe_file(
 
 
 def _is_link_dir(full: str) -> bool:
-    """A symlink or a Windows reparse point, which the walk must not descend into (#323).
+    """A symlink or a Windows directory junction, which the walk must not descend into (#323).
 
     ``os.path.islink``, and with it ``os.walk(followlinks=False)``, sees only true symlinks: a
     directory junction, which ``mklink /J``, ``npm link`` and other tools create without
-    privilege, reads as a plain directory and would carry the walk outside the tree. Files keep
-    the plain symlink test: a file cannot be a junction, and a file reparse point that is not a
-    symlink (a cloud placeholder, a deduplicated or compressed file) holds its own content.
+    privilege, reads as a plain directory and would carry the walk outside the tree. Other
+    reparse points (a OneDrive placeholder folder) hold their own content and are walked.
     """
     try:
         info = os.lstat(full)
     except OSError:
         return False
-    return stat.S_ISLNK(info.st_mode) or is_reparse_point(info)
+    return is_link_stat(info)
 
 
 def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, Any]]:
@@ -565,7 +564,7 @@ def entry_points(root: Path, files: list[FileInfo]) -> list[dict[str, str]]:
     if "package.json" in by_path:
         try:
             pkg = json.loads((root / "package.json").read_text(encoding="utf-8", errors="replace"))
-        except (OSError, ValueError):
+        except (OSError, ValueError, RecursionError, MemoryError):
             pkg = None
         if isinstance(pkg, dict):
             for key in ("main", "module", "browser"):
@@ -588,7 +587,7 @@ def entry_points(root: Path, files: list[FileInfo]) -> list[dict[str, str]]:
             project = tomllib.loads(
                 (root / "pyproject.toml").read_text(encoding="utf-8", errors="replace")
             ).get("project", {})
-        except (OSError, tomllib.TOMLDecodeError):
+        except (OSError, tomllib.TOMLDecodeError, RecursionError, MemoryError):
             project = {}
         for section in ("scripts", "gui-scripts"):
             scripts = project.get(section) if isinstance(project, dict) else None
