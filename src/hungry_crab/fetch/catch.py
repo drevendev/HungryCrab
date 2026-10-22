@@ -17,7 +17,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from ..cache import Slug, prey_paths
-from ..errors import UsageError
+from ..errors import CrabError, UsageError
 from .git import GitRunner
 from .github import GitHubClient
 from .issues import fetch_issues, write_issues
@@ -72,13 +72,28 @@ def parse_since(text: str, *, now: datetime | None = None) -> date:
 
 
 def rmtree_force(path: Path) -> None:
-    """``shutil.rmtree`` that copes with read-only git objects on Windows."""
-    for child in path.rglob("*"):
+    """Delete one cache tree without recursively changing permissions outside it.
+
+    A failed deletion can leave cache debris. It is safer to report that state than
+    to chmod symlink/junction targets or hide a partially removed checkout.
+    """
+    for component in (path, *path.parents):
         try:
-            child.chmod(child.stat().st_mode | stat.S_IWRITE)
-        except OSError:
-            continue
-    shutil.rmtree(path)
+            info = component.lstat()
+        except OSError as exc:
+            raise CrabError(f"cannot inspect cache deletion path {component}: {exc}") from exc
+        if not stat.S_ISDIR(info.st_mode) or (
+            getattr(info, "st_file_attributes", 0)
+            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+        ):
+            raise CrabError(f"refusing cache deletion through link/reparse path {component}")
+    try:
+        shutil.rmtree(path)
+    except OSError as exc:
+        raise CrabError(
+            f"cannot safely remove cached files in {path}: {exc}",
+            hint="Close programs holding files and inspect what remains. No chmod traversal was attempted.",
+        ) from exc
 
 
 def clone_arguments(options: CatchOptions, *, now: datetime | None = None) -> list[str]:
