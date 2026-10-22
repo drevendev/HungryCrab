@@ -88,18 +88,32 @@ class AnalysisService:
 
         A plain directory under a root that sits inside a repository outside the roots (a
         dotfiles repository at the home directory, a monorepo above a vendor drop) would
-        otherwise hand that repository's log, paths and tags to the client.
+        otherwise hand that repository's log, paths and tags to the client. The work tree is not
+        the whole answer: a ``.git`` file (``gitdir: <path>``), a ``.git`` link or a worktree's
+        ``commondir`` moves the git directory, and with it the history, without moving the work
+        tree, so the git and common directories must lie under a root too.
         """
         if not GitRunner.available():
             return
-        top = GitRunner(path).try_run("rev-parse", "--show-toplevel")
-        if not top or not top.strip():
-            return
-        toplevel = Path(top.strip()).resolve()
-        if not any(toplevel.is_relative_to(root) for root in self.roots):
+        git = GitRunner(path)
+        top = (git.try_run("rev-parse", "--show-toplevel") or "").strip()
+        if top and not any(Path(top).resolve().is_relative_to(root) for root in self.roots):
             raise UsageError(
                 "this directory belongs to a git repository outside the operator-approved roots"
             )
+        out = git.try_run("rev-parse", "--absolute-git-dir", "--git-common-dir") or ""
+        git_dirs = [line for line in out.splitlines() if line.strip()]
+        if top and not git_dirs:
+            raise UsageError("cannot tell where this repository's git directory lies")
+        for line in git_dirs:
+            # `--git-common-dir` may print a path relative to the directory git ran in.
+            where = (path / line).resolve()
+            if not any(where.is_relative_to(root) for root in self.roots) or where.is_relative_to(
+                self.cache
+            ):
+                raise UsageError(
+                    "this directory's git directory lies outside the operator-approved roots"
+                )
 
     def prey(self, value: str) -> Target:
         if not value.strip() or "\x00" in value:
