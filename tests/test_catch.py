@@ -35,6 +35,15 @@ def test_parse_since_rejects_nonsense() -> None:
         parse_since("yesterday", now=NOW)
 
 
+@pytest.mark.parametrize("text", ["3000y", "99999999999d", "999999999999999999999w"])
+def test_parse_since_rejects_values_that_overflow(text: str) -> None:
+    """A relative value can name a date before year 1, or more days than a C int
+    holds. Either way the value is unusable, so it is a usage error, not a crash.
+    """
+    with pytest.raises(UsageError, match="cannot parse --since"):
+        parse_since(text, now=NOW)
+
+
 def test_clone_arguments() -> None:
     assert clone_arguments(CatchOptions()) == ["clone", "--quiet"]
     assert clone_arguments(CatchOptions(shallow=True)) == [

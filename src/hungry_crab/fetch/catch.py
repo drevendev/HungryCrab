@@ -83,12 +83,14 @@ def parse_since(text: str, *, now: datetime | None = None) -> date:
     """``2y`` / ``6m`` / ``90d`` / ``4w`` or an ISO date."""
     current = now or datetime.now(UTC)
     match = _SINCE_RE.match(text.strip().lower())
-    if match:
-        days = int(match.group(1)) * _UNIT_DAYS[match.group(2)]
-        return (current - timedelta(days=days)).date()
     try:
+        if match:
+            days = int(match.group(1)) * _UNIT_DAYS[match.group(2)]
+            return (current - timedelta(days=days)).date()
         return date.fromisoformat(text.strip())
-    except ValueError as exc:
+    except (ValueError, OverflowError) as exc:
+        # A relative value can name a date before year 1, or more days than a
+        # C int holds; both are an unparsable value, not a crash.
         raise UsageError(
             f"cannot parse --since value {text!r}",
             hint="use 2y, 6m, 90d or an ISO date such as 2024-01-01",

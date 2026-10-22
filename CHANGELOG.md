@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`--since` values that overflow are a usage error, not a crash.** A relative value can name a date
+  before year 1 (`--since 3000y`) or more days than a C int holds (`--since 99999999999d`). Both
+  raised `OverflowError` out of `parse_since`, so `catch`, `digest`, `compare` and `eat` printed a
+  traceback instead of the `cannot parse --since value ...` usage error. The relative-date
+  arithmetic now shares the `ValueError` branch's `UsageError`, so an unusable value exits 2 with
+  the existing hint and the cache is left untouched
+  ([#321](https://github.com/drevendev/HungryCrab/issues/321)).
+
 ## [0.6.1] - 2026-10-22
 
 A security release on 0.6.0 Everywhere, with no new features. It fixes two vulnerabilities
