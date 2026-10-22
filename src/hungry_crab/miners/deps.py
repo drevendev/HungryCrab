@@ -14,7 +14,11 @@ from .base import FileInfo, MineContext, MinerResult
 from .inventory import LOCKFILES
 
 _NPM_EXACT_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][\w.]+)?$")
-_PY_REQ_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*(.*?)\s*$")
+# Possessive whitespace and a specifier that ends on a non-space: `\s*(\[...\])?\s*(.*?)\s*$`
+# split each whitespace run quadratically many ways, minutes for one long requirement line.
+_PY_REQ_RE = re.compile(
+    r"^\s*+([A-Za-z0-9][A-Za-z0-9._-]*+)\s*+(?:(\[[^\]]*\])\s*+)?((?:.*\S)?)\s*$"
+)
 _DOTNET_EXACT_RE = re.compile(r"^\d+(?:\.\d+){1,3}(?:-[\w.]+)?$")
 # ``require`` is optional because go.mod has two spellings: a block, and a bare line per
 # requirement, which is what `go get` writes and what a module with one or two dependencies

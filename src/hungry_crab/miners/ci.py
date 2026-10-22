@@ -16,7 +16,10 @@ from .base import MineContext, MinerResult
 WORKFLOW_DIR = ".github/workflows/"
 _ACTION_RE = re.compile(r"^(?P<repo>[\w.-]+/[\w.-]+)(?P<path>/[^@\s]+)?@(?P<ref>\S+)$")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?(\S+?)['\"]?\s*#\s*(v?\d[\w.-]*)")
+# Matches every `uses:` and swallows its reference, so the search resumes after it; the version
+# comment is optional and checked by the caller. `(\S+?)...#` had to fail at each `uses:` of a
+# long run without a `#`, rescanning the rest of the run each time.
+_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?([^\s#'\"]*)['\"]?(?:\s*#\s*(v?\d[\w.-]*))?")
 _SECRET_RE = re.compile(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)")
 
 CACHE_ACTIONS = {
@@ -168,7 +171,12 @@ OTHER_CI_FILES: dict[str, str] = {
     "cloudbuild.yaml": "cloud-build",
     ".buildkite/pipeline.yml": "buildkite",
 }
-_PIPE_TO_SHELL_RE = re.compile(r"\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash)\b")
+# Each match swallows a download up to its first pipe, so a later `curl` before the same pipe,
+# which would meet the same pipe, is not rescanned; the shell is optional and checked by the
+# caller.
+_PIPE_TO_SHELL_RE = re.compile(
+    r"\b(?:curl|wget)\b[^\n|]*+(?:\|\s*(?:sudo\s+)?(?P<shell>sh|bash)\b)?"
+)
 _RUNNER_RE = re.compile(r"ubuntu|windows|macos", re.IGNORECASE)
 
 
@@ -392,7 +400,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     for name, pattern in COVERAGE_FLAGS:
                         if pattern.search(run):
                             coverage_flags.add(name)
-                    if _PIPE_TO_SHELL_RE.search(run):
+                    if any(found.group("shell") for found in _PIPE_TO_SHELL_RE.finditer(run)):
                         pipe_to_shell += 1
             jobs.append(
                 {
@@ -414,7 +422,11 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     "has_if": job.get("if") is not None,
                 }
             )
-    comment_versions = dict(_USES_COMMENT_RE.findall(text))
+    comment_versions = {
+        reference: version
+        for reference, version in _USES_COMMENT_RE.findall(text)
+        if reference and version
+    }
     for parsed in actions:
         if parsed["pinned_sha"]:
             full = f"{parsed['action']}@{parsed['ref']}"
