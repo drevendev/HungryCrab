@@ -409,7 +409,9 @@ def manifest_license(name: str, text: str) -> tuple[str | None, str]:
         if lowered == "setup.py":
             match = re.search(r"""license\s*=\s*["']([^"']+)["']""", text)
             return (normalize(match.group(1)) if match else None), ""
-    except (ValueError, TypeError, tomllib.TOMLDecodeError):
+    except (ValueError, TypeError, tomllib.TOMLDecodeError, RecursionError, MemoryError):
+        # Hostile nesting exhausts the parser's stack, not its grammar (#330): it is the same
+        # unparseable manifest, and it must not take the licence verdict down with it.
         return None, "unparseable manifest"
     return None, ""
 

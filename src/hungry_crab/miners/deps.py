@@ -554,7 +554,14 @@ class DepsMiner:
             text = ctx.read(info.path, limit=262_144)
             try:
                 parsed = parse_manifest(info, text)
-            except (ValueError, tomllib.TOMLDecodeError, ET.ParseError) as exc:
+            except (
+                ValueError,
+                tomllib.TOMLDecodeError,
+                ET.ParseError,
+                # Hostile nesting exhausts the parser's stack, not its grammar (#330).
+                RecursionError,
+                MemoryError,
+            ) as exc:
                 warnings.append(f"could not parse {info.path}: {type(exc).__name__}")
                 continue
             if parsed is None:

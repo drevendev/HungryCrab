@@ -421,7 +421,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
 def _parse_dependabot(text: str) -> dict[str, Any] | None:
     try:
         loaded = yaml.safe_load(text)
-    except yaml.YAMLError:
+    except (yaml.YAMLError, RecursionError, MemoryError):
         return None
     if not isinstance(loaded, dict):
         return None
@@ -462,7 +462,8 @@ class CiMiner:
             text = ctx.read(info.path, limit=262_144)
             try:
                 parsed = parse_workflow(text, info.path)
-            except yaml.YAMLError as exc:
+            except (yaml.YAMLError, RecursionError, MemoryError) as exc:
+                # Hostile nesting exhausts the parser's stack, not its grammar (#330).
                 warnings.append(f"{info.path}: YAML error ({type(exc).__name__})")
                 continue
             if parsed is not None:
@@ -503,7 +504,7 @@ class CiMiner:
                 loaded = json.loads(ctx.read(renovate_files[0]))
                 if isinstance(loaded, dict) and isinstance(loaded.get("extends"), list):
                     renovate["extends"] = [str(e) for e in loaded["extends"]][:10]
-            except ValueError:
+            except (ValueError, RecursionError, MemoryError):
                 pass
 
         action_index: dict[str, dict[str, Any]] = {}
