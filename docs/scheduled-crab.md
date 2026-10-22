@@ -24,7 +24,15 @@ loop:
   lease_minutes: 60
   protected: [src/licensing/**]  # additive; defaults cannot be removed
   release_files: [CHANGELOG.md, pyproject.toml, src/example/__init__.py]
+  required_checks: [tests, lint]  # exact GitHub check-run names required on the merge commit
 ```
+
+Tagging requires a non-empty `loop.required_checks` list owned by the maw. Every named check's
+latest run must be completed with conclusion `success` on the exact provider-confirmed merge
+SHA. Missing, skipped, neutral or unrelated successful checks cannot satisfy that list; a legacy
+commit status cannot substitute for a named check run. HARDEN waits without spending a phase
+while required merge checks are missing or unfinished. With no configured names, tagging refuses
+with a configuration hint. Ordinary PR-head CI evaluation is unchanged.
 
 All loop keys and limits are validated. Default protected paths are `.github/**`, `.git/**`,
 license files, `.crab.yml` and loop state. Set both `autonomy: work` and `work_authorized: true`

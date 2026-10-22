@@ -12,7 +12,7 @@ import yaml
 from hungry_crab.cache import Slug
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError, UsageError
-from hungry_crab.loop import LOOP_SCHEMA, Loop, atomic_json, ci_state, state_lock
+from hungry_crab.loop import LOOP_SCHEMA, Loop, atomic_json, ci_state, merge_ci_state, state_lock
 from hungry_crab.maw import MawConfig
 
 NOW = datetime(2026, 10, 6, 12, tzinfo=UTC)
@@ -70,12 +70,16 @@ def artifact(
         "merge_commit_sha": sha if merged else None,
         "merge_ci": {
             "sha": sha,
-            "checks": [{"id": 1, "name": "tests", "status": "completed", "conclusion": ci}],
+            "checks": [
+                {"id": 1, "name": "tests", "head_sha": sha, "status": "completed", "conclusion": ci}
+            ],
             "statuses": [],
         }
         if merged
         else None,
-        "checks": [{"id": 1, "name": "tests", "status": "completed", "conclusion": ci}],
+        "checks": [
+            {"id": 1, "name": "tests", "head_sha": sha, "status": "completed", "conclusion": ci}
+        ],
         "statuses": [],
     }
 
@@ -91,6 +95,7 @@ def loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Loop:
                 "loop": {
                     "autonomy": "work",
                     "work_authorized": True,
+                    "required_checks": ["tests"],
                     "prey": ["example/prey", "example/other"],
                     "budget": {"phases_per_day": 50},
                 }
@@ -219,6 +224,11 @@ def test_invalid_cost_receipt_never_changes_state(loop: Loop, value: object) -> 
         {"max_attempts": 0},
         {"budget": []},
         {"unknown": True},
+        {"required_checks": "tests"},
+        {"required_checks": [""]},
+        {"required_checks": ["  "]},
+        {"required_checks": [True]},
+        {"required_checks": [42]},
     ],
 )
 def test_loop_configuration_fails_closed(loop: Loop, value: dict[str, Any]) -> None:
@@ -422,7 +432,8 @@ def test_molt_harden_wait_for_merges_not_model_claims(loop: Loop) -> None:
 def test_ci_uses_latest_check_and_legacy_status_and_rejects_empty_suite() -> None:
     value = artifact()
     value["checks"].insert(
-        0, {"id": 0, "name": "tests", "status": "completed", "conclusion": "failure"}
+        0,
+        {"id": 0, "name": "tests", "head_sha": SHA, "status": "completed", "conclusion": "failure"},
     )
     assert ci_state(value) == "pass"
     value["statuses"] = [{"state": "pending"}]
@@ -499,3 +510,53 @@ def test_json_duplicate_keys_and_nonfinite_values_are_refused(tmp_path: Path, te
     path.write_text(text, encoding="utf-8")
     with pytest.raises(CrabError):
         read_json(path)
+
+
+@pytest.mark.parametrize("required", [[], ["tests"], ["tests", "lint"]])
+def test_merge_ci_requires_all_named_latest_checks_on_the_merge_sha(required: list[str]) -> None:
+    truth = artifact(merged=True)
+    expected = "pass" if required == ["tests"] else "pending"
+    assert merge_ci_state(truth, required) == expected
+    truth["merge_ci"]["checks"].append(
+        {"id": 2, "name": "lint", "head_sha": SHA, "status": "completed", "conclusion": "success"}
+    )
+    assert merge_ci_state(truth, ["tests", "lint"]) == "pass"
+    truth["merge_ci"]["checks"].append(
+        {"id": 3, "name": "tests", "head_sha": SHA, "status": "completed", "conclusion": "skipped"}
+    )
+    assert merge_ci_state(truth, ["tests", "lint"]) == "pending"
+    # Old evidence may not rescue the latest skipped run, regardless of row order.
+    truth["merge_ci"]["checks"].reverse()
+    assert merge_ci_state(truth, ["tests", "lint"]) == "pending"
+
+
+def test_merge_ci_legacy_status_cannot_substitute_for_a_required_check() -> None:
+    truth = artifact(merged=True)
+    truth["merge_ci"].update(checks=[], statuses=[{"context": "tests", "state": "success"}])
+    assert merge_ci_state(truth, ["tests"]) == "pending"
+
+
+def test_required_checks_configuration_defaults_and_valid_names() -> None:
+    from hungry_crab.loop_config import LoopSettings
+
+    assert LoopSettings.load({}).required_checks == []
+    assert LoopSettings.load({"required_checks": ["Test (Linux)", "lint"]}).required_checks == [
+        "Test (Linux)",
+        "lint",
+    ]
+
+
+@pytest.mark.parametrize("phase", ["grow", "molt"])
+def test_nonrelease_merge_reconciliation_does_not_require_release_check_configuration(
+    loop: Loop, phase: str
+) -> None:
+    assert isinstance(loop.provider, Provider)
+    loop.settings.required_checks = []
+    loop.provider.rows[URL] = artifact(merged=True)
+    pr = {"round": 1, "phase": phase, "url": URL, "sha": SHA, "state": "open", "files": []}
+    force_phase(loop, "taste", prs=[pr])
+    data = loop._load()
+    data["waiting_on"] = {"kind": "merge", "reason": "waiting for human merge"}
+    loop._reconcile(data)
+    assert data["waiting_on"] is None
+    assert data["prs"][0]["state"] == "merged"

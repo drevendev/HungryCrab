@@ -48,6 +48,7 @@ class LoopSettings:
     max_attempts: int = 3
     lease_minutes: int = 60
     protected: list[str] = field(default_factory=lambda: list(PROTECTED))
+    required_checks: list[str] = field(default_factory=list)
     release_files: list[str] = field(default_factory=lambda: ["CHANGELOG.md"])
 
     @classmethod
@@ -66,6 +67,7 @@ class LoopSettings:
                 "lease_minutes",
                 "protected",
                 "release_files",
+                "required_checks",
             },
         )
         result = cls()
@@ -82,6 +84,7 @@ class LoopSettings:
         if not isinstance(discovery, bool):
             raise UsageError("loop.discovery must be a boolean")
         result.discovery = discovery
+        result.required_checks = strings(data.get("required_checks", []), "loop.required_checks")
         result.prey = strings(data.get("prey", []), "loop.prey")
         result.protected += strings(data.get("protected", []), "loop.protected")
         result.release_files = strings(

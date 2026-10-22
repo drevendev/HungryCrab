@@ -129,8 +129,8 @@ def ci_state(artifact: dict[str, Any]) -> str:
     )
 
 
-def merge_ci_state(artifact: dict[str, Any]) -> str:
-    """Only provider checks bound to the actual merge commit can certify a landing."""
+def merge_ci_state(artifact: dict[str, Any], required_checks: list[str] | None = None) -> str:
+    """Bind CI to the merge SHA; release callers also require named successful runs."""
     sha = artifact.get("merge_commit_sha")
     evidence = artifact.get("merge_ci")
     if (
@@ -140,7 +140,27 @@ def merge_ci_state(artifact: dict[str, Any]) -> str:
         or evidence.get("sha") != sha
     ):
         return "pending"
-    return ci_state(evidence)
+    if required_checks is None:
+        return ci_state(evidence)
+    if not required_checks:
+        return "pending"
+    state = ci_state(evidence)
+    if state != "pass":
+        return state
+    latest: dict[str, dict[str, Any]] = {}
+    for check in evidence.get("checks", []):
+        name = str(check.get("name", ""))
+        if int(check.get("id", 0)) > int(latest.get(name, {}).get("id", -1)):
+            latest[name] = check
+    for name in required_checks:
+        check = latest.get(name, {})
+        if (
+            check.get("head_sha") != sha
+            or check.get("status") != "completed"
+            or check.get("conclusion") != "success"
+        ):
+            return "pending"
+    return "pass"
 
 
 class Loop:
@@ -468,7 +488,8 @@ class Loop:
                 }
                 return
             if truth.get("merged_at"):
-                status = merge_ci_state(truth)
+                required = self.settings.required_checks if pr["phase"] == "harden" else None
+                status = merge_ci_state(truth, required)
                 if status == "fail":
                     data["waiting_on"] = {"kind": "human", "reason": "Merge commit CI failed"}
                     return

@@ -184,6 +184,7 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
     (maw / ".crab.yml").write_text(
         "loop:\n  autonomy: work\n  work_authorized: true\n"
         "  prey: [example/prey]\n"
+        "  required_checks: [tests]\n"
         "  release_files: [CHANGELOG.md, version.txt]\n",
         encoding="utf-8",
     )
@@ -343,7 +344,21 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
 
 
 @pytest.mark.parametrize(
-    "damage", ["missing", "empty", "failed", "pending", "wrong-sha", "stale-head"]
+    "damage",
+    [
+        "missing",
+        "empty",
+        "failed",
+        "pending",
+        "wrong-sha",
+        "stale-head",
+        "skipped",
+        "neutral",
+        "unrelated",
+        "wrong-check-sha",
+        "no-config",
+        "missing-required",
+    ],
 )
 def test_merge_ci_blocks_waiting_and_tagging_without_effects(
     loop: Loop, monkeypatch: pytest.MonkeyPatch, damage: str
@@ -360,6 +375,16 @@ def test_merge_ci_blocks_waiting_and_tagging_without_effects(
         truth["merge_ci"]["checks"][0]["status"] = "in_progress"
     elif damage == "wrong-sha":
         truth["merge_ci"]["sha"] = "b" * 40
+    elif damage in {"skipped", "neutral"}:
+        truth["merge_ci"]["checks"][0]["conclusion"] = damage
+    elif damage == "unrelated":
+        truth["merge_ci"]["checks"][0]["name"] = "unrelated"
+    elif damage == "wrong-check-sha":
+        truth["merge_ci"]["checks"][0]["head_sha"] = "b" * 40
+    elif damage == "no-config":
+        loop.settings.required_checks = []
+    elif damage == "missing-required":
+        loop.settings.required_checks = ["tests", "lint"]
     else:
         truth["head"]["sha"] = "b" * 40
     loop.provider.rows[URL] = truth
@@ -378,5 +403,7 @@ def test_merge_ci_blocks_waiting_and_tagging_without_effects(
         pytest.fail("tagging touched Git before verifying the merge commit CI")
 
     monkeypatch.setattr("hungry_crab.loop_work.GitRunner", no_git)
-    with pytest.raises(CrabError, match=r"passing CI|reviewed head"):
+    before_tag = loop.path.read_bytes()
+    with pytest.raises(CrabError, match=r"passing CI|reviewed head|required_checks"):
         tag(loop, ready["active"]["token"])
+    assert loop.path.read_bytes() == before_tag
