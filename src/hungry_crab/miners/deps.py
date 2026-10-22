@@ -408,16 +408,23 @@ def _expand_maven_properties(version: str, props: dict[str, str]) -> str | None:
     return version
 
 
+# An unclosed `/*` runs to the end of the file, as it does for the compiler. With `.*?\*/`
+# alone, every later `/*` rescanned the rest of the text, which is quadratic in prey bytes.
+_GRADLE_COMMENT_RE = re.compile(r"/\*.*?(?:\*/|\Z)|^[ \t]*//[^\n]*", re.DOTALL | re.MULTILINE)
+# `\s*(?:\(\s*)?` rather than `\s*\(?\s*`: two adjacent `\s*` split one whitespace run in
+# quadratically many ways before the quote fails to match.
+_GRADLE_COORDINATE_RE = re.compile(
+    r"(?m)^[ \t]*(implementation|api|compileOnly|runtimeOnly|"
+    r"testImplementation|testRuntimeOnly|annotationProcessor)\s*(?:\(\s*)?"
+    r"(['\"])([\w.-]+):([\w.-]+):([^'\"\n]+)\2"
+)
+
+
 def parse_gradle(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
     # Only literal coordinates. Gradle is executable: interpolation/catalogs are never run.
-    cleaned = re.sub(r"/\*.*?\*/|^[ \t]*//[^\n]*", "", text, flags=re.DOTALL | re.MULTILINE)
+    cleaned = _GRADLE_COMMENT_RE.sub("", text)
     packages: list[Package] = []
-    pattern = re.compile(
-        r"(?m)^[ \t]*(implementation|api|compileOnly|runtimeOnly|"
-        r"testImplementation|testRuntimeOnly|annotationProcessor)\s*\(?\s*"
-        r"(['\"])([\w.-]+):([\w.-]+):([^'\"\n]+)\2"
-    )
-    for match in pattern.finditer(cleaned):
+    for match in _GRADLE_COORDINATE_RE.finditer(cleaned):
         kind, _, group, artifact, spec = match.groups()
         packages.append(
             Package(
