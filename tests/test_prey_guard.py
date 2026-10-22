@@ -542,6 +542,19 @@ def test_clone_roots_are_where_catch_puts_them(
     assert (reason is None) is allowed
 
 
+def test_hook_reads_the_bytes_under_a_text_stream_of_another_code_page(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """HungryCrab#315: a cp1252 text read of UTF-8 bytes would mangle the cache root."""
+    cache = tmp_path / "добыча"
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(cache))
+    command = f"python {cache.as_posix()}/github/acme/widget/repo/setup.py"
+    event = {"tool_name": "Bash", "tool_input": {"command": command}}
+    data = json.dumps(event, ensure_ascii=False).encode("utf-8")
+    stream = io.TextIOWrapper(io.BytesIO(data), encoding="cp1252", errors="surrogateescape")
+    assert main(stdin=stream) == 2
+
+
 def test_hook_treats_undecodable_input_like_any_other_transport_failure() -> None:
     """A traceback would exit 1, which the agent also reads as allow, only louder."""
     stream = io.TextIOWrapper(io.BytesIO(b"\xff\xfe{"), encoding="utf-8")

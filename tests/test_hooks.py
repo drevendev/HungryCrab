@@ -141,6 +141,47 @@ def test_launcher_exit_code_is_the_guard_decision(
         assert result.stderr == ""
 
 
+def _run_bytes(argv: list[str], data: bytes, cache: Path) -> subprocess.CompletedProcess[bytes]:
+    """Feed the launcher bytes, as Claude Code does, not text this process encoded."""
+    env = dict(os.environ)
+    env["CRAB_CACHE_DIR"] = str(cache)
+    env.pop("CRAB_GUARD_HANDOVER", None)
+    return subprocess.run(argv, input=data, capture_output=True, env=env, check=False, timeout=120)
+
+
+@pytest.mark.parametrize(
+    ("which", "event"), [("prey", "bash-runs-prey"), ("cleanroom", "cleanroom-reads-prey")]
+)
+def test_launcher_reads_the_event_as_utf8_whatever_the_code_page(
+    which: str, event: str, tmp_path: Path
+) -> None:
+    """HungryCrab#315: `-I` ignores PYTHONUTF8, so a text read of stdin used the ANSI code page
+    on Windows and a cache root with a non-ASCII name was never recognised."""
+    cache = tmp_path / "добыча"
+    data = json.dumps(_events(cache)[event], ensure_ascii=False).encode("utf-8")
+    result = _run_bytes([sys.executable, "-I", str(LAUNCHER), which], data, cache)
+    assert result.returncode == 2, result.stderr
+
+
+def test_an_invalid_byte_elsewhere_does_not_hide_the_command(tmp_path: Path) -> None:
+    """A byte that is not UTF-8 is kept, not fatal: the command beside it is still judged."""
+    cache = tmp_path / "cache"
+    event = _events(cache)["bash-runs-prey"]
+    event["tool_input"]["description"] = "@@"
+    data = json.dumps(event).encode("utf-8").replace(b"@@", b"\xd1\x81\xff")
+    result = _run_bytes([sys.executable, "-I", str(LAUNCHER), "prey"], data, cache)
+    assert result.returncode == 2, result.stderr
+    assert b"refusing" in result.stderr
+
+
+@pytest.mark.parametrize("data", [b"", b"\xff\xfe{", b"not json", b'{"tool_name": "Bash"'])
+def test_unreadable_input_is_still_not_a_refusal(data: bytes, tmp_path: Path) -> None:
+    """Only a guard's decision exits 2; input that cannot be parsed proceeds, as documented."""
+    for which in ("prey", "cleanroom"):
+        result = _run_bytes([sys.executable, "-I", str(LAUNCHER), which], data, tmp_path)
+        assert result.returncode == 0, result.stderr
+
+
 def test_launcher_needs_no_installed_package(tmp_path: Path) -> None:
     # ``-S`` leaves site-packages out, where the editable install lives; only the launcher's
     # own sys.path entry can make ``hungry_crab`` importable.

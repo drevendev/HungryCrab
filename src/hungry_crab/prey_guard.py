@@ -899,11 +899,33 @@ def event_guard_reason(event: object, *, root: Path | None = None) -> str | None
     return guard_reason(command, root=root, cwd=_event_cwd(event))
 
 
+def read_hook_event(stream: TextIO | None = None) -> object:
+    """One ``PreToolUse`` event, decoded the way Claude Code writes it: JSON in UTF-8.
+
+    The hook runs Python with ``-I``, which ignores ``PYTHONUTF8`` and ``PYTHONIOENCODING``, so
+    a text read of a piped stdin on Windows decodes with the ANSI code page and turns every
+    non-ASCII path into mojibake. The guards read the bytes instead. An invalid UTF-8 byte is
+    kept as a surrogate escape, the form a POSIX path with that byte has, so one bad byte in a
+    description cannot make the whole event unreadable and its command unjudged. Raises
+    ``OSError`` or ``ValueError`` for input that cannot be read or parsed.
+    """
+    source = stream if stream is not None else sys.stdin
+    buffer = getattr(source, "buffer", None)
+    if buffer is None:
+        return json.loads(source.read())
+    data = buffer.read()
+    encoding = json.detect_encoding(data)
+    if encoding in ("utf-8", "utf-8-sig"):
+        text = data.decode("utf-8", errors="surrogateescape").removeprefix("\ufeff")
+    else:
+        text = data.decode(encoding, errors="surrogatepass")
+    return json.loads(text)
+
+
 def main(*, stdin: TextIO | None = None) -> int:
     """Read one PreToolUse event from stdin; exit 2 when the command is denied."""
-    stream = stdin if stdin is not None else sys.stdin
     try:
-        event = json.loads(stream.read())
+        event = read_hook_event(stdin)
     except (OSError, ValueError):
         # A transport failure — unreadable, undecodable or malformed input — does not establish
         # that a Bash command touched the cache. A traceback here would exit 1, which the agent

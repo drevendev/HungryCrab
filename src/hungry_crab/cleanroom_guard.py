@@ -8,14 +8,13 @@ routes their tool calls through this PreToolUse hook instead.
 
 from __future__ import annotations
 
-import json
 import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
 
 from .cache import cache_root
-from .prey_guard import canonical_path, glob_reaches, names_root
+from .prey_guard import canonical_path, glob_reaches, names_root, read_hook_event
 
 CLEANROOM_AGENT_TYPE = "crab:crab-cleanroom-impl"
 
@@ -148,7 +147,7 @@ def cleanroom_guard_reason(event: object) -> str | None:
 def main() -> int:
     """Read one PreToolUse event from stdin; exit 2 when the clean-room call is denied."""
     try:
-        event = json.loads(sys.stdin.read())
+        event = read_hook_event()  # UTF-8 bytes, whatever the console code page is
     except (OSError, ValueError):
         # Without a valid event — unreadable, undecodable or malformed — we cannot establish
         # that this is the clean-room agent. Do not break unrelated plugin sessions on hook
