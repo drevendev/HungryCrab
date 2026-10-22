@@ -184,6 +184,13 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Claude Code sees a new release of the plugin as an update.** Claude Code offers a plugin
+  update only when the version string it computes changes, and the plugin carried the same
+  version in `.claude-plugin/plugin.json` and in its marketplace entry. The entry no longer has
+  one: the version lives in `plugin.json` alone and moves at each release, which is when the
+  **Update** button lights up. The README says how to turn on auto-update for the marketplace,
+  which Claude Code leaves off for third-party marketplaces, and a release now bumps five
+  version places instead of six.
 - **Cache deletion stays inside the cache and works under a linked cache root.** `crab cache rm`,
   `crab catch --force` and the replacement of a clone without `.git` made every entry of the
   tree writable before deleting it, and `chmod` followed a symlink to its target outside the

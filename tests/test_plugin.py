@@ -36,7 +36,11 @@ def test_plugin_manifest_and_marketplace_agree() -> None:
     entries = {entry["name"]: entry for entry in marketplace["plugins"]}
     assert set(entries) == {"crab"}
     assert entries["crab"]["source"] == "./"
-    assert entries["crab"]["version"] == plugin["version"]
+    # Claude Code offers an update only when the plugin's version string changes, and it takes
+    # that string from plugin.json before the marketplace entry. The version lives in one place,
+    # plugin.json, and moves at each release; a second copy in the entry is what the plugin docs
+    # warn against, and it was one more place for a release to forget.
+    assert "version" not in entries["crab"], "the plugin version lives in plugin.json only"
     # The plugin version once stayed at 0.2.0 while the CLI moved on, so every agent was told
     # it was up to date while its skills still said --host. Cutting a release moves both.
     assert plugin["version"] == __version__.replace(".dev", "-dev."), (

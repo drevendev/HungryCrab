@@ -48,20 +48,24 @@ versions that have a tag.
 
 1. Decide the version. On `master` it is always a development version, `X.Y.Z.dev0`; the release
    drops the suffix.
-2. Bump it in **six** places, which must agree:
+2. Bump it in **five** places, which must agree:
    - `pyproject.toml` → `[project].version`
    - `src/hungry_crab/__init__.py` → `__version__`
    - `.claude-plugin/plugin.json` → `version`, with `.dev` spelled `-dev.` (`0.3.0-dev.0`)
-   - `.claude-plugin/marketplace.json` → the `crab` entry's `version` (**not** the top-level
-     `metadata.version`, which is the marketplace's own schema version)
    - `plugin.json` → the portable Agent Plugins manifest's `version`, also using `-dev.`
    - `uv.lock` → refresh with `uv sync` rather than editing it
+
+   The `crab` entry in `.claude-plugin/marketplace.json` carries no `version`. Claude Code offers
+   a plugin update only when the version string it computes changes, and it reads that string
+   from `.claude-plugin/plugin.json` first, so the bump in this step is what Claude Code users
+   receive as an update; between releases they keep the cached copy. (The top-level
+   `metadata.version` there is the marketplace's own schema version; leave it alone.)
 3. Move the `[Unreleased]` entries under a new `## [X.Y.Z] - YYYY-MM-DD` heading, and update the
    link references at the bottom of `CHANGELOG.md`: `[Unreleased]` compares the new tag to `HEAD`,
    and the new version compares the previous tag to the new one.
 4. Update the **Status** line in `README.md` and the `Released:` line in the roadmap.
 5. In the **same release pull request**, add a second commit `chore: reopen next
-   X.Y.Z.dev0`, updating the same six version places (regenerate `uv.lock` with `uv sync`).
+   X.Y.Z.dev0`, updating the same five version places (regenerate `uv.lock` with `uv sync`).
    The first commit holds the release version and changelog; the second reopens the next
    development version, so the PR head passes the regular dev-version CI gate.
 6. Merge this release PR using **Rebase and merge**, not squash: both commits must survive in
@@ -79,8 +83,9 @@ required CI. A release candidate or postponement of a milestone does not change 
 
 Step 2 is guarded: `tests/test_plugin.py` and `tests/test_agent_plugin.py` tie `__init__.py` to the
 Claude and portable Agent Plugins manifests and to `pyproject.toml`, and CI runs
-`uv sync --locked`, which fails when `uv.lock` still holds the old version. All six places
-therefore break the build if one of them is forgotten.
+`uv sync --locked`, which fails when `uv.lock` still holds the old version. All five places
+therefore break the build if one of them is forgotten, and `tests/test_plugin.py` also fails if
+the marketplace entry gets a `version` of its own again.
 
 ## Reporting bugs
 

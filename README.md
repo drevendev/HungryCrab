@@ -83,6 +83,12 @@ claude plugin marketplace add drevendev/HungryCrab
 claude plugin install crab@hungry-crab
 ```
 
+Claude Code offers a plugin update when the plugin's version changes, which happens at each
+release rather than at every commit to `master`. It does not refresh third-party marketplaces on
+its own: turn that on once in `/plugin` → **Marketplaces** → `hungry-crab` → **Enable
+auto-update**, or refresh by hand with `claude plugin marketplace update hungry-crab` followed by
+`claude plugin update crab@hungry-crab`.
+
 **Codex**, same plugin, same marketplace:
 
 ```bash
