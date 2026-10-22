@@ -144,7 +144,9 @@ def test_hook_manifest_runs_the_packaged_guard_through_the_launcher() -> None:
     covered in ``tests/test_hooks.py``.
     """
     hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
-    entry = next(item for item in hooks["hooks"]["PreToolUse"] if item["matcher"] == "Bash")
+    entry = next(
+        item for item in hooks["hooks"]["PreToolUse"] if item["matcher"] == "Bash|PowerShell"
+    )
     handler = entry["hooks"][0]
     assert '"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"' in handler["command"]
     assert '"$g" prey;' in handler["command"]
@@ -402,6 +404,135 @@ def test_a_git_bash_drive_path_is_the_windows_path(home: Path) -> None:
     msys = f"/{home.drive[0].lower()}{home.as_posix()[2:]}/prey/{TAIL}"
     assert guard_reason(f"python {msys}", root=root, cwd=home / "work" / "maw") is not None
     assert guard_reason(f"cat {msys}", root=root, cwd=home / "work" / "maw") is None
+
+
+PS_PREY = r"~\.cache\hungry-crab\github\acme\widget\repo"
+
+# PowerShell commands that run, load or assemble prey (HungryCrab#141).
+POWERSHELL_HOSTILE = [
+    r"python $env:USERPROFILE\.cache\hungry-crab\github\acme\widget\repo\setup.py",
+    r'& "$HOME\.cache\hungry-crab\github\acme\widget\repo\setup.py"',
+    rf"& {PS_PREY}\setup.ps1",
+    rf". {PS_PREY}\setup.ps1",
+    rf"Invoke-Expression (Get-Content {PS_PREY}\x.ps1 -Raw)",
+    rf"iex (gc {PS_PREY}\x.ps1 -Raw)",
+    rf"Get-Content {PS_PREY}\x.ps1 | Invoke-Expression",
+    rf"Get-Content {PS_PREY}\README.md | python -",
+    rf"Start-Process {PS_PREY}\bin\tool.exe",
+    rf"Get-ChildItem {PS_PREY} -Recurse | ForEach-Object {{ & $_.FullName }}",
+    rf"cmd /c {PS_PREY}\setup.bat",
+    rf"{PS_PREY}\bin\gc.exe README.md",
+    rf"Get-Content {PS_PREY}\README.md > out.ps1",
+    rf"Get-Content {PS_PREY}\README.md; python x.py",
+    rf"Get-Content {PS_PREY}\README.md && python x.py",
+    rf"Get-Content {PS_PREY}\README.md`; python x.py",
+    rf"Get-Content “{PS_PREY}\README.md”; python x.py",
+    r"Get-Content ~\.cache\hungry-*\github\acme\widget\repo\README.md",
+    r"Get-Content -Path ${env:USERPROFILE}\.cache\hungry-crab\README.md",
+    r"python ~\.cache\hungry-*\github\acme\widget\repo\setup.py",
+    r"$d = 'hungry-crab'; python ~\.cache\$d\github\acme\widget\repo\setup.py",
+    r"Set-Location ~\.cache; python hungry-crab\github\acme\widget\repo\setup.py",
+    r"cd -Path ~\.cache; python hungry-crab\github\acme\widget\repo\setup.py",
+    r"python (Join-Path $HOME '.cache\hungry-crab\github\acme\widget\repo\setup.py')",
+    r"foreach ($d in '~\.cache') { python $d\hungry-crab\github\acme\widget\repo\setup.py }",
+]
+
+# Plain reads of the cache: read cmdlets with literal arguments.
+POWERSHELL_READS = [
+    rf"Get-Content {PS_PREY}\README.md",
+    rf"gc {PS_PREY}\README.md | Select-Object -First 20",
+    rf"Get-ChildItem {PS_PREY} -Recurse",
+    rf"Select-String -Path {PS_PREY}\core.py -Pattern 'def .*'",
+    rf"Test-Path {PS_PREY}\setup.py",
+    rf"Get-Item {PS_PREY}\README.md",
+    rf"Get-Content -LiteralPath {PS_PREY}\README.md | Measure-Object -Line",
+    r"Get-ChildItem ~\.cache",
+]
+
+# Ordinary PowerShell that never approaches the cache.
+POWERSHELL_ORDINARY = [
+    "Get-ChildItem",
+    "git status",
+    "python -m pytest",
+    "$env:Path -split ';'",
+    "Get-Content README.md",
+    "Set-Location ~; Get-ChildItem",
+    "Get-ChildItem -Recurse -Filter *.py",
+    r"Select-String -Path src\*.py -Pattern TODO",
+    "$x = 1; $x + 2",
+    "uv run pytest -q",
+    "Get-Process | Where-Object { $_.CPU -gt 10 }",
+    "Remove-Item -Recurse -Force build",
+    "foreach ($f in Get-ChildItem *.py) { python $f }",
+    "Write-Output $HOME",
+    r"& .\build.ps1",
+    "cd $PSScriptRoot",
+    r'& "C:\Program Files\Git\bin\git.exe" status',
+    r"Get-ChildItem $env:USERPROFILE\.cache\pip",
+    r"Get-ChildItem ~\.cache\pip\*",
+    r"python ~\.cache\pip\x.py",
+]
+
+
+def _powershell(command: str, home: Path) -> str | None:
+    event = {
+        "tool_name": "PowerShell",
+        "tool_input": {"command": command},
+        "cwd": str(home / "work" / "maw"),
+    }
+    return event_guard_reason(event, root=home / ".cache" / "hungry-crab")
+
+
+@pytest.mark.parametrize("command", POWERSHELL_HOSTILE)
+def test_powershell_that_runs_or_assembles_prey_fails_closed(command: str, home: Path) -> None:
+    reason = _powershell(command, home)
+    assert reason is not None
+    assert "rule 3" in reason
+
+
+@pytest.mark.parametrize("command", POWERSHELL_READS)
+def test_powershell_read_cmdlets_with_literal_arguments_are_allowed(
+    command: str, home: Path
+) -> None:
+    assert _powershell(command, home) is None
+
+
+@pytest.mark.parametrize("command", POWERSHELL_ORDINARY)
+def test_ordinary_powershell_stays_allowed(command: str, home: Path) -> None:
+    assert _powershell(command, home) is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        r"& '{root}\github\acme\widget\repo\setup.ps1'",
+        r"python $HOME\store\prey\github\acme\widget\repo\setup.py",
+        r"python ~\store\pr*\github\acme\widget\repo\setup.py",
+        r"python ~\store\*\github\acme\widget\repo\setup.py",
+        r"Set-Location ~\store; python prey\github\acme\widget\repo\setup.py",
+        r"$p = '~\store'; python $p\prey\github\acme\widget\repo\setup.py",
+        r"Get-ChildItem ~\store | ForEach-Object { python $_ }",
+    ],
+)
+def test_powershell_judges_a_custom_root_without_the_default_spelling(
+    command: str, home: Path
+) -> None:
+    """No `.cache\\hungry-crab` to match: only the path analysis can see these."""
+    root = home / "store" / "prey"
+    event = {
+        "tool_name": "PowerShell",
+        "tool_input": {"command": command.replace("{root}", str(root))},
+        "cwd": str(home / "work" / "maw"),
+    }
+    assert event_guard_reason(event, root=root) is not None
+    read = {**event, "tool_input": {"command": rf"Get-Content {root}\README.md"}}
+    assert event_guard_reason(read, root=root) is None
+
+
+def test_powershell_input_it_cannot_inspect_is_refused() -> None:
+    reason = event_guard_reason({"tool_name": "PowerShell", "tool_input": None})
+    assert reason is not None and reason.startswith("PowerShell")
+    assert event_guard_reason({"tool_name": "PowerShell", "tool_input": {}}) is not None
 
 
 def _short_name(path: Path) -> str | None:

@@ -20,19 +20,24 @@ import stat
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TextIO
+from typing import Literal, TextIO
 
 from .cache import cache_root
 from .fs import is_reparse_point
 
+Shell = Literal["bash", "powershell"]
+# Claude Code's shell tools; both take a `command`.
+_SHELL_TOOLS = frozenset({"Bash", "PowerShell"})
 _ENV_CACHE_REF = re.compile(
     r"(?:\$\{?CRAB_CACHE_DIR\}?|%CRAB_CACHE_DIR%|\$env:CRAB_CACHE_DIR)", re.IGNORECASE
 )
 # The cache root, and nothing that merely starts with its name: `hungry-crab-other` and
 # `hungry-crab.old` are siblings, not the cache.
 _PATH_BOUNDARY = r"(?![a-z0-9._-])"
+# After a separator, a quote, a space or the start: `Join-Path $HOME '.cache\hungry-crab\...'`
+# and `os.path.join(home, '.cache/hungry-crab')` assemble the default root from this tail.
 _DEFAULT_CACHE_REF = re.compile(
-    r"(?:^|[/\\])\.cache[/\\]hungry-crab" + _PATH_BOUNDARY, re.IGNORECASE
+    r"(?:^|[^A-Za-z0-9_-])\.cache[/\\]hungry-crab" + _PATH_BOUNDARY, re.IGNORECASE
 )
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _EXECUTION_SUBSTITUTION = re.compile(r"\$\(|[<>]\(|`")
@@ -190,6 +195,7 @@ class _Scope:
     variables: dict[str, list[str] | None] = field(default_factory=dict)
     cwds: list[Path] = field(default_factory=list)
     unknown_cwd: bool = False
+    powershell: bool = False
 
 
 def _near_parent(root: Path, home: Path) -> Path | None:
@@ -205,7 +211,9 @@ def _near_parent(root: Path, home: Path) -> Path | None:
 
 
 def _closing_paren(text: str, start: int) -> int:
-    """Index of the `)` that closes the `(` at ``start``, skipping quotes; the end if none."""
+    """Index of the `)` or `}` closing the bracket at ``start``, skipping quotes; else the end."""
+    opening = text[start]
+    closing = "}" if opening == "{" else ")"
     depth = 0
     quote = ""
     for index in range(start, len(text)):
@@ -214,9 +222,9 @@ def _closing_paren(text: str, start: int) -> int:
             quote = "" if char == quote else quote
         elif char in "'\"":
             quote = char
-        elif char == "(":
+        elif char == opening:
             depth += 1
-        elif char == ")":
+        elif char == closing:
             depth -= 1
             if depth == 0:
                 return index
@@ -351,7 +359,7 @@ def _change_directory(scope: _Scope, args: list[str]) -> None:
 
 
 def _environment(name: str, scope: _Scope) -> str | None:
-    if name == "PWD":
+    if name.upper() == "PWD":
         return str(scope.cwd)
     value = os.environ.get(name)
     if value is None and name.upper() in {"HOME", "USERPROFILE"}:
@@ -361,6 +369,8 @@ def _environment(name: str, scope: _Scope) -> str | None:
 
 def _variable(name: str, scope: _Scope, inner: list[str], depth: int) -> list[str]:
     """The texts a variable can hold: assigned in the command, inherited, or unknown."""
+    if scope.powershell:
+        name = name.casefold()  # PowerShell variable names ignore case
     if name in scope.variables:
         raw_values = scope.variables[name]
         if raw_values is None or depth >= _MAX_DEPTH:
@@ -461,9 +471,16 @@ def _expand_word(word: str, scope: _Scope, inner: list[str], *, depth: int = 0) 
             value = _environment(percent.group(1), scope)
             pieces = [percent.group() if value is None else value]
             step = percent.end() - index
-        elif char == _SUBSTITUTION or word.startswith("{}", index):
+        elif char == _SUBSTITUTION:
             pieces = [_UNKNOWN]
-            step = 1 if char == _SUBSTITUTION else 2
+        elif scope.powershell:
+            if char in "*?" or (char == "[" and word.find("]", index + 1) > 0):
+                # PowerShell wildcards also match dot files; `[...]` is one character.
+                pieces = [_ANY]
+                step = word.find("]", index + 1) + 1 - index if char == "[" else 1
+        elif word.startswith("{}", index):
+            pieces = [_UNKNOWN]  # the placeholder `find -exec` and `xargs -I` fill in
+            step = 2
         elif char in "?*+@!" and word.startswith("(", index + 1):
             pieces = [_ANY]  # an extended glob such as `@(a|b)` or `?(x)`
             step = _closing_paren(word, index + 1) + 1 - index
@@ -709,6 +726,311 @@ def _mentions_cache(command: str, *, root: Path, cwd: Path) -> bool:
     return _reaches_cache(command, root=root, cwd=cwd, variables={}, depth=0)
 
 
+# --- PowerShell -----------------------------------------------------------------------------
+#
+# Claude Code's PowerShell tool takes a `command` like the Bash tool. PowerShell keeps
+# backslashes, quotes with `'...'` (doubled `''`) and `"..."` (backtick escapes), runs
+# `$(...)`, `@(...)`, `(...)` and `{...}` script blocks, and starts programs with `&` and `.`.
+# A cache-touching PowerShell command is allowed only as plain read cmdlets with literal
+# arguments, optionally piped into a few filters.
+
+# PowerShell reads typographic quotes and dashes as their ASCII forms.
+_POWERSHELL_TRANSLATION = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201a": "'",
+        "\u201b": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201e": '"',
+        "\u2013": "-",
+        "\u2014": "-",
+        "\u2015": "-",
+    }
+)
+_POWERSHELL_READERS = frozenset(
+    {
+        "get-content",
+        "gc",
+        "cat",
+        "type",
+        "get-childitem",
+        "gci",
+        "ls",
+        "dir",
+        "select-string",
+        "sls",
+        "test-path",
+        "get-item",
+        "gi",
+    }
+)
+_POWERSHELL_FILTERS = frozenset(
+    {"select-string", "sls", "select-object", "select", "measure-object", "measure"}
+)
+_POWERSHELL_CD_COMMANDS = frozenset({"cd", "chdir", "sl", "set-location", "pushd", "push-location"})
+_POWERSHELL_ASSIGNMENT = re.compile(r"^\$(?:env:)?([A-Za-z_][A-Za-z0-9_]*)\+?=(.*)$", re.DOTALL)
+_POWERSHELL_FOREACH = re.compile(r"^\s*\$([A-Za-z_][A-Za-z0-9_]*)\s+in\s+(.*)$", re.I | re.S)
+# Anything that makes PowerShell evaluate rather than read: variables, subexpressions, arrays,
+# script blocks and the escape character.
+_POWERSHELL_EVALUATION = re.compile(r"[$@(){}`]")
+_GLOB_CHARS = frozenset("*?[")
+
+
+def _powershell_quote_end(text: str, start: int) -> int:
+    """Index of the `'` closing the single-quoted string at ``start``, or -1."""
+    index = start + 1
+    while index < len(text):
+        if text[index] == "'":
+            if text.startswith("'", index + 1):
+                index += 2
+                continue
+            return index
+        index += 1
+    return -1
+
+
+def _powershell_groups(command: str) -> tuple[str, list[str]]:
+    """Replace `$(...)`, `@(...)`, `(...)` and `{...}` with a placeholder; return their text."""
+    out: list[str] = []
+    groups: list[str] = []
+    in_double = False
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if char == "`":
+            out.append(command[index : index + 2])
+            index += 2
+        elif char == "'" and not in_double:
+            end = _powershell_quote_end(command, index)
+            end = len(command) - 1 if end < 0 else end
+            out.append(command[index : end + 1])
+            index = end + 1
+        elif char == '"':
+            in_double = not in_double
+            out.append(char)
+            index += 1
+        elif char == "$" and command.startswith("{", index + 1):
+            end = command.find("}", index + 2)  # `${env:NAME}` is a variable, not a block
+            end = len(command) - 1 if end < 0 else end
+            out.append(command[index : end + 1])
+            index = end + 1
+        elif (char in "$@" and command.startswith("(", index + 1)) or (
+            char in "({" and not in_double
+        ):
+            opening = index + 1 if char in "$@" else index
+            end = _closing_paren(command, opening)
+            groups.append(command[opening + 1 : end])
+            out.append(_SUBSTITUTION)
+            index = end + 1
+        else:
+            out.append(char)
+            index += 1
+    return "".join(out), groups
+
+
+def _powershell_tokens(command: str) -> list[str] | None:
+    """PowerShell words with quotes removed and backslashes kept; ``None`` if a quote is open."""
+    tokens: list[str] = []
+    word: list[str] | None = None
+    index = 0
+    while index < len(command):
+        char = command[index]
+        if char in " \t\r\n" or char in _OPERATOR_CHARS:
+            if word is not None:
+                tokens.append("".join(word))
+                word = None
+            if char in _OPERATOR_CHARS:
+                end = index
+                while end < len(command) and command[end] in _OPERATOR_CHARS:
+                    end += 1
+                tokens.append(command[index:end])
+                index = end
+            else:
+                if char in "\r\n":
+                    tokens.append(";")
+                index += 1
+            continue
+        word = [] if word is None else word
+        if char == "'":
+            end = _powershell_quote_end(command, index)
+            if end < 0:
+                return None
+            word.append(command[index + 1 : end].replace("''", "'"))
+            index = end + 1
+        elif char == '"':
+            end = index + 1
+            while end < len(command) and command[end] != '"':
+                end += 2 if command[end] == "`" else 1
+            if end >= len(command):
+                return None
+            word.append(command[index + 1 : end])
+            index = end + 1
+        elif char == "`":
+            word.append(command[index : index + 2])  # kept, so that it stays visible
+            index += 2
+        else:
+            word.append(char)
+            index += 1
+    if word is not None:
+        tokens.append("".join(word))
+    return tokens
+
+
+def _powershell_target(args: list[str]) -> str:
+    """The directory `Set-Location` and its aliases go to: `-Path`, `-LiteralPath`, positional."""
+    for index, arg in enumerate(args):
+        lowered = arg.casefold()
+        if lowered.startswith("-") and ":" in arg:
+            name, value = arg.split(":", 1)
+            if "-path".startswith(name.casefold()) or "-literalpath".startswith(name.casefold()):
+                return value
+        elif lowered.startswith("-"):
+            if index + 1 < len(args) and lowered in {"-path", "-literalpath", "-lp", "-p"}:
+                return args[index + 1]
+        else:
+            return arg
+    return "~"
+
+
+def _build_powershell_scope(
+    tokens: list[str],
+    groups: list[str],
+    *,
+    root: Path,
+    cwd: Path,
+    variables: dict[str, list[str] | None],
+) -> _Scope:
+    home = canonical_path(Path.home(), cwd=cwd)
+    scope = _Scope(
+        root=root,
+        cwd=cwd,
+        home=home,
+        near_parent=_near_parent(root, home),
+        variables=dict(variables),
+        cwds=[cwd],
+        powershell=True,
+    )
+    commands = _simple_commands(tokens)
+    for words in commands:
+        for index, word in enumerate(words):
+            match = _POWERSHELL_ASSIGNMENT.match(word)
+            if match and match.group(2):
+                _assign(scope, match.group(1).casefold(), match.group(2))
+            elif match and index + 1 < len(words):
+                _assign(scope, match.group(1).casefold(), words[index + 1])
+            elif word.startswith("$") and index + 2 < len(words) and words[index + 1] == "=":
+                name = _POWERSHELL_ASSIGNMENT.match(f"{word}=")
+                if name:
+                    _assign(scope, name.group(1).casefold(), words[index + 2])
+    for group in groups:
+        loop = _POWERSHELL_FOREACH.match(group)
+        if loop:
+            for value in re.split(r"[\s,]+", loop.group(2).strip()):
+                if value:
+                    _assign(scope, loop.group(1).casefold(), value)
+    for words in commands:
+        if words and words[0].casefold() in _POWERSHELL_CD_COMMANDS:
+            _change_directory(scope, [_powershell_target(words[1:])])
+    return scope
+
+
+def _powershell_path_words(tokens: list[str]) -> list[str]:
+    words: list[str] = []
+    for token in tokens:
+        if _is_punctuation(token) or token in {"=", "+="}:
+            continue
+        if token.startswith("-"):
+            if ":" in token:
+                words.append(token.split(":", 1)[1])  # `-Path:C:\x`
+            continue
+        assignment = _POWERSHELL_ASSIGNMENT.match(token)
+        value = assignment.group(2) if assignment else token
+        words.extend(piece for piece in value.split(",") if piece)  # `a,b` is an array
+    return words
+
+
+def _powershell_reaches(
+    command: str,
+    *,
+    root: Path,
+    cwd: Path,
+    variables: dict[str, list[str] | None],
+    depth: int,
+) -> bool:
+    if _ENV_CACHE_REF.search(command) or _DEFAULT_CACHE_REF.search(command):
+        return True
+    if names_root(command, root):
+        return True
+    text, inner = _powershell_groups(command)
+    tokens = _powershell_tokens(text) or _powershell_tokens(command) or text.split()
+    if os.name != "nt":
+        tokens = [token.replace("\\", "/") for token in tokens]  # pwsh reads both separators
+    scope = _build_powershell_scope(tokens, inner, root=root, cwd=cwd, variables=variables)
+    for word in _powershell_path_words(tokens):
+        if any(_candidate_reaches(c, scope) for c in _expand_word(word, scope, inner)):
+            return True
+    return depth < _MAX_DEPTH and any(
+        _powershell_reaches(group, root=root, cwd=cwd, variables=scope.variables, depth=depth + 1)
+        for group in inner
+    )
+
+
+def _is_pattern_parameter(name: str) -> bool:
+    """`-Pattern` or an unambiguous abbreviation of it (`-Path` shares `-pat`)."""
+    lowered = name.casefold()
+    return len(lowered) >= 5 and "-pattern".startswith(lowered)
+
+
+def _powershell_read_only(command: str, tokens: list[str]) -> bool:
+    """Read cmdlets with literal arguments, optionally piped into `Select-*`/`Measure-Object`.
+
+    No variable, subexpression, script block, escape, call operator (`&`), dot-sourcing,
+    redirection or command separator; no wildcard outside a `-Pattern` value; the cmdlet is
+    named exactly, never by a path that could be a program of the prey's.
+    """
+    if _POWERSHELL_EVALUATION.search(command):
+        return False
+    stages: list[list[str]] = [[]]
+    for token in tokens:
+        if token == "|":
+            stages.append([])
+        elif _is_punctuation(token):
+            return False
+        else:
+            stages[-1].append(token)
+    for position, stage in enumerate(stages):
+        allowed = _POWERSHELL_READERS if position == 0 else _POWERSHELL_FILTERS
+        if not stage or stage[0].casefold() not in allowed:
+            return False
+        previous = ""
+        for arg in stage[1:]:
+            name, value = arg.split(":", 1) if arg.startswith("-") and ":" in arg else ("", arg)
+            pattern = _is_pattern_parameter(name or previous)
+            if not pattern and any(char in _GLOB_CHARS for char in value):
+                return False
+            previous = arg
+    return True
+
+
+def _powershell_guard_reason(command: str, *, root: Path, cwd: Path) -> str | None:
+    command = command.translate(_POWERSHELL_TRANSLATION)
+    if not _powershell_reaches(command, root=root, cwd=cwd, variables={}, depth=0):
+        return None
+    if _LINE_BREAK.search(command):
+        return "cache-touching multi-line command is not established read-only (AGENTS.md rule 3)"
+    tokens = _powershell_tokens(command)
+    if tokens is None:
+        return "cache-touching command could not be parsed safely (AGENTS.md rule 3)"
+    if not _powershell_read_only(command, tokens):
+        return (
+            "cache-touching PowerShell command is not a read cmdlet with literal arguments "
+            "(AGENTS.md rule 3)"
+        )
+    return None
+
+
 def _program(token: str) -> str:
     return Path(token).name.casefold().removesuffix(".exe")
 
@@ -839,16 +1161,22 @@ def guard_reason(
     *,
     root: Path | None = None,
     cwd: Path | None = None,
+    shell: Shell = "bash",
 ) -> str | None:
     """Return why a shell command must be denied, or ``None`` when this guard allows it.
 
     Commands that do not mention the cache are outside this guard's scope. Once the cache is
     mentioned, the burden flips: the complete command shape must be one of the small read-only
     forms above. This deliberately prefers a false refusal over silently executing prey.
+    ``shell`` is the grammar the command is written in: Bash, or PowerShell.
     """
     here = (cwd or Path.cwd()).resolve(strict=False)
     cache = canonical_path(root or cache_root(), cwd=here)
-    if not command.strip() or not _mentions_cache(command, root=cache, cwd=here):
+    if not command.strip():
+        return None
+    if shell == "powershell":
+        return _powershell_guard_reason(command, root=cache, cwd=here)
+    if not _mentions_cache(command, root=cache, cwd=here):
         return None
     if _LINE_BREAK.search(command):
         # A line break separates commands exactly as `;` does, and `shlex` reads it as
@@ -887,16 +1215,18 @@ def event_guard_reason(event: object, *, root: Path | None = None) -> str | None
     if not isinstance(event, dict):
         return None
     tool_name = event.get("tool_name")
-    if tool_name is not None and tool_name != "Bash":
+    if tool_name is not None and tool_name not in _SHELL_TOOLS:
         return None
+    tool = "PowerShell" if tool_name == "PowerShell" else "Bash"
 
     tool_input = event.get("tool_input")
     if not isinstance(tool_input, dict):
-        return "Bash tool call denied: the tool input could not be inspected."
+        return f"{tool} tool call denied: the tool input could not be inspected."
     command = tool_input.get("command")
     if not isinstance(command, str):
-        return "Bash tool call denied: the shell command could not be inspected."
-    return guard_reason(command, root=root, cwd=_event_cwd(event))
+        return f"{tool} tool call denied: the shell command could not be inspected."
+    shell: Shell = "powershell" if tool == "PowerShell" else "bash"
+    return guard_reason(command, root=root, cwd=_event_cwd(event), shell=shell)
 
 
 def read_hook_event(stream: TextIO | None = None) -> object:

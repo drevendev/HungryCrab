@@ -25,7 +25,8 @@ ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "hooks" / "guard.py"
 HOOKS = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
 SH = shutil.which("sh")
-CLEANROOM_MATCHER = "Read|Grep|Glob|Write|Edit"
+CLEANROOM_MATCHER = "Read|Grep|Glob|Write|Edit|PowerShell"
+PREY_MATCHER = "Bash|PowerShell"
 
 
 def _entry(matcher: str) -> dict[str, Any]:
@@ -48,6 +49,11 @@ def _events(cache: Path) -> dict[str, dict[str, Any]]:
     return {
         "bash-runs-prey": {"tool_name": "Bash", "tool_input": {"command": f"python {prey_file}"}},
         "bash-plain": {"tool_name": "Bash", "tool_input": {"command": "git status"}},
+        "powershell-runs-prey": {
+            "tool_name": "PowerShell",
+            "tool_input": {"command": f"& '{prey_file}'"},
+        },
+        "powershell-plain": {"tool_name": "PowerShell", "tool_input": {"command": "Get-ChildItem"}},
         "cleanroom-reads-prey": {
             "tool_name": "Read",
             "agent_type": "crab:crab-cleanroom-impl",
@@ -90,7 +96,9 @@ def _launcher_module() -> ModuleType:
 # --- hooks.json ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("matcher", "which"), [("Bash", "prey"), (CLEANROOM_MATCHER, "cleanroom")])
+@pytest.mark.parametrize(
+    ("matcher", "which"), [(PREY_MATCHER, "prey"), (CLEANROOM_MATCHER, "cleanroom")]
+)
 def test_each_hook_runs_its_guard_through_the_launcher(matcher: str, which: str) -> None:
     command = _hook_command(matcher)
     assert '"${CLAUDE_PLUGIN_ROOT}/hooks/guard.py"' in command
@@ -104,6 +112,13 @@ def test_each_hook_runs_its_guard_through_the_launcher(matcher: str, which: str)
     assert "exit 2" not in command
     assert "unguarded" in command
     assert _entry(matcher)["hooks"][0]["timeout"] >= 5
+
+
+def test_both_shell_tools_reach_the_prey_guard() -> None:
+    """HungryCrab#141: Claude Code on Windows has a PowerShell tool beside Bash; a shell tool
+    the matcher lacks runs prey without the guard ever seeing the command."""
+    assert {"Bash", "PowerShell"} <= set(PREY_MATCHER.split("|"))
+    assert "PowerShell" in CLEANROOM_MATCHER.split("|")
 
 
 def test_cleanroom_matcher_covers_every_tool_the_implementer_has() -> None:
@@ -125,6 +140,8 @@ def test_cleanroom_matcher_covers_every_tool_the_implementer_has() -> None:
     [
         ("prey", "bash-runs-prey", 2, "refusing unsafe prey-cache command"),
         ("prey", "bash-plain", 0, ""),
+        ("prey", "powershell-runs-prey", 2, "refusing unsafe prey-cache command"),
+        ("prey", "powershell-plain", 0, ""),
         ("cleanroom", "cleanroom-reads-prey", 2, "Clean-room tool call denied"),
         ("cleanroom", "other-agent-reads-prey", 0, ""),
     ],
@@ -303,7 +320,7 @@ def test_newer_interpreter_is_none_when_uv_finds_nothing(monkeypatch: pytest.Mon
 @pytest.mark.skipif(SH is None, reason="no POSIX shell to run the hook line")
 def test_hook_line_refuses_through_the_launcher(tmp_path: Path) -> None:
     assert SH is not None
-    command = _hook_command("Bash").replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
+    command = _hook_command(PREY_MATCHER).replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
     cache = tmp_path / "cache"
     result = _run([SH, "-c", command], _events(cache)["bash-runs-prey"], cache, cwd=tmp_path)
     assert result.returncode == 2, result.stderr
@@ -324,7 +341,7 @@ def test_hook_line_lets_an_ordinary_command_through(tmp_path: Path) -> None:
 def test_hook_line_without_a_launcher_proceeds_unguarded(tmp_path: Path) -> None:
     assert SH is not None
     nowhere = (tmp_path / "nowhere").as_posix()
-    command = _hook_command("Bash").replace("${CLAUDE_PLUGIN_ROOT}", nowhere)
+    command = _hook_command(PREY_MATCHER).replace("${CLAUDE_PLUGIN_ROOT}", nowhere)
     cache = tmp_path / "cache"
     result = _run([SH, "-c", command], _events(cache)["bash-runs-prey"], cache, cwd=tmp_path)
     assert result.returncode == 1, result.stderr
