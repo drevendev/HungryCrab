@@ -46,9 +46,32 @@ def atx_heading(line: str) -> tuple[int, str] | None:
     return len(opening.group(1)), content
 
 
+def split_frontmatter(text: str) -> tuple[str | None, str]:
+    """(YAML front matter, the text after it), or (None, text) when there is none.
+
+    Found line by line: the first line is `---`, and the block ends at the first later line
+    that is `---` or `...` (trailing whitespace allowed). The regexes this replaces could end
+    their opening `\\s*\\n` at every leading newline and rescan the rest of the text from each,
+    which is quadratic: 100,000 newlines after `---` took 48.7 s. This is one pass.
+    """
+    first = text.find("\n")
+    if first < 0 or text[:first].rstrip(" \t\r") != "---":
+        return None, text
+    start = position = first + 1
+    while position < len(text):
+        end = text.find("\n", position)
+        stop = len(text) if end < 0 else end
+        if text[position:stop].rstrip(" \t\r") in ("---", "..."):
+            return text[start:position], "" if end < 0 else text[end + 1 :]
+        if end < 0:
+            break
+        position = end + 1
+    return None, text
+
+
 def markdown_headings(text: str) -> list[dict[str, object]]:
     """ATX and setext headings outside fenced/indented code and HTML comments."""
-    text = re.sub(r"\A---\s*\n.*?\n(?:---|\.\.\.)\s*(?:\n|\Z)", "", text, flags=re.DOTALL)
+    text = split_frontmatter(text)[1]
     text = re.sub(r"<!--.*?(?:-->|\Z)", "", text, flags=re.DOTALL)
     headings: list[dict[str, object]] = []
     fence = ""

@@ -12,7 +12,7 @@ from hungry_crab.compare import CompareOptions, compare_digests
 from hungry_crab.digest import DigestOptions, run_digest
 from hungry_crab.fetch.catch import catch
 from hungry_crab.fetch.git import GitRunner
-from hungry_crab.miners.ai_config import _headings
+from hungry_crab.miners.ai_config import _frontmatter, _headings
 from hungry_crab.miners.docs import readme_outline
 from hungry_crab.miners.wiki import markdown_headings
 
@@ -75,6 +75,38 @@ def test_the_atx_scan_is_linear_in_the_line() -> None:
     assert time.perf_counter() - started < 1.0
     assert headings == [{"level": 1, "text": "a" + " " * 3000 + "b"}]
     assert len(many) == 4
+
+
+@pytest.mark.parametrize(
+    ("opening", "line", "tail"),
+    [("---", "\n", ""), ("---", "\n", "a" * 50_000), ("---  \n", "key: value\n", "")],
+    ids=["newlines", "newlines-then-text", "unclosed-block"],
+)
+def test_front_matter_detection_is_linear(opening: str, line: str, tail: str) -> None:
+    """The front-matter regexes were quadratic in the newlines after `---` (#331)."""
+    text = opening + line * 100_000 + tail
+    started = time.perf_counter()
+    markdown_headings(text)
+    _frontmatter(text)
+    assert time.perf_counter() - started < 1.0
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "---\nname: private-value\n---\n# Tool\n",
+        "---  \r\nname: private-value\r\n...\r\n# Tool\r\n",
+        "---\n\nname: private-value\n# a YAML comment\n---\n# Tool\n",
+    ],
+)
+def test_front_matter_is_still_stripped_and_read(text: str) -> None:
+    assert [h["text"] for h in markdown_headings(text)] == ["Tool"]
+    assert _frontmatter(text) == {"name": "private-value"}
+
+
+def test_text_without_closed_front_matter_keeps_its_headings() -> None:
+    assert [h["text"] for h in markdown_headings("---\n# Tool\n")] == ["Tool"]
+    assert _frontmatter("---\nname: x\n# Tool\n") == {}
 
 
 def test_readme_and_agent_outlines_share_the_same_structure_filter() -> None:
