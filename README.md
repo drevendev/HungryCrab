@@ -110,6 +110,21 @@ It reports the installed and available versions, notices which agents are on thi
 whether the plugin is installed in each, and prints exactly what to run. `crab update --run`
 does the plugin work for you.
 
+### Verify the CLI installation
+
+After installing the CLI, verify that the `crab` command is available without GitHub authentication or accessing a remote repository:
+
+```bash
+crab --version
+crab --help
+```
+
+Both commands should exit with status `0`. `crab --version` prints the installed version (for example, `crab 0.3.0.dev0`), while `crab --help` displays usage information, available commands, and options.
+
+These read-only smoke checks verify CLI availability and argument parsing only. They do not validate repository fetching, digest generation, comparisons, or GitHub issue/PR publishing.
+
+For the complete workflow, see [Feed the crab](#feed-the-crab) below. The first `crab sniff` example accesses GitHub and requires network connectivity. Authentication requirements depend on the operation; use only the permissions necessary for the intended workflow.
+
 ## Feed the crab
 
 With an agent, one line does the whole protocol: judge the menu, ask you, create the issues.

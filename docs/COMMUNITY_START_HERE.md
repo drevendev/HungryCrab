@@ -45,6 +45,34 @@ For an audit or nomination, a complete issue comment is enough for initial revie
 A small docs PR is welcome when a maintainer agrees the scope and location. For code,
 read [CONTRIBUTING.md](../CONTRIBUTING.md) and the repository's checks first.
 
+## If your fork's CI needs approval
+
+A first-time contributor's upstream workflow may need maintainer approval before
+it can run. This is a trust check, not evidence that your patch is broken. The
+experience in [#283](https://github.com/drevendev/HungryCrab/pull/283) prompted
+[#289](https://github.com/drevendev/HungryCrab/issues/289): author-reported local
+checks did not establish that the upstream workflow had been approved or passed.
+
+| Status | What it tells you |
+|---|---|
+| `action_required`, with **Awaiting approval** | The fork workflow needs maintainer approval; it has not run yet. |
+| `queued` / `in_progress` | The workflow is waiting to run or running; there is no final result yet. |
+| `failure` | The run did not pass. Read its annotations and logs before assuming the patch caused it. |
+| `completed` with `success` | That run passed. Check that it covers the PR's latest commit and that all required upstream checks passed. |
+
+Only a maintainer with write access can approve the external workflow. GitHub's
+current UI uses **Awaiting approval** to open the **Merge status** panel, then
+**Approve workflows to run**, after reviewing the proposed changes. See GitHub's
+[approval instructions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/approve-runs-from-forks).
+Approval is a maintainer decision, not a contributor command or a promise that
+the workflow is safe or will pass.
+
+You may leave the PR open with its exact commit SHA, the checks you actually ran
+and their results, and a concise request for review. Passing CI in your fork, or
+on an older commit, does not establish a completed green run for the latest
+commit in the upstream repository. Never expose a token or bypass required
+checks to get past an approval gate.
+
 ## A useful evidence note
 
 Use this outline for one observation, not a batch of generated recommendations:
