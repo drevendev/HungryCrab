@@ -92,7 +92,10 @@ def rmtree_force(path: Path) -> None:
     except OSError as exc:
         raise CrabError(
             f"cannot safely remove cached files in {path}: {exc}",
-            hint="Close programs holding files and inspect what remains. No chmod traversal was attempted.",
+            hint=(
+                "Close programs holding files and inspect what remains. "
+                "No chmod traversal was attempted."
+            ),
         ) from exc
 
 
