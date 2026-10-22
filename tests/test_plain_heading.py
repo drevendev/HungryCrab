@@ -23,6 +23,10 @@ from hungry_crab.miners.wiki import plain_heading
         ("Safe <b>bold</b>", "Safe bold"),
         ("<https://evil.example>", ""),
         ("[label]: https://evil.example", "label: https://evil.example"),
+        # An escaped backtick is text: what follows it is not a code span (re-review N5).
+        ("Install \\`<img src=x onerror=alert(1)>`", "Install \\``"),
+        ("See \\`[docs](https://evil.example)`", "See \\`docs`"),
+        ("Keep \\\\`code <b>`", "Keep \\\\`code <b>`"),
     ],
 )
 def test_plain_heading(raw: str, text: str) -> None:

@@ -52,9 +52,20 @@ def _code_spans(text: str) -> list[tuple[int, int]]:
     """(start, end) of each code span: a backtick run closed by the next run of equal length.
 
     Each length keeps a cursor into its own runs that only moves forward, so the scan is
-    linear however many unmatched runs the heading has.
+    linear however many unmatched runs the heading has. A backtick escaped by a backslash is
+    text, not part of a run (CommonMark), so `` \\`<img …>` `` opens no span; inside a span
+    that rule errs towards closing it later, which only leaves more of the heading as text.
     """
-    runs = [(match.start(), match.end()) for match in _BACKTICKS_RE.finditer(text)]
+    runs: list[tuple[int, int]] = []
+    for match in _BACKTICKS_RE.finditer(text):
+        start, end = match.start(), match.end()
+        backslashes = 0
+        while start - backslashes > 0 and text[start - backslashes - 1] == "\\":
+            backslashes += 1
+        if backslashes % 2:
+            start += 1
+        if start < end:
+            runs.append((start, end))
     by_length: dict[int, list[int]] = {}
     for index, (start, end) in enumerate(runs):
         by_length.setdefault(end - start, []).append(index)
