@@ -8,7 +8,7 @@ from typing import Any
 
 from ..fetch.git import GitRunner
 from ..mdutil import MdDoc
-from ..safety import is_suspicious
+from ..safety import is_suspicious, safe_name
 from .base import MineContext, MinerResult
 
 PAGE_EXTENSIONS = {".md", ".markdown", ".rst", ".textile", ".asciidoc", ".org", ".mediawiki"}
@@ -34,6 +34,33 @@ _SETEXT_UNDERLINE_RE = re.compile(r" {0,3}(?:=+|-+)[ \t]*")
 # str.strip. `(.+?)\s*#*\s*$` was super-linear in the spaces inside a heading (31.7 s on one
 # 3,000-space line) and turned `# C#` into `C`.
 _ATX_OPEN_RE = re.compile(r" {0,3}(#{1,6})(?=[ \t]|$)")
+# A heading reaches the summary as text, never as live Markdown: an image (a tracking pixel),
+# a link target or raw HTML is removed. The inner classes exclude their own opening bracket,
+# so each pattern is linear in the heading.
+_HEADING_IMAGE_RE = re.compile(r"!\[[^\[\]]*\](?:\([^()]*\)|\[[^\[\]]*\])")
+_HEADING_LINK_RE = re.compile(r"\[([^\[\]]*)\](?:\([^()]*\)|\[[^\[\]]*\])")
+_HEADING_TAG_RE = re.compile(r"<[^<>\s][^<>]*>")
+_HEADING_DEFINITION_RE = re.compile(r"\A\s*\[([^\[\]]*)\]:")
+HEADING_OMITTED = "[heading omitted: instruction-like]"
+
+
+def plain_heading(title: str) -> str:
+    """The text of a heading without images, link targets, autolinks or inline HTML."""
+    text = _HEADING_IMAGE_RE.sub("", title)
+    text = _HEADING_LINK_RE.sub(r"\1", text)
+    text = _HEADING_TAG_RE.sub("", text)
+    # What one pass cannot take apart (nested brackets, a tag split by another `<`) is
+    # defused instead: no `<` is left to open a tag or an autolink, no `](` joins a link
+    # text to a target, and no leading `[label]:` defines a link for another line.
+    text = re.sub(r"<(?=\S)", "", text).replace("](", "] (")
+    return _HEADING_DEFINITION_RE.sub(r"\1:", text).strip()
+
+
+def _heading(level: int, raw: str) -> dict[str, object] | None:
+    title = plain_heading(raw)
+    if is_suspicious(raw) or is_suspicious(title):
+        return {"level": level, "text": HEADING_OMITTED}
+    return {"level": level, "text": title} if title else None
 
 
 def atx_heading(line: str) -> tuple[int, str] | None:
@@ -110,28 +137,13 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             in_block = False
             continue
         atx = atx_heading(line)
+        heading: dict[str, object] | None = None
         if atx is not None:
-            level, title = atx
-            if title:
-                headings.append(
-                    {
-                        "level": level,
-                        "text": "[heading omitted: instruction-like]"
-                        if is_suspicious(title)
-                        else title,
-                    }
-                )
+            heading = _heading(*atx)
             previous = ""
             in_block = False
         elif previous and _SETEXT_UNDERLINE_RE.fullmatch(line):
-            headings.append(
-                {
-                    "level": 1 if "=" in line else 2,
-                    "text": "[heading omitted: instruction-like]"
-                    if is_suspicious(previous)
-                    else previous,
-                }
-            )
+            heading = _heading(1 if "=" in line else 2, previous)
             previous = ""
         elif _THEMATIC_BREAK_RE.fullmatch(line):
             previous = ""
@@ -141,6 +153,8 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             in_block = True
         else:
             previous = "" if in_block else line.strip()
+        if heading is not None:
+            headings.append(heading)
     return headings
 
 
@@ -207,8 +221,9 @@ class WikiMiner:
                         "heading_count": len(found),
                         "headings_truncated": len(found) > MAX_HEADINGS
                         or any(len(str(h["text"])) > HEADING_CHARS for h in found),
+                        # markdown_headings has already replaced a suspicious heading.
                         "suspicious": is_suspicious(name)
-                        or any(is_suspicious(str(h["text"])) for h in found),
+                        or any(h["text"] == HEADING_OMITTED for h in found),
                     }
                 )
             pages.sort(key=lambda p: str(p["path"]))
@@ -232,13 +247,18 @@ class WikiMiner:
         doc.section("Pages (largest first)", priority=1).table(
             ["Page", "Bytes", "Headings", "Flag"],
             (
-                [p["path"], p["bytes"], p["heading_count"], "suspicious" if p["suspicious"] else ""]
+                [
+                    safe_name(p["path"], "page"),
+                    p["bytes"],
+                    p["heading_count"],
+                    "suspicious" if p["suspicious"] else "",
+                ]
                 for p in by_size
             ),
             max_rows=MD_PAGES,
         )
         for page in by_size[:MD_OUTLINES]:
-            doc.section(str(page["path"]), priority=2).bullets(
+            doc.section(safe_name(page["path"], "page"), priority=2).bullets(
                 (f"H{heading['level']}: {heading['text']}" for heading in page["headings"]),
                 max_items=MD_HEADINGS,
             )

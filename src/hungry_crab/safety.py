@@ -28,9 +28,19 @@ from collections.abc import Iterable
 # ASCII. A joiner that has no such neighbour — wedged into a Latin word, dangling at the end
 # of a heading, or stacked with other invisible characters — has nothing to join and is
 # flagged like the rest.
+#
+# The bidirectional controls are invisible too, and they do worse than hide: an override or an
+# isolate reorders what is displayed, so `Safe` + U+202E + `dm.EMDAER` shows a reader one
+# string while a model reads another (the Trojan Source trick). They are format characters,
+# not control characters, so `mdutil.inline` keeps them. A README heading or a prey name has
+# no need for them, and they are flagged like the rest.
 _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
+    (0x061C, 0x061C),  # Arabic letter mark
     (0x200B, 0x200B),  # zero-width space
+    (0x200E, 0x200F),  # left-to-right and right-to-left marks
+    (0x202A, 0x202E),  # bidi embeddings, pop and overrides
     (0x2060, 0x2060),  # word joiner
+    (0x2066, 0x2069),  # bidi isolates
     (0xFEFF, 0xFEFF),  # byte-order mark
     (0xE0000, 0xE007F),  # Tags: printable ASCII rendered as nothing
 )
@@ -67,11 +77,13 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
             r"(?:ai|assistant|agent|model)\b"
         ),
         # An HTML comment is a good hiding place, but most of them in a real README are directives
-        # to a formatter or a linter. `<!-- prettier-ignore-start -->` is not an attack.
+        # to a formatter or a linter. `<!-- prettier-ignore-start -->` is not an attack. The
+        # nouns take their plurals: `<!-- agents: ... -->` addresses the same reader.
         (
             r"<!--\s*(?!/?\s*(?:prettier|markdownlint|remark|eslint|stylelint|lint|nolint|noqa"
             r"|fmt|type|codecov|all-contributors|toc|editorconfig|doctoc|omit|badges)\b)"
-            r"[^>]*?\b(?:instruction|assistant|claude|copilot|agent|ignore|must)\b[^>]*?-->"
+            r"[^>]*?\b(?:instructions?|assistants?|claude|copilots?|agents?|ignore|must)\b"
+            r"[^>]*?-->"
         ),
         f"[{_INVISIBLE}]",
         # Two or more zero-width characters in a row hide bits, whatever they are.
@@ -103,6 +115,17 @@ def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
 
 def is_suspicious(text: str) -> bool:
     return any(pattern.search(text) for pattern in SUSPICIOUS_PATTERNS)
+
+
+def safe_name(value: object, kind: str = "name") -> str:
+    """A name the prey chose (author, path, tag, branch, workflow) for a Markdown summary.
+
+    The one gate those names pass before they reach a digest's Markdown: the name itself, or
+    a placeholder when it reads like an instruction, as headings are redacted. The JSON side
+    keeps the name; full data goes to JSON.
+    """
+    text = "" if value is None else str(value)
+    return f"[{kind} omitted: instruction-like]" if is_suspicious(text) else text
 
 
 def sanitize_lines(lines: Iterable[str], *, max_lines: int) -> tuple[list[str], int]:

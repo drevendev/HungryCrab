@@ -9,7 +9,7 @@ import re
 from typing import Any
 
 from ..mdutil import MdDoc
-from ..safety import is_suspicious, suspicious_fragments
+from ..safety import is_suspicious, safe_name, suspicious_fragments
 from .base import MineContext, MinerResult
 from .wiki import markdown_headings
 
@@ -261,10 +261,14 @@ class DocsMiner:
         doc = MdDoc(f"Docs: {ctx.label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         readme = data["readme"]
+
+        def path(value: object) -> str:
+            return safe_name(value, "path")
+
         summary.kv(
             [
                 ("Markdown files", f"{data['markdown_files']} (~{data['markdown_words']} words)"),
-                ("README", readme["path"] if readme else "missing"),
+                ("README", path(readme["path"]) if readme else "missing"),
                 ("README sections", ", ".join(readme["sections"]) if readme else ""),
                 (
                     "README badges / links / words",
@@ -272,12 +276,12 @@ class DocsMiner:
                 ),
                 (
                     "Community files",
-                    ", ".join(f"{k}: {v}" for k, v in data["community"].items()) or "none",
+                    ", ".join(f"{k}: {path(v)}" for k, v in data["community"].items()) or "none",
                 ),
                 ("Changelog format", data["changelog"]["format"] if data["changelog"] else "none"),
                 (
                     "ADRs",
-                    f"{data['adr']['files']} in {', '.join(data['adr']['dirs'])}"
+                    f"{data['adr']['files']} in {', '.join(map(path, data['adr']['dirs']))}"
                     if data["adr"]["files"]
                     else "none",
                 ),
@@ -289,9 +293,9 @@ class DocsMiner:
                     else "none",
                 ),
                 ("Issue templates", len(data["issue_templates"])),
-                ("PR template", data["pr_template"] or "none"),
-                ("CODEOWNERS", data["codeowners"] or "none"),
-                ("Funding", data["funding"] or "none"),
+                ("PR template", path(data["pr_template"]) if data["pr_template"] else "none"),
+                ("CODEOWNERS", path(data["codeowners"]) if data["codeowners"] else "none"),
+                ("Funding", path(data["funding"]) if data["funding"] else "none"),
             ]
         )
         if readme and readme["headings"]:
@@ -304,15 +308,20 @@ class DocsMiner:
                 outline.para("Instruction-like fragments were found in the README (see docs.json).")
         if data["docs_dir_top"]:
             structure = doc.section("Docs directory structure", priority=3)
-            structure.bullets(data["docs_dir_top"], max_items=25)
+            structure.bullets(map(path, data["docs_dir_top"]), max_items=25)
         if data["issue_templates"]:
             templates = doc.section("Templates", priority=3)
             templates.bullets(
-                data["issue_templates"] + ([data["pr_template"]] if data["pr_template"] else []),
+                map(
+                    path,
+                    data["issue_templates"]
+                    + ([data["pr_template"]] if data["pr_template"] else []),
+                ),
                 max_items=12,
             )
         largest = doc.section("Largest documents", priority=4)
         largest.table(
-            ["Path", "KB"], ([d["path"], f"{d['bytes'] / 1024:.0f}"] for d in data["largest_docs"])
+            ["Path", "KB"],
+            ([path(d["path"]), f"{d['bytes'] / 1024:.0f}"] for d in data["largest_docs"]),
         )
         return doc
