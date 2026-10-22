@@ -1,4 +1,5 @@
 """Regression coverage for Windows reparse/junction acceptance in #211."""
+
 from __future__ import annotations
 
 import json
@@ -80,9 +81,10 @@ def test_native_windows_junction_refused(tmp_path: Path) -> None:
     link = tmp_path / "junction"
     completed = subprocess.run(
         ["cmd", "/c", "mklink", "/J", str(link), str(target)],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    if completed.returncode != 0:
-        pytest.skip(f"junction creation unavailable: {completed.stderr[:160]}")
+    assert completed.returncode == 0, f"Windows junction creation unexpectedly failed: {completed.stderr[:300]}"
     with pytest.raises(CrabError, match="expected a real directory"):
         _require_real_directory(link, label="digest refs root")
