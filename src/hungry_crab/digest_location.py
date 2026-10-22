@@ -9,7 +9,6 @@ operation so one read cannot mix two generations.
 from __future__ import annotations
 
 import json
-import os
 import re
 import stat
 from dataclasses import dataclass
@@ -17,17 +16,10 @@ from pathlib import Path
 from typing import Any
 
 from .errors import CrabError
+from .fs import is_reparse_point
 
 REF_SCHEMA = "hungry-crab.digest-ref/1"
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
-
-
-def _is_reparse_point(info: os.stat_result) -> bool:
-    """Windows junctions can report S_IFDIR; reparse metadata must be rejected."""
-    return bool(
-        getattr(info, "st_file_attributes", 0)
-        & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
-    )
 
 
 @dataclass(frozen=True)
@@ -46,7 +38,7 @@ def _require_real_directory(path: Path, *, label: str) -> None:
         raise CrabError(f"missing {label} {path}") from exc
     except OSError as exc:
         raise CrabError(f"cannot inspect {label} {path}", hint=str(exc)) from exc
-    if not stat.S_ISDIR(info.st_mode) or _is_reparse_point(info):
+    if not stat.S_ISDIR(info.st_mode) or is_reparse_point(info):
         raise CrabError(f"invalid {label} {path}: expected a real directory")
 
 
@@ -87,7 +79,7 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
         return DigestLocation(sha=sha, path=legacy)
     except OSError as exc:
         raise CrabError(f"cannot inspect digest ref {ref_path}") from exc
-    if not stat.S_ISREG(ref_info.st_mode) or _is_reparse_point(ref_info):
+    if not stat.S_ISREG(ref_info.st_mode) or is_reparse_point(ref_info):
         raise CrabError(f"invalid digest ref {ref_path}: expected a regular file")
 
     ref = _load_ref(ref_path)

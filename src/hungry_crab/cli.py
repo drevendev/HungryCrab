@@ -714,7 +714,7 @@ def cmd_cache(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         if not paths.root.exists():
             print(f"{slug} is not cached")
             return 0
-        rmtree_force(paths.root, trusted_root=root)
+        rmtree_force(paths.root, cache_root=root)
         print(f"removed {paths.root}")
         return 0
     parser.error("unknown cache action")

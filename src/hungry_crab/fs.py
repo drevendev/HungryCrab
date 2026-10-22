@@ -1,7 +1,9 @@
-"""Read-only filesystem helpers shared by the miners."""
+"""Read-only filesystem helpers shared across the package."""
 
 from __future__ import annotations
 
+import os
+import stat
 from collections.abc import Sequence
 from fnmatch import fnmatchcase
 from pathlib import Path
@@ -20,6 +22,14 @@ BINARY_EXTENSIONS = frozenset(
         ".lockb", ".snk", ".pfx", ".p12", ".der", ".jks", ".keystore",
     }
 )  # fmt: skip
+
+
+def is_reparse_point(info: os.stat_result) -> bool:
+    """Windows junctions can report S_IFDIR; their reparse metadata gives them away."""
+    return bool(
+        getattr(info, "st_file_attributes", 0)
+        & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    )
 
 
 def read_text(path: Path, *, limit: int = DEFAULT_TEXT_LIMIT) -> str:

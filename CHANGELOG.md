@@ -184,6 +184,17 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 
 ### Fixed
 
+- **Cache deletion stays inside the cache and works under a linked cache root.** `crab cache rm`,
+  `crab catch --force` and the replacement of a clone without `.git` made every entry of the
+  tree writable before deleting it, and `chmod` followed a symlink to its target outside the
+  cache. Nothing is made writable up front now: an entry is retried only after its deletion
+  fails, and only when every component from the cache root down to it is a real directory or
+  file, never a symlink or a Windows junction. The cache root and its parents are left alone,
+  so `~/.cache` on another disk, `CRAB_CACHE_DIR` in a junctioned folder and
+  `/home -> /var/home` keep working. A tree that cannot be removed is a reported error with a
+  hint instead of a traceback, and digest references refuse junctions as well as symlinks.
+  Checking that the cache owns what it deletes is still open
+  ([#211](https://github.com/drevendev/HungryCrab/issues/211)).
 - **GitHub REST responses have a byte budget before JSON decoding.** Both `gh api` and
   HTTPS refuse a response larger than 8 MiB instead of buffering it without a bound. The
   `gh` transport drains both pipes concurrently, caps stderr at 64 KiB, and kills and reaps
