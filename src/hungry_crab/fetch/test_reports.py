@@ -1,4 +1,9 @@
-"""Read JUnit data from bounded in-memory archives, never extract or execute an artifact."""
+"""Read JUnit data from bounded in-memory archives, never extract or execute an artifact.
+
+The sizes an archive declares are the archive's own claims. Each member is inflated in bounded
+chunks and counted as it arrives, so the limits bound the bytes actually produced; LZMA and
+bzip2 members are refused, because CPython inflates them without any output bound.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +16,26 @@ from typing import Any
 
 ZIP_LIMIT = 8 * 1024 * 1024
 XML_LIMIT = 1024 * 1024
+CHUNK = 64 * 1024
+# Actions artifacts are deflate; stored is what a zip writer uses for data that will not shrink.
+COMPRESSION_METHODS = frozenset({zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED})
+
+
+class _SizeLimitError(Exception):
+    """A member produced more bytes than its share of the limits."""
+
+
+def _inflate(archive: zipfile.ZipFile, entry: zipfile.ZipInfo, limit: int) -> bytes:
+    """Up to ``limit`` bytes of one member; a deflate read never inflates much past a chunk."""
+    chunks: list[bytes] = []
+    total = 0
+    with archive.open(entry) as stream:
+        while chunk := stream.read(CHUNK):
+            total += len(chunk)
+            if total > limit:
+                raise _SizeLimitError
+            chunks.append(chunk)
+    return b"".join(chunks)
 
 
 def parse_junit_archive(body: bytes) -> dict[str, Any]:
@@ -18,6 +43,7 @@ def parse_junit_archive(body: bytes) -> dict[str, Any]:
         return {"status": "size-limit", "tests": [], "reports": 0}
     tests: list[dict[str, Any]] = []
     reports = 0
+    inflated = 0
     try:
         with zipfile.ZipFile(io.BytesIO(body)) as archive:
             entries = archive.infolist()
@@ -28,7 +54,10 @@ def parse_junit_archive(body: bytes) -> dict[str, Any]:
                     continue
                 if entry.file_size > XML_LIMIT or entry.flag_bits & 1:
                     return {"status": "size-limit", "tests": [], "reports": 0}
-                source = archive.read(entry)
+                if entry.compress_type not in COMPRESSION_METHODS:
+                    return {"status": "unsupported-compression", "tests": [], "reports": 0}
+                source = _inflate(archive, entry, min(XML_LIMIT, ZIP_LIMIT - inflated))
+                inflated += len(source)
                 markup = source.replace(b"\0", b"").upper()
                 if b"<!DOCTYPE" in markup or b"<!ENTITY" in markup:
                     return {"status": "unsafe-xml", "tests": [], "reports": 0}
@@ -53,6 +82,8 @@ def parse_junit_archive(body: bytes) -> dict[str, Any]:
                             "flaky_rerun": flaky,
                         }
                     )
+    except (_SizeLimitError, MemoryError):
+        return {"status": "size-limit", "tests": [], "reports": 0}
     except (
         ValueError,
         OSError,

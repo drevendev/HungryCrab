@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import io
 import json
+import struct
 import subprocess
 import sys
 import time
+import tracemalloc
 import zipfile
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -14,11 +17,12 @@ import pytest
 from hungry_crab.cache import Slug, prey_paths
 from hungry_crab.compare.candidates import Side, signal_candidates
 from hungry_crab.errors import ExternalCommandError
+from hungry_crab.fetch import test_reports
 from hungry_crab.fetch.channels import discussions, reviews, runs
 from hungry_crab.fetch.github import GitHubClient
 from hungry_crab.fetch.gitlab import GitLabClient
 from hungry_crab.fetch.providers import client_for
-from hungry_crab.fetch.test_reports import parse_junit_archive
+from hungry_crab.fetch.test_reports import CHUNK, ZIP_LIMIT, parse_junit_archive
 from hungry_crab.maw import MawConfig, prey_owner, relationship_for
 from hungry_crab.miners.base import MineContext
 from hungry_crab.miners.inventory import InventoryMiner
@@ -178,6 +182,77 @@ def test_corrupt_compressed_report_is_explicitly_unavailable() -> None:
     body[39:41] = b"\xff\xff"
     parsed = parse_junit_archive(bytes(body))
     assert parsed == {"status": "invalid-report", "tests": [], "reports": 0}
+
+
+REPORT_HEAD = b"<testsuite><testcase name='t'/></testsuite>"
+
+
+def understated_archive(method: int, padding_mib: int) -> bytes:
+    """One report member that declares 43 bytes and inflates to ``padding_mib`` MiB more.
+
+    The local and central headers are patched to the prefix's size and CRC, so every check
+    that trusts the declared sizes passes.
+    """
+    buffer = io.BytesIO()
+    with (
+        zipfile.ZipFile(buffer, "w", compression=method) as writer,
+        writer.open("junit.xml", "w") as stream,
+    ):
+        stream.write(REPORT_HEAD)
+        for _ in range(padding_mib):
+            stream.write(b" " * (1 << 20))
+    data = bytearray(buffer.getvalue())
+    crc = zlib.crc32(REPORT_HEAD)
+    local = data.find(b"PK\x03\x04")
+    struct.pack_into("<I", data, local + 14, crc)
+    struct.pack_into("<I", data, local + 22, len(REPORT_HEAD))
+    central = data.find(b"PK\x01\x02")
+    struct.pack_into("<I", data, central + 16, crc)
+    struct.pack_into("<I", data, central + 24, len(REPORT_HEAD))
+    return bytes(data)
+
+
+def test_an_understated_deflate_member_never_inflates_past_its_chunk() -> None:
+    body = understated_archive(zipfile.ZIP_DEFLATED, 50)
+    assert len(body) < ZIP_LIMIT
+    tracemalloc.start()
+    try:
+        parsed = parse_junit_archive(body)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert parsed["status"] in {"available", "size-limit"}
+    assert peak < 16 * 1024 * 1024
+
+
+@pytest.mark.parametrize("method", [zipfile.ZIP_LZMA, zipfile.ZIP_BZIP2])
+def test_unbounded_compression_methods_are_refused(method: int) -> None:
+    body = understated_archive(method, 1)
+    assert parse_junit_archive(body) == {
+        "status": "unsupported-compression",
+        "tests": [],
+        "reports": 0,
+    }
+
+
+def test_a_member_past_its_real_limit_stops_reading() -> None:
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_DEFLATED) as writer:
+        writer.writestr("junit.xml", b" " * (3 * CHUNK))
+    with zipfile.ZipFile(stream) as reader, pytest.raises(test_reports._SizeLimitError):
+        test_reports._inflate(reader, reader.infolist()[0], CHUNK)
+
+
+def test_an_exhausted_allocation_is_a_size_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    def exhausted(_source: bytes) -> None:
+        raise MemoryError
+
+    monkeypatch.setattr(test_reports.ET, "fromstring", exhausted)
+    assert parse_junit_archive(archive(REPORT_HEAD)) == {
+        "status": "size-limit",
+        "tests": [],
+        "reports": 0,
+    }
 
 
 def test_graphql_client_never_sends_a_mutation() -> None:
