@@ -230,7 +230,8 @@ class DocsMiner:
             total_words += len(_WORD_RE.findall(ctx.read(info.path, limit=200_000)))
 
         data: dict[str, Any] = {
-            "wiki": ctx.data("wiki"),
+            # Counts, status and sha only: every page and heading is already in wiki.json.
+            "wiki": {key: value for key, value in ctx.data("wiki").items() if key != "pages"},
             "markdown_files": len(markdown),
             "markdown_words": total_words,
             "readme": readme,

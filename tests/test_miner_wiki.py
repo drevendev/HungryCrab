@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 import pytest
+from helpers import read_json, read_md, write_tree
 
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.compare import CompareOptions, compare_digests
@@ -21,6 +22,10 @@ from hungry_crab.miners.wiki import markdown_headings
 def wiki(tmp_path: Path) -> Path:
     root = tmp_path / "wiki-source"
     shutil.copytree(Path(__file__).parent / "fixtures" / "wiki", root)
+    return _commit_wiki(root)
+
+
+def _commit_wiki(root: Path) -> Path:
     git = GitRunner(root)
     git.run("init", "--quiet")
     git.run("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "add", ".")
@@ -151,6 +156,35 @@ def test_wiki_structure_and_traits_on_each_fixture(
     assert "private body sentence" not in json.dumps(data)
     traits = json.loads((result.out_dir / "traits.json").read_text())["traits"]
     assert traits["has_wiki"] and traits["has_documentation"] and traits["wiki_pages"] == 2
+
+
+def test_wiki_headings_are_bounded_structure(npm_app: Path, tmp_path: Path) -> None:
+    """One `# ...` line of prose and thousands of headings stay out of the summary (#337)."""
+    prose = "The maintainers expect every contributor to read this paragraph of policy prose. "
+    many = "".join(f"# h{index}\n" for index in range(1_000))
+    root = tmp_path / "hostile-wiki"
+    write_tree(root, {"Long.md": "# " + prose * 125 + "\n", "Many.md": many, "Home.md": "# Hi\n"})
+    result = run_digest(
+        Target(path=npm_app),
+        DigestOptions(
+            out=tmp_path / "digest", wiki_path=_commit_wiki(root), cache_root=tmp_path / "cache"
+        ),
+    )
+    pages = {p["path"]: p for p in read_json(result, "wiki.json")["pages"]}
+    long_page, many_page = pages["Long.md"], pages["Many.md"]
+    assert len(prose * 125) >= 10_000
+    assert long_page["headings"] == [{"level": 1, "text": (prose * 2)[:80]}]
+    assert long_page["heading_count"] == 1 and long_page["headings_truncated"]
+    assert len(many_page["headings"]) == 60 and many_page["heading_count"] == 1_000
+    assert many_page["headings_truncated"] and not pages["Home.md"]["headings_truncated"]
+
+    docs_wiki = read_json(result, "docs.json")["wiki"]
+    assert docs_wiki["page_count"] == 3 and "pages" not in docs_wiki
+    assert "h999" not in json.dumps(docs_wiki) and prose not in json.dumps(docs_wiki)
+    text = read_md(result, "wiki.md")
+    assert prose * 2 not in text and "h10\n" not in text and "- H1: h9\n" in text
+    assert text.index("Long.md") < text.index("Many.md") < text.index("Home.md")
+    assert read_json(result, "traits.json")["traits"]["wiki_pages"] == 3
 
 
 def test_wiki_catch_refresh_and_cache_invalidation(

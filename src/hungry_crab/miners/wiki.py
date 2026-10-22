@@ -14,6 +14,14 @@ from .base import MineContext, MinerResult
 PAGE_EXTENSIONS = {".md", ".markdown", ".rst", ".textile", ".asciidoc", ".org", ".mediawiki"}
 MAX_PAGES = {"normal": 2_000, "deep": 10_000}
 MAX_PAGE_BYTES = 2 * 1024 * 1024
+# A heading is structure only while it is bounded: one `# ...` line can hold a page of prose.
+# The same caps as the README outline in docs.py; wiki.json records the true count.
+HEADING_CHARS = 80
+MAX_HEADINGS = 60
+# wiki.md shows a bounded slice, largest pages first; wiki.json has every page.
+MD_PAGES = 100
+MD_OUTLINES = 25
+MD_HEADINGS = 10
 
 # A setext underline turns the paragraph line above it into a heading, and only a paragraph
 # line (CommonMark). A list item, a quote, a table row or an HTML block above `---` or `===`
@@ -183,17 +191,24 @@ class WikiMiner:
                     data["coverage"]["healthy"] = False
                     data["coverage"]["oversized_pages"].append(name)
                 text = raw[:MAX_PAGE_BYTES].decode("utf-8-sig", errors="replace")
-                headings = (
+                found = (
                     markdown_headings(text) if path.suffix.lower() in (".md", ".markdown") else []
                 )
+                headings = [
+                    {"level": h["level"], "text": str(h["text"])[:HEADING_CHARS]}
+                    for h in found[:MAX_HEADINGS]
+                ]
                 pages.append(
                     {
                         "path": name,
                         "name": Path(name).stem,
                         "bytes": path.stat().st_size,
                         "headings": headings,
+                        "heading_count": len(found),
+                        "headings_truncated": len(found) > MAX_HEADINGS
+                        or any(len(str(h["text"])) > HEADING_CHARS for h in found),
                         "suspicious": is_suspicious(name)
-                        or any(is_suspicious(str(h["text"])) for h in headings),
+                        or any(is_suspicious(str(h["text"])) for h in found),
                     }
                 )
             pages.sort(key=lambda p: str(p["path"]))
@@ -213,16 +228,19 @@ class WikiMiner:
                 ["Bytes", data["bytes"]],
             ],
         )
-        doc.section("Pages", priority=1).table(
+        by_size = sorted(pages, key=lambda p: (-int(p["bytes"]), str(p["path"])))
+        doc.section("Pages (largest first)", priority=1).table(
             ["Page", "Bytes", "Headings", "Flag"],
-            [
-                [p["path"], p["bytes"], len(p["headings"]), "suspicious" if p["suspicious"] else ""]
-                for p in pages
-            ],
+            (
+                [p["path"], p["bytes"], p["heading_count"], "suspicious" if p["suspicious"] else ""]
+                for p in by_size
+            ),
+            max_rows=MD_PAGES,
         )
-        for page in pages:
+        for page in by_size[:MD_OUTLINES]:
             doc.section(str(page["path"]), priority=2).bullets(
-                f"H{heading['level']}: {heading['text']}" for heading in page["headings"]
+                (f"H{heading['level']}: {heading['text']}" for heading in page["headings"]),
+                max_items=MD_HEADINGS,
             )
         warnings = (
             []
