@@ -86,13 +86,37 @@ _GIT_DANGEROUS_ARGS = (
 # ship. ripgrep takes no abbreviations of long options, so the exact names are the whole set.
 _RG_SPAWNING_OPTIONS = ("--pre", "--hostname-bin", "--search-zip")
 _OPERATOR_CHARS = ";&|<>"
+_DEVICE_PREFIX = re.compile(r"^(?:[\\/]{2}[?.][\\/]|\\\?\?\\)(UNC[\\/])?", re.IGNORECASE)
 
 
-def _canonical(path: Path, *, cwd: Path) -> Path:
-    path = path.expanduser()
-    if not path.is_absolute():
-        path = cwd / path
-    return path.resolve(strict=False)
+def strip_device_prefix(text: str) -> str:
+    """The Win32 path a device-prefixed spelling names.
+
+    ``\\\\?\\C:\\x``, ``\\\\.\\C:\\x`` and ``\\??\\C:\\x`` name ``C:\\x``, and
+    ``\\\\?\\UNC\\host\\share`` names ``\\\\host\\share``. ``Path.resolve()`` keeps such a prefix
+    verbatim, so a path compared with it attached never equals the cache root.
+    """
+    match = _DEVICE_PREFIX.match(text)
+    if match is None:
+        return text
+    rest = text[match.end() :]
+    return "\\\\" + rest if match.group(1) else rest
+
+
+def canonical_path(path: Path, *, cwd: Path) -> Path:
+    """The one spelling both guards compare: absolute, resolved, device prefix stripped.
+
+    On Windows ``resolve()`` asks for the final path name of the longest existing prefix, which
+    expands 8.3 short names (``HUNGRY~1``) and follows junctions; the device prefix has to go
+    first, or the result keeps it.
+    """
+    text = os.fspath(path)
+    if os.name == "nt":
+        text = strip_device_prefix(text)
+    candidate = Path(text).expanduser()
+    if not candidate.is_absolute():
+        candidate = cwd / candidate
+    return candidate.resolve(strict=False)
 
 
 def _is_within(path: Path, root: Path) -> bool:
@@ -114,7 +138,7 @@ def _is_punctuation(token: str) -> bool:
     return bool(token) and all(char in _OPERATOR_CHARS for char in token)
 
 
-def _names_root(text: str, root: Path) -> bool:
+def names_root(text: str, root: Path) -> bool:
     """Whether ``text`` spells the cache root, with a path boundary after it."""
     root_text = str(root).replace("\\", "/").casefold()
     if not root_text:
@@ -269,7 +293,7 @@ def _assign(scope: _Scope, name: str, value: str) -> None:
 def _build_scope(
     tokens: list[str], *, root: Path, cwd: Path, variables: dict[str, list[str] | None]
 ) -> _Scope:
-    home = _canonical(Path.home(), cwd=cwd)
+    home = canonical_path(Path.home(), cwd=cwd)
     scope = _Scope(
         root=root,
         cwd=cwd,
@@ -315,7 +339,7 @@ def _change_directory(scope: _Scope, args: list[str]) -> None:
             continue
         for base in list(scope.cwds):
             try:
-                path = _canonical(Path(_msys_drive(candidate)), cwd=base)
+                path = canonical_path(Path(_msys_drive(candidate)), cwd=base)
             except (OSError, RuntimeError, ValueError):
                 scope.unknown_cwd = True
                 continue
@@ -418,6 +442,8 @@ def _tilde(prefix: str, scope: _Scope) -> str:
 
 def _expand_word(word: str, scope: _Scope, inner: list[str], *, depth: int = 0) -> list[str]:
     """Every text the shell can make of ``word``, with markers where it decides at run time."""
+    if os.name == "nt":
+        word = strip_device_prefix(word)  # its `?` is not a glob
     results = [""]
     index = 0
     if word.startswith("~"):
@@ -547,7 +573,7 @@ def _literal_reaches(text: str, scope: _Scope) -> bool:
         rooted = _is_rooted(candidate)
         for base in [scope.cwd] if rooted else scope.cwds:
             try:
-                path = _canonical(Path(candidate), cwd=base)
+                path = canonical_path(Path(candidate), cwd=base)
             except (OSError, RuntimeError, ValueError):
                 continue
             if _is_within(path, scope.root) or path == scope.near_parent:
@@ -578,7 +604,7 @@ def _candidate_reaches(text: str, scope: _Scope) -> bool:
     rooted = bool(prefix) and _is_rooted(prefix)
     for base in [scope.cwd] if rooted else scope.cwds:
         try:
-            directory = _canonical(Path(prefix or "."), cwd=base)
+            directory = canonical_path(Path(prefix or "."), cwd=base)
         except (OSError, RuntimeError, ValueError):
             continue
         if _anchored(directory, components[literal:], scope):
@@ -615,7 +641,7 @@ def _reaches_cache(
 ) -> bool:
     if _ENV_CACHE_REF.search(command) or _DEFAULT_CACHE_REF.search(command):
         return True
-    if _names_root(command, root):
+    if names_root(command, root):
         return True
     text, inner = _extract_substitutions(command)
     # An unparsable command is still judged, word by whitespace-separated word: a quoting
@@ -648,7 +674,7 @@ def _program_token_points_into_cache(token: str, *, root: Path, cwd: Path) -> bo
         # `~/.cache/hungry-*/.../bin/cat` ends in a reader's name, but the shell picks the
         # program; in a cache-touching command an assembled program token is not judged.
         return True
-    if _names_root(token, root):
+    if names_root(token, root):
         return True
 
     # A bare command name such as ``cat`` is resolved by the trusted host PATH. Only explicit
@@ -658,7 +684,7 @@ def _program_token_points_into_cache(token: str, *, root: Path, cwd: Path) -> bo
     if "/" not in token and "\\" not in token:
         return False
     try:
-        return _is_within(_canonical(Path(token), cwd=cwd), root)
+        return _is_within(canonical_path(Path(token), cwd=cwd), root)
     except (OSError, RuntimeError, ValueError):
         # This is already a cache-touching command. If an explicit executable path cannot be
         # classified, fail closed rather than applying the basename allowlist.
@@ -703,7 +729,7 @@ def _git_is_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
                 return False
             if tokens[index + 1]:
                 try:
-                    directory = _canonical(Path(tokens[index + 1]), cwd=directory)
+                    directory = canonical_path(Path(tokens[index + 1]), cwd=directory)
                 except (OSError, RuntimeError, ValueError):
                     return False
             index += 2
@@ -774,7 +800,7 @@ def guard_reason(
     forms above. This deliberately prefers a false refusal over silently executing prey.
     """
     here = (cwd or Path.cwd()).resolve(strict=False)
-    cache = _canonical(root or cache_root(), cwd=here)
+    cache = canonical_path(root or cache_root(), cwd=here)
     if not command.strip() or not _mentions_cache(command, root=cache, cwd=here):
         return None
     if _LINE_BREAK.search(command):
@@ -804,7 +830,7 @@ def _event_cwd(event: dict[object, object]) -> Path:
     if not isinstance(raw, str):
         return process_cwd
     try:
-        return _canonical(Path(raw), cwd=process_cwd)
+        return canonical_path(Path(raw), cwd=process_cwd)
     except (OSError, RuntimeError, ValueError):
         return process_cwd
 

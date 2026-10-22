@@ -15,6 +15,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from .cache import cache_root
+from .prey_guard import canonical_path, names_root
 
 CLEANROOM_AGENT_TYPE = "crab:crab-cleanroom-impl"
 
@@ -41,10 +42,9 @@ def _strings(value: object) -> Iterable[str]:
 
 
 def _canonical(path: Path, *, cwd: Path) -> Path:
-    path = path.expanduser()
-    if not path.is_absolute():
-        path = cwd / path
-    return path.resolve(strict=False)
+    # The prey guard's normaliser: a `\\?\` or `\\.\` device prefix and an 8.3 short name are
+    # reduced to the spelling the cache root has before anything is compared.
+    return canonical_path(path, cwd=cwd)
 
 
 def _event_cwd(event: dict[object, object]) -> Path:
@@ -71,10 +71,14 @@ def _mentions_cache(text: str, *, cwd: Path) -> bool:
         return True
 
     try:
-        candidate = _canonical(Path(text), cwd=cwd)
         root = _configured_cache_root(cwd=cwd)
+        if names_root(text, root):
+            return True
+        candidate = _canonical(Path(text), cwd=cwd)
     except (OSError, RuntimeError, ValueError):
-        return False
+        # For this agent a path the guard cannot canonicalise is a refusal, like the tool
+        # input it cannot inspect: allowing it would make canonicalisation the whole defence.
+        return True
     return _is_within(candidate, root)
 
 

@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 import tomllib
 from pathlib import Path
 
+import pytest
+
+from hungry_crab import cleanroom_guard
 from hungry_crab.cleanroom_guard import CLEANROOM_AGENT_TYPE, cleanroom_guard_reason
+from hungry_crab.prey_guard import strip_device_prefix
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -117,3 +122,88 @@ def test_guard_does_not_change_other_agents() -> None:
 
 def test_cleanroom_agent_fails_closed_when_tool_input_cannot_be_inspected() -> None:
     assert cleanroom_guard_reason(_event(None))
+
+
+def _short_name(path: Path) -> str | None:
+    """The 8.3 alias Windows gives ``path``, or ``None`` where the volume makes none."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+
+    buffer = ctypes.create_unicode_buffer(1024)
+    if not ctypes.windll.kernel32.GetShortPathNameW(str(path), buffer, len(buffer)):
+        return None
+    return buffer.value if buffer.value.casefold() != str(path).casefold() else None
+
+
+@pytest.mark.parametrize(
+    ("spelling", "named"),
+    [
+        ("\\\\?\\C:\\crab-prey\\x", "C:\\crab-prey\\x"),
+        ("\\\\.\\C:\\crab-prey\\x", "C:\\crab-prey\\x"),
+        ("//?/C:/crab-prey/x", "C:/crab-prey/x"),
+        ("\\??\\C:\\crab-prey\\x", "C:\\crab-prey\\x"),
+        ("\\\\?\\UNC\\host\\share\\x", "\\\\host\\share\\x"),
+        ("\\\\?\\unc\\host\\share\\x", "\\\\host\\share\\x"),
+        ("\\\\host\\share\\x", "\\\\host\\share\\x"),
+        ("C:\\crab-prey\\x", "C:\\crab-prey\\x"),
+    ],
+)
+def test_a_device_prefix_names_the_win32_path(spelling: str, named: str) -> None:
+    assert strip_device_prefix(spelling) == named
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="device paths and 8.3 names are Windows'")
+def test_cleanroom_agent_denies_device_and_short_spellings_of_the_default_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    home = tmp_path / "home"
+    root = home / ".cache" / "hungry-crab"
+    (root / "github" / "acme" / "prey" / "repo").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.delenv("CRAB_CACHE_DIR", raising=False)
+    short = _short_name(root)
+    if short is None:
+        pytest.skip("this volume does not generate 8.3 names")
+    inside = "\\github\\acme\\prey\\repo\\core.py"
+    assert "HUNGRY~" in short.upper()
+    assert cleanroom_guard_reason(_event({"file_path": "\\\\?\\" + short + inside}))
+    assert cleanroom_guard_reason(_event({"file_path": "\\\\.\\" + short + inside}))
+    assert cleanroom_guard_reason(_event({"file_path": short + inside}))
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="device paths are Windows'")
+def test_cleanroom_agent_denies_a_device_spelling_of_a_custom_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cache = tmp_path / "crab-prey"
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(cache))
+    path = "\\\\?\\" + str(cache / "github" / "acme" / "prey" / "repo" / "core.py")
+    assert cleanroom_guard_reason(_event({"pattern": "token", "path": path}))
+    sibling = "\\\\?\\" + str(tmp_path / "maw" / "core.py")
+    assert cleanroom_guard_reason(_event({"pattern": "token", "path": sibling})) is None
+
+
+def test_cleanroom_agent_denies_a_path_it_cannot_canonicalise(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(tmp_path / "crab-prey"))
+    event = _event({"file_path": str(tmp_path / "maw" / "core.py")})
+    assert cleanroom_guard_reason(event) is None
+
+    def unresolvable(path: Path, *, cwd: Path) -> Path:
+        raise ValueError("embedded null character")
+
+    monkeypatch.setattr(cleanroom_guard, "canonical_path", unresolvable)
+    assert cleanroom_guard_reason(event)
+
+
+def test_cleanroom_agent_denies_the_configured_root_spelled_literally(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A second detector, so that canonicalisation is not the only line."""
+    cache = tmp_path / "crab-prey"
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(cache))
+    text = f"see {cache.as_posix()}/github/acme/prey/repo/core.py"
+    assert cleanroom_guard_reason(_event({"content": text}))

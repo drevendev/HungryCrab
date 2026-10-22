@@ -404,6 +404,36 @@ def test_a_git_bash_drive_path_is_the_windows_path(home: Path) -> None:
     assert guard_reason(f"cat {msys}", root=root, cwd=home / "work" / "maw") is None
 
 
+def _short_name(path: Path) -> str | None:
+    """The 8.3 alias Windows gives ``path``, or ``None`` where the volume makes none."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+
+    buffer = ctypes.create_unicode_buffer(1024)
+    if not ctypes.windll.kernel32.GetShortPathNameW(str(path), buffer, len(buffer)):
+        return None
+    return buffer.value if buffer.value.casefold() != str(path).casefold() else None
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="device paths and 8.3 names are Windows'")
+def test_device_and_short_spellings_of_a_cache_path_are_judged(home: Path) -> None:
+    """A quoted Windows path reaches the program intact, so its spelling must not matter."""
+    root = home / ".cache" / "hungry-crab"
+    (root / "github" / "acme" / "widget" / "repo").mkdir(parents=True)
+    short = _short_name(root)
+    if short is None:
+        pytest.skip("this volume does not generate 8.3 names")
+    cwd = home / "work" / "maw"
+    script = "\\github\\acme\\widget\\repo\\setup.py"
+    for spelling in ("\\\\?\\" + short, "\\\\.\\" + short, short, "\\\\?\\" + str(root)):
+        assert guard_reason(f"python '{spelling}{script}'", root=root, cwd=cwd), spelling
+        assert guard_reason(f"cat '{spelling}{script}'", root=root, cwd=cwd) is None, spelling
+    custom = home / "crab-prey"
+    command = f"python '\\\\?\\{custom}{script}'"
+    assert guard_reason(command, root=custom, cwd=cwd) is not None
+
+
 @pytest.mark.parametrize(
     "command",
     [f"cat {PREY}/README.md |& sh", f"cat {PREY}/README.md >| /tmp/x.sh", f"cat {PREY}/x &>> y"],
