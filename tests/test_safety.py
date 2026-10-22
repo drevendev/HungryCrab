@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import random
+import re
+import time
+from collections.abc import Callable, Iterator
+
 import pytest
 
+from hungry_crab import safety
 from hungry_crab.safety import is_suspicious, safe_name, sanitize_lines, suspicious_fragments
 
 
@@ -101,6 +107,63 @@ def test_safe_name_keeps_an_ordinary_name() -> None:
     assert safe_name("src/app.py", "path") == "src/app.py"
     assert safe_name("Jane Doe", "author") == "Jane Doe"
     assert safe_name(None) == ""
+
+
+@pytest.mark.parametrize(
+    ("head", "unit", "count", "tail"),
+    [
+        ("", "<!--", 100_000, ""),  # openers in one run without `>`
+        ("<!--", " ", 400_000, "x-->"),  # whitespace the directive test backtracked into
+        ("<!-- ", "agents ", 50_000, ">"),  # keywords in a run that does not end with -->
+        ("", "<!-- prettier ", 25_000, "-->"),  # directives in one run
+        ("", "curl ", 80_000, ""),  # downloader names on one line without a pipe to a shell
+        ("", "curl | ", 50_000, "x"),  # pipes that lead nowhere
+    ],
+    ids=["openers", "whitespace", "keywords", "directives", "curl-names", "curl-pipes"],
+)
+def test_the_heuristic_is_linear_on_hostile_text(
+    head: str, unit: str, count: int, tail: str
+) -> None:
+    """The comment and pipe-to-shell rules were quadratic: 64 KB of one shape took 266 s."""
+    text = head + unit * count + tail
+    started = time.perf_counter()
+    is_suspicious(text)
+    suspicious_fragments(text)
+    assert time.perf_counter() - started < 1.0
+
+
+@pytest.mark.parametrize(
+    ("rule", "reference", "tokens"),
+    [
+        (
+            safety._html_comments,
+            # The rule as it was written before it was made linear.
+            re.compile(
+                r"<!--\s*(?!/?\s*(?:prettier|markdownlint|remark|eslint|stylelint|lint|nolint"
+                r"|noqa|fmt|type|codecov|all-contributors|toc|editorconfig|doctoc|omit|badges)\b)"
+                r"[^>]*?\b(?:instructions?|assistants?|claude|copilots?|agents?|ignore|must)\b"
+                r"[^>]*?-->",
+                re.IGNORECASE,
+            ),
+            ["<!--", "-->", ">", "-", " ", "\n", "/", "/toc", "agent", "Agents", "prettier", "<"],
+        ),
+        (
+            safety._pipes_to_shell,
+            safety._PIPE_TO_SHELL_RE,
+            ["curl", "wget", " ", "|", "sh", "\n", "x", "bash", "| sh", "curl |"],
+        ),
+    ],
+    ids=["comments", "pipe-to-shell"],
+)
+def test_the_linear_scans_find_what_the_regex_finds(
+    rule: Callable[[str], Iterator[re.Match[str]]], reference: re.Pattern[str], tokens: list[str]
+) -> None:
+    rng = random.Random(192)
+    samples = ["<!-- / prettier agents -->", "<!-- /toc agents -->", "<!--/toc agents -->"]
+    samples += ["".join(rng.choices(tokens, k=rng.randint(0, 10))) for _ in range(5_000)]
+    for text in samples:
+        expected = [match.span() for match in reference.finditer(text)]
+        assert [match.span() for match in rule(text)] == expected, repr(text)
 
 
 def test_sanitize_lines_replaces_and_counts() -> None:
