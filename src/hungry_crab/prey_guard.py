@@ -612,6 +612,53 @@ def _candidate_reaches(text: str, scope: _Scope) -> bool:
     return not rooted and scope.unknown_cwd and _unanchored(components, scope)
 
 
+def _glob_markers(pattern: str) -> str:
+    """A file-search glob in marker form, for a tool whose wildcards also match dot files."""
+    out: list[str] = []
+    index = 0
+    while index < len(pattern):
+        char = pattern[index]
+        step = 1
+        piece = char
+        if pattern.startswith("**", index):
+            piece, step = _CROSS, 2
+        elif char in "*?":
+            piece = _ANY
+        elif char == "[" and (close := pattern.find("]", index + 2)) > 0:
+            piece, step = _ANY, close + 1 - index
+        elif char == "{" and (group := _brace_group(pattern, index)) is not None:
+            piece, step = (_CROSS if group[1] else _ANY), group[0] + 1 - index
+        out.append(piece)
+        index += step
+    return "".join(out)
+
+
+def glob_reaches(pattern: str, *, base: Path, root: Path) -> bool:
+    """Whether a Glob ``pattern``, relative to ``base`` unless absolute, can match in ``root``.
+
+    The literal part of the pattern is resolved like any path; the components after it are
+    matched against the root's remaining components, so ``~/.cache/hungry-*/**`` and
+    ``.cache/*crab/**`` from the home directory reach a default cache, ``src/**`` does not.
+    """
+    text = strip_device_prefix(pattern) if os.name == "nt" else pattern
+    if text.startswith("~"):
+        separator = _SEPARATORS.search(text)
+        end = separator.start() if separator else len(text)
+        text = str(Path(text[:end]).expanduser()) + text[end:]
+    components = _components(_glob_markers(text))
+    literal = 0
+    while literal < len(components) and not any(m in components[literal] for m in _MARKERS):
+        literal += 1
+    prefix = "/".join(components[:literal])
+    if not prefix and text[:1] in ("/", "\\"):
+        prefix = "/"
+    elif _DRIVE.fullmatch(prefix):
+        prefix += "/"
+    directory = canonical_path(Path(prefix or "."), cwd=base)
+    scope = _Scope(root=root, cwd=base, home=base, near_parent=None)
+    return _anchored(directory, components[literal:], scope)
+
+
 def _path_words(tokens: list[str]) -> list[str]:
     """The texts in a command that can name a path: arguments, option and assignment values."""
     words: list[str] = []

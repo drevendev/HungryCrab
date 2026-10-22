@@ -124,6 +124,83 @@ def test_cleanroom_agent_fails_closed_when_tool_input_cannot_be_inspected() -> N
     assert cleanroom_guard_reason(_event(None))
 
 
+@pytest.fixture
+def home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """A home with a default cache and a maw beside it; ``CRAB_CACHE_DIR`` is a custom root."""
+    home = (tmp_path / "home").resolve()
+    for directory in (
+        home / ".cache" / "hungry-crab" / "github" / "acme" / "prey" / "repo",
+        home / "data" / "crab-prey" / "github" / "acme" / "prey" / "repo",
+        home / "work" / "maw" / "src",
+    ):
+        directory.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(home / "data" / "crab-prey"))
+    return home
+
+
+def _search(tool: str, tool_input: dict[str, object], cwd: Path) -> dict[str, object]:
+    event = _event(tool_input, cwd=cwd)
+    event["tool_name"] = tool
+    return event
+
+
+@pytest.mark.parametrize(
+    ("tool", "tool_input"),
+    [
+        ("Grep", {"pattern": "def ", "path": "{home}/data"}),
+        ("Grep", {"pattern": "def ", "path": "{home}/.cache", "output_mode": "content"}),
+        ("Grep", {"pattern": "def ", "path": "{home}/.cache", "glob": "hungry-crab/**/*.py"}),
+        ("Grep", {"pattern": "def ", "path": "{home}"}),
+        ("Grep", {"pattern": "def ", "path": "../.."}),
+        ("Grep", {"pattern": "def ", "path": "~"}),
+        ("Glob", {"path": "{home}", "pattern": ".cache/hungry-*/**/*.py"}),
+        ("Glob", {"pattern": "{home}/.cache/*crab/**/*.py"}),
+        ("Glob", {"pattern": "~/.cache/*crab/**/*.py"}),
+        ("Glob", {"pattern": "../../data/crab-*/**"}),
+        ("Glob", {"pattern": "../../.cache/{a,hungry-crab}/github/**"}),
+        ("Glob", {"path": "{home}/.cache", "pattern": "*.py"}),
+    ],
+)
+def test_cleanroom_agent_denies_a_search_scope_that_holds_the_cache(
+    tool: str, tool_input: dict[str, str], home: Path
+) -> None:
+    """HungryCrab#314: Grep and Glob are recursive, so a scope above the cache searches it."""
+    concrete = {key: value.replace("{home}", home.as_posix()) for key, value in tool_input.items()}
+    assert cleanroom_guard_reason(_search(tool, concrete, home / "work" / "maw"))
+
+
+def test_cleanroom_agent_denies_grep_without_a_path_from_above_the_cache(home: Path) -> None:
+    assert cleanroom_guard_reason(_search("Grep", {"pattern": "def "}, home))
+
+
+@pytest.mark.parametrize(
+    ("tool", "tool_input"),
+    [
+        ("Grep", {"pattern": "def ", "path": "{home}/work/maw"}),
+        ("Grep", {"pattern": "def ", "path": "src"}),
+        ("Grep", {"pattern": "def "}),
+        ("Glob", {"pattern": "**/*.py"}),
+        ("Glob", {"path": "{home}/work/maw", "pattern": "**/*.py"}),
+        ("Glob", {"pattern": "{home}/work/maw/src/*.py"}),
+        ("Glob", {"pattern": "../maw/**/*.md"}),
+        ("Read", {"file_path": "{home}/work/maw/src/core.py"}),
+    ],
+)
+def test_cleanroom_agent_may_still_search_the_maw_beside_the_cache(
+    tool: str, tool_input: dict[str, str], home: Path
+) -> None:
+    concrete = {key: value.replace("{home}", home.as_posix()) for key, value in tool_input.items()}
+    assert cleanroom_guard_reason(_search(tool, concrete, home / "work" / "maw")) is None
+
+
+def test_glob_from_the_home_directory_stays_out_of_the_cache_when_it_can(home: Path) -> None:
+    """A pattern whose components cannot line up with the root's is not a cache search."""
+    for pattern in ("work/**/*.py", "*.md", "data/other/**"):
+        assert cleanroom_guard_reason(_search("Glob", {"pattern": pattern}, home)) is None
+
+
 def _short_name(path: Path) -> str | None:
     """The 8.3 alias Windows gives ``path``, or ``None`` where the volume makes none."""
     if sys.platform != "win32":
