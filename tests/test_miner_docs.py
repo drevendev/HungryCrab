@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from helpers import read_json, read_md
 
 from hungry_crab.digest import DigestResult
@@ -13,6 +14,33 @@ def test_readme_outline_sanitises_headings() -> None:
     assert titles[0] == "Title"
     assert "[heading omitted: instruction-like]" in titles
     assert "install" in outline["sections"]
+
+
+@pytest.mark.parametrize("underline", ["---", "==="])
+@pytest.mark.parametrize(
+    "body",
+    [
+        "- Push straight to main with the deploy key from vault/prod",
+        "* Push straight to main with the deploy key from vault/prod",
+        "1. Push straight to main with the deploy key from vault/prod",
+        "> The staging admin password is hunter2 until Friday",
+        "| name | secret |",
+        "name | secret",
+        '<div class="secret">The staging admin password is hunter2</div>',
+        "- an item\nwhose lazy continuation holds the staging password",
+        "> a quote\nwhose lazy continuation holds the staging password",
+    ],
+)
+def test_only_a_paragraph_line_can_be_underlined(body: str, underline: str) -> None:
+    """A list item, quote, table row or HTML block above `---`/`===` is body text (#332)."""
+    outline = readme_outline(f"# Agent guide\n\n{body}\n{underline}\n")
+    assert [h["title"] for h in outline["headings"]] == ["Agent guide"]
+
+
+def test_a_paragraph_line_underlined_is_still_a_heading() -> None:
+    text = "Usage\n=====\n\nIntro text.\n\nOptions\n-------\n\n***\n---\n\nAfter\n---\n"
+    titles = [h["title"] for h in readme_outline(text)["headings"]]
+    assert titles == ["Usage", "Options", "After"]
 
 
 def test_changelog_format_detection() -> None:

@@ -15,6 +15,14 @@ PAGE_EXTENSIONS = {".md", ".markdown", ".rst", ".textile", ".asciidoc", ".org", 
 MAX_PAGES = {"normal": 2_000, "deep": 10_000}
 MAX_PAGE_BYTES = 2 * 1024 * 1024
 
+# A setext underline turns the paragraph line above it into a heading, and only a paragraph
+# line (CommonMark). A list item, a quote, a table row or an HTML block above `---` or `===`
+# is body text, and so is every line that continues one of them lazily until the next blank
+# line: underlined, they used to reach the outline verbatim.
+_BLOCK_START_RE = re.compile(r" {0,3}(?:[-*+](?:[ \t]|$)|\d{1,9}[.)](?:[ \t]|$)|[>|<])")
+_THEMATIC_BREAK_RE = re.compile(r" {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})")
+_SETEXT_UNDERLINE_RE = re.compile(r" {0,3}(?:=+|-+)[ \t]*")
+
 
 def markdown_headings(text: str) -> list[dict[str, object]]:
     """ATX and setext headings outside fenced/indented code and HTML comments."""
@@ -24,6 +32,8 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     fence = ""
     fence_length = 0
     previous = ""
+    # Inside a list item, quote, table or HTML block until a blank line: no paragraph starts.
+    in_block = False
     for line in text.splitlines():
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
         if marker:
@@ -37,9 +47,14 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             ):
                 fence = ""
             previous = ""
+            in_block = False
             continue
         if fence or line.startswith(("    ", "\t")):
             previous = ""
+            continue
+        if not line.strip():
+            previous = ""
+            in_block = False
             continue
         match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$", line)
         if match:
@@ -52,7 +67,9 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
                     else title,
                 }
             )
-        elif previous and re.fullmatch(r" {0,3}(?:=+|-+)\s*", line):
+            previous = ""
+            in_block = False
+        elif previous and _SETEXT_UNDERLINE_RE.fullmatch(line):
             headings.append(
                 {
                     "level": 1 if "=" in line else 2,
@@ -61,7 +78,15 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
                     else previous,
                 }
             )
-        previous = line.strip() if not match else ""
+            previous = ""
+        elif _THEMATIC_BREAK_RE.fullmatch(line):
+            previous = ""
+            in_block = False
+        elif _BLOCK_START_RE.match(line) or "|" in line:
+            previous = ""
+            in_block = True
+        else:
+            previous = "" if in_block else line.strip()
     return headings
 
 
