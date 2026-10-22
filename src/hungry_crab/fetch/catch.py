@@ -87,14 +87,38 @@ def rmtree_force(path: Path) -> None:
             & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
         ):
             raise CrabError(f"refusing cache deletion through link/reparse path {component}")
+    def retry_readonly(func: Callable[..., object], filename: str, _failure: object) -> None:
+        """Repair only the item that failed, after refusing any link/junction component."""
+        item = Path(filename)
+        if not item.absolute().is_relative_to(path.absolute()):
+            raise CrabError(f"refusing cache cleanup outside its root: {item}")
+        component = item
+        while component != path.parent:
+            try:
+                info = component.lstat()
+            except OSError as exc:
+                raise CrabError(f"cannot inspect cache cleanup component {component}") from exc
+            if (
+                not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode))
+                or getattr(info, "st_file_attributes", 0)
+                & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+            ):
+                raise CrabError(f"refusing chmod through a cache link/reparse point: {component}")
+            component = component.parent
+        try:
+            item.chmod(item.lstat().st_mode | stat.S_IWRITE)
+            func(filename)
+        except OSError as exc:
+            raise CrabError(f"cannot remove read-only cache entry {item}: {exc}") from exc
+
     try:
-        shutil.rmtree(path)
+        shutil.rmtree(path, onerror=retry_readonly)
     except OSError as exc:
         raise CrabError(
             f"cannot safely remove cached files in {path}: {exc}",
             hint=(
                 "Close programs holding files and inspect what remains. "
-                "No chmod traversal was attempted."
+                "No recursive chmod traversal was attempted."
             ),
         ) from exc
 

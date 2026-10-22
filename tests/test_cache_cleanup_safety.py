@@ -59,7 +59,7 @@ def test_locked_cache_failure_has_actionable_error(
     sentinel = cache / "locked.txt"
     sentinel.write_text("keep until lock clears", encoding="utf-8")
 
-    def deny_removal(_path: Path) -> None:
+    def deny_removal(_path: Path, *, onerror: object = None) -> None:
         raise PermissionError("simulated open file")
 
     monkeypatch.setattr("hungry_crab.fetch.catch.shutil.rmtree", deny_removal)
