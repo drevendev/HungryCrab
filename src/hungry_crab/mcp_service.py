@@ -123,7 +123,11 @@ class AnalysisService:
         candidate = Path(value).expanduser()
         if not candidate.is_absolute():
             candidate = self.roots[0] / candidate
-        if explicit or candidate.exists():
+        # Probing a path outside the roots would tell the client whether it exists, so only one
+        # that lies under a root as written is probed; `local` refuses the rest untouched.
+        lexical = Path(os.path.normpath(candidate.absolute()))
+        inside = any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
+        if explicit or not inside or candidate.exists():
             return Target(path=self.local(value))
         slug = Slug.parse(value)
         if not self.allow_network:

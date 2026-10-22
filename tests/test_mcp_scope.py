@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fixture_builder import git
@@ -83,6 +84,40 @@ def test_a_linked_git_directory_outside_every_root_is_refused(
             link.rmdir()
         else:
             link.unlink()
+
+
+def test_a_prey_outside_the_roots_is_refused_alike_and_never_probed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Whether a path beside the root exists must not change the answer, or be asked (#327)."""
+    root = tmp_path / "approved"
+    root.mkdir()
+    (tmp_path / "outside-secret-project").mkdir()
+    service = AnalysisService([root], tmp_path / "cache")
+    monkeypatch.setattr(
+        "hungry_crab.mcp_service.run_digest", lambda *_: pytest.fail("analysis ran")
+    )
+    probed: list[str] = []
+    messages: set[str] = set()
+    with monkeypatch.context() as patch:
+        for name in ("exists", "resolve", "is_dir", "stat", "lstat"):
+            real = getattr(Path, name)
+
+            def spy(self: Path, *args: object, _real: Any = real, **kwargs: object) -> Any:
+                probed.append(str(self))
+                return _real(self, *args, **kwargs)
+
+            patch.setattr(Path, name, spy)
+        for value in ("x/../../outside-secret-project", "x/../../no-such-project", ".."):
+            for call in (service.prey, service.digest):
+                try:
+                    call(value)
+                except UsageError as refused:
+                    messages.add(refused.message)
+                else:
+                    pytest.fail(f"{value!r} was accepted")
+    assert probed == []
+    assert messages == {"repository is outside the operator-approved MCP roots"}
 
 
 def test_a_worktree_whose_repository_is_under_the_root_is_accepted(tmp_path: Path) -> None:
