@@ -1,18 +1,19 @@
 # Everywhere: local MCP, installation and offline HTML
 
-0.6.0.dev0 is an implementation candidate, not a published 0.6 release. It builds on the
-0.3–0.5 integration in upstream PR #291. Release evidence remains owned by #224; improved
-Taste Memory uptake remains #256. No scheduler, model runtime or automatic publication is
-installed by Everywhere.
+The stable 0.6.0 scope is deterministic, human-supervised analysis: CLI, scoped stdio MCP,
+portable skills and offline HTML. PR publication, Scheduled Crab work autonomy and
+learning/usefulness claims remain experimental; their outstanding live acceptance work follows
+this limited release and is not declared complete. See the
+[release record](releases/0.6.0-readiness.md). No scheduler, model runtime or automatic
+publication is installed by Everywhere.
 
 ## Install once
 
-Python 3.11+, Git and uv are required. Choose a source you trust. During review the following
-installs this candidate from its fork branch; replace that branch with its reviewed commit SHA
-to pin the installation. Installation downloads the trusted package and dependencies.
+Python 3.11+, Git and uv are required. Install the release tag from this repository; drop
+`@v0.6.0` to follow `master` instead. Installation downloads the package and its dependencies.
 
 ```sh
-uv tool install "hungry-crab[mcp] @ git+https://github.com/abogun-product/HungryCrab@zendreven/everywhere"
+uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab@v0.6.0"
 crab --version
 crab mcp --check
 ```
@@ -32,13 +33,15 @@ Build/install your own reviewed checkout without Git-based installation:
 
 ```sh
 uv build
-uv tool install ./dist/hungry_crab-0.6.0.dev0-py3-none-any.whl
 ```
+
+Then install the wheel `uv build` wrote to `dist/` (its name carries the version), for example
+`uv tool install ./dist/hungry_crab-0.6.0-py3-none-any.whl`.
 
 For MCP, install `hungry-crab[mcp] @ file:///absolute/path/to/the.whl` instead. On Windows use
 an absolute file URI such as `file:///C:/packages/the.whl`. Package metadata, wheel, sdist and
-isolated tool installation are tested. A PyPI upload is a release-owner action; this candidate
-has not been published there. Do not infer package-index availability from a successful build.
+isolated tool installation are tested. The package is not published to PyPI, and the
+`hungry-crab` name there is not ours; install from the tag or from a wheel you built.
 
 ## Expose two tools to your local host
 

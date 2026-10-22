@@ -7,14 +7,30 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Everything below is on `master` and in no tag. The 0.2.1 and 0.2.2 milestones are complete —
-self-feeding, the licence resolutions, the menu benchmark — but neither was ever released, so
-their entries wait here for the next tag rather than claiming one of their own. Milestones are
-tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tracks releases.
+## [0.6.0] - 2026-10-22
+
+Everywhere is a limited stable release of deterministic, human-supervised repository analysis:
+the CLI, scoped local MCP, portable skills and offline HTML reports. The owner approved this
+scope on 2026-10-21 and deferred the original live acceptance criteria of the earlier
+milestones to post-release work; none of them is declared complete. The 0.3-0.5
+implementations are included, but PR publication, Scheduled Crab work autonomy and
+learning/usefulness claims remain experimental. The optional tree-sitter syntax index was
+postponed, so the runtime dependency is PyYAML alone and MCP is the only optional extra.
+Install from the `v0.6.0` tag; the package is not on PyPI. The 0.2.1 and 0.2.2 milestones were
+never tagged separately, and their changes are included here.
+
+Known issues: cache deletion does not yet prove that the cache owns what it deletes
+([#211](https://github.com/drevendev/HungryCrab/issues/211)); licence detection still has open
+edge cases ([#189](https://github.com/drevendev/HungryCrab/issues/189),
+[#202](https://github.com/drevendev/HungryCrab/issues/202),
+[#204](https://github.com/drevendev/HungryCrab/issues/204)); the explicit-output ownership
+repair awaits verification against [#210](https://github.com/drevendev/HungryCrab/issues/210).
+Live acceptance stays open in #224, #236, #242, #243, #250 and #256; see the
+[release record](docs/releases/0.6.0-readiness.md).
 
 ### Added
 
-- **0.6 Everywhere (development candidate):** `crab mcp` exposes scoped `crab_digest` and
+- **0.6 Everywhere:** `crab mcp` exposes scoped `crab_digest` and
   paginated `crab_menu` tools over local stdio using the optional official SDK extra. Startup
   roots constrain local access; network reads are opt-in; the adapter neither executes prey,
   publishes nor mutates the ledger. Modern and legacy protocol clients are tested. UNC and
@@ -28,7 +44,7 @@ tracked in [docs/design/03-roadmap.md](docs/design/03-roadmap.md); this file tra
 - **Installation acceptance:** isolated uv tool installs from our sdist and wheel on Windows
   and Linux, including installed CLI/MCP/report operations and portable `npx skills add`.
   Host configuration examples and the un-published package-index boundary are documented in
-  [Everywhere](docs/everywhere.md). No release or PyPI upload is claimed.
+  [Everywhere](docs/everywhere.md). The package is not published to PyPI.
 
 - **0.5 Taste Memory (development milestone):** bounded category learning from confirmed
   decisions, explainable memory snapshots, gap-directed GitHub `hunt`, reviewed hunger profiles,
@@ -752,5 +768,6 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.6.0
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0

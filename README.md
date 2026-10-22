@@ -38,13 +38,13 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.2.0 Menu](https://github.com/drevendev/HungryCrab/releases/latest) remains the
-latest release. The integrated development candidate is 0.6.0.dev0, Everywhere.** It adds local
-MCP digest/menu tools, an optional install extra and standalone offline HTML reports on top of
-the unreleased Feeder, Scheduled Crab, Deep Bite and Taste Memory implementations. Release and
-live usefulness evidence remain separate. Start with the [Everywhere guide](docs/everywhere.md)
-for installation, host configuration and reports; see the [roadmap](docs/design/03-roadmap.md)
-for the remaining release gates.
+**Status: [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0) is
+the latest release, a limited stable one.** The supported scope is deterministic,
+human-supervised analysis: the CLI, scoped local MCP, portable skills and offline HTML reports.
+PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
+experimental; their live acceptance criteria are deferred to post-release work, not declared
+complete. Start with the [Everywhere guide](docs/everywhere.md) and the
+[release record](docs/releases/0.6.0-readiness.md).
 
 ## The metaphor, in five words
 
@@ -72,9 +72,9 @@ not require `gh`; private reads use `GITLAB_TOKEN`. GitHub Discussions and JUnit
 need the corresponding authenticated API permissions.
 
 That tracks `master`, which is always green, and is the recommended way to install the crab
-while it is pre-1.0. If you want a fixed version instead, append `@v0.2.0` to the URL — that is
-the only tag so far, and it predates the licence resolutions and the menu benchmark — and take
-care of updates yourself.
+while it is pre-1.0. If you want a fixed version instead, append `@v0.6.0` to the URL and take
+care of updates yourself. The package is not on PyPI, and the `hungry-crab` name there is not
+ours: install from this repository.
 
 **Claude Code**, which adds the eat/license/serve/cleanroom/loop skills, sniff/menu commands,
 three subagents and two `PreToolUse` hooks:
