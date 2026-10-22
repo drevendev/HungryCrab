@@ -8,13 +8,20 @@ routes their tool calls through this PreToolUse hook instead.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from collections.abc import Iterable
 from pathlib import Path
 
 from .cache import cache_root
-from .prey_guard import canonical_path, glob_reaches, names_root, read_hook_event
+from .prey_guard import (
+    canonical_path,
+    glob_reaches,
+    is_drive_path,
+    names_root,
+    read_hook_event,
+)
 
 CLEANROOM_AGENT_TYPE = "crab:crab-cleanroom-impl"
 
@@ -82,6 +89,32 @@ def _mentions_cache(text: str, *, cwd: Path) -> bool:
     return _is_within(candidate, root)
 
 
+_PATH_KEYS = ("file_path", "path", "notebook_path")
+
+
+def _off_drive_path(tool: object, tool_input: dict[object, object], *, cwd: Path) -> bool:
+    """A share or device path that does not come down to a drive path is refused (Windows).
+
+    `\\\\localhost\\C$\\...`, `\\\\?\\GLOBALROOT\\...` and `\\\\?\\Volume{...}\\...` all open
+    files on a local drive, and Read, Grep and Glob accept them. The guard reduces the forms
+    it knows to the drive path and compares that; it does not ask the network about any other
+    share, so it cannot tell where one leads, and this agent has no need of shares.
+    """
+    if os.name != "nt":
+        return False
+    keys = (*_PATH_KEYS, "pattern") if tool == "Glob" else _PATH_KEYS
+    for key in keys:
+        value = tool_input.get(key)
+        if not isinstance(value, str) or not value.startswith(("\\\\", "//", "\\??\\")):
+            continue
+        try:
+            if not is_drive_path(_canonical(Path(value), cwd=cwd)):
+                return True
+        except (OSError, RuntimeError, ValueError):
+            return True
+    return False
+
+
 def _search_reaches_cache(tool: object, tool_input: dict[object, object], *, cwd: Path) -> bool:
     """Grep and Glob search a scope; one that holds the cache searches the cache.
 
@@ -134,8 +167,11 @@ def cleanroom_guard_reason(event: object) -> str | None:
         return "Clean-room tool call denied: the tool input could not be inspected."
 
     cwd = _event_cwd(event)
-    if any(_mentions_cache(text, cwd=cwd) for text in _strings(tool_input)) or (
-        _search_reaches_cache(event.get("tool_name"), tool_input, cwd=cwd)
+    tool = event.get("tool_name")
+    if (
+        any(_mentions_cache(text, cwd=cwd) for text in _strings(tool_input))
+        or _off_drive_path(tool, tool_input, cwd=cwd)
+        or _search_reaches_cache(tool, tool_input, cwd=cwd)
     ):
         return (
             "Clean-room tool call denied: crab-cleanroom-impl may use the maw and its "

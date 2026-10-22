@@ -61,8 +61,10 @@ def test_deps_miner_warns_about_deep_manifests_and_reads_the_rest(tmp_path: Path
     )
     result = ProjectDepsMiner().run(_context(tmp_path))
 
+    # How deep nesting fails depends on the interpreter: RecursionError on most, but the C JSON
+    # scanner of some builds reports a JSONDecodeError first. Either is an unparseable file.
     for path in ("web/package.json", "py/pyproject.toml", "Cargo.toml", "composer.json"):
-        assert f"could not parse {path}: RecursionError" in result.warnings
+        assert any(w.startswith(f"could not parse {path}: ") for w in result.warnings), path
     assert [package["name"] for package in result.data["packages"]] == ["example.com/b"]
 
 
@@ -155,6 +157,66 @@ def test_load_prey_yaml_charges_long_strings_behind_aliases() -> None:
     assert load_prey_yaml("s: &s abc\nl: [*s, *s]\n") == {"s": "abc", "l": ["abc", "abc"]}
 
 
+def _merge_bomb(levels: int, fan_out: int = 10) -> str:
+    lines = ["a0: &a0 {k0: 0, k1: 1, k2: 2, k3: 3, k4: 4, k5: 5, k6: 6, k7: 7, k8: 8, k9: 9}"]
+    for level in range(1, levels + 1):
+        refs = ", ".join([f"*a{level - 1}"] * fan_out)
+        lines.append(f"a{level}: &a{level} {{<<: [{refs}]}}")
+    return "\n".join(lines) + "\non: push\njobs: {}\n"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # 552 bytes: PyYAML copied 10^8 pairs while building it, 78 s, and the result was small.
+        _merge_bomb(7),
+        _merge_bomb(12),
+        # A single merge key whose source is already a fan-out of aliases.
+        _merge_bomb(4) + "x: &x {<<: *a4, y: 1}\nz: [" + ", ".join(["*x"] * 200) + "]\n",
+        # Nested inline merges: each level copies every pair of the level below.
+        "x: "
+        + "{<<: " * 200
+        + "{"
+        + ", ".join(f"k{i}: {i}" for i in range(5_000))
+        + "}"
+        + "}" * 200
+        + "\n",
+        # A merge that refers to the mapping it sits in.
+        "a: &a {<<: *a, k: 1}\n",
+    ],
+    ids=["fan-7", "fan-12", "fan-then-alias", "inline-chain", "self-merge"],
+)
+def test_merge_keys_are_charged_before_the_document_is_built(text: str) -> None:
+    started = time.perf_counter()
+    with pytest.raises(YamlExpansionError):
+        load_prey_yaml(text)
+    assert time.perf_counter() - started < 1
+
+
+def test_a_merge_key_bomb_is_a_workflow_warning(tmp_path: Path) -> None:
+    write_tree(tmp_path, {".github/workflows/merge.yml": _merge_bomb(7)})
+    started = time.perf_counter()
+    result = CiMiner().run(_context(tmp_path))
+    assert time.perf_counter() - started < 5
+    assert result.warnings == [".github/workflows/merge.yml: YAML error (YamlExpansionError)"]
+
+
+def test_workflow_merge_keys_that_share_job_defaults_still_parse() -> None:
+    parsed = parse_workflow(
+        "x-defaults: &defaults\n  runs-on: ubuntu-latest\n  timeout-minutes: 10\n"
+        "on: push\njobs:\n"
+        "  a:\n    <<: *defaults\n    steps: [{run: pytest}]\n"
+        "  b:\n    <<: [*defaults]\n    runs-on: windows-latest\n    steps: [{run: pytest}]\n",
+        ".github/workflows/ci.yml",
+    )
+    assert parsed is not None
+    assert [(job["id"], job["runs_on"], job["timeout_minutes"]) for job in parsed["jobs"]] == [
+        ("a", "ubuntu-latest", 10),
+        ("b", "windows-latest", 10),
+    ]
+    assert load_prey_yaml(_merge_bomb(3)) is not None
+
+
 def test_a_deep_manifest_fails_no_miner_in_a_digest(npm_app: Path, tmp_path: Path) -> None:
     work = copy_repo(npm_app, tmp_path / "work", with_git=True)
     write_tree(
@@ -176,7 +238,7 @@ def test_a_deep_manifest_fails_no_miner_in_a_digest(npm_app: Path, tmp_path: Pat
 
     assert incomplete_miners(result.manifest) == []
     warnings = result.manifest["warnings"]
-    assert "deps: could not parse composer.json: RecursionError" in warnings
+    assert any(w.startswith("deps: could not parse composer.json: ") for w in warnings)
     assert "ci: .github/workflows/deep.yml: YAML error (RecursionError)" in warnings
 
 
@@ -195,3 +257,18 @@ def test_a_deep_root_manifest_fails_neither_inventory_nor_testing(
     )
 
     assert incomplete_miners(result.manifest) == []
+
+
+def test_a_recursion_error_while_parsing_json_is_an_unparseable_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pin the catch itself, whatever the interpreter raises for real deep nesting."""
+    from hungry_crab.miners import deps
+
+    def deep(_: str) -> object:
+        raise RecursionError("maximum recursion depth exceeded")
+
+    write_tree(tmp_path, {"web/package.json": "{}", "go.mod": "module example.com/a\n"})
+    monkeypatch.setattr(deps.json, "loads", deep)
+    result = ProjectDepsMiner().run(_context(tmp_path))
+    assert "could not parse web/package.json: RecursionError" in result.warnings

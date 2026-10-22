@@ -188,6 +188,17 @@ def test_a_line_break_is_a_command_separator(command: str) -> None:
         "git -C {P} diff --textconv HEAD~ HEAD",
         "git -C {P} cat-file --filters HEAD:README.md",
         "git -C {P} cat-file --batch --filters",
+        # git takes `-O` inside a cluster and any unambiguous abbreviation of a long option.
+        "git -C {P} grep -lOsh echo",
+        "git -C {P} grep -nOsh -e x -- install.sh",
+        "git -C {P} grep --open=sh echo",
+        "git -C {P} grep --open-files=sh echo",
+        "git -C {P} grep --open-files-in-pager=sh echo",
+        "git -C {P} cat-file --textc HEAD:x",
+        "git -C {P} cat-file --filt HEAD:x",
+        "git -C {P} show --ext HEAD",
+        "git -C {P} log --out=/tmp/x.sh",
+        "git -C {P} log --outp /tmp/x.sh",
     ],
 )
 def test_git_options_that_write_or_run_something_fail_closed(command: str, clone: Path) -> None:
@@ -206,6 +217,9 @@ def test_git_options_that_write_or_run_something_fail_closed(command: str, clone
         "git -C {P} describe --tags",
         "git -C {P} show-ref --heads",
         "git -C {P} grep -n TODO",
+        "git -C {P} log -p --output-indicator-new=+",
+        "git -C {P} show --cc HEAD",
+        "git -C {P} log --no-ext-diff --no-textconv -p",
     ],
 )
 def test_the_historians_read_only_git_verbs_are_allowed(command: str, clone: Path) -> None:
@@ -323,7 +337,83 @@ ORDINARY = [
     "printf '%s\\n' \"$x\"",
     "ls -la | grep foo",
     "xargs -I{} echo {}",
+    # Text about the cache, and the directory that holds it, are not the cache.
+    'git commit -m "docs: mention .cache/hungry-crab here"',
+    "grep -rn '.cache/hungry-crab' src | head",
+    "git grep '.cache/hungry-crab'",
+    "git grep -n '.cache/hungry-crab'",
+    "rg -n '.cache/hungry-crab' docs | wc -l",
+    "sed -i 's|.cache/hungry-crab|.cache/crab|' README.md",
+    "du -sh ~/.cache",
+    "find ~/.cache -maxdepth 1 -type d",
+    "ls -la ~/.cache | grep crab",
+    "cd ~/.cache && ls",
+    'cd "$(git rev-parse --show-toplevel)" && rm -rf node_modules/.cache/*',
+    # This repository's own folder is HungryCrab: `hungry` without the dash is no hint.
+    "cd C:/MyProjects/ClaudeCode/HungryCrab && for f in src/*.py; do echo $f; done",
+    "git -C /c/MyProjects/ClaudeCode/HungryCrab status",
 ]
+
+
+# A hint of the cache plus a construct the guard does not model: refused without modelling it.
+HINTED_UNMODELLED = [
+    f"bash -c 'python ~/.cache/hungry-c*/{TAIL}'",
+    f'sh -c "python ~/.cache/hungry-c*/{TAIL}"',
+    f"timeout 60 sh -c 'cd ~/.cache && python hungry-crab/{TAIL}'",
+    f"bash <<< 'python ~/.cache/hungry-c*/{TAIL}'",
+    f"eval python ~/.cache/hungry-c\\*/{TAIL}",
+    f"eval 'python ~/.cache/hungry-c*/{TAIL}'",
+    f"p=~/.cache/hungry-crabX; python ${{p%X}}/{TAIL}",
+    f"p=~/.cachexhungry-crab; python ${{p/x//}}/{TAIL}",
+    f"p=~/.cache/hungry-crab.old; python ${{p:0:-4}}/{TAIL}",
+    f"python {{~,/x}}/.cache/hungry-*/{TAIL}",
+    f"python {{~,}}/.cache/hungry-c*/{TAIL}",
+    f"a=(~/.cache/hungry-*); python ${{a[0]}}/{TAIL}",
+    f"a=(~/.cache/hungry-*); python $a/{TAIL}",
+    f"python ~/$'\\x2e'cache/hungry-crab/{TAIL}",
+    f"python ~$'\\x2f.cache\\x2fhungry-crab\\x2f'{TAIL}",
+    f"set -- ~/.cache/hungry-*; python $1/{TAIL}",
+    f"CDPATH=~/.cache cd hungry-crab && python {TAIL}",
+    "find ~/.cache -name setup.py -exec python {} ;",
+    f"echo ~/.cache/hungry-c*/{TAIL} | xargs python",
+    f"bash <<'EOF'\npython ${{p%X}}/hungry-crab/{TAIL}\nEOF",
+]
+
+# The same constructs with nothing pointing at the cache keep the scope gate's decision.
+UNHINTED_CONSTRUCTS = [
+    "echo ${x%y} ${#x} $1 $'\\t'",
+    "bash -c 'make test'",
+    "a=(1 2); echo ${a[0]}",
+    "echo {a,b}",
+    'cd "$(git rev-parse --show-toplevel)" && make',
+    "find . -name '*.pyc' -exec rm {} +",
+    "git ls-files | xargs wc -l",
+    # Claude Code's own commit idiom: the quoted here-document is literal text.
+    "git commit -m \"$(cat <<'EOF'\nfix(guard): the hungry-crab hook reads ${x%y}\nEOF\n)\"",
+]
+
+
+@pytest.mark.parametrize("command", HINTED_UNMODELLED)
+def test_a_cache_hint_with_an_unmodelled_construct_fails_closed(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    reason = guard_reason(command, root=root, cwd=home / "work" / "maw")
+    assert reason is not None
+    assert "rule 3" in reason
+
+
+@pytest.mark.parametrize("command", UNHINTED_CONSTRUCTS)
+def test_an_unmodelled_construct_without_a_hint_is_not_refused_for_it(
+    command: str, home: Path
+) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
+
+
+def test_a_custom_root_is_hinted_by_its_name(home: Path) -> None:
+    root = home / "data" / "crab-prey"
+    command = f"python ${{X:-{root.parent.as_posix()}}}/crab-prey/{TAIL}"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None
+    assert guard_reason("echo ${X:-default}", root=root, cwd=home / "work" / "maw") is None
 
 
 @pytest.mark.parametrize("command", ASSEMBLED)
@@ -341,7 +431,17 @@ def test_ordinary_commands_stay_allowed(command: str, home: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "command", ["ls *", "echo $FOO", "grep -r foo *", "python script.py", "git status"]
+    "command",
+    [
+        "ls *",
+        "echo $FOO",
+        "grep -r foo *",
+        "python script.py",
+        "git status",
+        "du -sh .[!.]* *",
+        "tar czf dotfiles.tgz .*rc .config",
+        "chmod -R go-rwx .c*",
+    ],
 )
 def test_ordinary_commands_stay_allowed_from_the_home_directory(command: str, home: Path) -> None:
     """A glob does not match the leading dot of `.cache`, so `*` in `~` cannot reach it."""
@@ -366,9 +466,16 @@ def test_a_custom_root_spelled_through_the_environment_is_judged(home: Path) -> 
     commands = [
         f"python $HOME/prey/{TAIL}",
         f'python "${{HOME}}/prey/{TAIL}"',
-        f'python "%USERPROFILE%\\prey\\{TAIL}"',
-        f'python "$env:USERPROFILE\\prey\\{TAIL}"',
+        # cmd and PowerShell spellings, read textually on every platform.
+        f'python "%USERPROFILE%/prey/{TAIL}"',
+        f'python "$env:USERPROFILE/prey/{TAIL}"',
     ]
+    if sys.platform == "win32":
+        # A backslash is a separator only on Windows; elsewhere it is part of a file name.
+        commands += [
+            f'python "%USERPROFILE%\\prey\\{TAIL}"',
+            f'python "$env:USERPROFILE\\prey\\{TAIL}"',
+        ]
     for command in commands:
         assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None, command
     assert guard_reason("cd ~ && make", root=root, cwd=home / "work" / "maw") is None
@@ -435,6 +542,19 @@ POWERSHELL_HOSTILE = [
     r"cd -Path ~\.cache; python hungry-crab\github\acme\widget\repo\setup.py",
     r"python (Join-Path $HOME '.cache\hungry-crab\github\acme\widget\repo\setup.py')",
     r"foreach ($d in '~\.cache') { python $d\hungry-crab\github\acme\widget\repo\setup.py }",
+    # Paths PowerShell computes: refused for the hint, without modelling the expression.
+    r"python (Join-Path $HOME .cache hungry-crab github acme widget repo setup.py)",
+    r"python (Join-Path $HOME '.cache' | Join-Path -ChildPath 'hungry-crab\github\x\setup.py')",
+    r"python ($HOME + '\.cache\hun' + 'gry-crab\github\acme\widget\repo\setup.py')",
+    r"python ('{0}\.cache\{1}\github\acme\widget\repo\setup.py' -f $HOME, 'hungry-crab')",
+    r"python (($HOME, '.cache', 'hungry-crab', 'github\acme\widget\repo\setup.py') -join '\')",
+    r"python ([IO.Path]::Combine($HOME, '.cache', 'hungry-crab', 'github\x\setup.py'))",
+    r"python ('~\.cache\HUNGRY-XXXX\github\acme\widget\repo\setup.py' -replace 'XXXX','crab')",
+    r"Start-Process python -ArgumentList (Join-Path $HOME .cache hungry-crab x setup.py)",
+    r"bash -c 'python ~/.cache/hungry-c*/github/acme/widget/repo/setup.py'",
+    r"pwsh -NoProfile -Command 'python ~\.cache\hungry-c*\github\acme\widget\repo\setup.py'",
+    r"cmd /c 'python %USERPROFILE%\.cache\hungry-c*\x.py'",
+    r"python ~\.cache\hungry`-crab\github\acme\widget\repo\setup.py",
 ]
 
 # Plain reads of the cache: read cmdlets with literal arguments.
@@ -529,6 +649,20 @@ def test_powershell_judges_a_custom_root_without_the_default_spelling(
     assert event_guard_reason(read, root=root) is None
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="elsewhere PowerShell's `$HOME` is `HOME`")
+def test_powershell_home_is_the_profile_whatever_home_says(
+    home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PowerShell's `$HOME` is the profile directory; a Git or Emacs user may set `HOME`
+    elsewhere. Both readings are judged."""
+    monkeypatch.setenv("HOME", str(home.parent / "unix-home"))
+    for command in (
+        r"python $HOME\.cache\hungry-c*\github\acme\widget\repo\setup.py",
+        r"python ~\.cache\hungry-c*\github\acme\widget\repo\setup.py",
+    ):
+        assert _powershell(command, home) is not None, command
+
+
 def test_powershell_input_it_cannot_inspect_is_refused() -> None:
     reason = event_guard_reason({"tool_name": "PowerShell", "tool_input": None})
     assert reason is not None and reason.startswith("PowerShell")
@@ -565,9 +699,79 @@ def test_device_and_short_spellings_of_a_cache_path_are_judged(home: Path) -> No
     assert guard_reason(command, root=custom, cwd=cwd) is not None
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="device and share paths are Windows'")
+def test_device_and_share_spellings_of_the_cache_are_judged(home: Path) -> None:
+    """`\\\\?\\Volume{...}`, `\\\\?\\GLOBALROOT`, `\\\\localhost\\C$` open the cache; a share
+    the guard cannot reduce is judged by its text and never resolved over the network."""
+    import ctypes
+
+    root = home / "data" / "crab-prey"
+    target = root / "github" / "acme" / "widget" / "repo"
+    target.mkdir(parents=True)
+    volume = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.GetVolumeNameForVolumeMountPointW(target.anchor, volume, 260)
+    device = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.QueryDosDeviceW(target.drive, device, 260)
+    tail = str(target)[3:] + "\\setup.py"
+    letter = target.drive[0]
+    cwd = home / "work" / "maw"
+    for spelling in (
+        volume.value + tail,
+        "\\\\?\\GLOBALROOT" + device.value + "\\" + tail,
+        f"\\\\localhost\\{letter}$\\{tail}",
+        f"\\\\127.0.0.1\\{letter}$\\{tail}",
+        f"\\\\?\\UNC\\localhost\\{letter}$\\{tail}",
+        "\\\\nohost-crab\\share\\data\\crab-prey\\github\\setup.py",
+        "\\\\nohost-crab\\share\\data\\CRAB-P~1\\github\\setup.py",
+        "//nohost-crab/share/data/crab-prey/github/setup.py",
+    ):
+        assert guard_reason(f"python '{spelling}'", root=root, cwd=cwd) is not None, spelling
+    assert guard_reason(f"cat '\\\\localhost\\{letter}$\\{tail}'", root=root, cwd=cwd) is None
+    assert (
+        guard_reason("python '\\\\nohost-crab\\share\\tools\\build.py'", root=root, cwd=cwd) is None
+    )
+
+
+def test_every_decision_stays_fast(home: Path) -> None:
+    """A slow decision is an allowance: a hook that times out lets the call proceed. A 10 KB
+    command of share names and a long chain of unknown expansions decides in well under a
+    second, against a long custom root, and still refuses what it hides."""
+    import time
+
+    root = home / "OneDrive - Contoso Corporation Aleksandr.Konstantinov" / "crab-prey"
+    chain = "".join(f"$v{i}?" for i in range(800)) + "Q"
+    shares = " ".join(f"//nohost-crab{i}/s" for i in range(400))
+    hostile = f'"{root.parent.as_posix()}/crab-pre"?/github/acme/widget/repo/setup.py'
+    cwd = home / "work" / "maw"
+    for command, shell in (
+        (f"python -X {chain} {shares} {hostile}", "bash"),
+        (f"python -X {chain} {shares} {hostile}", "powershell"),
+        ("python -X " + "".join(f"$v{i}a" for i in range(600)) + "Q README.md", "bash"),
+        ("cd $D && ls " + "*a" * 600 + "Q", "bash"),
+    ):
+        start = time.perf_counter()
+        reason = guard_reason(command, root=root, cwd=cwd, shell=shell)  # type: ignore[arg-type]
+        assert time.perf_counter() - start < 0.5, command[:40]
+        if hostile in command:
+            assert reason is not None
+    assert len(f"python -X {chain} {shares} {hostile}") > 10_000
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Git Bash drive paths exist on Windows only")
+def test_git_takes_a_git_bash_drive_path_as_cat_does(home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    clone = root / "github" / "acme" / "widget" / "repo"
+    (clone / ".git").mkdir(parents=True)
+    msys = f"/{clone.drive[0].lower()}{clone.as_posix()[2:]}"
+    cwd = home / "work" / "maw"
+    assert guard_reason(f"git -C {msys} log --oneline -5", root=root, cwd=cwd) is None
+    assert guard_reason(f"cat {msys}/README.md", root=root, cwd=cwd) is None
+    assert guard_reason(f"git -C {msys}/src log", root=root, cwd=cwd) is not None
+
+
 @pytest.mark.parametrize(
     "command",
-    [f"cat {PREY}/README.md |& sh", f"cat {PREY}/README.md >| /tmp/x.sh", f"cat {PREY}/x &>> y"],
+    [f"cat {PREY}/README.md |& wc -l", f"cat {PREY}/README.md >| /tmp/x.sh", f"cat {PREY}/x &>> y"],
 )
 def test_every_operator_run_is_shell_composition(command: str) -> None:
     """`shlex` keeps `|&`, `>|` and `&>>` together; each is composition, not an argument."""
@@ -620,6 +824,49 @@ def test_git_runs_only_against_the_clone_root(command: str, clone: Path) -> None
     reason = guard_reason(command.format(P=clone.as_posix()), root=clone.parents[3])
     assert reason is not None
     assert "rule 3" in reason
+
+
+CLONE_TAIL = ".cache/hungry-crab/github/acme/widget/repo"
+
+
+@pytest.mark.parametrize(
+    ("second", "allowed"),
+    [
+        (f"'~/{CLONE_TAIL}'", False),
+        (f'"~/{CLONE_TAIL}"', False),
+        (f"\\~/{CLONE_TAIL}", False),
+        (f"''~/{CLONE_TAIL}", False),
+        (f"~/{CLONE_TAIL}", True),
+    ],
+)
+def test_git_takes_a_quoted_tilde_literally(second: str, allowed: bool, home: Path) -> None:
+    """Bash expands only an unquoted leading `~`: `-C '~/...'` opens a directory named `~`,
+    here one the prey commits holding a git directory whose config names a program."""
+    root = home / ".cache" / "hungry-crab"
+    clone = root / "github" / "acme" / "widget" / "repo"
+    (clone / ".git").mkdir(parents=True)
+    _ship_git_dir(clone / "~" / Path(CLONE_TAIL), worktree=".")
+    command = f"git -C {clone.as_posix()} -C {second} status"
+    reason = guard_reason(command, root=root, cwd=home / "work" / "maw")
+    assert (reason is None) is allowed
+
+
+def test_a_quoted_tilde_is_judged_as_the_directory_it_names(home: Path) -> None:
+    """`'~/x'` reaches whatever a directory called `~` holds; `~/x` reaches the home's `x`."""
+    root = home / ".cache" / "hungry-crab"
+    (root / "github").mkdir(parents=True)
+    maw = home / "work" / "maw"
+    if sys.platform == "win32":
+        import _winapi
+
+        _winapi.CreateJunction(str(root), str(maw / "~"))
+    else:
+        (maw / "~").symlink_to(root, target_is_directory=True)
+    script = "github/acme/widget/repo/setup.py"
+    assert guard_reason(f"python '~/{script}'", root=root, cwd=maw) is not None
+    assert guard_reason(f"python \\~/{script}", root=root, cwd=maw) is not None
+    assert guard_reason(f"python ~/{script}", root=root, cwd=maw) is None
+    assert guard_reason(f"cat '~/{script}'", root=root, cwd=maw) is None
 
 
 def test_git_in_a_shipped_git_dir_as_cwd_is_refused(clone: Path) -> None:

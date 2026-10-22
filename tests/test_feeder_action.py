@@ -210,6 +210,49 @@ def test_a_public_caller_never_uploads_an_unconfirmed_maw(
     assert "allow-private-artifact" in message
 
 
+def test_a_tracked_directory_of_the_public_caller_uploads_as_a_maw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A monorepo package: `maw: packages/app` inside the public calling repository."""
+    workspace = tmp_path / "workspace"
+    (workspace / "packages" / "app").mkdir(parents=True)
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "packages" / "app" / "pyproject.toml").write_text("[project]\nname='app'\n")
+    git(workspace, "add", "packages/app/pyproject.toml")
+    git(workspace, "commit", "-q", "-m", "app")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="packages/app",
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 0
+    assert len(calls) == 1
+
+
+def test_an_untracked_directory_of_the_public_caller_is_unconfirmed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = tmp_path / "workspace"
+    (workspace / "build" / "maw").mkdir(parents=True)
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "build" / "maw" / "notes.txt").write_text("written by a previous step\n")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="build/maw",
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 2
+    assert calls == []
+
+
 def test_a_maw_without_its_own_repository_is_unconfirmed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

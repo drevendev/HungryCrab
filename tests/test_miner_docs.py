@@ -58,7 +58,7 @@ def test_a_paragraph_line_underlined_is_still_a_heading() -> None:
         ("## See <https://evil.example/landing>", "See"),
         ("## <a href='https://evil.example'>Docs</a> <br/>", "Docs"),
         ("## [a [nested](https://evil.example/x)](https://evil.example/y)", "[a nested] (https"),
-        ("## <<b>img src=x>", "img src=x>"),
+        ("## <<b>img src=x>", "&lt;img src=x>"),
         ("## [ref]: https://evil.example/landing", "ref: https://evil.example/landing"),
         ("## Generics: List<T> and a < b", "Generics: List and a < b"),
         ("Setext [link](https://evil.example/s)\n---", "Setext link"),

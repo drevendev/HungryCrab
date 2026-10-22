@@ -90,17 +90,26 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
-def _has_populated_submodule(listing: str, root: Path) -> bool:
-    """Whether ``git ls-files --stage -z`` names a gitlink whose directory holds a ``.git``.
+def _has_occupied_gitlink(listing: str, root: Path) -> bool:
+    """Whether ``git ls-files --stage -z`` names a gitlink with anything at its path.
 
-    A path that did not decode cannot be looked up, so it counts as populated.
+    The diff never looks inside a gitlink's directory, populated by a submodule or not, while
+    the miners read whatever files sit there. Only a missing or empty directory is vouched for.
+    A path that did not decode cannot be looked up, so it counts as occupied.
     """
     for entry in listing.split("\0"):
         meta, _, path = entry.partition("\t")
         if not meta.startswith("160000 ") or not path:
             continue
-        dot_git = root / path / ".git"
-        if "�" in path or dot_git.exists() or dot_git.is_symlink():
+        if "\ufffd" in path:
+            return True
+        place = root / path
+        try:
+            if place.is_symlink() or (
+                place.exists() and (not place.is_dir() or any(place.iterdir()))
+            ):
+                return True
+        except OSError:
             return True
     return False
 
@@ -120,14 +129,15 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     diff. It is asked anyway, because "a clone is never edited" is an assumption about a
     directory on someone's disk, and an interrupted fetch is enough to break it.
 
-    A populated submodule is a working tree the diff does not look into: asking git about its
-    contents means starting a git inside it under the submodule's own config. The miners still
-    read its files, so a tree with one is not one this can vouch for either.
+    A gitlink's directory is a working tree the diff does not look into: asking git about a
+    submodule's contents means starting a git inside it under the submodule's own config, and
+    files dropped into an unpopulated one are neither tracked nor untracked. The miners still
+    read them, so a tree with anything at a gitlink's path is not one this can vouch for either.
     """
     if git is None:
         return ""
     index = git.try_run("ls-files", "--stage", "-z")
-    if index is None or _has_populated_submodule(index, root):
+    if index is None or _has_occupied_gitlink(index, root):
         return "unknown"
     diff = git.try_run("diff", "HEAD")
     # Include ignored files: miners can still observe them, so they must block cache reuse too.

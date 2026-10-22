@@ -36,6 +36,7 @@ from .cache import Slug
 from .compare import apply_hunger, load_menu, menu_candidates
 from .errors import CrabError, ExternalCommandError, ToolMissingError, UsageError
 from .fetch.git import GitRunner
+from .fetch.github import GH_HOSTNAME
 from .ledger import Ledger
 from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
@@ -173,15 +174,22 @@ class GhIssueClient:
 
     def _run(self, *args: str) -> str:
         env = dict(os.environ)
-        env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
+        # A maw is a github.com repository. Without a host, gh asks `GH_HOST`, or the only host
+        # it is logged in to, for `api` calls and for every `--repo owner/repo`; both are pinned.
+        env.update(
+            {"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1", "GH_HOST": GH_HOSTNAME}
+        )
         token = env.get(self.token_env, "").strip() if self.token_env else ""
         if token:
             env["GH_TOKEN"] = token
             env.pop("GITHUB_TOKEN", None)
         assert self.gh is not None
+        command = [self.gh, *args]
+        if args[:1] == ("api",) and "--hostname" not in args:
+            command[2:2] = ["--hostname", GH_HOSTNAME]
         try:
             proc = subprocess.run(
-                [self.gh, *args], capture_output=True, env=env, timeout=self.timeout, check=False
+                command, capture_output=True, env=env, timeout=self.timeout, check=False
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ExternalCommandError(f"failed to run gh {args[0]}: {exc}") from exc

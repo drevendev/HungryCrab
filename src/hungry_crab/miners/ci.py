@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 import yaml
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from ..mdutil import MdDoc
 from ..safety import safe_name
@@ -290,40 +291,107 @@ def _step_cache(action: str, with_block: object) -> bool:
     return False
 
 
-# What one prey YAML document may expand to once its aliases are followed, counted as nodes plus
-# string characters. A document without aliases stays under twice its own size, so every
-# workflow within the read limit fits; anchors can make a few hundred bytes describe gigabytes,
-# or a list that contains itself, and every later walk (`str()`, the JSON artifact) follows
-# each reference again.
+# What one prey YAML document may expand to once its aliases and merge keys are followed,
+# counted as nodes plus scalar characters. A document without aliases stays under twice its own
+# size, so every workflow within the read limit fits; anchors can make a few hundred bytes
+# describe gigabytes, or a list that contains itself, and every later walk (`str()`, the JSON
+# artifact) follows each reference again.
 _MAX_YAML_EXPANSION = 1_000_000
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
 
 
 class YamlExpansionError(yaml.YAMLError):
     """A prey YAML document whose aliases expand past the budget or into a cycle."""
 
 
-def load_prey_yaml(text: str) -> object:
-    """``yaml.safe_load``, refusing a document whose aliases expand past the budget."""
-    loaded: object = yaml.safe_load(text)
-    budget = _MAX_YAML_EXPANSION
-    stack: list[object] = [loaded]
-    while stack:
-        item = stack.pop()
-        children: list[object]
-        if isinstance(item, dict):
-            children = [*item.keys(), *item.values()]
-        elif isinstance(item, list):
-            children = item
+def _yaml_children(node: Node) -> list[Node]:
+    if isinstance(node, SequenceNode):
+        return list(node.value)
+    if isinstance(node, MappingNode):
+        return [part for pair in node.value for part in pair]
+    return []
+
+
+def _yaml_node_size(
+    node: Node, sizes: dict[int, int], pairs: dict[int, int]
+) -> tuple[int, int, int]:
+    """One node's expanded size, its pairs once merges are flattened, and the merge work.
+
+    PyYAML flattens a mapping with merge keys once: it scans every source mapping once per
+    reference and then holds a list of all the pairs, duplicates included. That work happens
+    while the document is built, whether or not the result is ever walked.
+    """
+    if isinstance(node, ScalarNode):
+        return 1 + len(node.value), 0, 0
+    if isinstance(node, SequenceNode):
+        return 1 + sum(sizes[id(child)] for child in node.value), 0, 0
+    size, flattened, scanned, merges = 1, 0, 0, False
+    for key, value in node.value:
+        if key.tag == _YAML_MERGE_TAG:
+            # Every pair of each source is copied into this mapping, once per reference; the
+            # source mapping itself is not.
+            merges = True
+            sources = value.value if isinstance(value, SequenceNode) else [value]
+            for source in sources:
+                size += sizes[id(source)] - 1
+                flattened += pairs.get(id(source), 0)
+                scanned += pairs.get(id(source), 0)
         else:
-            children = []
-            if isinstance(item, str | bytes):
-                budget -= len(item)
-        # Charged before the push, so the walk itself never holds more than the budget.
-        budget -= len(children)
-        if budget < 0:
+            size += sizes[id(key)] + sizes[id(value)]
+            flattened += 1
+    return size, flattened, scanned + flattened if merges else 0
+
+
+def _charge_yaml_expansion(root: Node) -> None:
+    """Refuse a composed document whose aliases and merge keys expand past the budget.
+
+    Two things are charged: the expanded size of the document, which every later walk of the
+    result follows, and the pairs PyYAML copies to flatten merge keys while building it. Every
+    node is sized once, from its children's sizes, so the count is linear in the composed graph
+    however far the document would expand. A node met again while its own children are being
+    sized contains itself.
+    """
+    sizes: dict[int, int] = {}
+    pairs: dict[int, int] = {}
+    merge_work = 0
+    open_nodes: set[int] = set()
+    stack: list[tuple[Node, bool]] = [(root, False)]
+    while stack:
+        node, children_sized = stack.pop()
+        key = id(node)
+        if key in sizes:
+            continue
+        if not children_sized:
+            if key in open_nodes:
+                raise YamlExpansionError("an alias refers to a node that contains it")
+            open_nodes.add(key)
+            stack.append((node, True))
+            stack.extend((child, False) for child in _yaml_children(node))
+            continue
+        sizes[key], pairs[key], work = _yaml_node_size(node, sizes, pairs)
+        open_nodes.discard(key)
+        merge_work += work
+        if sizes[key] > _MAX_YAML_EXPANSION or merge_work > _MAX_YAML_EXPANSION:
             raise YamlExpansionError(f"aliases expand past {_MAX_YAML_EXPANSION} nodes")
-        stack.extend(children)
-    return loaded
+
+
+def load_prey_yaml(text: str) -> object:
+    """``yaml.safe_load``, refusing a document that would expand past the budget.
+
+    The expansion is charged on the composed node graph, before anything is built: merge keys
+    (`<<: [*a, *a]`) copy pairs while PyYAML constructs the document, so a check of the result
+    came after the exponential work it was meant to prevent (#330).
+    """
+    loader = yaml.SafeLoader(text)
+    try:
+        node = loader.get_single_node()
+        if node is None:
+            return None
+        _charge_yaml_expansion(node)
+        loaded: object = loader.construct_document(node)
+        return loaded
+    finally:
+        loader.dispose()
 
 
 def parse_workflow(text: str, path: str) -> dict[str, Any] | None:

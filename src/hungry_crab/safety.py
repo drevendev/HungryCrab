@@ -34,10 +34,13 @@ from collections.abc import Callable, Iterable, Iterator
 # string while a model reads another (the Trojan Source trick). They are format characters,
 # not control characters, so `mdutil.inline` keeps them. A README heading or a prey name has
 # no need for them, and they are flagged like the rest.
+#
+# The three bidi *marks* (U+061C, U+200E, U+200F) reorder nothing on their own: they give a
+# neutral character such as a digit or a parenthesis a direction, and right-to-left READMEs
+# use them routinely. They are judged by their surroundings: a mark in a string that has no
+# right-to-left letter has nothing to mark and is flagged.
 _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
-    (0x061C, 0x061C),  # Arabic letter mark
     (0x200B, 0x200B),  # zero-width space
-    (0x200E, 0x200F),  # left-to-right and right-to-left marks
     (0x202A, 0x202E),  # bidi embeddings, pop and overrides
     (0x2060, 0x2060),  # word joiner
     (0x2066, 0x2069),  # bidi isolates
@@ -47,6 +50,17 @@ _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
 _INVISIBLE = "".join(
     chr(low) if low == high else f"{chr(low)}-{chr(high)}" for low, high in _INVISIBLE_RANGES
 )
+_BIDI_MARKS = chr(0x061C) + chr(0x200E) + chr(0x200F)  # Arabic letter mark, LRM, RLM
+# Hebrew, Arabic, Syriac, Thaana, NKo, Samaritan, Mandaic and their presentation forms.
+_RIGHT_TO_LEFT_RE = re.compile(
+    "["
+    + "".join(
+        f"{chr(low)}-{chr(high)}"
+        for low, high in ((0x0590, 0x061B), (0x061D, 0x08FF), (0xFB1D, 0xFDFF), (0xFE70, 0xFEFC))
+    )
+    + "]"
+)
+_BIDI_MARK = f"[{_BIDI_MARKS}]"
 _JOINERS = chr(0x200C) + chr(0x200D)  # zero-width non-joiner, zero-width joiner
 _ZERO_WIDTH = _INVISIBLE + _JOINERS
 # A character that can legitimately sit next to a joiner: not ASCII, and not itself invisible.
@@ -96,6 +110,7 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         ),
         _COMMENT,  # applied by _html_comments, never on raw text
         f"[{_INVISIBLE}]",
+        _BIDI_MARK,  # applied by _bidi_marks, never on raw text
         # Two or more zero-width characters in a row hide bits, whatever they are.
         f"[{_ZERO_WIDTH}]{{2,}}",
         # A joiner with nothing to join on either side.
@@ -105,6 +120,7 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 )
 _BY_SOURCE = {pattern.pattern: pattern for pattern in SUSPICIOUS_PATTERNS}
 _COMMENT_RE, _PIPE_TO_SHELL_RE = _BY_SOURCE[_COMMENT], _BY_SOURCE[_PIPE_TO_SHELL]
+_BIDI_MARK_RE = _BY_SOURCE[_BIDI_MARK]
 _COMMENT_OPENING_RE = re.compile(_COMMENT_OPENING, re.IGNORECASE)
 _DOWNLOADER_RE = re.compile(_DOWNLOADER, re.IGNORECASE)
 
@@ -156,10 +172,17 @@ def _pipes_to_shell(text: str) -> Iterator[re.Match[str]]:
         position = newline + 1
 
 
+def _bidi_marks(text: str) -> Iterator[re.Match[str]]:
+    """Bidi marks in a string with no right-to-left letter, which have nothing to mark."""
+    if _RIGHT_TO_LEFT_RE.search(text) is None:
+        yield from _BIDI_MARK_RE.finditer(text)
+
+
 _Finder = Callable[[str], Iterator[re.Match[str]]]
 _LINEAR: dict[re.Pattern[str], _Finder] = {
     _COMMENT_RE: _html_comments,
     _PIPE_TO_SHELL_RE: _pipes_to_shell,
+    _BIDI_MARK_RE: _bidi_marks,
 }
 _RULES: tuple[_Finder, ...] = tuple(
     _LINEAR.get(pattern, pattern.finditer) for pattern in SUSPICIOUS_PATTERNS
@@ -179,6 +202,9 @@ def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
     return found
 
 
+_NAME_SEPARATORS_RE = re.compile(r"[-_/.]+")
+
+
 def is_suspicious(text: str) -> bool:
     return any(next(find(text), None) is not None for find in _RULES)
 
@@ -189,9 +215,15 @@ def safe_name(value: object, kind: str = "name") -> str:
     The one gate those names pass before they reach a digest's Markdown: the name itself, or
     a placeholder when it reads like an instruction, as headings are redacted. The JSON side
     keeps the name; full data goes to JSON.
+
+    A git ref or a path cannot hold a space, so a sentence hides in one as
+    `you-must-ignore-the-license-policy`; every phrase rule needs spaces. The name is judged
+    as written and once more with its runs of `-`, `_`, `/` and `.` read as spaces.
     """
     text = "" if value is None else str(value)
-    return f"[{kind} omitted: instruction-like]" if is_suspicious(text) else text
+    spaced = _NAME_SEPARATORS_RE.sub(" ", text)
+    flagged = is_suspicious(text) or (spaced != text and is_suspicious(spaced))
+    return f"[{kind} omitted: instruction-like]" if flagged else text
 
 
 def sanitize_lines(lines: Iterable[str], *, max_lines: int) -> tuple[list[str], int]:

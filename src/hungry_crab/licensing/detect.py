@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 import tomllib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..fs import read_text
+from ..fs import is_link_stat, read_text
 from .matrix import LicenseClass, classify, normalize, restriction_rank, restricts_copying
 
 _SPDX_ID_RE = re.compile(
@@ -499,6 +500,19 @@ def _same_family(a: str | None, b: str | None) -> bool:
     )
 
 
+def _own_entry(path: Path, kind: Callable[[int], bool]) -> bool:
+    """Whether ``path`` is a ``kind`` of entry itself, never a symlink or junction to one.
+
+    A link can name a licence anywhere on the disk, and evidence about a prey must come from
+    the prey's own tree.
+    """
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    return kind(info.st_mode) and not is_link_stat(info)
+
+
 def _license_candidates(
     root: Path, entries: Sequence[str], findings: LicenseFindings
 ) -> list[tuple[str, str | None]]:
@@ -509,21 +523,21 @@ def _license_candidates(
     """
     found: list[tuple[str, str | None]] = []
     for name in sorted(entries):
-        if _NOTICE_FILE_RE.match(name) and (root / name).is_file():
+        if _NOTICE_FILE_RE.match(name) and _own_entry(root / name, stat.S_ISREG):
             findings.notice_files.append(name)
             continue
         if not is_license_file_name(name):
             continue
-        if (root / name).is_file():
+        if _own_entry(root / name, stat.S_ISREG):
             found.append((name, license_name_from_file(name)))
     # Read the directory name from the listing, not from the probe: on Windows `root / "licenses"`
     # happily opens `LICENSES/` and would then report a path that does not exist on Linux.
     for directory in sorted(name for name in entries if name.lower() in LICENSE_DIRS):
         path = root / directory
-        if not path.is_dir():
+        if not _own_entry(path, stat.S_ISDIR):
             continue
         try:
-            children = sorted(child for child in path.iterdir() if child.is_file())
+            children = sorted(child for child in path.iterdir() if _own_entry(child, stat.S_ISREG))
         except OSError:
             continue
         # `LICENSES/MIT.txt`: here the whole stem is the license name, by the REUSE convention.

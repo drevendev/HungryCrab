@@ -13,7 +13,8 @@ import pytest
 
 from hungry_crab.cache import Slug, prey_paths
 from hungry_crab.cli import main
-from hungry_crab.errors import CrabError
+from hungry_crab.errors import CrabError, ExternalCommandError
+from hungry_crab.fetch import catch as catch_module
 from hungry_crab.fetch.catch import CatchOptions, catch, rmtree_force
 
 
@@ -43,6 +44,160 @@ def _record(prey_root: Path, slug: str, name: str = "catch.json") -> None:
     record = prey_root / name
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({"slug": slug}) + "\n", encoding="utf-8")
+
+
+class RefusedIssues:
+    """A provider whose issue listing is refused, as a rate limit or a missing scope does."""
+
+    token = None
+    transport = "https"
+
+    def get(self, path: str, *, allow_missing: bool = False) -> object:
+        raise ExternalCommandError(f"GET {path} failed with HTTP 403")
+
+
+def test_a_catch_that_fails_after_its_clone_can_still_be_removed(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    cache_root = tmp_path / "cache"
+    slug = Slug("me", "project")
+    paths = prey_paths(slug, cache_root)
+    with pytest.raises(ExternalCommandError, match="HTTP 403"):
+        catch(
+            slug,
+            CatchOptions(issues=10, wiki=False),
+            cache_root=cache_root,
+            source_url=str(npm_app),
+            github=RefusedIssues(),  # type: ignore[arg-type]
+        )
+    assert (paths.repo / ".git").is_dir()
+    record = json.loads(paths.catch_file.read_text(encoding="utf-8"))
+    assert record == {"slug": "me/project", "status": "incomplete"}
+
+    assert main(["--cache-dir", str(cache_root), "cache", "rm", "me/project"]) == 0
+    assert not paths.root.exists()
+
+
+def test_a_provisional_record_is_completed_by_the_next_catch(npm_app: Path, tmp_path: Path) -> None:
+    cache_root = tmp_path / "cache"
+    slug = Slug("me", "project")
+    paths = prey_paths(slug, cache_root)
+    with pytest.raises(ExternalCommandError):
+        catch(
+            slug,
+            CatchOptions(issues=10, wiki=False),
+            cache_root=cache_root,
+            source_url=str(npm_app),
+            github=RefusedIssues(),  # type: ignore[arg-type]
+        )
+    caught = catch(slug, CatchOptions(wiki=False), cache_root=cache_root, source_url=str(npm_app))
+    record = json.loads(paths.catch_file.read_text(encoding="utf-8"))
+    assert "status" not in record and record["sha"] == caught.sha
+
+
+def test_a_failed_first_clone_leaves_no_record_behind(tmp_path: Path) -> None:
+    cache_root = tmp_path / "cache"
+    slug = Slug("me", "project")
+    missing = tmp_path / "no-such-repository"
+    with pytest.raises(ExternalCommandError):
+        catch(slug, CatchOptions(wiki=False), cache_root=cache_root, source_url=str(missing))
+    assert not prey_paths(slug, cache_root).root.exists()
+
+
+def test_a_catch_never_claims_a_directory_it_did_not_create(npm_app: Path, tmp_path: Path) -> None:
+    cache_root = tmp_path / "checkouts"
+    root = prey_paths(Slug("me", "project"), cache_root).root
+    (root / "notes").mkdir(parents=True)
+    with pytest.raises(ExternalCommandError):
+        catch(
+            Slug("me", "project"),
+            CatchOptions(issues=10, wiki=False),
+            cache_root=cache_root,
+            source_url=str(npm_app),
+            github=RefusedIssues(),  # type: ignore[arg-type]
+        )
+    assert not (root / "catch.json").exists()
+    with pytest.raises(CrabError, match="no catch or sniff record"):
+        rmtree_force(root, cache_root=cache_root)
+
+
+def test_a_forced_catch_that_cannot_move_the_old_clone_is_an_error(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On Windows an open file blocks the rename of its directory (WinError 5)."""
+    cache_root = tmp_path / "cache"
+    slug = Slug("me", "project")
+    paths = prey_paths(slug, cache_root)
+    catch(slug, CatchOptions(wiki=False), cache_root=cache_root, source_url=str(npm_app))
+    real_rename = Path.rename
+
+    def held_open(self: Path, target: Path) -> Path:
+        if self == paths.repo:
+            raise PermissionError(13, "Access is denied", str(self))
+        return real_rename(self, target)
+
+    monkeypatch.setattr(Path, "rename", held_open)
+    with pytest.raises(CrabError, match="cannot replace") as error:
+        catch(
+            slug,
+            CatchOptions(force=True, wiki=False),
+            cache_root=cache_root,
+            source_url=str(npm_app),
+        )
+    assert error.value.hint is not None and "Close programs" in error.value.hint
+    assert (paths.repo / ".git").is_dir()
+    assert sorted(p.name for p in paths.root.iterdir()) == ["catch.json", "repo"]
+
+
+def test_a_forced_catch_with_a_file_held_open_is_an_error(npm_app: Path, tmp_path: Path) -> None:
+    if sys.platform != "win32":
+        pytest.skip("only Windows refuses to rename a directory with a file held open")
+    cache_root = tmp_path / "cache"
+    slug = Slug("me", "project")
+    paths = prey_paths(slug, cache_root)
+    catch(slug, CatchOptions(wiki=False), cache_root=cache_root, source_url=str(npm_app))
+    held = next(path for path in paths.repo.iterdir() if path.is_file())
+    with held.open("rb"), pytest.raises(CrabError, match="cannot replace"):
+        catch(
+            slug,
+            CatchOptions(force=True, wiki=False),
+            cache_root=cache_root,
+            source_url=str(npm_app),
+        )
+    assert (paths.repo / ".git").is_dir()
+
+
+@pytest.mark.parametrize("nofollow", [True, False])
+def test_the_retry_never_changes_a_mode_through_a_link(
+    nofollow: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The failed entry can turn into a link between its check and the chmod."""
+    cache_root = tmp_path / "cache"
+    staged = cache_root / ".repo-staged"
+    staged.mkdir(parents=True)
+    failed = staged / "object"
+    failed.write_text("x", encoding="utf-8")
+    chmods: list[dict[str, object]] = []
+    retried: list[str] = []
+
+    def record_chmod(_path: Path, _mode: int, **options: object) -> None:
+        chmods.append(options)
+
+    def fail_once(path: Path, **handlers: object) -> None:
+        handler = handlers.get("onexc") or handlers.get("onerror")
+        assert callable(handler)
+        handler(retried.append, str(failed), PermissionError(13, "denied"))
+
+    monkeypatch.setattr(catch_module, "_CHMOD_NOFOLLOW", nofollow)
+    monkeypatch.setattr(Path, "chmod", record_chmod)
+    monkeypatch.setattr(catch_module.shutil, "rmtree", fail_once)
+    rmtree_force(staged, cache_root=cache_root)
+    assert retried == [str(failed)]
+    if nofollow:
+        assert chmods == [{"follow_symlinks": False}]
+    else:
+        # Windows before 3.13 changes the entry itself; elsewhere chmod would follow a link.
+        assert chmods == ([{}] if sys.platform == "win32" else [])
 
 
 def test_cache_rm_refuses_a_checkout_the_crab_did_not_write(

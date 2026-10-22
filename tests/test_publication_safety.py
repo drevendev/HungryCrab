@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import random
+import time
 from pathlib import Path
 
 import pytest
@@ -130,6 +131,13 @@ def test_placeholder_words_only_match_as_complete_values() -> None:
         ("src/main.go", f'token := "{LITERAL}"'),
         ("src/app.php", f"$config = ['password' => '{LITERAL}'];"),
         ("src/app.php", f"$password = '{LITERAL}';"),
+        # In a configuration file a credential-named key needs no entropy, only eight characters.
+        (".env", "DB_PASSWORD=supersecretpassword"),
+        ("prod.env", "export DB_PASSWORD=supersecretpassword"),
+        ("config.yml", "password: supersecretpassword"),
+        ("config.json", '{"client_secret": "supersecretpassword"}'),
+        ("settings.ini", "password = supersecretpassword"),
+        ("pyproject.toml", 'token = "supersecrettoken"'),
     ],
 )
 def test_credential_literals_block_in_any_syntax(path: str, line: str) -> None:
@@ -168,7 +176,7 @@ def test_credential_literals_block_in_any_syntax(path: str, line: str) -> None:
         ("ci.yml", "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}"),
         ("config.yaml", "wifi_password: !secret wifi_password"),
         ("config.yaml", "password: *shared_password"),
-        ("config.yaml", "token: required"),
+        ("README.md", "token: required"),
         ("deploy.sh", "TOKEN=$(gh auth token)"),
         ("deploy.sh", 'export GH_TOKEN="$GITHUB_TOKEN"'),
         # Dev defaults, documentation placeholders and references in URLs.
@@ -180,6 +188,51 @@ def test_credential_literals_block_in_any_syntax(path: str, line: str) -> None:
     ],
 )
 def test_ordinary_code_and_references_do_not_block(path: str, line: str) -> None:
+    assert scan_publication(path, line) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # The placeholders documentation prints in a secret's shape. Assembled at run time: the
+        # forge's own push protection reads a literal webhook URL as a secret, placeholder or not.
+        (
+            "src/app.py",
+            'DOCS = "https://hooks.slack.com/services/T'
+            + "0" * 8
+            + "/B"
+            + "0" * 8
+            + "/"
+            + "X" * 24
+            + '"',
+        ),
+        ("src/app.py", 'TOKEN = "ghp_' + "x" * 36 + '"'),
+        ("README.md", "aws_access_key_id = AKIAIOSFODNN7EXAMPLE"),
+        ("README.md", "aws_access_key_id = AKIA" + "X" * 16),
+        # References to a value kept elsewhere.
+        ("config.yml", "password: env:DB_PASSWORD"),
+        ("config.yml", "secret: vault:secret/data/app#password"),
+        ("config.yml", "password: ${DB_PASSWORD}"),
+        (".env", "DB_PASSWORD=${DB_PASSWORD:-}"),
+        (".env", "DB_PASSWORD=$DB_PASSWORD"),
+        ("settings.ini", "password = %DB_PASSWORD%"),
+        ("src/app.py", 'password = "%DB_PASSWORD%"'),
+        # Placeholders and defaults in configuration files.
+        ("config.yml", "password: your-password-here"),
+        ("config.yml", "password: '********'"),
+        ("config.yml", "password: password"),
+        ("config.yml", "  password: CHANGE_ME"),
+        ("ci.yml", "      POSTGRES_PASSWORD: postgres"),
+        # Quoted values in code that read as names.
+        ("src/lexer.py", "    token = 'IDENT2'"),
+        ("src/lexer.py", "    token = 'LPAREN'"),
+        ("src/lexer.py", "    token = 'Int64Lit'"),
+        ("src/app.py", 'Token = "Identifier1"'),
+        ("src/app.py", 'next_token = "NextToken1"'),
+        ("src/app.py", 'secret = "SecretName2"'),
+    ],
+)
+def test_placeholders_references_and_names_do_not_block(path: str, line: str) -> None:
     assert scan_publication(path, line) == []
 
 
@@ -270,6 +323,45 @@ def test_slashes_do_not_hide_a_base64_blob() -> None:
     assert scan_publication("generated/key.txt", f"key={blob}") == [
         PublicationFinding("generated/key.txt", 1, "high-entropy-token")
     ]
+
+
+_LONG = 400_000
+BACKSLASH = chr(92)
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # Unterminated literals full of backslashes: escapes must not backtrack.
+        ("src/x.py", 'token = "' + BACKSLASH * 38),
+        ("src/x.c", 'secret = "' + BACKSLASH * 2 * 18 + BACKSLASH),
+        ("src/x.py", 'token = "' + BACKSLASH * _LONG),
+        ("src/x.c", 'secret = "' + BACKSLASH * 2 * (_LONG // 2) + BACKSLASH),
+        # A repeated assignment: every match must examine a bounded stretch of the line.
+        ("src/x.py", "token=" * (_LONG // 6)),
+        (".env", "token=" * (_LONG // 6)),
+        ("config.yml", "token: " * (_LONG // 7)),
+        ("src/x.py", 'password="' + "password=" * (_LONG // 9) + '"'),
+        ("config.yml", "token: " + " " * _LONG + "x"),
+        ("src/x.py", "a-" * (_LONG // 2)),
+    ],
+    ids=[
+        "backslashes-38",
+        "c-string-47",
+        "backslashes-400k",
+        "c-string-400k",
+        "token=-repeated",
+        "token=-repeated-env",
+        "token:-repeated",
+        "names-inside-a-literal",
+        "spaces-before-value",
+        "dashed-words",
+    ],
+)
+def test_a_long_hostile_line_scans_in_linear_time(path: str, line: str) -> None:
+    started = time.perf_counter()
+    scan_publication(path, line)
+    assert time.perf_counter() - started < 1.0
 
 
 def test_github_trace_exemption_does_not_hide_opaque_path_segments() -> None:

@@ -13,11 +13,13 @@ from unittest.mock import Mock
 
 import pytest
 
+from hungry_crab import serve
 from hungry_crab.cache import Slug
 from hungry_crab.errors import ExternalCommandError
 from hungry_crab.fetch import bounded, github
 from hungry_crab.fetch.bounded import ResponseTooLargeError, read_limited, run_bounded
 from hungry_crab.fetch.github import GitHubClient
+from hungry_crab.serve import GhIssueClient
 
 
 def child(code: str) -> list[str]:
@@ -285,3 +287,50 @@ def test_every_gh_call_asks_github_com_whatever_gh_host_says(monkeypatch):
     for command, env in calls:
         assert command[1:4] == ["api", "--hostname", "github.com"]
         assert "GH_HOST" not in env
+
+
+# gh's host for a call without `--hostname` and for a bare `--repo owner/repo`: `GH_HOST`, else
+# the only host it is logged in to, else github.com. A URL or `host/owner/repo` names its own.
+FAKE_GH_MAW_HOST = """
+import os, sys
+args = sys.argv[1:]
+default = os.environ.get("GH_HOST") or os.environ.get("FAKE_GH_ONLY_LOGIN") or "github.com"
+repo = next((args[i + 1] for i, a in enumerate(args[:-1]) if a in ("--repo", "-R")), "")
+url = next((a for a in args if a.startswith("https://")), "")
+if args[0] == "api":
+    host = args[args.index("--hostname") + 1] if "--hostname" in args else default
+elif url:
+    host = url.split("/")[2]
+elif repo.count("/") == 2:
+    host = repo.split("/")[0]
+else:
+    host = default
+sys.stdout.write(host)
+"""
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("api", "repos/owner/maw", "--jq", ".default_branch"),
+        ("api", "--paginate", "--slurp", "repos/owner/maw/pulls?state=all&per_page=100"),
+        ("api", "--paginate", "repos/owner/maw/issues?state=all&per_page=100&direction=asc"),
+        ("api", "user", "-q", ".login"),
+        ("issue", "create", "--repo", "owner/maw", "--title", "t", "--body-file", "b.md"),
+        ("label", "create", "crab", "--repo", "owner/maw", "--force"),
+        ("pr", "create", "--repo", "owner/maw", "--head", "crab/x", "--base", "main"),
+        ("pr", "close", "https://github.com/owner/maw/pull/1", "--repo", "owner/maw"),
+    ],
+)
+def test_every_maw_gh_call_asks_github_com(monkeypatch, args):
+    """The serve, loop and pull-request calls all run through ``GhIssueClient``."""
+    monkeypatch.setenv("GH_HOST", "ghe.example")
+    monkeypatch.setenv("FAKE_GH_ONLY_LOGIN", "ghe.example")
+    real_run = subprocess.run
+
+    def fake_gh(command, **kwargs):
+        assert command[0] == "/trusted/gh"
+        return real_run([*child(FAKE_GH_MAW_HOST), *command[1:]], **kwargs)
+
+    monkeypatch.setattr(serve.subprocess, "run", fake_gh)
+    assert GhIssueClient(gh="/trusted/gh", timeout=10).run_gh(*args) == "github.com"

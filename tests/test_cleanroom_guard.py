@@ -262,6 +262,56 @@ def test_cleanroom_agent_denies_a_device_spelling_of_a_custom_cache(
     assert cleanroom_guard_reason(_event({"pattern": "token", "path": sibling})) is None
 
 
+def _windows_spellings(target: Path) -> dict[str, str]:
+    """Device and share spellings Windows opens as ``target``."""
+    import ctypes
+
+    volume = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.GetVolumeNameForVolumeMountPointW(target.anchor, volume, 260)
+    device = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.QueryDosDeviceW(target.drive, device, 260)
+    tail = str(target)[3:]
+    letter = target.drive[0]
+    return {
+        "volume-guid": volume.value + tail,
+        "globalroot": "\\\\?\\GLOBALROOT" + device.value + "\\" + tail,
+        "dot-globalroot": "\\\\.\\GLOBALROOT" + device.value + "\\" + tail,
+        "localhost-admin-share": f"\\\\localhost\\{letter}$\\{tail}",
+        "loopback-admin-share": f"\\\\127.0.0.1\\{letter}$\\{tail}",
+        "unc-device-localhost": f"\\\\?\\UNC\\localhost\\{letter}$\\{tail}",
+    }
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="device and share paths are Windows'")
+def test_cleanroom_agent_denies_device_and_share_spellings_of_the_cache(home: Path) -> None:
+    """HungryCrab#188: Read and Grep open all of these; each is the cache under another name."""
+    target = home / "data" / "crab-prey" / "github" / "acme" / "prey" / "repo" / "core.py"
+    target.write_text("SECRET = 1\n", encoding="utf-8")
+    for name, spelling in _windows_spellings(target).items():
+        for tool, key in (("Read", "file_path"), ("Grep", "path")):
+            event = _search(tool, {key: spelling, "pattern": "SECRET"}, home / "work" / "maw")
+            assert cleanroom_guard_reason(event), f"{name} {tool}"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="device and share paths are Windows'")
+def test_cleanroom_agent_refuses_any_share_it_cannot_reduce_without_asking_the_network(
+    home: Path,
+) -> None:
+    import time
+
+    maw_file = home / "work" / "maw" / "src" / "core.py"
+    maw_file.write_text("x = 1\n", encoding="utf-8")
+    start = time.perf_counter()
+    for spelling in ("\\\\nohost-crab\\share\\x.py", "//nohost-crab/share/x.py"):
+        event = _search("Read", {"file_path": spelling}, home / "work" / "maw")
+        assert cleanroom_guard_reason(event), spelling
+    assert time.perf_counter() - start < 0.5
+    # A device spelling of a maw file comes down to its drive path and stays allowed.
+    for spelling in ("\\\\?\\" + str(maw_file), _windows_spellings(maw_file)["volume-guid"]):
+        event = _search("Read", {"file_path": spelling}, home / "work" / "maw")
+        assert cleanroom_guard_reason(event) is None, spelling
+
+
 def test_cleanroom_agent_denies_a_path_it_cannot_canonicalise(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

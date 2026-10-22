@@ -8,12 +8,16 @@ scanned too, and is never rendered.
 Every line goes through three passes, and the first that finds something decides the line:
 
 1. Shapes: token formats their issuers document (AWS key ids, GitHub, GitLab and Slack tokens,
-   Slack webhooks, PEM private-key headers) and a password embedded in a URL.
+   Slack webhooks, PEM private-key headers) and a password embedded in a URL. The placeholders
+   documentation prints in those shapes (all zeros, all x, AWS's ``...EXAMPLE``) are not.
 2. Credential assignments: a name whose last word is a credential word (``token``, ``secret``,
    ``password``, ``api_key`` and a few more) bound to a literal that looks like a credential.
    Only a quoted literal is a value in code, so ``tokens = estimate_tokens(text)`` (plural, and
-   a call) and ``token = other`` (a name) are not findings. Unquoted values count in
-   configuration files and in dotenv-style ``NAME=value`` lines.
+   a call) and ``token = other`` (a name) are not findings, and neither is a literal that reads
+   as a name (``token = 'IDENT2'``). Unquoted values count in configuration files and in
+   dotenv-style ``NAME=value`` lines. In a configuration file any literal of eight or more
+   characters counts. Placeholders and references to a store (``env:NAME``, ``${NAME}``,
+   ``$NAME``, ``%NAME%``) never do.
 3. Entropy: long opaque tokens. A path is judged one segment at a time, and lock files, which
    carry only hashes and URLs, skip this pass.
 
@@ -27,25 +31,34 @@ import re
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import PurePosixPath
 
+# Each shape names the issuer-chosen part `body`; a body that documentation writes as a
+# placeholder (all zeros or all x, or AWS's `...EXAMPLE` key) is not a secret.
 _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
-    ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})")),
+    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)(?P<body>[0-9A-Z]{16})\b")),
+    ("github-token", re.compile(r"\bgh[pousr]_(?P<body>[A-Za-z0-9]{20,})")),
+    ("github-token", re.compile(r"\bgithub_pat_(?P<body>[A-Za-z0-9_]{20,})")),
     (
         "gitlab-token",
-        re.compile(r"\bgl(?:pat|dt|rt|ptt|oas|cbt|ft|imt|soat|agent)-[A-Za-z0-9_.-]{20,}"),
+        re.compile(
+            r"\bgl(?:pat|dt|rt|ptt|oas|cbt|ft|imt|soat|agent)-(?P<body>[A-Za-z0-9_.-]{20,})"
+        ),
     ),
-    ("slack-token", re.compile(r"\b(?:xox[a-z]|xapp)-[A-Za-z0-9-]{10,}")),
+    ("slack-token", re.compile(r"\b(?:xox[a-z]|xapp)-(?P<body>[A-Za-z0-9-]{10,})")),
     (
         "slack-webhook",
-        re.compile(r"\bhooks\.slack\.com/(?:services|workflows|triggers)/[A-Za-z0-9_/-]{16,}"),
+        re.compile(
+            r"\bhooks\.slack\.com/(?:services|workflows|triggers)/(?P<body>[A-Za-z0-9_/-]{16,})"
+        ),
     ),
     (
         "private-key",
         re.compile(r"-{4,5} ?BEGIN[A-Z0-9 ]{0,40}PRIVATE KEY(?: BLOCK)? ?-{4,5}", re.IGNORECASE),
     ),
 )
+_PLACEHOLDER_SEGMENT = re.compile(r"[A-Z]?(?:0+|x+|X+)")
 # scheme://user:password@host; the user part may be empty (redis://:password@host). Every
 # repetition is bounded so that a long line cannot make a search quadratic.
 _URL_CREDENTIALS = re.compile(
@@ -58,14 +71,22 @@ _URL_CREDENTIALS = re.compile(
 _ASSIGNMENT = re.compile(
     r"""(?x)
     (?<![\w.\\])
-    (?P<quote>["']?)(?P<name>[A-Za-z_][\w.-]{0,63})(?P=quote)
+    (?P<quote>["']?)(?P<name>[A-Za-z_][\w.-]{0,63}+)(?P=quote)
     [ \t]*(?P<sep>:=|=>|(?<![=!<>:])=(?![=~>])|:(?![:=/]))[ \t]*
     """
 )
-_ANNOTATION = re.compile(r"[A-Za-z_][\w.\[\], |]{0,80}?[ \t]+=(?![=>])[ \t]*")
-_QUOTED = re.compile(r"""(?:[rRbBuU]{1,2})?(?P<q>["'])(?P<literal>(?:\\.|(?!(?P=q)).)*)(?P=q)""")
-_QUOTED_TAIL = re.compile(r"[ \t]*(?:[,;)\]}].*|#.*|//.*)?")
-_BARE = re.compile(r"(?P<value>[^\s\"'`]+)[ \t]*(?:[ \t][#;].*)?")
+_ANNOTATION = re.compile(r"[A-Za-z_][\w.\[\], |]{0,80}?[ \t]{1,4}=(?![=>])[ \t]*")
+# The alternatives inside each string literal are disjoint (an escape, or any other character
+# but the quote), so an unterminated literal fails in linear time.
+_QUOTED = re.compile(
+    r"""(?:[rRbBuU]{1,2})?(?:"(?P<double>(?:[^"\\]|\\.)*)"|'(?P<single>(?:[^'\\]|\\.)*)')"""
+)
+# What may follow a literal for it to be the whole value; only the start is examined.
+_QUOTED_TAIL = re.compile(r"[ \t]*(?:[,;)\]}#]|//|$)")
+# A bare value is the rest of the line, up to a comment.
+_BARE = re.compile(r"(?P<value>[^\s\"'`]{1,256}+)[ \t]*+(?:$|(?<=[ \t])(?=[#;]))")
+# Where a key starts on a line: after the indentation and an `export ` or a YAML `- `.
+_LINE_HEAD = re.compile(r"[ \t]*(?:(?P<export>export[ \t]+)|-[ \t]+)?")
 _NAME_WORD = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 _CREDENTIAL_WORDS = frozenset(
     {
@@ -89,9 +110,17 @@ _EXPRESSION_CHARS = frozenset("()[]{}`")
 _YAML_WORDS = frozenset({"true", "false", "yes", "no", "on", "off", "null", "none", "nil", "~"})
 _LITERAL_MIN_LENGTH = 6
 _LITERAL_MIN_BITS = 2.5
+# In a configuration file a credential-named key holds a credential whatever it looks like.
+_CONFIG_LITERAL_MIN_LENGTH = 8
+# A quoted value in code that reads as a name (`IDENT2`, `NextToken1`, `Int64Lit`).
+_CODE_NAME_PART = re.compile(r"[A-Z]+(?![a-z])|[A-Z][a-z]+|[0-9]+|_+|.")
 # Files whose bare `name: value` and `name = value` lines are literals, not code.
-_CONFIG_SUFFIXES = frozenset(
+_BARE_SUFFIXES = frozenset(
     {".yml", ".yaml", ".ini", ".cfg", ".conf", ".properties", ".env", ".md", ".markdown"}
+)
+# Configuration files proper: no Markdown prose, but TOML and JSON, whose strings are quoted.
+_CONFIG_SUFFIXES = frozenset(
+    {".yml", ".yaml", ".ini", ".cfg", ".conf", ".properties", ".env", ".toml", ".json"}
 )
 # Generated files that carry only resolved versions, URLs and content hashes.
 _LOCK_FILES = frozenset(
@@ -123,8 +152,12 @@ _UUID = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-"
     r"[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
 )
+# References to a value kept elsewhere: $NAME, ${NAME} (with a default), %NAME%, <name>, and
+# a secret store's scheme (env:NAME, vault:path, op://vault/item).
 _REFERENCE_VALUE = re.compile(
-    r"^(?:\$[A-Z_][A-Z0-9_]*|\$\{[A-Z_][A-Z0-9_]*\}|<[^>]+>)$", re.IGNORECASE
+    r"^(?:\$[A-Z_][A-Z0-9_]*|\$\{[A-Z_][A-Z0-9_]*(?::?[-=?+][^}]*)?\}|%[A-Z_][A-Z0-9_]*%|<[^>]+>"
+    r"|(?:env|vault|file|secret|secrets|ssm|sops|keyring|op):\S+)$",
+    re.IGNORECASE,
 )
 _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
 _SAFE_GITHUB_TRACE_URL = re.compile(
@@ -147,11 +180,16 @@ _PLACEHOLDER_VALUES = frozenset(
         "your_token_here",
         "token_here",
         "redacted",
+        "change_me",
+        "change-me",
+        "changeit",
     }
 )
 # What documentation writes where a URL's password goes.
 _URL_PLACEHOLDERS = frozenset({"pass", "password", "passwd", "pwd", "pw", "secret", "token"})
 _MASKED = re.compile(r"[*x.]+", re.IGNORECASE)
+# `your-password-here`, `YOUR_API_KEY`, `<your token>`: what documentation asks the reader for.
+_YOUR_PREFIX = ("your", "<your")
 _ENTROPY_MIN_LENGTH = 32
 _ENTROPY_MIN_BITS = 4.3
 # A token with slashes is judged whole only when it is base64 that is denser than any path.
@@ -178,6 +216,27 @@ def _looks_placeholder(value: str) -> bool:
     if not normalized:
         return True
     return normalized in _PLACEHOLDER_VALUES
+
+
+def _literal_placeholder(value: str) -> bool:
+    """An assigned value documentation writes instead of a credential, or a reference to one."""
+
+    normalized = value.strip().lower()
+    return (
+        _looks_placeholder(value)
+        or normalized in _URL_PLACEHOLDERS
+        or normalized.startswith(_YOUR_PREFIX)
+        or _MASKED.fullmatch(normalized) is not None
+    )
+
+
+def _placeholder_body(body: str) -> bool:
+    """A token body made of zeros or x (T00000000/B00000000/XXXX), or AWS's documented example."""
+
+    if body.endswith("EXAMPLE"):
+        return True
+    segments = [segment for segment in re.split(r"[/_.-]", body) if segment]
+    return bool(segments) and all(_PLACEHOLDER_SEGMENT.fullmatch(part) for part in segments)
 
 
 def _shannon_entropy(value: str) -> float:
@@ -240,12 +299,20 @@ def _opaque_secret(value: str) -> bool:
     return any(_looks_high_entropy_secret(part) for part in value.split("/"))
 
 
-def _is_credential_name(name: str) -> bool:
-    """The last word of the name's last component is a credential word, as a whole word."""
+@lru_cache(maxsize=1024)
+def _name_words(name: str) -> tuple[str, ...]:
+    """The lowercase words of a name's last component, without trailing numbers."""
 
     words = [word.lower() for word in _NAME_WORD.findall(re.split(r"[.\[\]]", name)[-1])]
     while words and words[-1].isdigit():
         words.pop()
+    return tuple(words)
+
+
+def _is_credential_name(name: str) -> bool:
+    """The last word of the name's last component is a credential word, as a whole word."""
+
+    words = _name_words(name)
     if not words:
         return False
     if words[-1] in _CREDENTIAL_WORDS:
@@ -253,14 +320,33 @@ def _is_credential_name(name: str) -> bool:
     return words[-1] == "key" and len(words) > 1 and words[-2] in _KEY_QUALIFIERS
 
 
-def _credential_literal(value: str) -> bool:
-    """A literal that could be a credential rather than a name, reference, template or prose."""
+def _code_name(value: str) -> bool:
+    """CamelCase or upper-case words with digits, as a token kind or a type is named."""
 
-    if len(value) < _LITERAL_MIN_LENGTH or _looks_placeholder(value):
+    return value[:1].isupper() and all(
+        part[0].isupper() or part[0].isdigit() or part[0] == "_"
+        for part in _CODE_NAME_PART.findall(value)
+    )
+
+
+def _credential_literal(value: str, *, name: str = "", config: bool = False) -> bool:
+    """A literal that could be a credential rather than a name, reference, template or prose.
+
+    In a configuration file any other literal of eight or more characters is a credential. In
+    code the literal must also vary like one, and a value that reads as a name is not.
+    """
+
+    if len(value) < _LITERAL_MIN_LENGTH or _literal_placeholder(value):
         return False
     if any(ch.isspace() for ch in value) or "{" in value or "%s" in value or "%(" in value:
         return False
     if value.lower() in _YAML_WORDS or _ENV_NAME.fullmatch(value):
+        return False
+    if value.lower() in _name_words(name):  # `POSTGRES_PASSWORD: postgres`, a service default
+        return False
+    if config and len(value) >= _CONFIG_LITERAL_MIN_LENGTH:
+        return True
+    if not config and _code_name(value):
         return False
     letters = any(ch.isalpha() for ch in value)
     digits = any(ch.isdigit() for ch in value)
@@ -277,26 +363,34 @@ def _credential_literal(value: str) -> bool:
     return _shannon_entropy(value) >= _LITERAL_MIN_BITS
 
 
-def _bare_literal(value: str) -> bool:
+def _bare_literal(value: str, *, name: str, config: bool) -> bool:
     """An unquoted value that is a literal, not a reference, alias, tag or expression."""
 
     if value[:1] in {"$", "!", "*", "&", "<", "@", "%"} or "${" in value or "$(" in value:
         return False
     if any(ch in _EXPRESSION_CHARS for ch in value) or _ATTRIBUTE.fullmatch(value):
         return False
-    return _credential_literal(value.rstrip(",;"))
+    return _credential_literal(value.rstrip(",;"), name=name, config=config)
+
+
+def _is_dotenv(name: str) -> bool:
+    return name.startswith(".env") or name.endswith(".env")
 
 
 def _accepts_bare_values(logical_path: str) -> bool:
     """Configuration files, Markdown and the pull request's own fields (no file suffix)."""
 
     path = PurePosixPath(logical_path.replace("\\", "/"))
-    name = path.name.lower()
     return (
-        path.suffix.lower() in _CONFIG_SUFFIXES
-        or name.startswith(".env")
+        path.suffix.lower() in _BARE_SUFFIXES
+        or _is_dotenv(path.name.lower())
         or (not path.suffix and "/" not in logical_path)
     )
+
+
+def _is_config_file(logical_path: str) -> bool:
+    path = PurePosixPath(logical_path.replace("\\", "/"))
+    return path.suffix.lower() in _CONFIG_SUFFIXES or _is_dotenv(path.name.lower())
 
 
 def _is_lock_file(logical_path: str) -> bool:
@@ -305,7 +399,15 @@ def _is_lock_file(logical_path: str) -> bool:
 
 
 def _shape_rules(line: str) -> list[str]:
-    rules = [rule for rule, pattern in _SECRET_PATTERNS if pattern.search(line)]
+    rules: list[str] = []
+    for rule, pattern in _SECRET_PATTERNS:
+        if rule in rules:
+            continue
+        for match in pattern.finditer(line):
+            body = match.groupdict().get("body")
+            if body is None or not _placeholder_body(body):
+                rules.append(rule)
+                break
     for match in _URL_CREDENTIALS.finditer(line):
         password = match.group("password")
         if not (
@@ -320,30 +422,41 @@ def _shape_rules(line: str) -> list[str]:
     return rules
 
 
-def _credential_assignment(line: str, *, bare_values: bool) -> bool:
+def _credential_assignment(line: str, *, bare_values: bool, config: bool) -> bool:
+    # Every check below starts at a position in the line and examines a bounded stretch of it,
+    # so that a line repeating `token=` does not cost the square of its length.
+    head = _LINE_HEAD.match(line)
+    key_start = head.end() if head is not None else 0
+    exported = head is not None and head.group("export") is not None
     for match in _ASSIGNMENT.finditer(line):
-        if not _is_credential_name(match.group("name")):
+        name = match.group("name")
+        if not _is_credential_name(name):
             continue
-        rest = line[match.end() :]
-        annotated = _ANNOTATION.match(rest) if match.group("sep") == ":" else None
+        pos = match.end()
+        annotated = _ANNOTATION.match(line, pos) if match.group("sep") == ":" else None
         if annotated is not None:  # `token: str = "..."`
-            rest = rest[annotated.end() :]
-        quoted = _QUOTED.match(rest)
+            pos = annotated.end()
+        quoted = _QUOTED.match(line, pos)
         if quoted is not None:
-            tail = rest[quoted.end() :]
-            if _QUOTED_TAIL.fullmatch(tail) and _credential_literal(quoted.group("literal")):
+            literal = quoted.group("double")
+            if literal is None:
+                literal = quoted.group("single")
+            if _credential_literal(literal, name=name, config=config) and _QUOTED_TAIL.match(
+                line, quoted.end()
+            ):
                 return True
             continue
-        bare = _BARE.fullmatch(rest)
-        if bare is None or annotated is not None:
+        if annotated is not None:
             continue
-        prefix = line[: match.start()]
         # NAME=value at the start of a line, as a dotenv file or a shell script writes it.
         dotenv = match.group(0) == f"{match.group('name')}=" and (
-            prefix == "" or re.fullmatch(r"\s*export\s+", prefix) is not None
+            match.start() == 0 or (exported and match.start() == key_start)
         )
-        key_line = bare_values and re.fullmatch(r"\s*(?:-\s+)?", prefix) is not None
-        if (dotenv or key_line) and _bare_literal(bare.group("value")):
+        key_line = bare_values and match.start() == key_start
+        if not (dotenv or key_line):
+            continue
+        bare = _BARE.match(line, pos)
+        if bare is not None and _bare_literal(bare.group("value"), name=name, config=config):
             return True
     return False
 
@@ -382,6 +495,7 @@ def scan_publication(
         shown = logical_path
     findings = [PublicationFinding(shown, 0, rule) for rule in path_rules]
     bare_values = _accepts_bare_values(logical_path)
+    config = _is_config_file(logical_path)
     lock_file = _is_lock_file(logical_path)
 
     for line_number, line in enumerate(text.splitlines(), start=1):
@@ -391,7 +505,7 @@ def scan_publication(
             continue
         if lock_file:
             continue
-        if _credential_assignment(line, bare_values=bare_values):
+        if _credential_assignment(line, bare_values=bare_values, config=config):
             findings.append(PublicationFinding(shown, line_number, "credential-assignment"))
             continue
         if _entropy_hit(line):

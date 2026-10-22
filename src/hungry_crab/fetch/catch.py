@@ -34,6 +34,10 @@ _UNIT_DAYS = {"d": 1, "w": 7, "m": 30, "y": 365}
 _PROVIDER_HOSTS = {"github": "github.com", "gitlab": "gitlab.com"}
 # The records that prove a prey directory is the crab's: what a catch and a sniff write.
 _OWNERSHIP_RECORDS = (("catch.json",), ("api", "sniff.json"))
+# The `status` of the provisional `catch.json` a first catch writes before it clones.
+INCOMPLETE = "incomplete"
+# Whether chmod can act on a link itself (Windows from 3.13, a few BSDs; never Linux).
+_CHMOD_NOFOLLOW = os.chmod in os.supports_follow_symlinks
 _LEFT_BEHIND_HINT = (
     "Close programs holding files and inspect what remains. "
     "No recursive chmod traversal was attempted."
@@ -175,7 +179,15 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
             raise CrabError(f"refusing cache cleanup outside its root: {item}")
         _require_real_entries(item, cache_root=cache_root)
         try:
-            item.chmod(item.lstat().st_mode | stat.S_IWRITE)
+            mode = item.lstat().st_mode | stat.S_IWRITE
+            # The entry may have become a link since it was checked: never change a target.
+            if _CHMOD_NOFOLLOW:
+                item.chmod(mode, follow_symlinks=False)
+            elif sys.platform == "win32":
+                # Before 3.13, chmod on Windows sets the attributes of the entry itself.
+                item.chmod(mode)
+            # Elsewhere chmod would follow a swapped-in link, and removing a file there needs
+            # no write permission on it, so the retry goes ahead as it is.
             func(filename)
         except OSError as exc:
             # An open file on Windows ends here: the entry is half removed, and says so.
@@ -287,6 +299,16 @@ def catch(
                 previous = value
         except (OSError, ValueError):
             pass
+    if previous.get("status") == INCOMPLETE:
+        # A provisional record proves the directory is the crab's; it describes no catch.
+        previous = {}
+    provisional = not root_existed and not paths.catch_file.exists()
+    if provisional:
+        # Written before any clone, so a catch that fails half way (a refused issues fetch, a
+        # full disk) still leaves a record that `crab cache rm` accepts. Only a directory this
+        # catch created is claimed: an existing one without a record may be someone's own.
+        record = {"slug": str(slug), "status": INCOMPLETE}
+        paths.catch_file.write_text(json.dumps(record) + "\n", encoding="utf-8")
     if channels_only and (repo_dir / ".git").exists() and previous:
         log(f"fetching provider samples for {slug}; the cached tree stays at its commit")
         git = GitRunner(repo_dir)
@@ -389,6 +411,8 @@ def catch(
                     raise
         except Exception:
             if not root_existed:
+                if provisional:
+                    paths.catch_file.unlink(missing_ok=True)
                 for directory in (paths.root, paths.root.parent):
                     try:
                         directory.rmdir()
@@ -451,14 +475,22 @@ def _clone_replace(
         )
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
-        if destination.exists():
-            destination.rename(backup)
         try:
-            staged.rename(destination)
-        except OSError:
-            if backup.exists():
-                backup.rename(destination)
-            raise
+            if destination.exists():
+                destination.rename(backup)
+            try:
+                staged.rename(destination)
+            except OSError:
+                if backup.exists():
+                    backup.rename(destination)
+                raise
+        except OSError as exc:
+            # On Windows a file another program holds open blocks the rename of its directory.
+            raise CrabError(
+                f"cannot replace {destination}: {exc.strerror or exc}",
+                hint="Close programs holding files in it and run the command again; "
+                "the new clone was discarded.",
+            ) from exc
     finally:
         if staged.exists():
             rmtree_force(staged, cache_root=staged.parent)

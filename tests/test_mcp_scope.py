@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -162,3 +164,120 @@ def test_a_junction_inside_the_prey_does_not_carry_the_digest_outside(tmp_path: 
         if artifact.is_file():
             text = artifact.read_text(encoding="utf-8", errors="replace")
             assert "internal-billing-sdk" not in text and "salary-model" not in text, artifact.name
+
+
+def _link_directory(target: Path, link: Path) -> None:
+    """A junction on Windows (no privilege needed), a symlink elsewhere."""
+    if sys.platform == "win32":
+        import _winapi
+
+        _winapi.CreateJunction(str(target), str(link))
+    else:
+        link.symlink_to(target, target_is_directory=True)
+
+
+def _unlink_directory(link: Path) -> None:
+    if sys.platform == "win32":
+        link.rmdir()
+    else:
+        link.unlink()
+
+
+def _drop_repository(root: Path) -> Path:
+    """A repository under the root whose git data can then be moved piece by piece."""
+    drop = root / "drop"
+    drop.mkdir(parents=True)
+    (drop / "a.py").write_text("y = 2\n", encoding="utf-8")
+    git(drop, "init", "--quiet")
+    return drop
+
+
+@pytest.mark.parametrize("relative", [False, True], ids=["absolute", "relative"])
+def test_alternates_borrowing_an_outside_object_store_are_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, relative: bool
+) -> None:
+    """Plain text files an archive can carry: an alternate and a ref to an outside commit."""
+    outside = _outside_repository(tmp_path)
+    sha = git(outside, "rev-parse", "HEAD").strip()
+    root = tmp_path / "approved"
+    drop = _drop_repository(root)
+    objects = drop / ".git" / "objects"
+    borrowed = outside / ".git" / "objects"
+    entry = Path(os.path.relpath(borrowed, objects)) if relative else borrowed
+    (objects / "info" / "alternates").write_text(f"{entry.as_posix()}\n", encoding="utf-8")
+    (drop / ".git" / "refs" / "heads" / "master").write_text(f"{sha}\n", encoding="utf-8")
+    (drop / ".git" / "HEAD").write_text("ref: refs/heads/master\n", encoding="utf-8")
+    _refuses_before_analysis(AnalysisService([root], tmp_path / "cache"), "drop", monkeypatch)
+
+
+def test_http_alternates_are_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / "approved"
+    drop = _drop_repository(root)
+    info = drop / ".git" / "objects" / "info"
+    (info / "http-alternates").write_text("https://example.invalid/objects\n", encoding="utf-8")
+    _refuses_before_analysis(AnalysisService([root], tmp_path / "cache"), "drop", monkeypatch)
+
+
+def test_alternates_inside_the_root_are_accepted(tmp_path: Path) -> None:
+    """`git clone --shared` within the roots borrows nothing the operator did not grant."""
+    root = tmp_path / "approved"
+    main = root / "main"
+    main.mkdir(parents=True)
+    git(main, "init", "--quiet")
+    (main / "a.txt").write_text("a\n", encoding="utf-8")
+    git(main, "add", ".")
+    git(main, "commit", "--quiet", "-m", "init")
+    git(root, "clone", "--quiet", "--shared", str(main), str(root / "shared"))
+    assert (root / "shared" / ".git" / "objects" / "info" / "alternates").is_file()
+    service = AnalysisService([root], tmp_path / "cache")
+    assert service.local("shared") == (root / "shared").resolve()
+    assert service.local("main") == main.resolve()
+    (main / "sub").mkdir()
+    assert service.local("main/sub") == (main / "sub").resolve()
+
+
+@pytest.mark.parametrize("store", ["objects", "refs", "objects/pack", "refs/heads"])
+def test_a_linked_object_or_ref_store_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, store: str
+) -> None:
+    """A store, or a directory inside one, linked to an outside repository needs no SHA."""
+    outside = _outside_repository(tmp_path)
+    root = tmp_path / "approved"
+    drop = _drop_repository(root)
+    link = drop / ".git" / store
+    shutil.rmtree(link)
+    _link_directory(outside / ".git" / store, link)
+    try:
+        _refuses_before_analysis(AnalysisService([root], tmp_path / "cache"), "drop", monkeypatch)
+    finally:
+        _unlink_directory(link)
+
+
+def test_a_linked_store_is_refused_even_when_it_points_inside_the_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "approved"
+    drop = _drop_repository(root)
+    elsewhere = root / "elsewhere-refs"
+    shutil.copytree(drop / ".git" / "refs", elsewhere)
+    link = drop / ".git" / "refs"
+    shutil.rmtree(link)
+    _link_directory(elsewhere, link)
+    try:
+        _refuses_before_analysis(AnalysisService([root], tmp_path / "cache"), "drop", monkeypatch)
+    finally:
+        _unlink_directory(link)
+
+
+def test_a_linked_packed_refs_file_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    outside = _outside_repository(tmp_path)
+    git(outside, "pack-refs", "--all")
+    root = tmp_path / "approved"
+    drop = _drop_repository(root)
+    try:
+        (drop / ".git" / "packed-refs").symlink_to(outside / ".git" / "packed-refs")
+    except OSError:
+        pytest.skip("file symlinks need a privilege this runner does not hold")
+    _refuses_before_analysis(AnalysisService([root], tmp_path / "cache"), "drop", monkeypatch)

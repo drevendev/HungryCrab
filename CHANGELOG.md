@@ -13,24 +13,35 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   prey's submodules, so a filter named by a submodule's own configuration never runs; a
   worktree fingerprint that cannot vouch for a populated submodule is `unknown`. The prey guard
   lets cache-touching git open only a clone root that `crab catch` made, refuses `--git-dir`,
-  `--work-tree`, `--namespace` and every other `-C` target in the cache, and refuses `--filters`.
-- **Guards:** the prey guard judges cache paths the shell assembles (variables, substitutions,
-  globs, braces) ([#142](https://github.com/drevendev/HungryCrab/issues/142)); both guards
-  canonicalise `\\?\` device paths and 8.3 short names
-  ([#188](https://github.com/drevendev/HungryCrab/issues/188)) and read the hook event as UTF-8
+  `--work-tree`, `--namespace` and every other `-C` target in the cache, a quoted `~`, and the
+  options that run programs in any abbreviated or clustered spelling (`--filters`, `--open`,
+  `-O`, `--textconv`, `--ext-diff`).
+- **Guards:** the prey guard refuses a command that carries a hint of the cache through a
+  construct it does not model (nested shells, parameter operators, arrays, `$'…'`, braces,
+  substitutions; PowerShell groups, `+`, `-f`, `-join`, `Join-Path`), while text about the
+  cache and its parent directory stays allowed; a path a program computes for itself cannot be
+  judged by a text guard, as `SECURITY.md` now says
+  ([#142](https://github.com/drevendev/HungryCrab/issues/142)); both guards canonicalise
+  `\\?\` device, volume and GLOBALROOT paths, local admin shares and 8.3 short names without
+  network lookups ([#188](https://github.com/drevendev/HungryCrab/issues/188)) and read the
+  hook event as UTF-8
   bytes on Windows ([#315](https://github.com/drevendev/HungryCrab/issues/315)); the clean-room
   guard refuses Grep and Glob scopes that contain the cache
   ([#314](https://github.com/drevendev/HungryCrab/issues/314)); the PowerShell tool now goes
   through both guards, with plain read cmdlets the only cache-touching PowerShell allowed
   ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
-- **Scope:** MCP refuses a directory whose git directory or common directory lies outside the
-  approved roots ([#322](https://github.com/drevendev/HungryCrab/issues/322)) and checks a prey
+- **Scope:** MCP refuses a directory whose git directory, common directory, object or ref store
+  lies outside the approved roots, is reached through a link, or borrows objects through
+  alternates ([#322](https://github.com/drevendev/HungryCrab/issues/322)) and checks a prey
   path against the roots before touching it
   ([#327](https://github.com/drevendev/HungryCrab/issues/327)); the inventory walk does not
-  follow directory junctions ([#323](https://github.com/drevendev/HungryCrab/issues/323));
-  `crab digest --out` refuses a junction, and `crab cache rm` removes only a prey directory the
-  crab recorded ([#211](https://github.com/drevendev/HungryCrab/issues/211)); every `gh api`
-  call is pinned to github.com whatever `GH_HOST` says
+  follow directory junctions, while OneDrive folders are still walked
+  ([#323](https://github.com/drevendev/HungryCrab/issues/323)); licence evidence is read only
+  from the prey's own tree, never through a link; `crab digest --out` refuses a junction,
+  `crab cache rm` removes only a prey directory the crab recorded (a first catch records itself
+  before it clones), and a held file ends in a clear error
+  ([#211](https://github.com/drevendev/HungryCrab/issues/211)); every `gh` call, prey- and
+  maw-side, is pinned to github.com whatever `GH_HOST` says
   ([#318](https://github.com/drevendev/HungryCrab/issues/318)).
 - **Bounded digestion:** JUnit archives are inflated in bounded chunks and only stored or
   deflate members are read ([#317](https://github.com/drevendev/HungryCrab/issues/317)); the
@@ -39,20 +50,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ([#329](https://github.com/drevendev/HungryCrab/issues/329),
   [#331](https://github.com/drevendev/HungryCrab/issues/331),
   [#300](https://github.com/drevendev/HungryCrab/issues/300)); deeply nested manifests and
-  expanding YAML anchors are unparseable files, not failed miners
+  expanding YAML anchors and merge keys, charged before the document is built, are unparseable
+  files, not failed miners
   ([#330](https://github.com/drevendev/HungryCrab/issues/330)); miner warnings are capped per
   miner ([#324](https://github.com/drevendev/HungryCrab/issues/324)).
 - **No body text in summaries:** only a paragraph line can be a setext heading
   ([#332](https://github.com/drevendev/HungryCrab/issues/332)); wiki headings carry the same
   caps as README headings ([#337](https://github.com/drevendev/HungryCrab/issues/337)); bidi
-  controls and plural instruction comments are flagged, and instruction-like author, path,
-  workflow, tag and branch names are redacted in the Markdown summaries
+  overrides and isolates and plural instruction comments are flagged (bidi marks only where
+  nothing is right-to-left), instruction-like author, path, workflow, tag and branch names are
+  redacted in the Markdown summaries, also when spelled with `-`, `_`, `/` or `.`, and headings
+  lose images, link targets and inline HTML while code spans stay as written
   ([#192](https://github.com/drevendev/HungryCrab/issues/192)).
 - **Publication:** the Feeder action refuses a public meal artifact unless the maw is
-  confirmed public as well as the prey
-  ([#341](https://github.com/drevendev/HungryCrab/issues/341)); the pre-push secret scan flags
-  credentials (private keys, GitLab and Slack tokens, webhooks, passwords in URLs) instead of
-  identifiers that merely contain a credential word
+  confirmed public as well as the prey; a tracked directory of the public calling repository
+  counts as public ([#341](https://github.com/drevendev/HungryCrab/issues/341)); the pre-push
+  secret scan flags credentials (private keys, GitLab and Slack tokens, webhooks, passwords in
+  URLs, credential-named keys in configuration files) instead of identifiers that merely
+  contain a credential word, and runs in linear time
   ([#135](https://github.com/drevendev/HungryCrab/issues/135)).
 
 ## [0.6.0] - 2026-10-22

@@ -84,12 +84,45 @@ def maw_origin(maw: Path) -> Slug | None:
     return maw_slug(maw)
 
 
+def _is_caller(slug: Slug | None) -> bool:
+    caller = os.environ.get("GITHUB_REPOSITORY", "")
+    return (
+        slug is not None
+        and slug.host == "github.com"
+        and f"{slug.owner}/{slug.repo}".casefold() == caller.casefold()
+    )
+
+
+def maw_in_public_caller(maw: Path) -> bool:
+    """A tracked directory of the public calling repository's own checkout (a monorepo package).
+
+    The caller's checkout sits at the workspace root; a directory below it holding files the
+    caller tracks is part of that public repository. An untracked or ignored directory is not:
+    it may hold anything a previous step wrote there.
+    """
+    workspace = os.environ.get("GITHUB_WORKSPACE")
+    if not workspace or caller_is_private() is not False or not GitRunner.available():
+        return False
+    root = Path(workspace)
+    try:
+        relative = maw.resolve().relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+    if not maw.is_dir() or not _is_caller(maw_origin(root)):
+        return False
+    tracked = GitRunner(root).try_run("ls-files", "-z", "--", relative.as_posix() or ".")
+    return bool(tracked)
+
+
 def maw_is_public(maw: Path) -> bool:
     """True only when the maw is the public calling repository or the forge says it is public.
 
     The maw digest is uploaded beside the prey digest, so a private checkout digested as the maw
-    is as exposed as a private prey. A maw with no recognisable origin is unconfirmed.
+    is as exposed as a private prey. A maw with no recognisable origin is unconfirmed, unless it
+    is a tracked directory of the public caller's own checkout.
     """
+    if maw_in_public_caller(maw):
+        return True
     slug = maw_origin(maw)
     if slug is None:
         return False

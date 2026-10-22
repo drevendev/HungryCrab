@@ -39,21 +39,68 @@ _ATX_OPEN_RE = re.compile(r" {0,3}(#{1,6})(?=[ \t]|$)")
 # so each pattern is linear in the heading.
 _HEADING_IMAGE_RE = re.compile(r"!\[[^\[\]]*\](?:\([^()]*\)|\[[^\[\]]*\])")
 _HEADING_LINK_RE = re.compile(r"\[([^\[\]]*)\](?:\([^()]*\)|\[[^\[\]]*\])")
-_HEADING_TAG_RE = re.compile(r"<[^<>\s][^<>]*>")
+# A tag, a comment, a declaration or an autolink starts with a letter, `/`, `!` or `?` after
+# `<`; `a <= b` is text.
+_HEADING_TAG_RE = re.compile(r"<[A-Za-z/!?][^<>]*>")
 _HEADING_DEFINITION_RE = re.compile(r"\A\s*\[([^\[\]]*)\]:")
+_BACKTICKS_RE = re.compile(r"`+")
+_OPENING_ANGLE_RE = re.compile(r"<(?=\S)")
 HEADING_OMITTED = "[heading omitted: instruction-like]"
 
 
-def plain_heading(title: str) -> str:
-    """The text of a heading without images, link targets, autolinks or inline HTML."""
-    text = _HEADING_IMAGE_RE.sub("", title)
+def _code_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) of each code span: a backtick run closed by the next run of equal length.
+
+    Each length keeps a cursor into its own runs that only moves forward, so the scan is
+    linear however many unmatched runs the heading has.
+    """
+    runs = [(match.start(), match.end()) for match in _BACKTICKS_RE.finditer(text)]
+    by_length: dict[int, list[int]] = {}
+    for index, (start, end) in enumerate(runs):
+        by_length.setdefault(end - start, []).append(index)
+    cursor = dict.fromkeys(by_length, 0)
+    spans: list[tuple[int, int]] = []
+    index = 0
+    while index < len(runs):
+        start, end = runs[index]
+        same = by_length[end - start]
+        position = cursor[end - start]
+        while position < len(same) and same[position] <= index:
+            position += 1
+        cursor[end - start] = position
+        if position == len(same):
+            index += 1
+            continue
+        closing = same[position]
+        spans.append((start, runs[closing][1]))
+        index = closing + 1
+    return spans
+
+
+def _plain_text(segment: str) -> str:
+    text = _HEADING_IMAGE_RE.sub("", segment)
     text = _HEADING_LINK_RE.sub(r"\1", text)
     text = _HEADING_TAG_RE.sub("", text)
     # What one pass cannot take apart (nested brackets, a tag split by another `<`) is
-    # defused instead: no `<` is left to open a tag or an autolink, no `](` joins a link
-    # text to a target, and no leading `[label]:` defines a link for another line.
-    text = re.sub(r"<(?=\S)", "", text).replace("](", "] (")
-    return _HEADING_DEFINITION_RE.sub(r"\1:", text).strip()
+    # defused instead: a `<` that could still open a tag or an autolink is written as text
+    # (`&lt;`; one before a space opens nothing), and no `](` joins a link text to a target.
+    return _OPENING_ANGLE_RE.sub("&lt;", text).replace("](", "] (")
+
+
+def plain_heading(title: str) -> str:
+    """The text of a heading without images, link targets, autolinks or inline HTML.
+
+    Code spans are literal in Markdown and kept as written: `Vec<T>` and `crab eat <prey>`
+    are text there, not tags. No leading `[label]:` defines a link for another line.
+    """
+    parts: list[str] = []
+    position = 0
+    for start, end in _code_spans(title):
+        parts.append(_plain_text(title[position:start]))
+        parts.append(title[start:end])
+        position = end
+    parts.append(_plain_text(title[position:]))
+    return _HEADING_DEFINITION_RE.sub(r"\1:", "".join(parts)).strip()
 
 
 def _heading(level: int, raw: str) -> dict[str, object] | None:

@@ -412,9 +412,50 @@ def _expand_maven_properties(version: str, props: dict[str, str]) -> str | None:
     return version
 
 
-# An unclosed `/*` runs to the end of the file, as it does for the compiler. With `.*?\*/`
-# alone, every later `/*` rescanned the rest of the text, which is quadratic in prey bytes.
-_GRADLE_COMMENT_RE = re.compile(r"/\*.*?(?:\*/|\Z)|^[ \t]*//[^\n]*", re.DOTALL | re.MULTILINE)
+# What can start a comment or a string literal in a Groovy or Kotlin build script.
+_GRADLE_TOKEN_RE = re.compile(r"/\*|//|'''|\"\"\"|['\"]")
+# Each literal runs to its closing quote, past escapes. An unclosed one-line literal ends with
+# its line and an unclosed triple-quoted one with the file, so no literal is scanned twice.
+_GRADLE_STRING_RES: dict[str, re.Pattern[str]] = {
+    "'": re.compile(r"'(?:[^'\\\n]++|\\.)*+'?"),
+    '"': re.compile(r'"(?:[^"\\\n]++|\\.)*+"?'),
+    "'''": re.compile(r"'''(?:[^'\\]++|\\.|'(?!''))*+(?:'''|\Z)", re.DOTALL),
+    '"""': re.compile(r'"""(?:[^"\\]++|\\.|"(?!""))*+(?:"""|\Z)', re.DOTALL),
+}
+
+
+def _strip_gradle_comments(text: str) -> str:
+    """Drop `//` and `/* */` comments outside string literals, in one pass over the text.
+
+    `exclude 'META-INF/*.kotlin_module'` is a string, not a comment. A `/*` that never closes
+    is not a comment either, as it was for the old pattern, and it is known to be unclosed
+    without a scan: no `*/` follows it. `/\\*.*?\\*/` rescanned the rest of the text from every
+    unclosed `/*`, which is quadratic in prey bytes (#329).
+    """
+    last_close = text.rfind("*/")
+    kept: list[str] = []
+    position = 0
+    while (token := _GRADLE_TOKEN_RE.search(text, position)) is not None:
+        start, mark = token.start(), token.group()
+        if mark == "//":
+            end = text.find("\n", start)
+            kept.append(text[position:start])
+            position = len(text) if end < 0 else end
+        elif mark == "/*" and last_close >= start + 2:
+            kept.append(text[position:start])
+            position = text.index("*/", start + 2) + 2
+        elif mark == "/*":
+            kept.append(text[position : start + 2])
+            position = start + 2
+        else:
+            literal = _GRADLE_STRING_RES[mark].match(text, start)
+            end = literal.end() if literal is not None else start + len(mark)
+            kept.append(text[position:end])
+            position = end
+    kept.append(text[position:])
+    return "".join(kept)
+
+
 # `\s*(?:\(\s*)?` rather than `\s*\(?\s*`: two adjacent `\s*` split one whitespace run in
 # quadratically many ways before the quote fails to match.
 _GRADLE_COORDINATE_RE = re.compile(
@@ -426,7 +467,7 @@ _GRADLE_COORDINATE_RE = re.compile(
 
 def parse_gradle(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
     # Only literal coordinates. Gradle is executable: interpolation/catalogs are never run.
-    cleaned = _GRADLE_COMMENT_RE.sub("", text)
+    cleaned = _strip_gradle_comments(text)
     packages: list[Package] = []
     for match in _GRADLE_COORDINATE_RE.finditer(cleaned):
         kind, _, group, artifact, spec = match.groups()

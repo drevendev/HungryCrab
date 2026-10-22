@@ -51,9 +51,37 @@ _NO_DIFF_DRIVERS = ("--no-ext-diff", "--no-textconv")
 # `diff.ignoreSubmodules`, and only the command-line option outranks it. `dirty` never looks
 # inside a submodule's working tree but still reports the commit a superproject records, so a
 # changed or added gitlink stays visible to the diffs the publication guards read.
-_SUBMODULE_COMMANDS = frozenset({*_DIFF_COMMANDS, "status"})
+# The plumbing `diff-files` and `diff-index` read no `diff.*` config at all.
+_SUBMODULE_COMMANDS = frozenset({*_DIFF_COMMANDS, "status", "diff-files", "diff-index"})
 _NO_SUBMODULE_WORKTREES = "--ignore-submodules=dirty"
+# `describe --dirty` and `--broken` compare the working tree with no way to leave submodules out.
+_DESCRIBE_WORKTREE = ("--dirty", "--broken")
+# Global options before the subcommand that take their value as the next argument.
+_GLOBAL_OPTIONS_WITH_VALUE = frozenset({"-c", "-C", "--git-dir", "--work-tree", "--namespace"})
 _FILTER_KEYS = ("clean", "smudge", "process")
+
+
+def guarded_arguments(args: tuple[str, ...]) -> tuple[str, ...]:
+    """``args`` with the options that keep a command out of drivers and submodule trees.
+
+    The subcommand is found after any global options, so ``-c key=value diff`` is guarded
+    like ``diff``. A command that cannot be kept out of submodule working trees is refused.
+    """
+    at = 0
+    while at < len(args) and args[at].startswith("-"):
+        at += 2 if args[at] in _GLOBAL_OPTIONS_WITH_VALUE else 1
+    if at >= len(args):
+        return args
+    name, rest = args[at], args[at + 1 :]
+    if name == "describe" and any(arg.startswith(_DESCRIBE_WORKTREE) for arg in rest):
+        raise ExternalCommandError(
+            "git describe --dirty/--broken would inspect submodule working trees; "
+            "the crab does not run it"
+        )
+    if name not in _SUBMODULE_COMMANDS:
+        return args
+    drivers = _NO_DIFF_DRIVERS if name in _DIFF_COMMANDS else ()
+    return (*args[:at], name, *drivers, _NO_SUBMODULE_WORKTREES, *rest)
 
 
 def git_executable() -> str:
@@ -184,9 +212,7 @@ class GitRunner:
         cwd: Path | None = None,
     ) -> str:
         """Run ``git <args>`` and return stdout as text."""
-        if args and args[0] in _SUBMODULE_COMMANDS:
-            flags: tuple[str, ...] = _NO_DIFF_DRIVERS if args[0] in _DIFF_COMMANDS else ()
-            args = (args[0], *flags, _NO_SUBMODULE_WORKTREES, *args[1:])
+        args = guarded_arguments(args)
         command = [self.exe, *SAFE_CONFIG, *args]
         limit = timeout or self.timeout
         where = cwd or self.cwd

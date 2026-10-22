@@ -12,10 +12,10 @@ that never come near the cache stay out of scope, because the guard runs on ever
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
-import shlex
 import stat
 import sys
 from dataclasses import dataclass, field
@@ -34,10 +34,9 @@ _ENV_CACHE_REF = re.compile(
 # The cache root, and nothing that merely starts with its name: `hungry-crab-other` and
 # `hungry-crab.old` are siblings, not the cache.
 _PATH_BOUNDARY = r"(?![a-z0-9._-])"
-# After a separator, a quote, a space or the start: `Join-Path $HOME '.cache\hungry-crab\...'`
-# and `os.path.join(home, '.cache/hungry-crab')` assemble the default root from this tail.
+# After a separator: `.cache/hungry-crab` alone, in a commit message or a grep pattern, is text.
 _DEFAULT_CACHE_REF = re.compile(
-    r"(?:^|[^A-Za-z0-9_-])\.cache[/\\]hungry-crab" + _PATH_BOUNDARY, re.IGNORECASE
+    r"(?:^|[/\\])\.cache[/\\]hungry-crab" + _PATH_BOUNDARY, re.IGNORECASE
 )
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _EXECUTION_SUBSTITUTION = re.compile(r"\$\(|[<>]\(|`")
@@ -73,18 +72,21 @@ _GIT_GLOBAL_SAFE_FLAGS = frozenset(
 # `<root>/gitlab/<namespace...>/<project>/repo`.
 _CLONE_FORGES = frozenset({"github", "gitlab"})
 # `--output` writes what git prints to any path, which turns `log` into a way to land prey
-# bytes where a later command runs them; `-O` hands `grep`'s matches to a program of the
-# caller's choosing; `--filters` makes `cat-file` run the smudge filters a config names.
-_GIT_DANGEROUS_ARGS = (
-    "--ext-diff",
-    "--textconv",
-    "--filters",
-    "--exec-path",
-    "--config-env",
-    "--output",
-    "--open-files-in-pager",
-    "-O",
+# bytes where a later command runs them; `-O`/`--open-files-in-pager` hands `grep`'s matches to
+# a program of the caller's choosing; `--filters` makes `cat-file` run the smudge filters a
+# config names. git accepts any unambiguous abbreviation of a long option (`--open=sh`,
+# `--textc`), so a prefix of one of these names is refused too, and `-O` is refused inside a
+# cluster of short options (`-lOsh`).
+_GIT_DANGEROUS_LONG_OPTIONS = (
+    "ext-diff",
+    "textconv",
+    "filters",
+    "exec-path",
+    "config-env",
+    "output",
+    "open-files-in-pager",
 )
+_GIT_DANGEROUS_SHORT_OPTIONS = frozenset("O")
 # ripgrep reads, except where an option hands work to another program: `--pre` runs a
 # preprocessor on every file, `--hostname-bin` runs a program to name the host in a hyperlink,
 # and `-z`/`--search-zip` starts a decompressor for every compressed file the prey chose to
@@ -120,19 +122,67 @@ def _expand_home(path: Path) -> Path:
         return path
 
 
-def canonical_path(path: Path, *, cwd: Path) -> Path:
+_DRIVE_PATH = re.compile(r"^[A-Za-z]:[\\/]")
+_DEVICE_DRIVE = re.compile(r"^(?:[\\/]{2}[?.][\\/]|\\\?\?\\)[A-Za-z]:(?:[\\/]|$)")
+_DEVICE_VOLUME = re.compile(r"^(?:[\\/]{2}[?.][\\/]|\\\?\?\\)(?:Volume\{|GLOBALROOT[\\/])", re.I)
+_UNC = re.compile(r"^(?:[\\/]{2}(?![?.][\\/])|\\\\\?\\UNC\\)([^\\/]+)[\\/]+([^\\/]+)(.*)$", re.I)
+_LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "0--1.ipv6-literal.net", "[::1]"})
+
+
+def is_drive_path(path: Path) -> bool:
+    """Whether a Windows path is on a drive letter, not a share or a device."""
+    return _DRIVE_PATH.match(str(path)) is not None
+
+
+def _windows_spelling(text: str) -> tuple[str, bool]:
+    """A Windows path as a drive path where that is a local question; whether to resolve it.
+
+    `\\\\?\\C:\\x` is `C:\\x`. `\\\\?\\Volume{...}\\x` and `\\\\?\\GLOBALROOT\\...` name a local
+    volume, so `resolve()` (a local call) turns them into the drive path. `\\\\localhost\\C$\\x`
+    and its `\\\\?\\UNC\\` form are `C:\\x`. Any other share is left as written and is never
+    resolved: that would ask the network, and a slow decision is an allowance, because a hook
+    that times out lets the call proceed.
+    """
+    if _DEVICE_DRIVE.match(text):
+        return strip_device_prefix(text), True
+    if _DEVICE_VOLUME.match(text):
+        try:
+            resolved = strip_device_prefix(str(Path(text).resolve(strict=False)))
+        except (OSError, RuntimeError, ValueError):
+            return text, False
+        return (resolved, True) if _DRIVE_PATH.match(resolved) else (text, False)
+    unc = _UNC.match(text)
+    if unc:
+        host, share, rest = unc.groups()
+        local = _LOCAL_HOSTS | {os.environ.get("COMPUTERNAME", "localhost").casefold()}
+        if host.casefold() in local and re.fullmatch(r"[A-Za-z]\$", share):
+            return f"{share[0]}:\\{rest.lstrip(chr(92) + '/')}", True
+        return text, False
+    if text[:2] in ("\\\\", "//") or text.startswith("\\??\\"):
+        return text, False  # another device: a pipe, a console; nothing to open for a name
+    return text, True
+
+
+def canonical_path(path: Path, *, cwd: Path, expand_home: bool = True) -> Path:
     """The one spelling both guards compare: absolute, resolved, device prefix stripped.
 
     On Windows ``resolve()`` asks for the final path name of the longest existing prefix, which
-    expands 8.3 short names (``HUNGRY~1``) and follows junctions; the device prefix has to go
-    first, or the result keeps it.
+    expands 8.3 short names (``HUNGRY~1``) and follows junctions; a device spelling is reduced
+    to its drive path first (see ``_windows_spelling``), and a path on a share is normalised
+    without asking the network. ``expand_home=False`` keeps a leading ``~`` as the directory
+    of that name, which is what a program receives for a quoted ``'~/x'``.
     """
     text = os.fspath(path)
+    local = True
     if os.name == "nt":
-        text = strip_device_prefix(text)
-    candidate = _expand_home(Path(text))
+        text, local = _windows_spelling(text)
+    candidate = _expand_home(Path(text)) if expand_home else Path(text)
     if not candidate.is_absolute():
         candidate = cwd / candidate
+        if os.name == "nt" and not is_drive_path(cwd):
+            local = False  # relative to a working directory on a share
+    if not local:
+        return Path(os.path.normpath(candidate))
     return candidate.resolve(strict=False)
 
 
@@ -140,14 +190,138 @@ def _is_within(path: Path, root: Path) -> bool:
     return path == root or root in path.parents
 
 
+# A leading `~` that was quoted or escaped: bash expands only an unquoted one, so `'~/x'` names a
+# directory called `~` and `~/x` names the home directory's `x`.
+_LITERAL_TILDE = "\ue006"
+_ANSI_C_ESCAPES = {
+    "a": "\a",
+    "b": "\b",
+    "e": "\x1b",
+    "E": "\x1b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+    "?": "?",
+}
+
+
+def _ansi_c(text: str, start: int) -> tuple[str, int]:
+    """Decode the `$'...'` body from ``start``: its text and the closing quote's index, or -1."""
+    out: list[str] = []
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == "'":
+            return "".join(out), index
+        if char != "\\" or index + 1 >= len(text):
+            out.append(char)
+            index += 1
+            continue
+        code = text[index + 1]
+        digits = {"x": (16, 2), "u": (16, 4), "U": (16, 8)}.get(code)
+        if digits is not None or code in "01234567":
+            base, limit = digits if digits is not None else (8, 3)
+            first = index + 2 if digits is not None else index + 1
+            end = first
+            alphabet = "0123456789abcdefABCDEF"[: 22 if base == 16 else 8]
+            while end < len(text) and end - first < limit and text[end] in alphabet:
+                end += 1
+            if end > first:
+                out.append(chr(min(int(text[first:end], base), 0x10FFFF)))
+            index = end if end > first else index + 2
+        else:
+            out.append(_ANSI_C_ESCAPES.get(code, "\\" + code))
+            index += 2
+    return "".join(out), -1
+
+
 def _shell_tokens(command: str) -> list[str] | None:
-    try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=_OPERATOR_CHARS)
-        lexer.whitespace_split = True
-        lexer.commenters = ""
-        return list(lexer)
-    except ValueError:
-        return None
+    """Bash words, quotes and escapes removed, operator runs as tokens; ``None`` if left open.
+
+    Split as `shlex` in POSIX mode would, but with bash's own rules where they decide which file
+    a word names: `\\` inside double quotes escapes only ``$ ` " \\``, `$'...'` is decoded, and a
+    word whose leading `~` was quoted or escaped starts with ``_LITERAL_TILDE`` instead.
+    """
+    tokens: list[str] = []
+    word: list[str] | None = None
+    bare_start = True  # whether the word's first character came from unquoted text
+    index = 0
+    length = len(command)
+
+    def finish() -> None:
+        text = "".join(word or [])
+        if text.startswith("~") and not bare_start:
+            text = _LITERAL_TILDE + text[1:]
+        tokens.append(text)
+
+    while index < length:
+        char = command[index]
+        if char in " \t\r\n" or char in _OPERATOR_CHARS:
+            if word is not None:
+                finish()
+                word = None
+            if char in _OPERATOR_CHARS:
+                end = index
+                while end < length and command[end] in _OPERATOR_CHARS:
+                    end += 1
+                tokens.append(command[index:end])
+                index = end
+            else:
+                index += 1
+            continue
+        if word is None:
+            word = []
+            bare_start = char not in "\\'\"" and not command.startswith(("$'", '$"'), index)
+        if char == "\\":
+            if index + 1 >= length:
+                return None
+            if command[index + 1] != "\n":
+                word.append(command[index + 1])
+            index += 2
+        elif char == "'":
+            end = command.find("'", index + 1)
+            if end < 0:
+                return None
+            word.append(command[index + 1 : end])
+            index = end + 1
+        elif char == "$" and command.startswith("'", index + 1):
+            decoded, end = _ansi_c(command, index + 2)
+            if end < 0:
+                return None
+            word.append(decoded)
+            index = end + 1
+        elif char == '"' or (char == "$" and command.startswith('"', index + 1)):
+            position = index + (2 if char == "$" else 1)
+            body: list[str] = []
+            while position < length and command[position] != '"':
+                if command[position] == "\\" and command[position + 1 : position + 2] in (
+                    "$",
+                    "`",
+                    '"',
+                    "\\",
+                    "\n",
+                ):
+                    if command[position + 1] != "\n":
+                        body.append(command[position + 1])
+                    position += 2
+                else:
+                    body.append(command[position])
+                    position += 1
+            if position >= length:
+                return None
+            word.append("".join(body))
+            index = position + 1
+        else:
+            word.append(char)
+            index += 1
+    if word is not None:
+        finish()
+    return tokens
 
 
 def _is_punctuation(token: str) -> bool:
@@ -193,7 +367,7 @@ _LEADING_KEYWORDS = frozenset(
 )
 _CD_COMMANDS = frozenset({"cd", "pushd", "chdir"})
 # A token that could make a program the shell starts somewhere the guard did not judge.
-_ASSEMBLY = re.compile(r"[$`*?\[{%\ue000-\ue005]|^~[^/\\]")
+_ASSEMBLY = re.compile(r"[$`*?\[{%\ue000-\ue006]|^~[^/\\]")
 
 
 @dataclass
@@ -203,23 +377,12 @@ class _Scope:
     root: Path
     cwd: Path
     home: Path
-    near_parent: Path | None
     variables: dict[str, list[str] | None] = field(default_factory=dict)
     cwds: list[Path] = field(default_factory=list)
     unknown_cwd: bool = False
     powershell: bool = False
-
-
-def _near_parent(root: Path, home: Path) -> Path | None:
-    """The directory holding the cache, when naming it is a step towards the cache.
-
-    ``~/.cache`` for the default root. Not the home directory or a drive root, which hold
-    everything else as well, so ``cd ~`` stays an ordinary command.
-    """
-    parent = root.parent
-    if parent in (root, home, Path(parent.anchor)):
-        return None
-    return parent
+    homes: list[Path] = field(default_factory=list)  # `~`: Python's home and `$HOME`
+    hints: list[re.Pattern[str]] = field(default_factory=list)  # see `_hint_patterns`
 
 
 def _closing_paren(text: str, start: int) -> int:
@@ -318,9 +481,10 @@ def _build_scope(
         root=root,
         cwd=cwd,
         home=home,
-        near_parent=_near_parent(root, home),
         variables=dict(variables),
         cwds=[cwd],
+        homes=_homes(cwd),
+        hints=_hint_patterns(root, _homes(cwd)),
     )
     commands = _simple_commands(tokens)
     # Order does not matter: a value assigned or a directory entered anywhere in the command is
@@ -359,7 +523,7 @@ def _change_directory(scope: _Scope, args: list[str]) -> None:
             continue
         for base in list(scope.cwds):
             try:
-                path = canonical_path(Path(_msys_drive(candidate)), cwd=base)
+                path = _word_path(_msys_drive(candidate), cwd=base)
             except (OSError, RuntimeError, ValueError):
                 scope.unknown_cwd = True
                 continue
@@ -391,6 +555,12 @@ def _variable(name: str, scope: _Scope, inner: list[str], depth: int) -> list[st
         for raw in raw_values:
             values.extend(_expand_word(raw, scope, inner, depth=depth + 1))
         return values if len(values) <= _MAX_CANDIDATES else [_UNKNOWN]
+    if name.upper() in {"HOME", "USERPROFILE"}:
+        # PowerShell's `$HOME` is the profile directory whatever `HOME` says; bash's is `HOME`.
+        # Both readings are judged.
+        values = [str(home) for home in scope.homes or [scope.home]]
+        values += [os.environ[key] for key in ("HOME", "USERPROFILE") if os.environ.get(key)]
+        return list(dict.fromkeys(values))
     value = _environment(name, scope)
     if value is None:
         return [_UNKNOWN]
@@ -448,30 +618,39 @@ def _brace_group(word: str, index: int) -> tuple[int, bool] | None:
     return None
 
 
-def _tilde(prefix: str, scope: _Scope) -> str:
+def _tilde(prefix: str, scope: _Scope) -> list[str]:
     if prefix == "~":
-        return str(scope.home)
+        return [str(home) for home in scope.homes or [scope.home]]
     if prefix == "~+":
-        return str(scope.cwd)
+        return [str(scope.cwd)]
     if prefix == "~-":
-        return _UNKNOWN
+        return [_UNKNOWN]
     try:
         expanded = str(Path(prefix).expanduser())  # `~user`
     except RuntimeError:
-        return _UNKNOWN
-    return expanded if expanded != prefix else _UNKNOWN
+        return [_UNKNOWN]
+    return [expanded if expanded != prefix else _UNKNOWN]
 
 
 def _expand_word(word: str, scope: _Scope, inner: list[str], *, depth: int = 0) -> list[str]:
     """Every text the shell can make of ``word``, with markers where it decides at run time."""
-    if os.name == "nt":
-        word = strip_device_prefix(word)  # its `?` is not a glob
     results = [""]
     index = 0
-    if word.startswith("~"):
+    device = _DEVICE_PREFIX.match(word) if os.name == "nt" else None
+    if device:
+        results = [word[: device.end()]]  # kept as written: its `?` is not a glob
+        index = device.end()
+    elif word.startswith(_LITERAL_TILDE) or (scope.powershell and word.startswith("~")):
+        # A quoted `~` is a directory of that name; PowerShell passes `~` to a program as is but
+        # its own cmdlets read it as the home directory. Both readings are judged.
         separator = _SEPARATORS.search(word)
         index = separator.start() if separator else len(word)
-        results = [_tilde(word[:index], scope)]
+        name = word[1:index]
+        results = [_LITERAL_TILDE + name, *_tilde("~" + name, scope)]
+    elif word.startswith("~"):
+        separator = _SEPARATORS.search(word)
+        index = separator.start() if separator else len(word)
+        results = _tilde(word[:index], scope)
     while index < len(word):
         char = word[index]
         pieces = [char]
@@ -521,78 +700,141 @@ def _msys_drive(text: str) -> str:
     return _MSYS_DRIVE.sub(lambda match: f"{match.group(1).upper()}:", text, count=1)
 
 
-def _component(text: str) -> tuple[re.Pattern[str] | None, bool]:
-    """A matcher for one path component and whether it has a literal character to anchor on.
+def _wildcard_match(pattern: str, text: str) -> bool:
+    """`_STAR` matches any run, `_ONE` one character, anything else itself.
 
-    ``None`` is a component that can span separators and so match whatever follows.
+    The two-pointer form keeps only the last star, so a word of a thousand `$v?` stays linear
+    in practice and quadratic at worst; a regular expression of `.*.` runs backtracks without
+    bound, and a slow decision is an allowance once the hook times out.
     """
-    if _CROSS in text:
-        return None, False
-    pattern = "".join(
-        ".*" if char in (_STAR, _ANY, _UNKNOWN) else "." if char == _ONE else re.escape(char)
-        for char in text
-    )
-    if text[:1] in (_STAR, _ONE):
-        pattern = r"(?!\.)" + pattern  # a glob does not match a leading dot
-    literal = any(char not in _MARKERS for char in text)
-    return re.compile(pattern, re.IGNORECASE | re.DOTALL), literal
-
-
-def _walk(
-    matchers: list[tuple[re.Pattern[str] | None, bool]],
-    remaining: tuple[str, ...],
-    *,
-    allow_parent: bool,
-) -> bool:
-    """Whether components matched against the root's remaining parts can reach the root."""
-    for position, (regex, _literal) in enumerate(matchers):
-        if position >= len(remaining) or regex is None:
-            return True
-        if not regex.fullmatch(remaining[position]):
+    p = t = 0
+    star = -1
+    resume = 0
+    while t < len(text):
+        if p < len(pattern) and pattern[p] == _STAR:
+            star, resume = p, t
+            p += 1
+        elif p < len(pattern) and pattern[p] in (_ONE, text[t]):
+            p += 1
+            t += 1
+        elif star >= 0:
+            p = star + 1
+            resume += 1
+            t = resume
+        else:
             return False
-    return len(matchers) >= len(remaining) - (1 if allow_parent else 0)
+    while p < len(pattern) and pattern[p] == _STAR:
+        p += 1
+    return p == len(pattern)
+
+
+@dataclass(frozen=True)
+class _Glob:
+    """One path component of a word: literal characters and the shell's wildcards."""
+
+    pattern: str
+    dotless: bool  # a glob at the start does not match a leading dot
+    literal: bool  # holds a character to anchor on
+
+    def matches(self, name: str) -> bool:
+        if self.dotless and name.startswith("."):
+            return False
+        return _wildcard_match(self.pattern, name.casefold())
+
+
+def _component(text: str) -> _Glob | None:
+    """The matcher for one component; ``None`` for one that can span separators."""
+    if _CROSS in text:
+        return None
+    out: list[str] = []
+    for char in text:
+        if char in (_STAR, _ANY, _UNKNOWN):
+            if not out or out[-1] != _STAR:
+                out.append(_STAR)
+        elif char == _ONE:
+            out.append(_ONE)
+        else:
+            out.append(char.casefold())
+    literal = any(char not in _MARKERS for char in text)
+    return _Glob("".join(out), text[:1] in (_STAR, _ONE), literal)
+
+
+def _walk(matchers: list[_Glob | None], remaining: tuple[str, ...]) -> bool:
+    """Whether components matched against the root's remaining parts reach the root.
+
+    Ending above the root is not reaching it: `~/.cache/*.json` and `du -sh ~/.c*` name the
+    directory that holds the cache, not the cache.
+    """
+    for position, matcher in enumerate(matchers):
+        if position >= len(remaining) or matcher is None:
+            return True
+        if not matcher.matches(remaining[position]):
+            return False
+    return len(matchers) >= len(remaining)
 
 
 def _unanchored(components: list[str], scope: _Scope) -> bool:
-    """A word whose start is unknown: can a literal component line up with the root's path?"""
-    segments: list[list[str]] = [[]]
+    """A word whose start is unknown: does a component with a literal character name the root?
+
+    Only the root's own name counts. `node_modules/.cache/*` under a directory the guard does
+    not know could be anything; a wildcard where the cache's name would go is not a hint of it.
+    """
     for component in components:
-        if component == "..":
-            segments.append([])
-        elif component not in ("", "."):
-            segments[-1].append(component)
-    targets = scope.root.parts[1:]
-    for segment in segments:
-        matchers = [_component(component) for component in segment]
-        for start, (regex, literal) in enumerate(matchers):
-            if regex is None or not literal:
-                continue
-            for offset, part in enumerate(targets):
-                remaining = targets[offset + 1 :]
-                if regex.fullmatch(part) and _walk(
-                    matchers[start + 1 :], remaining, allow_parent=False
-                ):
-                    return True
+        if component in ("", ".", ".."):
+            continue
+        matcher = _component(component)
+        if matcher is not None and matcher.literal and matcher.matches(scope.root.name):
+            return True
     return False
+
+
+def _off_the_drives(path: Path) -> bool:
+    """A Windows path left on a share or a device: the guard cannot compare it with the root."""
+    return os.name == "nt" and not is_drive_path(path)
+
+
+def _text_hints(text: str, scope: _Scope) -> bool:
+    """Whether a path the guard could not canonicalise still points at the cache by its text:
+    a hint of the cache, or an 8.3 alias (`HUNGRY~1`) that could hide one."""
+    normalized = text.replace("\\", "/").casefold()
+    return re.search(r"~\d", text) is not None or any(
+        pattern.search(normalized) for pattern in scope.hints
+    )
 
 
 def _anchored(directory: Path, components: list[str], scope: _Scope) -> bool:
     """A word whose literal part ends at ``directory``: can the rest of it reach the root?"""
     rest = [component for component in components if component not in ("", ".")]
     if ".." in rest:
+        # `x/*/../y` is `x/y` for any directory `*` matched; a link it matched could lead
+        # elsewhere, so the part after the last `..` is also judged on its own.
+        stack: list[str] = []
+        for component in rest:
+            if component != "..":
+                stack.append(component)
+            elif stack:
+                stack.pop()
+            else:
+                directory = directory.parent
         last = len(rest) - 1 - rest[::-1].index("..")
-        return _unanchored(rest[last + 1 :], scope)
+        return _anchored(directory, stack, scope) or _unanchored(rest[last + 1 :], scope)
     if _is_within(directory, scope.root):
         return True
     if not _is_within(scope.root, directory):
         return False
     remaining = scope.root.parts[len(directory.parts) :]
-    matchers = [_component(component) for component in rest]
-    return _walk(matchers, remaining, allow_parent=scope.near_parent is not None)
+    return _walk([_component(component) for component in rest], remaining)
 
 
 def _is_rooted(text: str) -> bool:
     return text[:1] in ("/", "\\") or Path(text).is_absolute()
+
+
+def _word_path(text: str, *, cwd: Path) -> Path:
+    """The path a word names; a quoted leading `~` stays a directory called `~`."""
+    if text.startswith(_LITERAL_TILDE):
+        return canonical_path(Path("~" + text[1:]), cwd=cwd, expand_home=False)
+    return canonical_path(Path(text), cwd=cwd)
 
 
 def _literal_reaches(text: str, scope: _Scope) -> bool:
@@ -602,10 +844,12 @@ def _literal_reaches(text: str, scope: _Scope) -> bool:
         rooted = _is_rooted(candidate)
         for base in [scope.cwd] if rooted else scope.cwds:
             try:
-                path = canonical_path(Path(candidate), cwd=base)
+                path = _word_path(candidate, cwd=base)
             except (OSError, RuntimeError, ValueError):
                 continue
-            if _is_within(path, scope.root) or path == scope.near_parent:
+            if _is_within(path, scope.root):
+                return True
+            if _off_the_drives(path) and _text_hints(candidate, scope):
                 return True
         if not rooted and scope.unknown_cwd and _unanchored(_components(candidate), scope):
             return True
@@ -633,10 +877,12 @@ def _candidate_reaches(text: str, scope: _Scope) -> bool:
     rooted = bool(prefix) and _is_rooted(prefix)
     for base in [scope.cwd] if rooted else scope.cwds:
         try:
-            directory = canonical_path(Path(prefix or "."), cwd=base)
+            directory = _word_path(prefix or ".", cwd=base)
         except (OSError, RuntimeError, ValueError):
             continue
         if _anchored(directory, components[literal:], scope):
+            return True
+        if _off_the_drives(directory) and _text_hints(text, scope):
             return True
     return not rooted and scope.unknown_cwd and _unanchored(components, scope)
 
@@ -684,7 +930,7 @@ def glob_reaches(pattern: str, *, base: Path, root: Path) -> bool:
     elif _DRIVE.fullmatch(prefix):
         prefix += "/"
     directory = canonical_path(Path(prefix or "."), cwd=base)
-    scope = _Scope(root=root, cwd=base, home=base, near_parent=None)
+    scope = _Scope(root=root, cwd=base, home=base)
     return _anchored(directory, components[literal:], scope)
 
 
@@ -736,6 +982,173 @@ def _reaches_cache(
 def _mentions_cache(command: str, *, root: Path, cwd: Path) -> bool:
     """Whether the command can touch the cache once the shell has built its words."""
     return _reaches_cache(command, root=root, cwd=cwd, variables={}, depth=0)
+
+
+# --- the hint rule --------------------------------------------------------------------------
+#
+# The scope gate models plain variables, `~`, globs, assignments and `cd`. It does not model a
+# nested shell, parameter operators, arrays, `$'...'`, brace expansion or substitutions, and it
+# does not try to. A command that carries a hint of the cache *and* uses one of those is refused
+# outright; a command with no hint keeps the scope gate's decision.
+
+_SHELL_PROGRAMS = frozenset(
+    {"sh", "bash", "zsh", "dash", "ksh", "mksh", "ash", "fish", "busybox", "pwsh", "powershell"}
+    | {"cmd", "eval"}
+)
+# Commands that run a program on paths the guard never sees.
+_PATH_RUNNERS = frozenset({"xargs", "parallel", "-exec", "-execdir", "-ok", "-okdir"})
+_BASH_UNMODELLED = re.compile(
+    r"\$\{(?![A-Za-z_][A-Za-z0-9_]*\})"  # `${x%y}`, `${x:0:3}`, `${a[0]}`, `${!x}`, `${#x}`
+    r"|\$[0-9@*#?$!-]"  # positional and special parameters
+    r"|\$['\"]"  # `$'...'`, `$"..."`
+    r"|\$\(|`|[<>]\("  # command and process substitution
+    r"|(?:^|[\s;&|(])[A-Za-z_][A-Za-z0-9_]*\+?=\("  # an array assignment
+    r"|\b(?:declare|typeset|local|readonly)\s+-\w*[aA]|\b(?:mapfile|readarray)\b|\bread\s+-\w*a"
+    r"|\b(?:CDPATH|IFS)\b"
+)
+_HOME_SPELLING = r"(?:~|\$\{?home\}?|\$\{?env:(?:userprofile|home)\}?|%userprofile%|%home%)"
+# PowerShell expressions: groups and subexpressions, script blocks (not `${name}`), `+`,
+# format, join, replace and split operators, static method calls, the escape character, and the
+# cmdlets that build or evaluate a path.
+_POWERSHELL_UNMODELLED = re.compile(
+    r"[()+`]|(?<!\$)\{|::"
+    r"|(?<![\w-])-[ci]?(?:f|join|replace|split)(?![\w-])"
+    r"|\b(?:join-path|split-path|resolve-path|convert-path|invoke-expression|iex"
+    r"|invoke-command|icm)\b",
+    re.IGNORECASE,
+)
+_QUOTED_HEREDOC = re.compile(r"<<-?[ \t]*(?:'([^'\n]+)'|\"([^\"\n]+)\"|\\(\w+))")
+
+
+def _homes(cwd: Path) -> list[Path]:
+    """The home directory as Python sees it and as `$HOME` names it, when they differ."""
+    homes = [canonical_path(Path.home(), cwd=cwd)]
+    env_home = os.environ.get("HOME")
+    if env_home:
+        with contextlib.suppress(OSError, RuntimeError, ValueError):
+            homes.append(canonical_path(Path(_msys_drive(env_home)), cwd=cwd))
+    return list(dict.fromkeys(homes))
+
+
+def _hint_patterns(root: Path, homes: list[Path]) -> list[re.Pattern[str]]:
+    """What in a command's text points at the cache: its name, and its parent under home."""
+    patterns = [re.compile(re.escape(root.name.casefold()))]
+    if root.name.casefold() == "hungry-crab":
+        patterns.append(re.compile(r"hungry-"))  # not plain `hungry`: this repo is HungryCrab
+    for home in homes:
+        if root.parent == home or home not in root.parent.parents:
+            continue
+        relative = re.escape(root.parent.relative_to(home).as_posix().casefold())
+        spellings = [_HOME_SPELLING, re.escape(home.as_posix().casefold())]
+        if home.drive[:1].isalpha() and home.drive.endswith(":"):
+            # Git Bash's `/c/Users/...` for `C:/Users/...`.
+            spellings.append(re.escape(f"/{home.drive[0]}{home.as_posix()[2:]}".casefold()))
+        for spelling in spellings:
+            patterns.append(re.compile(spelling + r"/+" + relative + r"(?![a-z0-9_.-])"))
+    return patterns
+
+
+def _without_quoted_heredocs(command: str) -> str:
+    """The command without the bodies of `<<'EOF'` here-documents, which are literal text."""
+    out: list[str] = []
+    position = 0
+    for match in _QUOTED_HEREDOC.finditer(command):
+        if match.start() < position:
+            continue
+        delimiter = match.group(1) or match.group(2) or match.group(3)
+        body = command.find("\n", match.end())
+        if body < 0:
+            continue
+        closing = re.compile(r"^\t*" + re.escape(delimiter) + r"[ \t]*$", re.MULTILINE)
+        end = closing.search(command, body + 1)
+        out.append(command[position : body + 1])
+        position = end.start() if end else len(command)
+    out.append(command[position:])
+    return "".join(out)
+
+
+def _program_names(tokens: list[str]) -> set[str]:
+    return {Path(token.strip("();")).name.casefold().removesuffix(".exe") for token in tokens}
+
+
+def _hinted(
+    command: str, tokens: list[str], *, root: Path, homes: list[Path], powershell: bool = False
+) -> bool:
+    # A commit message written through `$(cat <<'EOF' ... EOF)` may name the cache; a quoted
+    # here-document is literal text, unless a shell reads it as a script.
+    shell_reads_it = bool(_program_names(tokens) & _SHELL_PROGRAMS)
+    if not (shell_reads_it or powershell):
+        stripped = _without_quoted_heredocs(command)
+        if stripped != command:
+            command, tokens = stripped, _shell_tokens(stripped) or stripped.split()
+    # The raw text and the words as the shell reads them: `hungry\-crab`, `hungry`-crab` and
+    # `.c''ache` hide nothing from the second.
+    normalized = f"{command}\n{' '.join(tokens)}".replace("\\", "/").casefold()
+    if powershell:
+        normalized = normalized.replace("`", "")
+    if any(pattern.search(normalized) for pattern in _hint_patterns(root, homes)):
+        return True
+    if not powershell:
+        return False
+    # `Join-Path $HOME .cache ...`, `$HOME + '\.cache\hun' + 'gry-crab'`: PowerShell builds the
+    # path from separate strings, so the parent's name as a component anywhere, beside a home
+    # spelling anywhere, is a hint.
+    for home in homes:
+        if home in root.parent.parents:
+            first = re.escape(root.parent.relative_to(home).parts[0].casefold())
+            component = rf"(?:^|[/'\"\s(,]){first}(?:$|[/'\"\s),])"
+            if re.search(component, normalized) and re.search(_HOME_SPELLING, normalized):
+                return True
+    return False
+
+
+def _has_brace_expansion(text: str) -> bool:
+    """`{a,b}` or `{1..3}` anywhere, found in one pass: a `{` whose run up to `}` holds no blank."""
+    opened = -1
+    alternative = False
+    for index, char in enumerate(text):
+        if char == "{":
+            opened, alternative = index, False
+        elif opened < 0:
+            continue
+        elif char == "}":
+            if alternative:
+                return True
+            opened = -1
+        elif char in " \t\r\n":
+            opened = -1
+        elif char == "," or (char == "." and text.startswith("..", index)):
+            alternative = True
+    return False
+
+
+def _bash_unmodelled(command: str, tokens: list[str]) -> bool:
+    if _BASH_UNMODELLED.search(command) or _has_brace_expansion(command):
+        return True
+    return bool(_program_names(tokens) & (_SHELL_PROGRAMS | _PATH_RUNNERS))
+
+
+def _powershell_unmodelled(command: str, tokens: list[str]) -> bool:
+    if _POWERSHELL_UNMODELLED.search(command):
+        return True
+    return bool(_program_names(tokens) & _SHELL_PROGRAMS)
+
+
+def _unmodelled_reason(
+    command: str, *, root: Path, cwd: Path, powershell: bool = False
+) -> str | None:
+    """A refusal for a cache-hinting command that uses a construct the guard does not model."""
+    parsed = _powershell_tokens(command) if powershell else _shell_tokens(command)
+    tokens = parsed or command.split()
+    if not _hinted(command, tokens, root=root, homes=_homes(cwd), powershell=powershell):
+        return None
+    unmodelled = _powershell_unmodelled if powershell else _bash_unmodelled
+    if not unmodelled(command, tokens):
+        return None
+    return (
+        "command points at the prey cache through a construct the guard does not model "
+        "(AGENTS.md rule 3)"
+    )
 
 
 # --- PowerShell -----------------------------------------------------------------------------
@@ -842,6 +1255,15 @@ def _powershell_groups(command: str) -> tuple[str, list[str]]:
     return "".join(out), groups
 
 
+_POWERSHELL_ESCAPES = {"0": "\0", "a": "\a", "b": "\b", "e": "\x1b", "f": "\f", "n": "\n"}
+_POWERSHELL_ESCAPES |= {"r": "\r", "t": "\t", "v": "\v"}
+
+
+def _powershell_unescape(text: str) -> str:
+    """Resolve PowerShell's backtick escapes: `` `x `` is `x`, `` `n `` a newline."""
+    return re.sub(r"`(.)", lambda m: _POWERSHELL_ESCAPES.get(m.group(1), m.group(1)), text)
+
+
 def _powershell_tokens(command: str) -> list[str] | None:
     """PowerShell words with quotes removed and backslashes kept; ``None`` if a quote is open."""
     tokens: list[str] = []
@@ -877,10 +1299,12 @@ def _powershell_tokens(command: str) -> list[str] | None:
                 end += 2 if command[end] == "`" else 1
             if end >= len(command):
                 return None
-            word.append(command[index + 1 : end])
+            word.append(_powershell_unescape(command[index + 1 : end]))
             index = end + 1
         elif char == "`":
-            word.append(command[index : index + 2])  # kept, so that it stays visible
+            # `hungry`-crab` is `hungry-crab` to PowerShell; the allowlist still refuses the
+            # escape character itself in a cache-touching command.
+            word.append(_powershell_unescape(command[index : index + 2]))
             index += 2
         else:
             word.append(char)
@@ -919,9 +1343,10 @@ def _build_powershell_scope(
         root=root,
         cwd=cwd,
         home=home,
-        near_parent=_near_parent(root, home),
         variables=dict(variables),
         cwds=[cwd],
+        homes=_homes(cwd),
+        hints=_hint_patterns(root, _homes(cwd)),
         powershell=True,
     )
     commands = _simple_commands(tokens)
@@ -1028,6 +1453,9 @@ def _powershell_read_only(command: str, tokens: list[str]) -> bool:
 
 def _powershell_guard_reason(command: str, *, root: Path, cwd: Path) -> str | None:
     command = command.translate(_POWERSHELL_TRANSLATION)
+    unmodelled = _unmodelled_reason(command, root=root, cwd=cwd, powershell=True)
+    if unmodelled is not None:
+        return unmodelled
     if not _powershell_reaches(command, root=root, cwd=cwd, variables={}, depth=0):
         return None
     if _LINE_BREAK.search(command):
@@ -1110,7 +1538,8 @@ def _git_is_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
                 return False
             if tokens[index + 1]:
                 try:
-                    directory = canonical_path(Path(tokens[index + 1]), cwd=directory)
+                    target = _msys_drive(tokens[index + 1])  # Git Bash's `/c/...`, as for `cat`
+                    directory = canonical_path(Path(target), cwd=directory)
                 except (OSError, RuntimeError, ValueError):
                     return False
             index += 2
@@ -1128,10 +1557,20 @@ def _git_is_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
     if subcommand not in _READ_ONLY_GIT_SUBCOMMANDS:
         return False
 
-    args = tokens[index + 1 :]
-    return not any(
-        arg == "-c" or any(arg.startswith(prefix) for prefix in _GIT_DANGEROUS_ARGS) for arg in args
-    )
+    return not any(_git_arg_is_dangerous(arg) for arg in tokens[index + 1 :])
+
+
+def _git_arg_is_dangerous(arg: str) -> bool:
+    if arg == "-c":
+        return True
+    if arg.startswith("--"):
+        name = arg[2:].split("=", 1)[0]
+        return bool(name) and any(option.startswith(name) for option in _GIT_DANGEROUS_LONG_OPTIONS)
+    if arg.startswith("-"):
+        # A short cluster: `-lOsh` is `-l -O sh`. A value attached to an earlier flag that
+        # happens to hold an `O` is refused too; the guard does not read each flag's grammar.
+        return any(char in _GIT_DANGEROUS_SHORT_OPTIONS for char in arg[1:])
+    return False
 
 
 def _simple_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
@@ -1182,12 +1621,15 @@ def guard_reason(
     forms above. This deliberately prefers a false refusal over silently executing prey.
     ``shell`` is the grammar the command is written in: Bash, or PowerShell.
     """
-    here = (cwd or Path.cwd()).resolve(strict=False)
+    here = canonical_path(cwd or Path.cwd(), cwd=Path.cwd())  # no network for a share
     cache = canonical_path(root or cache_root(), cwd=here)
     if not command.strip():
         return None
     if shell == "powershell":
         return _powershell_guard_reason(command, root=cache, cwd=here)
+    unmodelled = _unmodelled_reason(command, root=cache, cwd=here)
+    if unmodelled is not None:
+        return unmodelled
     if not _mentions_cache(command, root=cache, cwd=here):
         return None
     if _LINE_BREAK.search(command):

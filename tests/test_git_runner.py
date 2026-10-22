@@ -12,10 +12,12 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
 from conftest import FIXED_NOW
 
 from hungry_crab.cache import Target
 from hungry_crab.digest import DigestOptions, run_digest, worktree_fingerprint
+from hungry_crab.errors import ExternalCommandError
 from hungry_crab.fetch.git import GitRunner, filter_drivers, neutral_filter_env
 
 
@@ -140,15 +142,36 @@ def _stat_dirty(path: Path) -> None:
     os.utime(path, (1_600_000_000, 1_600_000_000))
 
 
-def test_a_submodule_filter_is_live_without_the_runner(tmp_path: Path) -> None:
+def _traced_children(trace: Path) -> tuple[list[str], list[str]]:
+    """The commands a ``GIT_TRACE`` file shows git running, and the children they started."""
+    lines = trace.read_text(encoding="utf-8", errors="replace").splitlines()
+    trace.unlink()
+    ran = [line for line in lines if "trace: built-in: git" in line]
+    children = [line for line in lines if "run_command:" in line or "start_command:" in line]
+    return ran, children
+
+
+def test_a_submodule_filter_is_live_without_the_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The control: plain git runs the submodule's filter from a child `git status`."""
     repo, marker = _hostile_submodule_prey(tmp_path)
     _git(repo, "diff", "HEAD")
     assert marker.is_file()
+    trace = tmp_path / "trace.txt"
+    monkeypatch.setenv("GIT_TRACE", str(trace))
+    for args in (("diff", "HEAD"), ("diff-files",), ("diff-index", "HEAD")):
+        _stat_dirty(repo / "sub" / "a.txt")
+        _git(repo, *args)
+        _ran, children = _traced_children(trace)
+        assert any("cd sub" in child for child in children), args
 
 
-def test_the_runner_starts_no_git_inside_a_submodule(tmp_path: Path) -> None:
+def test_the_runner_starts_no_git_inside_a_submodule(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo, marker = _hostile_submodule_prey(tmp_path)
+    trace = tmp_path / "trace.txt"
     git = GitRunner(repo)
     for args in (
         ("diff", "HEAD"),
@@ -158,12 +181,30 @@ def test_the_runner_starts_no_git_inside_a_submodule(tmp_path: Path) -> None:
         ("ls-files", "--stage"),
         ("log", "-p", "-1"),
         ("show", "HEAD"),
+        ("diff-files",),
+        ("diff-index", "HEAD"),
+        ("-c", "core.abbrev=12", "diff", "HEAD"),
+        ("-c", "core.abbrev=12", "diff-index", "HEAD"),
     ):
         _stat_dirty(repo / "sub" / "a.txt")
+        monkeypatch.setenv("GIT_TRACE", str(trace))
         git.try_run(*args)
+        monkeypatch.delenv("GIT_TRACE")
+        ran, children = _traced_children(trace)
+        command = next(arg for arg in args if not arg.startswith("-") and "=" not in arg)
+        assert any(f" {command} " in f"{line} " for line in ran), (args, ran)
+        assert children == [], (args, children)
         assert not marker.exists(), args
     # A gitlink is still a change between commits: the publication guards must see one.
     assert "sub" in git.run("diff", "--name-only", "HEAD~1", "HEAD").split()
+
+
+def test_a_describe_that_would_look_inside_submodules_is_refused(tmp_path: Path) -> None:
+    repo, marker = _hostile_submodule_prey(tmp_path)
+    for flag in ("--dirty", "--broken=-broken"):
+        with pytest.raises(ExternalCommandError, match="describe"):
+            GitRunner(repo).run("describe", "--always", flag)
+    assert not marker.exists()
 
 
 def test_a_populated_submodule_makes_the_fingerprint_unknown(tmp_path: Path) -> None:
@@ -183,6 +224,17 @@ def test_an_unpopulated_submodule_keeps_a_clean_fingerprint(tmp_path: Path) -> N
     _git(tmp_path, "clone", "-q", str(repo), str(clone))
     assert (clone / "sub").is_dir() and not (clone / "sub" / ".git").exists()
     assert worktree_fingerprint(GitRunner(clone), clone) == "clean"
+
+
+def test_files_in_an_unpopulated_gitlink_make_the_fingerprint_unknown(tmp_path: Path) -> None:
+    """Git lists them neither as changes nor as untracked, but the inventory reads them."""
+    repo, _marker = _hostile_submodule_prey(tmp_path)
+    clone = tmp_path / "clone"
+    _git(tmp_path, "clone", "-q", str(repo), str(clone))
+    (clone / "sub" / "dropped.py").write_text("x = 1\n", encoding="utf-8")
+    git = GitRunner(clone)
+    assert git.run("ls-files", "--others").strip() == ""
+    assert worktree_fingerprint(git, clone) == "unknown"
 
 
 def test_filter_driver_names_survive_dots_and_equals_signs() -> None:
