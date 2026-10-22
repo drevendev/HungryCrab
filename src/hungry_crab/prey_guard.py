@@ -8,13 +8,16 @@ are denied rather than assumed safe.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
+import stat
 import sys
 from pathlib import Path
 from typing import TextIO
 
 from .cache import cache_root
+from .fs import is_reparse_point
 
 _ENV_CACHE_REF = re.compile(
     r"(?:\$\{?CRAB_CACHE_DIR\}?|%CRAB_CACHE_DIR%|\$env:CRAB_CACHE_DIR)", re.IGNORECASE
@@ -52,16 +55,19 @@ _READ_ONLY_GIT_SUBCOMMANDS = frozenset(
         "symbolic-ref",
     }
 )
-_GIT_GLOBAL_OPTIONS_WITH_VALUE = frozenset({"-C", "--git-dir", "--work-tree", "--namespace"})
 _GIT_GLOBAL_SAFE_FLAGS = frozenset(
     {"--no-pager", "--literal-pathspecs", "--no-optional-locks", "--no-replace-objects"}
 )
+# The forges `cache.prey_paths` lays clones out for: `<root>/github/<owner>/<repo>/repo` and
+# `<root>/gitlab/<namespace...>/<project>/repo`.
+_CLONE_FORGES = frozenset({"github", "gitlab"})
 # `--output` writes what git prints to any path, which turns `log` into a way to land prey
 # bytes where a later command runs them; `-O` hands `grep`'s matches to a program of the
-# caller's choosing.
+# caller's choosing; `--filters` makes `cat-file` run the smudge filters a config names.
 _GIT_DANGEROUS_ARGS = (
     "--ext-diff",
     "--textconv",
+    "--filters",
     "--exec-path",
     "--config-env",
     "--output",
@@ -155,35 +161,57 @@ def _program_token_points_into_cache(token: str, *, root: Path, cwd: Path) -> bo
         return True
 
 
-def _git_is_read_only(tokens: list[str]) -> bool:
+def _is_clone_root(directory: Path, root: Path) -> bool:
+    """Whether ``directory`` is a clone ``crab catch`` made, with a ``.git`` it wrote itself.
+
+    A prey can commit an ordinary directory that git accepts as a repository (``tools.git/``
+    with its own ``HEAD``, ``config`` and ``objects/``); git refuses only ``.git`` path
+    components, so the clone root's ``.git`` directory is the one repository in the cache whose
+    config the prey did not supply. A gitfile, a link or a junction there is not that.
+    """
+    try:
+        parts = directory.relative_to(root).parts
+    except ValueError:
+        return False
+    if len(parts) < 4 or parts[0] not in _CLONE_FORGES or parts[-1] != "repo":
+        return False
+    if parts[0] == "github" and len(parts) != 4:
+        return False
+    try:
+        info = os.lstat(directory / ".git")
+    except OSError:
+        return False
+    return stat.S_ISDIR(info.st_mode) and not is_reparse_point(info)
+
+
+def _git_is_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
+    # git opens the repository it discovers from its working directory: the event cwd, moved by
+    # every `-C` in turn. That repository's config decides which programs `status`, `diff`,
+    # `log -p` or `blame` start (`core.fsmonitor`, `diff.external`, textconv drivers), so it
+    # has to be a clone root. `--git-dir`, `--work-tree`, `--namespace` and every other option
+    # before the subcommand are refused rather than interpreted.
+    directory = cwd
     index = 1
     while index < len(tokens):
         token = tokens[index]
-        if token in _GIT_GLOBAL_OPTIONS_WITH_VALUE:
+        if token == "-C":
             if index + 1 >= len(tokens):
                 return False
+            if tokens[index + 1]:
+                try:
+                    directory = _canonical(Path(tokens[index + 1]), cwd=directory)
+                except (OSError, RuntimeError, ValueError):
+                    return False
             index += 2
-            continue
-        if token.startswith("-C") and token != "-C":
-            index += 1
-            continue
-        if any(
-            token.startswith(f"{option}=")
-            for option in _GIT_GLOBAL_OPTIONS_WITH_VALUE
-            if option != "-C"
-        ):
-            index += 1
             continue
         if token in _GIT_GLOBAL_SAFE_FLAGS:
             index += 1
             continue
-        if token == "-c" or token.startswith(("--config-env", "--exec-path")):
-            return False
         if token.startswith("-"):
             return False
         break
 
-    if index >= len(tokens):
+    if index >= len(tokens) or not _is_clone_root(directory, root):
         return False
     subcommand = tokens[index].casefold()
     if subcommand not in _READ_ONLY_GIT_SUBCOMMANDS:
@@ -209,7 +237,7 @@ def _simple_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
     command = _program(program_token)
     args = tokens[1:]
     if command == "git":
-        return _git_is_read_only(tokens)
+        return _git_is_read_only(tokens, root=root, cwd=cwd)
     if command not in _READ_ONLY_COMMANDS:
         return False
     return command != "rg" or _rg_is_read_only(args)
