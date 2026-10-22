@@ -7,6 +7,7 @@ import json
 import sys
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -199,6 +200,11 @@ def test_a_line_break_is_a_command_separator(command: str) -> None:
         "git -C {P} show --ext HEAD",
         "git -C {P} log --out=/tmp/x.sh",
         "git -C {P} log --outp /tmp/x.sh",
+        # symbolic-ref writes with two names and deletes with -d.
+        "git -C {P} symbolic-ref HEAD refs/heads/evil",
+        "git -C {P} symbolic-ref -d HEAD",
+        "git -C {P} symbolic-ref --delete HEAD",
+        "git -C {P} symbolic-ref -m msg HEAD refs/heads/x",
     ],
 )
 def test_git_options_that_write_or_run_something_fail_closed(command: str, clone: Path) -> None:
@@ -217,6 +223,8 @@ def test_git_options_that_write_or_run_something_fail_closed(command: str, clone
         "git -C {P} describe --tags",
         "git -C {P} show-ref --heads",
         "git -C {P} grep -n TODO",
+        "git -C {P} symbolic-ref HEAD",
+        "git -C {P} symbolic-ref -q --short HEAD",
         "git -C {P} log -p --output-indicator-new=+",
         "git -C {P} show --cc HEAD",
         "git -C {P} log --no-ext-diff --no-textconv -p",
@@ -391,6 +399,58 @@ UNHINTED_CONSTRUCTS = [
     # Claude Code's own commit idiom: the quoted here-document is literal text.
     "git commit -m \"$(cat <<'EOF'\nfix(guard): the hungry-crab hook reads ${x%y}\nEOF\n)\"",
 ]
+
+
+DIRECTORY_VARIABLES = [
+    ("bash", f"cd ~/.cache && python $PWD/hungry-crab/{TAIL}"),
+    ("bash", f'cd ~/.cache && python "$PWD/hungry-crab/{TAIL}"'),
+    ("bash", f"cd ~/.cache && python ${{PWD}}/hungry-crab/{TAIL}"),
+    ("bash", f"cd ~/.cache && python ~+/hungry-crab/{TAIL}"),
+    ("bash", "cd ~/.cache/hungry-crab && python ~+/github/acme/widget/repo/setup.py"),
+    ("bash", f"pushd ~/.cache >/dev/null; python ~+/hungry-crab/{TAIL}"),
+    ("bash", f"cd ~/.cache && cd /tmp && python $OLDPWD/hungry-crab/{TAIL}"),
+    ("bash", f"cd ~/.cache && cd /tmp && python ~-/hungry-crab/{TAIL}"),
+    ("bash", f"pushd ~/.cache && pushd /tmp && popd && python $PWD/hungry-crab/{TAIL}"),
+    ("ps", r"cd ~/.cache; python $PWD/hungry-crab/github/acme/widget/repo/setup.py"),
+    ("ps", r'Set-Location ~/.cache; python "$PWD\hungry-crab\github\acme\widget\repo\setup.py"'),
+    ("ps", r"sl ~\.cache; python $pwd\hungry-crab\github\acme\widget\repo\setup.py"),
+    ("ps", r"Push-Location ~\.cache; python $PWD\hungry-crab\github\acme\widget\repo\setup.py"),
+    ("ps", r'cd ~\.cache; python "$(Get-Location)\hungry-crab\github\acme\widget\repo\setup.py"'),
+    ("ps", r"cd ~\.cache; python (Get-Location)\hungry-crab\github\acme\widget\repo\setup.py"),
+]
+
+
+@pytest.mark.parametrize(("shell", "command"), DIRECTORY_VARIABLES)
+def test_the_working_directory_variables_follow_every_directory_change(
+    shell: str, command: str, home: Path
+) -> None:
+    """`$PWD`, `$OLDPWD`, `~+` and `~-` are wherever the command has gone, not the event cwd."""
+    root = home / ".cache" / "hungry-crab"
+    reason = guard_reason(command, root=root, cwd=home / "work" / "maw", shell=shell_name(shell))
+    assert reason is not None
+    assert "rule 3" in reason
+
+
+@pytest.mark.parametrize(
+    ("shell", "command"),
+    [
+        ("bash", 'docker run --rm -v "$PWD:/w" -w /w python:3.12 python -V'),
+        ("bash", "cd src && python $PWD/../tools/build.py"),
+        ("bash", "echo ~+ ~-"),
+        ("ps", "$p = Join-Path $PWD 'src'; Get-ChildItem $p"),
+        ("ps", "Set-Location src; python $PWD\\build.py"),
+    ],
+)
+def test_the_working_directory_variables_stay_ordinary_away_from_the_cache(
+    shell: str, command: str, home: Path
+) -> None:
+    root = home / ".cache" / "hungry-crab"
+    cwd = home / "work" / "maw"
+    assert guard_reason(command, root=root, cwd=cwd, shell=shell_name(shell)) is None
+
+
+def shell_name(shell: str) -> Literal["bash", "powershell"]:
+    return "powershell" if shell == "ps" else "bash"
 
 
 @pytest.mark.parametrize("command", HINTED_UNMODELLED)
@@ -587,6 +647,9 @@ POWERSHELL_ORDINARY = [
     "Write-Output $HOME",
     r"& .\build.ps1",
     "cd $PSScriptRoot",
+    # Another child of `~/.cache`, built with an expression, is not the cache.
+    r"Get-ChildItem (Join-Path $HOME '.cache\pip')",
+    r"Remove-Item -Recurse $HOME\.cache\uv\builds-v0",
     r'& "C:\Program Files\Git\bin\git.exe" status',
     r"Get-ChildItem $env:USERPROFILE\.cache\pip",
     r"Get-ChildItem ~\.cache\pip\*",
@@ -757,6 +820,30 @@ def test_every_decision_stays_fast(home: Path) -> None:
     assert len(f"python -X {chain} {shares} {hostile}") > 10_000
 
 
+def test_a_long_chain_of_directory_changes_decides_in_time(home: Path) -> None:
+    """Each `cd` multiplies the directories every word is resolved against. Past a budget the
+    guard decides from the text: a command that names the cache is refused, one that does not
+    is let through, and either way well inside the hook timeout."""
+    import time
+
+    root = home / ".cache" / "hungry-crab"
+    cwd = home / "work" / "maw"
+    hops = "; ".join(f"cd d{i}" for i in range(1000))
+    hostile = f"cd ~/.cache; {hops}; cd hungry-crab/github/acme/widget/repo; python setup.py"
+    ordinary = f"{hops}; python setup.py"
+    assert len(hostile) > 8_000
+    for command, refused in ((hostile, True), (ordinary, False)):
+        start = time.perf_counter()
+        reason = guard_reason(command, root=root, cwd=cwd)
+        assert time.perf_counter() - start < 0.5
+        assert (reason is not None) is refused
+    # Inside the cache a large command is refused even when its text names nothing.
+    clone = root / "github" / "acme" / "widget" / "repo"
+    clone.mkdir(parents=True)
+    padded = "python setup.py " + " ".join(f"arg{i}" for i in range(400))
+    assert guard_reason(padded, root=root, cwd=clone) is not None
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="Git Bash drive paths exist on Windows only")
 def test_git_takes_a_git_bash_drive_path_as_cat_does(home: Path) -> None:
     root = home / ".cache" / "hungry-crab"
@@ -836,7 +923,15 @@ CLONE_TAIL = ".cache/hungry-crab/github/acme/widget/repo"
         (f'"~/{CLONE_TAIL}"', False),
         (f"\\~/{CLONE_TAIL}", False),
         (f"''~/{CLONE_TAIL}", False),
+        # The tilde prefix runs to the first unquoted slash; anything quoted in it, even an
+        # empty string, keeps the `~` literal.
+        (f'~"/{CLONE_TAIL}"', False),
+        (f"~\\/{CLONE_TAIL}", False),
+        (f"~''/{CLONE_TAIL}", False),
+        (f'~""/{CLONE_TAIL}', False),
+        (f"~$'/'{CLONE_TAIL}", False),
         (f"~/{CLONE_TAIL}", True),
+        (f"~/'{CLONE_TAIL}'", True),
     ],
 )
 def test_git_takes_a_quoted_tilde_literally(second: str, allowed: bool, home: Path) -> None:
@@ -865,6 +960,8 @@ def test_a_quoted_tilde_is_judged_as_the_directory_it_names(home: Path) -> None:
     script = "github/acme/widget/repo/setup.py"
     assert guard_reason(f"python '~/{script}'", root=root, cwd=maw) is not None
     assert guard_reason(f"python \\~/{script}", root=root, cwd=maw) is not None
+    assert guard_reason(f'python ~"/{script}"', root=root, cwd=maw) is not None
+    assert guard_reason(f"python ~''/{script}", root=root, cwd=maw) is not None
     assert guard_reason(f"python ~/{script}", root=root, cwd=maw) is None
     assert guard_reason(f"cat '~/{script}'", root=root, cwd=maw) is None
 

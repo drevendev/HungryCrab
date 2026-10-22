@@ -312,6 +312,33 @@ def test_cleanroom_agent_refuses_any_share_it_cannot_reduce_without_asking_the_n
         assert cleanroom_guard_reason(event) is None, spelling
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="device and share paths are Windows'")
+def test_cleanroom_agent_reduces_a_device_glob_before_matching_it(home: Path) -> None:
+    """A Glob pattern under `//?/GLOBALROOT/...` or `//?/Volume{...}` is the drive it names."""
+    import ctypes
+
+    parent = home / "data"  # holds the custom root, crab-prey
+    volume = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.GetVolumeNameForVolumeMountPointW(parent.anchor, volume, 260)
+    device = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.QueryDosDeviceW(parent.drive, device, 260)
+    rest = parent.as_posix()[3:]
+    letter = parent.drive[0]
+    cwd = home / "work" / "maw"
+    for pattern in (
+        f"//?/GLOBALROOT{device.value.replace(chr(92), '/')}/{rest}/*/github/**",
+        f"//?/GLOBALROOT/??/{letter}:/{rest}/*/github/**",
+        f"//./GLOBALROOT/??/{letter}:/{rest}/crab-*/**",
+        f"//?/{letter}:/{rest}/*/github/**",
+        volume.value.replace("\\", "/") + f"{rest}/crab-*/**",
+        "//nohost-crab/share/*/**",
+    ):
+        assert cleanroom_guard_reason(_search("Glob", {"pattern": pattern}, cwd)), pattern
+    maw = cwd.as_posix()[3:]
+    allowed = f"//?/{letter}:/{maw}/**/*.py"
+    assert cleanroom_guard_reason(_search("Glob", {"pattern": allowed}, cwd)) is None
+
+
 def test_cleanroom_agent_denies_a_path_it_cannot_canonicalise(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

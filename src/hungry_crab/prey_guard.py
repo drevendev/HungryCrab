@@ -18,6 +18,8 @@ import os
 import re
 import stat
 import sys
+from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, TextIO
@@ -190,6 +192,36 @@ def _is_within(path: Path, root: Path) -> bool:
     return path == root or root in path.parents
 
 
+# Every word is resolved against every directory the command can be in, and each resolution is
+# a filesystem call. A decision that outlasts the hook timeout lets the call proceed, so one
+# decision may spend at most this many; past it the guard decides from the text alone.
+_RESOLUTION_BUDGET = 256
+_budget: ContextVar[list[int] | None] = ContextVar("crab_guard_budget", default=None)
+
+
+class _BudgetExceededError(Exception):
+    """The command needs more filesystem work than one decision may spend."""
+
+
+def _spend() -> None:
+    left = _budget.get()
+    if left is not None:
+        left[0] -= 1
+        if left[0] < 0:
+            raise _BudgetExceededError
+
+
+def _within_budget(decide: Callable[[], bool]) -> bool | None:
+    """``decide()``, or ``None`` when it would spend more than the budget."""
+    token = _budget.set([_RESOLUTION_BUDGET])
+    try:
+        return decide()
+    except _BudgetExceededError:
+        return None
+    finally:
+        _budget.reset(token)
+
+
 # A leading `~` that was quoted or escaped: bash expands only an unquoted one, so `'~/x'` names a
 # directory called `~` and `~/x` names the home directory's `x`.
 _LITERAL_TILDE = "\ue006"
@@ -250,12 +282,16 @@ def _shell_tokens(command: str) -> list[str] | None:
     tokens: list[str] = []
     word: list[str] | None = None
     bare_start = True  # whether the word's first character came from unquoted text
+    # Bash expands a leading `~` only when nothing up to the first unquoted `/` is quoted:
+    # `~"/x"`, `~\/x` and `~''/x` all name a directory called `~`.
+    tilde_open = False
+    quoted_prefix = False
     index = 0
     length = len(command)
 
     def finish() -> None:
         text = "".join(word or [])
-        if text.startswith("~") and not bare_start:
+        if text.startswith("~") and (not bare_start or quoted_prefix):
             text = _LITERAL_TILDE + text[1:]
         tokens.append(text)
 
@@ -277,6 +313,10 @@ def _shell_tokens(command: str) -> list[str] | None:
         if word is None:
             word = []
             bare_start = char not in "\\'\"" and not command.startswith(("$'", '$"'), index)
+            tilde_open = bare_start and char == "~"
+            quoted_prefix = False
+        if tilde_open and (char in "\\'\"" or command.startswith(("$'", '$"'), index)):
+            quoted_prefix = True
         if char == "\\":
             if index + 1 >= length:
                 return None
@@ -317,6 +357,8 @@ def _shell_tokens(command: str) -> list[str] | None:
             word.append("".join(body))
             index = position + 1
         else:
+            if char == "/":
+                tilde_open = False  # the tilde prefix ends at the first unquoted slash
             word.append(char)
             index += 1
     if word is not None:
@@ -522,6 +564,7 @@ def _change_directory(scope: _Scope, args: list[str]) -> None:
             scope.unknown_cwd = True
             continue
         for base in list(scope.cwds):
+            _spend()
             try:
                 path = _word_path(_msys_drive(candidate), cwd=base)
             except (OSError, RuntimeError, ValueError):
@@ -555,6 +598,8 @@ def _variable(name: str, scope: _Scope, inner: list[str], depth: int) -> list[st
         for raw in raw_values:
             values.extend(_expand_word(raw, scope, inner, depth=depth + 1))
         return values if len(values) <= _MAX_CANDIDATES else [_UNKNOWN]
+    if name.upper() in {"PWD", "OLDPWD"}:
+        return _directories(scope)
     if name.upper() in {"HOME", "USERPROFILE"}:
         # PowerShell's `$HOME` is the profile directory whatever `HOME` says; bash's is `HOME`.
         # Both readings are judged.
@@ -618,13 +663,20 @@ def _brace_group(word: str, index: int) -> tuple[int, bool] | None:
     return None
 
 
+def _directories(scope: _Scope) -> list[str]:
+    """What `$PWD`, `$OLDPWD`, `~+` and `~-` can hold: any directory the command can be in.
+
+    A `cd`, `pushd`, `popd` or `Set-Location` anywhere in the command moves them, so the event's
+    working directory alone is not their value.
+    """
+    return [str(cwd) for cwd in scope.cwds] + ([_UNKNOWN] if scope.unknown_cwd else [])
+
+
 def _tilde(prefix: str, scope: _Scope) -> list[str]:
     if prefix == "~":
         return [str(home) for home in scope.homes or [scope.home]]
-    if prefix == "~+":
-        return [str(scope.cwd)]
-    if prefix == "~-":
-        return [_UNKNOWN]
+    if prefix in ("~+", "~-"):
+        return _directories(scope)
     try:
         expanded = str(Path(prefix).expanduser())  # `~user`
     except RuntimeError:
@@ -843,6 +895,7 @@ def _literal_reaches(text: str, scope: _Scope) -> bool:
     for candidate in dict.fromkeys((text, _msys_drive(text))):
         rooted = _is_rooted(candidate)
         for base in [scope.cwd] if rooted else scope.cwds:
+            _spend()
             try:
                 path = _word_path(candidate, cwd=base)
             except (OSError, RuntimeError, ValueError):
@@ -876,6 +929,7 @@ def _candidate_reaches(text: str, scope: _Scope) -> bool:
         prefix += "/"
     rooted = bool(prefix) and _is_rooted(prefix)
     for base in [scope.cwd] if rooted else scope.cwds:
+        _spend()
         try:
             directory = _word_path(prefix or ".", cwd=base)
         except (OSError, RuntimeError, ValueError):
@@ -908,6 +962,31 @@ def _glob_markers(pattern: str) -> str:
     return "".join(out)
 
 
+def _globby(component: str) -> bool:
+    """Whether a component of a device glob holds a wildcard; `?` there is the device prefix's."""
+    braces = "{" in component and ("," in component or ".." in component)
+    return "*" in component or "[" in component or braces
+
+
+def _reduce_device_glob(pattern: str, *, base: Path) -> str | None:
+    """A `\\\\?\\...`, `//?/...` or share glob with its literal head reduced to a drive path.
+
+    `//?/GLOBALROOT/??/C:/Users/x/.cache/*/github/**` and `//?/Volume{...}/...` are local
+    drives under other names; ``None`` when the head does not come down to one.
+    """
+    components = _SEPARATORS.split(pattern)
+    head = 0
+    while head < len(components) and not _globby(components[head]):
+        head += 1
+    try:
+        reduced = canonical_path(Path("\\".join(components[:head])), cwd=base)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not is_drive_path(reduced):
+        return None
+    return "/".join([reduced.as_posix(), *components[head:]])
+
+
 def glob_reaches(pattern: str, *, base: Path, root: Path) -> bool:
     """Whether a Glob ``pattern``, relative to ``base`` unless absolute, can match in ``root``.
 
@@ -915,7 +994,12 @@ def glob_reaches(pattern: str, *, base: Path, root: Path) -> bool:
     matched against the root's remaining components, so ``~/.cache/hungry-*/**`` and
     ``.cache/*crab/**`` from the home directory reach a default cache, ``src/**`` does not.
     """
-    text = strip_device_prefix(pattern) if os.name == "nt" else pattern
+    text = pattern
+    if os.name == "nt" and pattern.startswith(("\\\\", "//", "\\??\\")):
+        reduced = _reduce_device_glob(pattern, base=base)
+        if reduced is None:
+            return True  # a share or device the guard cannot place: treated as reaching it
+        text = reduced
     if text.startswith("~"):
         separator = _SEPARATORS.search(text)
         end = separator.start() if separator else len(text)
@@ -1093,11 +1177,19 @@ def _hinted(
     # `Join-Path $HOME .cache ...`, `$HOME + '\.cache\hun' + 'gry-crab'`: PowerShell builds the
     # path from separate strings, so the parent's name as a component anywhere, beside a home
     # spelling anywhere, is a hint.
+    # Only toward the cache: `.cache` alone, or followed by the start of the cache's name
+    # (`'\.cache\hun'`), not by another child (`'.cache\pip'`).
+    if re.search(_HOME_SPELLING, normalized) is None:
+        return False
+    name = root.name.casefold()
     for home in homes:
-        if home in root.parent.parents:
-            first = re.escape(root.parent.relative_to(home).parts[0].casefold())
-            component = rf"(?:^|[/'\"\s(,]){first}(?:$|[/'\"\s),])"
-            if re.search(component, normalized) and re.search(_HOME_SPELLING, normalized):
+        if home not in root.parent.parents:
+            continue
+        first = re.escape(root.parent.relative_to(home).parts[0].casefold())
+        pattern = rf"(?:^|[/'\"\s(,]){first}(/[^/'\"\s),]*)?(?=$|[/'\"\s),])"
+        for match in re.finditer(pattern, normalized):
+            child = match.group(1)
+            if child is None or name.startswith(child[1:]):
                 return True
     return False
 
@@ -1451,12 +1543,32 @@ def _powershell_read_only(command: str, tokens: list[str]) -> bool:
     return True
 
 
+def _overflow_reason(command: str, *, root: Path, cwd: Path, powershell: bool) -> str | None:
+    """The decision for a command too large to resolve in time: by its text alone.
+
+    Refused when it hints at the cache or runs inside it; otherwise it never names the cache
+    and is let through, as it would most likely have been anyway.
+    """
+    parsed = _powershell_tokens(command) if powershell else _shell_tokens(command)
+    tokens = parsed or command.split()
+    if _is_within(cwd, root) or _hinted(
+        command, tokens, root=root, homes=_homes(cwd), powershell=powershell
+    ):
+        return "command names the prey cache and is too large to judge in time (AGENTS.md rule 3)"
+    return None
+
+
 def _powershell_guard_reason(command: str, *, root: Path, cwd: Path) -> str | None:
     command = command.translate(_POWERSHELL_TRANSLATION)
     unmodelled = _unmodelled_reason(command, root=root, cwd=cwd, powershell=True)
     if unmodelled is not None:
         return unmodelled
-    if not _powershell_reaches(command, root=root, cwd=cwd, variables={}, depth=0):
+    touches = _within_budget(
+        lambda: _powershell_reaches(command, root=root, cwd=cwd, variables={}, depth=0)
+    )
+    if touches is None:
+        return _overflow_reason(command, root=root, cwd=cwd, powershell=True)
+    if not touches:
         return None
     if _LINE_BREAK.search(command):
         return "cache-touching multi-line command is not established read-only (AGENTS.md rule 3)"
@@ -1557,7 +1669,14 @@ def _git_is_read_only(tokens: list[str], *, root: Path, cwd: Path) -> bool:
     if subcommand not in _READ_ONLY_GIT_SUBCOMMANDS:
         return False
 
-    return not any(_git_arg_is_dangerous(arg) for arg in tokens[index + 1 :])
+    args = tokens[index + 1 :]
+    if subcommand == "symbolic-ref":
+        # `symbolic-ref HEAD refs/heads/x` writes and `-d HEAD` deletes; only the one-name read
+        # form `symbolic-ref [-q] [--short] <name>` is a read.
+        names = [arg for arg in args if not arg.startswith("-")]
+        flags = [arg for arg in args if arg.startswith("-")]
+        return len(names) == 1 and set(flags) <= {"-q", "--quiet", "--short"}
+    return not any(_git_arg_is_dangerous(arg) for arg in args)
 
 
 def _git_arg_is_dangerous(arg: str) -> bool:
@@ -1630,7 +1749,10 @@ def guard_reason(
     unmodelled = _unmodelled_reason(command, root=cache, cwd=here)
     if unmodelled is not None:
         return unmodelled
-    if not _mentions_cache(command, root=cache, cwd=here):
+    touches = _within_budget(lambda: _mentions_cache(command, root=cache, cwd=here))
+    if touches is None:
+        return _overflow_reason(command, root=cache, cwd=here, powershell=False)
+    if not touches:
         return None
     if _LINE_BREAK.search(command):
         # A line break separates commands exactly as `;` does, and `shlex` reads it as
