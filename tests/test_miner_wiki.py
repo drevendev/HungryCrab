@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import time
 from pathlib import Path
 
 import pytest
@@ -43,6 +44,37 @@ def test_headings_exclude_code_and_comments() -> None:
     )
     assert [h["text"] for h in headings] == ["Title", "Usage", "API"]
     assert markdown_headings("````\n```python\n# private comment\n````\n") == []
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ("# C#", [(1, "C#")]),
+        ("## F# and C# ##", [(2, "F# and C#")]),
+        ("### Title ###   ", [(3, "Title")]),
+        ("# Title#", [(1, "Title#")]),
+        ("   ###### Six", [(6, "Six")]),
+        ("#\tTabbed", [(1, "Tabbed")]),
+        ("### ###", []),
+        ("#", []),
+        ("####### Seven", []),
+        ("#hashtag", []),
+        ("#5 bolt", []),
+        ("    # indented code", []),
+    ],
+)
+def test_atx_headings_follow_commonmark(line: str, expected: list[tuple[int, str]]) -> None:
+    assert [(h["level"], h["text"]) for h in markdown_headings(line)] == expected
+
+
+def test_the_atx_scan_is_linear_in_the_line() -> None:
+    """`(.+?)\\s*#*\\s*$` took 31.7 s on this one line (#300, item 4)."""
+    started = time.perf_counter()
+    headings = markdown_headings("# a" + " " * 3000 + "b")
+    many = markdown_headings(("# a" + " \t" * 50_000 + "b #\n") * 4)
+    assert time.perf_counter() - started < 1.0
+    assert headings == [{"level": 1, "text": "a" + " " * 3000 + "b"}]
+    assert len(many) == 4
 
 
 def test_readme_and_agent_outlines_share_the_same_structure_filter() -> None:

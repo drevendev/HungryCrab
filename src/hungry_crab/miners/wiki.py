@@ -22,6 +22,28 @@ MAX_PAGE_BYTES = 2 * 1024 * 1024
 _BLOCK_START_RE = re.compile(r" {0,3}(?:[-*+](?:[ \t]|$)|\d{1,9}[.)](?:[ \t]|$)|[>|<])")
 _THEMATIC_BREAK_RE = re.compile(r" {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})")
 _SETEXT_UNDERLINE_RE = re.compile(r" {0,3}(?:=+|-+)[ \t]*")
+# Only the opening run is a regex, and a bounded one; the rest of an ATX line is cut with
+# str.strip. `(.+?)\s*#*\s*$` was super-linear in the spaces inside a heading (31.7 s on one
+# 3,000-space line) and turned `# C#` into `C`.
+_ATX_OPEN_RE = re.compile(r" {0,3}(#{1,6})(?=[ \t]|$)")
+
+
+def atx_heading(line: str) -> tuple[int, str] | None:
+    """(level, text) of an ATX heading line, as CommonMark reads it, or None.
+
+    A closing run of `#` is dropped only when a space or tab precedes it (or it is all there
+    is), so `# C#` keeps its `#`.
+    """
+    opening = _ATX_OPEN_RE.match(line)
+    if opening is None:
+        return None
+    content = line[opening.end() :].strip(" \t")
+    unclosed = content.rstrip("#")
+    if not unclosed:
+        content = ""
+    elif unclosed != content and unclosed[-1] in " \t":
+        content = unclosed.rstrip(" \t")
+    return len(opening.group(1)), content
 
 
 def markdown_headings(text: str) -> list[dict[str, object]]:
@@ -56,17 +78,18 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             previous = ""
             in_block = False
             continue
-        match = re.match(r"^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$", line)
-        if match:
-            title = match.group(2)
-            headings.append(
-                {
-                    "level": len(match.group(1)),
-                    "text": "[heading omitted: instruction-like]"
-                    if is_suspicious(title)
-                    else title,
-                }
-            )
+        atx = atx_heading(line)
+        if atx is not None:
+            level, title = atx
+            if title:
+                headings.append(
+                    {
+                        "level": level,
+                        "text": "[heading omitted: instruction-like]"
+                        if is_suspicious(title)
+                        else title,
+                    }
+                )
             previous = ""
             in_block = False
         elif previous and _SETEXT_UNDERLINE_RE.fullmatch(line):
