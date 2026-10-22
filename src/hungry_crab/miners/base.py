@@ -58,6 +58,23 @@ class MinerResult:
     warnings: list[str] = field(default_factory=list)
 
 
+# A miner's warnings are copied into manifest.json twice (its record and the top-level list),
+# returned by MCP and printed by `crab digest`, and most of them name a prey path. The manifest
+# keeps the first few of each miner, each clipped, and counts the rest (#324).
+MAX_MINER_WARNINGS = 50
+MAX_WARNING_CHARS = 500
+
+
+def bounded_warnings(warnings: list[str]) -> list[str]:
+    kept = [
+        warning if len(warning) <= MAX_WARNING_CHARS else warning[: MAX_WARNING_CHARS - 3] + "..."
+        for warning in warnings[:MAX_MINER_WARNINGS]
+    ]
+    if len(warnings) > MAX_MINER_WARNINGS:
+        kept.append(f"... and {len(warnings) - MAX_MINER_WARNINGS} more warnings")
+    return kept
+
+
 def _utcnow() -> datetime:
     return datetime.now(UTC)
 

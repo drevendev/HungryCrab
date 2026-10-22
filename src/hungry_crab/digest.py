@@ -38,6 +38,7 @@ from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import read_text
 from .miners import MINER_NAMES, MineContext, Miner, select_miners
+from .miners.base import bounded_warnings
 from .tokens import estimate_tokens
 from .typeutil import as_list
 
@@ -500,7 +501,7 @@ def run_miners(
                 if number is not None and number >= 2 and path.name not in page_names:
                     path.unlink()
             record["page_priorities"] = priorities
-        record["warnings"] = list(result.warnings)
+        record["warnings"] = bounded_warnings(result.warnings)
         record["ms"] = round((perf_counter() - started) * 1000)
         records.append(record)
         log(f"  {miner.name}: ok ({record['ms']} ms)")

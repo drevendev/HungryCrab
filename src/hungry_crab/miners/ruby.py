@@ -70,11 +70,36 @@ def _development_group(text: str) -> bool:
     return any(name.lower() in {"development", "test"} for name in _GROUP_NAME_RE.findall(text))
 
 
+_SHOWN_ITEMS = 5
+
+
+def _shown(items: list[str]) -> str:
+    """The first few items and a count of the rest."""
+    more = len(items) - _SHOWN_ITEMS
+    return ", ".join(items[:_SHOWN_ITEMS]) + (f" and {more} more" if more > 0 else "")
+
+
+def _line_warnings(lines_by_note: dict[str, list[int]], manifest: str) -> list[str]:
+    """One warning per kind of unparsed line, however many lines share it.
+
+    A prey Gemfile can hold forty thousand dynamic lines; one warning each made the manifest
+    tens of megabytes (#324).
+    """
+    warnings: list[str] = []
+    for note, lines in lines_by_note.items():
+        if len(lines) == 1:
+            warnings.append(f"{note} in {manifest}:{lines[0]}")
+        else:
+            numbers = _shown([str(line) for line in lines])
+            warnings.append(f"{note} in {manifest} on {len(lines)} lines: {numbers}")
+    return warnings
+
+
 def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
     """Parse literal Gemfile ``gem`` calls without evaluating Ruby."""
 
     packages: list[Package] = []
-    warnings: list[str] = []
+    notes: dict[str, list[int]] = {}
     block_dev: list[bool] = []
     for line_no, raw in enumerate(text.splitlines(), start=1):
         stripped = raw.strip()
@@ -94,13 +119,13 @@ def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             block_dev.append(any(block_dev))
             continue
         if re.match(r"^\s*eval_gemfile\b", raw):
-            warnings.append(f"dynamic Ruby include not followed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby include not followed", []).append(line_no)
             continue
         if not re.match(r"^\s*gem\b", raw):
             continue
         match = _GEM_CALL_RE.match(raw)
         if match is None:
-            warnings.append(f"dynamic Ruby dependency not parsed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby dependency not parsed", []).append(line_no)
             continue
         spec, dynamic_spec = _literal_specs(match.group("tail"))
         kind = (
@@ -119,21 +144,21 @@ def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             )
         )
         if dynamic_spec:
-            warnings.append(f"dynamic Ruby requirement not parsed in {manifest}:{line_no}")
-    return packages, warnings
+            notes.setdefault("dynamic Ruby requirement not parsed", []).append(line_no)
+    return packages, _line_warnings(notes, manifest)
 
 
 def parse_gemspec(text: str, manifest: str) -> tuple[list[Package], list[str]]:
     """Parse common literal gemspec dependency calls without evaluating Ruby."""
 
     packages: list[Package] = []
-    warnings: list[str] = []
+    notes: dict[str, list[int]] = {}
     for line_no, raw in enumerate(text.splitlines(), start=1):
         if not re.search(r"\.add_(?:runtime_)?dependency|\.add_development_dependency", raw):
             continue
         match = _GEMSPEC_DEP_RE.match(raw)
         if match is None:
-            warnings.append(f"dynamic Ruby dependency not parsed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby dependency not parsed", []).append(line_no)
             continue
         spec, dynamic_spec = _literal_specs(match.group("tail"))
         method = match.group("method")
@@ -149,8 +174,8 @@ def parse_gemspec(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             )
         )
         if dynamic_spec:
-            warnings.append(f"dynamic Ruby requirement not parsed in {manifest}:{line_no}")
-    return packages, warnings
+            notes.setdefault("dynamic Ruby requirement not parsed", []).append(line_no)
+    return packages, _line_warnings(notes, manifest)
 
 
 def parse_gemfile_lock(text: str, lockfile: str) -> tuple[list[dict[str, str]], list[str]]:
@@ -184,7 +209,14 @@ def parse_gemfile_lock(text: str, lockfile: str) -> tuple[list[dict[str, str]], 
         for name in sorted(direct & resolved.keys())
     ]
     missing = sorted(direct - resolved.keys())
-    warnings = [f"Ruby lock resolution missing for {name} in {lockfile}" for name in missing]
+    warnings: list[str] = []
+    if len(missing) == 1:
+        warnings.append(f"Ruby lock resolution missing for {missing[0]} in {lockfile}")
+    elif missing:
+        warnings.append(
+            f"Ruby lock resolution missing for {len(missing)} dependencies in {lockfile}: "
+            f"{_shown(missing)}"
+        )
     return rows, warnings
 
 
