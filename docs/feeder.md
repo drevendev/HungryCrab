@@ -40,6 +40,14 @@ The composite action installs only the trusted Hungry Crab checkout with locked 
 in its own environment. It never installs the prey or the maw's packages. Check out the maw
 first; Linux and Windows hosted runners are supported.
 
+**Marketplace preparation:** the [Feeder listing and dogfood roadmap](marketplace/README.md)
+tracks public/limited-private acceptance, exact release pins, truthful evidence and
+owner-mediated Marketplace publication. The `@master` example below illustrates the Action
+interface only: a production installation and a proof of Marketplace usage require a reviewed
+immutable Action SHA, tested from a separate repository. Planned examples are not executed
+proof. See the [public trial matrix](marketplace/dogfood.md) and
+[evidence contract](marketplace/evidence.md) before making a promotional claim.
+
 ```yaml
 name: Weekly menu
 on:
