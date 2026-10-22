@@ -108,6 +108,18 @@ def strip_device_prefix(text: str) -> str:
     return "\\\\" + rest if match.group(1) else rest
 
 
+def _expand_home(path: Path) -> Path:
+    """``~`` and ``~user`` expanded; a ``~name`` with no known home stays literal, as in a shell.
+
+    ``Path.expanduser()`` raises for it instead, and any text that starts with ``~`` (Markdown's
+    ``~~struck~~`` in an edit, say) would otherwise count as a path that cannot be judged.
+    """
+    try:
+        return path.expanduser()
+    except RuntimeError:
+        return path
+
+
 def canonical_path(path: Path, *, cwd: Path) -> Path:
     """The one spelling both guards compare: absolute, resolved, device prefix stripped.
 
@@ -118,7 +130,7 @@ def canonical_path(path: Path, *, cwd: Path) -> Path:
     text = os.fspath(path)
     if os.name == "nt":
         text = strip_device_prefix(text)
-    candidate = Path(text).expanduser()
+    candidate = _expand_home(Path(text))
     if not candidate.is_absolute():
         candidate = cwd / candidate
     return candidate.resolve(strict=False)
@@ -661,7 +673,7 @@ def glob_reaches(pattern: str, *, base: Path, root: Path) -> bool:
     if text.startswith("~"):
         separator = _SEPARATORS.search(text)
         end = separator.start() if separator else len(text)
-        text = str(Path(text[:end]).expanduser()) + text[end:]
+        text = str(_expand_home(Path(text[:end]))) + text[end:]
     components = _components(_glob_markers(text))
     literal = 0
     while literal < len(components) and not any(m in components[literal] for m in _MARKERS):

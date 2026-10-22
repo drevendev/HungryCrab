@@ -276,6 +276,17 @@ def test_cleanroom_agent_denies_a_path_it_cannot_canonicalise(
     assert cleanroom_guard_reason(event)
 
 
+def test_text_that_starts_with_a_tilde_is_not_an_unjudgeable_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """`Path.expanduser()` raises for a `~name` it cannot place; that is text, not a refusal."""
+    monkeypatch.setenv("CRAB_CACHE_DIR", str(tmp_path / "crab-prey"))
+    monkeypatch.setenv("USERNAME", "someone-else")  # makes Windows give up on `~name` too
+    for text in ("~~struck~~", "~nosuchuser-zz/notes.md", "~ approx"):
+        edit = {"file_path": str(tmp_path / "maw" / "README.md"), "old_string": "x"}
+        assert cleanroom_guard_reason(_event({**edit, "new_string": text})) is None, text
+
+
 def test_cleanroom_agent_denies_the_configured_root_spelled_literally(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
