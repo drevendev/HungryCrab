@@ -178,3 +178,20 @@ def test_a_deep_manifest_fails_no_miner_in_a_digest(npm_app: Path, tmp_path: Pat
     warnings = result.manifest["warnings"]
     assert "deps: could not parse composer.json: RecursionError" in warnings
     assert "ci: .github/workflows/deep.yml: YAML error (RecursionError)" in warnings
+
+
+def test_a_deep_root_manifest_fails_neither_inventory_nor_testing(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    """Inventory is the root miner: its failure would block every other miner."""
+    work = copy_repo(npm_app, tmp_path / "work", with_git=True)
+    write_tree(work, {"package.json": DEEP_JSON, "pyproject.toml": DEEP_TOML})
+    git(work, "add", "-A")
+    git(work, "commit", "-m", "test: deep root manifests")
+
+    result = run_digest(
+        Target(path=work),
+        DigestOptions(out=tmp_path / "out", now=FIXED_NOW, cache_root=tmp_path / "cache"),
+    )
+
+    assert incomplete_miners(result.manifest) == []

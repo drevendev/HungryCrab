@@ -337,7 +337,7 @@ class TestingMiner:
         if ctx.exists("pyproject.toml"):
             try:
                 tool_table = as_dict(tomllib.loads(ctx.read("pyproject.toml")).get("tool"))
-            except tomllib.TOMLDecodeError:
+            except (tomllib.TOMLDecodeError, RecursionError, MemoryError):
                 tool_table = {}
             if "pytest" in tool_table:
                 frameworks.setdefault("pytest", "unit")
