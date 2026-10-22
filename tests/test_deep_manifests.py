@@ -125,3 +125,39 @@ def test_gradle_parsing_is_linear_in_blank_lines() -> None:
     packages, _ = parse_gradle(source, "build.gradle")
     assert time.perf_counter() - started < 5
     assert [p.name for p in packages] == ["g:a"]
+
+
+def test_gradle_unclosed_block_comments_are_linear() -> None:
+    """Every `/*` without a `*/` used to rescan the rest of the file: 164 s for 256 KiB (#329)."""
+    import time
+
+    source = ("/*a" * 87_381)[:262_144]  # the deps miner's read limit
+    started = time.perf_counter()
+    packages, info = parse_gradle(source, "build.gradle")
+    assert time.perf_counter() - started < 1
+    assert packages == [] and info["unresolved_declarations"] == 0
+
+
+def test_gradle_whitespace_after_a_configuration_is_linear() -> None:
+    """`\\s*\\(?\\s*` split one whitespace run quadratically many ways before failing (#329)."""
+    import time
+
+    for gap in (" " * 262_000, "\n" * 262_000):
+        started = time.perf_counter()
+        packages, _ = parse_gradle("implementation" + gap + "x", "build.gradle")
+        assert time.perf_counter() - started < 1
+        assert packages == []
+
+
+def test_gradle_comments_still_hide_and_only_hide_what_they_cover() -> None:
+    packages, info = parse_gradle(
+        "/* implementation 'fake:closed:1' */\n"
+        "implementation  (  'org:a:1.0')\n"
+        "  // api 'fake:line:1'\n"
+        "api\n  'org:b:2.0'\n"
+        "/* unclosed: the rest of the file is a comment\n"
+        "implementation 'fake:after:1'\n",
+        "build.gradle",
+    )
+    assert [p.name for p in packages] == ["org:a", "org:b"]
+    assert info["unresolved_declarations"] == 0

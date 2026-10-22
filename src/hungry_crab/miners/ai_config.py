@@ -108,7 +108,8 @@ def _gist_markdown(ctx: MineContext, info: FileInfo) -> dict[str, Any]:
 def _load_json(ctx: MineContext, rel: str) -> dict[str, Any] | None:
     try:
         loaded = json.loads(ctx.read(rel, limit=200_000))
-    except ValueError:
+    except (ValueError, RecursionError, MemoryError):
+        # Hostile nesting exhausts the parser's stack (#330); it is invalid JSON all the same.
         return None
     return loaded if isinstance(loaded, dict) else None
 

@@ -21,19 +21,29 @@ _GEMSPEC_DEP_RE = re.compile(
     r"^\s*[A-Za-z_][\w.]*\.(?P<method>add_(?:runtime_)?dependency|add_development_dependency)"
     r"\s*(?:\(\s*)?(?P<quote>['\"])(?P<name>[^'\"]+)(?P=quote)(?P<tail>.*)$"
 )
-_LEADING_STRING_RE = re.compile(r"^\s*(?P<quote>['\"])(?P<value>[^'\"]*)(?P=quote)")
-_GROUP_BLOCK_RE = re.compile(r"^\s*group\s+(?P<groups>.+?)\s+do\s*(?:#.*)?$")
+_ARGUMENT_COMMA_RE = re.compile(r"\s*,\s*")
+_KEYWORD_ARGUMENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\s*:")
+_STRING_ARGUMENT_RE = re.compile(r"(?P<quote>['\"])(?P<value>[^'\"]*)(?P=quote)")
+# Possessive whitespace, and group names that end on a non-space: `group\s+(.+?)\s+do` let
+# every position inside one long whitespace run rescan the rest of it.
+_GROUP_BLOCK_RE = re.compile(r"^\s*+group\s++(?P<groups>.*?\S)\s++do\s*+(?:#.*)?$")
 _GROUP_NAME_RE = re.compile(r":([A-Za-z_][A-Za-z0-9_]*)")
-_INLINE_DEV_GROUP_RE = re.compile(
-    r"\bgroup(?:s)?\s*:\s*(?:\[[^\]]*)?:(?:development|test)\b", re.IGNORECASE
+# One match per `group:` key that always succeeds and swallows its bracket list, so the search
+# resumes after the list. A pattern that had to find `:development` inside the list failed at
+# every `group:[` of an unclosed list and rescanned the rest of the line each time.
+_INLINE_GROUP_RE = re.compile(
+    r"\bgroups?\s*:\s*(?:\[(?P<listed>[^\]]*)|(?P<named>:(?:development|test)\b))?",
+    re.IGNORECASE,
 )
+_DEV_GROUP_SYMBOL_RE = re.compile(r":(?:development|test)\b", re.IGNORECASE)
 _END_BLOCK_RE = re.compile(r"^end\s*(?:#.*)?$")
 _END_TERMINATED_BLOCK_RE = re.compile(
     r"^\s*(?:if|unless|case|begin|class|module|def|while|until|for)\b"
 )
 _GENERIC_BLOCK_RE = re.compile(r"\bdo(?:\s*\|[^|]*\|)?\s*(?:#.*)?$")
 _LOCK_SPEC_RE = re.compile(r"^\s{4}([A-Za-z0-9_.-]+)\s+\(([^)]+)\)\s*$")
-_LOCK_DEP_RE = re.compile(r"^\s{2}([A-Za-z0-9_.-]+)(?:\s+\([^)]+\))?[! ]*\s*$")
+# `[! ]*+`: two adjacent space-matching stars split a trailing run quadratically many ways.
+_LOCK_DEP_RE = re.compile(r"^\s{2}([A-Za-z0-9_.-]+)(?:\s+\([^)]+\))?[! ]*+\s*$")
 _LOCK_SECTION_RE = re.compile(r"^[A-Z][A-Z ]+$")
 
 
@@ -49,20 +59,22 @@ def ruby_pinned(spec: str) -> bool | None:
 def _literal_specs(tail: str) -> tuple[str, bool]:
     """Return literal positional requirements and whether a positional value was dynamic."""
 
-    rest = tail
+    # Positions, not slices: copying the rest of a 256 KiB line once per argument was
+    # quadratic in the line.
+    position = 0
     specs: list[str] = []
     while True:
-        rest = rest.lstrip()
-        if not rest.startswith(","):
+        comma = _ARGUMENT_COMMA_RE.match(tail, position)
+        if comma is None:
             break
-        rest = rest[1:].lstrip()
-        if re.match(r"[A-Za-z_][A-Za-z0-9_]*\s*:", rest):
+        position = comma.end()
+        if _KEYWORD_ARGUMENT_RE.match(tail, position):
             break
-        match = _LEADING_STRING_RE.match(rest)
+        match = _STRING_ARGUMENT_RE.match(tail, position)
         if match is None:
             return ", ".join(specs), True
         specs.append(match.group("value"))
-        rest = rest[match.end() :]
+        position = match.end()
     return ", ".join(specs), False
 
 
@@ -70,11 +82,44 @@ def _development_group(text: str) -> bool:
     return any(name.lower() in {"development", "test"} for name in _GROUP_NAME_RE.findall(text))
 
 
+def _inline_development_group(tail: str) -> bool:
+    """Whether a ``gem`` call's options say ``group: :development`` or list it in brackets."""
+    return any(
+        match.group("named") or _DEV_GROUP_SYMBOL_RE.search(match.group("listed") or "")
+        for match in _INLINE_GROUP_RE.finditer(tail)
+    )
+
+
+_SHOWN_ITEMS = 5
+
+
+def _shown(items: list[str]) -> str:
+    """The first few items and a count of the rest."""
+    more = len(items) - _SHOWN_ITEMS
+    return ", ".join(items[:_SHOWN_ITEMS]) + (f" and {more} more" if more > 0 else "")
+
+
+def _line_warnings(lines_by_note: dict[str, list[int]], manifest: str) -> list[str]:
+    """One warning per kind of unparsed line, however many lines share it.
+
+    A prey Gemfile can hold forty thousand dynamic lines; one warning each made the manifest
+    tens of megabytes (#324).
+    """
+    warnings: list[str] = []
+    for note, lines in lines_by_note.items():
+        if len(lines) == 1:
+            warnings.append(f"{note} in {manifest}:{lines[0]}")
+        else:
+            numbers = _shown([str(line) for line in lines])
+            warnings.append(f"{note} in {manifest} on {len(lines)} lines: {numbers}")
+    return warnings
+
+
 def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
     """Parse literal Gemfile ``gem`` calls without evaluating Ruby."""
 
     packages: list[Package] = []
-    warnings: list[str] = []
+    notes: dict[str, list[int]] = {}
     block_dev: list[bool] = []
     for line_no, raw in enumerate(text.splitlines(), start=1):
         stripped = raw.strip()
@@ -94,19 +139,17 @@ def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             block_dev.append(any(block_dev))
             continue
         if re.match(r"^\s*eval_gemfile\b", raw):
-            warnings.append(f"dynamic Ruby include not followed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby include not followed", []).append(line_no)
             continue
         if not re.match(r"^\s*gem\b", raw):
             continue
         match = _GEM_CALL_RE.match(raw)
         if match is None:
-            warnings.append(f"dynamic Ruby dependency not parsed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby dependency not parsed", []).append(line_no)
             continue
         spec, dynamic_spec = _literal_specs(match.group("tail"))
         kind = (
-            "dev"
-            if any(block_dev) or _INLINE_DEV_GROUP_RE.search(match.group("tail")) is not None
-            else "runtime"
+            "dev" if any(block_dev) or _inline_development_group(match.group("tail")) else "runtime"
         )
         packages.append(
             Package(
@@ -119,21 +162,21 @@ def parse_gemfile(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             )
         )
         if dynamic_spec:
-            warnings.append(f"dynamic Ruby requirement not parsed in {manifest}:{line_no}")
-    return packages, warnings
+            notes.setdefault("dynamic Ruby requirement not parsed", []).append(line_no)
+    return packages, _line_warnings(notes, manifest)
 
 
 def parse_gemspec(text: str, manifest: str) -> tuple[list[Package], list[str]]:
     """Parse common literal gemspec dependency calls without evaluating Ruby."""
 
     packages: list[Package] = []
-    warnings: list[str] = []
+    notes: dict[str, list[int]] = {}
     for line_no, raw in enumerate(text.splitlines(), start=1):
         if not re.search(r"\.add_(?:runtime_)?dependency|\.add_development_dependency", raw):
             continue
         match = _GEMSPEC_DEP_RE.match(raw)
         if match is None:
-            warnings.append(f"dynamic Ruby dependency not parsed in {manifest}:{line_no}")
+            notes.setdefault("dynamic Ruby dependency not parsed", []).append(line_no)
             continue
         spec, dynamic_spec = _literal_specs(match.group("tail"))
         method = match.group("method")
@@ -149,8 +192,8 @@ def parse_gemspec(text: str, manifest: str) -> tuple[list[Package], list[str]]:
             )
         )
         if dynamic_spec:
-            warnings.append(f"dynamic Ruby requirement not parsed in {manifest}:{line_no}")
-    return packages, warnings
+            notes.setdefault("dynamic Ruby requirement not parsed", []).append(line_no)
+    return packages, _line_warnings(notes, manifest)
 
 
 def parse_gemfile_lock(text: str, lockfile: str) -> tuple[list[dict[str, str]], list[str]]:
@@ -184,7 +227,14 @@ def parse_gemfile_lock(text: str, lockfile: str) -> tuple[list[dict[str, str]], 
         for name in sorted(direct & resolved.keys())
     ]
     missing = sorted(direct - resolved.keys())
-    warnings = [f"Ruby lock resolution missing for {name} in {lockfile}" for name in missing]
+    warnings: list[str] = []
+    if len(missing) == 1:
+        warnings.append(f"Ruby lock resolution missing for {missing[0]} in {lockfile}")
+    elif missing:
+        warnings.append(
+            f"Ruby lock resolution missing for {len(missing)} dependencies in {lockfile}: "
+            f"{_shown(missing)}"
+        )
     return rows, warnings
 
 

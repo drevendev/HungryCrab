@@ -397,19 +397,24 @@ def manifest_license(name: str, text: str) -> tuple[str | None, str]:
             value = package.get("license") if isinstance(package, dict) else None
             return (normalize(value) if isinstance(value, str) else None), ""
         if lowered.endswith((".csproj", ".fsproj", ".vbproj", ".props")):
-            match = re.search(
-                r"<PackageLicenseExpression>\s*([^<]+?)\s*</PackageLicenseExpression>", text
-            )
-            if match:
-                return normalize(match.group(1)), ""
+            # Strip in Python: `\s*([^<]+?)\s*</` rescanned a whitespace run from every
+            # position inside it, minutes for one hostile project file.
+            for found in re.finditer(
+                r"<PackageLicenseExpression>([^<]*)</PackageLicenseExpression>", text
+            ):
+                if found.group(1).strip():
+                    return normalize(found.group(1).strip()), ""
             return None, ""
         if lowered == "setup.cfg":
-            match = re.search(r"^\s*license\s*=\s*(.+)$", text, re.MULTILINE)
+            # `[ \t]*`, not `\s*`: at every line start `\s*` ran across all the blank lines below.
+            match = re.search(r"^[ \t]*license\s*=\s*(.+)$", text, re.MULTILINE)
             return (normalize(match.group(1).strip()) if match else None), ""
         if lowered == "setup.py":
             match = re.search(r"""license\s*=\s*["']([^"']+)["']""", text)
             return (normalize(match.group(1)) if match else None), ""
-    except (ValueError, TypeError, tomllib.TOMLDecodeError):
+    except (ValueError, TypeError, tomllib.TOMLDecodeError, RecursionError, MemoryError):
+        # Hostile nesting exhausts the parser's stack, not its grammar (#330): it is the same
+        # unparseable manifest, and it must not take the licence verdict down with it.
         return None, "unparseable manifest"
     return None, ""
 

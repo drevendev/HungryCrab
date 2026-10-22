@@ -16,7 +16,10 @@ from .base import MineContext, MinerResult
 WORKFLOW_DIR = ".github/workflows/"
 _ACTION_RE = re.compile(r"^(?P<repo>[\w.-]+/[\w.-]+)(?P<path>/[^@\s]+)?@(?P<ref>\S+)$")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?(\S+?)['\"]?\s*#\s*(v?\d[\w.-]*)")
+# Matches every `uses:` and swallows its reference, so the search resumes after it; the version
+# comment is optional and checked by the caller. `(\S+?)...#` had to fail at each `uses:` of a
+# long run without a `#`, rescanning the rest of the run each time.
+_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?([^\s#'\"]*)['\"]?(?:\s*#\s*(v?\d[\w.-]*))?")
 _SECRET_RE = re.compile(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)")
 
 CACHE_ACTIONS = {
@@ -168,7 +171,12 @@ OTHER_CI_FILES: dict[str, str] = {
     "cloudbuild.yaml": "cloud-build",
     ".buildkite/pipeline.yml": "buildkite",
 }
-_PIPE_TO_SHELL_RE = re.compile(r"\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash)\b")
+# Each match swallows a download up to its first pipe, so a later `curl` before the same pipe,
+# which would meet the same pipe, is not rescanned; the shell is optional and checked by the
+# caller.
+_PIPE_TO_SHELL_RE = re.compile(
+    r"\b(?:curl|wget)\b[^\n|]*+(?:\|\s*(?:sudo\s+)?(?P<shell>sh|bash)\b)?"
+)
 _RUNNER_RE = re.compile(r"ubuntu|windows|macos", re.IGNORECASE)
 
 
@@ -281,8 +289,44 @@ def _step_cache(action: str, with_block: object) -> bool:
     return False
 
 
+# What one prey YAML document may expand to once its aliases are followed, counted as nodes plus
+# string characters. A document without aliases stays under twice its own size, so every
+# workflow within the read limit fits; anchors can make a few hundred bytes describe gigabytes,
+# or a list that contains itself, and every later walk (`str()`, the JSON artifact) follows
+# each reference again.
+_MAX_YAML_EXPANSION = 1_000_000
+
+
+class YamlExpansionError(yaml.YAMLError):
+    """A prey YAML document whose aliases expand past the budget or into a cycle."""
+
+
+def load_prey_yaml(text: str) -> object:
+    """``yaml.safe_load``, refusing a document whose aliases expand past the budget."""
+    loaded: object = yaml.safe_load(text)
+    budget = _MAX_YAML_EXPANSION
+    stack: list[object] = [loaded]
+    while stack:
+        item = stack.pop()
+        children: list[object]
+        if isinstance(item, dict):
+            children = [*item.keys(), *item.values()]
+        elif isinstance(item, list):
+            children = item
+        else:
+            children = []
+            if isinstance(item, str | bytes):
+                budget -= len(item)
+        # Charged before the push, so the walk itself never holds more than the budget.
+        budget -= len(children)
+        if budget < 0:
+            raise YamlExpansionError(f"aliases expand past {_MAX_YAML_EXPANSION} nodes")
+        stack.extend(children)
+    return loaded
+
+
 def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
-    loaded = yaml.safe_load(text)
+    loaded = load_prey_yaml(text)
     if not isinstance(loaded, dict):
         return None
     raw_on = loaded.get("on", loaded.get(True))
@@ -356,7 +400,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     for name, pattern in COVERAGE_FLAGS:
                         if pattern.search(run):
                             coverage_flags.add(name)
-                    if _PIPE_TO_SHELL_RE.search(run):
+                    if any(found.group("shell") for found in _PIPE_TO_SHELL_RE.finditer(run)):
                         pipe_to_shell += 1
             jobs.append(
                 {
@@ -378,7 +422,11 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     "has_if": job.get("if") is not None,
                 }
             )
-    comment_versions = dict(_USES_COMMENT_RE.findall(text))
+    comment_versions = {
+        reference: version
+        for reference, version in _USES_COMMENT_RE.findall(text)
+        if reference and version
+    }
     for parsed in actions:
         if parsed["pinned_sha"]:
             full = f"{parsed['action']}@{parsed['ref']}"
@@ -420,8 +468,8 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
 
 def _parse_dependabot(text: str) -> dict[str, Any] | None:
     try:
-        loaded = yaml.safe_load(text)
-    except yaml.YAMLError:
+        loaded = load_prey_yaml(text)
+    except (yaml.YAMLError, RecursionError, MemoryError):
         return None
     if not isinstance(loaded, dict):
         return None
@@ -462,7 +510,8 @@ class CiMiner:
             text = ctx.read(info.path, limit=262_144)
             try:
                 parsed = parse_workflow(text, info.path)
-            except yaml.YAMLError as exc:
+            except (yaml.YAMLError, RecursionError, MemoryError) as exc:
+                # Hostile nesting exhausts the parser's stack, not its grammar (#330).
                 warnings.append(f"{info.path}: YAML error ({type(exc).__name__})")
                 continue
             if parsed is not None:
@@ -503,7 +552,7 @@ class CiMiner:
                 loaded = json.loads(ctx.read(renovate_files[0]))
                 if isinstance(loaded, dict) and isinstance(loaded.get("extends"), list):
                     renovate["extends"] = [str(e) for e in loaded["extends"]][:10]
-            except ValueError:
+            except (ValueError, RecursionError, MemoryError):
                 pass
 
         action_index: dict[str, dict[str, Any]] = {}
