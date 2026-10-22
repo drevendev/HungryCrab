@@ -281,8 +281,44 @@ def _step_cache(action: str, with_block: object) -> bool:
     return False
 
 
+# What one prey YAML document may expand to once its aliases are followed, counted as nodes plus
+# string characters. A document without aliases stays under twice its own size, so every
+# workflow within the read limit fits; anchors can make a few hundred bytes describe gigabytes,
+# or a list that contains itself, and every later walk (`str()`, the JSON artifact) follows
+# each reference again.
+_MAX_YAML_EXPANSION = 1_000_000
+
+
+class YamlExpansionError(yaml.YAMLError):
+    """A prey YAML document whose aliases expand past the budget or into a cycle."""
+
+
+def load_prey_yaml(text: str) -> object:
+    """``yaml.safe_load``, refusing a document whose aliases expand past the budget."""
+    loaded: object = yaml.safe_load(text)
+    budget = _MAX_YAML_EXPANSION
+    stack: list[object] = [loaded]
+    while stack:
+        item = stack.pop()
+        children: list[object]
+        if isinstance(item, dict):
+            children = [*item.keys(), *item.values()]
+        elif isinstance(item, list):
+            children = item
+        else:
+            children = []
+            if isinstance(item, str | bytes):
+                budget -= len(item)
+        # Charged before the push, so the walk itself never holds more than the budget.
+        budget -= len(children)
+        if budget < 0:
+            raise YamlExpansionError(f"aliases expand past {_MAX_YAML_EXPANSION} nodes")
+        stack.extend(children)
+    return loaded
+
+
 def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
-    loaded = yaml.safe_load(text)
+    loaded = load_prey_yaml(text)
     if not isinstance(loaded, dict):
         return None
     raw_on = loaded.get("on", loaded.get(True))
@@ -420,7 +456,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
 
 def _parse_dependabot(text: str) -> dict[str, Any] | None:
     try:
-        loaded = yaml.safe_load(text)
+        loaded = load_prey_yaml(text)
     except (yaml.YAMLError, RecursionError, MemoryError):
         return None
     if not isinstance(loaded, dict):

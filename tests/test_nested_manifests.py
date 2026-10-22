@@ -6,8 +6,11 @@
 
 from __future__ import annotations
 
+import json
+import time
 from pathlib import Path
 
+import pytest
 from conftest import FIXED_NOW
 from fixture_builder import git
 from helpers import copy_repo, write_tree
@@ -17,7 +20,7 @@ from hungry_crab.digest import DigestOptions, incomplete_miners, run_digest
 from hungry_crab.licensing.detect import manifest_license
 from hungry_crab.miners.ai_config import AiConfigMiner
 from hungry_crab.miners.base import MineContext
-from hungry_crab.miners.ci import CiMiner
+from hungry_crab.miners.ci import CiMiner, YamlExpansionError, load_prey_yaml, parse_workflow
 from hungry_crab.miners.inventory import InventoryMiner
 from hungry_crab.miners.scope import ProjectDepsMiner
 
@@ -97,6 +100,59 @@ def test_ci_miner_warns_about_a_deep_workflow_and_keeps_the_others(tmp_path: Pat
     ]
     assert result.data["dependabot"] is None
     assert result.data["renovate"] == {"path": "renovate.json", "extends": []}
+
+
+def _anchor_bomb(levels: int) -> str:
+    lines = ["x-a0: &a0 [" + ", ".join(['"xxxxxxxxxx"'] * 9) + "]"]
+    for level in range(1, levels):
+        lines.append(f"x-a{level}: &a{level} [" + ", ".join([f"*a{level - 1}"] * 9) + "]")
+    return "\n".join(lines) + f"\non:\n  push:\n    branches: *a{levels - 1}\n"
+
+
+def test_workflow_anchors_that_reuse_steps_still_parse() -> None:
+    parsed = parse_workflow(
+        "on: push\njobs:\n"
+        "  a:\n    runs-on: ubuntu-latest\n    steps: &steps\n"
+        "      - uses: actions/checkout@v4\n      - run: pytest\n"
+        "  b:\n    runs-on: windows-latest\n    steps: *steps\n",
+        ".github/workflows/ci.yml",
+    )
+    assert parsed is not None
+    assert [job["steps"] for job in parsed["jobs"]] == [2, 2]
+    assert parsed["tools"] == ["pytest"]
+
+
+def test_workflow_anchors_that_expand_or_cycle_are_refused(tmp_path: Path) -> None:
+    """529 bytes of anchors made a 210 MB ci.json; `&a [*a]` crashed the JSON writer."""
+    write_tree(
+        tmp_path,
+        {
+            ".github/workflows/bomb.yml": _anchor_bomb(9),
+            ".github/workflows/cycle.yml": "on:\n  push:\n    branches: &a [*a]\n",
+            ".github/workflows/ok.yml": "on: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n",
+            ".github/dependabot.yml": "version: 2\nupdates:\n  - directory: &d [*d]\n",
+        },
+    )
+    started = time.perf_counter()
+    result = CiMiner().run(_context(tmp_path))
+    assert time.perf_counter() - started < 10
+
+    assert result.warnings == [
+        ".github/workflows/bomb.yml: YAML error (YamlExpansionError)",
+        ".github/workflows/cycle.yml: YAML error (YamlExpansionError)",
+    ]
+    assert [workflow["path"] for workflow in result.data["workflows"]] == [
+        ".github/workflows/ok.yml"
+    ]
+    assert result.data["dependabot"] is None
+    assert len(json.dumps(result.data)) < 10_000
+
+
+def test_load_prey_yaml_charges_long_strings_behind_aliases() -> None:
+    many = "s: &s " + "x" * 2_000 + "\nl: [" + ", ".join(["*s"] * 600) + "]\n"
+    with pytest.raises(YamlExpansionError):
+        load_prey_yaml(many)
+    assert load_prey_yaml("s: &s abc\nl: [*s, *s]\n") == {"s": "abc", "l": ["abc", "abc"]}
 
 
 def test_a_deep_manifest_fails_no_miner_in_a_digest(npm_app: Path, tmp_path: Path) -> None:
