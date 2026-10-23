@@ -223,15 +223,14 @@ class AnalysisService:
         if not candidate.is_absolute():
             candidate = self.roots[0] / candidate
         # Stating a path is access too: a value that leaves the roots as written would let a
-        # client probe which local paths exist (and wake an automounter). Check the written
-        # path first, as local() does; anything else goes straight to the slug.
-        # A symlink or junction inside a root may also redirect outside, so probe only real entries.
+        # client probe which local paths exist (and wake an automounter). Out-of-root and
+        # explicit values are handed to local(), which refuses them lexically without
+        # touching the disk; a value inside a root is only probed when every component
+        # below its root is a real entry, so a symlink or junction inside a root cannot
+        # turn the probe into a look at an outside target.
         lexical = Path(os.path.normpath(candidate.absolute()))
-        if explicit or (
-            any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
-            and self._no_link_below(candidate)
-            and candidate.exists()
-        ):
+        inside = any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
+        if explicit or not inside or (self._no_link_below(candidate) and candidate.exists()):
             return Target(path=self.local(value))
         slug = Slug.parse(value)
         if not self.allow_network:
