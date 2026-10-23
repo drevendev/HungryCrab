@@ -26,7 +26,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.6.2** (2026-10-23) and **0.6.1** (2026-10-22), security releases on **0.6.0
+Released: **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22), security releases on **0.6.0
 Everywhere** (2026-10-22), a limited stable analysis release, after **0.2.0**. `hungry-crab` is
 on PyPI from 0.6.1.
 The 0.2.1-0.5 implementations are included in it; that does not close their unfulfilled

@@ -38,12 +38,12 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.2](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.2) is the latest
-release, a security release on
+**Status: [0.6.3](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.3) is the latest
+release, a security update on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
-stable one, and the first one built and published to [PyPI](https://pypi.org/project/hungry-crab/)
-from CI.** Update to it: it fixes a published vulnerability in the prey guard and the
-regressions of 0.6.1 (see the [changelog](CHANGELOG.md)). The supported scope is
+stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
+Update the CLI and plugins for bounded artifact/provider reads, strict copy policy and stronger
+publication/release checks (see the [changelog](CHANGELOG.md)). The supported scope is
 deterministic, human-supervised analysis: the CLI, scoped local MCP, portable skills and
 offline HTML reports. PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
 experimental; their live acceptance criteria are deferred to post-release work, not declared
