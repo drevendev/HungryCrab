@@ -23,12 +23,6 @@ and maw revisions. Mark each claim SUPPORTED, CONTRADICTED or UNKNOWN and explai
 Finding a duplicate capability or a false positive is useful. Do not edit the golden
 labels, scoring thresholds or nutrient IDs just to make the result pass.
 
-**Check installation — [#274](https://github.com/drevendev/HungryCrab/issues/274).**
-After installing the selected CLI revision, execute `crab --version` and `crab --help`
-without GitHub authentication. Record OS, versions, exact output and exit codes.
-Dependency installation may need a network; that is different from the post-install
-smoke check. Do not describe an unexecuted command as a successful run.
-
 **Show one first meal — [#278](https://github.com/drevendev/HungryCrab/issues/278).**
 Use the repository's trusted fixture builder and local synthetic prey/maw. Record an
 actual meal, one resulting nutrient and the explicit `--no-issues` comparison. Keep
