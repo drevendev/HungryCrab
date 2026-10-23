@@ -80,7 +80,10 @@ class Slug:
         if gitlab:
             parts = gitlab[1].split("/")
             if len(parts) < 2 or any(
-                not _REPO_NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts
+                not _REPO_NAME_RE.fullmatch(p)
+                or p in {".", ".."}
+                or p.endswith(".")
+                for p in parts
             ):
                 raise UsageError(f"invalid repository reference {text!r}")
             return cls("/".join(parts[:-1]), parts[-1], "gitlab.com")
@@ -96,7 +99,13 @@ class Slug:
                 )
             owner, repo = parts
             repo = repo.removesuffix(".git")
-        if not (_NAME_RE.fullmatch(owner) and _REPO_NAME_RE.fullmatch(repo)) or repo in {".", ".."}:
+        if (
+            not _NAME_RE.fullmatch(owner)
+            or owner.endswith(".")
+            or not _REPO_NAME_RE.fullmatch(repo)
+            or repo in {".", ".."}
+            or repo.endswith(".")
+        ):
             raise UsageError(f"invalid repository reference {text!r}")
         return cls(owner, repo)
 
