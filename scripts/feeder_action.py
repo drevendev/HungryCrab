@@ -229,7 +229,6 @@ def unconfirmed_submodules(maw: Path) -> list[str] | None:
     return sorted(unconfirmed)
 
 
-
 # Independent nested Git checkouts are not gitlinks and may carry private files.
 # The inventory also walks untracked directories, so inspect these before digest.
 MAX_NESTED_CHECKOUTS = 256
