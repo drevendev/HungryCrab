@@ -229,6 +229,69 @@ def unconfirmed_submodules(maw: Path) -> list[str] | None:
     return sorted(unconfirmed)
 
 
+
+# Independent nested Git checkouts are not gitlinks and may carry private files.
+# The inventory also walks untracked directories, so inspect these before digest.
+MAX_NESTED_CHECKOUTS = 256
+
+
+def _tracked_gitlink_checkout(directory: Path) -> bool:
+    """Only tracked submodules are handled by unconfirmed_submodules instead."""
+    parent = GitRunner(directory.parent).toplevel()
+    if parent is None:
+        return False
+    try:
+        relative = directory.relative_to(parent).as_posix()
+    except ValueError:
+        return False
+    listing = GitRunner(parent).try_run("ls-files", "-s", "-z", "--", relative)
+    if listing is None:
+        return False
+    return any(
+        entry.startswith(f"{GITLINK_MODE} ") and entry.partition("\t")[2] == relative
+        for entry in listing.split("\0")
+    )
+
+
+def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
+    """Find separately checked-out Git repositories below a public maw.
+
+    Each separate Git root needs independent forge visibility, even when the
+    enclosing public caller does not track that directory. Ordinary untracked
+    build output without a Git root is not a repository and is left alone.
+    A failed traversal or too many nested checkouts fails closed.
+    """
+    failures: list[OSError] = []
+    unconfirmed: list[str] = []
+    examined = 0
+    for base, dirs, files in os.walk(
+        maw, topdown=True, followlinks=False, onerror=failures.append
+    ):
+        marker = ".git" in dirs or ".git" in files
+        dirs[:] = [name for name in dirs if name != ".git"]
+        checkout = Path(base)
+        if checkout == maw or not marker or _tracked_gitlink_checkout(checkout):
+            continue
+        examined += 1
+        if examined > MAX_NESTED_CHECKOUTS:
+            return None
+        slug = maw_origin(checkout)
+        if slug is None or not forge_says_public(slug):
+            unconfirmed.append(checkout.relative_to(maw).as_posix())
+    if failures:
+        return None
+    return sorted(unconfirmed)
+
+
+def _nested_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
+    if paths is None:
+        return f"the maw ({maw_label}), whose nested checkouts cannot be inspected,", False
+    shown = ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+    plural = len(paths) > 1
+    noun = "nested checkouts" if plural else "nested checkout"
+    return f"the {noun} {shown} inside the maw ({maw_label})", plural
+
+
 def _submodule_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
     """How the refusal names the submodules of a public maw, and whether that is plural."""
     if paths is None:
@@ -273,6 +336,12 @@ def run() -> int:
             if submodules != []:
                 side, plural = _submodule_side(maw_label, submodules)
                 unconfirmed.append(side)
+            # A second actions/checkout is not a gitlink, but its files reach the artifact.
+            nested = unconfirmed_nested_checkouts(maw)
+            if nested != []:
+                side, many = _nested_side(maw_label, nested)
+                unconfirmed.append(side)
+                plural = plural or many
         if unconfirmed:
             verb = "are" if len(unconfirmed) > 1 or plural else "is"
             sides = f"{' and '.join(unconfirmed)} {verb}"
