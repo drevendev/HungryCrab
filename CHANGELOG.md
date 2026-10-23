@@ -7,6 +7,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-23
+
+A security release on 0.6.0 Everywhere, and the first release published to PyPI from CI. It
+fixes [GHSA-443x-5484-qr4g](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-443x-5484-qr4g):
+the prey guard judged a command's text rather than the paths the shell builds from it, and
+tools other than Bash and PowerShell (the Monitor tool, file writes) were not judged at all.
+The fix went through seven rounds of independent adversarial review and ships only where no
+reviewed case is weaker than 0.6.1. It also fixes what the review of 2026-10-23 found in 0.6.1
+itself: the Feeder action, the pre-push secret scan and heading extraction
+([#397](https://github.com/drevendev/HungryCrab/pull/397)). `hungry-crab` is on PyPI now
+(`uv tool install hungry-crab`). Update the CLI and the plugins: Claude Code offers the plugin
+update with this version.
+
 ### Security
 
 - **Prey guard:** a path the shell builds from the command text is judged as the shell builds
@@ -955,7 +968,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.6.0
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0
