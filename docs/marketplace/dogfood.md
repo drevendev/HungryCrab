@@ -25,6 +25,14 @@ size at the moment of execution; no pairing guarantees an improvement.
 | F05 — negative/minimal | [Quillgrain_Common](https://github.com/drevendev/Quillgrain_Common) | [BeautifulRepo](https://github.com/drevendev/BeautifulRepo) | Does a tiny/different repo trigger spurious certainty? | Keep an honest NO_GAP / NOT_APPLICABLE result |
 
 Start F01, then F02 and F03; F04/F05 are additional breadth and negative controls.
+
+**F02 is a mandatory M1 exit gate, not optional follow-up dogfood.** Execute the
+reviewed, full-SHA-pinned HungryCrab Action from an actual workflow in
+`drevendev/BeautifulRepo` on **both Linux and Windows**. Retain exact run/job links,
+the Action SHA, and inspected artifact/trace evidence for each platform. F01 within
+HungryCrab, including an `owner/repo@sha` reference to itself, does not establish
+cross-repository consumer compatibility. Do not promote F02 to EXECUTED or M1 PASS
+without these independent readbacks.
 Do not create trivial target PRs to force positive examples. This complements,
 rather than replaces, [First Feast #281](https://github.com/drevendev/HungryCrab/issues/281).
 
