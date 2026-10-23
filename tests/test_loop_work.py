@@ -55,6 +55,13 @@ def molt_receipt() -> dict[str, Any]:
         ".GitHub/WORKFLOWS/a.yml",
         "LICENSE",
         "LICENCE.txt",
+        "third_party/fast/LICENSE",
+        "third_party/fast/COPYING.txt",
+        "third_party/fast/NOTICE",
+        ".crab/attributions.json",
+        "THIRD_PARTY_NOTICES.md",
+        "NOTICE",
+        "src/file.py.",
         ".crab.yml",
         ".git/config",
         ".crab/loop.json",
@@ -75,6 +82,109 @@ def test_case_collisions_and_custom_protection_are_rejected(loop: Loop) -> None:
     loop.settings.protected.append("src/licensing/**")
     with pytest.raises(CrabError, match="protected"):
         check_paths(loop, ["src/licensing/rules.py"])
+
+
+def test_only_verified_copy_grow_may_write_generated_attributions(loop: Loop) -> None:
+    loop.config.attribution_file = "legal/notices.md"
+    generated = [".crab/attributions.json", "legal/notices.md"]
+    with pytest.raises(CrabError, match="protected"):
+        check_paths(loop, generated)
+    check_paths(loop, generated, allow_attributions=True)
+    with pytest.raises(CrabError, match="protected"):
+        check_paths(loop, ["third_party/fast/LICENSE"], allow_attributions=True)
+
+
+def test_verified_copy_preparation_keeps_its_generated_notice_and_records(loop: Loop) -> None:
+    from test_attribution import WORKFLOW, _maw, _payload, _prepare
+
+    _maw(loop.maw, {"templates/ci.yml": WORKFLOW})
+    prepared = _prepare(
+        loop.maw,
+        _payload(
+            taken=[
+                {
+                    "prey_path": ".github/workflows/test.yml",
+                    "maw_path": "templates/ci.yml",
+                    "verbatim": False,
+                }
+            ]
+        ),
+    )
+    paths = [file.path for file in prepared.files]
+    assert ".crab/attributions.json" in paths and "THIRD_PARTY_NOTICES.md" in paths
+    check_paths(loop, paths, allow_attributions=True)
+    with pytest.raises(CrabError, match="protected"):
+        check_paths(loop, paths)
+
+
+@pytest.mark.parametrize(
+    "path", ["third_party/fast/LICENSE", "THIRD_PARTY_NOTICES.md", ".crab/attributions.json"]
+)
+def test_molt_cannot_delete_compliance_even_when_introduced_by_this_round(
+    loop: Loop, path: str
+) -> None:
+    data = loop._load()
+    data["prs"] = [{**landed(), "files": [{"filename": path, "status": "added"}]}]
+    receipt = molt_receipt()
+    receipt["unreachable"][path] = "Nothing imports this text file"
+    with pytest.raises(CrabError, match="protected"):
+        _molt(loop, data, [("D", path)], receipt)
+
+
+@pytest.mark.parametrize(
+    "damage", [None, "url", "nutrient", "changelog-version", "old-version", "new-version"]
+)
+def test_harden_traces_exact_urls_ids_and_versions(loop: Loop, damage: str | None) -> None:
+    loop.settings.release_files.append("version.txt")
+    data = loop._load()
+    data["prs"] = [landed()]
+    values = {
+        ("head", "CHANGELOG.md"): f"## [1.3.0]\n- ({URL}) `crab:tests:tests.unit`\n",
+        ("base", "version.txt"): 'version = "1.2.3"',
+        ("head", "version.txt"): 'version = "1.3.0"',
+    }
+    if damage == "url":
+        values["head", "CHANGELOG.md"] = values["head", "CHANGELOG.md"].replace(URL, URL + "4")
+    elif damage == "nutrient":
+        values["head", "CHANGELOG.md"] = values["head", "CHANGELOG.md"].replace(
+            "tests.unit", "tests.unit-extra"
+        )
+    elif damage == "changelog-version":
+        values["head", "CHANGELOG.md"] = values["head", "CHANGELOG.md"].replace("1.3.0", "11.3.0")
+    elif damage == "old-version":
+        values["base", "version.txt"] = 'version = "11.2.3"'
+    elif damage == "new-version":
+        values["head", "version.txt"] = 'version = "11.3.0"'
+
+    class Git:
+        def run(self, *args: str) -> str:
+            if args[0] == "ls-tree":
+                return "100644 blob " + "b" * 40 + "\t" + args[-1]
+            commit, path = args[-1].split(":", 1)
+            return values[commit, path]
+
+    receipt = {"previous_version": "1.2.3", "version": "1.3.0", "contract_changed": False}
+    if damage is None:
+        _release(
+            loop,
+            data,
+            Git(),
+            "base",
+            "head",
+            [("M", "CHANGELOG.md"), ("M", "version.txt")],
+            receipt,
+        )
+    else:
+        with pytest.raises(CrabError, match="HARDEN"):
+            _release(
+                loop,
+                data,
+                Git(),
+                "base",
+                "head",
+                [("M", "CHANGELOG.md"), ("M", "version.txt")],
+                receipt,
+            )
 
 
 def test_loop_phase_branch_equal_to_default_refuses_before_fetch_or_push(
@@ -279,6 +389,7 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
     GitRunner(remote).run("update-ref", "refs/heads/master", merged_sha)
     provider.rows[result["url"]].update(
         merged_at="today",
+        merged_by=artifact(merged=True)["merged_by"],
         merge_commit_sha=merged_sha,
         state="closed",
         merge_ci=artifact(sha=merged_sha, merged=True)["merge_ci"],
@@ -325,6 +436,7 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
         GitRunner(remote).run("update-ref", "refs/heads/master", release_merge)
     provider.rows[release["url"]].update(
         merged_at="today",
+        merged_by=artifact(merged=True)["merged_by"],
         merge_commit_sha=release_merge,
         state="closed",
         merge_ci=artifact(sha=release_merge, merged=True)["merge_ci"],
@@ -425,3 +537,27 @@ def test_merge_ci_blocks_waiting_and_tagging_without_effects(
     with pytest.raises(CrabError, match=r"passing CI|reviewed head|required_checks"):
         tag(loop, ready["active"]["token"])
     assert loop.path.read_bytes() == before_tag
+
+
+@pytest.mark.parametrize(
+    "merger",
+    [None, {"login": "bot", "type": "Bot"}, {"login": "LOOP-PUBLISHER", "type": "User"}],
+)
+def test_tag_refuses_an_unverified_human_merge_before_git_or_state_effects(
+    loop: Loop, monkeypatch: pytest.MonkeyPatch, merger: object
+) -> None:
+    assert isinstance(loop.provider, Provider)
+    truth = artifact(merged=True)
+    truth["merged_by"] = merger
+    loop.provider.rows[URL] = truth
+    force_phase(loop, "harden", prs=[{**landed(), "phase": "harden", "state": "open"}])
+    ready = loop.next()
+
+    def no_git(*_: object, **__: object) -> None:
+        pytest.fail("tagging touched Git before proving a human merge")
+
+    monkeypatch.setattr("hungry_crab.loop_work.GitRunner", no_git)
+    before = loop.path.read_bytes()
+    with pytest.raises(CrabError, match="human merge"):
+        tag(loop, ready["active"]["token"])
+    assert loop.path.read_bytes() == before

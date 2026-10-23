@@ -18,6 +18,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ([#321](https://github.com/drevendev/HungryCrab/issues/321)).
 - Preserve comma-separated generic type arguments such as `HashMap<K, V>` in wiki headings while
   continuing to strip inline HTML ([#390](https://github.com/drevendev/HungryCrab/issues/390)).
+- **Loop security:** MOLT/HARDEN protect nested licence/notice files and attribution records;
+  landings and tags require a provider-confirmed user merger distinct from the publisher;
+  release traces match exact URLs, nutrient IDs and versions
+  ([#345](https://github.com/drevendev/HungryCrab/issues/345),
+  [#346](https://github.com/drevendev/HungryCrab/issues/346),
+  [#349](https://github.com/drevendev/HungryCrab/issues/349)).
 
 ## [0.6.2] - 2026-10-23
 

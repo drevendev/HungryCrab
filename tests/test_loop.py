@@ -32,6 +32,9 @@ class Provider:
         self.changed: dict[str, list[dict[str, Any]]] = {}
         self.calls = 0
 
+    def identity(self) -> str:
+        return "loop-publisher"
+
     def counts(self) -> tuple[int, int]:
         self.calls += 1
         return self.issue_count, self.pr_count
@@ -71,6 +74,7 @@ def artifact(
         "state": state,
         "body": "<!-- crab:tests:tests.unit -->\nA proposal",
         "merged_at": "today" if merged else None,
+        "merged_by": {"login": "independent-reviewer", "type": "User"} if merged else None,
         "merge_commit_sha": sha if merged else None,
         "merge_ci": {
             "sha": sha,
@@ -664,3 +668,59 @@ def test_nonrelease_merge_reconciliation_does_not_require_release_check_configur
     loop._reconcile(data)
     assert data["waiting_on"] is None
     assert data["prs"][0]["state"] == "merged"
+
+
+@pytest.mark.parametrize(
+    "merger",
+    [
+        None,
+        {},
+        {"type": "Bot", "login": "merge-bot"},
+        {"type": "User", "login": "LOOP-PUBLISHER"},
+        {"type": "User", "login": "merge-bot[bot]"},
+        {"type": "User", "login": ""},
+    ],
+)
+@pytest.mark.parametrize("phase", ["grow", "molt", "harden"])
+def test_unverified_merger_never_counts_as_a_human_landing(
+    loop: Loop, merger: object, phase: str
+) -> None:
+    assert isinstance(loop.provider, Provider)
+    truth = artifact(merged=True)
+    truth["merged_by"] = merger
+    loop.provider.rows[URL] = truth
+    force_phase(
+        loop,
+        "taste",
+        prs=[{"round": 1, "phase": phase, "url": URL, "sha": SHA, "state": "open", "files": []}],
+    )
+    data = loop._load()
+    data["waiting_on"] = {"kind": "merge", "reason": "waiting for human merge"}
+    loop._save(data)
+    before = data["phases_today"]
+    result = loop.next()
+    assert not result["ready"] and result["waiting_on"]["kind"] == "human"
+    assert result["prs"][0]["state"] == "open"
+    assert loop._load()["phases_today"] == before
+
+
+def test_unknown_publishing_identity_waits_for_a_person(
+    loop: Loop, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert isinstance(loop.provider, Provider)
+    loop.provider.rows[URL] = artifact(merged=True)
+
+    def unavailable() -> str:
+        raise CrabError("identity unavailable")
+
+    monkeypatch.setattr(loop.provider, "identity", unavailable)
+    force_phase(
+        loop,
+        "taste",
+        prs=[{"round": 1, "phase": "grow", "url": URL, "sha": SHA, "state": "open", "files": []}],
+    )
+    data = loop._load()
+    data["waiting_on"] = {"kind": "merge", "reason": "waiting for human merge"}
+    loop._reconcile(data)
+    assert data["waiting_on"]["kind"] == "human"
+    assert data["prs"][0]["state"] == "open"

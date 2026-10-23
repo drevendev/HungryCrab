@@ -12,6 +12,8 @@ from .errors import CrabError
 
 
 class LoopProvider(Protocol):
+    def identity(self) -> str: ...
+
     def counts(self) -> tuple[int, int]: ...
 
     def artifact(self, url: str) -> dict[str, Any]: ...
@@ -23,12 +25,41 @@ class LoopProvider(Protocol):
     def close_pr(self, url: str) -> None: ...
 
 
+def human_merge(artifact: dict[str, Any], publishing_identity: str) -> bool:
+    """Provider-confirmed user merger, distinct from the token that publishes loop work."""
+    merger = artifact.get("merged_by")
+    if not isinstance(merger, dict) or merger.get("type") != "User":
+        return False
+    login = merger.get("login")
+    return (
+        isinstance(login, str)
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", login) is not None
+        and isinstance(publishing_identity, str)
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", publishing_identity) is not None
+        and login.casefold() != publishing_identity.casefold()
+    )
+
+
 class GitHubLoopProvider:
     def __init__(self, slug: Slug, run: Callable[..., str]) -> None:
         if slug.host != "github.com":
             raise CrabError("scheduled publication requires a GitHub maw")
         self.slug = slug
         self.run = run
+
+    def identity(self) -> str:
+        try:
+            data = json.loads(self.run("api", "user"))
+        except (ValueError, RecursionError) as exc:
+            raise CrabError("cannot verify the loop publishing identity") from exc
+        login = data.get("login") if isinstance(data, dict) else None
+        if (
+            not isinstance(login, str)
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", login) is None
+            or data.get("type") != "User"
+        ):
+            raise CrabError("cannot verify the loop publishing identity")
+        return login
 
     def _pages(self, endpoint: str, key: str | None = None) -> list[dict[str, Any]]:
         try:

@@ -15,17 +15,19 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from .attribution import ATTRIBUTIONS_PATH, MATERIALIZATION_KIND, receipt_kind
 from .cache import Slug, prey_paths
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
 from .loop import Loop, _text, ci_state, merge_ci_state, state_lock
+from .loop_provider import human_merge
 from .pr_publication import PreparedPullRequest
 from .publication_safety import format_publication_findings, scan_publication_bundle
 from .serve import GhIssueClient, ServeOptions, serve
 
 
-def check_paths(loop: Loop, paths: list[str]) -> None:
+def check_paths(loop: Loop, paths: list[str], *, allow_attributions: bool = False) -> None:
     seen: set[str] = set()
     for path in paths:
         parts = path.split("/")
@@ -35,17 +37,29 @@ def check_paths(loop: Loop, paths: list[str]) -> None:
             or "\\" in path
             or ":" in path
             or path.startswith("/")
-            or any(part in {"", ".", ".."} for part in parts)
+            or any(part in {"", ".", ".."} or part.rstrip(" .") != part for part in parts)
             or any(ord(character) < 32 for character in path)
             or folded in seen
             or any(part.casefold() == ".git" for part in parts)
         ):
             raise CrabError("loop publication contains an unsafe or duplicate path")
         seen.add(folded)
-        if folded.startswith((".crab/loop", ".crab/maws")) or any(
-            fnmatch.fnmatchcase(folded, pattern.casefold())
-            or folded == pattern.casefold().removesuffix("/**")
-            for pattern in loop.settings.protected
+        generated_attributions = {
+            ATTRIBUTIONS_PATH.casefold(),
+            loop.config.attribution_file.casefold(),
+        }
+        compliance = folded in generated_attributions or any(
+            fnmatch.fnmatchcase(parts[-1].casefold(), pattern)
+            for pattern in ("license*", "licence*", "copying*", "notice*")
+        )
+        if (
+            (compliance and not (allow_attributions and folded in generated_attributions))
+            or folded.startswith((".crab/loop", ".crab/maws"))
+            or any(
+                fnmatch.fnmatchcase(folded, pattern.casefold())
+                or folded == pattern.casefold().removesuffix("/**")
+                for pattern in loop.settings.protected
+            )
         ):
             raise CrabError(f"loop refuses protected path: {path}")
 
@@ -107,7 +121,13 @@ def serve_phase(
         )
 
         def guard(prepared: PreparedPullRequest) -> None:
-            check_paths(loop, [file.path for file in prepared.files])
+            check_paths(
+                loop,
+                [file.path for file in prepared.files],
+                allow_attributions=bool(
+                    receipt_payload and receipt_kind(receipt_payload) == MATERIALIZATION_KIND
+                ),
+            )
 
         client = GhIssueClient(token_env=config.serve.token_env)
         if phase == "grow":
@@ -145,7 +165,13 @@ def serve_phase(
             if "/pull/" not in entry.url:
                 raise CrabError("GROW did not reconcile a PR")
             files = loop._provider().files(entry.url)
-            check_paths(loop, [row["filename"] for row in files])
+            check_paths(
+                loop,
+                [row["filename"] for row in files],
+                allow_attributions=bool(
+                    receipt_payload and receipt_kind(receipt_payload) == MATERIALIZATION_KIND
+                ),
+            )
             data["prs"].append(
                 {
                     "round": data["round"],
@@ -186,6 +212,7 @@ def _blob(git: GitRunner, commit: str, path: str) -> str:
 def _molt(
     loop: Loop, data: dict[str, Any], changes: list[tuple[str, str]], receipt: dict[str, Any]
 ) -> None:
+    check_paths(loop, [path for _, path in changes])
     landed = loop._landed(data)
     if not landed:
         raise CrabError("MOLT is skipped when this round landed nothing")
@@ -241,6 +268,7 @@ def _release(
     changes: list[tuple[str, str]],
     receipt: dict[str, Any],
 ) -> None:
+    check_paths(loop, [path for _, path in changes])
     landed = loop._landed(data)
     if not landed:
         raise CrabError("HARDEN is skipped when this round landed nothing")
@@ -262,15 +290,22 @@ def _release(
     ):
         raise CrabError("HARDEN requires CHANGELOG.md and only maw-authorized release files")
     changelog = _blob(git, head, "CHANGELOG.md")
-    if receipt["version"] not in changelog or any(
-        pr["url"] not in changelog or (pr.get("nutrient_id") and pr["nutrient_id"] not in changelog)
+    if not _mentions(changelog, receipt["version"]) or any(
+        not _mentions(changelog, pr["url"])
+        or (pr.get("nutrient_id") and not _mentions(changelog, pr["nutrient_id"]))
         for pr in landed
     ):
         raise CrabError("HARDEN changelog must trace every landed PR and nutrient ID")
     for path in paths - {"CHANGELOG.md"}:
         old, new = _blob(git, base, path), _blob(git, head, path)
-        if receipt["previous_version"] not in old or receipt["version"] not in new:
+        if not _mentions(old, receipt["previous_version"]) or not _mentions(
+            new, receipt["version"]
+        ):
             raise CrabError("HARDEN version files must contain the declared before/after versions")
+
+
+def _mentions(text: str, token: str) -> bool:
+    return re.search(rf"(?<![\w.:/-]){re.escape(token)}(?![\w.:/-])", text) is not None
 
 
 def _version(value: str) -> tuple[int, int, int]:
@@ -435,6 +470,10 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
         truth = loop._provider().artifact(pr["url"])
         if not truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:
             raise CrabError("release PR must be merged at the reviewed head before tagging")
+        if not human_merge(truth, loop._provider().identity()):
+            raise CrabError(
+                "release PR requires a verified human merge distinct from the publishing identity"
+            )
         if ci_state(truth) != "pass":
             raise CrabError("release PR must have passing CI at the reviewed head before tagging")
         if merge_ci_state(truth, loop.settings.required_checks) != "pass":
@@ -450,7 +489,7 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
         if git.try_run("merge-base", "--is-ancestor", sha, default_sha) is None:
             raise CrabError("release merge commit is not on the default branch")
         for path in pr["receipt"]["changed_paths"]:
-            if pr["receipt"]["version"] not in _blob(git, sha, path):
+            if not _mentions(_blob(git, sha, path), pr["receipt"]["version"]):
                 raise CrabError("merged release files no longer contain the reviewed version")
         remote = git.run(
             "ls-remote", "--tags", "origin", f"refs/tags/{name}", f"refs/tags/{name}^{{}}"

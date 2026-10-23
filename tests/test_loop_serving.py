@@ -23,9 +23,17 @@ from hungry_crab.pr_publication import (
 loop = _loop_fixture
 
 
-@pytest.mark.parametrize("protected", [False, True])
+@pytest.mark.parametrize(
+    "target",
+    [
+        "tests/test_isolation.py",
+        ".github/workflows/unsafe.yml",
+        ".crab/attributions.json",
+        "THIRD_PARTY_NOTICES.md",
+    ],
+)
 def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_blocked(
-    loop: Loop, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, protected: bool
+    loop: Loop, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str
 ) -> None:
     assert isinstance(loop.provider, Provider)
     provider = loop.provider
@@ -79,7 +87,7 @@ def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_bloc
     issue = serve_phase(loop, ready["active"]["token"], "example/prey", card.id)
     issue_url = issue["served"][0]["url"]
     loop.record(ready["active"]["token"], "serve", "ok", receipt={"urls": [issue_url]})
-    target = ".github/workflows/unsafe.yml" if protected else "tests/test_isolation.py"
+    protected = target != "tests/test_isolation.py"
     destination = loop.maw / target
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text("def test_isolated():\n    assert True\n", encoding="utf-8")
@@ -138,6 +146,7 @@ def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_bloc
     assert not loop.next()["ready"]
     provider.rows[URL].update(
         merged_at="today",
+        merged_by=artifact(merged=True)["merged_by"],
         merge_commit_sha=provider.rows[URL]["head"]["sha"],
         merge_ci=artifact(sha=provider.rows[URL]["head"]["sha"], merged=True)["merge_ci"],
     )

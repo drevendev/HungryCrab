@@ -23,7 +23,7 @@ from .digest import incomplete_miners
 from .digest_integrity import digest_integrity_errors
 from .errors import CrabError, UsageError
 from .loop_config import AUTONOMIES, RequiredCheck, mapping, strings
-from .loop_provider import LoopProvider
+from .loop_provider import LoopProvider, human_merge
 from .maw import MawConfig, maw_slug
 
 LOOP_SCHEMA = "hungry-crab.loop/1"
@@ -497,6 +497,20 @@ class Loop:
                 }
                 return
             if truth.get("merged_at"):
+                try:
+                    identity = self._provider().identity()
+                except CrabError:
+                    data["waiting_on"] = {
+                        "kind": "human",
+                        "reason": "Cannot verify the loop publishing identity",
+                    }
+                    return
+                if not human_merge(truth, identity):
+                    data["waiting_on"] = {
+                        "kind": "human",
+                        "reason": "Human merge by someone other than the publisher required",
+                    }
+                    return
                 required = self.settings.required_checks if pr["phase"] == "harden" else None
                 status = merge_ci_state(truth, required)
                 if status == "fail":

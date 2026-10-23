@@ -15,6 +15,26 @@ URL = "https://github.com/example/maw/pull/1"
 SHA = "a" * 40
 
 
+def test_publishing_identity_comes_from_the_authenticated_user_endpoint() -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def run(*args: str) -> str:
+        calls.append(args)
+        return json.dumps({"login": "loop-publisher", "type": "User"})
+
+    assert GitHubLoopProvider(Slug("example", "maw"), run).identity() == "loop-publisher"
+    assert calls == [("api", "user")]
+
+
+@pytest.mark.parametrize(
+    "raw", ["null", "{}", "[]", '{"login":null}', '{"login":""}', '{"login":"a b","type":"User"}']
+)
+def test_missing_or_malformed_publishing_identity_fails_closed(raw: str) -> None:
+    provider = GitHubLoopProvider(Slug("example", "maw"), lambda *_: raw)
+    with pytest.raises(CrabError, match="publishing identity"):
+        provider.identity()
+
+
 def test_provider_reads_every_page_counts_marked_artifacts_and_checks_envelopes() -> None:
     calls: list[tuple[str, ...]] = []
 

@@ -48,9 +48,19 @@ gh api repos/OWNER/REPO/commits/MERGE_SHA/check-runs --paginate \
 ```
 
 All loop keys and limits are validated. Default protected paths are `.github/**`, `.git/**`,
-license files, `.crab.yml` and loop state. Set both `autonomy: work` and `work_authorized: true`
+license/copying/notice files at every depth, `.crab.yml` and loop state. MOLT and HARDEN also
+protect `.crab/attributions.json` and the configured `attribution_file`; claiming that a text
+file is unreachable does not permit its deletion. Only verified COPY GROW preparation can
+write its generated attribution records and notice. Set both `autonomy: work` and `work_authorized: true`
 only after the S0/S1 observation period. A control repository cannot grant work consent.
 Work also needs a persistent ledger (`repo` or `cache`).
+
+A merged PR counts as landed only when the provider reports a `User` merger distinct from the
+authenticated publishing account (`gh api user` through the configured token). Bot merges,
+missing merger data, an unavailable publishing identity, or merging with the publishing
+account itself require human attention. Tagging repeats this verification before touching Git.
+Use separate publishing and reviewing accounts for unattended work. Release traces match whole
+PR URLs, nutrient IDs and version values; a longer URL or version cannot stand in for one.
 
 ```bash
 crab loop init --maw /path/to/maw
