@@ -73,12 +73,14 @@ def parse_since(text: str, *, now: datetime | None = None) -> date:
     hint = "use 2y, 6m, 90d or an ISO date such as 2024-01-01"
     match = _SINCE_RE.match(text.strip().lower())
     if match:
-        days = int(match.group(1)) * _UNIT_DAYS[match.group(2)]
         try:
+            days = int(match.group(1)) * _UNIT_DAYS[match.group(2)]
             return (current - timedelta(days=days)).date()
-        except OverflowError as exc:
-            # a digit count that would reach before year 1, or that does not
-            # fit a C int, is a usage error like any other unparsable value
+        except (ValueError, OverflowError) as exc:
+            # on Python 3.11+ int() applies the integer-string digit limit to
+            # oversized digit counts; a value that would reach before year 1, or
+            # that does not fit a C int, is a usage error like any other
+            # unparsable value
             raise UsageError(f"cannot parse --since value {text!r}", hint=hint) from exc
     try:
         return date.fromisoformat(text.strip())

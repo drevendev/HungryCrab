@@ -35,9 +35,13 @@ def test_parse_since_rejects_nonsense() -> None:
         parse_since("yesterday", now=NOW)
 
 
-@pytest.mark.parametrize("text", ["3000y", "99999999999d"])
+@pytest.mark.parametrize(
+    "text",
+    ["3000y", "99999999999d", "4" * 4301 + "d", "4" * 4301 + "w"],
+)
 def test_parse_since_rejects_values_beyond_the_date_range(text: str) -> None:
-    """A relative value that would reach before year 1 is a usage error, not a traceback."""
+    """A relative value that would reach before year 1, or a digit count beyond
+    Python 3.11+'s integer-string limit, is a usage error, not a traceback."""
     with pytest.raises(UsageError, match="cannot parse --since"):
         parse_since(text, now=NOW)
 
