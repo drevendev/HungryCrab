@@ -19,6 +19,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   shape of the crab's evidence links, as a public repository followed by segments, so a hex
   commit no longer joins a mixed-case path into one high-entropy token; each segment is still
   judged ([#387](https://github.com/drevendev/HungryCrab/issues/387)).
+- **Publication:** the 0.6.1 secret scan no longer refuses ordinary text it took for
+  credentials: a `docker://` or `oci://` image reference and a digest after the `@`
+  (`alpine:3.20@sha256:…`) are not a password in a URL, the Slack shape lists only Slack's
+  prefixes (`xox[abcdeprs]-`, `xapp-`), so `xoxo` is a word, and `X-` header names, the
+  Kubernetes Secret a chart's `existingSecret` names and translations under `locales/`,
+  `i18n/`, `lang/` and similar directories are not credential literals
+  ([#388](https://github.com/drevendev/HungryCrab/issues/388)).
 
 ## [0.6.1] - 2026-10-22
 

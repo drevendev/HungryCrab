@@ -252,6 +252,65 @@ def test_paths_are_judged_one_segment_at_a_time(line: str) -> None:
     assert scan_publication("generated/notes.txt", line) == []
 
 
+IMAGE_DIGEST = "sha256:" + "4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1"
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # #388: digest-pinned image references are not user:password@host.
+        (".github/workflows/lint.yml", f"      - uses: docker://alpine:3.20@{IMAGE_DIGEST}"),
+        (".github/workflows/lint.yml", f"      - uses: docker://node:20-alpine@{IMAGE_DIGEST}"),
+        (".github/workflows/lint.yml", f"        image: docker://python:3.12-slim@{IMAGE_DIGEST}"),
+        ("scripts/mirror.sh", f"skopeo copy docker://alpine:3.20@{IMAGE_DIGEST} oci:alpine"),
+        ("docs/ci.md", f"Pin the action as `docker://alpine:3.20@{IMAGE_DIGEST}`."),
+        (
+            ".github/workflows/lint.yml",
+            f"      - uses: docker://ghcr.io/owner/tool:1.0@{IMAGE_DIGEST}",
+        ),
+        ("scripts/mirror.sh", "skopeo inspect oci://layout:v1.2@" + "sha512:" + "ab" * 64),
+        # Translations are labels, not configuration.
+        ("config/locales/de.yml", "    password: Passwort"),
+        ("config/locales/es.yml", "    password: Contraseña"),
+        ("src/locales/nl.json", '    "password": "Wachtwoord",'),
+        ("src/locales/de.json", '    "secret": "Geheimnis",'),
+        ("resources/lang/fr.json", '    "token": "Jetonsecret",'),
+        ("src/i18n/pt-BR.yaml", "  password: Senhasecreta"),
+        # A chart names the Kubernetes Secret that holds the credential.
+        ("charts/app/values.yaml", "  existingSecret: my-release-postgresql"),
+        ("charts/app/values.yaml", "  auth:\n    existingSecret: db-credentials.v2"),
+        # Header names are constants, not credentials.
+        ("src/web/csrf.ts", 'export const csrfToken = "X-CSRF-Token";'),
+        ("src/web/api.ts", 'const apiKey = "X-API-Key";'),
+        ("src/web/api.py", 'API_KEY = "x-api-key"'),
+        ("config/http.yml", "auth_token: X-Auth-Token"),
+        # Slack's prefixes are xoxa, xoxb, xoxc, xoxd, xoxe, xoxp, xoxr, xoxs and xapp.
+        ("docs/emoji.md", "Signed off with xoxo-from-the-whole-team"),
+        ("src/slugs.py", "SLUG = 'xoxo-gossip-girl-recap'"),
+    ],
+)
+def test_the_0_6_1_false_positives_do_not_block(path: str, line: str) -> None:
+    assert scan_publication(path, line + "\n") == []
+
+
+@pytest.mark.parametrize(
+    ("path", "line", "rule"),
+    [
+        # The narrowing of #388 keeps the shapes it does not describe.
+        ("README.md", "https://crab:" + PASSWORD + "@sha256.example.com/", "url-credentials"),
+        ("compose.yml", "url: redis://:" + PASSWORD + "@cache:6379/0", "url-credentials"),
+        ("src/web/api.ts", 'const apiKey = "X-9f8e7d6c' + '5b4a3";', "credential-assignment"),
+        ("charts/app/values.yaml", "existingSecret: " + PASSWORD, "credential-assignment"),
+        ("charts/app/values.yaml", "adminPassword: my-release-postgresql", "credential-assignment"),
+        ("config/locales/de.yml", f"password: {LITERAL}", "credential-assignment"),
+        ("docs/slack.md", "SLACK=" + "xoxs-" + "1234567890-ABCDEFGHIJ", "slack-token"),
+        ("docs/slack.md", "SLACK=" + "xapp-" + "1-A0123456789-abcdef", "slack-token"),
+    ],
+)
+def test_the_0_6_1_true_positives_still_block(path: str, line: str, rule: str) -> None:
+    assert [finding.rule for finding in scan_publication(path, line + "\n")] == [rule]
+
+
 def test_the_crab_s_own_branch_and_specification_names_do_not_block() -> None:
     nutrient = "crab:docs:astral-sh-uv:contributing-guide-with-reproducible-benchmarks"
     spec = nutrient_spec_path(nutrient)

@@ -9,15 +9,18 @@ Every line goes through three passes, and the first that finds something decides
 
 1. Shapes: token formats their issuers document (AWS key ids, GitHub, GitLab and Slack tokens,
    Slack webhooks, PEM private-key headers) and a password embedded in a URL. The placeholders
-   documentation prints in those shapes (all zeros, all x, AWS's ``...EXAMPLE``) are not.
+   documentation prints in those shapes (all zeros, all x, AWS's ``...EXAMPLE``) are not, and
+   neither is a ``docker://`` or ``oci://`` image reference or a digest after the ``@``.
 2. Credential assignments: a name whose last word is a credential word (``token``, ``secret``,
    ``password``, ``api_key`` and a few more) bound to a literal that looks like a credential.
    Only a quoted literal is a value in code, so ``tokens = estimate_tokens(text)`` (plural, and
    a call) and ``token = other`` (a name) are not findings, and neither is a literal that reads
    as a name (``token = 'IDENT2'``). Unquoted values count in configuration files and in
    dotenv-style ``NAME=value`` lines. In a configuration file any literal of eight or more
-   characters counts. Placeholders and references to a store (``env:NAME``, ``${NAME}``,
-   ``$NAME``, ``%NAME%``) never do.
+   characters counts; a file under a locale directory (``locales/``, ``i18n/``, ``lang/``) holds
+   translations and is judged like code. Placeholders, references to a store (``env:NAME``,
+   ``${NAME}``, ``$NAME``, ``%NAME%``), ``X-`` header names and the Kubernetes Secret a chart's
+   ``existingSecret`` names never do.
 3. Entropy: long opaque tokens. A path is judged one segment at a time, and so is what follows
    the commit, blob, tree or raw view of a GitHub or GitLab URL (`/blob/<sha>/<path>`, as the
    crab links evidence); lock files, which carry only hashes and URLs, skip this pass.
@@ -47,7 +50,8 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             r"\bgl(?:pat|dt|rt|ptt|oas|cbt|ft|imt|soat|agent)-(?P<body>[A-Za-z0-9_.-]{20,})"
         ),
     ),
-    ("slack-token", re.compile(r"\b(?:xox[a-z]|xapp)-(?P<body>[A-Za-z0-9-]{10,})")),
+    # Slack's documented prefixes only: `xoxo-from-the-team` is a word, not a token.
+    ("slack-token", re.compile(r"\b(?:xox[abcdeprs]|xapp)-(?P<body>[A-Za-z0-9-]{10,})")),
     (
         "slack-webhook",
         re.compile(
@@ -60,12 +64,17 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 _PLACEHOLDER_SEGMENT = re.compile(r"[A-Z]?(?:0+|x+|X+)")
-# scheme://user:password@host; the user part may be empty (redis://:password@host). Every
+# scheme://user:password@host; the user part may be empty (redis://:password@host). A digest
+# after the `@` is not a host: `docker://alpine:3.20@sha256:...` pins an image by content. Every
 # repetition is bounded so that a long line cannot make a search quadratic.
 _URL_CREDENTIALS = re.compile(
-    r"\b[A-Za-z][A-Za-z0-9+.-]{0,31}://"
-    r"(?P<user>[^\s/?#@:]{0,256}):(?P<password>[^\s/?#@]{1,256})@[\w\[]"
+    r"\b(?P<scheme>[A-Za-z][A-Za-z0-9+.-]{0,31})://"
+    r"(?P<user>[^\s/?#@:]{0,256}):(?P<password>[^\s/?#@]{1,256})"
+    r"@(?!sha(?:256|384|512):)[\w\[]"
 )
+# Container image references are written as URLs but carry a name, a tag and a digest; the
+# registry's credentials are never part of them.
+_IMAGE_SCHEMES = frozenset({"docker", "oci"})
 
 # A name, optionally quoted (JSON, YAML), then an assignment or key separator. Comparisons
 # (==, !=, <=, >=), scopes (::) and URLs (://) are not separators.
@@ -123,6 +132,13 @@ _BARE_SUFFIXES = frozenset(
 _CONFIG_SUFFIXES = frozenset(
     {".yml", ".yaml", ".ini", ".cfg", ".conf", ".properties", ".env", ".toml", ".json"}
 )
+# Directories that hold translations: `password: Passwort` there is a label, not a credential,
+# so their YAML and JSON files are judged like code rather than like configuration.
+_LOCALE_DIRECTORIES = frozenset(
+    {"locale", "locales", "i18n", "l10n", "lang", "langs", "languages", "translations"}
+)
+# A Kubernetes object name (RFC 1123 subdomain): what a chart's `existingSecret` holds.
+_KUBERNETES_NAME = re.compile(r"[a-z0-9](?:[a-z0-9.-]{0,251}+(?<=[a-z0-9]))?")
 # Generated files that carry only resolved versions, URLs and content hashes.
 _LOCK_FILES = frozenset(
     {
@@ -341,6 +357,31 @@ def _code_name(value: str) -> bool:
     )
 
 
+def _header_name(value: str) -> bool:
+    """An HTTP header name in the `X-` convention: `X-CSRF-Token`, `X-API-Key`, `x-api-key`.
+
+    Each word after the `X-` reads as a name (CamelCase, upper-case with digits, or a lowercase
+    word), which a random string with a leading `X-` does not.
+    """
+
+    if value[:2] not in {"X-", "x-"}:
+        return False
+    words = value[2:].split("-")
+    return all(word and (_code_name(word) or (word.isalpha() and word.islower())) for word in words)
+
+
+def _secret_object_name(name: str, value: str) -> bool:
+    """A Kubernetes Secret named by a chart value (`existingSecret: my-release-postgresql`).
+
+    The key says the secret already exists elsewhere, and the value is shaped as a Kubernetes
+    object name (lowercase letters, digits, `-` and `.`), so it names the object holding the
+    credential rather than being one.
+    """
+
+    words = _name_words(name)
+    return "existing" in words[:-1] and _KUBERNETES_NAME.fullmatch(value) is not None
+
+
 def _credential_literal(value: str, *, name: str = "", config: bool = False) -> bool:
     """A literal that could be a credential rather than a name, reference, template or prose.
 
@@ -355,6 +396,8 @@ def _credential_literal(value: str, *, name: str = "", config: bool = False) -> 
     if value.lower() in _YAML_WORDS or _ENV_NAME.fullmatch(value):
         return False
     if value.lower() in _name_words(name):  # `POSTGRES_PASSWORD: postgres`, a service default
+        return False
+    if _header_name(value) or _secret_object_name(name, value):
         return False
     if config and len(value) >= _CONFIG_LITERAL_MIN_LENGTH:
         return True
@@ -402,6 +445,8 @@ def _accepts_bare_values(logical_path: str) -> bool:
 
 def _is_config_file(logical_path: str) -> bool:
     path = PurePosixPath(logical_path.replace("\\", "/"))
+    if any(part.lower() in _LOCALE_DIRECTORIES for part in path.parts[:-1]):
+        return False
     return path.suffix.lower() in _CONFIG_SUFFIXES or _is_dotenv(path.name.lower())
 
 
@@ -423,7 +468,8 @@ def _shape_rules(line: str) -> list[str]:
     for match in _URL_CREDENTIALS.finditer(line):
         password = match.group("password")
         if not (
-            _looks_placeholder(password)
+            match.group("scheme").lower() in _IMAGE_SCHEMES
+            or _looks_placeholder(password)
             or password.lower() in _URL_PLACEHOLDERS
             or password.lower() == match.group("user").lower()
             or _MASKED.fullmatch(password)
