@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Fixed outdated command listings across documentation and added automated validation regression tests (#316)
+
 ## [0.6.1] - 2026-10-22
 
 A security release on 0.6.0 Everywhere, with no new features. It fixes two vulnerabilities
