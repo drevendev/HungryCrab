@@ -230,7 +230,13 @@ class AnalysisService:
         # turn the probe into a look at an outside target.
         lexical = Path(os.path.normpath(candidate.absolute()))
         inside = any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
-        if explicit or not inside or (self._no_link_below(candidate) and candidate.exists()):
+        if explicit or not inside:
+            return Target(path=self.local(value))
+        # A normalized endpoint inside a root does not prove that every raw prefix stays
+        # there. Reject implicit traversal before lstat/exists can probe an outside sibling.
+        if ".." in candidate.parts:
+            raise UsageError("cannot parse repository reference with parent traversal")
+        if self._no_link_below(candidate) and candidate.exists():
             return Target(path=self.local(value))
         slug = Slug.parse(value)
         if not self.allow_network:

@@ -22,7 +22,7 @@ crab mcp --check
 
 To follow `master` instead, install from this repository with
 `uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab"`; appending a
-tag such as `@v0.6.1` to that URL pins a release from git.
+tag such as `@v0.6.2` to that URL pins a release from git.
 
 The smoke checks after installation are offline and need no GitHub authentication. `--check`
 prints the server version, stdio transport and two tool names, then exits. It does not start a
@@ -42,7 +42,7 @@ uv build
 ```
 
 Then install the wheel `uv build` wrote to `dist/` (its name carries the version), for example
-`uv tool install ./dist/hungry_crab-0.6.1-py3-none-any.whl`.
+`uv tool install ./dist/hungry_crab-0.6.2-py3-none-any.whl`.
 
 For MCP, install `hungry-crab[mcp] @ file:///absolute/path/to/the.whl` instead. On Windows use
 an absolute file URI such as `file:///C:/packages/the.whl`. Package metadata, wheel, sdist and

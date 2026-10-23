@@ -7,6 +7,8 @@ import pytest
 
 from hungry_crab.cache import Slug
 from hungry_crab.errors import CrabError
+from hungry_crab.loop import merge_ci_state
+from hungry_crab.loop_config import RequiredCheck
 from hungry_crab.loop_provider import GitHubLoopProvider
 
 URL = "https://github.com/example/maw/pull/1"
@@ -26,7 +28,7 @@ def test_provider_reads_every_page_counts_marked_artifacts_and_checks_envelopes(
                     [{"body": "<!-- crab:loop:x:1:molt -->", "pull_request": {}}],
                 ]
             )
-        if endpoint.endswith("check-runs?per_page=100"):
+        if endpoint.endswith("check-runs?filter=all&per_page=100"):
             return json.dumps(
                 [
                     {"check_runs": [{"id": 1, "head_sha": SHA}]},
@@ -86,7 +88,7 @@ def test_merged_pr_reads_ci_for_its_actual_merge_commit(conclusion: str | None) 
     def run(*args: str) -> str:
         endpoint = args[-1]
         reads.append(endpoint)
-        if endpoint.endswith("check-runs?per_page=100"):
+        if endpoint.endswith("check-runs?filter=all&per_page=100"):
             sha = endpoint.split("/commits/")[1].split("/")[0]
             checks = (
                 []
@@ -128,7 +130,7 @@ def test_provider_refuses_checks_or_status_bound_to_another_commit() -> None:
 
         def run(*args: str, wrong: str = wrong) -> str:
             endpoint = args[-1]
-            if endpoint.endswith("check-runs?per_page=100"):
+            if endpoint.endswith("check-runs?filter=all&per_page=100"):
                 return json.dumps(
                     [{"check_runs": [{"head_sha": "b" * 40 if wrong == "checks" else SHA}]}]
                 )
@@ -138,3 +140,49 @@ def test_provider_refuses_checks_or_status_bound_to_another_commit() -> None:
 
         with pytest.raises(CrabError, match=r"different commit|invalid commit statuses"):
             GitHubLoopProvider(Slug("example", "maw"), run).artifact(URL)
+
+
+@pytest.mark.parametrize("conclusion", ["skipped", "failure", "success"])
+def test_provider_preserves_app_identity_across_paginated_merge_checks(conclusion: str) -> None:
+    merge_sha = "b" * 40
+
+    def run(*args: str) -> str:
+        endpoint = args[-1]
+        if "/check-runs?" in endpoint:
+            assert "filter=all&per_page=100" in endpoint
+            sha = endpoint.split("/commits/")[1].split("/")[0]
+            expected = {
+                "id": 1,
+                "name": "tests",
+                "head_sha": sha,
+                "app": {"id": 15368},
+                "status": "completed",
+                "conclusion": conclusion if sha == merge_sha else "success",
+            }
+            return json.dumps(
+                [
+                    {"check_runs": [expected]},
+                    {
+                        "check_runs": [
+                            {**expected, "id": 2, "app": {"id": 42}, "conclusion": "success"}
+                        ]
+                    },
+                ]
+            )
+        if endpoint.endswith("/status"):
+            return json.dumps({"sha": endpoint.split("/")[-2], "statuses": []})
+        return json.dumps(
+            {
+                "html_url": URL,
+                "head": {"sha": SHA},
+                "merged_at": "today",
+                "merge_commit_sha": merge_sha,
+            }
+        )
+
+    truth = GitHubLoopProvider(Slug("example", "maw"), run).artifact(URL)
+    assert [check["app"]["id"] for check in truth["merge_ci"]["checks"]] == [15368, 42]
+    assert (
+        merge_ci_state(truth, [RequiredCheck("tests", 15368)])
+        == {"skipped": "pending", "failure": "fail", "success": "pass"}[conclusion]
+    )

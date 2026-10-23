@@ -225,6 +225,31 @@ def _link_directory(link: Path, target: Path, kind: str) -> None:
         pytest.skip("directory symlinks are unavailable here")
 
 
+@pytest.mark.parametrize("secret_present", [True, False])
+def test_implicit_traversal_cannot_probe_siblings_before_returning_inside_a_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, secret_present: bool
+) -> None:
+    approved = tmp_path / "approved"
+    (approved / "anchor").mkdir(parents=True)
+    (approved / "repo").mkdir()
+    if secret_present:
+        (tmp_path / "secret").mkdir()
+    service = AnalysisService([approved], tmp_path / "cache")
+    assert service.prey("repo").path == approved / "repo"
+
+    def touched(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("implicit traversal reached the filesystem")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(Path, "lstat", touched)
+        guard.setattr(Path, "stat", touched)
+        guard.setattr(Path, "exists", touched)
+        guard.setattr(Path, "resolve", touched)
+        with pytest.raises(UsageError) as error:
+            service.prey("anchor/../../secret/../approved/repo")
+    assert str(error.value) == "cannot parse repository reference with parent traversal"
+
+
 @pytest.mark.parametrize("kind", ["symlink", "junction"])
 @pytest.mark.parametrize("secret_present", [True, False])
 def test_a_link_below_a_root_never_probes_an_outside_target(

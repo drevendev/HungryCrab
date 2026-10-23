@@ -201,6 +201,24 @@ def test_glob_from_the_home_directory_stays_out_of_the_cache_when_it_can(home: P
         assert cleanroom_guard_reason(_search("Glob", {"pattern": pattern}, home)) is None
 
 
+def test_a_long_brace_pattern_is_read_in_one_pass(home: Path) -> None:
+    """Each `{` used to be scanned to its end: 25,000 characters of braces took seconds."""
+    import time
+
+    cwd = home / "work" / "maw"
+    alternatives = ",".join(f"a{i}" for i in range(4000))
+    for pattern, refused in (
+        ("{" * 12500 + "}" * 12500, False),
+        (f"src/{{{alternatives}}}/*.py", False),
+        (f"../../data/{{{alternatives},crab-prey}}/**", True),
+        ("../../.cache/{a,hungry-c*}/github/**", True),
+    ):
+        start = time.perf_counter()
+        reason = cleanroom_guard_reason(_search("Glob", {"pattern": pattern}, cwd))
+        assert time.perf_counter() - start < 2.0, pattern[:40]
+        assert (reason is not None) is refused, pattern[:40]
+
+
 def _short_name(path: Path) -> str | None:
     """The 8.3 alias Windows gives ``path``, or ``None`` where the volume makes none."""
     if sys.platform != "win32":

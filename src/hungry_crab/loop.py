@@ -22,7 +22,7 @@ from .cache import Slug
 from .digest import incomplete_miners
 from .digest_integrity import digest_integrity_errors
 from .errors import CrabError, UsageError
-from .loop_config import AUTONOMIES, mapping, strings
+from .loop_config import AUTONOMIES, RequiredCheck, mapping, strings
 from .loop_provider import LoopProvider
 from .maw import MawConfig, maw_slug
 
@@ -129,8 +129,10 @@ def ci_state(artifact: dict[str, Any]) -> str:
     )
 
 
-def merge_ci_state(artifact: dict[str, Any]) -> str:
-    """Only provider checks bound to the actual merge commit can certify a landing."""
+def merge_ci_state(
+    artifact: dict[str, Any], required_checks: list[RequiredCheck] | None = None
+) -> str:
+    """Bind release CI to the merge SHA and each maw-approved check name/App pair."""
     sha = artifact.get("merge_commit_sha")
     evidence = artifact.get("merge_ci")
     if (
@@ -140,7 +142,34 @@ def merge_ci_state(artifact: dict[str, Any]) -> str:
         or evidence.get("sha") != sha
     ):
         return "pending"
-    return ci_state(evidence)
+    if required_checks is None:
+        return ci_state(evidence)
+    if not required_checks:
+        return "pending"
+    state = ci_state(evidence)
+    if state != "pass":
+        return state
+    latest: dict[tuple[str, int], dict[str, Any]] = {}
+    for check in evidence.get("checks", []):
+        app = check.get("app")
+        app_id = app.get("id") if isinstance(app, dict) else None
+        if isinstance(app_id, bool) or not isinstance(app_id, int) or app_id < 1:
+            continue
+        key = (str(check.get("name", "")), app_id)
+        if int(check.get("id", 0)) > int(latest.get(key, {}).get("id", -1)):
+            latest[key] = check
+    for required in required_checks:
+        check = latest.get((required.name, required.app_id), {})
+        expected_state = ci_state({"checks": [check]})
+        if expected_state == "fail":
+            return "fail"
+        if (
+            check.get("head_sha") != sha
+            or check.get("status") != "completed"
+            or check.get("conclusion") != "success"
+        ):
+            return "pending"
+    return "pass"
 
 
 class Loop:
@@ -468,7 +497,8 @@ class Loop:
                 }
                 return
             if truth.get("merged_at"):
-                status = merge_ci_state(truth)
+                required = self.settings.required_checks if pr["phase"] == "harden" else None
+                status = merge_ci_state(truth, required)
                 if status == "fail":
                     data["waiting_on"] = {"kind": "human", "reason": "Merge commit CI failed"}
                     return

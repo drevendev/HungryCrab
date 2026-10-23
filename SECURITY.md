@@ -22,22 +22,56 @@ malicious prey repository cannot:
 ### What the agent-side guard covers
 
 The first promise is mechanical inside Claude Code, and only there. The plugin ships two
-`PreToolUse` hooks: `crab-prey-guard` refuses a Bash or PowerShell command that touches the prey
-cache unless it is one of a few audited read-only shapes, and `crab-cleanroom-guard` keeps the
+`PreToolUse` hooks: `crab-prey-guard` refuses a Bash, PowerShell, Monitor or desktop-terminal
+command that touches the prey cache unless it is one of a few audited read-only shapes (a
+terminal command is judged as bash and as PowerShell, in the working directory it names), and a Write, Edit,
+MultiEdit or NotebookEdit call whose file is in the cache; `crab-cleanroom-guard` keeps the
 clean-room implementer out of the cache altogether. Both run from the plugin's own `src/` through
 `hooks/guard.py`, with the first Python 3.11+ the shell finds, so they exist wherever the plugin
 is installed and do not depend on a console script being present or signed. When the launcher
-cannot run the guard — no interpreter, an unreadable source tree — it says so and exits 1, which
-Claude Code shows to you and proceeds on: a non-blocking error by design, because a hook that
-blocked every tool call over its own environment would be disabled rather than fixed. They see
-the Bash and PowerShell tools; a PowerShell command that touches the cache is allowed only as a
-read cmdlet (`Get-Content`, `Get-ChildItem`, `Select-String`, `Test-Path`, `Get-Item`) with
-literal arguments. The prey guard reads command text: it follows the paths a shell builds from
-variables, `~`, globs and `cd`, and it refuses a command that points at the cache (its name,
-`hungry-` for the default root, `~/.cache`) through a construct it does not model, such as a
-nested shell, a parameter operator, an array, a substitution or a PowerShell expression. A path
-computed inside a program — `python -c`, a script, a file read back later — cannot be judged by
-a text guard at all. Codex does not load plugin hooks from a plugin with a root `plugin.json`
+cannot run the guard — no interpreter that starts with `-I`, an unreadable source tree — it says
+so and exits 1, which Claude Code shows to you and proceeds on: a non-blocking error by design,
+because a hook that blocked every tool call over its own environment would be disabled rather
+than fixed. A PowerShell command that touches the cache is allowed only as a read cmdlet
+(`Get-Content`, `Get-ChildItem`, `Select-String`, `Test-Path`, `Get-Item`) with literal
+arguments; a bash read may be piped into `head`, `tail`, `grep`, `wc` or `cut`, none of
+which writes a file or starts a program. Before any `git` command in a clone is allowed,
+the clone's `.git/config` is read the way git reads it (never run): one that names a
+program git may start (`core.fsmonitor`, `core.pager`, `diff.external`, a textconv or
+merge driver, a filter, an alias, an include, a credential helper), or a `commondir`
+that sends git elsewhere, refuses it. The prey guard reads command text: it follows the paths a
+shell builds from variables (`HOME` included), parameter defaults, `~`, globs, braces, `cd`
+and the directory options programs take (`make -C`, `git -C`, `env -C`, `tar -C`, `uv
+--directory`, `-WorkingDirectory`) and reads a command's relative words from home or any
+other directory above the cache the command names; it reads a script handed to a nested
+shell, `eval`, an alias or a command variable such as
+`GIT_SSH_COMMAND` as a command of its own, and refuses a command that points at the cache (a glob
+or 8.3 alias of its name, `~/.cache` spelled any way, the name in a path-shaped word) through a
+construct it does not model, such as a parameter operator, an array, a positional parameter, a
+value read from a pipe or a PowerShell expression; the bare name `hungry-crab`, or another
+directory under `~/.cache`, counts beside a construct that computes text or turns it into
+commands, and a substitution that holds any of them is refused. It refuses a command that links,
+copies, archives or mounts the cache or `~/.cache` (`cp -r`, `rsync`, `tar`, `zip`,
+`Compress-Archive`, `python -m zipfile`, a container's `-v`/`--mount`, read-only or not),
+even on its own; one that runs what a search of the cache or a directory above it finds
+(`find ~ … | xargs python`, `fd … ~ -x`, `rg --pre`, `Get-ChildItem ~ -Recurse |
+ForEach-Object`, cmd's `for /r`, `forfiles /s`), a copy or a mount of home searched or
+entered counting as home; and an encoded script it cannot decode. Message text is no
+exception: a commit, tag or pull request message that spells the cache counts as the
+cache, as it did in 0.6.1, because it can be read back and run. A command with carriage
+returns is judged both as Git Bash reads it, without them, and as bash elsewhere does. A
+command it cannot parse, or cannot finish judging within its fixed budget, passes only
+when its text is plain: no expansion, glob, tilde, brace or escape and no hint of the cache. A
+path computed inside a program — `python -c`, a script, what a program prints, a file read back
+later, a script a program decodes (`echo … | base64 -d | sh`) — cannot be judged by a text
+guard at all, and neither can a copy of the cache made by an earlier call or by a program (a
+backup of the home directory, an archive unpacked later): the guard finds such a copy only
+where its path still spells `.cache/hungry-crab`, or where the same command made it. A
+copy, clone or shell over ssh from this machine (`scp localhost:.cache/…`, `git clone
+ssh://localhost/~/…`) names a local path and is judged as one. The desktop terminal tool
+reuses a tab by its `tab_id`, which keeps whatever directory earlier commands left it in;
+the guard cannot see that directory, only the `cwd` a call names. Codex does not
+load plugin hooks from a plugin with a root `plugin.json`
 (openai/codex#39895); the prey guard has been observed refusing a command in a
 live session, the clean-room guard has not yet. Treat them as a second line behind the rule in
 `AGENTS.md`, not as a sandbox ([#83](https://github.com/drevendev/HungryCrab/issues/83),

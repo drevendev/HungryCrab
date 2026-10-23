@@ -7,6 +7,76 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-23
+
+A security release on 0.6.0 Everywhere, and the first release published to PyPI from CI. It
+fixes [GHSA-443x-5484-qr4g](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-443x-5484-qr4g):
+the prey guard judged a command's text rather than the paths the shell builds from it, and
+tools other than Bash and PowerShell (the Monitor tool, file writes) were not judged at all.
+The fix went through seven rounds of independent adversarial review and ships only where no
+reviewed case is weaker than 0.6.1. It also fixes what the review of 2026-10-23 found in 0.6.1
+itself: the Feeder action, the pre-push secret scan and heading extraction
+([#397](https://github.com/drevendev/HungryCrab/pull/397)). `hungry-crab` is on PyPI now
+(`uv tool install hungry-crab`). Update the CLI and the plugins: Claude Code offers the plugin
+update with this version.
+
+### Security
+
+- **Prey guard:** a path the shell builds from the command text is judged as the shell builds
+  it ([GHSA-443x-5484-qr4g](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-443x-5484-qr4g)).
+  A script handed to a nested shell, `eval`, `xargs`, `find -exec`, `env -S`, an alias, `git -c`,
+  a command variable such as `GIT_SSH_COMMAND`, or any other program as a quoted command line is
+  read as a command of its own, and so is a quoted substitution bash evaluates again
+  (arithmetic, prompts, `${x@P}`); a `cd` counts wherever the shell runs it, and variables the
+  command changes, `HOME` included, are followed; a path attached to a short option, named in a
+  response file or listed in a path variable is resolved; brace alternatives and parameter
+  defaults are expanded, a word is also judged with its glob and brace characters taken
+  literally, and the text of an expansion or a substitution may hold `/` and `..`; comments,
+  here-documents, here-strings, `$$` and carriage returns are read as bash reads them, and
+  PowerShell words, comments, here-strings, encoded commands and cmd variables as PowerShell and
+  cmd read them; a glob or an 8.3 alias that can match the cache or its parent is a hint of the
+  cache; Win32's handling of trailing dots and spaces and Git Bash's `/tmp` are followed. The
+  bare name and another directory under `~/.cache` count beside a construct that computes text
+  or runs it, and a substitution holding either is refused; a value the command assigns is read
+  as code where a shell, `eval`, `trap` or `mapfile -C` may run it; a script a program runs that
+  no shell grammar can read is judged by its hints; unknown text glued to the home directory can
+  lead anywhere below it; a path compared by its spelling alone, past the budget or too deep to
+  resolve, counts as reaching the cache when it hints at it; PowerShell's `Set-Item
+  Variable:`, `-OutVariable` and `Tee-Object -Variable` are followed, and a typographic dash in
+  a PowerShell's arguments is a dash. A command holding carriage returns is judged both as Git
+  Bash reads it, without them, and as bash elsewhere does. A search or recursive listing that
+  walks the cache or a directory above it (`find ~`, `fd`, `rg --files`, `grep -r`, `locate`,
+  `Get-ChildItem -Recurse`) is refused when what it finds feeds something that runs, and a copy
+  of the cache is followed through `cd`. A directory option (`make -C`, `git -C`, `env -C`,
+  `tar -C`, `uv --directory`, `-WorkingDirectory`) or a word naming home or another directory
+  above the cache moves the command's relative words there; a strong hint beside a
+  substitution or a special parameter is refused, as 0.6.1 did. A container bind mount of the
+  cache or `~/.cache` is a copy of it, and a copy or a mount of home searched or entered is
+  home. The Monitor tool's command is judged as bash, the desktop terminal's as bash and as
+  PowerShell in the `cwd` it names, any other tool's `command` as bash, and a
+  Write, Edit, MultiEdit or NotebookEdit call whose file is in the cache is refused; a clone's
+  `.git/config` that names a program git may start keeps every `git` command there from the
+  allowlist. An `scp`, `rsync`, `sftp`, `ssh` or `git` path on this machine
+  (`localhost:.cache/…`, `ssh://localhost/~/…`) is a local path, and a brace expansion or
+  an array read beside a way to the cache is refused, as 0.6.1 did. A command that links,
+  copies, archives or mounts the cache or `~/.cache` is
+  refused, even on its own, and so is an encoded script the guard cannot decode. Every decision runs on one bounded budget, and a command the guard cannot parse or
+  finish judging within it passes only when its text is plain.
+- **Fewer false refusals:** a `grep`, `rg` or `Select-String` search pattern, a fetched URL and
+  the package name outside a path (a comparison, echoed text, an install request) are no hint
+  of the cache; an exit status and braces are followed rather than refused; a quoted `awk`
+  program is not shell syntax; a value `read` from a file, an `ssh` remote command and the home
+  directory as the working directory refuse nothing on their own; a substitution is refused
+  only when its own text, or the directory it runs in, points at the cache; `pip install .`,
+  `cp -r .` or `zip -r` run from the home directory, and another directory under `~/.cache`
+  listed into `read`, are not copies or hints of the cache; an allowed bash read may be
+  piped into `head`, `tail`, `grep`, `wc` or `cut`; `dirname` and `basename` are printers
+  ([#392](https://github.com/drevendev/HungryCrab/issues/392)).
+- **Hooks:** the hook command starts the launcher only with a Python that accepts `-I`; an older
+  interpreter first on `PATH` no longer exits 2 and blocks every tool call, it is passed over,
+  and with no other the hook says so and exits 1
+  ([#393](https://github.com/drevendev/HungryCrab/issues/393)).
+
 ### Added
 
 - **PyPI:** releases are published to [PyPI](https://pypi.org/project/hungry-crab/) as
@@ -18,6 +88,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
 
 ### Fixed
+
+- **Feeder:** populated submodules now require `allow-private-artifact: true` for public or
+  unknown callers even when their origin is public, including when a gitlink itself is selected
+  as the maw. Local untracked, ignored, modified and unpublished bytes cannot be proven public
+  by remote visibility. Empty, uninitialised gitlinks remain allowed
+  ([#405](https://github.com/drevendev/HungryCrab/issues/405)).
+
+- **Feeder:** for public or unknown callers, a public maw containing a separate nested Git
+  checkout (including a second `actions/checkout`) is refused before digest unless
+  `allow-private-artifact` is explicitly enabled. A public Git remote cannot vouch for
+  local, untracked, ignored, modified or unpublished files. Nested `.git` marker detection
+  covers case variants on Windows; ordinary non-Git build output is unaffected
+  ([#398](https://github.com/drevendev/HungryCrab/issues/398)).
 
 - **Feeder:** a submodule of the public calling repository, or a directory inside one, no
   longer counts as a tracked directory of the caller; its gitlink is another repository, so the
@@ -898,7 +981,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.6.0
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0
