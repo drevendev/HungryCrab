@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Catch:** `--since` values beyond the representable date range (e.g. 4301-digit durations)
+  are now rejected with a usage error instead of being passed through
+  ([#321](https://github.com/drevendev/HungryCrab/issues/321)).
+
 ## [0.6.2] - 2026-10-23
 
 A security release on 0.6.0 Everywhere, and the first release published to PyPI from CI. It
