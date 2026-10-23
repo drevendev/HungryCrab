@@ -92,9 +92,9 @@ lets the next maw overwrite it.
 
 ## Commands
 
-`hunt` track behaviors and files · `mcp` launch the tool server · 
-`profiles` configure rule constraints · `report` export evaluation metrics · 
-`version` show CLI build info ·
+`hunt` discover prey from the maw's gaps and taste memory · `mcp` serve scoped analysis over stdio ·
+`profiles` list reviewed hunger profiles · `report` render a digest or meal as offline HTML ·
+`version` show the CLI version ·
 `sniff` look before eating · `catch` clone into the cache · `digest` run the miners ·
 `compare` digest both sides and rank · `eat --deterministic` export a Feeder meal bundle ·
 `menu` print the ranked menu · `serve` publish approved issues or guarded PR branches ·
@@ -106,8 +106,9 @@ the plugins · `cache` inspect and clean
 ## Skills and agents
 
 Skills `eat`, `license`, `serve`, `cleanroom`, `loop` · subagents `crab-historian`, `crab-architect`,
-`crab-cleanroom-impl` · commands `/crab:sniff`, `/crab:menu` · hooks `crab-prey-guard` (a Bash
-command that touches the cache must be a read-only shape) and `crab-cleanroom-guard` (the
+`crab-cleanroom-impl` · commands `/crab:sniff`, `/crab:menu` · hooks `crab-prey-guard` (shell
+commands that touch the cache must be audited read-only shapes; file writes are refused) and
+`crab-cleanroom-guard` (the
 clean-room implementer never touches the cache), both `PreToolUse`, both loaded from the plugin
 by `hooks/guard.py` without requiring a console script on `PATH`
 

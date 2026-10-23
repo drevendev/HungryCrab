@@ -16,7 +16,8 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Layout
 
 - `src/hungry_crab/cli.py`: argparse entry point (`crab sniff | catch | digest | compare | menu |
-  serve | spec | attribution | ledger | tune | loop | init | update | cache | eat | hunt | mcp | profiles | report | version`).
+  serve | spec | attribution | ledger | tune | loop | init | update | cache | eat | hunt | mcp |
+  profiles | report | version`).
 - `src/hungry_crab/loop.py`, `loop_config.py`, `loop_provider.py`, `loop_work.py`, `loop_cli.py`:
   the scheduled phase protocol, strict maw-owned policy, provider waits and guarded effects.
   Only recording advances phases; each attempt has a bounded lease. GROW retains the licensed
@@ -28,9 +29,10 @@ authority when a document disagrees with it. The decisions log is at the end of
   cache. Both are wired in `hooks/hooks.json`, which runs `hooks/guard.py` from the plugin root
   with the first Python the shell finds; the launcher imports them from `src/`, so no console
   script is needed. Nothing in that launcher may exit 2 except a guard's refusal.
-- `src/hungry_crab/updater.py`: `crab update`, which checks the CLI and the agent plugins against
-  master. It must never reinstall the CLI in-process: uv cannot replace a running tool on Windows
-  and leaves it broken.
+- `src/hungry_crab/updater.py`: `crab update`, which checks the agent plugins against master and
+  the CLI against the latest PyPI release (an index install) or master (a git install). It must
+  never reinstall the CLI in-process: uv cannot replace a running tool on Windows and leaves it
+  broken.
 - `src/hungry_crab/fetch/`: git wrapper, GitHub API client, `catch`, issues fetch.
 - `src/hungry_crab/mcp_service.py`, `mcp_server.py`: scoped optional stdio analysis; no publication
   or ledger writes. `report.py` and `artifact_read.py` render existing evidence as inert HTML.

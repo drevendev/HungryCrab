@@ -26,7 +26,9 @@ LAUNCHER = ROOT / "hooks" / "guard.py"
 HOOKS = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
 SH = shutil.which("sh")
 CLEANROOM_MATCHER = "Read|Grep|Glob|Write|Edit|PowerShell"
-PREY_MATCHER = "Bash|PowerShell"
+PREY_MATCHER = (
+    "Bash|PowerShell|Monitor|mcp__terminal__run_in_terminal|Write|Edit|MultiEdit|NotebookEdit"
+)
 
 
 def _entry(matcher: str) -> dict[str, Any]:
@@ -68,11 +70,18 @@ def _events(cache: Path) -> dict[str, dict[str, Any]]:
 
 
 def _run(
-    argv: list[str], event: object, cache: Path, *, cwd: Path | None = None
+    argv: list[str],
+    event: object,
+    cache: Path,
+    *,
+    cwd: Path | None = None,
+    path_first: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
     env["CRAB_CACHE_DIR"] = str(cache)
     env.pop("CRAB_GUARD_HANDOVER", None)
+    if path_first is not None:
+        env["PATH"] = os.pathsep.join([str(path_first), env.get("PATH", "")])
     return subprocess.run(
         argv,
         input=json.dumps(event),
@@ -116,8 +125,11 @@ def test_each_hook_runs_its_guard_through_the_launcher(matcher: str, which: str)
 
 def test_both_shell_tools_reach_the_prey_guard() -> None:
     """HungryCrab#141: Claude Code on Windows has a PowerShell tool beside Bash; a shell tool
-    the matcher lacks runs prey without the guard ever seeing the command."""
-    assert {"Bash", "PowerShell"} <= set(PREY_MATCHER.split("|"))
+    the matcher lacks runs prey without the guard ever seeing the command. Monitor runs a bash
+    script in the same environment, and the file tools can rewrite a prey file an allowed read
+    later runs."""
+    assert {"Bash", "PowerShell", "Monitor"} <= set(PREY_MATCHER.split("|"))
+    assert {"Write", "Edit", "MultiEdit", "NotebookEdit"} <= set(PREY_MATCHER.split("|"))
     assert "PowerShell" in CLEANROOM_MATCHER.split("|")
 
 
@@ -346,3 +358,82 @@ def test_hook_line_without_a_launcher_proceeds_unguarded(tmp_path: Path) -> None
     result = _run([SH, "-c", command], _events(cache)["bash-runs-prey"], cache, cwd=tmp_path)
     assert result.returncode == 1, result.stderr
     assert "missing" in result.stderr and "unguarded" in result.stderr
+
+
+# Python 2 and 3.0-3.3 do not know `-I`; CPython answers an unknown option with a usage error,
+# and a usage error exits 2, which Claude Code would read as a refusal (HungryCrab#393).
+_PYTHON_WITHOUT_ISOLATION = (
+    'for a in "$@"; do\n'
+    '  if [ "$a" = "-I" ]; then echo "Unknown option: -I" >&2; exit 2; fi\n'
+    "done\n"
+    "exit 0\n"
+)
+
+
+def _fake_python(directory: Path, name: str, body: str) -> None:
+    directory.mkdir(exist_ok=True)
+    script = directory / name
+    script.write_text("#!/bin/sh\n" + body, encoding="utf-8", newline="\n")
+    script.chmod(0o755)
+
+
+def _candidates() -> tuple[str, str]:
+    """The names the hook line tries, in its order: Git Bash prefers `python`."""
+    return ("python", "python3") if sys.platform == "win32" else ("python3", "python")
+
+
+@pytest.mark.skipif(SH is None, reason="no POSIX shell to run the hook line")
+@pytest.mark.parametrize(
+    ("matcher", "event"),
+    [(PREY_MATCHER, "bash-runs-prey"), (CLEANROOM_MATCHER, "cleanroom-reads-prey")],
+)
+def test_hook_line_maps_an_interpreter_without_isolation_to_could_not_guard(
+    matcher: str, event: str, tmp_path: Path
+) -> None:
+    """Every Python on PATH predates `-I`: the hook says so and exits 1, never 2."""
+    assert SH is not None
+    fakes = tmp_path / "bin"
+    for name in _candidates():
+        _fake_python(fakes, name, _PYTHON_WITHOUT_ISOLATION)
+    command = _hook_command(matcher).replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
+    cache = tmp_path / "cache"
+    result = _run([SH, "-c", command], _events(cache)[event], cache, cwd=tmp_path, path_first=fakes)
+    assert result.returncode == 1, result.stderr
+    assert "unguarded" in result.stderr
+    assert "Unknown option" not in result.stderr
+
+
+@pytest.mark.skipif(SH is None, reason="no POSIX shell to run the hook line")
+def test_hook_line_passes_over_an_old_interpreter_to_the_next(tmp_path: Path) -> None:
+    """The first Python predates `-I`, the second starts: the guard runs and decides."""
+    assert SH is not None
+    first, second = _candidates()
+    fakes = tmp_path / "bin"
+    _fake_python(fakes, first, _PYTHON_WITHOUT_ISOLATION)
+    _fake_python(fakes, second, f'exec "{Path(sys.executable).as_posix()}" "$@"\n')
+    command = _hook_command(PREY_MATCHER).replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
+    cache = tmp_path / "cache"
+    for event, expected in (("bash-runs-prey", 2), ("bash-plain", 0)):
+        result = _run(
+            [SH, "-c", command], _events(cache)[event], cache, cwd=tmp_path, path_first=fakes
+        )
+        assert result.returncode == expected, result.stderr
+
+
+@pytest.mark.skipif(SH is None, reason="no POSIX shell to run the hook line")
+def test_hook_line_does_not_feed_the_event_to_the_probe(tmp_path: Path) -> None:
+    """The probe that checks `-I` must leave stdin unread for the guard itself."""
+    assert SH is not None
+    fakes = tmp_path / "bin"
+    # This interpreter reads its standard input whenever it runs a `-c` text, as the probe is.
+    greedy = (
+        'for a in "$@"; do if [ "$a" = "-c" ]; then cat >/dev/null; break; fi; done\n'
+        f'exec "{Path(sys.executable).as_posix()}" "$@"\n'
+    )
+    for name in _candidates():
+        _fake_python(fakes, name, greedy)
+    command = _hook_command(PREY_MATCHER).replace("${CLAUDE_PLUGIN_ROOT}", ROOT.as_posix())
+    cache = tmp_path / "cache"
+    event = _events(cache)["bash-runs-prey"]
+    result = _run([SH, "-c", command], event, cache, cwd=tmp_path, path_first=fakes)
+    assert result.returncode == 2, result.stderr

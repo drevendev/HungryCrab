@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import sys
 from base64 import b64encode
@@ -404,3 +405,208 @@ def test_printed_commands_are_pasteable(monkeypatch: pytest.MonkeyPatch) -> None
 def test_empty_report_says_nothing_to_do() -> None:
     report = UpdateReport(components=[], remote=Remote(), executed=False)
     assert "Nothing to do." in format_report(report)
+
+
+class FakePyPI:
+    """Serves the project page `fetch_release` reads, or raises like the real client."""
+
+    def __init__(self, version: str | None = "9.9.9", *, fail: bool = False) -> None:
+        self.version = version
+        self.fail = fail
+        self.urls: list[str] = []
+
+    def get(self, url: str) -> Any:
+        from hungry_crab.errors import ExternalCommandError
+
+        self.urls.append(url)
+        if self.fail:
+            raise ExternalCommandError(f"GET {url} failed: no network")
+        return {"info": {"name": "hungry-crab", "version": self.version}, "releases": {}}
+
+
+def _index_install(monkeypatch: pytest.MonkeyPatch, kind: str = "uv-tool") -> None:
+    """A crab installed from the package index: no PEP 610 record, so no commit either."""
+    monkeypatch.setattr(updater, "cli_install_kind", lambda: kind)
+    monkeypatch.setattr(updater, "install_source", lambda: "index")
+    monkeypatch.setattr(updater, "installed_commit", lambda: None)
+
+
+def test_fetch_release_reads_pypi_and_never_raises() -> None:
+    index = FakePyPI("0.6.2")
+    release = updater.fetch_release(index)  # type: ignore[arg-type]
+    assert release.version == "0.6.2" and release.error is None
+    assert index.urls == ["https://pypi.org/pypi/hungry-crab/json"]
+    offline = updater.fetch_release(FakePyPI(fail=True))  # type: ignore[arg-type]
+    assert offline.version is None and "no network" in str(offline.error)
+    assert updater.fetch_release(FakePyPI(None)).error  # type: ignore[arg-type]
+
+
+def test_the_pypi_client_turns_every_failure_into_a_crab_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from urllib.error import URLError
+
+    from hungry_crab.errors import CrabError
+
+    def refuse(*_: object, **__: object) -> None:
+        raise URLError("offline")
+
+    monkeypatch.setattr(updater.urllib.request, "urlopen", refuse)
+    with pytest.raises(CrabError, match="offline"):
+        updater.PyPIClient().get(updater.PYPI_JSON_URL)
+    assert updater.fetch_release().error is not None
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        http.client.BadStatusLine("garbage"),
+        http.client.IncompleteRead(b"{"),
+        http.client.HTTPException("got more than 100 headers"),
+    ],
+    ids=["bad-status-line", "incomplete-read", "too-many-headers"],
+)
+def test_a_broken_http_response_is_unknown_not_a_traceback(
+    monkeypatch: pytest.MonkeyPatch, failure: http.client.HTTPException
+) -> None:
+    """Review of #395: `http.client` errors are not `OSError` and used to escape."""
+
+    class Broken:
+        def get(self, *_: object, **__: object) -> Any:
+            raise failure
+
+    release = updater.fetch_release(Broken())  # type: ignore[arg-type]
+    assert release.version is None and release.error
+    remote = fetch_remote(Broken())  # type: ignore[arg-type]
+    assert remote.cli_version is None and remote.error
+
+    def refuse(*_: object, **__: object) -> None:
+        raise failure
+
+    monkeypatch.setattr(updater.urllib.request, "urlopen", refuse)
+    from hungry_crab.errors import CrabError
+
+    with pytest.raises(CrabError, match=type(failure).__name__):
+        updater.PyPIClient().get(updater.PYPI_JSON_URL)
+    _index_install(monkeypatch)
+    cli = check_cli(Remote(error="no network"))
+    assert cli.status == UNKNOWN and type(failure).__name__ in cli.detail
+
+
+@pytest.mark.parametrize(
+    ("kind", "command"),
+    [
+        ("uv-tool", ["uv", "tool", "upgrade", "hungry-crab"]),
+        ("pipx", ["pipx", "upgrade", "hungry-crab"]),
+        ("environment", [sys.executable, "-m", "pip", "install", "--upgrade", "hungry-crab"]),
+    ],
+)
+def test_an_index_install_is_compared_with_the_latest_release_on_pypi(
+    monkeypatch: pytest.MonkeyPatch, kind: str, command: list[str]
+) -> None:
+    """#395: an index install has no commit; asking it to reinstall from git was wrong."""
+    _index_install(monkeypatch, kind)
+    master = Remote(cli_version="9.9.9.dev0", sha="b" * 40, date="2026-10-23")
+
+    newer = check_cli(master, index=FakePyPI("99.0.0"))  # type: ignore[arg-type]
+    assert newer.status == OUTDATED and newer.available == "99.0.0"
+    assert newer.detail == "PyPI has 99.0.0"
+    assert newer.commands == [command]
+    assert not any(updater.REQUIREMENT in part for part in newer.commands[0])
+
+    current = check_cli(master, index=FakePyPI(__version__))  # type: ignore[arg-type]
+    assert current.status == OK and current.commands == []
+    assert current.detail == "the latest release on PyPI"
+
+    ahead = check_cli(master, index=FakePyPI("0.0.1"))  # type: ignore[arg-type]
+    assert ahead.status == OK and "newer than the latest release" in ahead.detail
+
+    offline = check_cli(master, index=FakePyPI(fail=True))  # type: ignore[arg-type]
+    assert offline.status == UNKNOWN and "no network" in offline.detail
+    assert offline.commands == [command]
+
+
+def test_a_git_install_still_follows_master(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(updater, "cli_install_kind", lambda: "uv-tool")
+    monkeypatch.setattr(updater, "install_source", lambda: "vcs")
+    monkeypatch.setattr(updater, "installed_commit", lambda: "a" * 40)
+    index = FakePyPI("99.0.0")
+    behind = check_cli(
+        Remote(cli_version=__version__, sha="b" * 40, date="2026-10-23"),
+        index=index,  # type: ignore[arg-type]
+    )
+    assert behind.status == OUTDATED and "master is at bbbbbbb" in behind.detail
+    assert behind.commands == [["uv", "tool", "install", "--force", updater.REQUIREMENT]]
+    assert index.urls == [], "a git install never asks PyPI"
+
+
+def test_an_index_upgrade_is_printed_never_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The upgrade replaces the install the crab runs from, wherever that install lives."""
+    _index_install(monkeypatch, "environment")
+    monkeypatch.setattr(updater, "uv_tool_receipt", lambda: None)
+    monkeypatch.setattr(updater, "pipx_metadata", lambda: None)
+    monkeypatch.setattr(updater.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+    calls: list[list[str]] = []
+    runner = fake_runner(
+        {
+            "claude plugin list": (True, claude_list("0.3.0")),
+            "codex plugin list": (True, codex_list("0.3.0")),
+        },
+        calls,
+    )
+    report = check(
+        client=FakeGitHub(cli="0.3.0", plugin="0.3.0"),  # type: ignore[arg-type]
+        runner=runner,
+        index=FakePyPI("99.0.0"),  # type: ignore[arg-type]
+    )
+    calls.clear()
+    updater.apply(report, runner=runner)
+    assert not any("pip" in " ".join(call) for call in calls), "would replace itself"
+    cli = report.components[0]
+    assert cli.status == OUTDATED and "while it is running" in cli.detail
+    text = format_report(report)
+    assert "Run:" in text and "install --upgrade hungry-crab" in text
+
+
+@pytest.mark.parametrize(
+    ("older", "newer"),
+    [
+        ("0.6.1", "0.6.2"),
+        ("0.6.2.dev0", "0.6.2"),
+        ("0.6.2.dev0", "0.6.2a1"),
+        ("0.6.2a1", "0.6.2rc1"),
+        ("0.6.2rc1", "0.6.2"),
+        ("0.6.2", "0.6.2.post1"),
+        ("0.6.9", "0.6.10"),
+        ("0.6", "0.6.0.post1"),
+    ],
+)
+def test_release_versions_order_as_pep_440_does(older: str, newer: str) -> None:
+    low, high = updater._version_key(older), updater._version_key(newer)
+    assert low is not None and high is not None and low < high
+    assert updater._version_key("0.6.0") == updater._version_key("0.6")
+    assert updater._version_key("not a version") is None
+
+
+def test_install_source_reads_pep_610(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    package = tmp_path / "site-packages" / "hungry_crab"
+    package.mkdir(parents=True)
+    monkeypatch.setattr(updater, "__file__", str(package / "updater.py"))
+    assert updater.install_source() is None, "no metadata, no answer"
+    info = package.parent / f"hungry_crab-{__version__}.dist-info"
+    info.mkdir()
+    assert updater.install_source() == "index"
+    direct = info / "direct_url.json"
+    direct.write_text(json.dumps({"url": "file:///w.whl", "archive_info": {}}), encoding="utf-8")
+    assert updater.install_source() == "url"
+    vcs = {"url": updater.GIT_URL, "vcs_info": {"vcs": "git", "commit_id": "c" * 40}}
+    direct.write_text(json.dumps(vcs), encoding="utf-8")
+    assert updater.install_source() == "vcs"
+    assert updater.installed_commit() == "c" * 40
+
+
+def test_pipx_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(updater.sys, "prefix", str(tmp_path))
+    assert updater.pipx_metadata() is None
+    (tmp_path / "pipx_metadata.json").write_text("{}", encoding="utf-8")
+    assert updater.cli_install_kind() == "pipx"

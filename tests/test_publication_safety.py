@@ -7,7 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab.compare.candidates import Side
 from hungry_crab.errors import CrabError
+from hungry_crab.nutrients import Candidate
 from hungry_crab.pr_publication import (
     GeneratedFile,
     PreparedPullRequest,
@@ -22,6 +24,7 @@ from hungry_crab.publication_safety import (
     scan_publication,
     scan_publication_bundle,
 )
+from hungry_crab.serve import render_issue
 
 # Every secret-shaped vector is assembled at run time, so that this file is not itself a finding
 # when the repository's own tree is scanned (see the corpus test at the end).
@@ -249,6 +252,136 @@ def test_paths_are_judged_one_segment_at_a_time(line: str) -> None:
     assert scan_publication("generated/notes.txt", line) == []
 
 
+IMAGE_DIGEST = "sha256:" + "4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1"
+REGISTRY_PASSWORD = "Kj8sLq2W" + "p9xZ"
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/" + "bPxRfiCYq9R2kL7mN3"
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # #388: digest-pinned image references are not user:password@host.
+        (".github/workflows/lint.yml", f"      - uses: docker://alpine:3.20@{IMAGE_DIGEST}"),
+        (".github/workflows/lint.yml", f"      - uses: docker://node:20-alpine@{IMAGE_DIGEST}"),
+        (".github/workflows/lint.yml", f"        image: docker://python:3.12-slim@{IMAGE_DIGEST}"),
+        ("scripts/mirror.sh", f"skopeo copy docker://alpine:3.20@{IMAGE_DIGEST} oci:alpine"),
+        ("docs/ci.md", f"Pin the action as `docker://alpine:3.20@{IMAGE_DIGEST}`."),
+        (
+            ".github/workflows/lint.yml",
+            f"      - uses: docker://ghcr.io/owner/tool:1.0@{IMAGE_DIGEST}",
+        ),
+        ("scripts/mirror.sh", "skopeo inspect oci://layout:v1.2@" + "sha512:" + "ab" * 64),
+        # Translations are labels, not configuration.
+        ("config/locales/de.yml", "    password: Passwort"),
+        ("config/locales/es.yml", "    password: Contraseña"),
+        ("src/locales/nl.json", '    "password": "Wachtwoord",'),
+        ("src/locales/de.json", '    "secret": "Geheimnis",'),
+        ("src/locale/fr.json", '    "token": "Jetonsecret",'),
+        ("app/translations/messages.de.yaml", "  password: Kennwortfeld"),
+        ("src/i18n/pt-BR.yaml", "  password: Senhasecreta"),
+        # Laravel keeps its translations under lang/, named after the locale.
+        ("lang/de.json", '    "Password": "Passwort",'),
+        ("resources/lang/de.json", '    "Password": "Passwort",'),
+        ("src/lang/pt_BR.json", '    "password": "Palavrapasse",'),
+        # A chart names the Kubernetes Secret that holds the credential.
+        ("charts/app/values.yaml", "  existingSecret: my-release-postgresql"),
+        ("charts/app/values.yaml", "  auth:\n    existingSecret: db-credentials.v2"),
+        # Header names are constants, not credentials.
+        ("src/web/csrf.ts", 'export const csrfToken = "X-CSRF-Token";'),
+        ("src/web/api.ts", 'const apiKey = "X-API-Key";'),
+        ("src/web/api.py", 'API_KEY = "x-api-key"'),
+        ("src/web/trace.ts", 'const traceToken = "X-B3-TraceId";'),
+        ("config/http.yml", "auth_token: X-Auth-Token"),
+        ("src/web/hooks.ts", 'const webhookSecret = "X-Hub-Signature-256";'),
+        # Slack's prefixes are xoxa, xoxb, xoxc, xoxd, xoxe, xoxp, xoxr, xoxs and xapp.
+        ("docs/emoji.md", "Signed off with xoxo-from-the-whole-team"),
+        ("src/slugs.py", "SLUG = 'xoxo-gossip-girl-recap'"),
+    ],
+)
+def test_the_0_6_1_false_positives_do_not_block(path: str, line: str) -> None:
+    assert scan_publication(path, line + "\n") == []
+
+
+@pytest.mark.parametrize(
+    ("path", "line", "rule"),
+    [
+        # The narrowing of #388 keeps the shapes it does not describe.
+        ("README.md", "https://crab:" + PASSWORD + "@sha256.example.com/", "url-credentials"),
+        ("compose.yml", "url: redis://:" + PASSWORD + "@cache:6379/0", "url-credentials"),
+        ("src/web/api.ts", 'const apiKey = "X-9f8e7d6c' + '5b4a3";', "credential-assignment"),
+        ("charts/app/values.yaml", "existingSecret: " + PASSWORD, "credential-assignment"),
+        ("charts/app/values.yaml", "adminPassword: my-release-postgresql", "credential-assignment"),
+        ("config/locales/de.yml", f"password: {LITERAL}", "credential-assignment"),
+        # A file under lang/ that is not named after a locale is code or configuration.
+        ("lang/go/config.yml", "api_token: Summer2024Token", "credential-assignment"),
+        ("lang/settings.json", '"password": "Summer2024Token",', "credential-assignment"),
+        ("docs/slack.md", "SLACK=" + "xoxs-" + "1234567890-ABCDEFGHIJ", "slack-token"),
+        ("docs/slack.md", "SLACK=" + "xapp-" + "1-A0123456789-abcdef", "slack-token"),
+        # Review of #388: an image reference with a password still carries the password.
+        (
+            "scripts/mirror.sh",
+            "skopeo copy docker://deploy:"
+            + REGISTRY_PASSWORD
+            + "@registry.example.com/app:1 oci:x",
+            "url-credentials",
+        ),
+        (
+            "scripts/chart.sh",
+            "helm pull oci://robot:" + REGISTRY_PASSWORD + "@registry.example.com/charts/app",
+            "url-credentials",
+        ),
+        # Only translation formats under translation directories are judged like code; `lang/`
+        # is a directory of language-specific code as often as of translations.
+        ("lang/py/.env", "DB_PASSWORD=" + "Summer2024", "credential-assignment"),
+        (
+            "lang/java/src/main/resources/application.properties",
+            "spring.datasource.password=" + "Summer2024",
+            "credential-assignment",
+        ),
+        ("languages/go/config.yml", "api_token: " + "Summer2024Token", "credential-assignment"),
+        ("translations/.env", "SECRET_KEY=" + "correcthorsebatterystaple", "credential-assignment"),
+        (
+            "translations/settings.toml",
+            'api_key = "' + "correcthorsebattery" + '"',
+            "credential-assignment",
+        ),
+        # Only `existingSecret` names a Secret; these keys hold the credential.
+        (
+            "charts/app/values.yaml",
+            "  existingPassword: " + "s3cr3tpassw0rd",
+            "credential-assignment",
+        ),
+        (
+            "charts/app/values.yaml",
+            "  existing_api_token: " + "3f9a2b7c1d8e4f6a" + "0b5c9d2e7f1a3b8c",
+            "credential-assignment",
+        ),
+        (
+            "config/app.yml",
+            "use_existing_token: " + "q7rk9zp2wm4tn8vbl3xc",
+            "credential-assignment",
+        ),
+        # Text glued to a forge URL is not part of its path.
+        (
+            "PR_BODY",
+            "see https://github.com/o/r/blob/main/a.py," + AWS_SECRET,
+            "high-entropy-token",
+        ),
+        (
+            "PR_BODY",
+            "see https://github.com/o/r/blob/main/a.py;aws_secret_access_key=" + AWS_SECRET,
+            "high-entropy-token",
+        ),
+        # The path after a forge URL's commit is judged as any path is, dense base64 whole.
+        ("PR_BODY", "see https://github.com/o/r/tree/main/" + AWS_SECRET, "high-entropy-token"),
+        # A random value behind `X-` is not a header name.
+        ("config/app.yml", "api_key: X-" + "Q7Rk9Zp2Wm4" + "Tn8VbL3", "credential-assignment"),
+    ],
+)
+def test_the_0_6_1_true_positives_still_block(path: str, line: str, rule: str) -> None:
+    assert [finding.rule for finding in scan_publication(path, line + "\n")] == [rule]
+
+
 def test_the_crab_s_own_branch_and_specification_names_do_not_block() -> None:
     nutrient = "crab:docs:astral-sh-uv:contributing-guide-with-reproducible-benchmarks"
     spec = nutrient_spec_path(nutrient)
@@ -344,6 +477,11 @@ BACKSLASH = chr(92)
         ("src/x.py", 'password="' + "password=" * (_LONG // 9) + '"'),
         ("config.yml", "token: " + " " * _LONG + "x"),
         ("src/x.py", "a-" * (_LONG // 2)),
+        # Forge URLs: a project path that never reaches a view, and views without a path.
+        ("PR_BODY", "https://gitlab.com" + "/a" * (_LONG // 2)),
+        ("PR_BODY", "https://gitlab.com/" * (_LONG // 19)),
+        ("PR_BODY", "https://github.com/o/r/blob" * (_LONG // 27)),
+        ("PR_BODY", "https://gitlab.com/g/r/-/blob/" + "a/" * (_LONG // 2)),
     ],
     ids=[
         "backslashes-38",
@@ -356,6 +494,10 @@ BACKSLASH = chr(92)
         "names-inside-a-literal",
         "spaces-before-value",
         "dashed-words",
+        "gitlab-project-path",
+        "gitlab-hosts",
+        "github-views",
+        "gitlab-long-path",
     ],
 )
 def test_a_long_hostile_line_scans_in_linear_time(path: str, line: str) -> None:
@@ -372,6 +514,63 @@ def test_github_trace_exemption_does_not_hide_opaque_path_segments() -> None:
     findings = scan_publication("PR_BODY", suspicious)
     assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
     assert OPAQUE not in format_publication_findings(findings)
+
+
+_EVIDENCE_PATHS = [
+    "okhttp/src/main/kotlin/okhttp3/internal/http2/Http2Connection.kt",
+    "src/main/java/com/example/Http2Handler.java",
+    "src/Microsoft/Extensions/Http/HttpClientFactory.cs",
+    "src/http/client.go",
+    "CONTRIBUTING.md",
+    "app/Http/Controllers/UserController.php",
+    "src/app/(auth)/login/page.tsx",
+]
+
+
+@pytest.mark.parametrize(
+    "prey_url", ["https://github.com/square/okhttp", "https://gitlab.com/group/sub/okhttp"]
+)
+def test_the_crab_s_own_evidence_urls_are_not_secrets(prey_url: str) -> None:
+    """#387: `render_issue` links evidence at the meal's commit; no commit makes that a secret."""
+
+    rng = random.Random(387)
+    for _ in range(300):
+        sha = f"{rng.getrandbits(160):040x}"
+        prey = Side(label="square/okhttp", sha=sha, url=prey_url, root=None)
+        card = Candidate(
+            category="pattern",
+            key="square-okhttp-http2-flow-control",
+            title="Bound HTTP/2 flow-control windows",
+            what="The prey bounds every HTTP/2 stream window.",
+            evidence=[prey.evidence(path) for path in _EVIDENCE_PATHS],
+            origin="repository",
+            license_mode="REIMPLEMENT",
+        )
+        menu = {"prey": {"label": prey.label, "sha": sha, "url": prey_url, "license": "MIT"}}
+        title, body = render_issue(card, menu)
+        assert f"/blob/{sha}/" in body
+        assert scan_publication("PR_BODY", body) == [], sha
+        assert scan_publication("PR_TITLE", title) == []
+    prepared = PreparedPullRequest(
+        title=title, body=body, files=(GeneratedFile("src/flow.py", "WINDOW = 65535\n"),)
+    )
+    assert publish_prepared_pull_request(prepared, lambda _: "published") == "published"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/o/r/blob/0123456789abcdef0123456789abcdef01234567/{secret}",
+        "https://github.com/o/r/tree/main/{secret}/docs",
+        "https://github.com/o/r/blob/{secret}/README.md",
+        "https://gitlab.com/g/r/-/blob/0123456789abcdef0123456789abcdef01234567/{secret}",
+        "https://github.com/o/r/blob/0123456789abcdef/README.md?token={secret}",
+    ],
+)
+def test_a_forge_url_still_shows_its_opaque_segments(url: str) -> None:
+    findings = scan_publication("PR_BODY", f"See [x]({url.format(secret=OPAQUE)}).")
+
+    assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
 
 
 def test_clean_bundle_passes_unchanged() -> None:

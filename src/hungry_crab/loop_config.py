@@ -34,6 +34,20 @@ def strings(value: object, name: str) -> list[str]:
     return value
 
 
+@dataclass(frozen=True)
+class RequiredCheck:
+    name: str
+    app_id: int
+
+    @classmethod
+    def load(cls, value: object) -> RequiredCheck:
+        data = mapping(value, "loop.required_checks entry", {"name", "app_id"})
+        name = data.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise UsageError("loop.required_checks entry.name must be a non-empty string")
+        return cls(name, positive(data.get("app_id"), "loop.required_checks entry.app_id"))
+
+
 @dataclass
 class LoopSettings:
     cadence: str = "daily"
@@ -48,6 +62,7 @@ class LoopSettings:
     max_attempts: int = 3
     lease_minutes: int = 60
     protected: list[str] = field(default_factory=lambda: list(PROTECTED))
+    required_checks: list[RequiredCheck] = field(default_factory=list)
     release_files: list[str] = field(default_factory=lambda: ["CHANGELOG.md"])
 
     @classmethod
@@ -66,6 +81,7 @@ class LoopSettings:
                 "lease_minutes",
                 "protected",
                 "release_files",
+                "required_checks",
             },
         )
         result = cls()
@@ -82,6 +98,10 @@ class LoopSettings:
         if not isinstance(discovery, bool):
             raise UsageError("loop.discovery must be a boolean")
         result.discovery = discovery
+        required = data.get("required_checks", [])
+        if not isinstance(required, list):
+            raise UsageError("loop.required_checks must be a list of name/app_id mappings")
+        result.required_checks = [RequiredCheck.load(item) for item in required]
         result.prey = strings(data.get("prey", []), "loop.prey")
         result.protected += strings(data.get("protected", []), "loop.protected")
         result.release_files = strings(

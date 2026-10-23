@@ -428,12 +428,16 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
         )
         if pr is None:
             raise CrabError("no release PR to harden")
+        if not loop.settings.required_checks:
+            raise CrabError(
+                "configure loop.required_checks with check name/app_id pairs before tagging"
+            )
         truth = loop._provider().artifact(pr["url"])
         if not truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:
             raise CrabError("release PR must be merged at the reviewed head before tagging")
         if ci_state(truth) != "pass":
             raise CrabError("release PR must have passing CI at the reviewed head before tagging")
-        if merge_ci_state(truth) != "pass":
+        if merge_ci_state(truth, loop.settings.required_checks) != "pass":
             raise CrabError("release merge commit must have passing CI before tagging")
         sha = truth["merge_commit_sha"]
         if truth.get("base", {}).get("ref") != pr.get("base"):

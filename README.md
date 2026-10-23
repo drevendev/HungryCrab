@@ -38,11 +38,12 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.1](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.1) is the latest
+**Status: [0.6.2](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.2) is the latest
 release, a security release on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
-stable one.** Update to it: it fixes two published vulnerabilities and the other threat-model
-findings of the 2026-10-22 review (see the [changelog](CHANGELOG.md)). The supported scope is
+stable one, and the first one built and published to [PyPI](https://pypi.org/project/hungry-crab/)
+from CI.** Update to it: it fixes a published vulnerability in the prey guard and the
+regressions of 0.6.1 (see the [changelog](CHANGELOG.md)). The supported scope is
 deterministic, human-supervised analysis: the CLI, scoped local MCP, portable skills and
 offline HTML reports. PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
 experimental; their live acceptance criteria are deferred to post-release work, not declared
@@ -64,20 +65,26 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 
 Prerequisites: Python 3.11+, `git`, and `gh` authenticated for the GitHub API.
 
-**The CLI**, which every agent then calls:
+**The CLI**, which every agent then calls, is the `hungry-crab` package on
+[PyPI](https://pypi.org/project/hungry-crab/):
 
 ```bash
-uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+uv tool install hungry-crab
 ```
+
+`pipx install hungry-crab` works as well. Either installs the latest release, and
+`uv tool upgrade hungry-crab` (or `pipx upgrade hungry-crab`) takes the next one.
 
 The installation keeps PyYAML as its only runtime dependency. GitLab.com public reads do
 not require `gh`; private reads use `GITLAB_TOKEN`. GitHub Discussions and JUnit artifact reads
 need the corresponding authenticated API permissions.
 
-That tracks `master`, which is always green, and is the recommended way to install the crab
-while it is pre-1.0. If you want a fixed version instead, append `@v0.6.1` to the URL and take
-care of updates yourself. The package is not on PyPI, and the `hungry-crab` name there is not
-ours: install from this repository.
+To track `master` instead, which is always green and carries fixes before they are released,
+install from this repository:
+
+```bash
+uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+```
 
 **Claude Code**, which adds the eat/license/serve/cleanroom/loop skills, sniff/menu commands,
 three subagents and two `PreToolUse` hooks:
@@ -119,9 +126,10 @@ To see what is out of date across the CLI and every agent you have, ask the crab
 crab update
 ```
 
-It reports the installed and available versions, notices which agents are on this machine and
-whether the plugin is installed in each, and prints exactly what to run. `crab update --run`
-does the plugin work for you.
+It reports the installed and available versions (the latest release on PyPI for a PyPI
+install, `master` for one from git), notices which agents are on this machine and whether the
+plugin is installed in each, and prints exactly what to run. `crab update --run` does the
+plugin work for you.
 
 ### Verify the CLI installation
 
@@ -132,7 +140,7 @@ crab --version
 crab --help
 ```
 
-Both commands should exit with status `0`. `crab --version` prints the installed version (for example, `crab 0.3.0.dev0`), while `crab --help` displays usage information, available commands, and options.
+Both commands should exit with status `0`. `crab --version` prints `crab` followed by the installed version, while `crab --help` displays usage information, available commands, and options.
 
 These read-only smoke checks verify CLI availability and argument parsing only. They do not validate repository fetching, digest generation, comparisons, or GitHub issue/PR publishing.
 
@@ -186,6 +194,10 @@ or `--shallow` (default branch, tree only).
 Run `crab eat pypa/pipx --deterministic --maw .` to export a complete meal without a model,
 issue creation or ledger writes. The [Feeder guide](docs/feeder.md) shows the composite action,
 reusable workflow, weekly schedule, artifact outputs and strict mode.
+
+[GitHub Marketplace launch roadmap](docs/marketplace/README.md) is a **proposal**, with
+real cross-repository tests and evidence-first case studies still to come. This link is
+not an announcement that the Feeder is listed or that its examples were already run.
 
 ## Local MCP and HTML reports
 
@@ -382,9 +394,12 @@ commenters. This is a compliance aid, not legal advice.
 - **Least privilege.** `sniff` and `catch` need read access to the GitHub API; `serve` uses your
   own authenticated `gh` and creates nothing until you ask it to.
 - **Two `PreToolUse` hooks make the first rule mechanical in Claude Code.** `crab-prey-guard`
-  refuses a Bash command that touches the prey cache unless it is one of a few audited
-  read-only shapes, and `crab-cleanroom-guard` keeps the clean-room implementer out of the
-  cache altogether. The prey guard sees the Bash tool only; the clean-room guard sees the implementer's Read, Grep, Glob, Write and Edit. They run from the plugin's own source tree
+  refuses a Bash or PowerShell command that touches the prey cache unless it is one of a few
+  audited read-only shapes (in PowerShell, a read cmdlet such as `Get-Content` or
+  `Get-ChildItem` with literal arguments). It also checks Monitor and desktop terminal commands,
+  and refuses Write, Edit, MultiEdit and NotebookEdit calls into the cache. The clean-room guard
+  keeps the implementer out of the cache through Read, Grep, Glob, Write, Edit and PowerShell;
+  the prey guard covers its Bash commands. They run from the plugin's own source tree
   through `hooks/guard.py`, with the first Python 3.11+ the shell finds, so nothing has to be
   installed or signed for them; when not even an interpreter is there, the hook says so and the
   call proceeds, because a guard that blocked every call over its own setup would be switched

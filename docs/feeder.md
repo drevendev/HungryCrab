@@ -40,6 +40,14 @@ The composite action installs only the trusted Hungry Crab checkout with locked 
 in its own environment. It never installs the prey or the maw's packages. Check out the maw
 first; Linux and Windows hosted runners are supported.
 
+**Marketplace preparation:** the [Feeder listing and dogfood roadmap](marketplace/README.md)
+tracks public/limited-private acceptance, exact release pins, truthful evidence and
+owner-mediated Marketplace publication. The `@master` example below illustrates the Action
+interface only: a production installation and a proof of Marketplace usage require a reviewed
+immutable Action SHA, tested from a separate repository. Planned examples are not executed
+proof. See the [public trial matrix](marketplace/dogfood.md) and
+[evidence contract](marketplace/evidence.md) before making a promotional claim.
+
 ```yaml
 name: Weekly menu
 on:
@@ -96,6 +104,12 @@ repository the forge confirms is public, or it is a directory of the public call
 own checkout that holds tracked files (a monorepo package such as `maw: packages/app`). A maw
 with no recognisable `origin`, an untracked directory, or one the `token` cannot see, counts as
 unconfirmed. `allow-private-artifact: true` uploads it anyway.
+For public or unknown callers, a maw containing a separate nested Git checkout or a populated
+submodule is also refused before digest, even when that checkout's origin is public. Remote
+visibility cannot vouch for local untracked, ignored, modified or unpublished files. Selecting
+a gitlink itself as the maw does not bypass this boundary. Empty, uninitialised gitlinks and
+ordinary build output without Git metadata remain allowed. Use `allow-private-artifact: true`
+only when you intend to expose those local bytes in the artifact.
 Git uses a process-local, GitHub-scoped HTTP header,
 never credentials in URLs or stored configuration. Issue acquisition also needs read access
 to issues; set `issues: 0` for a contents-only token. Public prey need no write permissions.

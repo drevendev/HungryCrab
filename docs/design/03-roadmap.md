@@ -23,14 +23,37 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.3.2 | Scheduled crab | `crab loop`: persisted phases, leases, budgets, retries, control repositories, guarded publication and `/crab:loop` ([operator guide](../scheduled-crab.md), [design](07-scheduled-crab.md)) | Implementation has deterministic tests; live exit evidence remains open in [#242](https://github.com/drevendev/HungryCrab/issues/242): ten scheduled wake-ups, a second maw round, a verified MOLT and a human-merged release/tag with measured phase costs. Not released. |
 | 0.4 | Deep Bite | Discussions (GraphQL), PR reviews, CI durations and explicit flaky-rerun report evidence; eight dependency ecosystems and GitLab.com acquisition; a ranking pressure report and the B2 experiment pipeline ([guide](../deep-bite.md)) | Implementation covers eight ecosystems and provider signals. The optional tree-sitter symbol index was postponed on 2026-10-22, so `code` stays deferred. Unreleased; the first live B2 sweep is [#250](https://github.com/drevendev/HungryCrab/issues/250). |
 | 0.5 | Taste Memory | scorer learning from the ledger (accepted/rejected by category and maw), `crab hunt --for .` (finding prey for a maw via `gh search` + similarity signals), multi-prey (`eat a b c` → merged menu), hunger profiles by repository type | share of accepted issues grows between iterations on the same maw |
-| 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. GUI-host meals, PyPI publication and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
+| 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.6.1** (2026-10-22), a security release on **0.6.0 Everywhere** (2026-10-22), a
-limited stable analysis release, after **0.2.0**.
+Released: **0.6.2** (2026-10-23) and **0.6.1** (2026-10-22), security releases on **0.6.0
+Everywhere** (2026-10-22), a limited stable analysis release, after **0.2.0**. `hungry-crab` is
+on PyPI from 0.6.1.
 The 0.2.1-0.5 implementations are included in it; that does not close their unfulfilled
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
+
+### Distribution programme — GitHub Marketplace Feeder (proposed, 2026-10-22)
+
+The existing composite **Hungry Crab Feeder** Action has a separate distribution/adoption
+roadmap, not a new 0.x runtime milestone: [Marketplace launch plan](../marketplace/README.md)
+([programme #304](https://github.com/drevendev/HungryCrab/issues/304)). Its five gates are
+**M0** honest story/quickstart, **M1** unique metadata/immutable dependency pins and
+cross-repository exact-ref Linux/Windows tests, **M2** real read-only public fleet dogfood,
+**M3** verified proof plus owner-mediated Marketplace listing, and **M4** a First Feast
+video/article and measured early adoption. The Action is not assumed listed just because
+`action.yml` triggers GitHub's "Draft a release" banner. Evidence from `uses: ./` tests
+is not equivalent to a published Marketplace installation.
+
+The proposed [copy](../marketplace/positioning.md), [test matrix](../marketplace/dogfood.md),
+[proof policy](../marketplace/evidence.md) and
+[publication checklist](../marketplace/publication.md) have no invented runs or screenshots.
+Reuse [#301](https://github.com/drevendev/HungryCrab/issues/301) for Feeder maw-wiki/token
+and immutable pins, [#211](https://github.com/drevendev/HungryCrab/issues/211) for cache
+ownership, [#236](https://github.com/drevendev/HungryCrab/issues/236) for hard acquisition
+limits, and [#281](https://github.com/drevendev/HungryCrab/issues/281) for the wider
+owner-review/usefulness campaign. No code, tags, release, external workflow or Marketplace
+publication is performed by the documentation proposal.
 
 ### Project state and integration order (2026-10-21)
 

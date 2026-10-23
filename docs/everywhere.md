@@ -9,14 +9,20 @@ publication is installed by Everywhere.
 
 ## Install once
 
-Python 3.11+, Git and uv are required. Install the release tag from this repository; drop
-`@v0.6.1` to follow `master` instead. Installation downloads the package and its dependencies.
+Python 3.11+ and Git are required, and uv or pipx to install the tool; the build steps below
+use uv. Install the latest release of `hungry-crab` from
+[PyPI](https://pypi.org/project/hungry-crab/) (`pipx install "hungry-crab[mcp]"` works as
+well). Installation downloads the package and its dependencies.
 
 ```sh
-uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab@v0.6.1"
+uv tool install "hungry-crab[mcp]"
 crab --version
 crab mcp --check
 ```
+
+To follow `master` instead, install from this repository with
+`uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab"`; appending a
+tag such as `@v0.6.2` to that URL pins a release from git.
 
 The smoke checks after installation are offline and need no GitHub authentication. `--check`
 prints the server version, stdio transport and two tool names, then exits. It does not start a
@@ -36,12 +42,12 @@ uv build
 ```
 
 Then install the wheel `uv build` wrote to `dist/` (its name carries the version), for example
-`uv tool install ./dist/hungry_crab-0.6.1-py3-none-any.whl`.
+`uv tool install ./dist/hungry_crab-0.6.2-py3-none-any.whl`.
 
 For MCP, install `hungry-crab[mcp] @ file:///absolute/path/to/the.whl` instead. On Windows use
 an absolute file URI such as `file:///C:/packages/the.whl`. Package metadata, wheel, sdist and
-isolated tool installation are tested. The package is not published to PyPI, and the
-`hungry-crab` name there is not ours; install from the tag or from a wheel you built.
+isolated tool installation are tested. Releases reach PyPI as `hungry-crab`, built from their
+release tag; a wheel you built is the way to install a checkout you reviewed yourself.
 
 ## Expose two tools to your local host
 

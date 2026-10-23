@@ -14,13 +14,15 @@ rot too.
 
 from __future__ import annotations
 
+import argparse
+import re
 from dataclasses import fields
 from pathlib import Path
 
 import pytest
 import yaml
-import re
 
+from hungry_crab.cli import build_parser
 from hungry_crab.licensing import Mode, decide
 from hungry_crab.maw import DEFAULT_CONFIG_TEXT, MawConfig
 
@@ -155,44 +157,32 @@ def test_readme_shows_the_template_crab_init_writes() -> None:
 
 
 def test_docs_match_subparser_choices() -> None:
-    """Verify that all CLI engine commands are documented in markdown files."""
+    """Compare the intended command lists, not incidental mentions elsewhere in a file."""
     agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    glossary_path = ROOT / "docs" / "design" / "GLOSSARY.md"
-    glossary_text = glossary_path.read_text(encoding="utf-8")
+    layout = agents_text.split("## Layout\n", 1)[1].split("\n## ", 1)[0]
+    cli_entry = layout.split("- `src/hungry_crab/cli.py`:", 1)[1].split("\n- ", 1)[0]
+    command_list = re.search(r"`crab ([^`]+)`", cli_entry)
+    assert command_list is not None, "the CLI layout entry must list crab's subcommands"
+    agents_commands = {name.strip() for name in command_list[1].split("|")}
 
-    # Extract all text inside single backticks
-    pattern = r"`([^`\n]+)`"
-    agents_tags = set(re.findall(pattern, agents_text))
-    glossary_tags = set(re.findall(pattern, glossary_text))
-
-    # Pull the true engine CLI commands programmatically
-    from hungry_crab.commands import build_parser
-
-    parser = build_parser()
-    engine_choices = set()
-
-    for action in parser._actions:
-        if hasattr(action, "choices") and action.choices:
-            engine_choices.update(action.choices.keys())
-
-    # Ensure every single engine command exists explicitly in both docs
-    for command in engine_choices:
-        assert command in agents_tags, (
-            f"Command `{command}` is missing from AGENTS.md"
-        )
-        assert command in glossary_tags, (
-            f"Command `{command}` is missing from GLOSSARY.md"
-        )
+    glossary_text = (ROOT / "docs/design/GLOSSARY.md").read_text(encoding="utf-8")
+    commands = glossary_text.split("## Commands\n", 1)[1].split("\n## ", 1)[0]
+    glossary_commands = {entry.split()[0] for entry in re.findall(r"(?:^|·)\s*`([^`]+)`", commands)}
+    engine_commands = {
+        name
+        for action in build_parser()._actions
+        if isinstance(action, argparse._SubParsersAction)
+        for name in action.choices
+    }
+    assert agents_commands == engine_commands
+    assert glossary_commands == engine_commands
 
 
 def test_every_skill_directory_appears_in_agents() -> None:
-    """Ensure all directory names in skills/ are explicitly listed in AGENTS.md."""
+    """Keep the actual skill list equal to the shipped skill directories."""
     agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    skills_folder = ROOT / "skills"
-
-    if skills_folder.exists():
-        for item in skills_folder.iterdir():
-            if item.is_dir():
-                assert item.name in agents_text, (
-                    f"Skill folder '{item.name}' is missing from AGENTS.md"
-                )
+    layout = agents_text.split("## Layout\n", 1)[1].split("\n## ", 1)[0]
+    skill_list = layout.split("the Agent Skills (", 1)[1].split("), the subagents", 1)[0]
+    documented = set(re.findall(r"`([^`]+)`", skill_list))
+    shipped = {path.parent.name for path in (ROOT / "skills").glob("*/SKILL.md")}
+    assert documented == shipped

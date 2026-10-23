@@ -24,6 +24,27 @@ loop:
   lease_minutes: 60
   protected: [src/licensing/**]  # additive; defaults cannot be removed
   release_files: [CHANGELOG.md, pyproject.toml, src/example/__init__.py]
+  required_checks:  # exact check-run names and approved GitHub App IDs
+    - {name: tests, app_id: 15368}  # github-actions on github.com
+    - {name: lint, app_id: 15368}
+```
+
+Tagging requires a non-empty `loop.required_checks` list owned by the maw. Each entry pins an
+exact check-run `name` and a positive integer `app_id`. Its latest run from that App must be
+completed with conclusion `success` on the exact provider-confirmed merge SHA. A same-named run
+from another App cannot replace it; missing App identity, skipped or neutral checks and legacy
+commit statuses cannot satisfy the requirement. Bare names such as `[tests, lint]` are rejected.
+HARDEN waits without spending a phase while required merge checks are missing or unfinished.
+With no configured checks, tagging refuses with a configuration hint. Ordinary PR-head CI
+evaluation is unchanged.
+
+Use the actual job names emitted by your workflows, including matrix values. Verify the App IDs
+through GitHub's authenticated check-run response before configuring them; neither the check name
+nor `app.slug` alone establishes the approved identity. For example:
+
+```bash
+gh api repos/OWNER/REPO/commits/MERGE_SHA/check-runs --paginate \
+  --jq '.check_runs[] | {name, app_id: .app.id, app_slug: .app.slug}'
 ```
 
 All loop keys and limits are validated. Default protected paths are `.github/**`, `.git/**`,

@@ -5,15 +5,23 @@ The crab cannot replace its own executable while it is running. On Windows uv fa
 CLI reinstall is only executed when the running process is *not* the uv tool install that would
 be replaced; otherwise the command is printed for you to paste. Plugin updates are external
 processes and always safe to run.
+
+A CLI installed from git is compared with ``master``. A CLI installed from the package index
+(``uv tool install hungry-crab``, no PEP 610 ``direct_url.json``) is compared with the latest
+release on PyPI, and its upgrade is always printed: it would replace the running install.
 """
 
 from __future__ import annotations
 
+import http.client
 import json
+import re
 import shutil
 import subprocess
 import sys
 import tomllib
+import urllib.error
+import urllib.request
 from base64 import b64decode
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field
@@ -22,12 +30,15 @@ from typing import Any
 
 from . import __version__
 from .errors import CrabError, ExternalCommandError
-from .fetch.github import GitHubClient
+from .fetch.bounded import MAX_JSON_BYTES, ResponseTooLargeError, read_limited
+from .fetch.github import USER_AGENT, GitHubClient
 from .typeutil import as_dict, as_list
 
 REPO = "drevendev/HungryCrab"
 GIT_URL = f"https://github.com/{REPO}"
-REQUIREMENT = f"hungry-crab @ git+{GIT_URL}"
+DISTRIBUTION = "hungry-crab"
+REQUIREMENT = f"{DISTRIBUTION} @ git+{GIT_URL}"
+PYPI_JSON_URL = f"https://pypi.org/pypi/{DISTRIBUTION}/json"
 BRANCH = "master"
 PLUGIN = "crab"
 MARKETPLACE = "hungry-crab"
@@ -194,9 +205,86 @@ def fetch_remote(client: GitHubClient | None = None) -> Remote:
         committer = as_dict(as_dict(commit.get("commit")).get("committer"))
         date = committer.get("date")
         remote.date = str(date)[:10] if date else None
-    except (CrabError, ValueError, tomllib.TOMLDecodeError) as exc:
-        remote.error = str(getattr(exc, "message", exc))
+    except (CrabError, ValueError, tomllib.TOMLDecodeError, http.client.HTTPException) as exc:
+        remote.error = str(getattr(exc, "message", exc)) or type(exc).__name__
     return remote
+
+
+class PyPIClient:
+    """Read-only access to the package index's JSON API; every call returns parsed JSON."""
+
+    def __init__(self, *, timeout: float = 30.0) -> None:
+        self.timeout = timeout
+
+    def get(self, url: str) -> Any:
+        request = urllib.request.Request(
+            url, headers={"Accept": "application/json", "User-Agent": USER_AGENT}
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                raw = read_limited(response, MAX_JSON_BYTES, label="PyPI response")
+        except urllib.error.HTTPError as exc:
+            exc.close()
+            raise ExternalCommandError(f"GET {url} failed with HTTP {exc.code}") from exc
+        except (
+            ResponseTooLargeError,
+            urllib.error.URLError,
+            OSError,
+            http.client.HTTPException,  # BadStatusLine, IncompleteRead, too many headers
+        ) as exc:
+            raise ExternalCommandError(f"GET {url} failed: {type(exc).__name__}: {exc}") from exc
+        try:
+            return json.loads(raw.decode("utf-8", errors="replace") or "null")
+        except ValueError as exc:
+            raise ExternalCommandError(f"GET {url} returned invalid JSON") from exc
+
+
+@dataclass
+class Release:
+    """The latest release of the CLI on the package index."""
+
+    version: str | None = None
+    error: str | None = None
+
+
+def fetch_release(client: PyPIClient | None = None) -> Release:
+    """The latest release on PyPI. Never raises: a network failure becomes ``error``."""
+    api = client or PyPIClient()
+    try:
+        info = as_dict(as_dict(api.get(PYPI_JSON_URL)).get("info"))
+    except (CrabError, ValueError, OSError, http.client.HTTPException) as exc:
+        return Release(error=str(getattr(exc, "message", exc)) or type(exc).__name__)
+    version = info.get("version")
+    if not isinstance(version, str) or not version.strip():
+        return Release(error="PyPI names no release of hungry-crab")
+    return Release(version=version.strip())
+
+
+# PEP 440 public versions as this project writes them: a release, then an optional
+# pre-release, post-release and development segment.
+_VERSION_RE = re.compile(
+    r"v?(\d{1,9}(?:\.\d{1,9}){0,9})(?:(a|b|rc)(\d{1,9}))?(?:\.post(\d{1,9}))?(?:\.dev(\d{1,9}))?"
+)
+
+
+def _version_key(version: str) -> tuple[Any, ...] | None:
+    """A sortable key for ``version``, or None when it is not a version written that way."""
+    match = _VERSION_RE.fullmatch(version.strip().lower())
+    if match is None:
+        return None
+    release = [int(part) for part in match[1].split(".")]
+    while len(release) > 1 and release[-1] == 0:
+        release.pop()
+    pre_kinds = ("a", "b", "rc")
+    if match[2]:
+        pre: tuple[int, int] = (pre_kinds.index(match[2]), int(match[3]))
+    elif match[5] is not None and match[4] is None:
+        pre = (-1, 0)  # X.Y.Z.devN comes before every pre-release of X.Y.Z
+    else:
+        pre = (len(pre_kinds), 0)
+    post = int(match[4]) if match[4] is not None else -1
+    dev = int(match[5]) if match[5] is not None else float("inf")
+    return (tuple(release), pre, post, dev)
 
 
 def uv_tool_receipt() -> Path | None:
@@ -205,14 +293,55 @@ def uv_tool_receipt() -> Path | None:
     return receipt if receipt.is_file() else None
 
 
+def pipx_metadata() -> Path | None:
+    """The pipx metadata beside the running venv, when the CLI runs as a pipx app."""
+    metadata = Path(sys.prefix) / "pipx_metadata.json"
+    return metadata if metadata.is_file() else None
+
+
 def cli_install_kind() -> str:
-    """How this crab was installed: ``uv-tool``, ``editable``, ``environment``."""
+    """How this crab was installed: ``uv-tool``, ``pipx``, ``editable``, ``environment``."""
     if uv_tool_receipt() is not None:
         return "uv-tool"
+    if pipx_metadata() is not None:
+        return "pipx"
     package = Path(__file__).resolve().parent
     if (package.parent.parent / "pyproject.toml").is_file():
         return "editable"
     return "environment"
+
+
+def install_source() -> str | None:
+    """Where the installed distribution came from, per PEP 610: ``vcs``, ``url`` or ``index``.
+
+    pip and uv write ``direct_url.json`` for every install that did not come from a package
+    index (a git URL, a local directory, a wheel or archive file), so a distribution without
+    one was resolved from an index. None means no metadata of this crab could be found.
+    """
+    package = Path(__file__).resolve().parent
+    infos = sorted(package.parent.glob("hungry_crab-*.dist-info"))
+    current = [info for info in infos if info.name == f"hungry_crab-{__version__}.dist-info"]
+    if current:
+        infos = current
+    if len(infos) != 1:
+        return None
+    direct = infos[0] / "direct_url.json"
+    if not direct.is_file():
+        return "index"
+    try:
+        data = as_dict(json.loads(direct.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return None
+    return "vcs" if "vcs_info" in data else "url"
+
+
+def upgrade_command(kind: str) -> list[str]:
+    """The command that upgrades an index install of the given kind to the latest release."""
+    if kind == "uv-tool":
+        return ["uv", "tool", "upgrade", DISTRIBUTION]
+    if kind == "pipx":
+        return ["pipx", "upgrade", DISTRIBUTION]
+    return [sys.executable, "-m", "pip", "install", "--upgrade", DISTRIBUTION]
 
 
 def installed_commit() -> str | None:
@@ -270,13 +399,40 @@ class UpdateReport:
         }
 
 
-def check_cli(remote: Remote) -> Component:
+def check_index_cli(kind: str, release: Release) -> Component:
+    """A CLI installed from the package index, against the latest release there."""
+    installed = __version__
+    command = upgrade_command(kind)
+    if release.error or release.version is None:
+        detail = f"cannot read PyPI: {release.error or 'no release'}"
+        return Component("crab CLI", installed, None, UNKNOWN, detail, [command])
+    latest = release.version
+    if latest == installed:
+        return Component("crab CLI", installed, latest, OK, "the latest release on PyPI")
+    here, there = _version_key(installed), _version_key(latest)
+    if here is None or there is None:
+        detail = f"PyPI has {latest}, which cannot be compared with {installed}"
+        return Component("crab CLI", installed, latest, UNKNOWN, detail, [command])
+    if there > here:
+        detail = f"PyPI has {latest}"
+        return Component("crab CLI", installed, latest, OUTDATED, detail, [command])
+    detail = f"newer than the latest release on PyPI ({latest})"
+    return Component("crab CLI", installed, latest, OK, detail)
+
+
+def check_cli(remote: Remote, *, index: PyPIClient | None = None) -> Component:
+    """The CLI against master for a git install, or against PyPI for an index install.
+
+    PyPI is asked only when the crab was installed from the index, through ``index``.
+    """
     kind = cli_install_kind()
     installed = __version__
     command = ["uv", "tool", "install", "--force", REQUIREMENT]
     if kind == "editable":
         detail = "editable install from a local checkout; `git pull` updates it"
         return Component("crab CLI", installed, remote.cli_version, OK, detail)
+    if install_source() == "index":
+        return check_index_cli(kind, fetch_release(index))
     if remote.error:
         return Component("crab CLI", installed, None, UNKNOWN, remote.error, [command])
     if remote.cli_version and remote.cli_version != installed:
@@ -343,10 +499,11 @@ def check(
     *,
     client: GitHubClient | None = None,
     runner: Callable[[Sequence[str]], tuple[bool, str]] | None = None,
+    index: PyPIClient | None = None,
 ) -> UpdateReport:
     call = runner or (lambda args: run_command(args))
     remote = fetch_remote(client)
-    components = [check_cli(remote)]
+    components = [check_cli(remote, index=index)]
     components += [check_agent(agent, remote, runner=call) for agent in AGENTS]
     return UpdateReport(components, remote, executed=False)
 
@@ -357,20 +514,27 @@ def apply(
     runner: Callable[[Sequence[str]], tuple[bool, str]] | None = None,
     log: Callable[[str], None] = _noop,
 ) -> UpdateReport:
-    """Run what is safe: plugin work always, the CLI only when it is not this process."""
+    """Run what is safe: plugin work always, the CLI only when it is not this process.
+
+    A uv tool or pipx app is the running process, and so is an install from the package index
+    wherever it lives: its upgrade replaces the files the crab is running from.
+    """
     call = runner or (lambda args: run_command(args))
-    self_install = uv_tool_receipt() is not None
+    self_install = (
+        uv_tool_receipt() is not None or pipx_metadata() is not None or install_source() == "index"
+    )
     for component in report.components:
         if component.status not in ACTIONABLE or not component.commands:
             continue
         if component.name == "crab CLI":
             if self_install:
                 component.detail = (
-                    "run the command yourself: uv cannot replace the crab while it is running"
+                    "run the command yourself: the crab cannot replace itself while it is running"
                 )
                 continue
-            if shutil.which("uv") is None:
-                component.detail = "uv is not on PATH"
+            program = component.commands[0][0]
+            if shutil.which(program) is None:
+                component.detail = f"{program} is not on PATH"
                 continue
         for command in component.commands:
             log("$ " + display_command(command))
@@ -389,7 +553,7 @@ def apply(
 
 
 def format_report(report: UpdateReport) -> str:
-    lines = [f"{'component':<22}{'installed':<12}{'master':<12}status"]
+    lines = [f"{'component':<22}{'installed':<12}{'available':<12}status"]
     for component in report.components:
         lines.append(
             f"{component.name:<22}{component.installed or '-':<12}"

@@ -93,12 +93,30 @@ def _is_caller(slug: Slug | None) -> bool:
     )
 
 
+GITLINK_MODE = "160000"
+
+
+def _tracks_a_file(listing: str) -> bool:
+    """True when ``git ls-files -s -z`` output holds an entry that is not a gitlink.
+
+    A gitlink (mode 160000) is a submodule or nested repository: another repository whose
+    visibility the caller's says nothing about, not a file the caller tracks.
+    """
+    for entry in listing.split("\0"):
+        mode = entry.partition(" ")[0]
+        if mode and mode != GITLINK_MODE:
+            return True
+    return False
+
+
 def maw_in_public_caller(maw: Path) -> bool:
     """A tracked directory of the public calling repository's own checkout (a monorepo package).
 
     The caller's checkout sits at the workspace root; a directory below it holding files the
     caller tracks is part of that public repository. An untracked or ignored directory is not:
-    it may hold anything a previous step wrote there.
+    it may hold anything a previous step wrote there. Neither is a submodule, or a directory
+    inside one: its gitlink is the only entry the caller tracks, and the repository behind it
+    may be private, so it is confirmed by its own origin or not at all.
     """
     workspace = os.environ.get("GITHUB_WORKSPACE")
     if not workspace or caller_is_private() is not False or not GitRunner.available():
@@ -110,8 +128,22 @@ def maw_in_public_caller(maw: Path) -> bool:
         return False
     if not maw.is_dir() or not _is_caller(maw_origin(root)):
         return False
-    tracked = GitRunner(root).try_run("ls-files", "-z", "--", relative.as_posix() or ".")
-    return bool(tracked)
+    # The maw must belong to the caller's own work tree, not to a repository nested in it.
+    top = GitRunner(maw).toplevel()
+    try:
+        if top is None or not top.samefile(root):
+            return False
+    except OSError:
+        return False
+    tracked = GitRunner(root).try_run("ls-files", "-s", "-z", "--", relative.as_posix() or ".")
+    return tracked is not None and _tracks_a_file(tracked)
+
+
+def _origin_is_public(slug: Slug) -> bool:
+    """The public calling repository itself, or a repository the forge confirms is public."""
+    if _is_caller(slug) and caller_is_private() is False:
+        return True
+    return forge_says_public(slug)
 
 
 def maw_is_public(maw: Path) -> bool:
@@ -119,21 +151,153 @@ def maw_is_public(maw: Path) -> bool:
 
     The maw digest is uploaded beside the prey digest, so a private checkout digested as the maw
     is as exposed as a private prey. A maw with no recognisable origin is unconfirmed, unless it
-    is a tracked directory of the public caller's own checkout.
+    is a tracked directory of the public caller's own checkout. Selecting a populated gitlink
+    as the maw must not bypass the refusal of local submodule bytes below a public maw.
     """
+    # Keep the original path for gitlink junctions, and resolve aliases containing '..'.
+    try:
+        roots = {maw, maw.resolve()}
+    except (OSError, RuntimeError):
+        return False
+    if any(_tracked_gitlink_checkout(root) for root in roots):
+        return False
     if maw_in_public_caller(maw):
         return True
     slug = maw_origin(maw)
-    if slug is None:
-        return False
-    caller = os.environ.get("GITHUB_REPOSITORY", "")
-    if (
-        slug.host == "github.com"
-        and f"{slug.owner}/{slug.repo}".casefold() == caller.casefold()
-        and caller_is_private() is False
-    ):
+    return slug is not None and _origin_is_public(slug)
+
+
+# Bound the number of populated submodules reported in a refusal.
+# Uninitialised gitlinks hold nothing and do not count.
+MAX_SUBMODULES = 256
+
+
+def _gitlinks(directory: Path) -> list[str] | None:
+    """The gitlink paths git tracks at or below ``directory``, relative to it; None if unknown."""
+    listing = GitRunner(directory).try_run("ls-files", "-s", "-z")
+    if listing is None:
+        return None
+    paths = []
+    for entry in listing.split("\0"):
+        meta, _, path = entry.partition("\t")
+        if meta.startswith(f"{GITLINK_MODE} ") and path:
+            paths.append(path)
+    return paths
+
+
+def _populated(place: Path) -> bool:
+    """Whether anything sits at a gitlink's path; an empty directory is an uninitialised one."""
+    try:
+        if place.is_symlink():
+            return True
+        return place.exists() and (not place.is_dir() or any(place.iterdir()))
+    except OSError:
         return True
-    return forge_says_public(slug)
+
+
+def unconfirmed_submodules(maw: Path) -> list[str] | None:
+    """Populated gitlinks whose local bytes cannot be vouched for by a public remote.
+
+    The inventory walks the maw's directory and reads whatever files sit there, so a checked-out
+    submodule reaches the maw digest like the maw's own files, while the caller's visibility says
+    nothing about it. Even a public origin cannot attest to untracked, ignored, modified or
+    unpublished content. Refuse every populated gitlink, including ones without Git metadata;
+    this also blocks anything nested inside it without inspecting another repository.
+    Empty (uninitialised) gitlinks hold nothing to digest. Return sorted POSIX paths below the
+    maw, or None if they cannot be listed within the bounds.
+    """
+    links = _gitlinks(maw)
+    if links is None:
+        return None
+    unconfirmed: list[str] = []
+    for path in links:
+        # A path that did not decode cannot be looked up, so it is not vouched for.
+        if chr(0xFFFD) in path or _populated(maw / path):
+            unconfirmed.append(path)
+            if len(unconfirmed) > MAX_SUBMODULES:
+                return None
+    return sorted(unconfirmed)
+
+
+# Independent nested Git checkouts are not gitlinks and may carry private files.
+# The inventory also walks untracked directories, so inspect these before digest.
+MAX_NESTED_CHECKOUTS = 256
+
+
+def _tracked_gitlink_checkout(directory: Path) -> bool:
+    """Only tracked submodules are handled by unconfirmed_submodules instead."""
+    if not GitRunner.available():
+        return False
+    parent = GitRunner(directory.parent).toplevel()
+    if parent is None:
+        return False
+    try:
+        relative = directory.relative_to(parent).as_posix()
+    except ValueError:
+        return False
+    # Git pathspecs remain case-sensitive on Windows even when the filesystem is not.
+    # Query literal case variants, then prove filesystem identity to avoid conflating
+    # distinct directories on a case-sensitive volume (including Windows ones).
+    listing = GitRunner(parent).try_run("ls-files", "-s", "-z", "--", f":(literal,icase){relative}")
+    if listing is None:
+        return False
+    for entry in listing.split("\0"):
+        if entry.startswith(f"{GITLINK_MODE} "):
+            try:
+                if (parent / entry.partition("\t")[2]).samefile(directory):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
+    """Find separately checked-out Git repositories below a public maw.
+
+    A public remote does not prove that its local worktree is safe to publish:
+    untracked, ignored, modified or unpublished files may still be private.
+    Refuse independent Git roots unless allow-private-artifact explicitly opts in.
+    Ordinary untracked build output without a Git root is left alone.
+    A failed traversal or too many nested checkouts fails closed.
+    """
+    failures: list[OSError] = []
+    unconfirmed: list[str] = []
+    examined = 0
+    for base, dirs, files in os.walk(maw, topdown=True, followlinks=False, onerror=failures.append):
+        # Git treats .GIT / .GiT as .git on case-insensitive workspaces (Windows).
+        # Match and prune all case variants before any maw inventory can read them.
+        marker = any(name.casefold() == ".git" for name in (*dirs, *files))
+        dirs[:] = [name for name in dirs if name.casefold() != ".git"]
+        checkout = Path(base)
+        if checkout == maw or not marker or _tracked_gitlink_checkout(checkout):
+            continue
+        examined += 1
+        if examined > MAX_NESTED_CHECKOUTS:
+            return None
+        # Remote visibility says nothing about local bytes read by the maw inventory.
+        unconfirmed.append(checkout.relative_to(maw).as_posix())
+    if failures:
+        return None
+    return sorted(unconfirmed)
+
+
+def _nested_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
+    if paths is None:
+        return f"the maw ({maw_label}), whose nested checkouts cannot be inspected,", False
+    shown = ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+    plural = len(paths) > 1
+    noun = "nested checkouts" if plural else "nested checkout"
+    return f"the {noun} {shown} inside the maw ({maw_label})", plural
+
+
+def _submodule_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
+    """How the refusal names the submodules of a public maw, and whether that is plural."""
+    if paths is None:
+        return f"the maw ({maw_label}), whose submodules cannot be listed,", False
+    shown = ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+    plural = len(paths) > 1
+    noun = "submodules" if plural else "submodule"
+    return f"the {noun} {shown} checked out in the maw ({maw_label})", plural
 
 
 def run() -> int:
@@ -158,12 +322,26 @@ def run() -> int:
     # bundle holds the maw digest as well as the prey digest.
     if allow == "false" and caller_is_private() is not True:
         unconfirmed = []
+        plural = False
         if not prey_is_public(prey, local=local):
             unconfirmed.append("the prey")
+        maw_label = os.environ.get("CRAB_MAW", ".")
         if not maw_is_public(maw):
-            unconfirmed.append(f"the maw ({os.environ.get('CRAB_MAW', '.')})")
+            unconfirmed.append(f"the maw ({maw_label})")
+        else:
+            # A public maw still carries whatever its checked-out submodules hold.
+            submodules = unconfirmed_submodules(maw)
+            if submodules != []:
+                side, plural = _submodule_side(maw_label, submodules)
+                unconfirmed.append(side)
+            # A second actions/checkout is not a gitlink, but its files reach the artifact.
+            nested = unconfirmed_nested_checkouts(maw)
+            if nested != []:
+                side, many = _nested_side(maw_label, nested)
+                unconfirmed.append(side)
+                plural = plural or many
         if unconfirmed:
-            verb = "are" if len(unconfirmed) > 1 else "is"
+            verb = "are" if len(unconfirmed) > 1 or plural else "is"
             sides = f"{' and '.join(unconfirmed)} {verb}"
             print(EXPOSURE_REFUSAL.format(sides=sides), file=sys.stderr)
             return 2

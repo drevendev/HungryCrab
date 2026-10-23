@@ -162,8 +162,36 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+# The HTML blocks that CommonMark runs to an end condition rather than to a blank line (types
+# 1-5): `<pre`, `<script`, `<style` and `<textarea` until any of their end tags, a comment until
+# `-->`, a processing instruction until `?>`, a declaration until `>` and CDATA until `]]>`.
+# Usage text pasted into `<pre>` may hold blank lines and `---`; none of it is a heading.
+_HTML_BLOCK_START_RE = re.compile(
+    r" {0,3}<(?:(?P<raw>(?i:pre|script|style|textarea))(?=[ \t>]|$)"
+    r"|(?P<cdata>!\[CDATA\[)|(?P<comment>!--)|(?P<instruction>\?)|(?P<declaration>![A-Za-z]))"
+)
+_HTML_RAW_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECASE)
+_HTML_BLOCK_ENDS = {"cdata": "]]>", "comment": "-->", "instruction": "?>", "declaration": ">"}
+# `[label]: destination "title"` defines a link and is not paragraph text, so `===` under it
+# does not make the definition, URL and all, a heading. Only a whole line of that shape is a
+# definition: a destination (`<...>` or one run without spaces) and an optional quoted or
+# parenthesised title. `[WIP]: Feature X` is text. Each class excludes its own delimiters and
+# the parts are separated by spaces a destination cannot hold, so the match is linear.
+_LINK_DEFINITION_RE = re.compile(
+    r" {0,3}\[[^\[\]]{1,999}\]:[ \t]*(?:<[^<>]*>|[^\s<]\S*)"
+    r"(?:[ \t]+(?:\"[^\"]*\"|'[^']*'|\([^()]*\)))?[ \t]*"
+)
+
+
+def _html_block_ends(kind: str, text: str) -> bool:
+    """Whether ``text`` meets the end condition of an HTML block of type ``kind`` (1-5)."""
+    if kind == "raw":
+        return _HTML_RAW_END_RE.search(text) is not None
+    return _HTML_BLOCK_ENDS[kind] in text
+
+
 def markdown_headings(text: str) -> list[dict[str, object]]:
-    """ATX and setext headings outside fenced/indented code and HTML comments."""
+    """ATX and setext headings outside fenced/indented code, HTML blocks and comments."""
     text = split_frontmatter(text)[1]
     text = re.sub(r"<!--.*?(?:-->|\Z)", "", text, flags=re.DOTALL)
     headings: list[dict[str, object]] = []
@@ -171,13 +199,33 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     fence_length = 0
     previous = ""
     # Inside a list item, quote, table or HTML block until a blank line: no paragraph starts.
+    # An HTML block or a fenced code block leaves it as it found it: one inside a list item does
+    # not end the item, so the line after it is still the item's body.
     in_block = False
+    # Inside an HTML block of types 1-5 until its end condition, blank lines included.
+    html_block = ""
     for line in text.splitlines():
+        if html_block:
+            if _html_block_ends(html_block, line):
+                html_block = ""
+            previous = ""
+            continue
+        if not fence and not line.startswith(("    ", "\t")):
+            html = _HTML_BLOCK_START_RE.match(line)
+            if html is not None:
+                kind = html.lastgroup or ""
+                if not _html_block_ends(kind, line[html.start(kind) - 1 :]):
+                    html_block = kind
+                previous = ""
+                continue
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
         if marker:
             value = marker.group(1)
             if not fence:
                 fence, fence_length = value[0], len(value)
+                if not line.startswith(" "):
+                    # An unindented fence ends a list item, quote or table (CommonMark).
+                    in_block = False
             elif (
                 value[0] == fence
                 and len(value) >= fence_length
@@ -185,7 +233,6 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             ):
                 fence = ""
             previous = ""
-            in_block = False
             continue
         if fence or line.startswith(("    ", "\t")):
             previous = ""
@@ -209,6 +256,9 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
         elif _BLOCK_START_RE.match(line) or "|" in line:
             previous = ""
             in_block = True
+        elif not previous and _LINK_DEFINITION_RE.fullmatch(line):
+            # A definition cannot interrupt a paragraph; under one, the line is paragraph text.
+            previous = ""
         else:
             previous = "" if in_block else line.strip()
         if heading is not None:
