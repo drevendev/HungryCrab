@@ -42,6 +42,11 @@ The full CLI/MCP/skills are described in [Everywhere](../everywhere.md); the
   remain known safety/scale debt, not silent launch successes.
 - Existing Feeder smoke uses `uses: ./`; a real external `uses: drevendev/HungryCrab@<sha>`
   run in another maw is a different, required acceptance test.
+- **Mandatory M1 exit: F02 external-maw consumption in `drevendev/BeautifulRepo`**
+  using `drevendev/HungryCrab@<reviewed-full-SHA>` must execute successfully on **both
+  Linux and Windows**, with exact workflow/job links and inspected artifact plus source trace.
+  F01 self-consumption (`uses: ./` or an owner/repo ref inside HungryCrab itself) does
+  **not** qualify as external interoperability proof or satisfy M1 by itself.
 
 ## Staged roadmap (no invented dates)
 
