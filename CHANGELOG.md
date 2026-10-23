@@ -14,6 +14,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   maw is confirmed by its own origin through the forge, and refused without
   `allow-private-artifact` when nothing confirms it
   ([#386](https://github.com/drevendev/HungryCrab/issues/386)).
+- **Publication:** `serve --as pr-branch` no longer refuses its own pull-request body. The
+  pre-push secret scan reads the commit, blob, tree and raw URLs of GitHub and GitLab, the
+  shape of the crab's evidence links, as a public repository followed by segments, so a hex
+  commit no longer joins a mixed-case path into one high-entropy token; each segment is still
+  judged ([#387](https://github.com/drevendev/HungryCrab/issues/387)).
 
 ## [0.6.1] - 2026-10-22
 

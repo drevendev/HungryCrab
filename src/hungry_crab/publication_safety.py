@@ -18,8 +18,9 @@ Every line goes through three passes, and the first that finds something decides
    dotenv-style ``NAME=value`` lines. In a configuration file any literal of eight or more
    characters counts. Placeholders and references to a store (``env:NAME``, ``${NAME}``,
    ``$NAME``, ``%NAME%``) never do.
-3. Entropy: long opaque tokens. A path is judged one segment at a time, and lock files, which
-   carry only hashes and URLs, skip this pass.
+3. Entropy: long opaque tokens. A path is judged one segment at a time, and so is what follows
+   the commit, blob, tree or raw view of a GitHub or GitLab URL (`/blob/<sha>/<path>`, as the
+   crab links evidence); lock files, which carry only hashes and URLs, skip this pass.
 
 The rules were written for this module from the issuers' public token formats.
 """
@@ -160,10 +161,21 @@ _REFERENCE_VALUE = re.compile(
     re.IGNORECASE,
 )
 _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
-_SAFE_GITHUB_TRACE_URL = re.compile(
-    r"https?://(?:www\.)?github\.com/"
-    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+"
-    r"(?:/commit/[0-9a-fA-F]{7,64}(?![A-Za-z0-9]))?"
+# The forge URLs the crab writes itself: a GitHub repository, optionally followed by a commit,
+# blob, tree or raw view (`/blob/<sha>/<path>`), and the same views of a GitLab project, with
+# or without GitLab's `/-/` separator. The host, the repository and the view are public
+# identifiers; what follows the view (the commit or branch, then the path) is kept and judged
+# one segment at a time, where a hex commit is a digest and a path segment is a name. Every
+# repetition is bounded, and each starts after a literal host, so a long line scans linearly.
+_FORGE_VIEW = r"/(?:blob|tree|raw|commit)(?=/)"
+_FORGE_PATH = r"/[^\s?#()<>\[\]{}\"'`|\\]{1,2048}+"
+_SAFE_FORGE_URL = re.compile(
+    r"https?://(?:"
+    r"(?:www\.)?github\.com/[A-Za-z0-9_.-]{1,100}+/[A-Za-z0-9_.-]{1,100}+"
+    rf"(?:{_FORGE_VIEW}(?P<github_path>{_FORGE_PATH}))?"
+    r"|gitlab\.com(?:/[A-Za-z0-9_.-]{1,255}+){2,20}?(?:/-)?"
+    rf"{_FORGE_VIEW}(?P<gitlab_path>{_FORGE_PATH})"
+    r")"
 )
 _PLACEHOLDER_VALUES = frozenset(
     {
@@ -461,11 +473,22 @@ def _credential_assignment(line: str, *, bare_values: bool, config: bool) -> boo
     return False
 
 
+def _forge_url_segments(match: re.Match[str]) -> str:
+    """A forge URL without its public identifiers: the commit and path after the view.
+
+    A hex commit followed by a mixed-case path reads as one dense token, so they are not left
+    joined; the commit and each path segment are still judged on their own.
+    """
+
+    path = match.group("github_path") or match.group("gitlab_path") or ""
+    return " " + path.replace("/", " ") + " "
+
+
 def _entropy_hit(line: str) -> bool:
-    # Repository URLs and hex commit trace URLs are public identifiers. Strip only those
-    # known-safe shapes for the generic entropy pass; extra path/query/fragment content
-    # remains visible.
-    entropy_line = _SAFE_GITHUB_TRACE_URL.sub(" ", line)
+    # Repository URLs and the commit, blob, tree and raw URLs the crab writes are public
+    # identifiers. Strip only those known-safe shapes for the generic entropy pass; the path,
+    # query and fragment after them remain visible.
+    entropy_line = _SAFE_FORGE_URL.sub(_forge_url_segments, line)
     return any(_opaque_secret(_token_value(m.group(1))) for m in _TOKEN.finditer(entropy_line))
 
 

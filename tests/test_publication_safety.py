@@ -7,7 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab.compare.candidates import Side
 from hungry_crab.errors import CrabError
+from hungry_crab.nutrients import Candidate
 from hungry_crab.pr_publication import (
     GeneratedFile,
     PreparedPullRequest,
@@ -22,6 +24,7 @@ from hungry_crab.publication_safety import (
     scan_publication,
     scan_publication_bundle,
 )
+from hungry_crab.serve import render_issue
 
 # Every secret-shaped vector is assembled at run time, so that this file is not itself a finding
 # when the repository's own tree is scanned (see the corpus test at the end).
@@ -344,6 +347,11 @@ BACKSLASH = chr(92)
         ("src/x.py", 'password="' + "password=" * (_LONG // 9) + '"'),
         ("config.yml", "token: " + " " * _LONG + "x"),
         ("src/x.py", "a-" * (_LONG // 2)),
+        # Forge URLs: a project path that never reaches a view, and views without a path.
+        ("PR_BODY", "https://gitlab.com" + "/a" * (_LONG // 2)),
+        ("PR_BODY", "https://gitlab.com/" * (_LONG // 19)),
+        ("PR_BODY", "https://github.com/o/r/blob" * (_LONG // 27)),
+        ("PR_BODY", "https://gitlab.com/g/r/-/blob/" + "a/" * (_LONG // 2)),
     ],
     ids=[
         "backslashes-38",
@@ -356,6 +364,10 @@ BACKSLASH = chr(92)
         "names-inside-a-literal",
         "spaces-before-value",
         "dashed-words",
+        "gitlab-project-path",
+        "gitlab-hosts",
+        "github-views",
+        "gitlab-long-path",
     ],
 )
 def test_a_long_hostile_line_scans_in_linear_time(path: str, line: str) -> None:
@@ -372,6 +384,63 @@ def test_github_trace_exemption_does_not_hide_opaque_path_segments() -> None:
     findings = scan_publication("PR_BODY", suspicious)
     assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
     assert OPAQUE not in format_publication_findings(findings)
+
+
+_EVIDENCE_PATHS = [
+    "okhttp/src/main/kotlin/okhttp3/internal/http2/Http2Connection.kt",
+    "src/main/java/com/example/Http2Handler.java",
+    "src/Microsoft/Extensions/Http/HttpClientFactory.cs",
+    "src/http/client.go",
+    "CONTRIBUTING.md",
+    "app/Http/Controllers/UserController.php",
+    "src/app/(auth)/login/page.tsx",
+]
+
+
+@pytest.mark.parametrize(
+    "prey_url", ["https://github.com/square/okhttp", "https://gitlab.com/group/sub/okhttp"]
+)
+def test_the_crab_s_own_evidence_urls_are_not_secrets(prey_url: str) -> None:
+    """#387: `render_issue` links evidence at the meal's commit; no commit makes that a secret."""
+
+    rng = random.Random(387)
+    for _ in range(300):
+        sha = f"{rng.getrandbits(160):040x}"
+        prey = Side(label="square/okhttp", sha=sha, url=prey_url, root=None)
+        card = Candidate(
+            category="pattern",
+            key="square-okhttp-http2-flow-control",
+            title="Bound HTTP/2 flow-control windows",
+            what="The prey bounds every HTTP/2 stream window.",
+            evidence=[prey.evidence(path) for path in _EVIDENCE_PATHS],
+            origin="repository",
+            license_mode="REIMPLEMENT",
+        )
+        menu = {"prey": {"label": prey.label, "sha": sha, "url": prey_url, "license": "MIT"}}
+        title, body = render_issue(card, menu)
+        assert f"/blob/{sha}/" in body
+        assert scan_publication("PR_BODY", body) == [], sha
+        assert scan_publication("PR_TITLE", title) == []
+    prepared = PreparedPullRequest(
+        title=title, body=body, files=(GeneratedFile("src/flow.py", "WINDOW = 65535\n"),)
+    )
+    assert publish_prepared_pull_request(prepared, lambda _: "published") == "published"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/o/r/blob/0123456789abcdef0123456789abcdef01234567/{secret}",
+        "https://github.com/o/r/tree/main/{secret}/docs",
+        "https://github.com/o/r/blob/{secret}/README.md",
+        "https://gitlab.com/g/r/-/blob/0123456789abcdef0123456789abcdef01234567/{secret}",
+        "https://github.com/o/r/blob/0123456789abcdef/README.md?token={secret}",
+    ],
+)
+def test_a_forge_url_still_shows_its_opaque_segments(url: str) -> None:
+    findings = scan_publication("PR_BODY", f"See [x]({url.format(secret=OPAQUE)}).")
+
+    assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
 
 
 def test_clean_bundle_passes_unchanged() -> None:
