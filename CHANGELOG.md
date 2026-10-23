@@ -7,6 +7,206 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-23
+
+A security release on 0.6.0 Everywhere, and the first release published to PyPI from CI. It
+fixes [GHSA-443x-5484-qr4g](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-443x-5484-qr4g):
+the prey guard judged a command's text rather than the paths the shell builds from it, and
+tools other than Bash and PowerShell (the Monitor tool, file writes) were not judged at all.
+The fix went through seven rounds of independent adversarial review and ships only where no
+reviewed case is weaker than 0.6.1. It also fixes what the review of 2026-10-23 found in 0.6.1
+itself: the Feeder action, the pre-push secret scan and heading extraction
+([#397](https://github.com/drevendev/HungryCrab/pull/397)). `hungry-crab` is on PyPI now
+(`uv tool install hungry-crab`). Update the CLI and the plugins: Claude Code offers the plugin
+update with this version.
+
+### Security
+
+- **Prey guard:** a path the shell builds from the command text is judged as the shell builds
+  it ([GHSA-443x-5484-qr4g](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-443x-5484-qr4g)).
+  A script handed to a nested shell, `eval`, `xargs`, `find -exec`, `env -S`, an alias, `git -c`,
+  a command variable such as `GIT_SSH_COMMAND`, or any other program as a quoted command line is
+  read as a command of its own, and so is a quoted substitution bash evaluates again
+  (arithmetic, prompts, `${x@P}`); a `cd` counts wherever the shell runs it, and variables the
+  command changes, `HOME` included, are followed; a path attached to a short option, named in a
+  response file or listed in a path variable is resolved; brace alternatives and parameter
+  defaults are expanded, a word is also judged with its glob and brace characters taken
+  literally, and the text of an expansion or a substitution may hold `/` and `..`; comments,
+  here-documents, here-strings, `$$` and carriage returns are read as bash reads them, and
+  PowerShell words, comments, here-strings, encoded commands and cmd variables as PowerShell and
+  cmd read them; a glob or an 8.3 alias that can match the cache or its parent is a hint of the
+  cache; Win32's handling of trailing dots and spaces and Git Bash's `/tmp` are followed. The
+  bare name and another directory under `~/.cache` count beside a construct that computes text
+  or runs it, and a substitution holding either is refused; a value the command assigns is read
+  as code where a shell, `eval`, `trap` or `mapfile -C` may run it; a script a program runs that
+  no shell grammar can read is judged by its hints; unknown text glued to the home directory can
+  lead anywhere below it; a path compared by its spelling alone, past the budget or too deep to
+  resolve, counts as reaching the cache when it hints at it; PowerShell's `Set-Item
+  Variable:`, `-OutVariable` and `Tee-Object -Variable` are followed, and a typographic dash in
+  a PowerShell's arguments is a dash. A command holding carriage returns is judged both as Git
+  Bash reads it, without them, and as bash elsewhere does. A search or recursive listing that
+  walks the cache or a directory above it (`find ~`, `fd`, `rg --files`, `grep -r`, `locate`,
+  `Get-ChildItem -Recurse`) is refused when what it finds feeds something that runs, and a copy
+  of the cache is followed through `cd`. A directory option (`make -C`, `git -C`, `env -C`,
+  `tar -C`, `uv --directory`, `-WorkingDirectory`) or a word naming home or another directory
+  above the cache moves the command's relative words there; a strong hint beside a
+  substitution or a special parameter is refused, as 0.6.1 did. A container bind mount of the
+  cache or `~/.cache` is a copy of it, and a copy or a mount of home searched or entered is
+  home. The Monitor tool's command is judged as bash, the desktop terminal's as bash and as
+  PowerShell in the `cwd` it names, any other tool's `command` as bash, and a
+  Write, Edit, MultiEdit or NotebookEdit call whose file is in the cache is refused; a clone's
+  `.git/config` that names a program git may start keeps every `git` command there from the
+  allowlist. An `scp`, `rsync`, `sftp`, `ssh` or `git` path on this machine
+  (`localhost:.cache/…`, `ssh://localhost/~/…`) is a local path, and a brace expansion or
+  an array read beside a way to the cache is refused, as 0.6.1 did. A command that links,
+  copies, archives or mounts the cache or `~/.cache` is
+  refused, even on its own, and so is an encoded script the guard cannot decode. Every decision runs on one bounded budget, and a command the guard cannot parse or
+  finish judging within it passes only when its text is plain.
+- **Fewer false refusals:** a `grep`, `rg` or `Select-String` search pattern, a fetched URL and
+  the package name outside a path (a comparison, echoed text, an install request) are no hint
+  of the cache; an exit status and braces are followed rather than refused; a quoted `awk`
+  program is not shell syntax; a value `read` from a file, an `ssh` remote command and the home
+  directory as the working directory refuse nothing on their own; a substitution is refused
+  only when its own text, or the directory it runs in, points at the cache; `pip install .`,
+  `cp -r .` or `zip -r` run from the home directory, and another directory under `~/.cache`
+  listed into `read`, are not copies or hints of the cache; an allowed bash read may be
+  piped into `head`, `tail`, `grep`, `wc` or `cut`; `dirname` and `basename` are printers
+  ([#392](https://github.com/drevendev/HungryCrab/issues/392)).
+- **Hooks:** the hook command starts the launcher only with a Python that accepts `-I`; an older
+  interpreter first on `PATH` no longer exits 2 and blocks every tool call, it is passed over,
+  and with no other the hook says so and exits 1
+  ([#393](https://github.com/drevendev/HungryCrab/issues/393)).
+
+### Added
+
+- **PyPI:** releases are published to [PyPI](https://pypi.org/project/hungry-crab/) as
+  `hungry-crab` by `.github/workflows/publish.yml`, which runs when a GitHub release is
+  published, refuses unless the run's tag names the packaged release version, builds the sdist
+  and wheel from the tag, checks them with `twine check --strict` and uploads them through
+  Trusted Publishing, with no stored token; only the upload job may request an OIDC token, and
+  every action is pinned by commit. `CONTRIBUTING.md` carries the step and how to verify it
+  ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
+
+### Fixed
+
+- **Feeder:** a submodule of the public calling repository, or a directory inside one, no
+  longer counts as a tracked directory of the caller; its gitlink is another repository, so the
+  maw is confirmed by its own origin through the forge, and refused without
+  `allow-private-artifact` when nothing confirms it. A maw confirmed public no longer carries
+  a private submodule into the artifact either: every checked-out submodule under it, nested
+  ones included, must have an origin the forge confirms public, or the run is refused naming
+  the submodule; an uninitialised one holds nothing and is fine
+  ([#386](https://github.com/drevendev/HungryCrab/issues/386)).
+- **Publication:** `serve --as pr-branch` no longer refuses its own pull-request body. The
+  pre-push secret scan reads the commit, blob, tree and raw URLs of GitHub and GitLab, the
+  shape of the crab's evidence links, as a public repository, a commit and a path judged
+  apart, so a hex commit no longer joins a mixed-case path into one high-entropy token; the
+  path is only what the crab's own links contain, and it is still judged as any path is
+  ([#387](https://github.com/drevendev/HungryCrab/issues/387)).
+- **Publication:** the 0.6.1 secret scan no longer refuses ordinary text it took for
+  credentials: a digest after the `@` (`docker://alpine:3.20@sha256:…`) is not a host, so an
+  image pinned by digest is not a password in a URL, the Slack shape lists only Slack's
+  prefixes (`xox[abcdeprs]-`, `xapp-`), so `xoxo` is a word, and `X-` header names, the
+  Kubernetes Secret a chart's `existingSecret` names and YAML or JSON translations under
+  `locales/`, `i18n/`, `translations/` and similar directories (and locale-named files under
+  Laravel's `lang/`) are not credential literals
+  ([#388](https://github.com/drevendev/HungryCrab/issues/388)).
+- **No body text in summaries:** nothing inside an HTML block that runs to an end condition
+  (`<pre>`, `<script>`, `<style>`, `<textarea>`, comments, processing instructions,
+  declarations and CDATA) is a heading until that condition, blank lines included, such a block
+  or a fence inside a list item or table leaves the line after it body text, and a link
+  reference definition is never setext heading text, so usage text and URLs underlined with
+  `---` or `===` no longer reach `docs.md`, `ai.md` or the wiki outline
+  ([#389](https://github.com/drevendev/HungryCrab/issues/389)).
+- **Documentation:** `SECURITY.md` states the supported versions as they are: security fixes
+  land on `master` and ship in a patch release of the latest minor version (0.6.x today), older
+  tags get no backports, and advisories name the first fixed release; the README's
+  `crab --version` example no longer names a stale version
+  ([#391](https://github.com/drevendev/HungryCrab/issues/391)).
+- **Installation:** the README and the Everywhere guide no longer say that the package is not
+  on PyPI or that the `hungry-crab` name there is not ours; `uv tool install hungry-crab` (or
+  `pipx install hungry-crab`) is the stable path, and the git URL tracks `master`. `crab update`
+  recognises a CLI installed from the index, compares it with the latest release on PyPI and
+  prints `uv tool upgrade hungry-crab` (or the pipx or pip equivalent) instead of reporting
+  `unknown` and suggesting a reinstall from git; a git install still follows `master`
+  ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
+
+## [0.6.1] - 2026-10-22
+
+A security release on 0.6.0 Everywhere, with no new features. It fixes two vulnerabilities
+that let a hostile prey's own git configuration run a program, published as
+[GHSA-rjrx-3h4x-g7m4](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-rjrx-3h4x-g7m4)
+(a local prey's submodule filter during `crab digest`) and
+[GHSA-vp52-vp37-p63w](https://github.com/drevendev/HungryCrab/security/advisories/GHSA-vp52-vp37-p63w)
+(`git -C` into a git directory shipped inside the prey, allowed by the prey guard), and every
+other finding of the 2026-10-22 review that broke a promise of the threat model in
+`SECURITY.md`, after an independent review and a re-review of the fixes
+([#380](https://github.com/drevendev/HungryCrab/pull/380)). Update the CLI and the plugins:
+Claude Code offers the plugin update with this version.
+
+### Security
+
+- **No prey program runs through git.** No crab git command starts a child git inside a local
+  prey's submodules, so a filter named by a submodule's own configuration never runs; a
+  worktree fingerprint that cannot vouch for a populated submodule is `unknown`. The prey guard
+  lets cache-touching git open only a clone root that `crab catch` made, refuses `--git-dir`,
+  `--work-tree`, `--namespace` and every other `-C` target in the cache, a quoted `~`, and the
+  options that run programs in any abbreviated or clustered spelling (`--filters`, `--open`,
+  `-O`, `--textconv`, `--ext-diff`).
+- **Guards:** the prey guard refuses a command that carries a hint of the cache through a
+  construct it does not model (nested shells, parameter operators, arrays, `$'…'`, braces,
+  substitutions; PowerShell groups, `+`, `-f`, `-join`, `Join-Path`), while text about the
+  cache and its parent directory stays allowed; a path a program computes for itself cannot be
+  judged by a text guard, as `SECURITY.md` now says
+  ([#142](https://github.com/drevendev/HungryCrab/issues/142)); both guards canonicalise
+  `\\?\` device, volume and GLOBALROOT paths, local admin shares and 8.3 short names without
+  network lookups ([#188](https://github.com/drevendev/HungryCrab/issues/188)) and read the
+  hook event as UTF-8
+  bytes on Windows ([#315](https://github.com/drevendev/HungryCrab/issues/315)); the clean-room
+  guard refuses Grep and Glob scopes that contain the cache
+  ([#314](https://github.com/drevendev/HungryCrab/issues/314)); the PowerShell tool now goes
+  through both guards, with plain read cmdlets the only cache-touching PowerShell allowed
+  ([#141](https://github.com/drevendev/HungryCrab/issues/141)).
+- **Scope:** MCP refuses a directory whose git directory, common directory, object or ref store
+  lies outside the approved roots, is reached through a link, or borrows objects through
+  alternates ([#322](https://github.com/drevendev/HungryCrab/issues/322)) and checks a prey
+  path against the roots before touching it
+  ([#327](https://github.com/drevendev/HungryCrab/issues/327)); the inventory walk does not
+  follow directory junctions, while OneDrive folders are still walked
+  ([#323](https://github.com/drevendev/HungryCrab/issues/323)); licence evidence is read only
+  from the prey's own tree, never through a link; `crab digest --out` refuses a junction,
+  `crab cache rm` removes only a prey directory the crab recorded (a first catch records itself
+  before it clones), and a held file ends in a clear error
+  ([#211](https://github.com/drevendev/HungryCrab/issues/211)); every `gh` call, prey- and
+  maw-side, is pinned to github.com whatever `GH_HOST` says
+  ([#318](https://github.com/drevendev/HungryCrab/issues/318)).
+- **Bounded digestion:** JUnit archives are inflated in bounded chunks and only stored or
+  deflate members are read ([#317](https://github.com/drevendev/HungryCrab/issues/317)); the
+  Gradle and other manifest patterns, the front-matter, heading, link, HTML-comment and
+  pipe-to-shell rules run in linear time
+  ([#329](https://github.com/drevendev/HungryCrab/issues/329),
+  [#331](https://github.com/drevendev/HungryCrab/issues/331),
+  [#300](https://github.com/drevendev/HungryCrab/issues/300)); deeply nested manifests and
+  expanding YAML anchors and merge keys, charged before the document is built, are unparseable
+  files, not failed miners
+  ([#330](https://github.com/drevendev/HungryCrab/issues/330)); miner warnings are capped per
+  miner ([#324](https://github.com/drevendev/HungryCrab/issues/324)).
+- **No body text in summaries:** only a paragraph line can be a setext heading
+  ([#332](https://github.com/drevendev/HungryCrab/issues/332)); wiki headings carry the same
+  caps as README headings ([#337](https://github.com/drevendev/HungryCrab/issues/337)); bidi
+  overrides and isolates and plural instruction comments are flagged (bidi marks only where
+  nothing is right-to-left), instruction-like author, path, workflow, tag and branch names are
+  redacted in the Markdown summaries, also when spelled with `-`, `_`, `/` or `.`, and headings
+  lose images, link targets and inline HTML while code spans stay as written
+  ([#192](https://github.com/drevendev/HungryCrab/issues/192)).
+- **Publication:** the Feeder action refuses a public meal artifact unless the maw is
+  confirmed public as well as the prey; a tracked directory of the public calling repository
+  counts as public ([#341](https://github.com/drevendev/HungryCrab/issues/341)); the pre-push
+  secret scan flags credentials (private keys, GitLab and Slack tokens, webhooks, passwords in
+  URLs, credential-named keys in configuration files) instead of identifiers that merely
+  contain a credential word, and runs in linear time
+  ([#135](https://github.com/drevendev/HungryCrab/issues/135)).
+
 ## [0.6.0] - 2026-10-22
 
 Everywhere is a limited stable release of deterministic, human-supervised repository analysis:
@@ -768,6 +968,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/drevendev/HungryCrab/compare/v0.2.0...v0.6.0
 [0.2.0]: https://github.com/drevendev/HungryCrab/releases/tag/v0.2.0

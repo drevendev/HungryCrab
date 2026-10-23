@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from ..mdutil import MdDoc
-from ..safety import is_suspicious
+from ..safety import is_suspicious, safe_name
 from .base import MineContext, MinerResult
 
 _FORMAT = "%x1e%H%x1f%an%x1f%ae%x1f%aI%x1f%cI%x1f%P%x1f%s%x1f%b%x1f"
@@ -386,7 +386,8 @@ class HistoryMiner:
             return doc
         tags = data["tags"]
         semver_text = tags["semver_ratio"] if tags["semver_ratio"] is not None else "n/a"
-        tags_text = f"{tags['count']} (semver {semver_text}), latest {tags['latest'] or 'none'}"
+        latest = safe_name(tags["latest"], "tag") if tags["latest"] else "none"
+        tags_text = f"{tags['count']} (semver {semver_text}), latest {latest}"
         cadence_text = "n/a"
         if tags["release_cadence_days"] is not None:
             cadence_text = (
@@ -430,7 +431,13 @@ class HistoryMiner:
         hotspots.table(
             ["File", "Commits", "Fixes", "Fix ratio", "Churn"],
             (
-                [h["path"], h["commits"], h["fixes"], h["fix_ratio"], h["added"] + h["deleted"]]
+                [
+                    safe_name(h["path"], "path"),
+                    h["commits"],
+                    h["fixes"],
+                    h["fix_ratio"],
+                    h["added"] + h["deleted"],
+                ]
                 for h in data["hotspots"]
             ),
             max_rows=20,
@@ -438,13 +445,19 @@ class HistoryMiner:
         fix_prone = doc.section("Fix-prone files (3+ commits, by fix ratio)", priority=2)
         fix_prone.table(
             ["File", "Commits", "Fixes", "Fix ratio"],
-            ([h["path"], h["commits"], h["fixes"], h["fix_ratio"]] for h in data["fix_prone"]),
+            (
+                [safe_name(h["path"], "path"), h["commits"], h["fixes"], h["fix_ratio"]]
+                for h in data["fix_prone"]
+            ),
             max_rows=15,
         )
         coupling = doc.section("Co-change coupling (files that change together)", priority=2)
         coupling.table(
             ["File A", "File B", "Together", "Share"],
-            ([c["a"], c["b"], c["count"], c["share"]] for c in data["coupling"]),
+            (
+                [safe_name(c["a"], "path"), safe_name(c["b"], "path"), c["count"], c["share"]]
+                for c in data["coupling"]
+            ),
             max_rows=15,
         )
         if data["reverts"]:
@@ -470,10 +483,13 @@ class HistoryMiner:
         authors = doc.section("Top authors", priority=4)
         authors.table(
             ["Author", "Commits", "Share"],
-            ([a["name"], a["commits"], a["share"]] for a in data["top_authors"]),
+            (
+                [safe_name(a["name"], "author"), a["commits"], a["share"]]
+                for a in data["top_authors"]
+            ),
         )
         if tags["recent"]:
             recent = doc.section("Recent tags", priority=4)
-            recent.line(", ".join(tags["recent"]))
+            recent.line(", ".join(safe_name(tag, "tag") for tag in tags["recent"]))
             recent.line("")
         return doc

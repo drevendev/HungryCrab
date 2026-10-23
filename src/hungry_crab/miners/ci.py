@@ -8,15 +8,20 @@ import re
 from typing import Any
 
 import yaml
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from ..typeutil import as_dict, as_list
 from .base import MineContext, MinerResult
 
 WORKFLOW_DIR = ".github/workflows/"
 _ACTION_RE = re.compile(r"^(?P<repo>[\w.-]+/[\w.-]+)(?P<path>/[^@\s]+)?@(?P<ref>\S+)$")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?(\S+?)['\"]?\s*#\s*(v?\d[\w.-]*)")
+# Matches every `uses:` and swallows its reference, so the search resumes after it; the version
+# comment is optional and checked by the caller. `(\S+?)...#` had to fail at each `uses:` of a
+# long run without a `#`, rescanning the rest of the run each time.
+_USES_COMMENT_RE = re.compile(r"uses:\s*['\"]?([^\s#'\"]*)['\"]?(?:\s*#\s*(v?\d[\w.-]*))?")
 _SECRET_RE = re.compile(r"secrets\.([A-Za-z_][A-Za-z0-9_]*)")
 
 CACHE_ACTIONS = {
@@ -168,7 +173,12 @@ OTHER_CI_FILES: dict[str, str] = {
     "cloudbuild.yaml": "cloud-build",
     ".buildkite/pipeline.yml": "buildkite",
 }
-_PIPE_TO_SHELL_RE = re.compile(r"\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash)\b")
+# Each match swallows a download up to its first pipe, so a later `curl` before the same pipe,
+# which would meet the same pipe, is not rescanned; the shell is optional and checked by the
+# caller.
+_PIPE_TO_SHELL_RE = re.compile(
+    r"\b(?:curl|wget)\b[^\n|]*+(?:\|\s*(?:sudo\s+)?(?P<shell>sh|bash)\b)?"
+)
 _RUNNER_RE = re.compile(r"ubuntu|windows|macos", re.IGNORECASE)
 
 
@@ -281,8 +291,111 @@ def _step_cache(action: str, with_block: object) -> bool:
     return False
 
 
+# What one prey YAML document may expand to once its aliases and merge keys are followed,
+# counted as nodes plus scalar characters. A document without aliases stays under twice its own
+# size, so every workflow within the read limit fits; anchors can make a few hundred bytes
+# describe gigabytes, or a list that contains itself, and every later walk (`str()`, the JSON
+# artifact) follows each reference again.
+_MAX_YAML_EXPANSION = 1_000_000
+_YAML_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+
+class YamlExpansionError(yaml.YAMLError):
+    """A prey YAML document whose aliases expand past the budget or into a cycle."""
+
+
+def _yaml_children(node: Node) -> list[Node]:
+    if isinstance(node, SequenceNode):
+        return list(node.value)
+    if isinstance(node, MappingNode):
+        return [part for pair in node.value for part in pair]
+    return []
+
+
+def _yaml_node_size(
+    node: Node, sizes: dict[int, int], pairs: dict[int, int]
+) -> tuple[int, int, int]:
+    """One node's expanded size, its pairs once merges are flattened, and the merge work.
+
+    PyYAML flattens a mapping with merge keys once: it scans every source mapping once per
+    reference and then holds a list of all the pairs, duplicates included. That work happens
+    while the document is built, whether or not the result is ever walked.
+    """
+    if isinstance(node, ScalarNode):
+        return 1 + len(node.value), 0, 0
+    if isinstance(node, SequenceNode):
+        return 1 + sum(sizes[id(child)] for child in node.value), 0, 0
+    size, flattened, scanned, merges = 1, 0, 0, False
+    for key, value in node.value:
+        if key.tag == _YAML_MERGE_TAG:
+            # Every pair of each source is copied into this mapping, once per reference; the
+            # source mapping itself is not.
+            merges = True
+            sources = value.value if isinstance(value, SequenceNode) else [value]
+            for source in sources:
+                size += sizes[id(source)] - 1
+                flattened += pairs.get(id(source), 0)
+                scanned += pairs.get(id(source), 0)
+        else:
+            size += sizes[id(key)] + sizes[id(value)]
+            flattened += 1
+    return size, flattened, scanned + flattened if merges else 0
+
+
+def _charge_yaml_expansion(root: Node) -> None:
+    """Refuse a composed document whose aliases and merge keys expand past the budget.
+
+    Two things are charged: the expanded size of the document, which every later walk of the
+    result follows, and the pairs PyYAML copies to flatten merge keys while building it. Every
+    node is sized once, from its children's sizes, so the count is linear in the composed graph
+    however far the document would expand. A node met again while its own children are being
+    sized contains itself.
+    """
+    sizes: dict[int, int] = {}
+    pairs: dict[int, int] = {}
+    merge_work = 0
+    open_nodes: set[int] = set()
+    stack: list[tuple[Node, bool]] = [(root, False)]
+    while stack:
+        node, children_sized = stack.pop()
+        key = id(node)
+        if key in sizes:
+            continue
+        if not children_sized:
+            if key in open_nodes:
+                raise YamlExpansionError("an alias refers to a node that contains it")
+            open_nodes.add(key)
+            stack.append((node, True))
+            stack.extend((child, False) for child in _yaml_children(node))
+            continue
+        sizes[key], pairs[key], work = _yaml_node_size(node, sizes, pairs)
+        open_nodes.discard(key)
+        merge_work += work
+        if sizes[key] > _MAX_YAML_EXPANSION or merge_work > _MAX_YAML_EXPANSION:
+            raise YamlExpansionError(f"aliases expand past {_MAX_YAML_EXPANSION} nodes")
+
+
+def load_prey_yaml(text: str) -> object:
+    """``yaml.safe_load``, refusing a document that would expand past the budget.
+
+    The expansion is charged on the composed node graph, before anything is built: merge keys
+    (`<<: [*a, *a]`) copy pairs while PyYAML constructs the document, so a check of the result
+    came after the exponential work it was meant to prevent (#330).
+    """
+    loader = yaml.SafeLoader(text)
+    try:
+        node = loader.get_single_node()
+        if node is None:
+            return None
+        _charge_yaml_expansion(node)
+        loaded: object = loader.construct_document(node)
+        return loaded
+    finally:
+        loader.dispose()
+
+
 def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
-    loaded = yaml.safe_load(text)
+    loaded = load_prey_yaml(text)
     if not isinstance(loaded, dict):
         return None
     raw_on = loaded.get("on", loaded.get(True))
@@ -356,7 +469,7 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     for name, pattern in COVERAGE_FLAGS:
                         if pattern.search(run):
                             coverage_flags.add(name)
-                    if _PIPE_TO_SHELL_RE.search(run):
+                    if any(found.group("shell") for found in _PIPE_TO_SHELL_RE.finditer(run)):
                         pipe_to_shell += 1
             jobs.append(
                 {
@@ -378,7 +491,11 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
                     "has_if": job.get("if") is not None,
                 }
             )
-    comment_versions = dict(_USES_COMMENT_RE.findall(text))
+    comment_versions = {
+        reference: version
+        for reference, version in _USES_COMMENT_RE.findall(text)
+        if reference and version
+    }
     for parsed in actions:
         if parsed["pinned_sha"]:
             full = f"{parsed['action']}@{parsed['ref']}"
@@ -420,8 +537,8 @@ def parse_workflow(text: str, path: str) -> dict[str, Any] | None:
 
 def _parse_dependabot(text: str) -> dict[str, Any] | None:
     try:
-        loaded = yaml.safe_load(text)
-    except yaml.YAMLError:
+        loaded = load_prey_yaml(text)
+    except (yaml.YAMLError, RecursionError, MemoryError):
         return None
     if not isinstance(loaded, dict):
         return None
@@ -462,7 +579,8 @@ class CiMiner:
             text = ctx.read(info.path, limit=262_144)
             try:
                 parsed = parse_workflow(text, info.path)
-            except yaml.YAMLError as exc:
+            except (yaml.YAMLError, RecursionError, MemoryError) as exc:
+                # Hostile nesting exhausts the parser's stack, not its grammar (#330).
                 warnings.append(f"{info.path}: YAML error ({type(exc).__name__})")
                 continue
             if parsed is not None:
@@ -503,7 +621,7 @@ class CiMiner:
                 loaded = json.loads(ctx.read(renovate_files[0]))
                 if isinstance(loaded, dict) and isinstance(loaded.get("extends"), list):
                     renovate["extends"] = [str(e) for e in loaded["extends"]][:10]
-            except ValueError:
+            except (ValueError, RecursionError, MemoryError):
                 pass
 
         action_index: dict[str, dict[str, Any]] = {}
@@ -626,14 +744,15 @@ class CiMiner:
                 ("Other CI systems", ", ".join(features["other_ci"]) or "none"),
             ]
         )
+        # Every name below is the prey's choice and passes the instruction gate; ci.json keeps it.
         if data["workflows"]:
             table = doc.section("Workflows", priority=1)
             table.table(
                 ["Workflow", "Triggers", "Jobs", "Matrix", "Cache", "Permissions", "Concurrency"],
                 (
                     [
-                        wf["name"],
-                        ", ".join(wf["triggers"]),
+                        safe_name(wf["name"], "workflow"),
+                        ", ".join(safe_name(t, "trigger") for t in wf["triggers"]),
                         len(wf["jobs"]),
                         wf["matrix"],
                         wf["cache"],
@@ -651,9 +770,9 @@ class CiMiner:
                 ["Workflow", "Job", "Runs on", "Matrix", "Steps", "Timeout"],
                 (
                     [
-                        wf["name"],
-                        job["name"] or job["id"],
-                        job["runs_on"],
+                        safe_name(wf["name"], "workflow"),
+                        safe_name(job["name"] or job["id"], "job"),
+                        safe_name(job["runs_on"], "runner"),
                         ", ".join(f"{k}x{v}" for k, v in job["matrix"]["axes"].items())
                         if job["matrix"] and "axes" in job["matrix"]
                         else "",
@@ -669,7 +788,12 @@ class CiMiner:
             actions.table(
                 ["Action", "Refs", "Uses", "SHA pinned"],
                 (
-                    [name, ", ".join(info["refs"]), info["count"], info["pinned_sha"]]
+                    [
+                        safe_name(name, "action"),
+                        ", ".join(safe_name(ref, "ref") for ref in info["refs"]),
+                        info["count"],
+                        info["pinned_sha"],
+                    ]
                     for name, info in data["actions"].items()
                 ),
                 max_rows=40,
@@ -681,14 +805,21 @@ class CiMiner:
             bots = doc.section("Dependency updates", priority=3)
             bots.bullets(
                 (
-                    f"dependabot: {u['ecosystem']} in {u['directory']} ({u['interval'] or 'n/a'})"
-                    + (f", groups: {', '.join(u['groups'])}" if u["groups"] else "")
+                    safe_name(
+                        f"dependabot: {u['ecosystem']} in {u['directory']} "
+                        f"({u['interval'] or 'n/a'})"
+                        + (f", groups: {', '.join(u['groups'])}" if u["groups"] else ""),
+                        "update",
+                    )
                     for u in data["dependabot"]["updates"]
                 ),
                 max_items=15,
             )
         if data["renovate"]:
             bots = doc.section("Renovate", priority=3)
-            extends = ", ".join(data["renovate"]["extends"]) or "default"
+            extends = (
+                ", ".join(safe_name(preset, "preset") for preset in data["renovate"]["extends"])
+                or "default"
+            )
             bots.bullets([f"{data['renovate']['path']}: extends {extends}"])
         return doc

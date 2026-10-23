@@ -85,12 +85,18 @@ Both interfaces expose `since`, `shallow`, `issues`, `wiki`, `depth`, `top`, `ma
 optional secret `prey-token`. Paths/default caches live in runner temporary storage.
 
 REST uses the job token directly, without `gh` or `gh auth`. A private prey outside the
-caller needs an explicit read token. The meal artifact carries the prey's file tree, issue
-titles and excerpts and commit subjects, and artifacts of a public repository are downloadable
-by anyone signed in to GitHub. So when the calling repository is public (or its visibility is
-not in the event payload), the Feeder refuses before any work unless the forge confirms the
-prey is public; a local prey path counts as unconfirmed. `allow-private-artifact: true` uploads
-it anyway. Git uses a process-local, GitHub-scoped HTTP header,
+caller needs an explicit read token. The meal artifact carries both digests: the prey's file
+tree, issue titles and excerpts and commit subjects, and the maw's file tree, commit subjects
+and wiki headings. Artifacts of a public repository are downloadable by anyone signed in to
+GitHub. So when the calling repository is public (or its visibility is not in the event
+payload), the Feeder refuses before any work unless both sides are confirmed public: the forge
+confirms the prey is public (a local prey path counts as unconfirmed), and the maw directory is
+the root of a git checkout whose `origin` is either the public calling repository or a
+repository the forge confirms is public, or it is a directory of the public calling repository's
+own checkout that holds tracked files (a monorepo package such as `maw: packages/app`). A maw
+with no recognisable `origin`, an untracked directory, or one the `token` cannot see, counts as
+unconfirmed. `allow-private-artifact: true` uploads it anyway.
+Git uses a process-local, GitHub-scoped HTTP header,
 never credentials in URLs or stored configuration. Issue acquisition also needs read access
 to issues; set `issues: 0` for a contents-only token. Public prey need no write permissions.
 GETs retry transient network/5xx failures and rate limits with bounded backoff, honour

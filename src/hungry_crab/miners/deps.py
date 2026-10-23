@@ -14,7 +14,11 @@ from .base import FileInfo, MineContext, MinerResult
 from .inventory import LOCKFILES
 
 _NPM_EXACT_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][\w.]+)?$")
-_PY_REQ_RE = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*(\[[^\]]*\])?\s*(.*?)\s*$")
+# Possessive whitespace and a specifier that ends on a non-space: `\s*(\[...\])?\s*(.*?)\s*$`
+# split each whitespace run quadratically many ways, minutes for one long requirement line.
+_PY_REQ_RE = re.compile(
+    r"^\s*+([A-Za-z0-9][A-Za-z0-9._-]*+)\s*+(?:(\[[^\]]*\])\s*+)?((?:.*\S)?)\s*$"
+)
 _DOTNET_EXACT_RE = re.compile(r"^\d+(?:\.\d+){1,3}(?:-[\w.]+)?$")
 # ``require`` is optional because go.mod has two spellings: a block, and a bare line per
 # requirement, which is what `go get` writes and what a module with one or two dependencies
@@ -408,16 +412,64 @@ def _expand_maven_properties(version: str, props: dict[str, str]) -> str | None:
     return version
 
 
+# What can start a comment or a string literal in a Groovy or Kotlin build script.
+_GRADLE_TOKEN_RE = re.compile(r"/\*|//|'''|\"\"\"|['\"]")
+# Each literal runs to its closing quote, past escapes. An unclosed one-line literal ends with
+# its line and an unclosed triple-quoted one with the file, so no literal is scanned twice.
+_GRADLE_STRING_RES: dict[str, re.Pattern[str]] = {
+    "'": re.compile(r"'(?:[^'\\\n]++|\\.)*+'?"),
+    '"': re.compile(r'"(?:[^"\\\n]++|\\.)*+"?'),
+    "'''": re.compile(r"'''(?:[^'\\]++|\\.|'(?!''))*+(?:'''|\Z)", re.DOTALL),
+    '"""': re.compile(r'"""(?:[^"\\]++|\\.|"(?!""))*+(?:"""|\Z)', re.DOTALL),
+}
+
+
+def _strip_gradle_comments(text: str) -> str:
+    """Drop `//` and `/* */` comments outside string literals, in one pass over the text.
+
+    `exclude 'META-INF/*.kotlin_module'` is a string, not a comment. A `/*` that never closes
+    is not a comment either, as it was for the old pattern, and it is known to be unclosed
+    without a scan: no `*/` follows it. `/\\*.*?\\*/` rescanned the rest of the text from every
+    unclosed `/*`, which is quadratic in prey bytes (#329).
+    """
+    last_close = text.rfind("*/")
+    kept: list[str] = []
+    position = 0
+    while (token := _GRADLE_TOKEN_RE.search(text, position)) is not None:
+        start, mark = token.start(), token.group()
+        if mark == "//":
+            end = text.find("\n", start)
+            kept.append(text[position:start])
+            position = len(text) if end < 0 else end
+        elif mark == "/*" and last_close >= start + 2:
+            kept.append(text[position:start])
+            position = text.index("*/", start + 2) + 2
+        elif mark == "/*":
+            kept.append(text[position : start + 2])
+            position = start + 2
+        else:
+            literal = _GRADLE_STRING_RES[mark].match(text, start)
+            end = literal.end() if literal is not None else start + len(mark)
+            kept.append(text[position:end])
+            position = end
+    kept.append(text[position:])
+    return "".join(kept)
+
+
+# `\s*(?:\(\s*)?` rather than `\s*\(?\s*`: two adjacent `\s*` split one whitespace run in
+# quadratically many ways before the quote fails to match.
+_GRADLE_COORDINATE_RE = re.compile(
+    r"(?m)^[ \t]*(implementation|api|compileOnly|runtimeOnly|"
+    r"testImplementation|testRuntimeOnly|annotationProcessor)\s*(?:\(\s*)?"
+    r"(['\"])([\w.-]+):([\w.-]+):([^'\"\n]+)\2"
+)
+
+
 def parse_gradle(text: str, manifest: str) -> tuple[list[Package], dict[str, Any]]:
     # Only literal coordinates. Gradle is executable: interpolation/catalogs are never run.
-    cleaned = re.sub(r"/\*.*?\*/|^[ \t]*//[^\n]*", "", text, flags=re.DOTALL | re.MULTILINE)
+    cleaned = _strip_gradle_comments(text)
     packages: list[Package] = []
-    pattern = re.compile(
-        r"(?m)^[ \t]*(implementation|api|compileOnly|runtimeOnly|"
-        r"testImplementation|testRuntimeOnly|annotationProcessor)\s*\(?\s*"
-        r"(['\"])([\w.-]+):([\w.-]+):([^'\"\n]+)\2"
-    )
-    for match in pattern.finditer(cleaned):
+    for match in _GRADLE_COORDINATE_RE.finditer(cleaned):
         kind, _, group, artifact, spec = match.groups()
         packages.append(
             Package(
@@ -547,7 +599,14 @@ class DepsMiner:
             text = ctx.read(info.path, limit=262_144)
             try:
                 parsed = parse_manifest(info, text)
-            except (ValueError, tomllib.TOMLDecodeError, ET.ParseError) as exc:
+            except (
+                ValueError,
+                tomllib.TOMLDecodeError,
+                ET.ParseError,
+                # Hostile nesting exhausts the parser's stack, not its grammar (#330).
+                RecursionError,
+                MemoryError,
+            ) as exc:
                 warnings.append(f"could not parse {info.path}: {type(exc).__name__}")
                 continue
             if parsed is None:

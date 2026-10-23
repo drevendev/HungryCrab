@@ -32,6 +32,26 @@ def is_reparse_point(info: os.stat_result) -> bool:
     )
 
 
+# Bit 29 of a reparse tag marks a name surrogate: an entry that names another place in the
+# namespace (a symlink, a directory junction). Cloud placeholders, deduplicated and compressed
+# entries are reparse points too, but they hold their own content.
+_NAME_SURROGATE_BIT = 0x20000000
+
+
+def is_link_stat(info: os.stat_result) -> bool:
+    """Does an ``os.lstat`` result describe a link that points elsewhere?
+
+    True for a symlink on every platform and for a Windows name surrogate such as a directory
+    junction, which ``os.path.islink`` and ``os.walk(followlinks=False)`` treat as a plain
+    directory. False for a OneDrive placeholder folder, which a walk must still enter.
+    """
+    if stat.S_ISLNK(info.st_mode):
+        return True
+    if not is_reparse_point(info):
+        return False
+    return bool(getattr(info, "st_reparse_tag", 0) & _NAME_SURROGATE_BIT)
+
+
 def read_text(path: Path, *, limit: int = DEFAULT_TEXT_LIMIT) -> str:
     """Read a text file leniently: UTF-8 with replacement, truncated at ``limit`` bytes."""
     try:

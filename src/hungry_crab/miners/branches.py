@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from ..mdutil import MdDoc
-from ..safety import is_suspicious
+from ..safety import is_suspicious, safe_name
 from .base import MineContext, MinerResult
 
 STALE_DAYS = 180
@@ -162,7 +162,10 @@ class BranchesMiner:
             [
                 (
                     "Default branch",
-                    f"{data['default_branch']} (last commit {data['default_last_commit']})",
+                    (
+                        f"{safe_name(data['default_branch'], 'branch')} "
+                        f"(last commit {data['default_last_commit']})"
+                    ),
                 ),
                 ("Other branches", f"{data['total']} ({data['analyzed']} analysed)"),
                 ("Merged into default", data["merged"]),
@@ -176,7 +179,7 @@ class BranchesMiner:
                 ["Branch", "Last commit", "Ahead", "Behind", "Merged", "Stale", "About"],
                 (
                     [
-                        b["name"],
+                        safe_name(b["name"], "branch"),
                         b["last_commit"],
                         b["ahead"],
                         b["behind"],
@@ -193,7 +196,7 @@ class BranchesMiner:
                 about = doc.section("What unmerged branches are about", priority=3)
                 for branch in unmerged[:10]:
                     about.line(
-                        f"- **{branch['name']}** ({branch['ahead']} ahead, "
+                        f"- **{safe_name(branch['name'], 'branch')}** ({branch['ahead']} ahead, "
                         f"{branch['age_days']} days old):"
                     )
                     for subject in branch["subjects"][:5]:
