@@ -93,12 +93,30 @@ def _is_caller(slug: Slug | None) -> bool:
     )
 
 
+GITLINK_MODE = "160000"
+
+
+def _tracks_a_file(listing: str) -> bool:
+    """True when ``git ls-files -s -z`` output holds an entry that is not a gitlink.
+
+    A gitlink (mode 160000) is a submodule or nested repository: another repository whose
+    visibility the caller's says nothing about, not a file the caller tracks.
+    """
+    for entry in listing.split("\0"):
+        mode = entry.partition(" ")[0]
+        if mode and mode != GITLINK_MODE:
+            return True
+    return False
+
+
 def maw_in_public_caller(maw: Path) -> bool:
     """A tracked directory of the public calling repository's own checkout (a monorepo package).
 
     The caller's checkout sits at the workspace root; a directory below it holding files the
     caller tracks is part of that public repository. An untracked or ignored directory is not:
-    it may hold anything a previous step wrote there.
+    it may hold anything a previous step wrote there. Neither is a submodule, or a directory
+    inside one: its gitlink is the only entry the caller tracks, and the repository behind it
+    may be private, so it is confirmed by its own origin or not at all.
     """
     workspace = os.environ.get("GITHUB_WORKSPACE")
     if not workspace or caller_is_private() is not False or not GitRunner.available():
@@ -110,8 +128,15 @@ def maw_in_public_caller(maw: Path) -> bool:
         return False
     if not maw.is_dir() or not _is_caller(maw_origin(root)):
         return False
-    tracked = GitRunner(root).try_run("ls-files", "-z", "--", relative.as_posix() or ".")
-    return bool(tracked)
+    # The maw must belong to the caller's own work tree, not to a repository nested in it.
+    top = GitRunner(maw).toplevel()
+    try:
+        if top is None or not top.samefile(root):
+            return False
+    except OSError:
+        return False
+    tracked = GitRunner(root).try_run("ls-files", "-s", "-z", "--", relative.as_posix() or ".")
+    return tracked is not None and _tracks_a_file(tracked)
 
 
 def maw_is_public(maw: Path) -> bool:
@@ -119,7 +144,8 @@ def maw_is_public(maw: Path) -> bool:
 
     The maw digest is uploaded beside the prey digest, so a private checkout digested as the maw
     is as exposed as a private prey. A maw with no recognisable origin is unconfirmed, unless it
-    is a tracked directory of the public caller's own checkout.
+    is a tracked directory of the public caller's own checkout. A submodule is confirmed by its
+    own origin: it is the root of its own repository, which the forge has to call public.
     """
     if maw_in_public_caller(maw):
         return True

@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Feeder:** a submodule of the public calling repository, or a directory inside one, no
+  longer counts as a tracked directory of the caller; its gitlink is another repository, so the
+  maw is confirmed by its own origin through the forge, and refused without
+  `allow-private-artifact` when nothing confirms it
+  ([#386](https://github.com/drevendev/HungryCrab/issues/386)).
+
 ## [0.6.1] - 2026-10-22
 
 A security release on 0.6.0 Everywhere, with no new features. It fixes two vulnerabilities

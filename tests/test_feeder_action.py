@@ -328,3 +328,76 @@ def test_a_private_maw_uploads_only_with_the_opt_in_or_a_private_caller(
         forge = _Forge({"pypa/pipx": _PUBLIC, "owner/internal": _PRIVATE})
         monkeypatch.setattr(module, "client_for", lambda _, forge=forge: forge)
         assert module.run() == 0 and len(calls) == 1
+
+
+def _caller_with_submodule(tmp_path: Path, *, origin: str | None = None) -> Path:
+    """A public caller checkout with a local repository added as the submodule vendor/private.
+
+    The caller tracks a file of its own as well, so the workspace is a real tracked tree and the
+    only entry the caller has under ``vendor/private`` is the gitlink (mode 160000).
+    """
+    private = tmp_path / "private-src"
+    (private / "docs").mkdir(parents=True)
+    git(private, "init", "-q")
+    (private / "secret_plan.md").write_text("# Private roadmap\n", encoding="utf-8")
+    (private / "docs" / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    git(private, "add", ".")
+    git(private, "commit", "-q", "-m", "private")
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "README.md").write_text("# public\n", encoding="utf-8")
+    git(workspace, "add", "README.md")
+    git(workspace, "commit", "-q", "-m", "init")
+    git(
+        workspace,
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-q",
+        str(private),
+        "vendor/private",
+    )
+    git(workspace, "commit", "-q", "-m", "submodule")
+    if origin is not None:
+        git(workspace / "vendor" / "private", "remote", "set-url", "origin", origin)
+    return workspace
+
+
+@pytest.mark.parametrize("maw", ["vendor/private", "vendor/private/docs"])
+def test_a_submodule_of_the_public_caller_is_not_a_tracked_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], maw: str
+) -> None:
+    """#386: the gitlink of a private submodule does not make it part of the public caller."""
+    workspace = _caller_with_submodule(tmp_path)
+    listing = git(workspace, "ls-files", "-s", "--", "vendor/private")
+    assert listing.startswith("160000 "), "the caller tracks only the gitlink"
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}, maw=maw
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.maw_in_public_caller(workspace / maw) is False
+    assert module.run() == 2
+    assert calls == [], "the refusal comes before any acquisition or digest"
+    assert f"the maw ({maw}) is not verifiably public" in capsys.readouterr().err
+
+
+def test_a_submodule_maw_is_confirmed_by_its_own_origin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A submodule falls through to the forge check: public there, it uploads; else it does not."""
+    _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    for visibility, code in [(_PUBLIC, 0), (_PRIVATE, 2)]:
+        module, calls = _action(
+            tmp_path,
+            monkeypatch,
+            prey="pypa/pipx",
+            event={"repository": {"private": False}},
+            maw="vendor/private",
+        )
+        forge = _Forge({"pypa/pipx": _PUBLIC, "owner/vendored": visibility})
+        monkeypatch.setattr(module, "client_for", lambda _, forge=forge: forge)
+        assert module.run() == code
+        assert len(calls) == (1 if code == 0 else 0)
