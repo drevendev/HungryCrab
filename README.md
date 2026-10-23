@@ -64,20 +64,26 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 
 Prerequisites: Python 3.11+, `git`, and `gh` authenticated for the GitHub API.
 
-**The CLI**, which every agent then calls:
+**The CLI**, which every agent then calls, is the `hungry-crab` package on
+[PyPI](https://pypi.org/project/hungry-crab/):
 
 ```bash
-uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+uv tool install hungry-crab
 ```
+
+`pipx install hungry-crab` works as well. Either installs the latest release, and
+`uv tool upgrade hungry-crab` (or `pipx upgrade hungry-crab`) takes the next one.
 
 The installation keeps PyYAML as its only runtime dependency. GitLab.com public reads do
 not require `gh`; private reads use `GITLAB_TOKEN`. GitHub Discussions and JUnit artifact reads
 need the corresponding authenticated API permissions.
 
-That tracks `master`, which is always green, and is the recommended way to install the crab
-while it is pre-1.0. If you want a fixed version instead, append `@v0.6.1` to the URL and take
-care of updates yourself. The package is not on PyPI, and the `hungry-crab` name there is not
-ours: install from this repository.
+To track `master` instead, which is always green and carries fixes before they are released,
+install from this repository:
+
+```bash
+uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"
+```
 
 **Claude Code**, which adds the eat/license/serve/cleanroom/loop skills, sniff/menu commands,
 three subagents and two `PreToolUse` hooks:
@@ -119,9 +125,10 @@ To see what is out of date across the CLI and every agent you have, ask the crab
 crab update
 ```
 
-It reports the installed and available versions, notices which agents are on this machine and
-whether the plugin is installed in each, and prints exactly what to run. `crab update --run`
-does the plugin work for you.
+It reports the installed and available versions (the latest release on PyPI for a PyPI
+install, `master` for one from git), notices which agents are on this machine and whether the
+plugin is installed in each, and prints exactly what to run. `crab update --run` does the
+plugin work for you.
 
 ### Verify the CLI installation
 

@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **PyPI:** releases are published to [PyPI](https://pypi.org/project/hungry-crab/) as
+  `hungry-crab` by `.github/workflows/publish.yml`, which runs when a GitHub release is
+  published, refuses unless the tag names the packaged release version, builds the sdist and
+  wheel from the tag, checks them with `twine check --strict` and uploads them through Trusted
+  Publishing, with no stored token; only the upload job may request an OIDC token, and it pins
+  `pypa/gh-action-pypi-publish` by commit. `CONTRIBUTING.md` carries the step and how to verify
+  it ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
+
 ### Fixed
 
 - **Feeder:** a submodule of the public calling repository, or a directory inside one, no
@@ -37,6 +47,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   tags get no backports, and advisories name the first fixed release; the README's
   `crab --version` example no longer names a stale version
   ([#391](https://github.com/drevendev/HungryCrab/issues/391)).
+- **Installation:** the README and the Everywhere guide no longer say that the package is not
+  on PyPI or that the `hungry-crab` name there is not ours; `uv tool install hungry-crab` (or
+  `pipx install hungry-crab`) is the stable path, and the git URL tracks `master`. `crab update`
+  recognises a CLI installed from the index, compares it with the latest release on PyPI and
+  prints `uv tool upgrade hungry-crab` (or the pipx or pip equivalent) instead of reporting
+  `unknown` and suggesting a reinstall from git; a git install still follows `master`
+  ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
 
 ## [0.6.1] - 2026-10-22
 

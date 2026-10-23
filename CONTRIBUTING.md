@@ -87,6 +87,16 @@ versions that have a tag.
    CI runs on `v*` tags and checks the version/changelog on the tagged commit; require a
    completed green tag run **before** `gh release create vX.Y.Z --notes-file ...`.
    Create the separate `crab--vX.Y.Z` plugin tag only after that, if applicable.
+8. **Publish to PyPI.** Publishing the GitHub release in step 7 starts
+   [`publish.yml`](.github/workflows/publish.yml): it checks out the tag, refuses unless the tag
+   is `v` + `[project].version` and that version is not a development one, builds the sdist and
+   wheel with `uv build`, runs `twine check --strict`, and uploads both through PyPI Trusted
+   Publishing (environment `pypi`; no token is stored anywhere). Approve the `pypi` deployment
+   if the environment asks for a review. Verify the upload with
+   `pip index versions hungry-crab`, or check that `info.version` in
+   <https://pypi.org/pypi/hungry-crab/json> is the new version. If the upload failed, run the
+   workflow again from the Actions tab (**Run workflow**, with the tag). PyPI never accepts a
+   file twice, so a version that reached PyPI is only ever replaced by a new release.
 
 Do not squash the release/reopen pair, create a tag from the reopened head, or bypass
 required CI. A release candidate or postponement of a milestone does not change these gates.
