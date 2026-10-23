@@ -10,10 +10,10 @@ publication is installed by Everywhere.
 ## Install once
 
 Python 3.11+, Git and uv are required. Install the release tag from this repository; drop
-`@v0.6.0` to follow `master` instead. Installation downloads the package and its dependencies.
+`@v0.6.1` to follow `master` instead. Installation downloads the package and its dependencies.
 
 ```sh
-uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab@v0.6.0"
+uv tool install "hungry-crab[mcp] @ git+https://github.com/drevendev/HungryCrab@v0.6.1"
 crab --version
 crab mcp --check
 ```
@@ -36,7 +36,7 @@ uv build
 ```
 
 Then install the wheel `uv build` wrote to `dist/` (its name carries the version), for example
-`uv tool install ./dist/hungry_crab-0.6.0-py3-none-any.whl`.
+`uv tool install ./dist/hungry_crab-0.6.1-py3-none-any.whl`.
 
 For MCP, install `hungry-crab[mcp] @ file:///absolute/path/to/the.whl` instead. On Windows use
 an absolute file URI such as `file:///C:/packages/the.whl`. Package metadata, wheel, sdist and

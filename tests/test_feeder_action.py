@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fixture_builder import git
+
+from hungry_crab.errors import CrabError
+
+CALLER = "owner/caller"
 
 
 def test_action_resolves_local_paths_in_the_caller_and_preserves_literal_inputs(
@@ -63,6 +68,8 @@ def _action(
     prey: str,
     event: dict[str, object] | None,
     allow: str = "false",
+    maw: str = ".",
+    origin: str | None = f"https://github.com/{CALLER}",
 ) -> tuple[Any, list[list[str]]]:
     script = Path(__file__).resolve().parents[1] / "scripts" / "feeder_action.py"
     spec = importlib.util.spec_from_file_location("feeder_action_exposure", script)
@@ -71,13 +78,23 @@ def _action(
     spec.loader.exec_module(module)
     workspace = tmp_path / "workspace"
     (workspace / "donor").mkdir(parents=True, exist_ok=True)
+    # actions/checkout leaves the calling repository at the workspace root with this origin.
+    if not (workspace / ".git").exists():
+        git(workspace, "init", "-q")
+        git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    if maw != "." and not (workspace / maw).exists():
+        (workspace / maw).mkdir()
+        if origin is not None:
+            git(workspace / maw, "init", "-q")
+            git(workspace / maw, "remote", "add", "origin", origin)
     env = {
         "RUNNER_TEMP": str(tmp_path),
         "GITHUB_WORKSPACE": str(workspace),
         "GITHUB_OUTPUT": str(tmp_path / "outputs"),
         "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+        "GITHUB_REPOSITORY": CALLER,
         "CRAB_PREY": prey,
-        "CRAB_MAW": ".",
+        "CRAB_MAW": maw,
         "CRAB_SINCE": "all",
         "CRAB_ISSUES": "0",
         "CRAB_TOP": "30",
@@ -144,3 +161,170 @@ def test_the_forge_decides_whether_a_remote_prey_is_public(
     monkeypatch.setattr(module, "client_for", lambda _: Client())
     assert module.run() == code
     assert len(calls) == (1 if code == 0 else 0)
+
+
+class _Forge:
+    """A forge that knows the visibility of a few repositories and fails for the rest."""
+
+    def __init__(self, known: dict[str, dict[str, object]]) -> None:
+        self.known = known
+
+    def repo(self, slug: object) -> dict[str, object]:
+        if str(slug) not in self.known:
+            raise CrabError(f"{slug} not found")
+        return self.known[str(slug)]
+
+
+_PUBLIC = {"private": False, "visibility": "public"}
+_PRIVATE = {"private": True, "visibility": "private"}
+
+
+@pytest.mark.parametrize(
+    "maw_visibility",
+    [_PRIVATE, None, {"private": False, "visibility": "internal"}, {}],
+    ids=["private", "forge-error", "contradictory", "no-visibility"],
+)
+def test_a_public_caller_never_uploads_an_unconfirmed_maw(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    maw_visibility: dict[str, object] | None,
+) -> None:
+    # A second checkout of a private repository, digested as the maw of a public caller.
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="internal-maw",
+        origin="https://github.com/owner/internal.git",
+    )
+    known = {"pypa/pipx": _PUBLIC}
+    if maw_visibility is not None:
+        known["owner/internal"] = maw_visibility
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge(known))
+    assert module.run() == 2
+    assert calls == [], "the refusal comes before any acquisition or digest"
+    message = capsys.readouterr().err
+    assert "the maw (internal-maw) is not verifiably public" in message
+    assert "allow-private-artifact" in message
+
+
+def test_a_tracked_directory_of_the_public_caller_uploads_as_a_maw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A monorepo package: `maw: packages/app` inside the public calling repository."""
+    workspace = tmp_path / "workspace"
+    (workspace / "packages" / "app").mkdir(parents=True)
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "packages" / "app" / "pyproject.toml").write_text("[project]\nname='app'\n")
+    git(workspace, "add", "packages/app/pyproject.toml")
+    git(workspace, "commit", "-q", "-m", "app")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="packages/app",
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 0
+    assert len(calls) == 1
+
+
+def test_an_untracked_directory_of_the_public_caller_is_unconfirmed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = tmp_path / "workspace"
+    (workspace / "build" / "maw").mkdir(parents=True)
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "build" / "maw" / "notes.txt").write_text("written by a previous step\n")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="build/maw",
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 2
+    assert calls == []
+
+
+def test_a_maw_without_its_own_repository_is_unconfirmed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A plain directory inside the caller's checkout must not borrow the caller's origin.
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="downloaded",
+        origin=None,
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 2
+    assert calls == []
+
+
+def test_both_unconfirmed_sides_are_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="donor", event=None, maw="loose", origin=None
+    )
+    assert module.run() == 2
+    assert calls == []
+    assert "the prey and the maw (loose) are not verifiably public" in capsys.readouterr().err
+
+
+def test_a_maw_the_forge_confirms_public_uploads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="other",
+        origin="git@github.com:owner/other.git",
+    )
+    forge = _Forge({"pypa/pipx": _PUBLIC, "owner/other": _PUBLIC})
+    monkeypatch.setattr(module, "client_for", lambda _: forge)
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_the_calling_repository_needs_its_visibility_confirmed_as_a_maw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Without the event payload the caller's own checkout is confirmed by the forge, or refused.
+    module, calls = _action(tmp_path, monkeypatch, prey="pypa/pipx", event={})
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 2 and calls == []
+    forge = _Forge({"pypa/pipx": _PUBLIC, CALLER: _PUBLIC})
+    monkeypatch.setattr(module, "client_for", lambda _: forge)
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_a_private_maw_uploads_only_with_the_opt_in_or_a_private_caller(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for event, allow in [
+        ({"repository": {"private": False}}, "true"),
+        ({"repository": {"visibility": "private"}}, "false"),
+    ]:
+        module, calls = _action(
+            tmp_path,
+            monkeypatch,
+            prey="pypa/pipx",
+            event=event,
+            allow=allow,
+            maw="internal-maw",
+            origin="https://github.com/owner/internal",
+        )
+        forge = _Forge({"pypa/pipx": _PUBLIC, "owner/internal": _PRIVATE})
+        monkeypatch.setattr(module, "client_for", lambda _, forge=forge: forge)
+        assert module.run() == 0 and len(calls) == 1

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -31,11 +33,30 @@ def _write_artifact(path: Path, value: str) -> None:
     )
 
 
-def _symlink_directory(target: Path, link: Path) -> None:
+def _symlink_directory(target: Path, link: Path, kind: str = "symlink") -> None:
+    """Point ``link`` at ``target`` through a symlink or a Windows junction.
+
+    A junction needs no privilege and reads as a plain directory to ``S_ISDIR``, so the
+    junction twins run on every Windows machine, unlike the symlink tests.
+    """
+    if kind == "junction":
+        if sys.platform != "win32":
+            pytest.skip("junctions exist only on Windows")
+        completed = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, f"junction creation failed: {completed.stderr[:300]}"
+        return
     try:
         link.symlink_to(target, target_is_directory=True)
     except (NotImplementedError, OSError) as exc:
         pytest.skip(f"directory symlinks unavailable on this platform: {exc}")
+
+
+LINK_KINDS = pytest.mark.parametrize("kind", ["symlink", "junction"])
 
 
 def test_generation_allocation_never_reuses_a_mutable_path(tmp_path: Path) -> None:
@@ -50,12 +71,15 @@ def test_generation_allocation_never_reuses_a_mutable_path(tmp_path: Path) -> No
     assert second.path.is_dir()
 
 
-def test_generation_allocation_rejects_symlinked_generations_root(tmp_path: Path) -> None:
+@LINK_KINDS
+def test_generation_allocation_rejects_symlinked_generations_root(
+    kind: str, tmp_path: Path
+) -> None:
     digests = tmp_path / "digests"
     digests.mkdir()
     outside = tmp_path / "outside"
     outside.mkdir()
-    _symlink_directory(outside, digests / ".generations")
+    _symlink_directory(outside, digests / ".generations", kind)
 
     with pytest.raises(CrabError, match="expected a real directory"):
         allocate_digest_generation(digests, SHA)
@@ -63,13 +87,14 @@ def test_generation_allocation_rejects_symlinked_generations_root(tmp_path: Path
     assert not (outside / SHA).exists(), "allocation must not descend through a symlink"
 
 
-def test_generation_allocation_rejects_symlinked_sha_root(tmp_path: Path) -> None:
+@LINK_KINDS
+def test_generation_allocation_rejects_symlinked_sha_root(kind: str, tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generations = digests / ".generations"
     generations.mkdir(parents=True)
     outside = tmp_path / "outside"
     outside.mkdir()
-    _symlink_directory(outside, generations / SHA)
+    _symlink_directory(outside, generations / SHA, kind)
 
     with pytest.raises(CrabError, match="expected a real directory"):
         allocate_digest_generation(digests, SHA)
@@ -115,7 +140,8 @@ def test_invalid_new_generation_cannot_replace_the_active_ref(tmp_path: Path) ->
     assert resolve_canonical_digest(digests, SHA).path == generation_a.path
 
 
-def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
+@LINK_KINDS
+def test_publication_rejects_symlinked_generation(kind: str, tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
     outside = tmp_path / "outside"
@@ -123,7 +149,7 @@ def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
     _write_artifact(outside, "outside")
 
     generation.path.rmdir()
-    _symlink_directory(outside, generation.path)
+    _symlink_directory(outside, generation.path, kind)
 
     with pytest.raises(CrabError, match="cannot publish unsafe digest generation"):
         publish_digest_generation(digests, generation)
@@ -131,13 +157,16 @@ def test_publication_rejects_symlinked_generation(tmp_path: Path) -> None:
     assert not (digests / ".refs" / f"{SHA}.json").exists()
 
 
-def test_refs_root_symlink_cannot_redirect_publication_or_resolution(tmp_path: Path) -> None:
+@LINK_KINDS
+def test_refs_root_symlink_cannot_redirect_publication_or_resolution(
+    kind: str, tmp_path: Path
+) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
     _write_artifact(generation.path, "complete")
     outside = tmp_path / "outside"
     outside.mkdir()
-    _symlink_directory(outside, digests / ".refs")
+    _symlink_directory(outside, digests / ".refs", kind)
 
     with pytest.raises(CrabError, match="digest refs root"):
         publish_digest_generation(digests, generation)
@@ -153,7 +182,8 @@ def test_refs_root_symlink_cannot_redirect_publication_or_resolution(tmp_path: P
         resolve_canonical_digest(digests, SHA)
 
 
-def test_resolution_rejects_generation_replaced_by_symlink(tmp_path: Path) -> None:
+@LINK_KINDS
+def test_resolution_rejects_generation_replaced_by_symlink(kind: str, tmp_path: Path) -> None:
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
     _write_artifact(generation.path, "complete")
@@ -164,7 +194,7 @@ def test_resolution_rejects_generation_replaced_by_symlink(tmp_path: Path) -> No
     outside = tmp_path / "outside"
     outside.mkdir()
     _write_artifact(outside, "outside")
-    _symlink_directory(outside, generation.path)
+    _symlink_directory(outside, generation.path, kind)
 
     with pytest.raises(CrabError, match="does not resolve to a safe generation"):
         resolve_canonical_digest(digests, SHA)
@@ -182,3 +212,26 @@ def test_publication_ref_is_a_regular_small_pointer_file(tmp_path: Path) -> None
     assert ref_path.is_file()
     assert resolve_canonical_digest(digests, SHA).path == generation.path
     assert not list(ref_path.parent.glob(f".{SHA}.*.tmp"))
+
+
+@LINK_KINDS
+def test_explicit_output_through_a_link_is_refused(
+    kind: str, npm_app: Path, tmp_path: Path
+) -> None:
+    """`--out` that is a symlink or a junction must not carry the digest elsewhere."""
+    from conftest import FIXED_NOW
+
+    from hungry_crab.cache import Target
+    from hungry_crab.digest import DigestOptions, run_digest
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    out = tmp_path / "out"
+    _symlink_directory(outside, out, kind)
+
+    with pytest.raises(CrabError, match="not a real directory"):
+        run_digest(
+            Target(path=npm_app),
+            DigestOptions(out=out, now=FIXED_NOW, cache_root=tmp_path / "cache"),
+        )
+    assert list(outside.iterdir()) == []

@@ -1,7 +1,21 @@
 from __future__ import annotations
 
+import base64
+import random
+import time
+from pathlib import Path
+
 import pytest
 
+from hungry_crab.errors import CrabError
+from hungry_crab.pr_publication import (
+    GeneratedFile,
+    PreparedPullRequest,
+    nutrient_branch_name,
+    nutrient_spec_path,
+    publication_items,
+    publish_prepared_pull_request,
+)
 from hungry_crab.publication_safety import (
     PublicationFinding,
     format_publication_findings,
@@ -9,14 +23,45 @@ from hungry_crab.publication_safety import (
     scan_publication_bundle,
 )
 
+# Every secret-shaped vector is assembled at run time, so that this file is not itself a finding
+# when the repository's own tree is scanned (see the corpus test at the end).
+GITHUB = "ghp" + "_" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+AWS = "AKIA" + "ABCDEFGHIJKLMNOP"
+OPAQUE = "Q7mZ3vN8pR2xT5kL" + "9cW4dF6hJ1sY0uB3"
+PASSWORD = "Tr0ub4dor&3" + "-correct-horse"
+LITERAL = "Zx81" + "kq0Lm2"
+DASHES = "-" * 5
+
+
+def _key_header(kind: str) -> str:
+    return f"{DASHES}BEGIN {kind}{DASHES}"
+
 
 @pytest.mark.parametrize(
     ("text", "rule"),
     [
-        ("aws = AKIAABCDEFGHIJKLMNOP", "aws-access-key"),
-        ("token = ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "github-token"),
-        ("slack = xoxb-1234567890-ABCDEFGHIJ", "slack-token"),
-        ("-----BEGIN OPENSSH PRIVATE KEY-----", "private-key"),
+        (f"aws = {AWS}", "aws-access-key"),
+        ("aws = " + "ASIA" + "ABCDEFGHIJKLMNOP", "aws-access-key"),
+        (f"token = {GITHUB}", "github-token"),
+        ("token = " + "github_pat_" + "11ABCDEFG0123456789" + "_abcdefghijklmnop", "github-token"),
+        ("GITLAB=" + "glpat-" + "A1b2C3d4E5f6G7h8I9j0", "gitlab-token"),
+        ("slack = " + "xoxb-" + "1234567890-ABCDEFGHIJ", "slack-token"),
+        ("slack = " + "xoxp-" + "1234567890-" + "1234567890-abcdefghij", "slack-token"),
+        ("slack = " + "xoxe.xoxp-" + "1-Mi0yLTEyMzQ1Njc4OTAx", "slack-token"),
+        (
+            "url = https://hooks.slack.com/services/" + "T0ABCDEFG/B0ABCDEFG/aBcDeFgHiJkL",
+            "slack-webhook",
+        ),
+        (_key_header("OPENSSH PRIVATE KEY"), "private-key"),
+        (_key_header("RSA PRIVATE KEY"), "private-key"),
+        (_key_header("PRIVATE KEY"), "private-key"),
+        (_key_header("ENCRYPTED PRIVATE KEY"), "private-key"),
+        (_key_header("PGP PRIVATE KEY BLOCK"), "private-key"),
+        (
+            "DATABASE_URL=postgres://crab:" + "s3cure-production-password@db.example/crab",
+            "url-credentials",
+        ),
+        ("redis://:" + "n0t-a-placeholder@cache.internal:6379/0", "url-credentials"),
     ],
 )
 def test_high_confidence_secret_shapes_block_without_echoing_value(text: str, rule: str) -> None:
@@ -43,14 +88,14 @@ def test_credential_assignment_blocks_but_placeholders_do_not() -> None:
 
 
 def test_placeholder_words_only_match_as_complete_values() -> None:
-    assignment_secret = "prod-example-Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
-    entropy_secret = "prod_sample_Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
+    assignment_value = "prod-example-" + OPAQUE
+    entropy_value = "prod_sample_" + OPAQUE
     text = "\n".join(
         [
             "API_TOKEN=YOUR_TOKEN_HERE",
             "CLIENT_SECRET=placeholder",
-            f"API_TOKEN={assignment_secret}",
-            entropy_secret,
+            f"API_TOKEN={assignment_value}",
+            entropy_value,
         ]
     )
 
@@ -61,12 +106,196 @@ def test_placeholder_words_only_match_as_complete_values() -> None:
         PublicationFinding("generated/secrets.txt", 4, "high-entropy-token"),
     ]
     rendered = format_publication_findings(findings)
-    assert assignment_secret not in rendered
-    assert entropy_secret not in rendered
+    assert assignment_value not in rendered
+    assert entropy_value not in rendered
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        ("config.yml", f"password: {PASSWORD}"),
+        ("config.yml", f"  - client-secret: {PASSWORD}  # production"),
+        ("config.json", f'{{"password": "{PASSWORD}"}}'),
+        ("pyproject.toml", f'password = "{PASSWORD}"'),
+        ("settings.ini", f"password = {PASSWORD}"),
+        ("app.properties", "db.password=hunter2x"),
+        ("short.env", "PASSWORD=hunter2"),
+        ("deploy.sh", f"  export API_KEY={LITERAL}"),
+        ("PR_BODY", f"Configure it with\n\nsecret_key: {PASSWORD}"),
+        ("src/app.py", f'password = "{LITERAL}"'),
+        ("src/app.py", 'SECRET_KEY = "dj-insecure-' + '9f8e7d6c5b4a"'),
+        ("src/app.py", f'client = Client(url, api_key="{LITERAL}", timeout=3)'),
+        ("src/app.py", f'def connect(token: str = "{LITERAL}") -> None:'),
+        ("src/app.py", f"self.password = '{LITERAL}'  # temporary"),
+        ("src/app.ts", f'const config = {{ apiKey: "{LITERAL}", region }};'),
+        ("src/main.go", f'token := "{LITERAL}"'),
+        ("src/app.php", f"$config = ['password' => '{LITERAL}'];"),
+        ("src/app.php", f"$password = '{LITERAL}';"),
+        # In a configuration file a credential-named key needs no entropy, only eight characters.
+        (".env", "DB_PASSWORD=supersecretpassword"),
+        ("prod.env", "export DB_PASSWORD=supersecretpassword"),
+        ("config.yml", "password: supersecretpassword"),
+        ("config.json", '{"client_secret": "supersecretpassword"}'),
+        ("settings.ini", "password = supersecretpassword"),
+        ("pyproject.toml", 'token = "supersecrettoken"'),
+    ],
+)
+def test_credential_literals_block_in_any_syntax(path: str, line: str) -> None:
+    findings = scan_publication(path, line)
+
+    assert [finding.rule for finding in findings] == ["credential-assignment"]
+    rendered = format_publication_findings(findings)
+    assert LITERAL not in rendered and PASSWORD not in rendered
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # The false positives #135 lists, from this repository and as probes.
+        ("src/digest.py", "    tokens = estimate_tokens(text)"),
+        ("src/maw.py", '        token_env=str(serve.get("token_env") or "").strip(),'),
+        ("src/matrix.py", '_TOKEN_RE = re.compile(r"[()]|[^\\s()]+")'),
+        ("src/ci.py", '    secrets = doc.section("Secrets referenced (names only)", priority=4)'),
+        ("src/guard.py", "        program_token = tokens[0]"),
+        ("src/x.py", "TOKEN_TTL_SECONDS = 60 * 60 * 24"),
+        ("src/x.py", 'TOKENIZER = "tiktoken"'),
+        ("src/x.py", 'access_key_id = request.headers.get("x-access-key")'),
+        # Names, calls, attributes, annotations, templates and references are not literals.
+        ("src/x.py", "token = client.token if source_url is None else None"),
+        ("src/x.py", 'token = os.environ["GH_TOKEN"]'),
+        ("src/x.py", 'password = "prefix" + suffix'),
+        ("src/x.py", 'token = f"{prefix}-{suffix}"'),
+        ("src/x.py", "def load(token: str | None = None, password: str = '') -> None:"),
+        ("src/x.py", "password: hunter22"),
+        ("src/x.ts", "  secret: Uint8Array;"),
+        ("src/x.py", 'token_env = "CRAB_APP_TOKEN"'),
+        ("src/x.py", 'token = "GH_TOKEN"'),
+        ("src/x.py", 'password = "Enter your password"'),
+        ("src/x.py", 'if password == "hunter22":'),
+        ("action.yml", "    default: ${{ github.token }}"),
+        ("ci.yml", "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}"),
+        ("config.yaml", "wifi_password: !secret wifi_password"),
+        ("config.yaml", "password: *shared_password"),
+        ("README.md", "token: required"),
+        ("deploy.sh", "TOKEN=$(gh auth token)"),
+        ("deploy.sh", 'export GH_TOKEN="$GITHUB_TOKEN"'),
+        # Dev defaults, documentation placeholders and references in URLs.
+        ("compose.yml", "DATABASE_URL: postgres://postgres:postgres@localhost:5432/test"),
+        ("README.md", "Use `postgres://user:password@localhost/db`."),
+        ("README.md", "git clone https://x-access-token:${GH_TOKEN}@github.com/owner/repo"),
+        ("src/x.py", 'url = f"https://{user}:{password}@{host}/"'),
+        ("README.md", "Trace: https://github.com/drevendev/HungryCrab/issues/135"),
+    ],
+)
+def test_ordinary_code_and_references_do_not_block(path: str, line: str) -> None:
+    assert scan_publication(path, line) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # The placeholders documentation prints in a secret's shape. Assembled at run time: the
+        # forge's own push protection reads a literal webhook URL as a secret, placeholder or not.
+        (
+            "src/app.py",
+            'DOCS = "https://hooks.slack.com/services/T'
+            + "0" * 8
+            + "/B"
+            + "0" * 8
+            + "/"
+            + "X" * 24
+            + '"',
+        ),
+        ("src/app.py", 'TOKEN = "ghp_' + "x" * 36 + '"'),
+        ("README.md", "aws_access_key_id = AKIAIOSFODNN7EXAMPLE"),
+        ("README.md", "aws_access_key_id = AKIA" + "X" * 16),
+        # References to a value kept elsewhere.
+        ("config.yml", "password: env:DB_PASSWORD"),
+        ("config.yml", "secret: vault:secret/data/app#password"),
+        ("config.yml", "password: ${DB_PASSWORD}"),
+        (".env", "DB_PASSWORD=${DB_PASSWORD:-}"),
+        (".env", "DB_PASSWORD=$DB_PASSWORD"),
+        ("settings.ini", "password = %DB_PASSWORD%"),
+        ("src/app.py", 'password = "%DB_PASSWORD%"'),
+        # Placeholders and defaults in configuration files.
+        ("config.yml", "password: your-password-here"),
+        ("config.yml", "password: '********'"),
+        ("config.yml", "password: password"),
+        ("config.yml", "  password: CHANGE_ME"),
+        ("ci.yml", "      POSTGRES_PASSWORD: postgres"),
+        # Quoted values in code that read as names.
+        ("src/lexer.py", "    token = 'IDENT2'"),
+        ("src/lexer.py", "    token = 'LPAREN'"),
+        ("src/lexer.py", "    token = 'Int64Lit'"),
+        ("src/app.py", 'Token = "Identifier1"'),
+        ("src/app.py", 'next_token = "NextToken1"'),
+        ("src/app.py", 'secret = "SecretName2"'),
+    ],
+)
+def test_placeholders_references_and_names_do_not_block(path: str, line: str) -> None:
+    assert scan_publication(path, line) == []
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        'uv run --directory "$env:CRAB_ACTION_PATH" python "$env:CRAB_ACTION_PATH/scripts/run.py"',
+        '  ".github/ISSUE_TEMPLATE/feature_request.md",',
+        '"path": "skills/claude-api/python/managed-agents/README.md"',
+        'cat "$CRAB_CACHE_DIR/github/acme/widget/repo/bin/cat" README.md',
+    ],
+)
+def test_paths_are_judged_one_segment_at_a_time(line: str) -> None:
+    assert scan_publication("generated/notes.txt", line) == []
+
+
+def test_the_crab_s_own_branch_and_specification_names_do_not_block() -> None:
+    nutrient = "crab:docs:astral-sh-uv:contributing-guide-with-reproducible-benchmarks"
+    spec = nutrient_spec_path(nutrient)
+    branch = nutrient_branch_name(nutrient)
+    body = f"Specification: [`{spec}`](https://github.com/o/r/blob/{branch}/{spec})"
+
+    assert scan_publication_bundle([(spec, "# Specification\n"), ("PR_BODY", body)]) == []
+
+
+def test_lock_files_skip_the_entropy_pass_but_not_the_shapes() -> None:
+    uv_lock = "\n".join(
+        [
+            '[[package]]\nname = "pyyaml"\nversion = "6.0.2"',
+            (
+                'sdist = { url = "https://files.pythonhosted.org/packages/54/ed/'
+                "79a089b6be93607fa5cdaedf301d7dfb23af5f25c398d5ead2525b063e17/"
+                'pyyaml-6.0.2.tar.gz", '
+                'hash = "sha256:d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e" }'
+            ),
+        ]
+    )
+    go_sum = "github.com/spf13/cobra v1.8.0 h1:7aJaZx1B85qltLMc546zn58" + "BxxfZdR/W22ej9CFoEf0="
+
+    assert scan_publication("uv.lock", uv_lock) == []
+    assert scan_publication("service/go.sum", go_sum) == []
+    assert scan_publication("notes/go.txt", go_sum) != [], "the same hash elsewhere is opaque"
+    leaked = f'source = {{ registry = "https://crab:{LITERAL}@pypi.internal/simple" }}'
+    assert scan_publication("uv.lock", leaked) == [
+        PublicationFinding("uv.lock", 1, "url-credentials")
+    ]
+
+
+def test_a_private_key_body_without_its_header_blocks() -> None:
+    rng = random.Random(135)
+    der = bytes.fromhex("308204bd020100300d06092a864886f70d0101010500048204a7308204a302010002")
+    body = base64.b64encode(der + bytes(rng.randrange(256) for _ in range(600))).decode()
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+
+    findings = scan_publication("generated/key.txt", "\n".join(lines))
+
+    assert len(findings) >= len(lines) // 2
+    assert {finding.rule for finding in findings} == {"high-entropy-token"}
+    rendered = format_publication_findings(findings)
+    assert not any(line in rendered for line in lines)
 
 
 def test_high_entropy_token_blocks_without_treating_trace_as_secret() -> None:
-    secret = "Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
     trace = "\n".join(
         [
             "sha=0123456789abcdef0123456789abcdef01234567",
@@ -79,21 +308,70 @@ def test_high_entropy_token_blocks_without_treating_trace_as_secret() -> None:
         ]
     )
 
-    assert scan_publication("generated/secret.txt", secret) == [
+    assert scan_publication("generated/secret.txt", OPAQUE) == [
         PublicationFinding("generated/secret.txt", 1, "high-entropy-token")
     ]
     assert scan_publication("generated/trace.txt", trace) == []
 
 
+def test_slashes_do_not_hide_a_base64_blob() -> None:
+    # Two slashes cut 44 characters of base64 into pieces shorter than the entropy minimum.
+    rng = random.Random(7)
+    blob = base64.b64encode(bytes(rng.randrange(256) for _ in range(33))).decode()
+    blob = blob[:14] + "/" + blob[15:28] + "/" + blob[29:]
+
+    assert scan_publication("generated/key.txt", f"key={blob}") == [
+        PublicationFinding("generated/key.txt", 1, "high-entropy-token")
+    ]
+
+
+_LONG = 400_000
+BACKSLASH = chr(92)
+
+
+@pytest.mark.parametrize(
+    ("path", "line"),
+    [
+        # Unterminated literals full of backslashes: escapes must not backtrack.
+        ("src/x.py", 'token = "' + BACKSLASH * 38),
+        ("src/x.c", 'secret = "' + BACKSLASH * 2 * 18 + BACKSLASH),
+        ("src/x.py", 'token = "' + BACKSLASH * _LONG),
+        ("src/x.c", 'secret = "' + BACKSLASH * 2 * (_LONG // 2) + BACKSLASH),
+        # A repeated assignment: every match must examine a bounded stretch of the line.
+        ("src/x.py", "token=" * (_LONG // 6)),
+        (".env", "token=" * (_LONG // 6)),
+        ("config.yml", "token: " * (_LONG // 7)),
+        ("src/x.py", 'password="' + "password=" * (_LONG // 9) + '"'),
+        ("config.yml", "token: " + " " * _LONG + "x"),
+        ("src/x.py", "a-" * (_LONG // 2)),
+    ],
+    ids=[
+        "backslashes-38",
+        "c-string-47",
+        "backslashes-400k",
+        "c-string-400k",
+        "token=-repeated",
+        "token=-repeated-env",
+        "token:-repeated",
+        "names-inside-a-literal",
+        "spaces-before-value",
+        "dashed-words",
+    ],
+)
+def test_a_long_hostile_line_scans_in_linear_time(path: str, line: str) -> None:
+    started = time.perf_counter()
+    scan_publication(path, line)
+    assert time.perf_counter() - started < 1.0
+
+
 def test_github_trace_exemption_does_not_hide_opaque_path_segments() -> None:
-    secret = "Q7mZ3vN8pR2xT5kL9cW4dF6hJ1sY0uB3"
     safe = "Trace: https://github.com/example/prey/commit/0123456789abcdef"
-    suspicious = f"Trace: https://github.com/example/prey/commit/{secret}"
+    suspicious = f"Trace: https://github.com/example/prey/commit/{OPAQUE}"
 
     assert scan_publication("PR_BODY", safe) == []
     findings = scan_publication("PR_BODY", suspicious)
     assert findings == [PublicationFinding("PR_BODY", 1, "high-entropy-token")]
-    assert secret not in format_publication_findings(findings)
+    assert OPAQUE not in format_publication_findings(findings)
 
 
 def test_clean_bundle_passes_unchanged() -> None:
@@ -107,12 +385,78 @@ def test_clean_bundle_passes_unchanged() -> None:
 
 
 def test_bundle_reports_only_safe_location_metadata() -> None:
-    secret = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     findings = scan_publication_bundle(
-        [("generated/settings.yml", f"name: crab\ntoken: {secret}\n")]
+        [("generated/settings.yml", f"name: crab\ntoken: {GITHUB}\n")]
     )
 
     assert findings == [PublicationFinding("generated/settings.yml", 2, "github-token")]
     rendered = format_publication_findings(findings)
-    assert secret not in rendered
+    assert GITHUB not in rendered
     assert rendered == "generated/settings.yml:2 (github-token)"
+
+
+def test_a_secret_shaped_path_blocks_and_is_never_rendered() -> None:
+    prepared = PreparedPullRequest(
+        title="safe",
+        body="safe",
+        files=(
+            GeneratedFile("generated/notes.txt", "safe\n"),
+            GeneratedFile(f"generated/{GITHUB}.txt", f"{AWS}\n"),
+        ),
+    )
+
+    findings = scan_publication_bundle(publication_items(prepared))
+
+    assert findings == [
+        PublicationFinding("<redacted path #2>", 0, "github-token"),
+        PublicationFinding("<redacted path #2>", 1, "aws-access-key"),
+    ]
+    rendered = format_publication_findings(findings)
+    assert GITHUB not in rendered and AWS not in rendered
+    assert rendered.splitlines() == [
+        "<redacted path #2> (path: github-token)",
+        "<redacted path #2>:1 (aws-access-key)",
+    ]
+    assert scan_publication(f"generated/{GITHUB}.txt", "safe\n") == [
+        PublicationFinding("<redacted path>", 0, "github-token")
+    ]
+
+
+def test_a_secret_shaped_path_alone_refuses_before_publication() -> None:
+    prepared = PreparedPullRequest(
+        title="safe", body="safe", files=(GeneratedFile(f"generated/{GITHUB}.txt", "safe\n"),)
+    )
+    published: list[PreparedPullRequest] = []
+
+    with pytest.raises(CrabError) as caught:
+        publish_prepared_pull_request(prepared, published.append)
+
+    assert published == []
+    assert GITHUB not in f"{caught.value} {caught.value.hint}"
+
+
+def test_the_repository_tree_is_not_a_finding() -> None:
+    """#135's acceptance corpus: this repository's own sources, tests and lock file."""
+
+    root = Path(__file__).resolve().parents[1]
+    files = [root / "uv.lock", root / "pyproject.toml"]
+    for top in ("src", "tests"):
+        files += [
+            path
+            for path in sorted((root / top).rglob("*"))
+            if path.is_file()
+            and not any(part.startswith((".", "__")) for part in path.relative_to(root).parts)
+        ]
+    # Synthetic GitHub tokens that the pull-request publication tests feed to the scanner.
+    vectors = {"tests/test_pr_publication.py", "tests/test_pr_serve.py"}
+    unexpected = []
+    for path in files:
+        data = path.read_bytes()
+        if b"\0" in data:
+            continue
+        logical = path.relative_to(root).as_posix()
+        for finding in scan_publication(logical, data.decode("utf-8", errors="replace")):
+            if not (logical in vectors and finding.rule == "github-token"):
+                unexpected.append(finding)
+    assert len(files) > 100
+    assert unexpected == []

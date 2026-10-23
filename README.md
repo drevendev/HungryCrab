@@ -38,10 +38,13 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0) is
-the latest release, a limited stable one.** The supported scope is deterministic,
-human-supervised analysis: the CLI, scoped local MCP, portable skills and offline HTML reports.
-PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
+**Status: [0.6.1](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.1) is the latest
+release, a security release on
+[0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
+stable one.** Update to it: it fixes two published vulnerabilities and the other threat-model
+findings of the 2026-10-22 review (see the [changelog](CHANGELOG.md)). The supported scope is
+deterministic, human-supervised analysis: the CLI, scoped local MCP, portable skills and
+offline HTML reports. PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
 experimental; their live acceptance criteria are deferred to post-release work, not declared
 complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 [release record](docs/releases/0.6.0-readiness.md).
@@ -72,7 +75,7 @@ not require `gh`; private reads use `GITLAB_TOKEN`. GitHub Discussions and JUnit
 need the corresponding authenticated API permissions.
 
 That tracks `master`, which is always green, and is the recommended way to install the crab
-while it is pre-1.0. If you want a fixed version instead, append `@v0.6.0` to the URL and take
+while it is pre-1.0. If you want a fixed version instead, append `@v0.6.1` to the URL and take
 care of updates yourself. The package is not on PyPI, and the `hungry-crab` name there is not
 ours: install from this repository.
 

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from helpers import write_tree
 
+from hungry_crab.compare.candidates import Side
 from hungry_crab.licensing import (
     LicenseClass,
     MawClass,
@@ -471,6 +475,79 @@ def test_a_licenses_directory_is_read(tmp_path: Path) -> None:
     assert sorted(findings.license_files) == ["LICENSES/Apache-2.0.txt", "LICENSES/MIT.txt"]
     assert findings.resolution == "split"
     assert set(findings.candidates) == {"MIT", "Apache-2.0"}
+
+
+def _link(link: Path, target: Path, kind: str) -> None:
+    """Point ``link`` at ``target`` through a symlink or a Windows directory junction."""
+    if kind == "junction":
+        if sys.platform != "win32":
+            pytest.skip("junctions exist only on Windows")
+        completed = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, completed.stderr[:300]
+        return
+    try:
+        link.symlink_to(target, target_is_directory=target.is_dir())
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks are unavailable here")
+
+
+@pytest.mark.parametrize("kind", ["symlink", "junction"])
+def test_a_linked_licenses_directory_is_not_the_prey_s_licence(kind: str, tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    write_tree(outside, {"MIT.txt": MIT_TEXT})
+    prey = tmp_path / "prey"
+    prey.mkdir()
+    _link(prey / "LICENSES", outside, kind)
+    findings = detect_in_repo(prey, [])
+    assert findings.license_files == []
+    assert findings.spdx != "MIT"
+
+
+@pytest.mark.parametrize("name", ["LICENSE", "LICENSES/MIT.txt"])
+def test_a_licence_file_that_is_a_symlink_is_not_read(name: str, tmp_path: Path) -> None:
+    outside = tmp_path / "outside-licence.txt"
+    outside.write_text(MIT_TEXT, encoding="utf-8")
+    prey = tmp_path / "prey"
+    (prey / "LICENSES").mkdir(parents=True)
+    _link(prey / name, outside, "symlink")
+    assert detect_in_repo(prey, []).license_files == []
+
+
+def test_a_name_surrogate_licenses_directory_is_skipped_on_every_platform(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A junction reads as a plain directory to ``S_ISDIR``; its reparse tag gives it away."""
+    write_tree(tmp_path, {"LICENSES/MIT.txt": MIT_TEXT})
+    suspect = tmp_path / "LICENSES"
+    real_lstat = Path.lstat
+
+    def junction_lstat(path: Path, *args: object, **kwargs: object) -> object:
+        record = real_lstat(path, *args, **kwargs)
+        if path == suspect:
+            return SimpleNamespace(
+                st_mode=record.st_mode, st_file_attributes=0x400, st_reparse_tag=0xA0000003
+            )
+        return record
+
+    monkeypatch.setattr(Path, "lstat", junction_lstat)
+    assert detect_in_repo(tmp_path, []).license_files == []
+
+
+@pytest.mark.parametrize("kind", ["symlink", "junction"])
+def test_evidence_files_behind_a_linked_directory_are_not_found(kind: str, tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    write_tree(outside, {"secret.yml": "on: push\n"})
+    prey = tmp_path / "prey"
+    write_tree(prey, {".github/ci.yml": "on: push\n"})
+    _link(prey / ".github" / "workflows", outside, kind)
+    side = Side("prey", "a" * 40, None, prey)
+    assert side.find_files(".github/workflows/*.yml") == []
+    assert side.find_files(".github/*.yml") == [".github/ci.yml"]
 
 
 def test_one_file_that_licenses_different_parts_differently(tmp_path: Path) -> None:

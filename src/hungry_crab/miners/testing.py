@@ -7,6 +7,7 @@ import tomllib
 from typing import Any
 
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from ..typeutil import as_dict
 from .base import FileInfo, MineContext, MinerResult
 
@@ -337,7 +338,7 @@ class TestingMiner:
         if ctx.exists("pyproject.toml"):
             try:
                 tool_table = as_dict(tomllib.loads(ctx.read("pyproject.toml")).get("tool"))
-            except tomllib.TOMLDecodeError:
+            except (tomllib.TOMLDecodeError, RecursionError, MemoryError):
                 tool_table = {}
             if "pytest" in tool_table:
                 frameworks.setdefault("pytest", "unit")
@@ -411,7 +412,7 @@ class TestingMiner:
         in_ci_line = "none"
         if in_ci:
             what = [*([f"upload to {in_ci['upload']}"] if in_ci["upload"] else []), *in_ci["flags"]]
-            in_ci_line = f"{', '.join(what)} ({in_ci['workflow']})"
+            in_ci_line = f"{', '.join(what)} ({safe_name(in_ci['workflow'], 'path')})"
         summary.kv(
             [
                 ("Test files", data["test_files"]),
@@ -423,7 +424,10 @@ class TestingMiner:
                     ", ".join(f"{k} ({v})" for k, v in data["frameworks"].items())
                     or "none detected",
                 ),
-                ("Test directories", ", ".join(data["test_dirs"]) or "none"),
+                (
+                    "Test directories",
+                    ", ".join(safe_name(d, "path") for d in data["test_dirs"]) or "none",
+                ),
                 ("Coverage configured", coverage["configured"]),
                 ("Coverage threshold", threshold),
                 ("Coverage service", coverage["service"] or "none"),
@@ -439,8 +443,13 @@ class TestingMiner:
         )
         if data["configs"]:
             configs = doc.section("Configuration files", priority=3)
-            configs.bullets((f"{c['path']} ({c['tool']})" for c in data["configs"]), max_items=15)
+            configs.bullets(
+                (f"{safe_name(c['path'], 'path')} ({c['tool']})" for c in data["configs"]),
+                max_items=15,
+            )
         if data["sample_test_files"]:
             sample = doc.section("Sample test files", priority=4)
-            sample.bullets(data["sample_test_files"], max_items=15)
+            sample.bullets(
+                (safe_name(path, "path") for path in data["sample_test_files"]), max_items=15
+            )
         return doc

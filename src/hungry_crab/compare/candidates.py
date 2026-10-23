@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import quote
 
 from ..digest import failed_miners
-from ..fs import read_text
+from ..fs import is_link_stat, read_text
 from ..licensing.origin import ContentOrigin
 from ..nutrients import Candidate, Evidence, slugify
 from ..safety import is_suspicious
@@ -166,11 +166,30 @@ class Side:
         """Existing files in the working tree matching a glob, POSIX-relative."""
         if self.root is None:
             return []
+        root = self.root
         try:
-            matches = sorted(p for p in self.root.glob(pattern) if p.is_file())
+            matches = sorted(
+                p for p in root.glob(pattern) if p.is_file() and _within_own_tree(root, p)
+            )
         except (OSError, ValueError):
             return []
-        return [p.relative_to(self.root).as_posix() for p in matches[:limit]]
+        return [p.relative_to(root).as_posix() for p in matches[:limit]]
+
+
+def _within_own_tree(root: Path, path: Path) -> bool:
+    """Whether no component of ``path`` below ``root`` is a symlink or a junction.
+
+    A glob descends through a linked directory, and the files behind it are not the tree's own.
+    """
+    current = root
+    for part in path.relative_to(root).parts:
+        current = current / part
+        try:
+            if is_link_stat(current.lstat()):
+                return False
+        except OSError:
+            return False
+    return True
 
 
 def _truthy(value: object) -> bool:

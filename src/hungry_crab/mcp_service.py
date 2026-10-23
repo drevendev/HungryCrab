@@ -16,7 +16,31 @@ from .digest_integrity import digest_integrity_errors
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions
 from .fetch.git import GitRunner
+from .fs import is_link_stat
 from .nutrients import CATEGORIES
+
+_GIT_STORES = ("objects", "refs", "packed-refs", "info/grafts", "shallow")
+# Git itself follows alternates of alternates this deep.
+_MAX_ALTERNATE_DEPTH = 5
+_GIT_DATA_OUTSIDE = "this directory's git data lies outside the operator-approved roots"
+_GIT_DATA_LINKED = (
+    "this directory's git data is reached through a symlink or junction, which could lead "
+    "outside the operator-approved roots"
+)
+
+
+def _alternate_lines(path: Path) -> list[str]:
+    """The entries of an alternates file as git reads them; no file means no entries.
+
+    Git splits on newlines only and skips empty lines and ``#`` comments.
+    """
+    try:
+        text = path.read_bytes().decode("utf-8", errors="replace")
+    except FileNotFoundError:
+        return []
+    except OSError as exc:
+        raise UsageError("cannot inspect this repository's git data") from exc
+    return [line for line in text.split("\n") if line and not line.startswith("#")]
 
 
 def refuse_network_path(value: str) -> None:
@@ -88,18 +112,107 @@ class AnalysisService:
 
         A plain directory under a root that sits inside a repository outside the roots (a
         dotfiles repository at the home directory, a monorepo above a vendor drop) would
-        otherwise hand that repository's log, paths and tags to the client.
+        otherwise hand that repository's log, paths and tags to the client. The work tree is not
+        the whole answer: a ``.git`` file (``gitdir: <path>``), a ``.git`` link or a worktree's
+        ``commondir`` moves the git directory, and with it the history, without moving the work
+        tree, so the git and common directories must lie under a root too, and so must the
+        object and ref stores inside them and every object alternate.
         """
         if not GitRunner.available():
             return
-        top = GitRunner(path).try_run("rev-parse", "--show-toplevel")
-        if not top or not top.strip():
-            return
-        toplevel = Path(top.strip()).resolve()
-        if not any(toplevel.is_relative_to(root) for root in self.roots):
+        git = GitRunner(path)
+        top = (git.try_run("rev-parse", "--show-toplevel") or "").strip()
+        if top and not any(Path(top).resolve().is_relative_to(root) for root in self.roots):
             raise UsageError(
                 "this directory belongs to a git repository outside the operator-approved roots"
             )
+        out = git.try_run("rev-parse", "--absolute-git-dir", "--git-common-dir") or ""
+        git_dirs = [line for line in out.splitlines() if line.strip()]
+        if top and not git_dirs:
+            raise UsageError("cannot tell where this repository's git directory lies")
+        if not git_dirs:
+            return
+        for line in git_dirs:
+            self._git_data(path, line)
+        # The history lives in the object and ref stores, and each can be moved on its own: a
+        # junction or symlink for `objects/`, `refs/` or anything inside them, or an
+        # `objects/info/alternates` entry that borrows another repository's objects.
+        args = [arg for name in _GIT_STORES for arg in ("--git-path", name)]
+        stores = [line for line in (git.try_run("rev-parse", *args) or "").splitlines() if line]
+        if len(stores) != len(_GIT_STORES):
+            raise UsageError("cannot tell where this repository's git data lies")
+        for name, line in zip(_GIT_STORES, stores, strict=True):
+            where = self._git_data(path, line)
+            if name == "objects":
+                self._check_object_store(where, depth=0)
+            elif name == "refs":
+                self._refuse_links_below(where)
+
+    def _git_data(self, base: Path, printed: str) -> Path:
+        """A path git reported (relative ones are relative to ``base``), checked for scope.
+
+        Every component below the approved root (or ``base``, which is already real) is
+        inspected without following it, so a symlink or junction anywhere on the way is refused
+        even when it currently points inside the roots. The scope check runs on the path as
+        the system resolves it, so a ``..`` after a link cannot step around it. Returns that
+        resolved path.
+        """
+        written = base / printed
+        lexical = Path(os.path.normpath(written))
+        anchors = [a for a in (base, *self.roots, *self.lexical_roots) if lexical.is_relative_to(a)]
+        if not anchors:
+            raise UsageError(_GIT_DATA_OUTSIDE)
+        current = max(anchors, key=lambda anchor: len(anchor.parts))
+        for part in lexical.relative_to(current).parts:
+            current = current / part
+            try:
+                info = os.lstat(current)
+            except FileNotFoundError:
+                break
+            except OSError as exc:
+                raise UsageError("cannot inspect this repository's git data") from exc
+            if is_link_stat(info):
+                raise UsageError(_GIT_DATA_LINKED)
+        resolved = written.resolve()
+        if not any(resolved.is_relative_to(root) for root in self.roots) or (
+            resolved.is_relative_to(self.cache)
+        ):
+            raise UsageError(_GIT_DATA_OUTSIDE)
+        return resolved
+
+    def _refuse_links_below(self, directory: Path) -> None:
+        """No symlink or junction anywhere in a git store, at any depth."""
+        pending = [directory]
+        while pending:
+            try:
+                with os.scandir(pending.pop()) as entries:
+                    for entry in entries:
+                        # Elsewhere a symlink is the only link, and `is_symlink` costs no call;
+                        # on Windows the entry's cached lstat carries the junction's tag.
+                        if entry.is_symlink() or (
+                            os.name == "nt" and is_link_stat(entry.stat(follow_symlinks=False))
+                        ):
+                            raise UsageError(_GIT_DATA_LINKED)
+                        if entry.is_dir(follow_symlinks=False):
+                            pending.append(Path(entry.path))
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            except OSError as exc:
+                raise UsageError("cannot inspect this repository's git data") from exc
+
+    def _check_object_store(self, objects: Path, *, depth: int) -> None:
+        """An object store and, as git follows them, its alternates, all inside the roots."""
+        if depth > _MAX_ALTERNATE_DEPTH:
+            raise UsageError("this repository's object alternates are nested too deeply")
+        self._refuse_links_below(objects)
+        info = objects / "info"
+        if _alternate_lines(info / "http-alternates"):
+            raise UsageError(_GIT_DATA_OUTSIDE)
+        for line in _alternate_lines(info / "alternates"):
+            if line.startswith('"'):
+                raise UsageError("this repository's object alternates cannot be verified")
+            # A relative alternate is relative to the object directory that names it.
+            self._check_object_store(self._git_data(objects, line), depth=depth + 1)
 
     def prey(self, value: str) -> Target:
         if not value.strip() or "\x00" in value:
@@ -109,7 +222,11 @@ class AnalysisService:
         candidate = Path(value).expanduser()
         if not candidate.is_absolute():
             candidate = self.roots[0] / candidate
-        if explicit or candidate.exists():
+        # Probing a path outside the roots would tell the client whether it exists, so only one
+        # that lies under a root as written is probed; `local` refuses the rest untouched.
+        lexical = Path(os.path.normpath(candidate.absolute()))
+        inside = any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
+        if explicit or not inside or candidate.exists():
             return Target(path=self.local(value))
         slug = Slug.parse(value)
         if not self.allow_network:

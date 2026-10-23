@@ -22,16 +22,23 @@ malicious prey repository cannot:
 ### What the agent-side guard covers
 
 The first promise is mechanical inside Claude Code, and only there. The plugin ships two
-`PreToolUse` hooks: `crab-prey-guard` refuses a Bash command that touches the prey cache unless
-it is one of a few audited read-only shapes, and `crab-cleanroom-guard` keeps the clean-room
-implementer out of the cache altogether. Both run from the plugin's own `src/` through
+`PreToolUse` hooks: `crab-prey-guard` refuses a Bash or PowerShell command that touches the prey
+cache unless it is one of a few audited read-only shapes, and `crab-cleanroom-guard` keeps the
+clean-room implementer out of the cache altogether. Both run from the plugin's own `src/` through
 `hooks/guard.py`, with the first Python 3.11+ the shell finds, so they exist wherever the plugin
 is installed and do not depend on a console script being present or signed. When the launcher
 cannot run the guard — no interpreter, an unreadable source tree — it says so and exits 1, which
 Claude Code shows to you and proceeds on: a non-blocking error by design, because a hook that
 blocked every tool call over its own environment would be disabled rather than fixed. They see
-the Bash tool, not PowerShell; Codex does not load plugin hooks from a plugin with a root
-`plugin.json` (openai/codex#39895); the prey guard has been observed refusing a command in a
+the Bash and PowerShell tools; a PowerShell command that touches the cache is allowed only as a
+read cmdlet (`Get-Content`, `Get-ChildItem`, `Select-String`, `Test-Path`, `Get-Item`) with
+literal arguments. The prey guard reads command text: it follows the paths a shell builds from
+variables, `~`, globs and `cd`, and it refuses a command that points at the cache (its name,
+`hungry-` for the default root, `~/.cache`) through a construct it does not model, such as a
+nested shell, a parameter operator, an array, a substitution or a PowerShell expression. A path
+computed inside a program — `python -c`, a script, a file read back later — cannot be judged by
+a text guard at all. Codex does not load plugin hooks from a plugin with a root `plugin.json`
+(openai/codex#39895); the prey guard has been observed refusing a command in a
 live session, the clean-room guard has not yet. Treat them as a second line behind the rule in
 `AGENTS.md`, not as a sandbox ([#83](https://github.com/drevendev/HungryCrab/issues/83),
 [#141](https://github.com/drevendev/HungryCrab/issues/141)).

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from conftest import FIXED_NOW
@@ -292,3 +294,70 @@ def test_a_file_that_stats_but_cannot_be_read_is_a_loss(
     coverage = coverage_block(files, stats, 0)
     assert coverage["healthy"] is False
     assert "1 file(s) could not be read" in describe_coverage(coverage)
+
+
+def _junction_tree(tmp_path: Path) -> tuple[Path, Path]:
+    outside = write_tree(
+        tmp_path / "outside-private",
+        {"requirements.txt": "internal-billing-sdk==4.2.0\n", "salary-model.py": "x = 1\n"},
+    )
+    prey = write_tree(tmp_path / "prey", {"a.py": "x = 1\n", "src/b.py": "y = 2\n"})
+    return outside, prey
+
+
+IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003  # a directory junction: a name surrogate
+IO_REPARSE_TAG_CLOUD_6 = 0x9000601A  # a OneDrive placeholder folder: holds its own content
+
+
+def _fake_reparse_lstat(monkeypatch: pytest.MonkeyPatch, suspect: str, tag: int) -> None:
+    real_lstat = os.lstat
+
+    def lstat(path: str | os.PathLike[str], *args: object, **kwargs: object) -> object:
+        record = real_lstat(path, *args, **kwargs)
+        if os.fspath(path) == suspect:
+            return SimpleNamespace(
+                st_mode=record.st_mode, st_file_attributes=0x400, st_reparse_tag=tag
+            )
+        return record
+
+    monkeypatch.setattr(os, "lstat", lstat)
+
+
+def test_walk_tree_does_not_descend_into_a_reparse_point(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A directory whose lstat says junction is a link on every platform (#323)."""
+    _, prey = _junction_tree(tmp_path)
+    _fake_reparse_lstat(monkeypatch, str(prey / "src"), IO_REPARSE_TAG_MOUNT_POINT)
+    files, stats = walk_tree(prey, max_files=MAX_FILES["normal"])
+    assert [info.path for info in files] == ["a.py"]
+    assert stats["symlinks"] == 1
+
+
+def test_walk_tree_enters_a_cloud_placeholder_folder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A OneDrive folder is a reparse point that is not a name surrogate: it is walked."""
+    _, prey = _junction_tree(tmp_path)
+    _fake_reparse_lstat(monkeypatch, str(prey / "src"), IO_REPARSE_TAG_CLOUD_6)
+    files, stats = walk_tree(prey, max_files=MAX_FILES["normal"])
+    assert sorted(info.path for info in files) == ["a.py", "src/b.py"]
+    assert stats["symlinks"] == 0
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="directory junctions exist only on Windows")
+def test_walk_tree_does_not_follow_a_junction_out_of_the_prey(tmp_path: Path) -> None:
+    """`os.walk(followlinks=False)` descends into a junction; the walk must not (#323)."""
+    import _winapi
+
+    outside, prey = _junction_tree(tmp_path)
+    junction = prey / "tools"
+    _winapi.CreateJunction(str(outside), str(junction))
+    try:
+        files, stats = walk_tree(prey, max_files=MAX_FILES["normal"])
+    finally:
+        junction.rmdir()
+    assert sorted(info.path for info in files) == ["a.py", "src/b.py"]
+    assert stats["symlinks"] == 1
+    coverage = coverage_block(files, stats, 0)
+    assert coverage["loss"]["symlinks_skipped"] == 1 and coverage["healthy"] is True

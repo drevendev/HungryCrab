@@ -16,8 +16,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, looks_binary
+from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_link_stat, looks_binary
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from .base import FileInfo, MineContext, MinerResult
 
 LANGUAGE_BY_EXT: dict[str, str] = {
@@ -273,8 +274,23 @@ def describe_file(
     )
 
 
+def _is_link_dir(full: str) -> bool:
+    """A symlink or a Windows directory junction, which the walk must not descend into (#323).
+
+    ``os.path.islink``, and with it ``os.walk(followlinks=False)``, sees only true symlinks: a
+    directory junction, which ``mklink /J``, ``npm link`` and other tools create without
+    privilege, reads as a plain directory and would carry the walk outside the tree. Other
+    reparse points (a OneDrive placeholder folder) hold their own content and are walked.
+    """
+    try:
+        info = os.lstat(full)
+    except OSError:
+        return False
+    return is_link_stat(info)
+
+
 def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, Any]]:
-    """Walk ``root`` without following symlinks; cap vendored directories and total files."""
+    """Walk ``root`` without following symlinks or junctions; cap vendored dirs and total files."""
     files: list[FileInfo] = []
     stats: dict[str, Any] = {
         "dirs": 0,
@@ -311,7 +327,7 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
         for directory in sorted(dirnames):
             if directory in IGNORED_DIRS:
                 continue
-            if os.path.islink(os.path.join(dirpath, directory)):
+            if _is_link_dir(os.path.join(dirpath, directory)):
                 stats["symlinks"] += 1
                 continue
             kept.append(directory)
@@ -549,7 +565,7 @@ def entry_points(root: Path, files: list[FileInfo]) -> list[dict[str, str]]:
     if "package.json" in by_path:
         try:
             pkg = json.loads((root / "package.json").read_text(encoding="utf-8", errors="replace"))
-        except (OSError, ValueError):
+        except (OSError, ValueError, RecursionError, MemoryError):
             pkg = None
         if isinstance(pkg, dict):
             for key in ("main", "module", "browser"):
@@ -572,7 +588,7 @@ def entry_points(root: Path, files: list[FileInfo]) -> list[dict[str, str]]:
             project = tomllib.loads(
                 (root / "pyproject.toml").read_text(encoding="utf-8", errors="replace")
             ).get("project", {})
-        except (OSError, tomllib.TOMLDecodeError):
+        except (OSError, tomllib.TOMLDecodeError, RecursionError, MemoryError):
             project = {}
         for section in ("scripts", "gui-scripts"):
             scripts = project.get(section) if isinstance(project, dict) else None
@@ -783,7 +799,11 @@ class InventoryMiner:
                     else 0,
                 ),
                 ("Manifests", len(data["manifests"])),
-                ("Lock files", ", ".join(lock["path"] for lock in data["lockfiles"]) or "none"),
+                (
+                    "Lock files",
+                    ", ".join(safe_name(lock["path"], "path") for lock in data["lockfiles"])
+                    or "none",
+                ),
                 ("Git flags", ", ".join(k for k, v in data["flags"].items() if v) or "none"),
             ]
         )
@@ -802,7 +822,7 @@ class InventoryMiner:
             ["Entry", "Role", "Files", "LOC", "Main language"],
             (
                 [
-                    row["path"] + ("/" if row["kind"] == "dir" else ""),
+                    safe_name(row["path"] + ("/" if row["kind"] == "dir" else ""), "path"),
                     row["role"],
                     row["files"],
                     row["loc"],
@@ -813,24 +833,34 @@ class InventoryMiner:
             max_rows=40,
         )
         manifests = doc.section("Manifests and entry points", priority=2)
-        manifests.bullets((f"{m['path']} ({m['kind']})" for m in data["manifests"]), max_items=25)
+        manifests.bullets(
+            (f"{safe_name(m['path'], 'path')} ({m['kind']})" for m in data["manifests"]),
+            max_items=25,
+        )
         if data["entry_points"]:
             manifests.line("Entry points:")
             manifests.bullets(
-                (f"{e['kind']}: {e['value']}" for e in data["entry_points"]), max_items=15
+                (
+                    f"{e['kind']}: {safe_name(e['value'], 'entry point')}"
+                    for e in data["entry_points"]
+                ),
+                max_items=15,
             )
         largest = doc.section("Largest files", priority=3)
         largest.table(
             ["Path", "KB", "LOC", "Generated"],
             (
-                [f["path"], f"{f['bytes'] / 1024:.0f}", f["loc"], f["generated"]]
+                [safe_name(f["path"], "path"), f"{f['bytes'] / 1024:.0f}", f["loc"], f["generated"]]
                 for f in data["largest_files"]
             ),
         )
         if data["vendored_or_generated"]:
             noise = doc.section("Vendored, sample corpus, generated or build output", priority=3)
             noise.bullets(
-                (f"{n['path']}: {n['files']} files" for n in data["vendored_or_generated"]),
+                (
+                    f"{safe_name(n['path'], 'path')}: {n['files']} files"
+                    for n in data["vendored_or_generated"]
+                ),
                 max_items=15,
             )
         notes = doc.section("Notes", priority=4)
