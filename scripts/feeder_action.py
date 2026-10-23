@@ -230,13 +230,20 @@ def _tracked_gitlink_checkout(directory: Path) -> bool:
         relative = directory.relative_to(parent).as_posix()
     except ValueError:
         return False
-    listing = GitRunner(parent).try_run("ls-files", "-s", "-z", "--", relative)
+    # Git pathspecs remain case-sensitive on Windows even when the filesystem is not.
+    # Query literal case variants, then prove filesystem identity to avoid conflating
+    # distinct directories on a case-sensitive volume (including Windows ones).
+    listing = GitRunner(parent).try_run("ls-files", "-s", "-z", "--", f":(literal,icase){relative}")
     if listing is None:
         return False
-    return any(
-        entry.startswith(f"{GITLINK_MODE} ") and entry.partition("\t")[2] == relative
-        for entry in listing.split("\0")
-    )
+    for entry in listing.split("\0"):
+        if entry.startswith(f"{GITLINK_MODE} "):
+            try:
+                if (parent / entry.partition("\t")[2]).samefile(directory):
+                    return True
+            except OSError:
+                continue
+    return False
 
 
 def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:

@@ -444,6 +444,41 @@ def test_a_submodule_maw_requires_opt_in_even_with_a_public_origin(
         assert len(calls) == (1 if code == 0 else 0)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="case-insensitive Windows paths")
+def test_case_variant_submodule_maw_cannot_bypass_the_refusal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    assert (workspace / "VENDOR" / "PRIVATE").samefile(workspace / "vendor" / "private")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw="VENDOR/PRIVATE",
+    )
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC, "owner/vendored": _PUBLIC})
+    )
+    assert module.run() == 2 and calls == []
+
+
+def test_distinct_case_variant_checkout_is_not_exempted_as_an_empty_gitlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = _caller_with_submodule(tmp_path)
+    git(workspace, "submodule", "deinit", "-q", "-f", "vendor/private")
+    checkout = workspace / "vendor" / "PRIVATE"
+    if checkout.exists():
+        pytest.skip("requires distinct case-sensitive directory names")
+    checkout.mkdir()
+    git(checkout, "init", "-q")
+    git(checkout, "remote", "add", "origin", "https://github.com/owner/vendored")
+    (checkout / "private-notes.md").write_text("synthetic private note\n", encoding="utf-8")
+    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=_PUBLIC)
+    assert module.run() == 2 and calls == []
+
+
 def _public_maw_with_submodule(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
