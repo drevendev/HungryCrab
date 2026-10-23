@@ -430,7 +430,7 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
             raise CrabError("no release PR to harden")
         if not loop.settings.required_checks:
             raise CrabError(
-                "configure loop.required_checks with required check names before tagging"
+                "configure loop.required_checks with check name/app_id pairs before tagging"
             )
         truth = loop._provider().artifact(pr["url"])
         if not truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:

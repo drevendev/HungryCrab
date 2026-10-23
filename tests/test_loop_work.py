@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from test_loop import NOW, SHA, URL, Provider, artifact, force_phase
+from test_loop import APP_ID, LINT, NOW, SHA, TESTS, URL, Provider, artifact, force_phase
 from test_loop import loop as _loop_fixture
 
 from hungry_crab.cache import Slug
@@ -184,7 +184,7 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
     (maw / ".crab.yml").write_text(
         "loop:\n  autonomy: work\n  work_authorized: true\n"
         "  prey: [example/prey]\n"
-        "  required_checks: [tests]\n"
+        "  required_checks: [{name: tests, app_id: 15368}]\n"
         "  release_files: [CHANGELOG.md, version.txt]\n",
         encoding="utf-8",
     )
@@ -358,6 +358,11 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
         "wrong-check-sha",
         "no-config",
         "missing-required",
+        "missing-app",
+        "wrong-app",
+        "impostor-only",
+        "impostor-skipped",
+        "impostor-failed",
     ],
 )
 def test_merge_ci_blocks_waiting_and_tagging_without_effects(
@@ -384,7 +389,20 @@ def test_merge_ci_blocks_waiting_and_tagging_without_effects(
     elif damage == "no-config":
         loop.settings.required_checks = []
     elif damage == "missing-required":
-        loop.settings.required_checks = ["tests", "lint"]
+        loop.settings.required_checks = [TESTS, LINT]
+    elif damage == "missing-app":
+        truth["merge_ci"]["checks"][0].pop("app")
+    elif damage == "wrong-app":
+        truth["merge_ci"]["checks"][0]["app"] = {"id": APP_ID + 1}
+    elif damage.startswith("impostor-"):
+        expected = truth["merge_ci"]["checks"][0]
+        if damage == "impostor-only":
+            truth["merge_ci"]["checks"] = []
+        else:
+            expected["conclusion"] = "skipped" if damage == "impostor-skipped" else "failure"
+        truth["merge_ci"]["checks"].append(
+            {**expected, "id": 99, "app": {"id": APP_ID + 1}, "conclusion": "success"}
+        )
     else:
         truth["head"]["sha"] = "b" * 40
     loop.provider.rows[URL] = truth
