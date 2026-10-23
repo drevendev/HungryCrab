@@ -609,7 +609,6 @@ def test_public_maw_checks_a_separate_nested_checkout(
         assert "allow-private-artifact" in message
 
 
-
 def test_even_clean_public_origin_nested_checkout_requires_explicit_opt_in(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -631,7 +630,6 @@ def test_even_clean_public_origin_nested_checkout_requires_explicit_opt_in(
         module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC, "owner/extra": _PUBLIC})
     )
     assert module.run() == 2 and calls == []
-
 
 
 def test_nested_worktree_git_marker_is_refused(
