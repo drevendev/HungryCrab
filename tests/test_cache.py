@@ -67,6 +67,14 @@ def test_slug_parse_accepts_leading_dot_or_underscore(
         "gitlab.com/group/..",
         "gitlab.com/group/-repo",
         "gitlab.com/group/-sub/repo",
+        "owner/repo.",
+        "owner./repo",
+        "owner/.github.",
+        "https://github.com/o/.hidden.",
+        "git@github.com:o/_repo..git",
+        "gitlab.com/group/repo.",
+        "gitlab.com/group./repo",
+        "gitlab.com/group/.../repo",
     ],
 )
 def test_slug_parse_rejects_unsafe_names(text: str) -> None:
