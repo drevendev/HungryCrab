@@ -255,9 +255,10 @@ def _tracked_gitlink_checkout(directory: Path) -> bool:
 def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
     """Find separately checked-out Git repositories below a public maw.
 
-    Each separate Git root needs independent forge visibility, even when the
-    enclosing public caller does not track that directory. Ordinary untracked
-    build output without a Git root is not a repository and is left alone.
+    A public remote does not prove that its local worktree is safe to publish:
+    untracked, ignored, modified or unpublished files may still be private.
+    Refuse independent Git roots unless allow-private-artifact explicitly opts in.
+    Ordinary untracked build output without a Git root is left alone.
     A failed traversal or too many nested checkouts fails closed.
     """
     failures: list[OSError] = []
@@ -274,9 +275,8 @@ def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
         examined += 1
         if examined > MAX_NESTED_CHECKOUTS:
             return None
-        slug = maw_origin(checkout)
-        if slug is None or not forge_says_public(slug):
-            unconfirmed.append(checkout.relative_to(maw).as_posix())
+        # Remote visibility says nothing about local bytes read by the maw inventory.
+        unconfirmed.append(checkout.relative_to(maw).as_posix())
     if failures:
         return None
     return sorted(unconfirmed)
