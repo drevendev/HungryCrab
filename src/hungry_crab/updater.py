@@ -13,6 +13,7 @@ release on PyPI, and its upgrade is always printed: it would replace the running
 
 from __future__ import annotations
 
+import http.client
 import json
 import re
 import shutil
@@ -204,8 +205,8 @@ def fetch_remote(client: GitHubClient | None = None) -> Remote:
         committer = as_dict(as_dict(commit.get("commit")).get("committer"))
         date = committer.get("date")
         remote.date = str(date)[:10] if date else None
-    except (CrabError, ValueError, tomllib.TOMLDecodeError) as exc:
-        remote.error = str(getattr(exc, "message", exc))
+    except (CrabError, ValueError, tomllib.TOMLDecodeError, http.client.HTTPException) as exc:
+        remote.error = str(getattr(exc, "message", exc)) or type(exc).__name__
     return remote
 
 
@@ -225,8 +226,13 @@ class PyPIClient:
         except urllib.error.HTTPError as exc:
             exc.close()
             raise ExternalCommandError(f"GET {url} failed with HTTP {exc.code}") from exc
-        except (ResponseTooLargeError, urllib.error.URLError, OSError) as exc:
-            raise ExternalCommandError(f"GET {url} failed: {exc}") from exc
+        except (
+            ResponseTooLargeError,
+            urllib.error.URLError,
+            OSError,
+            http.client.HTTPException,  # BadStatusLine, IncompleteRead, too many headers
+        ) as exc:
+            raise ExternalCommandError(f"GET {url} failed: {type(exc).__name__}: {exc}") from exc
         try:
             return json.loads(raw.decode("utf-8", errors="replace") or "null")
         except ValueError as exc:
@@ -246,8 +252,8 @@ def fetch_release(client: PyPIClient | None = None) -> Release:
     api = client or PyPIClient()
     try:
         info = as_dict(as_dict(api.get(PYPI_JSON_URL)).get("info"))
-    except (CrabError, ValueError) as exc:
-        return Release(error=str(getattr(exc, "message", exc)))
+    except (CrabError, ValueError, OSError, http.client.HTTPException) as exc:
+        return Release(error=str(getattr(exc, "message", exc)) or type(exc).__name__)
     version = info.get("version")
     if not isinstance(version, str) or not version.strip():
         return Release(error="PyPI names no release of hungry-crab")

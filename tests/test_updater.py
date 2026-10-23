@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import json
 import sys
 from base64 import b64encode
@@ -454,6 +455,42 @@ def test_the_pypi_client_turns_every_failure_into_a_crab_error(
     with pytest.raises(CrabError, match="offline"):
         updater.PyPIClient().get(updater.PYPI_JSON_URL)
     assert updater.fetch_release().error is not None
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        http.client.BadStatusLine("garbage"),
+        http.client.IncompleteRead(b"{"),
+        http.client.HTTPException("got more than 100 headers"),
+    ],
+    ids=["bad-status-line", "incomplete-read", "too-many-headers"],
+)
+def test_a_broken_http_response_is_unknown_not_a_traceback(
+    monkeypatch: pytest.MonkeyPatch, failure: http.client.HTTPException
+) -> None:
+    """Review of #395: `http.client` errors are not `OSError` and used to escape."""
+
+    class Broken:
+        def get(self, *_: object, **__: object) -> Any:
+            raise failure
+
+    release = updater.fetch_release(Broken())  # type: ignore[arg-type]
+    assert release.version is None and release.error
+    remote = fetch_remote(Broken())  # type: ignore[arg-type]
+    assert remote.cli_version is None and remote.error
+
+    def refuse(*_: object, **__: object) -> None:
+        raise failure
+
+    monkeypatch.setattr(updater.urllib.request, "urlopen", refuse)
+    from hungry_crab.errors import CrabError
+
+    with pytest.raises(CrabError, match=type(failure).__name__):
+        updater.PyPIClient().get(updater.PYPI_JSON_URL)
+    _index_install(monkeypatch)
+    cli = check_cli(Remote(error="no network"))
+    assert cli.status == UNKNOWN and type(failure).__name__ in cli.detail
 
 
 @pytest.mark.parametrize(
