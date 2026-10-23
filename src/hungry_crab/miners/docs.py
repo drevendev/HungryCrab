@@ -9,13 +9,37 @@ import re
 from typing import Any
 
 from ..mdutil import MdDoc
-from ..safety import is_suspicious, suspicious_fragments
+from ..safety import is_suspicious, safe_name, suspicious_fragments
 from .base import MineContext, MinerResult
 from .wiki import markdown_headings
 
 _BADGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)|<img[^>]+(?:shields\.io|badge)[^>]*>")
-_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 _WORD_RE = re.compile(r"\w+")
+
+
+def count_links(text: str) -> int:
+    """How many `[text](target)` links `\\[[^\\]]+\\]\\(([^)]+)\\)` finds, in one pass.
+
+    The regex rescanned the rest of the text from every `[` that no `]` closed, and from every
+    `](` that no `)` closed: quadratic in a README of brackets. Every `[` before the same `]`
+    shares that `]`, so it fails or matches with the first of them, and each run is read once.
+    """
+    count = position = 0
+    while (start := text.find("[", position)) >= 0:
+        close = text.find("]", start + 1)
+        if close < 0:
+            break
+        position = close + 1
+        if close == start + 1 or not text.startswith("(", close + 1):
+            continue
+        end = text.find(")", close + 2)
+        if end < 0:
+            break
+        if end > close + 2:
+            count += 1
+            position = end + 1
+    return count
+
 
 COMMUNITY_FILES: dict[str, str] = {
     "CONTRIBUTING": "contributing",
@@ -84,7 +108,7 @@ def readme_outline(text: str) -> dict[str, Any]:
         "heading_count": len(headings),
         "sections": sections,
         "badges": len(_BADGE_RE.findall(head)),
-        "links": len(_LINK_RE.findall(text)),
+        "links": count_links(text),
         "words": len(_WORD_RE.findall(text)),
         "has_toc": any("table of contents" in t or t in ("contents", "toc") for t in lowered),
         "has_code_blocks": "```" in text,
@@ -230,7 +254,8 @@ class DocsMiner:
             total_words += len(_WORD_RE.findall(ctx.read(info.path, limit=200_000)))
 
         data: dict[str, Any] = {
-            "wiki": ctx.data("wiki"),
+            # Counts, status and sha only: every page and heading is already in wiki.json.
+            "wiki": {key: value for key, value in ctx.data("wiki").items() if key != "pages"},
             "markdown_files": len(markdown),
             "markdown_words": total_words,
             "readme": readme,
@@ -260,10 +285,14 @@ class DocsMiner:
         doc = MdDoc(f"Docs: {ctx.label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         readme = data["readme"]
+
+        def path(value: object) -> str:
+            return safe_name(value, "path")
+
         summary.kv(
             [
                 ("Markdown files", f"{data['markdown_files']} (~{data['markdown_words']} words)"),
-                ("README", readme["path"] if readme else "missing"),
+                ("README", path(readme["path"]) if readme else "missing"),
                 ("README sections", ", ".join(readme["sections"]) if readme else ""),
                 (
                     "README badges / links / words",
@@ -271,12 +300,12 @@ class DocsMiner:
                 ),
                 (
                     "Community files",
-                    ", ".join(f"{k}: {v}" for k, v in data["community"].items()) or "none",
+                    ", ".join(f"{k}: {path(v)}" for k, v in data["community"].items()) or "none",
                 ),
                 ("Changelog format", data["changelog"]["format"] if data["changelog"] else "none"),
                 (
                     "ADRs",
-                    f"{data['adr']['files']} in {', '.join(data['adr']['dirs'])}"
+                    f"{data['adr']['files']} in {', '.join(map(path, data['adr']['dirs']))}"
                     if data["adr"]["files"]
                     else "none",
                 ),
@@ -288,9 +317,9 @@ class DocsMiner:
                     else "none",
                 ),
                 ("Issue templates", len(data["issue_templates"])),
-                ("PR template", data["pr_template"] or "none"),
-                ("CODEOWNERS", data["codeowners"] or "none"),
-                ("Funding", data["funding"] or "none"),
+                ("PR template", path(data["pr_template"]) if data["pr_template"] else "none"),
+                ("CODEOWNERS", path(data["codeowners"]) if data["codeowners"] else "none"),
+                ("Funding", path(data["funding"]) if data["funding"] else "none"),
             ]
         )
         if readme and readme["headings"]:
@@ -303,15 +332,20 @@ class DocsMiner:
                 outline.para("Instruction-like fragments were found in the README (see docs.json).")
         if data["docs_dir_top"]:
             structure = doc.section("Docs directory structure", priority=3)
-            structure.bullets(data["docs_dir_top"], max_items=25)
+            structure.bullets(map(path, data["docs_dir_top"]), max_items=25)
         if data["issue_templates"]:
             templates = doc.section("Templates", priority=3)
             templates.bullets(
-                data["issue_templates"] + ([data["pr_template"]] if data["pr_template"] else []),
+                map(
+                    path,
+                    data["issue_templates"]
+                    + ([data["pr_template"]] if data["pr_template"] else []),
+                ),
                 max_items=12,
             )
         largest = doc.section("Largest documents", priority=4)
         largest.table(
-            ["Path", "KB"], ([d["path"], f"{d['bytes'] / 1024:.0f}"] for d in data["largest_docs"])
+            ["Path", "KB"],
+            ([path(d["path"]), f"{d['bytes'] / 1024:.0f}"] for d in data["largest_docs"]),
         )
         return doc

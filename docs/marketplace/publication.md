@@ -8,23 +8,23 @@ GitHub's official procedure:
 [Publishing actions in GitHub Marketplace](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/publish-in-github-marketplace)
 and [Releasing and maintaining actions](https://docs.github.com/en/actions/how-tos/create-and-publish-actions/release-and-maintain-actions).
 
-## Preflight facts to reconcile (2026-10-22 snapshot)
+## Verified preflight facts (2026-10-23 snapshot)
 
-| State at planning time | Meaning / next check |
+| Verified state | Meaning / next check |
 | --- | --- |
 | Public `drevendev/HungryCrab` | Meets public repository prerequisite; verify at launch |
 | One root `action.yml`, name `Hungry Crab Feeder` | Marketplace will check that the name is globally unique and not reserved; do not assume acceptance yet |
 | `branding.icon: search`, `color: orange` | Supported metadata candidate; verify "Everything looks good!" in publisher UI |
-| Annotated `v0.6.0` tag points to `030155d9078dd86a39a8b78879d30e35664ec4bb` | Tag CI completed successfully (eight jobs); **not** evidence of external Action consumption |
-| `v0.6.0` GitHub Release not returned by API; latest published Release `v0.2.0` | Reconcile/release the verified tag *only through normal owner authorization*; do not retag silently |
+| Published GitHub Releases [v0.6.0](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), [v0.6.1](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.1), [v0.6.2](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.2) exist | `v0.6.2` is the latest published release in this snapshot; verify the chosen tag, peeled SHA and release again at launch |
+| `v0.6.2` points to `d7779ebdc7ad14998567bbd0fa17fc3c558cc49b`; the #399 privacy fix is newer | Select a reviewed Action ref containing `aa1b3bf454349358e52bd7ac9f5bc0b797f0c7ae` and verify its CI; any new release needs separate owner authorization |
 | Third-party Action calls still use mutable version tags | Track/repair in existing [#301](https://github.com/drevendev/HungryCrab/issues/301) and independently verify new release |
 | #211 and #236 remain open | Data ownership and hard quota constraints cannot be hidden by a green generic CI job |
 
-GitHub recommends a repository containing only the Action's necessary files.
-This is **guidance**, not proof that HungryCrab's shared CLI repository is
-ineligible. Try validating current root Action first, measure dependency and
-checkout cost; consider a separate repository only as an independently
-reviewed decision with preserved identity and release strategy.
+GitHub's publishing guide asks for an Action repository limited to its metadata,
+code and necessary supporting files. HungryCrab also ships CLI, MCP and plugin surfaces,
+so M1 must explicitly assess this shared layout against the publishing requirements.
+Record that decision before assuming eligibility. If a dedicated Action repository is
+needed, propose it separately with preserved identity, licensing and release strategy.
 
 ## Release gates (check in order)
 
@@ -48,6 +48,9 @@ reviewed decision with preserved identity and release strategy.
       no secret in log/artifact, and explicit `allow-private-artifact: false`.
 - [ ] Verify public prey visibility and private negative tests before uploading;
       no test from public maws using unreviewed private prey or private evidence.
+- [ ] Verify the selected Action ref includes #399 and refuses public-origin nested
+      checkouts and populated submodules carrying local-only bytes. Review ordinary
+      non-Git output independently; forge visibility does not attest to local files.
 - [ ] Preflight `max-repo-kb` is not a hard byte quota; mark #236 accurately
       and choose deliberately small test preys. Unsafe user-data deletion under
       #211 is a launch blocker for destructive paths until reviewed or
@@ -57,9 +60,10 @@ reviewed decision with preserved identity and release strategy.
       artifact and sources, clean maw and no unexpected side effects.
 
 ### C. Release identity
-- [ ] Resolve the existing `v0.6.0` annotated tag versus missing Release object.
-      Pick the **tested** existing tag or a later patch commit by normal reviewed
-      release process; **never move an immutable tag or use an untested head**.
+- [ ] Select the tested release through the normal reviewed release process, checking
+      the tag, peeled commit and GitHub Release object together. Existing releases are
+      recorded above; the chosen ref must include all required safety corrections.
+      **Never move an immutable tag or use an untested head.**
 - [ ] Approve release notes accurately describing **Feeder Action**, supported
       platforms, defaults, privacy and known limitations; no fabricated test.
 - [ ] Verify release commit, tag object/peeled SHA, dependency pins and

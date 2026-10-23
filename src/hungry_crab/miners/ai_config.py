@@ -14,9 +14,8 @@ from ..mdutil import MdDoc
 from ..safety import is_suspicious, suspicious_fragments
 from ..typeutil import as_dict
 from .base import FileInfo, MineContext, MinerResult
-from .wiki import markdown_headings
+from .wiki import markdown_headings, split_frontmatter
 
-_FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---", re.DOTALL)
 _FM_KEY_RE = re.compile(r"^(name|description|tools|model|allowed-tools):[ \t]*(.*)$")
 _FM_BLOCK_RE = re.compile(r"^[|>][+-]?\d*$")
 
@@ -64,10 +63,10 @@ def _frontmatter(text: str) -> dict[str, str]:
     expands aliases. A skill whose ``description: >`` spans five lines used to be recorded as
     the literal ``>``.
     """
-    match = _FRONTMATTER_RE.match(text)
-    if not match:
+    matter = split_frontmatter(text)[0]
+    if matter is None:
         return {}
-    lines = match.group(1).splitlines()
+    lines = matter.splitlines()
     fields: dict[str, str] = {}
     index = 0
     while index < len(lines):
@@ -108,7 +107,8 @@ def _gist_markdown(ctx: MineContext, info: FileInfo) -> dict[str, Any]:
 def _load_json(ctx: MineContext, rel: str) -> dict[str, Any] | None:
     try:
         loaded = json.loads(ctx.read(rel, limit=200_000))
-    except ValueError:
+    except (ValueError, RecursionError, MemoryError):
+        # Hostile nesting exhausts the parser's stack (#330); it is invalid JSON all the same.
         return None
     return loaded if isinstance(loaded, dict) else None
 

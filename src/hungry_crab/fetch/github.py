@@ -29,6 +29,17 @@ from .bounded import (
 
 API_ROOT = "https://api.github.com"
 USER_AGENT = "hungry-crab (+https://github.com/drevendev/HungryCrab)"
+# The only host this client serves, and the one every clone comes from. `gh` would otherwise
+# ask whatever host `GH_HOST` names, and a prey's facts would mix two repositories.
+GH_HOSTNAME = "github.com"
+
+
+def _gh_env() -> dict[str, str]:
+    """The caller's environment for ``gh api``, without the host override the call pins."""
+    env = dict(os.environ)
+    env.pop("GH_HOST", None)
+    env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
+    return env
 
 
 class GitHubClient:
@@ -78,14 +89,12 @@ class GitHubClient:
             raise ExternalCommandError("the acquisition client accepts GraphQL queries only")
         payload = json.dumps({"query": query, "variables": variables}).encode()
         if self.gh:
-            env = dict(os.environ)
-            env.update({"GH_PROMPT_DISABLED": "1", "NO_COLOR": "1", "GH_PAGER": "cat"})
             try:
                 proc = subprocess.run(
-                    [self.gh, "api", "graphql", "--input", "-"],
+                    [self.gh, "api", "--hostname", GH_HOSTNAME, "graphql", "--input", "-"],
                     input=payload,
                     capture_output=True,
-                    env=env,
+                    env=_gh_env(),
                     timeout=self.timeout,
                     check=False,
                 )
@@ -135,7 +144,10 @@ class GitHubClient:
         path = f"repos/{slug}/actions/artifacts/{artifact_id}/zip"
         try:
             with subprocess.Popen(
-                [self.gh, "api", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+                [self.gh, "api", "--hostname", GH_HOSTNAME, path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                env=_gh_env(),
             ) as proc:
                 timer = threading.Timer(self.timeout, proc.kill)
                 timer.daemon = True
@@ -159,18 +171,18 @@ class GitHubClient:
         command = [
             self.gh,
             "api",
+            "--hostname",
+            GH_HOSTNAME,
             "-H",
             "Accept: application/vnd.github+json",
             "-H",
             "X-GitHub-Api-Version: 2022-11-28",
             path,
         ]
-        env = dict(os.environ)
-        env.update({"GH_PAGER": "cat", "NO_COLOR": "1", "GH_PROMPT_DISABLED": "1"})
         try:
             proc = run_bounded(
                 command,
-                env=env,
+                env=_gh_env(),
                 timeout=self.timeout,
                 stdout_limit=MAX_JSON_BYTES,
                 stderr_limit=MAX_STDERR_BYTES,

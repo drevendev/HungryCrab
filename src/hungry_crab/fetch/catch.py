@@ -30,6 +30,18 @@ from .providers import RepositoryClient, client_for
 
 _SINCE_RE = re.compile(r"^(\d+)\s*([dwmy])$")
 _UNIT_DAYS = {"d": 1, "w": 7, "m": 30, "y": 365}
+# The cache's prey directories by provider, with the host their slugs carry.
+_PROVIDER_HOSTS = {"github": "github.com", "gitlab": "gitlab.com"}
+# The records that prove a prey directory is the crab's: what a catch and a sniff write.
+_OWNERSHIP_RECORDS = (("catch.json",), ("api", "sniff.json"))
+# The `status` of the provisional `catch.json` a first catch writes before it clones.
+INCOMPLETE = "incomplete"
+# Whether chmod can act on a link itself (Windows from 3.13, a few BSDs; never Linux).
+_CHMOD_NOFOLLOW = os.chmod in os.supports_follow_symlinks
+_LEFT_BEHIND_HINT = (
+    "Close programs holding files and inspect what remains. "
+    "No recursive chmod traversal was attempted."
+)
 
 
 def _noop(_: str) -> None:
@@ -110,6 +122,46 @@ def _require_real_entries(item: Path, *, cache_root: Path) -> os.stat_result:
     return info
 
 
+def _names_prey(record: Path, slug: str) -> bool:
+    """Whether ``record`` is a crab record, a small regular JSON file, about ``slug``."""
+    try:
+        info = record.lstat()
+        if not stat.S_ISREG(info.st_mode) or is_reparse_point(info) or info.st_size > 1 << 20:
+            return False
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    named = data.get("slug") if isinstance(data, dict) else None
+    # Forge names are case-insensitive, and so is the filesystem the cache may live on.
+    return isinstance(named, str) and named.casefold() == slug.casefold()
+
+
+def _require_crab_owned(path: Path, *, cache_root: Path) -> None:
+    """Refuse to delete a prey directory that no record of the crab's own names.
+
+    A cache directory can share its layout with a person's checkouts: ``CRAB_CACHE_DIR`` set
+    to a folder of ``github/<owner>/<repo>`` clones is a common convention, and the shape of a
+    path proves nothing. Below a provider directory, the directory deleted or a parent of it
+    must hold the ``catch.json`` a catch writes or the ``api/sniff.json`` a sniff writes, and
+    the record must name that very prey. Other deletions are staging trees the caller made.
+    """
+    parts = path.absolute().relative_to(cache_root.absolute()).parts
+    host = _PROVIDER_HOSTS.get(parts[0])
+    if host is None:
+        return
+    for depth in range(len(parts), 2, -1):
+        names = "/".join(parts[1:depth])
+        slug = names if host == "github.com" else f"{host}/{names}"
+        prey_root = cache_root.absolute().joinpath(*parts[:depth])
+        if any(_names_prey(prey_root.joinpath(*record), slug) for record in _OWNERSHIP_RECORDS):
+            return
+    raise CrabError(
+        f"refusing to remove {path}: no catch or sniff record of the crab names it",
+        hint="the crab removes only directories it caught or sniffed into its cache; "
+        "if this one should go, remove it yourself",
+    )
+
+
 def rmtree_force(path: Path, *, cache_root: Path) -> None:
     """Delete one directory inside ``cache_root`` without changing permissions outside it.
 
@@ -118,6 +170,7 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
     """
     if not stat.S_ISDIR(_require_real_entries(path, cache_root=cache_root).st_mode):
         raise CrabError(f"refusing cache deletion of {path}: not a directory")
+    _require_crab_owned(path, cache_root=cache_root)
 
     def retry_readonly(func: Callable[..., object], filename: str, _failure: object) -> None:
         """Repair only the item that failed, after refusing any link/junction component."""
@@ -126,10 +179,23 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
             raise CrabError(f"refusing cache cleanup outside its root: {item}")
         _require_real_entries(item, cache_root=cache_root)
         try:
-            item.chmod(item.lstat().st_mode | stat.S_IWRITE)
+            mode = item.lstat().st_mode | stat.S_IWRITE
+            # The entry may have become a link since it was checked: never change a target.
+            if _CHMOD_NOFOLLOW:
+                item.chmod(mode, follow_symlinks=False)
+            elif sys.platform == "win32":
+                # Before 3.13, chmod on Windows sets the attributes of the entry itself.
+                item.chmod(mode)
+            # Elsewhere chmod would follow a swapped-in link, and removing a file there needs
+            # no write permission on it, so the retry goes ahead as it is.
             func(filename)
         except OSError as exc:
-            raise CrabError(f"cannot remove read-only cache entry {item}: {exc}") from exc
+            # An open file on Windows ends here: the entry is half removed, and says so.
+            raise CrabError(
+                f"cannot remove cache entry {item}: {exc.strerror or exc}; "
+                f"what is left stays in {path}",
+                hint=_LEFT_BEHIND_HINT,
+            ) from exc
 
     try:
         if sys.version_info >= (3, 12):
@@ -139,10 +205,7 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
     except OSError as exc:
         raise CrabError(
             f"cannot safely remove cached files in {path}: {exc}",
-            hint=(
-                "Close programs holding files and inspect what remains. "
-                "No recursive chmod traversal was attempted."
-            ),
+            hint=_LEFT_BEHIND_HINT,
         ) from exc
 
 
@@ -236,6 +299,16 @@ def catch(
                 previous = value
         except (OSError, ValueError):
             pass
+    if previous.get("status") == INCOMPLETE:
+        # A provisional record proves the directory is the crab's; it describes no catch.
+        previous = {}
+    provisional = not root_existed and not paths.catch_file.exists()
+    if provisional:
+        # Written before any clone, so a catch that fails half way (a refused issues fetch, a
+        # full disk) still leaves a record that `crab cache rm` accepts. Only a directory this
+        # catch created is claimed: an existing one without a record may be someone's own.
+        record = {"slug": str(slug), "status": INCOMPLETE}
+        paths.catch_file.write_text(json.dumps(record) + "\n", encoding="utf-8")
     if channels_only and (repo_dir / ".git").exists() and previous:
         log(f"fetching provider samples for {slug}; the cached tree stays at its commit")
         git = GitRunner(repo_dir)
@@ -338,6 +411,8 @@ def catch(
                     raise
         except Exception:
             if not root_existed:
+                if provisional:
+                    paths.catch_file.unlink(missing_ok=True)
                 for directory in (paths.root, paths.root.parent):
                     try:
                         directory.rmdir()
@@ -400,14 +475,22 @@ def _clone_replace(
         )
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
-        if destination.exists():
-            destination.rename(backup)
         try:
-            staged.rename(destination)
-        except OSError:
-            if backup.exists():
-                backup.rename(destination)
-            raise
+            if destination.exists():
+                destination.rename(backup)
+            try:
+                staged.rename(destination)
+            except OSError:
+                if backup.exists():
+                    backup.rename(destination)
+                raise
+        except OSError as exc:
+            # On Windows a file another program holds open blocks the rename of its directory.
+            raise CrabError(
+                f"cannot replace {destination}: {exc.strerror or exc}",
+                hint="Close programs holding files in it and run the command again; "
+                "the new clone was discarded.",
+            ) from exc
     finally:
         if staged.exists():
             rmtree_force(staged, cache_root=staged.parent)

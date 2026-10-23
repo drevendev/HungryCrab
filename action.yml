@@ -52,8 +52,8 @@ inputs:
     default: '14'
   allow-private-artifact:
     description: >-
-      Upload the meal although the calling repository is public and the prey is not verifiably
-      public; its digest then becomes downloadable by anyone signed in to GitHub
+      Upload the meal although the calling repository is public and the prey or the maw is not
+      verifiably public; both digests then become downloadable by anyone signed in to GitHub
     default: 'false'
 outputs:
   bundle-path:

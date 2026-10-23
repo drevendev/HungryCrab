@@ -36,8 +36,9 @@ from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
-from .fs import read_text
+from .fs import is_link_stat, read_text
 from .miners import MINER_NAMES, MineContext, Miner, select_miners
+from .miners.base import bounded_warnings
 from .tokens import estimate_tokens
 from .typeutil import as_list
 
@@ -89,6 +90,30 @@ def _load_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def _has_occupied_gitlink(listing: str, root: Path) -> bool:
+    """Whether ``git ls-files --stage -z`` names a gitlink with anything at its path.
+
+    The diff never looks inside a gitlink's directory, populated by a submodule or not, while
+    the miners read whatever files sit there. Only a missing or empty directory is vouched for.
+    A path that did not decode cannot be looked up, so it counts as occupied.
+    """
+    for entry in listing.split("\0"):
+        meta, _, path = entry.partition("\t")
+        if not meta.startswith("160000 ") or not path:
+            continue
+        if "\ufffd" in path:
+            return True
+        place = root / path
+        try:
+            if place.is_symlink() or (
+                place.exists() and (not place.is_dir() or any(place.iterdir()))
+            ):
+                return True
+        except OSError:
+            return True
+    return False
+
+
 def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     """What the working tree adds to ``HEAD``, as a short hash.
 
@@ -103,9 +128,17 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     A prey clone is expected to be clean and answers ``"clean"`` for the price of an empty
     diff. It is asked anyway, because "a clone is never edited" is an assumption about a
     directory on someone's disk, and an interrupted fetch is enough to break it.
+
+    A gitlink's directory is a working tree the diff does not look into: asking git about a
+    submodule's contents means starting a git inside it under the submodule's own config, and
+    files dropped into an unpopulated one are neither tracked nor untracked. The miners still
+    read them, so a tree with anything at a gitlink's path is not one this can vouch for either.
     """
     if git is None:
         return ""
+    index = git.try_run("ls-files", "--stage", "-z")
+    if index is None or _has_occupied_gitlink(index, root):
+        return "unknown"
     diff = git.try_run("diff", "HEAD")
     # Include ignored files: miners can still observe them, so they must block cache reuse too.
     untracked = git.try_run("ls-files", "--others")
@@ -354,6 +387,14 @@ def _previous_explicit_output_ownership(out_dir: Path) -> set[str]:
     return entry_names | {MANIFEST_NAME}
 
 
+def _is_link(path: Path) -> bool:
+    """A symlink or a Windows directory junction, which ``is_symlink`` alone misses."""
+    try:
+        return is_link_stat(path.lstat())
+    except OSError:
+        return False
+
+
 def _publish_explicit_output(staged: Path, destination: Path) -> None:
     """Publish one staged explicit digest without overwriting caller-owned files.
 
@@ -362,7 +403,7 @@ def _publish_explicit_output(staged: Path, destination: Path) -> None:
     Existing names may be replaced or removed only when a previous valid manifest proved that
     exact name belonged to the crab. The new manifest moves last, after all producer artifacts.
     """
-    if destination.exists() and (destination.is_symlink() or not destination.is_dir()):
+    if destination.exists() and (_is_link(destination) or not destination.is_dir()):
         raise CrabError(
             f"explicit digest output is not a real directory: {destination}",
             hint="choose an empty directory or a previous Hungry Crab digest directory",
@@ -500,7 +541,7 @@ def run_miners(
                 if number is not None and number >= 2 and path.name not in page_names:
                     path.unlink()
             record["page_priorities"] = priorities
-        record["warnings"] = list(result.warnings)
+        record["warnings"] = bounded_warnings(result.warnings)
         record["ms"] = round((perf_counter() - started) * 1000)
         records.append(record)
         log(f"  {miner.name}: ok ({record['ms']} ms)")

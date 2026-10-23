@@ -26,15 +26,20 @@ experience warrant the extra overhead.
 The full CLI/MCP/skills are described in [Everywhere](../everywhere.md); the
 [Feeder guide](../feeder.md) is the current technical operator contract.
 
-### Known state at planning time
+### Verified repository state (2026-10-23)
 
 - Public `drevendev/HungryCrab` has one root `action.yml` with `name`, `description`,
   `branding.icon: search` and `branding.color: orange`.
-- The annotated `v0.6.0` tag points at a commit whose GitHub CI completed with eight
-  successful jobs. **A tag is not a Marketplace listing.**
-- The GitHub Releases API listed `v0.2.0` as the most recent published Release and did
-  **not** return a GitHub Release object for `v0.6.0`. Reconcile this discrepancy at
-  publication preflight. Do **not** create/move a tag in order to paper over it.
+- GitHub Releases for [v0.6.0](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0),
+  [v0.6.1](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.1) and
+  [v0.6.2](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.2) exist. The latest
+  published release is `v0.6.2`, at `d7779ebdc7ad14998567bbd0fa17fc3c558cc49b`.
+  Release existence alone does not establish a Marketplace listing or external consumption.
+- The nested-checkout/submodule privacy correction in
+  [#399](https://github.com/drevendev/HungryCrab/pull/399) is merged on `master` at
+  `aa1b3bf454349358e52bd7ac9f5bc0b797f0c7ae`; it is newer than `v0.6.2`.
+  Select a reviewed Action ref containing that correction for M1, then verify its CI and
+  remaining release gates. No existing release is promoted to launch-ready by this plan.
 - The Action uses third-party version tags that need immutable pinning; see
   [#301](https://github.com/drevendev/HungryCrab/issues/301).
 - [#211](https://github.com/drevendev/HungryCrab/issues/211) (cache ownership) and
@@ -71,13 +76,16 @@ including any account agreement or 2FA action.
 - [Evidence and proof contract](evidence.md): record template, approval/redaction rules,
   positive and negative case-study outline, video/GIF plan and intentionally empty baseline.
 - [Publication and maintenance checklist](publication.md): exact version gates, human UI
-  actions, release/Marketplace discrepancy, rollback and post-listing checks.
+  actions, release/Marketplace identity, rollback and post-listing checks.
 
 ## Non-negotiable boundaries
 
 1. **Public demos use only public maw + independently verified public prey.** An artifact
    contains repository details, issue titles/excerpts, commit subjects and source evidence;
    assume artifacts from a public repository can be downloaded by other GitHub users.
+   Review the local maw bytes too: public origins do not prove that local files are public.
+   Retain the default refusal of separate nested checkouts and populated gitlinks, including
+   public-origin ones; review ordinary non-Git output separately before a public trial.
 2. Never use `allow-private-artifact: true` as an easy pass. A private maw is a separate
    approved trial whose *raw* evidence must stay private. A public Action may be used from
    a private workflow, but Marketplace does not make private content public-safe.

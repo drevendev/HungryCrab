@@ -1,0 +1,79 @@
+name: Publish to PyPI
+
+# A GitHub release is created only after the tag's CI run is green (CONTRIBUTING.md,
+# "Releasing"), so publishing on the release event uploads only a tag that passed. PyPI trusts
+# this workflow through Trusted Publishing (project hungry-crab, workflow publish.yml,
+# environment pypi, which accepts deployments from v* tags only): no token is stored anywhere.
+# A manual run republishes an existing tag, for example after a failed upload; start it with
+# that release tag selected as the ref, or the pypi environment refuses the deployment.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, such as v0.6.2"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  build:
+    name: Build the distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    # Every action is pinned by commit, the release the tags in ci.yml resolve to: what this
+    # workflow builds is uploaded as the release, so no tag move may change it.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          # No cache in a publishing workflow: what is uploaded is built from the tag alone.
+          enable-cache: false
+          python-version: "3.13"
+      - name: The tag names the packaged release version
+        run: uv run --no-project python scripts/check_release_tag.py
+      - run: uv build --no-sources
+      - run: uv run --no-project python scripts/check_sdist.py
+      - name: Check the metadata PyPI will render
+        run: uvx --from "twine==7.0.0" twine check --strict dist/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Upload to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/hungry-crab/
+    # The OIDC token PyPI exchanges for a short-lived upload credential. Only this job, which
+    # runs no repository code, can request it.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: dist
+          path: dist/
+      # v1.14.2 rather than the newest tag: a publishing action gets a few weeks in the wild first.
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

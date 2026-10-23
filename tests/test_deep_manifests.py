@@ -125,3 +125,96 @@ def test_gradle_parsing_is_linear_in_blank_lines() -> None:
     packages, _ = parse_gradle(source, "build.gradle")
     assert time.perf_counter() - started < 5
     assert [p.name for p in packages] == ["g:a"]
+
+
+def test_gradle_unclosed_block_comments_are_linear() -> None:
+    """Every `/*` without a `*/` used to rescan the rest of the file: 164 s for 256 KiB (#329)."""
+    import time
+
+    source = ("/*a" * 87_381)[:262_144]  # the deps miner's read limit
+    started = time.perf_counter()
+    packages, info = parse_gradle(source, "build.gradle")
+    assert time.perf_counter() - started < 1
+    assert packages == [] and info["unresolved_declarations"] == 0
+
+
+def test_gradle_whitespace_after_a_configuration_is_linear() -> None:
+    """`\\s*\\(?\\s*` split one whitespace run quadratically many ways before failing (#329)."""
+    import time
+
+    for gap in (" " * 262_000, "\n" * 262_000):
+        started = time.perf_counter()
+        packages, _ = parse_gradle("implementation" + gap + "x", "build.gradle")
+        assert time.perf_counter() - started < 1
+        assert packages == []
+
+
+def test_gradle_comments_still_hide_and_only_hide_what_they_cover() -> None:
+    packages, info = parse_gradle(
+        "/* implementation 'fake:closed:1' */\n"
+        "implementation  (  'org:a:1.0')\n"
+        "  // api 'fake:line:1'\n"
+        "api\n  'org:b:2.0' // see /* not a comment opener\n"
+        "/* unclosed: not a comment, as before\n"
+        "implementation 'org:after:1'\n",
+        "build.gradle",
+    )
+    assert [p.name for p in packages] == ["org:a", "org:b", "org:after"]
+    assert info["unresolved_declarations"] == 0
+
+
+def test_gradle_comment_markers_inside_strings_are_text() -> None:
+    """`exclude 'META-INF/*.kotlin_module'` opened a comment that hid every dependency."""
+    android = """plugins { id 'com.android.application' }
+android {
+    namespace 'com.example.app'
+    packagingOptions {
+        exclude 'META-INF/*.kotlin_module'
+    }
+}
+dependencies {
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    testImplementation 'junit:junit:4.13.2'
+}
+"""
+    packages, info = parse_gradle(android, "app/build.gradle")
+    assert [p.name for p in packages] == [
+        "androidx.core:core-ktx",
+        "com.squareup.retrofit2:retrofit",
+        "junit:junit",
+    ]
+    assert info["unresolved_declarations"] == 0
+
+    packages, _ = parse_gradle(
+        'repositories { maven { url "https://repo.example/*" } }\n'
+        "def note = '''a /* b\n// c'''\n"
+        'def path = "x\\"/*"\n'
+        "def quote = 'it\\'s /* here'\n"
+        'packaging { resources.excludes += """/*.md"""\n}\n'
+        "dependencies {\n"
+        '    implementation("org:kts:1.0") /* trailing */\n'
+        "    implementation 'org:groovy:2.0' // https://example.test/*\n"
+        "}\n"
+        "/* closed */\n",
+        "build.gradle.kts",
+    )
+    assert [p.name for p in packages] == ["org:kts", "org:groovy"]
+
+
+def test_gradle_hostile_literals_and_comments_are_linear() -> None:
+    import time
+
+    limit = 262_144
+    for source in (
+        "'\\'" * (limit // 3),  # an unclosed literal full of escaped quotes
+        '"\\"' * (limit // 3),
+        "'''" + "'' " * (limit // 3),  # an unclosed triple-quoted literal
+        "/**/" * (limit // 4),
+        "//\n" * (limit // 3),
+        "'/*'" * (limit // 4) + "*/",
+        "x /*" * (limit // 4),
+    ):
+        started = time.perf_counter()
+        parse_gradle(source, "build.gradle")
+        assert time.perf_counter() - started < 1, source[:12]

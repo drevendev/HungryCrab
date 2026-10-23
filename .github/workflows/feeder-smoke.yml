@@ -76,6 +76,9 @@ jobs:
           maw: ${{ steps.maw.outputs.path }}
           artifact-name: feeder-composite-${{ matrix.os }}
           issues: '10'
+          # The synthetic maw has no origin, so the exposure guard cannot confirm it is public.
+          # It holds only the fixture files written above.
+          allow-private-artifact: 'true'
       - name: Check the exported contract and repository
         shell: python
         env:

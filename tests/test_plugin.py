@@ -92,7 +92,7 @@ def test_cleanroom_hook_is_plugin_scoped() -> None:
     cleanroom = next(
         entry for entry in pre_tool_use if '"$g" cleanroom;' in entry["hooks"][0].get("command", "")
     )
-    assert cleanroom["matcher"] == "Read|Grep|Glob|Write|Edit"
+    assert cleanroom["matcher"] == "Read|Grep|Glob|Write|Edit|PowerShell"
     handler = cleanroom["hooks"][0]
     assert handler["type"] == "command"
     # The shell form, run from the plugin root: tests/test_hooks.py covers the launcher.

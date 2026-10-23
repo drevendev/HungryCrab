@@ -47,10 +47,10 @@ negative tests remain [#309](https://github.com/drevendev/HungryCrab/issues/309)
 ### T0 — exercise the actual package, before Marketplace publication
 
 1. Pin the exact Action commit from an independently reviewed release candidate.
-   The `v0.6.0` annotated tag currently resolves to commit
-   `030155d9078dd86a39a8b78879d30e35664ec4bb`. That is historical identity,
-   **not** a claim that the Action's current third-party dependency pins and all
-   security blockers have been cleared. The real test must select the approved ref.
+   The selected ref must include the nested-checkout/submodule privacy correction
+   merged in [#399](https://github.com/drevendev/HungryCrab/pull/399), which is newer than
+   the currently published `v0.6.2`. Verify third-party pins and every other M1 gate
+   independently; choosing a recent commit alone does not establish launch readiness.
 2. Start a manual `workflow_dispatch` in the public **maw**, using
    `uses: drevendev/HungryCrab@<approved-full-commit-sha>` from an external
    repository. The existing self-test `uses: ./` is useful but not equivalent.
@@ -69,12 +69,13 @@ negative tests remain [#309](https://github.com/drevendev/HungryCrab/issues/309)
    fields. Dynamic time/URLs and source changes must be identified, not described
    as unexplained nondeterminism.
 
-### Illustrative first workflow (NOT committed, run, or accepted)
+### Illustrative F02 external-consumer workflow (NOT run or accepted)
 
-Copy into a *future* target-repository test PR only after branch owner approval.
-The source Action is pinned to the existing tag's commit here for clarity; publication
-tests should repin to their selected, fully reviewed release candidate. Also pin
-third-party actions by full SHAs before production use. This is an example, not proof:
+This example belongs in a *future* `drevendev/BeautifulRepo` test PR after branch owner
+approval. Replace the Action SHA placeholder with the reviewed full commit from T0;
+it is intentionally not runnable with a historical, unpatched release. Also pin third-party
+actions by reviewed full SHAs before the trial. Both platforms are required, and distinct
+artifact names preserve their separate bundles. This is an example, not executed evidence:
 
 ```yaml
 name: Hungry Crab public-pair experiment
@@ -84,7 +85,10 @@ permissions:
   contents: read
 jobs:
   meal:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7 # illustrative; pin reviewed SHA in an actual test PR
         with:
@@ -92,12 +96,12 @@ jobs:
           persist-credentials: false
       - name: Inspect a public reference repository
         id: feeder
-        uses: drevendev/HungryCrab@030155d9078dd86a39a8b78879d30e35664ec4bb
+        uses: drevendev/HungryCrab@<reviewed-full-commit-sha>
         with:
-          prey: drevendev/BeautifulRepo
+          prey: drevendev/HungryCrab
           issues: '0'
           wiki: 'false'
-          artifact-name: hungrycrab-public-f01
+          artifact-name: hungrycrab-public-f02-${{ matrix.os }}
           allow-private-artifact: 'false'
 ```
 
@@ -123,6 +127,7 @@ semantics, or output names are interchangeable without observing them.
 | --- | --- | --- |
 | Public maw + private or unverifiable prey | Fail closed before artifact | #309 |
 | Public maw + local/uncertain source visibility | Fail closed, no source leak | #309, #301 |
+| Public-origin nested checkout or populated gitlink with local-only files | Refuse before digest with `allow-private-artifact: false`; include modified, ignored and unpublished content | #309, #398, #405 |
 | Missing/invalid read token, 403/rate limit | Actionable failure, no token in logs | #309, #301 |
 | Missing/invalid `prey`; unsupported GitHub ref | No apparent success artifact | #307 |
 | Deliberate no-useful-gap prey | Reviewer may accept zero value, not fake a card | #308 |

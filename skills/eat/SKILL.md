@@ -18,11 +18,12 @@ automatic `served` alone is not a learning label. See `docs/taste-memory.md` for
 
 Run `crab --version`. If it is not installed, use one of these, in order of preference:
 
-1. `uv tool install "hungry-crab @ git+https://github.com/drevendev/HungryCrab"` (puts `crab`
-   on PATH for every agent on this machine), then use `crab`.
+1. `uv tool install hungry-crab`, the latest release from PyPI (puts `crab` on PATH for every
+   agent on this machine), then use `crab`. To track `master`, install
+   `"hungry-crab @ git+https://github.com/drevendev/HungryCrab"` instead.
 2. Inside the Claude Code plugin: `uv run --project "${CLAUDE_PLUGIN_ROOT}" crab ...` for every
    command below.
-3. `pip install git+https://github.com/drevendev/HungryCrab`.
+3. `pipx install hungry-crab` or `pip install hungry-crab`.
 
 ## Protocol
 

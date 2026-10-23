@@ -8,6 +8,10 @@ A repository's own configuration is not the crab's: a local directory eaten as p
 `.git/config` with it (#134), and several keys there make read-only commands start programs.
 Every command runs with those keys overridden — the filesystem monitor, signature checks, the
 external diff and textconv drivers, and every filter driver the repository configures.
+
+A populated submodule is a repository of its own, with a config (`.git/modules/<name>/config`)
+that the filter listing never reads, so no command may start a child git inside one: none
+looks into a submodule's working tree, summarises it or recurses into it.
 """
 
 from __future__ import annotations
@@ -30,11 +34,54 @@ SAFE_CONFIG: tuple[str, ...] = (
     # `ls-files`), and `log.showSignature` runs `gpg.program` for every commit logged.
     "-c", "core.fsmonitor=false",
     "-c", "log.showSignature=false",
+    # Whether a submodule is dirty is asked of a child `git status` inside it; a summary
+    # (`status.submoduleSummary`, `diff.submodule=diff`) and recursion (`submodule.recurse`,
+    # fetch's on-demand default) start child commands there too. Each child reads the
+    # submodule's own config, whose filter and diff drivers nothing here has emptied.
+    "-c", "diff.ignoreSubmodules=dirty",
+    "-c", "diff.submodule=short",
+    "-c", "status.submoduleSummary=false",
+    "-c", "submodule.recurse=false",
+    "-c", "fetch.recurseSubmodules=false",
 )  # fmt: skip
 # Commands that produce diffs run the external diff and textconv drivers a repository names.
 _DIFF_COMMANDS = frozenset({"diff", "log", "show"})
 _NO_DIFF_DRIVERS = ("--no-ext-diff", "--no-textconv")
+# A submodule's `ignore` setting in `.gitmodules` or the repository config outranks
+# `diff.ignoreSubmodules`, and only the command-line option outranks it. `dirty` never looks
+# inside a submodule's working tree but still reports the commit a superproject records, so a
+# changed or added gitlink stays visible to the diffs the publication guards read.
+# The plumbing `diff-files` and `diff-index` read no `diff.*` config at all.
+_SUBMODULE_COMMANDS = frozenset({*_DIFF_COMMANDS, "status", "diff-files", "diff-index"})
+_NO_SUBMODULE_WORKTREES = "--ignore-submodules=dirty"
+# `describe --dirty` and `--broken` compare the working tree with no way to leave submodules out.
+_DESCRIBE_WORKTREE = ("--dirty", "--broken")
+# Global options before the subcommand that take their value as the next argument.
+_GLOBAL_OPTIONS_WITH_VALUE = frozenset({"-c", "-C", "--git-dir", "--work-tree", "--namespace"})
 _FILTER_KEYS = ("clean", "smudge", "process")
+
+
+def guarded_arguments(args: tuple[str, ...]) -> tuple[str, ...]:
+    """``args`` with the options that keep a command out of drivers and submodule trees.
+
+    The subcommand is found after any global options, so ``-c key=value diff`` is guarded
+    like ``diff``. A command that cannot be kept out of submodule working trees is refused.
+    """
+    at = 0
+    while at < len(args) and args[at].startswith("-"):
+        at += 2 if args[at] in _GLOBAL_OPTIONS_WITH_VALUE else 1
+    if at >= len(args):
+        return args
+    name, rest = args[at], args[at + 1 :]
+    if name == "describe" and any(arg.startswith(_DESCRIBE_WORKTREE) for arg in rest):
+        raise ExternalCommandError(
+            "git describe --dirty/--broken would inspect submodule working trees; "
+            "the crab does not run it"
+        )
+    if name not in _SUBMODULE_COMMANDS:
+        return args
+    drivers = _NO_DIFF_DRIVERS if name in _DIFF_COMMANDS else ()
+    return (*args[:at], name, *drivers, _NO_SUBMODULE_WORKTREES, *rest)
 
 
 def git_executable() -> str:
@@ -165,8 +212,7 @@ class GitRunner:
         cwd: Path | None = None,
     ) -> str:
         """Run ``git <args>`` and return stdout as text."""
-        if args and args[0] in _DIFF_COMMANDS:
-            args = (args[0], *_NO_DIFF_DRIVERS, *args[1:])
+        args = guarded_arguments(args)
         command = [self.exe, *SAFE_CONFIG, *args]
         limit = timeout or self.timeout
         where = cwd or self.cwd

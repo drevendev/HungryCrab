@@ -8,7 +8,7 @@ instruction-like fragments so a skill can treat the file with extra suspicion.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator
 
 # Invisible code points are a classic carrier for hidden instructions, and the Tags block is
 # the one that carries whole sentences: it maps every printable ASCII character to a code
@@ -28,19 +28,61 @@ from collections.abc import Iterable
 # ASCII. A joiner that has no such neighbour — wedged into a Latin word, dangling at the end
 # of a heading, or stacked with other invisible characters — has nothing to join and is
 # flagged like the rest.
+#
+# The bidirectional controls are invisible too, and they do worse than hide: an override or an
+# isolate reorders what is displayed, so `Safe` + U+202E + `dm.EMDAER` shows a reader one
+# string while a model reads another (the Trojan Source trick). They are format characters,
+# not control characters, so `mdutil.inline` keeps them. A README heading or a prey name has
+# no need for them, and they are flagged like the rest.
+#
+# The three bidi *marks* (U+061C, U+200E, U+200F) reorder nothing on their own: they give a
+# neutral character such as a digit or a parenthesis a direction, and right-to-left READMEs
+# use them routinely. They are judged by their surroundings: a mark in a string that has no
+# right-to-left letter has nothing to mark and is flagged.
 _INVISIBLE_RANGES: tuple[tuple[int, int], ...] = (
     (0x200B, 0x200B),  # zero-width space
+    (0x202A, 0x202E),  # bidi embeddings, pop and overrides
     (0x2060, 0x2060),  # word joiner
+    (0x2066, 0x2069),  # bidi isolates
     (0xFEFF, 0xFEFF),  # byte-order mark
     (0xE0000, 0xE007F),  # Tags: printable ASCII rendered as nothing
 )
 _INVISIBLE = "".join(
     chr(low) if low == high else f"{chr(low)}-{chr(high)}" for low, high in _INVISIBLE_RANGES
 )
+_BIDI_MARKS = chr(0x061C) + chr(0x200E) + chr(0x200F)  # Arabic letter mark, LRM, RLM
+# Hebrew, Arabic, Syriac, Thaana, NKo, Samaritan, Mandaic and their presentation forms.
+_RIGHT_TO_LEFT_RE = re.compile(
+    "["
+    + "".join(
+        f"{chr(low)}-{chr(high)}"
+        for low, high in ((0x0590, 0x061B), (0x061D, 0x08FF), (0xFB1D, 0xFDFF), (0xFE70, 0xFEFC))
+    )
+    + "]"
+)
+_BIDI_MARK = f"[{_BIDI_MARKS}]"
 _JOINERS = chr(0x200C) + chr(0x200D)  # zero-width non-joiner, zero-width joiner
 _ZERO_WIDTH = _INVISIBLE + _JOINERS
 # A character that can legitimately sit next to a joiner: not ASCII, and not itself invisible.
 _JOINABLE = f"[^\\x00-\\x7F{_ZERO_WIDTH}]"
+
+# An HTML comment is a good hiding place, but most of them in a real README are directives to
+# a formatter or a linter. `<!-- prettier-ignore-start -->` is not an attack. The nouns take
+# their plurals: `<!-- agents: ... -->` addresses the same reader.
+_COMMENT_DIRECTIVE = (
+    r"(?:prettier|markdownlint|remark|eslint|stylelint|lint|nolint|noqa"
+    r"|fmt|type|codecov|all-contributors|toc|editorconfig|doctoc|omit|badges)\b"
+)
+# The test `<!--\s*(?!/?\s*DIRECTIVE)` made, without backtracking into the whitespace, which
+# retried it once per space (quadratic): after whitespace the directive itself excludes the
+# comment, and right after `<!--` the directive or `/` and the directive.
+_COMMENT_OPENING = rf"<!--(?:\s++(?!{_COMMENT_DIRECTIVE})|(?!\s)(?!/?\s*{_COMMENT_DIRECTIVE}))"
+_COMMENT = (
+    rf"{_COMMENT_OPENING}[^>]*?"
+    r"\b(?:instructions?|assistants?|claude|copilots?|agents?|ignore|must)\b[^>]*?-->"
+)
+_DOWNLOADER = r"\b(?:curl|wget|iwr|invoke-webrequest)\b"
+_PIPE_TO_SHELL = rf"{_DOWNLOADER}[^\n]*\|\s*(?:sh|bash|zsh|python\d?|powershell|pwsh|iex)\b"
 
 SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
@@ -66,33 +108,92 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
             r"\bthis is (?:a|an) (?:instruction|command) (?:for|to) (?:the )?"
             r"(?:ai|assistant|agent|model)\b"
         ),
-        # An HTML comment is a good hiding place, but most of them in a real README are directives
-        # to a formatter or a linter. `<!-- prettier-ignore-start -->` is not an attack.
-        (
-            r"<!--\s*(?!/?\s*(?:prettier|markdownlint|remark|eslint|stylelint|lint|nolint|noqa"
-            r"|fmt|type|codecov|all-contributors|toc|editorconfig|doctoc|omit|badges)\b)"
-            r"[^>]*?\b(?:instruction|assistant|claude|copilot|agent|ignore|must)\b[^>]*?-->"
-        ),
+        _COMMENT,  # applied by _html_comments, never on raw text
         f"[{_INVISIBLE}]",
+        _BIDI_MARK,  # applied by _bidi_marks, never on raw text
         # Two or more zero-width characters in a row hide bits, whatever they are.
         f"[{_ZERO_WIDTH}]{{2,}}",
         # A joiner with nothing to join on either side.
         f"(?<!{_JOINABLE})[{_JOINERS}](?!{_JOINABLE})",
-        (
-            r"\b(?:curl|wget|iwr|invoke-webrequest)\b[^\n]*\|\s*"
-            r"(?:sh|bash|zsh|python\d?|powershell|pwsh|iex)\b"
-        ),
+        _PIPE_TO_SHELL,  # applied by _pipes_to_shell, never on raw text
     )
 )
+_BY_SOURCE = {pattern.pattern: pattern for pattern in SUSPICIOUS_PATTERNS}
+_COMMENT_RE, _PIPE_TO_SHELL_RE = _BY_SOURCE[_COMMENT], _BY_SOURCE[_PIPE_TO_SHELL]
+_BIDI_MARK_RE = _BY_SOURCE[_BIDI_MARK]
+_COMMENT_OPENING_RE = re.compile(_COMMENT_OPENING, re.IGNORECASE)
+_DOWNLOADER_RE = re.compile(_DOWNLOADER, re.IGNORECASE)
 
 _SNIPPET = 80
+
+
+def _html_comments(text: str) -> Iterator[re.Match[str]]:
+    """What the comment rule finds, with each `>`-bounded run of the text scanned once.
+
+    As a bare regex it was quadratic: every `<!--` in a run without `>` rescanned the run, and
+    every keyword in a run that does not end with `-->` rescanned it again. A match ends at the
+    run's `>`, so only a run ending with `-->` can hold one, and a later opener of the run sees
+    a part of what the first opener that is not a directive sees: that one is tried alone.
+    """
+    position, end = 0, -1
+    while (opener := text.find("<!--", position)) >= 0:
+        if opener > end:
+            end = text.find(">", opener)
+            if end < 0:
+                return
+        if not text.startswith("--", end - 2):
+            position = end + 1
+        elif _COMMENT_OPENING_RE.match(text, opener) is None:  # a formatter directive
+            position = opener + 1
+        else:
+            match = _COMMENT_RE.match(text, opener)
+            if match is not None:
+                yield match
+            position = end + 1
+
+
+def _pipes_to_shell(text: str) -> Iterator[re.Match[str]]:
+    """What the pipe-to-shell rule finds, with each line tried once.
+
+    As a bare regex, `[^\\n]*` let every downloader name on a long line rescan the rest of it.
+    A later name on the same line sees a part of what the first one sees, so the first one is
+    tried alone, and a line where it fails is done.
+    """
+    position = 0
+    while (name := _DOWNLOADER_RE.search(text, position)) is not None:
+        match = _PIPE_TO_SHELL_RE.match(text, name.start())
+        if match is not None:
+            yield match
+            position = match.end()
+            continue
+        newline = text.find("\n", name.end())
+        if newline < 0:
+            return
+        position = newline + 1
+
+
+def _bidi_marks(text: str) -> Iterator[re.Match[str]]:
+    """Bidi marks in a string with no right-to-left letter, which have nothing to mark."""
+    if _RIGHT_TO_LEFT_RE.search(text) is None:
+        yield from _BIDI_MARK_RE.finditer(text)
+
+
+_Finder = Callable[[str], Iterator[re.Match[str]]]
+_LINEAR: dict[re.Pattern[str], _Finder] = {
+    _COMMENT_RE: _html_comments,
+    _PIPE_TO_SHELL_RE: _pipes_to_shell,
+    _BIDI_MARK_RE: _bidi_marks,
+}
+_RULES: tuple[_Finder, ...] = tuple(
+    _LINEAR.get(pattern, pattern.finditer) for pattern in SUSPICIOUS_PATTERNS
+)
 
 
 def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
     """Short snippets around instruction-like matches (for the JSON side, never for Markdown)."""
     found: list[str] = []
-    for pattern in SUSPICIOUS_PATTERNS:
-        for match in pattern.finditer(text):
+    for find in _RULES:
+        for match in find(text):
             start = max(0, match.start() - 20)
             snippet = text[start : match.end() + 20].replace("\n", " ").strip()
             found.append(snippet[:_SNIPPET])
@@ -101,8 +202,39 @@ def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
     return found
 
 
+_NAME_SEPARATORS_RE = re.compile(r"[-_/.+,]+")
+# A name made of words is judged by the imperative rules only. `system prompt` is a noun an
+# AI project names files after (`prompts/system_prompt.txt`); as a heading it stays flagged.
+_SYSTEM_PROMPT = r"\bsystem prompt\b"
+_NAME_RULES: tuple[_Finder, ...] = tuple(
+    find
+    for pattern, find in zip(SUSPICIOUS_PATTERNS, _RULES, strict=True)
+    if pattern.pattern != _SYSTEM_PROMPT
+)
+
+
 def is_suspicious(text: str) -> bool:
-    return any(pattern.search(text) for pattern in SUSPICIOUS_PATTERNS)
+    return any(next(find(text), None) is not None for find in _RULES)
+
+
+def safe_name(value: object, kind: str = "name") -> str:
+    """A name the prey chose (author, path, tag, branch, workflow) for a Markdown summary.
+
+    The one gate those names pass before they reach a digest's Markdown: the name itself, or
+    a placeholder when it reads like an instruction, as headings are redacted. The JSON side
+    keeps the name; full data goes to JSON.
+
+    A git ref or a path cannot hold a space, so a sentence hides in one as
+    `you-must-ignore-the-license-policy`; every phrase rule needs spaces. The name is judged
+    as written and once more, by the imperative rules, with its runs of `-`, `_`, `/`, `.`,
+    `+` and `,` read as spaces.
+    """
+    text = "" if value is None else str(value)
+    spaced = _NAME_SEPARATORS_RE.sub(" ", text)
+    flagged = is_suspicious(text) or (
+        spaced != text and any(next(find(spaced), None) is not None for find in _NAME_RULES)
+    )
+    return f"[{kind} omitted: instruction-like]" if flagged else text
 
 
 def sanitize_lines(lines: Iterable[str], *, max_lines: int) -> tuple[list[str], int]:
