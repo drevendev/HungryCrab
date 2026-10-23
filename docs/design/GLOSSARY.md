@@ -92,6 +92,9 @@ lets the next maw overwrite it.
 
 ## Commands
 
+`hunt` track dependencies and locate behaviors · `mcp` run the Model Context Protocol server · 
+`profiles` manage rules and security toggles · `report` compile evaluation results and metrics · 
+`version` show active build and runtime status ·
 `sniff` look before eating · `catch` clone into the cache · `digest` run the miners ·
 `compare` digest both sides and rank · `eat --deterministic` export a Feeder meal bundle ·
 `menu` print the ranked menu · `serve` publish approved issues or guarded PR branches ·
