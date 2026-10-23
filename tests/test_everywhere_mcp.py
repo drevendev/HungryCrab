@@ -177,6 +177,32 @@ def test_network_and_device_paths_are_refused_before_any_filesystem_call(
             call(target)
 
 
+def test_paths_leaving_the_roots_are_refused_before_any_filesystem_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A relative prey that escapes the roots may not be stated, existing or not.
+
+    `local()` already refuses such a value lexically; `prey()` used to call `exists()` first,
+    which let a client test whether an outside path exists by comparing the two errors.
+    """
+    root = tmp_path / "approved"
+    root.mkdir()
+    (tmp_path / "outside-secret-project").mkdir()
+    service = AnalysisService([root], tmp_path / "cache")
+
+    def touched(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("the path reached the filesystem")
+
+    monkeypatch.setattr(Path, "resolve", touched)
+    monkeypatch.setattr(Path, "exists", touched)
+    with pytest.raises(UsageError, match="outside the operator-approved MCP roots"):
+        service.local("x/../../outside-secret-project")
+    with pytest.raises(UsageError, match="cannot parse repository reference"):
+        service.prey("x/../../outside-secret-project")
+    with pytest.raises(UsageError, match="cannot parse repository reference"):
+        service.prey("x/../../no-such-project")
+
+
 def test_a_directory_inside_an_outer_repository_is_refused(tmp_path: Path) -> None:
     """Git looks upward: a plain directory under a root must not lend out a parent repository."""
     from fixture_builder import git as fixture_git
