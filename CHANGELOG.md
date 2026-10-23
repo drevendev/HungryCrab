@@ -11,11 +11,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **PyPI:** releases are published to [PyPI](https://pypi.org/project/hungry-crab/) as
   `hungry-crab` by `.github/workflows/publish.yml`, which runs when a GitHub release is
-  published, refuses unless the tag names the packaged release version, builds the sdist and
-  wheel from the tag, checks them with `twine check --strict` and uploads them through Trusted
-  Publishing, with no stored token; only the upload job may request an OIDC token, and it pins
-  `pypa/gh-action-pypi-publish` by commit. `CONTRIBUTING.md` carries the step and how to verify
-  it ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
+  published, refuses unless the run's tag names the packaged release version, builds the sdist
+  and wheel from the tag, checks them with `twine check --strict` and uploads them through
+  Trusted Publishing, with no stored token; only the upload job may request an OIDC token, and
+  every action is pinned by commit. `CONTRIBUTING.md` carries the step and how to verify it
+  ([#395](https://github.com/drevendev/HungryCrab/issues/395)).
 
 ### Fixed
 

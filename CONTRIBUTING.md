@@ -91,12 +91,14 @@ versions that have a tag.
    [`publish.yml`](.github/workflows/publish.yml): it checks out the tag, refuses unless the tag
    is `v` + `[project].version` and that version is not a development one, builds the sdist and
    wheel with `uv build`, runs `twine check --strict`, and uploads both through PyPI Trusted
-   Publishing (environment `pypi`; no token is stored anywhere). Approve the `pypi` deployment
-   if the environment asks for a review. Verify the upload with
-   `pip index versions hungry-crab`, or check that `info.version` in
+   Publishing (environment `pypi`; no token is stored anywhere). The `pypi` environment accepts
+   deployments from `v*` tags only; approve the deployment if it asks for a review. Verify the
+   upload with `pip index versions hungry-crab`, or check that `info.version` in
    <https://pypi.org/pypi/hungry-crab/json> is the new version. If the upload failed, run the
-   workflow again from the Actions tab (**Run workflow**, with the tag). PyPI never accepts a
-   file twice, so a version that reached PyPI is only ever replaced by a new release.
+   workflow again from the Actions tab: **Run workflow**, select the release tag `vX.Y.Z` (not
+   a branch) as the ref, and enter the same tag; the build refuses a run started from any
+   other ref. PyPI never accepts a file twice, so a version that reached PyPI is only ever
+   replaced by a new release.
 
 Do not squash the release/reopen pair, create a tag from the reopened head, or bypass
 required CI. A release candidate or postponement of a milestone does not change these gates.

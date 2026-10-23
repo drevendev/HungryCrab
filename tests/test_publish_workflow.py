@@ -102,14 +102,24 @@ def test_only_the_publish_job_can_request_an_oidc_token() -> None:
     assert WORKFLOW.read_text(encoding="utf-8").count("id-token") == 1
 
 
-def test_the_publish_job_pins_its_actions_by_commit_and_runs_no_code() -> None:
+def test_the_publish_job_runs_no_code() -> None:
     steps = _workflow()["jobs"]["publish"]["steps"]
     uses = [step["uses"] for step in steps]
     assert any(action.startswith("pypa/gh-action-pypi-publish@") for action in uses)
-    assert all(SHA_PINNED.fullmatch(action) for action in uses), uses
     assert all("run" not in step for step in steps), "the job holding the token runs no code"
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert re.search(r"pypa/gh-action-pypi-publish@[0-9a-f]{40} # v\d+\.\d+\.\d+\n", text)
+
+
+def test_every_action_is_pinned_by_commit_with_its_release() -> None:
+    """What the workflow builds is the release, so no moved tag may change any step of it."""
+    jobs = _workflow()["jobs"]
+    uses = [step["uses"] for job in jobs.values() for step in job["steps"] if "uses" in step]
+    assert len(uses) >= 5
+    assert all(SHA_PINNED.fullmatch(action) for action in uses), uses
+    lines = [line.strip() for line in WORKFLOW.read_text(encoding="utf-8").splitlines()]
+    pinned = [line for line in lines if line.startswith("- uses:")]
+    assert len(pinned) == len(uses)
+    for line in pinned:
+        assert re.fullmatch(r"- uses: \S+@[0-9a-f]{40} # v\d+\.\d+\.\d+", line), line
 
 
 def test_the_build_job_checks_the_tag_before_it_builds() -> None:
@@ -152,6 +162,13 @@ def test_only_a_release_tag_of_the_packaged_version_publishes(
     assert (_check_release_tag().tag_problem(tag, version) is None) is allowed
 
 
+def test_a_manual_run_must_be_started_from_the_tag_it_publishes() -> None:
+    tag_problem = _check_release_tag().tag_problem
+    assert tag_problem("v0.6.2", "0.6.2", "refs/tags/v0.6.2") is None
+    assert tag_problem("v0.6.2", "0.6.2", "refs/heads/master") is not None
+    assert tag_problem("v0.6.2", "0.6.2", "refs/tags/v0.6.1") is not None
+
+
 def test_the_tag_check_reads_pyproject(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -160,8 +177,15 @@ def test_the_tag_check_reads_pyproject(
         '[project]\nname = "hungry-crab"\nversion = "0.6.2"\n', encoding="utf-8"
     )
     monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GITHUB_REF", raising=False)
     monkeypatch.setenv("TAG", "v0.6.2")
     assert module.main() == 0
+    monkeypatch.setenv("GITHUB_REF", "refs/tags/v0.6.2")
+    assert module.main() == 0
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/master")
+    assert module.main() == 1
+    assert "not from refs/tags/v0.6.2" in capsys.readouterr().err
+    monkeypatch.delenv("GITHUB_REF")
     monkeypatch.setenv("TAG", "v0.6.1")
     assert module.main() == 1
     assert "does not name the packaged version 0.6.2" in capsys.readouterr().err
