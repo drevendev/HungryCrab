@@ -264,8 +264,10 @@ def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
     unconfirmed: list[str] = []
     examined = 0
     for base, dirs, files in os.walk(maw, topdown=True, followlinks=False, onerror=failures.append):
-        marker = ".git" in dirs or ".git" in files
-        dirs[:] = [name for name in dirs if name != ".git"]
+        # Git treats .GIT / .GiT as .git on case-insensitive workspaces (Windows).
+        # Match and prune all case variants before any maw inventory can read them.
+        marker = any(name.casefold() == ".git" for name in (*dirs, *files))
+        dirs[:] = [name for name in dirs if name.casefold() != ".git"]
         checkout = Path(base)
         if checkout == maw or not marker or _tracked_gitlink_checkout(checkout):
             continue

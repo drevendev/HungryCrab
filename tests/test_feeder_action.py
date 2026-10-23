@@ -627,6 +627,30 @@ def test_nested_worktree_git_marker_is_refused(
     assert calls == []
 
 
+@pytest.mark.parametrize("marker_kind", ["file", "directory"])
+def test_case_variant_git_marker_is_refused_before_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, marker_kind: str
+) -> None:
+    """Windows accepts .GIT/.GiT as Git metadata; never overlook that root."""
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}},
+    )
+    checkout = tmp_path / "workspace" / "other-checkout"
+    checkout.mkdir()
+    marker = checkout / (".GIT" if marker_kind == "file" else ".GiT")
+    if marker_kind == "file":
+        marker.write_text("gitdir: /unavailable/gitdir\\n", encoding="utf-8")
+    else:
+        marker.mkdir()
+    (checkout / "private.txt").write_text("sensitive\\n", encoding="utf-8")
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert module.run() == 2
+    assert calls == [], "no digest is permitted before visibility is established"
+
+
 def test_plain_untracked_build_output_does_not_block_public_maw(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
