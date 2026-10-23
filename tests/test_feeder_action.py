@@ -542,3 +542,29 @@ def test_a_public_submodule_still_answers_for_its_own_submodules(
     assert module.unconfirmed_submodules(workspace) == ["vendor/private/inner"]
     assert module.run() == 2 and calls == []
     assert "the submodule vendor/private/inner checked out" in capsys.readouterr().err
+
+
+def test_uninitialised_gitlinks_do_not_count_against_the_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review of #386: only a checked-out submodule is asked about, so only those count."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    git(workspace, "init", "-q")
+    git(workspace, "remote", "add", "origin", f"https://github.com/{CALLER}")
+    (workspace / "README.md").write_text("# public\n", encoding="utf-8")
+    git(workspace, "add", "README.md")
+    entries: list[str] = []
+    for index in range(257):
+        entries += ["--cacheinfo", f"160000,{index + 1:040x},vendor/empty-{index:03d}"]
+        if index % 2:
+            (workspace / "vendor" / f"empty-{index:03d}").mkdir(parents=True)
+    git(workspace, "update-index", "--add", *entries)
+    git(workspace, "commit", "-q", "-m", "many uninitialised submodules")
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    assert len(module._gitlinks(workspace)) == 257
+    assert module.unconfirmed_submodules(workspace) == []
+    assert module.run() == 0 and len(calls) == 1

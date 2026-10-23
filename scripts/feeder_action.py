@@ -160,7 +160,8 @@ def maw_is_public(maw: Path) -> bool:
     return slug is not None and _origin_is_public(slug)
 
 
-# Bounds on the submodules a public maw may carry: past them nothing is vouched for.
+# Bounds on the checked-out submodules a public maw may carry: past them nothing is vouched for.
+# Uninitialised gitlinks hold nothing and do not count.
 MAX_SUBMODULES = 256
 MAX_SUBMODULE_DEPTH = 8
 
@@ -200,23 +201,25 @@ def unconfirmed_submodules(maw: Path) -> list[str] | None:
     """
     pending: list[tuple[Path, str, int]] = [(maw, "", 0)]
     unconfirmed: list[str] = []
-    seen = 0
+    populated = 0
     while pending:
         directory, prefix, depth = pending.pop()
         links = _gitlinks(directory)
         if links is None:
             return None
         for path in links:
-            seen += 1
-            if seen > MAX_SUBMODULES:
-                return None
             name = f"{prefix}{path}"
             place = directory / path
             # A path that did not decode cannot be looked up, so it is not vouched for.
-            if "�" in path:
-                unconfirmed.append(name)
+            undecodable = chr(0xFFFD) in path
+            if not undecodable and not _populated(place):
                 continue
-            if not _populated(place):
+            # Only a checked-out submodule costs a forge question; empty gitlinks are free.
+            populated += 1
+            if populated > MAX_SUBMODULES:
+                return None
+            if undecodable:
+                unconfirmed.append(name)
                 continue
             slug = maw_origin(place)
             if slug is None or depth >= MAX_SUBMODULE_DEPTH or not _origin_is_public(slug):
