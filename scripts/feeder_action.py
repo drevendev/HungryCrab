@@ -154,7 +154,12 @@ def maw_is_public(maw: Path) -> bool:
     is a tracked directory of the public caller's own checkout. Selecting a populated gitlink
     as the maw must not bypass the refusal of local submodule bytes below a public maw.
     """
-    if _tracked_gitlink_checkout(maw):
+    # Keep the original path for gitlink junctions, and resolve aliases containing '..'.
+    try:
+        roots = {maw, maw.resolve()}
+    except (OSError, RuntimeError):
+        return False
+    if any(_tracked_gitlink_checkout(root) for root in roots):
         return False
     if maw_in_public_caller(maw):
         return True

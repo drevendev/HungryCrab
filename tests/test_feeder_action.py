@@ -463,6 +463,24 @@ def test_case_variant_submodule_maw_cannot_bypass_the_refusal(
     assert module.run() == 2 and calls == []
 
 
+@pytest.mark.parametrize("maw", ["vendor/private/docs/..", "vendor/private/../private"])
+def test_submodule_maw_parent_components_cannot_bypass_the_refusal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, maw: str
+) -> None:
+    _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw=maw,
+    )
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC, "owner/vendored": _PUBLIC})
+    )
+    assert module.run() == 2 and calls == []
+
+
 def test_distinct_case_variant_checkout_is_not_exempted_as_an_empty_gitlink(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -644,6 +662,8 @@ def test_a_gitlink_replaced_by_a_windows_junction_is_refused(
     checkout.rmdir()  # The fixture's uninitialised, empty directory only.
     target = tmp_path / "local-files"
     target.mkdir()
+    git(target, "init", "-q")
+    git(target, "remote", "add", "origin", "https://github.com/owner/vendored")
     (target / "private-notes.md").write_text("synthetic private note\n", encoding="utf-8")
     completed = subprocess.run(
         ["cmd", "/c", "mklink", "/J", str(checkout), str(target)],
@@ -655,6 +675,13 @@ def test_a_gitlink_replaced_by_a_windows_junction_is_refused(
     try:
         module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=None)
         assert module.run() == 2 and calls == []
+        monkeypatch.setenv("CRAB_MAW", "vendor/private")
+        monkeypatch.setattr(
+            module,
+            "client_for",
+            lambda _: _Forge({"pypa/pipx": _PUBLIC, "owner/vendored": _PUBLIC}),
+        )
+        assert module.run() == 2 and calls == [], "selecting the public-origin junction is refused"
     finally:
         checkout.rmdir()  # Remove the junction itself; preserve its target.
     assert (target / "private-notes.md").is_file()
