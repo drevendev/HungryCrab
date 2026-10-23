@@ -253,6 +253,8 @@ def test_paths_are_judged_one_segment_at_a_time(line: str) -> None:
 
 
 IMAGE_DIGEST = "sha256:" + "4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1"
+REGISTRY_PASSWORD = "Kj8sLq2W" + "p9xZ"
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/" + "bPxRfiCYq9R2kL7mN3"
 
 
 @pytest.mark.parametrize(
@@ -274,7 +276,8 @@ IMAGE_DIGEST = "sha256:" + "4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6
         ("config/locales/es.yml", "    password: Contraseña"),
         ("src/locales/nl.json", '    "password": "Wachtwoord",'),
         ("src/locales/de.json", '    "secret": "Geheimnis",'),
-        ("resources/lang/fr.json", '    "token": "Jetonsecret",'),
+        ("src/locale/fr.json", '    "token": "Jetonsecret",'),
+        ("app/translations/messages.de.yaml", "  password: Kennwortfeld"),
         ("src/i18n/pt-BR.yaml", "  password: Senhasecreta"),
         # A chart names the Kubernetes Secret that holds the credential.
         ("charts/app/values.yaml", "  existingSecret: my-release-postgresql"),
@@ -283,6 +286,7 @@ IMAGE_DIGEST = "sha256:" + "4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6
         ("src/web/csrf.ts", 'export const csrfToken = "X-CSRF-Token";'),
         ("src/web/api.ts", 'const apiKey = "X-API-Key";'),
         ("src/web/api.py", 'API_KEY = "x-api-key"'),
+        ("src/web/trace.ts", 'const traceToken = "X-B3-TraceId";'),
         ("config/http.yml", "auth_token: X-Auth-Token"),
         # Slack's prefixes are xoxa, xoxb, xoxc, xoxd, xoxe, xoxp, xoxr, xoxs and xapp.
         ("docs/emoji.md", "Signed off with xoxo-from-the-whole-team"),
@@ -305,6 +309,65 @@ def test_the_0_6_1_false_positives_do_not_block(path: str, line: str) -> None:
         ("config/locales/de.yml", f"password: {LITERAL}", "credential-assignment"),
         ("docs/slack.md", "SLACK=" + "xoxs-" + "1234567890-ABCDEFGHIJ", "slack-token"),
         ("docs/slack.md", "SLACK=" + "xapp-" + "1-A0123456789-abcdef", "slack-token"),
+        # Review of #388: an image reference with a password still carries the password.
+        (
+            "scripts/mirror.sh",
+            "skopeo copy docker://deploy:"
+            + REGISTRY_PASSWORD
+            + "@registry.example.com/app:1 oci:x",
+            "url-credentials",
+        ),
+        (
+            "scripts/chart.sh",
+            "helm pull oci://robot:" + REGISTRY_PASSWORD + "@registry.example.com/charts/app",
+            "url-credentials",
+        ),
+        # Only translation formats under translation directories are judged like code; `lang/`
+        # is a directory of language-specific code as often as of translations.
+        ("lang/py/.env", "DB_PASSWORD=" + "Summer2024", "credential-assignment"),
+        (
+            "lang/java/src/main/resources/application.properties",
+            "spring.datasource.password=" + "Summer2024",
+            "credential-assignment",
+        ),
+        ("languages/go/config.yml", "api_token: " + "Summer2024Token", "credential-assignment"),
+        ("translations/.env", "SECRET_KEY=" + "correcthorsebatterystaple", "credential-assignment"),
+        (
+            "translations/settings.toml",
+            'api_key = "' + "correcthorsebattery" + '"',
+            "credential-assignment",
+        ),
+        # Only `existingSecret` names a Secret; these keys hold the credential.
+        (
+            "charts/app/values.yaml",
+            "  existingPassword: " + "s3cr3tpassw0rd",
+            "credential-assignment",
+        ),
+        (
+            "charts/app/values.yaml",
+            "  existing_api_token: " + "3f9a2b7c1d8e4f6a" + "0b5c9d2e7f1a3b8c",
+            "credential-assignment",
+        ),
+        (
+            "config/app.yml",
+            "use_existing_token: " + "q7rk9zp2wm4tn8vbl3xc",
+            "credential-assignment",
+        ),
+        # Text glued to a forge URL is not part of its path.
+        (
+            "PR_BODY",
+            "see https://github.com/o/r/blob/main/a.py," + AWS_SECRET,
+            "high-entropy-token",
+        ),
+        (
+            "PR_BODY",
+            "see https://github.com/o/r/blob/main/a.py;aws_secret_access_key=" + AWS_SECRET,
+            "high-entropy-token",
+        ),
+        # The path after a forge URL's commit is judged as any path is, dense base64 whole.
+        ("PR_BODY", "see https://github.com/o/r/tree/main/" + AWS_SECRET, "high-entropy-token"),
+        # A random value behind `X-` is not a header name.
+        ("config/app.yml", "api_key: X-" + "Q7Rk9Zp2Wm4" + "Tn8VbL3", "credential-assignment"),
     ],
 )
 def test_the_0_6_1_true_positives_still_block(path: str, line: str, rule: str) -> None:

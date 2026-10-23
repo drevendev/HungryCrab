@@ -10,20 +10,22 @@ Every line goes through three passes, and the first that finds something decides
 1. Shapes: token formats their issuers document (AWS key ids, GitHub, GitLab and Slack tokens,
    Slack webhooks, PEM private-key headers) and a password embedded in a URL. The placeholders
    documentation prints in those shapes (all zeros, all x, AWS's ``...EXAMPLE``) are not, and
-   neither is a ``docker://`` or ``oci://`` image reference or a digest after the ``@``.
+   neither is an image pinned by digest (``docker://alpine:3.20@sha256:...``): a digest after
+   the ``@`` is not a host.
 2. Credential assignments: a name whose last word is a credential word (``token``, ``secret``,
    ``password``, ``api_key`` and a few more) bound to a literal that looks like a credential.
    Only a quoted literal is a value in code, so ``tokens = estimate_tokens(text)`` (plural, and
    a call) and ``token = other`` (a name) are not findings, and neither is a literal that reads
    as a name (``token = 'IDENT2'``). Unquoted values count in configuration files and in
    dotenv-style ``NAME=value`` lines. In a configuration file any literal of eight or more
-   characters counts; a file under a locale directory (``locales/``, ``i18n/``, ``lang/``) holds
-   translations and is judged like code. Placeholders, references to a store (``env:NAME``,
-   ``${NAME}``, ``$NAME``, ``%NAME%``), ``X-`` header names and the Kubernetes Secret a chart's
-   ``existingSecret`` names never do.
-3. Entropy: long opaque tokens. A path is judged one segment at a time, and so is what follows
-   the commit, blob, tree or raw view of a GitHub or GitLab URL (`/blob/<sha>/<path>`, as the
-   crab links evidence); lock files, which carry only hashes and URLs, skip this pass.
+   characters counts; a YAML or JSON file under a locale directory (``locales/``, ``i18n/``,
+   ``translations/``) holds translations and is judged like code. Placeholders, references to
+   a store (``env:NAME``, ``${NAME}``, ``$NAME``, ``%NAME%``), ``X-`` header names and the
+   Kubernetes Secret a chart's ``existingSecret`` names never do.
+3. Entropy: long opaque tokens. A path is judged one segment at a time, and a GitHub or GitLab
+   commit, blob, tree or raw URL (`/blob/<sha>/<path>`, as the crab links evidence) is read as
+   its commit and its path, judged apart; lock files, which carry only hashes and URLs, skip
+   this pass.
 
 The rules were written for this module from the issuers' public token formats.
 """
@@ -65,16 +67,14 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 )
 _PLACEHOLDER_SEGMENT = re.compile(r"[A-Z]?(?:0+|x+|X+)")
 # scheme://user:password@host; the user part may be empty (redis://:password@host). A digest
-# after the `@` is not a host: `docker://alpine:3.20@sha256:...` pins an image by content. Every
-# repetition is bounded so that a long line cannot make a search quadratic.
+# after the `@` is not a host: `docker://alpine:3.20@sha256:...` pins an image by content, while
+# `docker://deploy:password@registry/...` still carries a password. Every repetition is bounded
+# so that a long line cannot make a search quadratic.
 _URL_CREDENTIALS = re.compile(
-    r"\b(?P<scheme>[A-Za-z][A-Za-z0-9+.-]{0,31})://"
+    r"\b[A-Za-z][A-Za-z0-9+.-]{0,31}://"
     r"(?P<user>[^\s/?#@:]{0,256}):(?P<password>[^\s/?#@]{1,256})"
     r"@(?!sha(?:256|384|512):)[\w\[]"
 )
-# Container image references are written as URLs but carry a name, a tag and a digest; the
-# registry's credentials are never part of them.
-_IMAGE_SCHEMES = frozenset({"docker", "oci"})
 
 # A name, optionally quoted (JSON, YAML), then an assignment or key separator. Comparisons
 # (==, !=, <=, >=), scopes (::) and URLs (://) are not separators.
@@ -133,10 +133,11 @@ _CONFIG_SUFFIXES = frozenset(
     {".yml", ".yaml", ".ini", ".cfg", ".conf", ".properties", ".env", ".toml", ".json"}
 )
 # Directories that hold translations: `password: Passwort` there is a label, not a credential,
-# so their YAML and JSON files are judged like code rather than like configuration.
-_LOCALE_DIRECTORIES = frozenset(
-    {"locale", "locales", "i18n", "l10n", "lang", "langs", "languages", "translations"}
-)
+# so their YAML and JSON files are judged like code rather than like configuration. Only those
+# formats: a dotenv, INI, TOML or properties file there is configuration like anywhere else.
+# `lang/` is left out, because multi-language code trees (`lang/java/...`) use it for code.
+_LOCALE_DIRECTORIES = frozenset({"locale", "locales", "i18n", "l10n", "translations"})
+_TRANSLATION_SUFFIXES = frozenset({".yml", ".yaml", ".json"})
 # A Kubernetes object name (RFC 1123 subdomain): what a chart's `existingSecret` holds.
 _KUBERNETES_NAME = re.compile(r"[a-z0-9](?:[a-z0-9.-]{0,251}+(?<=[a-z0-9]))?")
 # Generated files that carry only resolved versions, URLs and content hashes.
@@ -180,11 +181,14 @@ _ASSIGNMENT_TOKEN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,40}=(.+)$")
 # The forge URLs the crab writes itself: a GitHub repository, optionally followed by a commit,
 # blob, tree or raw view (`/blob/<sha>/<path>`), and the same views of a GitLab project, with
 # or without GitLab's `/-/` separator. The host, the repository and the view are public
-# identifiers; what follows the view (the commit or branch, then the path) is kept and judged
-# one segment at a time, where a hex commit is a digest and a path segment is a name. Every
-# repetition is bounded, and each starts after a literal host, so a long line scans linearly.
+# identifiers; what follows the view is kept, the commit or branch apart from the path after
+# it, so a hex commit is judged as a digest and the path as any path is. The path is only what
+# `quote(path, safe="/")` writes when the crab builds such a link (letters, digits, `-._~/`
+# and `%` escapes), so text glued to a URL with `,`, `;` or `=` is not part of it and is still
+# judged whole. Every repetition is bounded, and each starts after a literal host, so a long
+# line scans linearly.
 _FORGE_VIEW = r"/(?:blob|tree|raw|commit)(?=/)"
-_FORGE_PATH = r"/[^\s?#()<>\[\]{}\"'`|\\]{1,2048}+"
+_FORGE_PATH = r"/[A-Za-z0-9._~%/-]{1,2048}+"
 _SAFE_FORGE_URL = re.compile(
     r"https?://(?:"
     r"(?:www\.)?github\.com/[A-Za-z0-9_.-]{1,100}+/[A-Za-z0-9_.-]{1,100}+"
@@ -360,26 +364,32 @@ def _code_name(value: str) -> bool:
 def _header_name(value: str) -> bool:
     """An HTTP header name in the `X-` convention: `X-CSRF-Token`, `X-API-Key`, `x-api-key`.
 
-    Each word after the `X-` reads as a name (CamelCase, upper-case with digits, or a lowercase
-    word), which a random string with a leading `X-` does not.
+    Each word after the `X-` reads as a name (CamelCase, upper-case or a lowercase word), and
+    digits appear only in a short word (`X-B3-TraceId`), which a random string with a leading
+    `X-` (`X-Q7Rk9Zp2Wm4Tn8VbL3`) does not do.
     """
 
     if value[:2] not in {"X-", "x-"}:
         return False
-    words = value[2:].split("-")
-    return all(word and (_code_name(word) or (word.isalpha() and word.islower())) for word in words)
+    return all(
+        word
+        and (word.isalpha() or len(word) <= 4)
+        and (_code_name(word) or (word.isalpha() and word.islower()))
+        for word in value[2:].split("-")
+    )
 
 
 def _secret_object_name(name: str, value: str) -> bool:
     """A Kubernetes Secret named by a chart value (`existingSecret: my-release-postgresql`).
 
-    The key says the secret already exists elsewhere, and the value is shaped as a Kubernetes
-    object name (lowercase letters, digits, `-` and `.`), so it names the object holding the
-    credential rather than being one.
+    The key is `existingSecret` (or `existing_secret`): the Secret already exists elsewhere, and
+    the value is shaped as a Kubernetes object name (lowercase letters, digits, `-` and `.`),
+    so it names the object holding the credential rather than being one. `existingPassword`
+    or `use_existing_token` hold the credential itself.
     """
 
     words = _name_words(name)
-    return "existing" in words[:-1] and _KUBERNETES_NAME.fullmatch(value) is not None
+    return words[-2:] == ("existing", "secret") and _KUBERNETES_NAME.fullmatch(value) is not None
 
 
 def _credential_literal(value: str, *, name: str = "", config: bool = False) -> bool:
@@ -445,7 +455,9 @@ def _accepts_bare_values(logical_path: str) -> bool:
 
 def _is_config_file(logical_path: str) -> bool:
     path = PurePosixPath(logical_path.replace("\\", "/"))
-    if any(part.lower() in _LOCALE_DIRECTORIES for part in path.parts[:-1]):
+    if path.suffix.lower() in _TRANSLATION_SUFFIXES and any(
+        part.lower() in _LOCALE_DIRECTORIES for part in path.parts[:-1]
+    ):
         return False
     return path.suffix.lower() in _CONFIG_SUFFIXES or _is_dotenv(path.name.lower())
 
@@ -468,8 +480,7 @@ def _shape_rules(line: str) -> list[str]:
     for match in _URL_CREDENTIALS.finditer(line):
         password = match.group("password")
         if not (
-            match.group("scheme").lower() in _IMAGE_SCHEMES
-            or _looks_placeholder(password)
+            _looks_placeholder(password)
             or password.lower() in _URL_PLACEHOLDERS
             or password.lower() == match.group("user").lower()
             or _MASKED.fullmatch(password)
@@ -520,14 +531,16 @@ def _credential_assignment(line: str, *, bare_values: bool, config: bool) -> boo
 
 
 def _forge_url_segments(match: re.Match[str]) -> str:
-    """A forge URL without its public identifiers: the commit and path after the view.
+    """A forge URL without its public identifiers: the commit, then the path after it.
 
-    A hex commit followed by a mixed-case path reads as one dense token, so they are not left
-    joined; the commit and each path segment are still judged on their own.
+    A hex commit followed by a mixed-case path reads as one dense token, so the two are not
+    left joined. The commit (or branch) is judged on its own, and the path as any path is: one
+    segment at a time, unless the whole of it is base64 denser than any path.
     """
 
-    path = match.group("github_path") or match.group("gitlab_path") or ""
-    return " " + path.replace("/", " ") + " "
+    path = (match.group("github_path") or match.group("gitlab_path") or "").lstrip("/")
+    ref, _, rest = path.partition("/")
+    return f" {ref} {rest} "
 
 
 def _entropy_hit(line: str) -> bool:
