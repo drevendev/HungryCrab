@@ -381,7 +381,7 @@ commenters. This is a compliance aid, not legal advice.
 - **Two `PreToolUse` hooks make the first rule mechanical in Claude Code.** `crab-prey-guard`
   refuses a Bash command that touches the prey cache unless it is one of a few audited
   read-only shapes, and `crab-cleanroom-guard` keeps the clean-room implementer out of the
-  cache altogether. They guard the Bash tool only. They run from the plugin's own source tree
+  cache altogether. The prey guard sees the Bash tool only; the clean-room guard sees the implementer's Read, Grep, Glob, Write and Edit. They run from the plugin's own source tree
   through `hooks/guard.py`, with the first Python 3.11+ the shell finds, so nothing has to be
   installed or signed for them; when not even an interpreter is there, the hook says so and the
   call proceeds, because a guard that blocked every call over its own setup would be switched
