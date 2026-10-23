@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -418,18 +420,23 @@ def test_a_submodule_of_the_public_caller_is_not_a_tracked_directory(
     assert f"the maw ({maw}) is not verifiably public" in capsys.readouterr().err
 
 
-def test_a_submodule_maw_is_confirmed_by_its_own_origin(
+def test_a_submodule_maw_requires_opt_in_even_with_a_public_origin(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A submodule falls through to the forge check: public there, it uploads; else it does not."""
+    """Selecting the populated gitlink itself as the maw must not bypass the boundary."""
     _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
-    for visibility, code in [(_PUBLIC, 0), (_PRIVATE, 2)]:
+    for visibility, allow, code in [
+        (_PUBLIC, "false", 2),
+        (_PRIVATE, "false", 2),
+        (_PUBLIC, "true", 0),
+    ]:
         module, calls = _action(
             tmp_path,
             monkeypatch,
             prey="pypa/pipx",
             event={"repository": {"private": False}},
             maw="vendor/private",
+            allow=allow,
         )
         forge = _Forge({"pypa/pipx": _PUBLIC, "owner/vendored": visibility})
         monkeypatch.setattr(module, "client_for", lambda _, forge=forge: forge)
@@ -486,7 +493,7 @@ def test_a_public_maw_carrying_a_populated_private_submodule_is_refused(
     origin: str | None,
     visibility: dict[str, object] | None,
 ) -> None:
-    """#386: the inventory walks into a checked-out submodule, so its visibility is asked too."""
+    """#386: a checked-out private submodule reaches the filesystem inventory."""
     _caller_with_submodule(tmp_path, origin=origin)
     module, calls = _public_maw_with_submodule(
         tmp_path, monkeypatch, maw=maw, visibility=visibility
@@ -513,11 +520,43 @@ def test_an_uninitialised_submodule_is_nothing_to_digest(
     assert module.run() == 0 and len(calls) == 1
 
 
-def test_a_populated_submodule_the_forge_confirms_public_uploads(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("content", ["clean", "untracked", "ignored", "modified", "unpublished"])
+@pytest.mark.parametrize("maw", [".", "vendor"])
+def test_public_origin_submodule_bytes_require_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, content: str, maw: str
 ) -> None:
-    _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
-    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=_PUBLIC)
+    """#405: forge-public metadata cannot attest to the filesystem the digest reads."""
+    from hungry_crab.miners.inventory import walk_tree
+
+    workspace = _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    checkout = workspace / "vendor" / "private"
+    if content in {"untracked", "ignored", "unpublished"}:
+        note = checkout / "private-notes.md"
+        note.write_text("# Synthetic local-only note\n", encoding="utf-8")
+        if content == "ignored":
+            gitdir = Path(git(checkout, "rev-parse", "--absolute-git-dir").strip())
+            (gitdir / "info").mkdir(exist_ok=True)
+            (gitdir / "info" / "exclude").write_text("private-notes.md\n", encoding="utf-8")
+            assert git(checkout, "check-ignore", "private-notes.md").strip() == "private-notes.md"
+        elif content == "unpublished":
+            git(checkout, "add", "private-notes.md")
+            git(checkout, "commit", "-q", "-m", "local-only change")
+            recorded = git(workspace, "ls-files", "-s", "--", "vendor/private").split()[1]
+            assert git(checkout, "rev-parse", "HEAD").strip() != recorded
+        else:
+            assert "?? private-notes.md" in git(checkout, "status", "--porcelain")
+        files, _ = walk_tree(workspace / maw, max_files=100)
+        assert any(file.path.endswith("/private-notes.md") for file in files)
+    elif content == "modified":
+        (checkout / "secret_plan.md").write_text("# Synthetic modified note\n", encoding="utf-8")
+        assert " M secret_plan.md" in git(checkout, "status", "--porcelain")
+
+    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=maw, visibility=_PUBLIC)
+    assert module.run() == 2
+    assert calls == [], "refuse before any acquisition, digest or bundle output"
+    assert not (tmp_path / "outputs").exists()
+    # The escape hatch is deliberate and works with exactly the same local bytes.
+    monkeypatch.setenv("CRAB_ALLOW_PRIVATE_ARTIFACT", "true")
     assert module.run() == 0 and len(calls) == 1
 
 
@@ -531,7 +570,62 @@ def test_a_private_submodule_uploads_with_the_opt_in(
     assert module.run() == 0 and len(calls) == 1
 
 
-def test_a_public_submodule_still_answers_for_its_own_submodules(
+@pytest.mark.parametrize("marker", [".GIT", None], ids=["case-variant", "missing-metadata"])
+@pytest.mark.parametrize("event", [{"repository": {"private": False}}, None])
+def test_gitlink_with_local_bytes_is_refused_regardless_of_git_marker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    marker: str | None,
+    event: dict[str, object] | None,
+) -> None:
+    workspace = _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    name = "vendor/public library"
+    git(workspace, "mv", "vendor/private", name)
+    checkout = workspace / name
+    # Gitlinks must remain blocked when Windows accepts a case variant, or .git is removed.
+    metadata = checkout / ".git"
+    if marker is None:
+        metadata.unlink()
+    else:
+        metadata.rename(checkout / ".git-temporary")
+        (checkout / ".git-temporary").rename(checkout / marker)
+    (checkout / "private-notes.md").write_text("synthetic private note\n", encoding="utf-8")
+    module, calls = _action(tmp_path, monkeypatch, prey="pypa/pipx", event=event)
+    monkeypatch.setattr(
+        module,
+        "client_for",
+        lambda _: _Forge({"pypa/pipx": _PUBLIC, CALLER: _PUBLIC, "owner/vendored": _PUBLIC}),
+    )
+    assert module.run() == 2 and calls == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native Windows junction check")
+def test_a_gitlink_replaced_by_a_windows_junction_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = _caller_with_submodule(tmp_path)
+    git(workspace, "submodule", "deinit", "-q", "-f", "vendor/private")
+    checkout = workspace / "vendor" / "private"
+    checkout.rmdir()  # The fixture's uninitialised, empty directory only.
+    target = tmp_path / "local-files"
+    target.mkdir()
+    (target / "private-notes.md").write_text("synthetic private note\n", encoding="utf-8")
+    completed = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(checkout), str(target)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    try:
+        module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=None)
+        assert module.run() == 2 and calls == []
+    finally:
+        checkout.rmdir()  # Remove the junction itself; preserve its target.
+    assert (target / "private-notes.md").is_file()
+
+
+def test_refusing_a_public_submodule_also_blocks_its_nested_submodules(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """`submodules: recursive` checks out the private repositories a public one points at."""
@@ -539,9 +633,9 @@ def test_a_public_submodule_still_answers_for_its_own_submodules(
         tmp_path, origin="https://github.com/owner/vendored", nested=True
     )
     module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=_PUBLIC)
-    assert module.unconfirmed_submodules(workspace) == ["vendor/private/inner"]
+    assert module.unconfirmed_submodules(workspace) == ["vendor/private"]
     assert module.run() == 2 and calls == []
-    assert "the submodule vendor/private/inner checked out" in capsys.readouterr().err
+    assert "the submodule vendor/private checked out" in capsys.readouterr().err
 
 
 def test_uninitialised_gitlinks_do_not_count_against_the_bound(
@@ -706,3 +800,54 @@ def test_private_nested_checkout_needs_explicit_opt_in(
     git(nested, "remote", "add", "origin", "https://github.com/owner/secret")
     monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
     assert module.run() == 0 and len(calls) == 1
+
+
+def test_submodule_listing_failure_refuses_before_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    monkeypatch.setattr(module, "_gitlinks", lambda _: None)
+    assert module.run() == 2 and calls == []
+
+
+def test_missing_git_refuses_before_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    monkeypatch.setattr(module.GitRunner, "available", staticmethod(lambda: False))
+    assert module.run() == 2 and calls == []
+
+
+def test_nested_checkout_scan_failure_refuses_before_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+
+    def failed_walk(*args: Any, **kwargs: Any) -> list[Any]:
+        kwargs["onerror"](PermissionError("synthetic unreadable directory"))
+        return []
+
+    monkeypatch.setattr(module.os, "walk", failed_walk)
+    assert module.run() == 2 and calls == []
+
+
+def test_nested_checkout_limit_refuses_before_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx", event={"repository": {"private": False}}
+    )
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC}))
+    monkeypatch.setattr(module, "MAX_NESTED_CHECKOUTS", 1)
+    for name in ("first", "second"):
+        checkout = tmp_path / "workspace" / name
+        checkout.mkdir()
+        (checkout / ".git").mkdir()
+    assert module.run() == 2 and calls == []

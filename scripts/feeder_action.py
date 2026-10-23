@@ -151,19 +151,20 @@ def maw_is_public(maw: Path) -> bool:
 
     The maw digest is uploaded beside the prey digest, so a private checkout digested as the maw
     is as exposed as a private prey. A maw with no recognisable origin is unconfirmed, unless it
-    is a tracked directory of the public caller's own checkout. A submodule is confirmed by its
-    own origin: it is the root of its own repository, which the forge has to call public.
+    is a tracked directory of the public caller's own checkout. Selecting a populated gitlink
+    as the maw must not bypass the refusal of local submodule bytes below a public maw.
     """
+    if _tracked_gitlink_checkout(maw):
+        return False
     if maw_in_public_caller(maw):
         return True
     slug = maw_origin(maw)
     return slug is not None and _origin_is_public(slug)
 
 
-# Bounds on the checked-out submodules a public maw may carry: past them nothing is vouched for.
+# Bound the number of populated submodules reported in a refusal.
 # Uninitialised gitlinks hold nothing and do not count.
 MAX_SUBMODULES = 256
-MAX_SUBMODULE_DEPTH = 8
 
 
 def _gitlinks(directory: Path) -> list[str] | None:
@@ -190,42 +191,26 @@ def _populated(place: Path) -> bool:
 
 
 def unconfirmed_submodules(maw: Path) -> list[str] | None:
-    """Populated submodules inside a public maw that are not verifiably public.
+    """Populated gitlinks whose local bytes cannot be vouched for by a public remote.
 
     The inventory walks the maw's directory and reads whatever files sit there, so a checked-out
     submodule reaches the maw digest like the maw's own files, while the caller's visibility says
-    nothing about it. Each populated gitlink must therefore be the root of a repository whose own
-    origin is confirmed public, and the same holds for the submodules inside it. An empty
-    (uninitialised) gitlink directory holds nothing to digest. The result is the POSIX paths
-    below the maw, sorted; None means the submodules could not be listed within the bounds.
+    nothing about it. Even a public origin cannot attest to untracked, ignored, modified or
+    unpublished content. Refuse every populated gitlink, including ones without Git metadata;
+    this also blocks anything nested inside it without inspecting another repository.
+    Empty (uninitialised) gitlinks hold nothing to digest. Return sorted POSIX paths below the
+    maw, or None if they cannot be listed within the bounds.
     """
-    pending: list[tuple[Path, str, int]] = [(maw, "", 0)]
+    links = _gitlinks(maw)
+    if links is None:
+        return None
     unconfirmed: list[str] = []
-    populated = 0
-    while pending:
-        directory, prefix, depth = pending.pop()
-        links = _gitlinks(directory)
-        if links is None:
-            return None
-        for path in links:
-            name = f"{prefix}{path}"
-            place = directory / path
-            # A path that did not decode cannot be looked up, so it is not vouched for.
-            undecodable = chr(0xFFFD) in path
-            if not undecodable and not _populated(place):
-                continue
-            # Only a checked-out submodule costs a forge question; empty gitlinks are free.
-            populated += 1
-            if populated > MAX_SUBMODULES:
+    for path in links:
+        # A path that did not decode cannot be looked up, so it is not vouched for.
+        if chr(0xFFFD) in path or _populated(maw / path):
+            unconfirmed.append(path)
+            if len(unconfirmed) > MAX_SUBMODULES:
                 return None
-            if undecodable:
-                unconfirmed.append(name)
-                continue
-            slug = maw_origin(place)
-            if slug is None or depth >= MAX_SUBMODULE_DEPTH or not _origin_is_public(slug):
-                unconfirmed.append(name)
-                continue
-            pending.append((place, f"{name}/", depth + 1))
     return sorted(unconfirmed)
 
 
@@ -236,6 +221,8 @@ MAX_NESTED_CHECKOUTS = 256
 
 def _tracked_gitlink_checkout(directory: Path) -> bool:
     """Only tracked submodules are handled by unconfirmed_submodules instead."""
+    if not GitRunner.available():
+        return False
     parent = GitRunner(directory.parent).toplevel()
     if parent is None:
         return False

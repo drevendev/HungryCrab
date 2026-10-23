@@ -96,6 +96,12 @@ repository the forge confirms is public, or it is a directory of the public call
 own checkout that holds tracked files (a monorepo package such as `maw: packages/app`). A maw
 with no recognisable `origin`, an untracked directory, or one the `token` cannot see, counts as
 unconfirmed. `allow-private-artifact: true` uploads it anyway.
+For public or unknown callers, a maw containing a separate nested Git checkout or a populated
+submodule is also refused before digest, even when that checkout's origin is public. Remote
+visibility cannot vouch for local untracked, ignored, modified or unpublished files. Selecting
+a gitlink itself as the maw does not bypass this boundary. Empty, uninitialised gitlinks and
+ordinary build output without Git metadata remain allowed. Use `allow-private-artifact: true`
+only when you intend to expose those local bytes in the artifact.
 Git uses a process-local, GitHub-scoped HTTP header,
 never credentials in URLs or stored configuration. Issue acquisition also needs read access
 to issues; set `issues: 0` for a contents-only token. Public prey need no write permissions.

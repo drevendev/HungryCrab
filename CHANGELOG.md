@@ -19,6 +19,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Feeder:** populated submodules now require `allow-private-artifact: true` for public or
+  unknown callers even when their origin is public, including when a gitlink itself is selected
+  as the maw. Local untracked, ignored, modified and unpublished bytes cannot be proven public
+  by remote visibility. Empty, uninitialised gitlinks remain allowed
+  ([#405](https://github.com/drevendev/HungryCrab/issues/405)).
+
 - **Feeder:** for public or unknown callers, a public maw containing a separate nested Git
   checkout (including a second `actions/checkout`) is refused before digest unless
   `allow-private-artifact` is explicitly enabled. A public Git remote cannot vouch for
