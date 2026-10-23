@@ -264,9 +264,7 @@ def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
     failures: list[OSError] = []
     unconfirmed: list[str] = []
     examined = 0
-    for base, dirs, files in os.walk(
-        maw, topdown=True, followlinks=False, onerror=failures.append
-    ):
+    for base, dirs, files in os.walk(maw, topdown=True, followlinks=False, onerror=failures.append):
         marker = ".git" in dirs or ".git" in files
         dirs[:] = [name for name in dirs if name != ".git"]
         checkout = Path(base)
