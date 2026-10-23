@@ -223,6 +223,9 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             value = marker.group(1)
             if not fence:
                 fence, fence_length = value[0], len(value)
+                if not line.startswith(" "):
+                    # An unindented fence ends a list item, quote or table (CommonMark).
+                    in_block = False
             elif (
                 value[0] == fence
                 and len(value) >= fence_length

@@ -279,6 +279,10 @@ AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/" + "bPxRfiCYq9R2kL7mN3"
         ("src/locale/fr.json", '    "token": "Jetonsecret",'),
         ("app/translations/messages.de.yaml", "  password: Kennwortfeld"),
         ("src/i18n/pt-BR.yaml", "  password: Senhasecreta"),
+        # Laravel keeps its translations under lang/, named after the locale.
+        ("lang/de.json", '    "Password": "Passwort",'),
+        ("resources/lang/de.json", '    "Password": "Passwort",'),
+        ("src/lang/pt_BR.json", '    "password": "Palavrapasse",'),
         # A chart names the Kubernetes Secret that holds the credential.
         ("charts/app/values.yaml", "  existingSecret: my-release-postgresql"),
         ("charts/app/values.yaml", "  auth:\n    existingSecret: db-credentials.v2"),
@@ -288,6 +292,7 @@ AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/" + "bPxRfiCYq9R2kL7mN3"
         ("src/web/api.py", 'API_KEY = "x-api-key"'),
         ("src/web/trace.ts", 'const traceToken = "X-B3-TraceId";'),
         ("config/http.yml", "auth_token: X-Auth-Token"),
+        ("src/web/hooks.ts", 'const webhookSecret = "X-Hub-Signature-256";'),
         # Slack's prefixes are xoxa, xoxb, xoxc, xoxd, xoxe, xoxp, xoxr, xoxs and xapp.
         ("docs/emoji.md", "Signed off with xoxo-from-the-whole-team"),
         ("src/slugs.py", "SLUG = 'xoxo-gossip-girl-recap'"),
@@ -307,6 +312,9 @@ def test_the_0_6_1_false_positives_do_not_block(path: str, line: str) -> None:
         ("charts/app/values.yaml", "existingSecret: " + PASSWORD, "credential-assignment"),
         ("charts/app/values.yaml", "adminPassword: my-release-postgresql", "credential-assignment"),
         ("config/locales/de.yml", f"password: {LITERAL}", "credential-assignment"),
+        # A file under lang/ that is not named after a locale is code or configuration.
+        ("lang/go/config.yml", "api_token: Summer2024Token", "credential-assignment"),
+        ("lang/settings.json", '"password": "Summer2024Token",', "credential-assignment"),
         ("docs/slack.md", "SLACK=" + "xoxs-" + "1234567890-ABCDEFGHIJ", "slack-token"),
         ("docs/slack.md", "SLACK=" + "xapp-" + "1-A0123456789-abcdef", "slack-token"),
         # Review of #388: an image reference with a password still carries the password.

@@ -135,8 +135,11 @@ _CONFIG_SUFFIXES = frozenset(
 # Directories that hold translations: `password: Passwort` there is a label, not a credential,
 # so their YAML and JSON files are judged like code rather than like configuration. Only those
 # formats: a dotenv, INI, TOML or properties file there is configuration like anywhere else.
-# `lang/` is left out, because multi-language code trees (`lang/java/...`) use it for code.
 _LOCALE_DIRECTORIES = frozenset({"locale", "locales", "i18n", "l10n", "translations"})
+# `lang/` holds Laravel's translations (`lang/de.json`) but also the code of multi-language trees
+# (`lang/go/config.yml`), so a file there counts only when it is named after a locale.
+_LANG_DIRECTORY = "lang"
+_LOCALE_NAME = re.compile(r"[a-z]{2,3}(?:[_-][A-Za-z]{2,4})?")
 _TRANSLATION_SUFFIXES = frozenset({".yml", ".yaml", ".json"})
 # A Kubernetes object name (RFC 1123 subdomain): what a chart's `existingSecret` holds.
 _KUBERNETES_NAME = re.compile(r"[a-z0-9](?:[a-z0-9.-]{0,251}+(?<=[a-z0-9]))?")
@@ -364,18 +367,23 @@ def _code_name(value: str) -> bool:
 def _header_name(value: str) -> bool:
     """An HTTP header name in the `X-` convention: `X-CSRF-Token`, `X-API-Key`, `x-api-key`.
 
-    Each word after the `X-` reads as a name (CamelCase, upper-case or a lowercase word), and
-    digits appear only in a short word (`X-B3-TraceId`), which a random string with a leading
-    `X-` (`X-Q7Rk9Zp2Wm4Tn8VbL3`) does not do.
+    Each word after the `X-` reads as a name (CamelCase, upper-case or a lowercase word) or is a
+    number (`X-Hub-Signature-256`), and other digits appear only in a short word
+    (`X-B3-TraceId`), which a random string with a leading `X-` (`X-Q7Rk9Zp2Wm4Tn8VbL3`) does
+    not do. At least one word is a word.
     """
 
     if value[:2] not in {"X-", "x-"}:
         return False
-    return all(
-        word
-        and (word.isalpha() or len(word) <= 4)
-        and (_code_name(word) or (word.isalpha() and word.islower()))
-        for word in value[2:].split("-")
+    words = value[2:].split("-")
+    return any(word.isalpha() for word in words) and all(
+        word.isdigit()
+        or (
+            word
+            and (word.isalpha() or len(word) <= 4)
+            and (_code_name(word) or (word.isalpha() and word.islower()))
+        )
+        for word in words
     )
 
 
@@ -455,10 +463,12 @@ def _accepts_bare_values(logical_path: str) -> bool:
 
 def _is_config_file(logical_path: str) -> bool:
     path = PurePosixPath(logical_path.replace("\\", "/"))
-    if path.suffix.lower() in _TRANSLATION_SUFFIXES and any(
-        part.lower() in _LOCALE_DIRECTORIES for part in path.parts[:-1]
-    ):
-        return False
+    if path.suffix.lower() in _TRANSLATION_SUFFIXES:
+        directories = {part.lower() for part in path.parts[:-1]}
+        if directories & _LOCALE_DIRECTORIES or (
+            _LANG_DIRECTORY in directories and _LOCALE_NAME.fullmatch(path.stem) is not None
+        ):
+            return False
     return path.suffix.lower() in _CONFIG_SUFFIXES or _is_dotenv(path.name.lower())
 
 

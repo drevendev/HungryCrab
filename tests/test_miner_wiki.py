@@ -216,6 +216,17 @@ def test_an_html_block_inside_a_list_item_keeps_the_item_s_body(body: str) -> No
     assert [h["title"] for h in readme_outline(text)["headings"]] == ["Tool"]
 
 
+@pytest.mark.parametrize(
+    "block",
+    ["1. Install:", "> Note", "| a | b |"],
+    ids=["ordered-list", "quote", "table"],
+)
+def test_an_unindented_fence_ends_the_block_before_it(block: str) -> None:
+    """Re-review of #389: a fence at the margin ends a list item, quote or table."""
+    text = f"Intro\n\n{block}\n```sh\npip install tool\n```\nConfiguration\n-------------\n"
+    assert [h["text"] for h in markdown_headings(text)] == ["Configuration"]
+
+
 def test_html_blocks_scan_in_linear_time() -> None:
     started = time.perf_counter()
     markdown_headings("<pre>\n" + "x\n\n" * 100_000 + "</pre>\n")

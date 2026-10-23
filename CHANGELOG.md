@@ -38,7 +38,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   image pinned by digest is not a password in a URL, the Slack shape lists only Slack's
   prefixes (`xox[abcdeprs]-`, `xapp-`), so `xoxo` is a word, and `X-` header names, the
   Kubernetes Secret a chart's `existingSecret` names and YAML or JSON translations under
-  `locales/`, `i18n/`, `translations/` and similar directories are not credential literals
+  `locales/`, `i18n/`, `translations/` and similar directories (and locale-named files under
+  Laravel's `lang/`) are not credential literals
   ([#388](https://github.com/drevendev/HungryCrab/issues/388)).
 - **No body text in summaries:** nothing inside an HTML block that runs to an end condition
   (`<pre>`, `<script>`, `<style>`, `<textarea>`, comments, processing instructions,
