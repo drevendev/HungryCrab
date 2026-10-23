@@ -22,7 +22,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Feeder:** a submodule of the public calling repository, or a directory inside one, no
   longer counts as a tracked directory of the caller; its gitlink is another repository, so the
   maw is confirmed by its own origin through the forge, and refused without
-  `allow-private-artifact` when nothing confirms it
+  `allow-private-artifact` when nothing confirms it. A maw confirmed public no longer carries
+  a private submodule into the artifact either: every checked-out submodule under it, nested
+  ones included, must have an origin the forge confirms public, or the run is refused naming
+  the submodule; an uninitialised one holds nothing and is fine
   ([#386](https://github.com/drevendev/HungryCrab/issues/386)).
 - **Publication:** `serve --as pr-branch` no longer refuses its own pull-request body. The
   pre-push secret scan reads the commit, blob, tree and raw URLs of GitHub and GitLab, the

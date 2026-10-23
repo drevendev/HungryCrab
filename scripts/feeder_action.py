@@ -139,6 +139,13 @@ def maw_in_public_caller(maw: Path) -> bool:
     return tracked is not None and _tracks_a_file(tracked)
 
 
+def _origin_is_public(slug: Slug) -> bool:
+    """The public calling repository itself, or a repository the forge confirms is public."""
+    if _is_caller(slug) and caller_is_private() is False:
+        return True
+    return forge_says_public(slug)
+
+
 def maw_is_public(maw: Path) -> bool:
     """True only when the maw is the public calling repository or the forge says it is public.
 
@@ -150,16 +157,83 @@ def maw_is_public(maw: Path) -> bool:
     if maw_in_public_caller(maw):
         return True
     slug = maw_origin(maw)
-    if slug is None:
-        return False
-    caller = os.environ.get("GITHUB_REPOSITORY", "")
-    if (
-        slug.host == "github.com"
-        and f"{slug.owner}/{slug.repo}".casefold() == caller.casefold()
-        and caller_is_private() is False
-    ):
+    return slug is not None and _origin_is_public(slug)
+
+
+# Bounds on the submodules a public maw may carry: past them nothing is vouched for.
+MAX_SUBMODULES = 256
+MAX_SUBMODULE_DEPTH = 8
+
+
+def _gitlinks(directory: Path) -> list[str] | None:
+    """The gitlink paths git tracks at or below ``directory``, relative to it; None if unknown."""
+    listing = GitRunner(directory).try_run("ls-files", "-s", "-z")
+    if listing is None:
+        return None
+    paths = []
+    for entry in listing.split("\0"):
+        meta, _, path = entry.partition("\t")
+        if meta.startswith(f"{GITLINK_MODE} ") and path:
+            paths.append(path)
+    return paths
+
+
+def _populated(place: Path) -> bool:
+    """Whether anything sits at a gitlink's path; an empty directory is an uninitialised one."""
+    try:
+        if place.is_symlink():
+            return True
+        return place.exists() and (not place.is_dir() or any(place.iterdir()))
+    except OSError:
         return True
-    return forge_says_public(slug)
+
+
+def unconfirmed_submodules(maw: Path) -> list[str] | None:
+    """Populated submodules inside a public maw that are not verifiably public.
+
+    The inventory walks the maw's directory and reads whatever files sit there, so a checked-out
+    submodule reaches the maw digest like the maw's own files, while the caller's visibility says
+    nothing about it. Each populated gitlink must therefore be the root of a repository whose own
+    origin is confirmed public, and the same holds for the submodules inside it. An empty
+    (uninitialised) gitlink directory holds nothing to digest. The result is the POSIX paths
+    below the maw, sorted; None means the submodules could not be listed within the bounds.
+    """
+    pending: list[tuple[Path, str, int]] = [(maw, "", 0)]
+    unconfirmed: list[str] = []
+    seen = 0
+    while pending:
+        directory, prefix, depth = pending.pop()
+        links = _gitlinks(directory)
+        if links is None:
+            return None
+        for path in links:
+            seen += 1
+            if seen > MAX_SUBMODULES:
+                return None
+            name = f"{prefix}{path}"
+            place = directory / path
+            # A path that did not decode cannot be looked up, so it is not vouched for.
+            if "�" in path:
+                unconfirmed.append(name)
+                continue
+            if not _populated(place):
+                continue
+            slug = maw_origin(place)
+            if slug is None or depth >= MAX_SUBMODULE_DEPTH or not _origin_is_public(slug):
+                unconfirmed.append(name)
+                continue
+            pending.append((place, f"{name}/", depth + 1))
+    return sorted(unconfirmed)
+
+
+def _submodule_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
+    """How the refusal names the submodules of a public maw, and whether that is plural."""
+    if paths is None:
+        return f"the maw ({maw_label}), whose submodules cannot be listed,", False
+    shown = ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+    plural = len(paths) > 1
+    noun = "submodules" if plural else "submodule"
+    return f"the {noun} {shown} checked out in the maw ({maw_label})", plural
 
 
 def run() -> int:
@@ -184,12 +258,20 @@ def run() -> int:
     # bundle holds the maw digest as well as the prey digest.
     if allow == "false" and caller_is_private() is not True:
         unconfirmed = []
+        plural = False
         if not prey_is_public(prey, local=local):
             unconfirmed.append("the prey")
+        maw_label = os.environ.get("CRAB_MAW", ".")
         if not maw_is_public(maw):
-            unconfirmed.append(f"the maw ({os.environ.get('CRAB_MAW', '.')})")
+            unconfirmed.append(f"the maw ({maw_label})")
+        else:
+            # A public maw still carries whatever its checked-out submodules hold.
+            submodules = unconfirmed_submodules(maw)
+            if submodules != []:
+                side, plural = _submodule_side(maw_label, submodules)
+                unconfirmed.append(side)
         if unconfirmed:
-            verb = "are" if len(unconfirmed) > 1 else "is"
+            verb = "are" if len(unconfirmed) > 1 or plural else "is"
             sides = f"{' and '.join(unconfirmed)} {verb}"
             print(EXPOSURE_REFUSAL.format(sides=sides), file=sys.stderr)
             return 2

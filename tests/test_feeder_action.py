@@ -330,11 +330,15 @@ def test_a_private_maw_uploads_only_with_the_opt_in_or_a_private_caller(
         assert module.run() == 0 and len(calls) == 1
 
 
-def _caller_with_submodule(tmp_path: Path, *, origin: str | None = None) -> Path:
+def _caller_with_submodule(
+    tmp_path: Path, *, origin: str | None = None, nested: bool = False
+) -> Path:
     """A public caller checkout with a local repository added as the submodule vendor/private.
 
     The caller tracks a file of its own as well, so the workspace is a real tracked tree and the
-    only entry the caller has under ``vendor/private`` is the gitlink (mode 160000).
+    only entry the caller has under ``vendor/private`` is the gitlink (mode 160000). ``nested``
+    gives that repository a populated submodule of its own, ``vendor/private/inner``, whose
+    origin is a local path no forge can confirm.
     """
     private = tmp_path / "private-src"
     (private / "docs").mkdir(parents=True)
@@ -343,6 +347,24 @@ def _caller_with_submodule(tmp_path: Path, *, origin: str | None = None) -> Path
     (private / "docs" / "plan.md").write_text("# Plan\n", encoding="utf-8")
     git(private, "add", ".")
     git(private, "commit", "-q", "-m", "private")
+    if nested:
+        inner = tmp_path / "inner-src"
+        inner.mkdir()
+        git(inner, "init", "-q")
+        (inner / "credentials.md").write_text("# Inner secrets\n", encoding="utf-8")
+        git(inner, "add", ".")
+        git(inner, "commit", "-q", "-m", "inner")
+        git(
+            private,
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "add",
+            "-q",
+            str(inner),
+            "inner",
+        )
+        git(private, "commit", "-q", "-m", "inner submodule")
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     git(workspace, "init", "-q")
@@ -361,6 +383,18 @@ def _caller_with_submodule(tmp_path: Path, *, origin: str | None = None) -> Path
         "vendor/private",
     )
     git(workspace, "commit", "-q", "-m", "submodule")
+    if nested:
+        git(
+            workspace,
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "update",
+            "-q",
+            "--init",
+            "--recursive",
+        )
+        assert (workspace / "vendor" / "private" / "inner" / "credentials.md").is_file()
     if origin is not None:
         git(workspace / "vendor" / "private", "remote", "set-url", "origin", origin)
     return workspace
@@ -401,3 +435,110 @@ def test_a_submodule_maw_is_confirmed_by_its_own_origin(
         monkeypatch.setattr(module, "client_for", lambda _, forge=forge: forge)
         assert module.run() == code
         assert len(calls) == (1 if code == 0 else 0)
+
+
+def _public_maw_with_submodule(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    maw: str,
+    visibility: dict[str, object] | None,
+    allow: str = "false",
+) -> tuple[Any, list[list[str]]]:
+    """The public caller's own checkout (or a tracked directory of it) as the maw.
+
+    ``vendor/NOTICE`` makes ``vendor`` a tracked directory of the caller beside the submodule.
+    ``visibility`` is what the forge says about the submodule's origin; None means it fails.
+    """
+    workspace = tmp_path / "workspace"
+    (workspace / "vendor" / "NOTICE").write_text("vendored code\n", encoding="utf-8")
+    git(workspace, "add", "vendor/NOTICE")
+    git(workspace, "commit", "-q", "-m", "notice")
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"private": False}},
+        maw=maw,
+        allow=allow,
+    )
+    known = {"pypa/pipx": _PUBLIC}
+    if visibility is not None:
+        known["owner/vendored"] = visibility
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge(known))
+    return module, calls
+
+
+@pytest.mark.parametrize(
+    ("maw", "shown"), [(".", "vendor/private"), ("vendor", "private")], ids=["root", "tracked-dir"]
+)
+@pytest.mark.parametrize(
+    ("origin", "visibility"),
+    [(None, None), ("https://github.com/owner/vendored", _PRIVATE)],
+    ids=["local-origin", "private-origin"],
+)
+def test_a_public_maw_carrying_a_populated_private_submodule_is_refused(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    maw: str,
+    shown: str,
+    origin: str | None,
+    visibility: dict[str, object] | None,
+) -> None:
+    """#386: the inventory walks into a checked-out submodule, so its visibility is asked too."""
+    _caller_with_submodule(tmp_path, origin=origin)
+    module, calls = _public_maw_with_submodule(
+        tmp_path, monkeypatch, maw=maw, visibility=visibility
+    )
+    assert module.maw_is_public(tmp_path / "workspace" / maw) is True, "the maw itself is"
+    assert module.run() == 2
+    assert calls == [], "the refusal comes before any acquisition or digest"
+    message = capsys.readouterr().err
+    assert f"the submodule {shown} checked out in the maw ({maw}) is not verifiably public" in (
+        message
+    )
+    assert "allow-private-artifact" in message
+
+
+def test_an_uninitialised_submodule_is_nothing_to_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workspace = _caller_with_submodule(tmp_path)
+    git(workspace, "submodule", "deinit", "-q", "-f", "vendor/private")
+    assert (workspace / "vendor" / "private").is_dir()
+    assert not any((workspace / "vendor" / "private").iterdir())
+    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=None)
+    assert module.unconfirmed_submodules(workspace) == []
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_a_populated_submodule_the_forge_confirms_public_uploads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _caller_with_submodule(tmp_path, origin="https://github.com/owner/vendored")
+    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=_PUBLIC)
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_a_private_submodule_uploads_with_the_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _caller_with_submodule(tmp_path)
+    module, calls = _public_maw_with_submodule(
+        tmp_path, monkeypatch, maw=".", visibility=None, allow="true"
+    )
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_a_public_submodule_still_answers_for_its_own_submodules(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`submodules: recursive` checks out the private repositories a public one points at."""
+    workspace = _caller_with_submodule(
+        tmp_path, origin="https://github.com/owner/vendored", nested=True
+    )
+    module, calls = _public_maw_with_submodule(tmp_path, monkeypatch, maw=".", visibility=_PUBLIC)
+    assert module.unconfirmed_submodules(workspace) == ["vendor/private/inner"]
+    assert module.run() == 2 and calls == []
+    assert "the submodule vendor/private/inner checked out" in capsys.readouterr().err
