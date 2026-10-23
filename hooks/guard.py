@@ -12,7 +12,9 @@ reason to stderr. ``0`` lets it through. ``1`` means the guard could not run —
 older than 3.11 with no newer one to hand over to, or a source tree that does not import — and
 Claude Code shows that message to the user and proceeds. Nothing in this file exits ``2`` for
 any reason other than a guard's decision: a hook that blocked every tool call over its own
-environment would be switched off, not fixed.
+environment would be switched off, not fixed. For the same reason the shell line starts this
+file only with an interpreter that has already started once with ``-I``: Python 2 and 3.0-3.3
+answer the unknown option with a usage error, and a usage error exits ``2``.
 
 Usage: ``guard.py {prey|cleanroom}``
 """
