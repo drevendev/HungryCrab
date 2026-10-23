@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+import re
 
 from hungry_crab.licensing import Mode, decide
 from hungry_crab.maw import DEFAULT_CONFIG_TEXT, MawConfig
@@ -152,28 +153,46 @@ def test_readme_shows_the_template_crab_init_writes() -> None:
     block = section.split("```yaml\n", 1)[1].split("```", 1)[0]
     assert block == DEFAULT_CONFIG_TEXT
 
-import re
 
-def test_docs_match_subparser_choices():
-    # Read the markdown files
-    agents_text = Path("AGENTS.md").read_text(encoding="utf-8")
-    glossary_text = Path("GLOSSARY.md").read_text(encoding="utf-8")
-    
-    # Grab all words inside single backticks
-    pattern = r'`([^`\n]+)`'
+def test_docs_match_subparser_choices() -> None:
+    """Verify that all CLI engine commands are documented in markdown files."""
+    agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    glossary_path = ROOT / "docs" / "design" / "GLOSSARY.md"
+    glossary_text = glossary_path.read_text(encoding="utf-8")
+
+    # Extract all text inside single backticks
+    pattern = r"`([^`\n]+)`"
     agents_tags = set(re.findall(pattern, agents_text))
     glossary_tags = set(re.findall(pattern, glossary_text))
-    
-    # Check that we actually found documented terms
-    assert len(agents_tags) > 0, "AGENTS.md is missing backticked terms"
-    assert len(glossary_tags) > 0, "GLOSSARY.md is missing backticked terms"
 
-def test_every_skill_directory_appears_in_agents():
-    agents_text = Path("AGENTS.md").read_text(encoding="utf-8")
-    skills_folder = Path("skills")
-    
-    # Make sure every sub-folder in 'skills' is listed in AGENTS.md
+    # Pull the true engine CLI commands programmatically
+    from hungry_crab.commands import build_parser
+
+    parser = build_parser()
+    engine_choices = set()
+
+    for action in parser._actions:
+        if hasattr(action, "choices") and action.choices:
+            engine_choices.update(action.choices.keys())
+
+    # Ensure every single engine command exists explicitly in both docs
+    for command in engine_choices:
+        assert command in agents_tags, (
+            f"Command `{command}` is missing from AGENTS.md"
+        )
+        assert command in glossary_tags, (
+            f"Command `{command}` is missing from GLOSSARY.md"
+        )
+
+
+def test_every_skill_directory_appears_in_agents() -> None:
+    """Ensure all directory names in skills/ are explicitly listed in AGENTS.md."""
+    agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    skills_folder = ROOT / "skills"
+
     if skills_folder.exists():
         for item in skills_folder.iterdir():
             if item.is_dir():
-                assert item.name in agents_text, f"The skill folder '{item.name}' must be listed in AGENTS.md!"
+                assert item.name in agents_text, (
+                    f"Skill folder '{item.name}' is missing from AGENTS.md"
+                )
