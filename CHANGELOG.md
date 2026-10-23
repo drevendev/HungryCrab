@@ -32,6 +32,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   reference definition is never setext heading text, so usage text and URLs underlined with
   `---` or `===` no longer reach `docs.md`, `ai.md` or the wiki outline
   ([#389](https://github.com/drevendev/HungryCrab/issues/389)).
+- **Documentation:** `SECURITY.md` states the supported versions as they are: security fixes
+  land on `master` and ship in a patch release of the latest minor version (0.6.x today), older
+  tags get no backports, and advisories name the first fixed release; the README's
+  `crab --version` example no longer names a stale version
+  ([#391](https://github.com/drevendev/HungryCrab/issues/391)).
 
 ## [0.6.1] - 2026-10-22
 

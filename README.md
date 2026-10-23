@@ -132,7 +132,7 @@ crab --version
 crab --help
 ```
 
-Both commands should exit with status `0`. `crab --version` prints the installed version (for example, `crab 0.3.0.dev0`), while `crab --help` displays usage information, available commands, and options.
+Both commands should exit with status `0`. `crab --version` prints `crab` followed by the installed version, while `crab --help` displays usage information, available commands, and options.
 
 These read-only smoke checks verify CLI availability and argument parsing only. They do not validate repository fetching, digest generation, comparisons, or GitHub issue/PR publishing.
 

@@ -63,4 +63,8 @@ restrictive one is warranted, are very welcome.
 
 ## Supported versions
 
-The project is pre-release; only the `master` branch receives fixes.
+Security fixes land on `master` first and ship in a patch release of the latest minor version,
+which is 0.6.x today. Older minor versions and older tags get no backports: the way to a fix is
+the latest patch release, or `master`. Each published advisory names the first release that
+contains the fix as its patched version, so check a new report against the latest release and
+`master`.
