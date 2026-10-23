@@ -26,6 +26,7 @@ from .errors import UsageError
 ENV_CACHE_DIR = "CRAB_CACHE_DIR"
 
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+_REPO_NAME_RE = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_.-]*$")
 _GITHUB_URL_RE = re.compile(
     r"^(?:https?://)?(?:www\.)?github\.com/(?P<owner>[^/\s]+)/(?P<repo>[^/\s#?]+?)(?:\.git)?/?"
     r"(?:[#?].*)?$"
@@ -78,7 +79,7 @@ class Slug:
         )
         if gitlab:
             parts = gitlab[1].split("/")
-            if len(parts) < 2 or any(not _NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts):
+            if len(parts) < 2 or any(not _REPO_NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts):
                 raise UsageError(f"invalid repository reference {text!r}")
             return cls("/".join(parts[:-1]), parts[-1], "gitlab.com")
         match = _GITHUB_URL_RE.match(raw) or _GITHUB_SSH_RE.match(raw)
@@ -93,7 +94,7 @@ class Slug:
                 )
             owner, repo = parts
             repo = repo.removesuffix(".git")
-        if not (_NAME_RE.fullmatch(owner) and _NAME_RE.fullmatch(repo)):
+        if not (_NAME_RE.fullmatch(owner) and _REPO_NAME_RE.fullmatch(repo)) or repo in {".", ".."}:
             raise UsageError(f"invalid repository reference {text!r}")
         return cls(owner, repo)
 
