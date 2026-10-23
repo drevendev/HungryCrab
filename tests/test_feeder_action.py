@@ -572,7 +572,7 @@ def test_uninitialised_gitlinks_do_not_count_against_the_bound(
 
 @pytest.mark.parametrize(
     ("visibility", "expected"),
-    [(_PRIVATE, 2), (None, 2), (_PUBLIC, 0)],
+    [(_PRIVATE, 2), (None, 2), (_PUBLIC, 2)],
     ids=["private", "forge-unavailable", "public"],
 )
 def test_public_maw_checks_a_separate_nested_checkout(
@@ -582,7 +582,7 @@ def test_public_maw_checks_a_separate_nested_checkout(
     visibility: dict[str, object] | None,
     expected: int,
 ) -> None:
-    """#398: second actions/checkout is not a tracked submodule."""
+    """#398: a public origin cannot vouch for untracked local credentials."""
     module, calls = _action(
         tmp_path,
         monkeypatch,
@@ -607,6 +607,31 @@ def test_public_maw_checks_a_separate_nested_checkout(
         message = capsys.readouterr().err
         assert "nested checkout private-config inside the maw (.)" in message
         assert "allow-private-artifact" in message
+
+
+
+def test_even_clean_public_origin_nested_checkout_requires_explicit_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A local commit is not necessarily published at its configured public origin."""
+    module, calls = _action(
+        tmp_path,
+        monkeypatch,
+        prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}},
+    )
+    nested = tmp_path / "workspace" / "public-named-checkout"
+    nested.mkdir()
+    git(nested, "init", "-q")
+    git(nested, "remote", "add", "origin", "https://github.com/owner/extra")
+    (nested / "local-only.txt").write_text("unpublished content\\n", encoding="utf-8")
+    git(nested, "add", "local-only.txt")
+    git(nested, "commit", "-q", "-m", "local-only")
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC, "owner/extra": _PUBLIC})
+    )
+    assert module.run() == 2 and calls == []
+
 
 
 def test_nested_worktree_git_marker_is_refused(
