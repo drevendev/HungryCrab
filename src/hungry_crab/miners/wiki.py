@@ -172,10 +172,15 @@ _HTML_BLOCK_START_RE = re.compile(
 )
 _HTML_RAW_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECASE)
 _HTML_BLOCK_ENDS = {"cdata": "]]>", "comment": "-->", "instruction": "?>", "declaration": ">"}
-# `[label]: destination` defines a link and is never paragraph text, so `===` under it does
-# not make the definition, URL and all, a heading. The label class excludes brackets, so the
-# match is linear.
-_LINK_DEFINITION_RE = re.compile(r" {0,3}\[[^\[\]]{1,999}\]:")
+# `[label]: destination "title"` defines a link and is not paragraph text, so `===` under it
+# does not make the definition, URL and all, a heading. Only a whole line of that shape is a
+# definition: a destination (`<...>` or one run without spaces) and an optional quoted or
+# parenthesised title. `[WIP]: Feature X` is text. Each class excludes its own delimiters and
+# the parts are separated by spaces a destination cannot hold, so the match is linear.
+_LINK_DEFINITION_RE = re.compile(
+    r" {0,3}\[[^\[\]]{1,999}\]:[ \t]*(?:<[^<>]*>|[^\s<]\S*)"
+    r"(?:[ \t]+(?:\"[^\"]*\"|'[^']*'|\([^()]*\)))?[ \t]*"
+)
 
 
 def _html_block_ends(kind: str, text: str) -> bool:
@@ -194,6 +199,8 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     fence_length = 0
     previous = ""
     # Inside a list item, quote, table or HTML block until a blank line: no paragraph starts.
+    # An HTML block or a fenced code block leaves it as it found it: one inside a list item does
+    # not end the item, so the line after it is still the item's body.
     in_block = False
     # Inside an HTML block of types 1-5 until its end condition, blank lines included.
     html_block = ""
@@ -202,7 +209,6 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             if _html_block_ends(html_block, line):
                 html_block = ""
             previous = ""
-            in_block = False
             continue
         if not fence and not line.startswith(("    ", "\t")):
             html = _HTML_BLOCK_START_RE.match(line)
@@ -211,7 +217,6 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
                 if not _html_block_ends(kind, line[html.start(kind) - 1 :]):
                     html_block = kind
                 previous = ""
-                in_block = False
                 continue
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
         if marker:
@@ -225,7 +230,6 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
             ):
                 fence = ""
             previous = ""
-            in_block = False
             continue
         if fence or line.startswith(("    ", "\t")):
             previous = ""
@@ -249,7 +253,8 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
         elif _BLOCK_START_RE.match(line) or "|" in line:
             previous = ""
             in_block = True
-        elif _LINK_DEFINITION_RE.match(line):
+        elif not previous and _LINK_DEFINITION_RE.fullmatch(line):
+            # A definition cannot interrupt a paragraph; under one, the line is paragraph text.
             previous = ""
         else:
             previous = "" if in_block else line.strip()

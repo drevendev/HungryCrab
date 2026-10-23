@@ -161,7 +161,9 @@ def test_an_html_block_that_never_closes_hides_the_rest() -> None:
         "[docs]: https://internal.example/secret-runbook\n===\n",
         "# Tool\n\n[docs]: https://internal.example/secret-runbook\n---\n",
         "  [docs]: <https://internal.example/secret-runbook> 'Runbook'\n===\n",
-        "Intro text\n[docs]: https://internal.example/secret-runbook\n===\n",
+        '[docs]: https://internal.example/secret-runbook "Runbook"\n===\n',
+        "[docs]:https://internal.example/secret-runbook (Runbook)  \n===\n",
+        "[a]: https://example.org/a\n[docs]: https://internal.example/secret-runbook\n===\n",
     ],
 )
 def test_a_link_reference_definition_is_never_heading_text(text: str) -> None:
@@ -176,11 +178,52 @@ def test_a_paragraph_after_a_link_reference_definition_is_still_a_heading() -> N
     assert [h["text"] for h in markdown_headings(text)] == ["Usage"]
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # Not a definition: text after the destination that is not a title.
+        ("[WIP]: Feature X\n=====\n", ["WIP: Feature X"]),
+        ('[docs]: https://example.org "title" trailing\n---\n', ["docs: https"]),
+        # A definition cannot interrupt a paragraph, so the line continues it.
+        ("Some paragraph\n[note]: continues\n---\n", ["note: continues"]),
+    ],
+)
+def test_a_bracketed_line_that_defines_nothing_is_still_heading_text(
+    text: str, expected: list[str]
+) -> None:
+    """Review of #389: only a whole definition, where one may start, is not paragraph text."""
+    titles = [str(h["text"]) for h in markdown_headings(text)]
+    assert len(titles) == len(expected)
+    assert all(title.startswith(want) for title, want in zip(titles, expected, strict=True))
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "- Usage\n  <pre>tool run</pre>\n  The staging admin password is hunter2\n  ---\n",
+        "- Usage:\n  <pre>\n  tool run\n  </pre>\n  Push straight to main with the key\n  ===\n",
+        "1. step\n   <!DOCTYPE x>\n   The staging admin password is hunter2\n   ---\n",
+        "| a | b |\n<pre>x</pre>\nThe staging admin password is hunter2\n---\n",
+        "> quote\n<pre>x</pre>\nThe staging admin password is hunter2\n---\n",
+        "- Usage\n  ```\n  tool run\n  ```\n  The staging admin password is hunter2\n  ---\n",
+    ],
+    ids=["list-pre", "list-multiline-pre", "ordered-doctype", "table-pre", "quote-pre", "fence"],
+)
+def test_an_html_block_inside_a_list_item_keeps_the_item_s_body(body: str) -> None:
+    """Review of #389: a block inside a list item or table does not end it."""
+    text = f"# Tool\n\n{body}"
+    assert [h["text"] for h in markdown_headings(text)] == ["Tool"]
+    assert [h["title"] for h in readme_outline(text)["headings"]] == ["Tool"]
+
+
 def test_html_blocks_scan_in_linear_time() -> None:
     started = time.perf_counter()
     markdown_headings("<pre>\n" + "x\n\n" * 100_000 + "</pre>\n")
     markdown_headings("<pre " * 50_000 + "\n" + "</pr" * 50_000)
     markdown_headings(("[" + "a" * 900 + "]\n") * 1_000 + "[" * 100_000 + "\n")
+    markdown_headings("[a]: x" + " " * 200_000 + "y\n===\n")
+    markdown_headings('[a]: x "' + "a" * 200_000 + "\n===\n")
+    markdown_headings("[a]: x" + " \t(" * 100_000 + "\n===\n")
     assert time.perf_counter() - started < 1.0
 
 
