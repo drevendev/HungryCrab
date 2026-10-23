@@ -33,6 +33,54 @@ def test_slug_parse_rejects_garbage(text: str) -> None:
         Slug.parse(text)
 
 
+@pytest.mark.parametrize(
+    ("text", "owner", "repo", "host"),
+    [
+        ("github/.github", "github", ".github", "github.com"),
+        ("github/_community", "github", "_community", "github.com"),
+        ("https://github.com/microsoft/.github", "microsoft", ".github", "github.com"),
+        ("https://github.com/o/.dotfiles", "o", ".dotfiles", "github.com"),
+        ("git@github.com:o/_tools.git", "o", "_tools", "github.com"),
+        ("https://github.com/o/.hidden.git", "o", ".hidden", "github.com"),
+        ("gitlab.com/gitlab-org/_test", "gitlab-org", "_test", "gitlab.com"),
+        ("https://gitlab.com/group/.config", "group", ".config", "gitlab.com"),
+        ("gitlab.com/group/_nested/.dotrepo", "group/_nested", ".dotrepo", "gitlab.com"),
+        ("git@gitlab.com:group/_repo", "group", "_repo", "gitlab.com"),
+    ],
+)
+def test_slug_parse_accepts_leading_dot_or_underscore(
+    text: str, owner: str, repo: str, host: str
+) -> None:
+    assert Slug.parse(text) == Slug(owner, repo, host)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "owner/.",
+        "owner/..",
+        "owner/-repo",
+        "-owner/repo",
+        "_owner/repo",
+        "https://github.com/o/-repo",
+        "gitlab.com/group/.",
+        "gitlab.com/group/..",
+        "gitlab.com/group/-repo",
+        "gitlab.com/group/-sub/repo",
+    ],
+)
+def test_slug_parse_rejects_unsafe_names(text: str) -> None:
+    with pytest.raises(UsageError):
+        Slug.parse(text)
+
+
+def test_resolve_target_accepts_leading_dot_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert resolve_target("github/.github") == Target(slug=Slug("github", ".github"))
+
+
 def test_prey_paths_layout(tmp_path: Path) -> None:
     paths = prey_paths(Slug("owner", "repo"), tmp_path)
     assert paths.root == tmp_path / "github" / "owner" / "repo"
