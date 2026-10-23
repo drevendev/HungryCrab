@@ -154,17 +154,25 @@ def _digest(directory: Path, manifest: dict[str, Any]) -> str:
     if not pages:
         content += "<p>No Markdown pages were retained by this digest policy.</p>"
     total = 0
-    for name in pages:
+    for index, name in enumerate(pages):
+        remaining = MAX_REPORT_BYTES // 2 - total
+        if remaining <= 0:
+            content += _notice(
+                "Report read budget exhausted; omitted pages: " + ", ".join(pages[index:])
+            )
+            break
+        read_limit = min(MAX_PAGE_BYTES, remaining)
         try:
-            raw = read_bytes(directory / name, MAX_PAGE_BYTES)
+            raw = read_bytes(directory / name, read_limit)
             total += len(raw)
-            if total > MAX_REPORT_BYTES // 2:
-                raise CrabError("digest page content exceeds the report read budget")
             content += (
                 f"<details><summary>{text(name)}</summary>"
                 f"<pre>{text(raw.decode('utf-8', errors='replace'))}</pre></details>"
             )
         except CrabError as exc:
+            # A rejected read may have consumed its entire limit plus a sentinel byte.
+            # Reserve that amount even for other read errors; failures cannot reset the budget.
+            total += read_limit + 1
             content += _notice(f"{name}: {exc.message}")
     content += "</div></section>"
     return _document(

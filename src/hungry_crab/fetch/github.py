@@ -90,16 +90,16 @@ class GitHubClient:
         payload = json.dumps({"query": query, "variables": variables}).encode()
         if self.gh:
             try:
-                proc = subprocess.run(
+                proc = run_bounded(
                     [self.gh, "api", "--hostname", GH_HOSTNAME, "graphql", "--input", "-"],
-                    input=payload,
-                    capture_output=True,
+                    input_data=payload,
                     env=_gh_env(),
                     timeout=self.timeout,
-                    check=False,
+                    stdout_limit=MAX_JSON_BYTES,
+                    stderr_limit=MAX_STDERR_BYTES,
                 )
-            except (OSError, subprocess.TimeoutExpired) as exc:
-                raise ExternalCommandError("GitHub GraphQL request failed") from exc
+            except (OSError, subprocess.TimeoutExpired, ResponseTooLargeError) as exc:
+                raise ExternalCommandError(f"GitHub GraphQL request failed: {exc}") from exc
             if proc.returncode:
                 raise ExternalCommandError("GitHub GraphQL query failed; check token permissions")
             body = proc.stdout
@@ -112,16 +112,15 @@ class GitHubClient:
             )
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    body = response.read(8 * 1024 * 1024 + 1)
-            except OSError as exc:
+                    body = read_limited(response, MAX_JSON_BYTES, label="GitHub GraphQL response")
+            except (OSError, ResponseTooLargeError) as exc:
                 raise ExternalCommandError(
-                    "GitHub GraphQL query failed; authentication is required"
+                    f"GitHub GraphQL query failed: {exc}",
+                    hint="check authentication and the response byte limit",
                 ) from exc
-        if len(body) > 8 * 1024 * 1024:
-            raise ExternalCommandError("GitHub GraphQL response exceeds 8 MiB")
         try:
             result = json.loads(body.decode("utf-8", errors="replace"))
-        except ValueError as exc:
+        except (ValueError, RecursionError) as exc:
             raise ExternalCommandError("GitHub GraphQL returned invalid JSON") from exc
         if (
             not isinstance(result, dict)

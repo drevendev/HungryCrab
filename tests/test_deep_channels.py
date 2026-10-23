@@ -268,10 +268,10 @@ def test_graphql_serializes_variables_without_query_interpolation(
     seen = {}
 
     def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
-        seen.update(json.loads(kwargs["input"]))
+        seen.update(json.loads(kwargs["input_data"]))
         return subprocess.CompletedProcess(command, 0, b'{"data":{"repository":{}}}', b"")
 
-    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr("hungry_crab.fetch.github.run_bounded", run)
     assert client.graphql(
         "query Test($name: String!) { repository(name: $name) { id } }", {"name": 'quoted"name'}
     ) == {"repository": {}}

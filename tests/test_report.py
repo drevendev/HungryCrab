@@ -155,3 +155,35 @@ def test_digest_page_link_cannot_read_outside_the_digest(tmp_path: Path) -> None
     path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(CrabError, match="invalid artifact"):
         render_report(digest)
+
+
+@pytest.mark.parametrize("oversized", [False, True])
+def test_digest_report_stops_reading_pages_when_aggregate_budget_is_spent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, oversized: bool
+) -> None:
+    from hungry_crab import report
+
+    pages = ["inventory.md", *(f"inventory.{i}.md" for i in range(2, 10))]
+    for name in pages:
+        (tmp_path / name).write_bytes(b"x" * (8193 if oversized else 8192))
+    manifest = {
+        "schema": "hungry-crab.digest/1",
+        "files": [{"name": name, "miner": "inventory"} for name in pages],
+        "miners": [],
+        "coverage": {"healthy": True},
+    }
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(report, "MAX_REPORT_BYTES", 65536)
+    monkeypatch.setattr(report, "MAX_PAGE_BYTES", 8192)
+    reads: list[str] = []
+    real_read = report.read_bytes
+
+    def counted_read(path: Path, limit: int) -> bytes:
+        reads.append(path.name)
+        return real_read(path, limit)
+
+    monkeypatch.setattr(report, "read_bytes", counted_read)
+    rendered = render_report(tmp_path)
+    assert reads == pages[:4]
+    assert rendered.count("Report read budget exhausted; omitted pages:") == 1
+    assert ", ".join(pages[4:]) in rendered

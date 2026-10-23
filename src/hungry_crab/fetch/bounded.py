@@ -48,6 +48,7 @@ def run_bounded(
     *,
     timeout: float,
     env: dict[str, str] | None = None,
+    input_data: bytes | None = None,
     stdout_limit: int = MAX_JSON_BYTES,
     stderr_limit: int = MAX_STDERR_BYTES,
 ) -> subprocess.CompletedProcess[bytes]:
@@ -71,7 +72,7 @@ def run_bounded(
     deadline = time.monotonic() + timeout
     proc = subprocess.Popen(
         list(command),
-        stdin=subprocess.DEVNULL,
+        stdin=subprocess.PIPE if input_data is not None else subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         bufsize=0,
@@ -80,10 +81,32 @@ def run_bounded(
     assert proc.stdout is not None and proc.stderr is not None
     streams = (proc.stdout, proc.stderr)
     results: list[bytes | None] = [None, None]
-    failures: Queue[Exception] = Queue(maxsize=2)
+    failures: Queue[Exception] = Queue(maxsize=3)
     changed = threading.Event()
     stopped = threading.Event()
     finished = (threading.Event(), threading.Event())
+    input_finished = threading.Event()
+    if input_data is None:
+        input_finished.set()
+
+    def send_input() -> None:
+        assert proc.stdin is not None and input_data is not None
+        try:
+            with proc.stdin as sink:
+                pending = memoryview(input_data)
+                while pending and not stopped.is_set():
+                    written = sink.write(pending)
+                    if not written:
+                        raise BrokenPipeError("API transport closed stdin")
+                    pending = pending[written:]
+        except BrokenPipeError:
+            # A failed transport may exit without consuming the request; retain its status.
+            pass
+        except (OSError, ValueError) as exc:
+            failures.put_nowait(exc)
+        finally:
+            input_finished.set()
+            changed.set()
 
     def drain(index: int, limit: int, label: str) -> None:
         stream = streams[index]
@@ -110,9 +133,12 @@ def run_bounded(
         threading.Thread(target=drain, args=(0, stdout_limit, "gh stdout"), daemon=True),
         threading.Thread(target=drain, args=(1, stderr_limit, "gh stderr"), daemon=True),
     ]
+    workers = [*readers]
+    if input_data is not None:
+        workers.append(threading.Thread(target=send_input, daemon=True))
     started: list[threading.Thread] = []
     try:
-        for reader in readers:
+        for reader in workers:
             reader.start()
             started.append(reader)
         while True:
@@ -122,7 +148,11 @@ def run_bounded(
                 pass
             else:
                 raise failure
-            if all(event.is_set() for event in finished) and proc.poll() is not None:
+            if (
+                all(event.is_set() for event in finished)
+                and input_finished.is_set()
+                and proc.poll() is not None
+            ):
                 # A reader may have failed between the queue check and finished.
                 try:
                     failure = failures.get_nowait()
@@ -149,3 +179,6 @@ def run_bounded(
         for index, reader in enumerate(readers):
             if reader not in started:
                 streams[index].close()
+        if input_data is not None and workers[-1] not in started:
+            assert proc.stdin is not None
+            proc.stdin.close()

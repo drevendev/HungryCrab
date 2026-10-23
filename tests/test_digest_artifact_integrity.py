@@ -78,3 +78,35 @@ def test_compare_refuses_inconsistent_successful_producer_artifact_by_default(
         options=CompareOptions(allow_partial=True),
     )
     assert allowed.menu["prey"]["label"]
+
+
+@pytest.mark.parametrize("damage", ["oversized", "wrong-size", "missing-size"])
+def test_integrity_refuses_unbounded_json_before_opening_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, damage: str
+) -> None:
+    from hungry_crab import digest_integrity
+
+    raw = b'{"value":"' + b"x" * 50 + b'"}'
+    (tmp_path / "deps.json").write_bytes(raw)
+    entry = {"name": "deps.json", "miner": "deps", "bytes": len(raw)}
+    if damage == "wrong-size":
+        entry["bytes"] = 1
+    elif damage == "missing-size":
+        entry.pop("bytes")
+    manifest = {"files": [entry], "miners": [{"name": "deps", "ok": True, "files": ["deps.json"]}]}
+    monkeypatch.setattr(digest_integrity, "MAX_JSON_BYTES", 32)
+    monkeypatch.setattr(
+        digest_integrity, "read_object", lambda _: pytest.fail("untrusted JSON was opened")
+    )
+    errors = digest_integrity_errors(tmp_path, manifest)
+    assert errors and "deps.json" in errors[0]
+
+
+def test_deep_producer_json_is_an_integrity_error_not_a_traceback(tmp_path: Path) -> None:
+    raw = b'{"nested":' + b"[" * 2000 + b"0" + b"]" * 2000 + b"}"
+    (tmp_path / "deps.json").write_bytes(raw)
+    manifest = {
+        "files": [{"name": "deps.json", "miner": "deps", "bytes": len(raw)}],
+        "miners": [{"name": "deps", "ok": True, "files": ["deps.json"]}],
+    }
+    assert digest_integrity_errors(tmp_path, manifest) == ["deps: invalid producer JSON: deps.json"]

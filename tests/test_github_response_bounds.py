@@ -122,6 +122,27 @@ def test_stderr_is_drained_while_stdout_is_idle():
     assert len(result.stderr) == 60000
 
 
+def test_request_input_is_written_while_both_response_pipes_are_drained():
+    result = run_bounded(
+        child(
+            "import sys; sys.stderr.write('e'*60000); sys.stderr.flush(); "
+            "sys.stdout.write('x'*60000); sys.stdout.flush(); "
+            "data=sys.stdin.buffer.read(); sys.stdout.write(str(len(data)))"
+        ),
+        timeout=5,
+        input_data=b"request" * 30000,
+    )
+    assert result.stdout == b"x" * 60000 + b"210000"
+    assert result.stderr == b"e" * 60000
+
+
+def test_deadline_covers_a_child_that_never_consumes_request_input():
+    started = time.monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        run_bounded(child("import time; time.sleep(30)"), timeout=0.3, input_data=b"x" * 200000)
+    assert time.monotonic() - started < 1.8
+
+
 def test_timeout_applies_after_both_pipes_close(monkeypatch):
     real_spawn = bounded.subprocess.Popen
     spawned = []
@@ -199,6 +220,40 @@ def test_gh_oversize_is_not_silently_missing(monkeypatch, stream):
     monkeypatch.setattr(github, "MAX_STDERR_BYTES", 32)
     with pytest.raises(ExternalCommandError, match="exceeds"):
         GitHubClient(timeout=5).get("test", allow_missing=True)
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_graphql_bounds_both_pipes_before_buffering_the_response(monkeypatch, stream):
+    install_fake_gh(
+        monkeypatch,
+        f"import sys,time; sys.{stream}.write('x'*33); sys.{stream}.flush(); time.sleep(30)",
+    )
+    monkeypatch.setattr(github, "MAX_JSON_BYTES", 32)
+    monkeypatch.setattr(github, "MAX_STDERR_BYTES", 32)
+    with pytest.raises(ExternalCommandError, match=f"gh {stream} exceeds"):
+        GitHubClient(timeout=5).graphql("query Q { viewer { login } }", {})
+
+
+def test_graphql_request_variables_round_trip_through_stdin(monkeypatch):
+    install_fake_gh(
+        monkeypatch,
+        "import sys,json; payload=json.load(sys.stdin); print(json.dumps({'data':payload}))",
+    )
+    query = "query Q($name: String!) { viewer { login } }"
+    variables = {"name": 'untrusted \\"query mutation\\" text'}
+    assert GitHubClient(timeout=5).graphql(query, variables) == {
+        "query": query,
+        "variables": variables,
+    }
+
+
+def test_https_graphql_is_bounded_and_closes_the_response(monkeypatch):
+    response = io.BytesIO(b"{}" + b" " * 100)
+    monkeypatch.setattr(github.urllib.request, "urlopen", lambda *a, **k: response)
+    monkeypatch.setattr(github, "MAX_JSON_BYTES", 16)
+    with pytest.raises(ExternalCommandError, match="exceeds 16 bytes"):
+        GitHubClient(prefer_gh=False).graphql("query Q { viewer { login } }", {})
+    assert response.closed
 
 
 @pytest.mark.parametrize("body", [b"", b"null", b'{"ok":true}'])

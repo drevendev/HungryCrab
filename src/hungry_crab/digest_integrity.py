@@ -12,9 +12,11 @@ contract.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
+
+from .artifact_read import MAX_JSON_BYTES, read_object
+from .errors import CrabError
 
 
 def _dicts(value: object) -> list[dict[str, Any]]:
@@ -75,30 +77,28 @@ def digest_integrity_errors(out_dir: Path, manifest: dict[str, Any]) -> list[str
                 errors.append(f"{miner}: missing producer artifact: {name}")
                 continue
 
-            # JSON miners write object-shaped payloads. Parse before checking size so a corrupt
-            # replacement is reported as corruption rather than only as a byte-count mismatch.
-            if path.suffix == ".json":
-                try:
-                    loaded = json.loads(path.read_text(encoding="utf-8"))
-                except (OSError, UnicodeDecodeError, ValueError):
-                    errors.append(f"{miner}: invalid producer JSON: {name}")
-                    continue
-                if not isinstance(loaded, dict):
-                    errors.append(f"{miner}: invalid producer JSON object: {name}")
-                    continue
-
             expected = entry.get("bytes")
             try:
                 actual = path.stat().st_size
             except OSError:
                 errors.append(f"{miner}: unreadable producer artifact: {name}")
                 continue
-            if not isinstance(expected, int):
+            if isinstance(expected, bool) or not isinstance(expected, int) or expected < 0:
                 errors.append(f"{miner}: missing producer byte count: {name}")
+                continue
             elif actual != expected:
                 errors.append(
                     f"{miner}: producer artifact size mismatch: {name} "
                     f"(expected {expected}, got {actual})"
                 )
+                continue
+            if path.suffix == ".json":
+                if actual > MAX_JSON_BYTES:
+                    errors.append(f"{miner}: producer JSON exceeds read limit: {name}")
+                    continue
+                try:
+                    read_object(path)
+                except CrabError:
+                    errors.append(f"{miner}: invalid producer JSON: {name}")
 
     return errors
