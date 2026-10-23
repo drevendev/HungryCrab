@@ -568,3 +568,91 @@ def test_uninitialised_gitlinks_do_not_count_against_the_bound(
     assert len(module._gitlinks(workspace)) == 257
     assert module.unconfirmed_submodules(workspace) == []
     assert module.run() == 0 and len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("visibility", "expected"),
+    [(_PRIVATE, 2), (None, 2), (_PUBLIC, 0)],
+    ids=["private", "forge-unavailable", "public"],
+)
+def test_public_maw_checks_a_separate_nested_checkout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    visibility: dict[str, object] | None,
+    expected: int,
+) -> None:
+    """#398: second actions/checkout is not a tracked submodule."""
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}},
+    )
+    workspace = tmp_path / "workspace"
+    nested = workspace / "private-config"
+    nested.mkdir()
+    git(nested, "init", "-q")
+    git(nested, "remote", "add", "origin", "https://github.com/owner/extra")
+    (nested / "credentials.md").write_text("private data\\n", encoding="utf-8")
+    known = {"pypa/pipx": _PUBLIC}
+    if visibility is not None:
+        known["owner/extra"] = visibility
+    monkeypatch.setattr(module, "client_for", lambda _: _Forge(known))
+    assert module.maw_is_public(workspace) is True
+    assert module.unconfirmed_submodules(workspace) == []
+    assert module.run() == expected
+    assert len(calls) == (1 if expected == 0 else 0)
+    if expected == 2:
+        message = capsys.readouterr().err
+        assert "nested checkout private-config inside the maw (.)" in message
+        assert "allow-private-artifact" in message
+
+
+def test_nested_worktree_git_marker_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}},
+    )
+    nested = tmp_path / "workspace" / "other-repo"
+    nested.mkdir()
+    (nested / ".git").write_text("gitdir: /unavailable/gitdir\\n", encoding="utf-8")
+    (nested / "secret.md").write_text("private data\\n", encoding="utf-8")
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC})
+    )
+    assert module.run() == 2
+    assert calls == []
+
+
+def test_plain_untracked_build_output_does_not_block_public_maw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}},
+    )
+    generated = tmp_path / "workspace" / "dist"
+    generated.mkdir()
+    (generated / "build.txt").write_text("non-repository artifact\\n", encoding="utf-8")
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC})
+    )
+    assert module.run() == 0 and len(calls) == 1
+
+
+def test_private_nested_checkout_needs_explicit_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="pypa/pipx",
+        event={"repository": {"visibility": "public"}}, allow="true",
+    )
+    nested = tmp_path / "workspace" / "private-config"
+    nested.mkdir()
+    git(nested, "init", "-q")
+    git(nested, "remote", "add", "origin", "https://github.com/owner/secret")
+    monkeypatch.setattr(
+        module, "client_for", lambda _: _Forge({"pypa/pipx": _PUBLIC})
+    )
+    assert module.run() == 0 and len(calls) == 1
