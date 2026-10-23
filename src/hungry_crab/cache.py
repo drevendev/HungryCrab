@@ -79,7 +79,9 @@ class Slug:
         )
         if gitlab:
             parts = gitlab[1].split("/")
-            if len(parts) < 2 or any(not _REPO_NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts):
+            if len(parts) < 2 or any(
+                not _REPO_NAME_RE.fullmatch(p) or p in {".", ".."} for p in parts
+            ):
                 raise UsageError(f"invalid repository reference {text!r}")
             return cls("/".join(parts[:-1]), parts[-1], "gitlab.com")
         match = _GITHUB_URL_RE.match(raw) or _GITHUB_SSH_RE.match(raw)
