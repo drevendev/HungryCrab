@@ -26,6 +26,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Kubernetes Secret a chart's `existingSecret` names and translations under `locales/`,
   `i18n/`, `lang/` and similar directories are not credential literals
   ([#388](https://github.com/drevendev/HungryCrab/issues/388)).
+- **No body text in summaries:** nothing inside an HTML block that runs to an end condition
+  (`<pre>`, `<script>`, `<style>`, `<textarea>`, comments, processing instructions,
+  declarations and CDATA) is a heading until that condition, blank lines included, and a link
+  reference definition is never setext heading text, so usage text and URLs underlined with
+  `---` or `===` no longer reach `docs.md`, `ai.md` or the wiki outline
+  ([#389](https://github.com/drevendev/HungryCrab/issues/389)).
 
 ## [0.6.1] - 2026-10-22
 

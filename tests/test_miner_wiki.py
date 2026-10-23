@@ -114,6 +114,76 @@ def test_text_without_closed_front_matter_keeps_its_headings() -> None:
     assert _frontmatter("---\nname: x\n# Tool\n") == {}
 
 
+_SECRET_LINE = "The staging admin password is hunter2"
+
+
+@pytest.mark.parametrize("underline", ["---", "==="])
+@pytest.mark.parametrize(
+    ("opening", "closing"),
+    [
+        ("<pre>", "</pre>"),
+        ("<PRE class='usage'>", "</PRE>"),
+        ("<script>\nconst a = 1;", "</script>"),
+        ("<style>\nbody { color: red; }", "</style>"),
+        ("<textarea>", "</textarea>"),
+        ("  <pre>", "</script>"),
+        ("<?php echo 1;", "?>"),
+        ("<!DOCTYPE html", ">"),
+        ("<![CDATA[", "]]>"),
+    ],
+)
+def test_nothing_inside_an_html_block_is_a_heading(
+    opening: str, closing: str, underline: str
+) -> None:
+    """#389: types 1-5 run to their end condition, across blank lines."""
+    text = (
+        f"# Tool\n\n{opening}\nUsage: tool [options]\n\n{_SECRET_LINE}\n{underline}\n\n"
+        f"# not a heading either\n{closing}\n\nAfter\n---\n"
+    )
+    assert [h["text"] for h in markdown_headings(text)] == ["Tool", "After"]
+    assert [h["title"] for h in readme_outline(text)["headings"]] == ["Tool", "After"]
+    assert _headings(text) == ["Tool", "After"]
+
+
+def test_an_html_block_closed_on_its_first_line_ends_there() -> None:
+    text = "<pre>usage</pre>\nUsage\n=====\n\n<!DOCTYPE html>\nAfter\n---\n<pre></pre>\n---\n"
+    assert [h["text"] for h in markdown_headings(text)] == ["Usage", "After"]
+
+
+def test_an_html_block_that_never_closes_hides_the_rest() -> None:
+    text = "# Tool\n\n<script>\n\nPush straight to main with the deploy key\n===\n\n## Later\n"
+    assert [h["text"] for h in markdown_headings(text)] == ["Tool"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "[docs]: https://internal.example/secret-runbook\n===\n",
+        "# Tool\n\n[docs]: https://internal.example/secret-runbook\n---\n",
+        "  [docs]: <https://internal.example/secret-runbook> 'Runbook'\n===\n",
+        "Intro text\n[docs]: https://internal.example/secret-runbook\n===\n",
+    ],
+)
+def test_a_link_reference_definition_is_never_heading_text(text: str) -> None:
+    """#389: `[label]: url` is a definition, not a paragraph line to underline."""
+    titles = [h["text"] for h in markdown_headings(text)]
+    assert not any("internal.example" in str(title) for title in titles), titles
+    assert titles in ([], ["Tool"])
+
+
+def test_a_paragraph_after_a_link_reference_definition_is_still_a_heading() -> None:
+    text = "[docs]: https://example.org/docs\nUsage\n=====\n"
+    assert [h["text"] for h in markdown_headings(text)] == ["Usage"]
+
+
+def test_html_blocks_scan_in_linear_time() -> None:
+    started = time.perf_counter()
+    markdown_headings("<pre>\n" + "x\n\n" * 100_000 + "</pre>\n")
+    markdown_headings("<pre " * 50_000 + "\n" + "</pr" * 50_000)
+    markdown_headings(("[" + "a" * 900 + "]\n") * 1_000 + "[" * 100_000 + "\n")
+    assert time.perf_counter() - started < 1.0
+
+
 def test_readme_and_agent_outlines_share_the_same_structure_filter() -> None:
     text = "---\nname: private-value\n---\n# Tool\n\n## Install\n\n```bash\n# run the tests\n```\n"
     assert _headings(text) == ["Tool", "Install"]

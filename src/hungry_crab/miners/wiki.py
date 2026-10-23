@@ -162,8 +162,31 @@ def split_frontmatter(text: str) -> tuple[str | None, str]:
     return None, text
 
 
+# The HTML blocks that CommonMark runs to an end condition rather than to a blank line (types
+# 1-5): `<pre`, `<script`, `<style` and `<textarea` until any of their end tags, a comment until
+# `-->`, a processing instruction until `?>`, a declaration until `>` and CDATA until `]]>`.
+# Usage text pasted into `<pre>` may hold blank lines and `---`; none of it is a heading.
+_HTML_BLOCK_START_RE = re.compile(
+    r" {0,3}<(?:(?P<raw>(?i:pre|script|style|textarea))(?=[ \t>]|$)"
+    r"|(?P<cdata>!\[CDATA\[)|(?P<comment>!--)|(?P<instruction>\?)|(?P<declaration>![A-Za-z]))"
+)
+_HTML_RAW_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECASE)
+_HTML_BLOCK_ENDS = {"cdata": "]]>", "comment": "-->", "instruction": "?>", "declaration": ">"}
+# `[label]: destination` defines a link and is never paragraph text, so `===` under it does
+# not make the definition, URL and all, a heading. The label class excludes brackets, so the
+# match is linear.
+_LINK_DEFINITION_RE = re.compile(r" {0,3}\[[^\[\]]{1,999}\]:")
+
+
+def _html_block_ends(kind: str, text: str) -> bool:
+    """Whether ``text`` meets the end condition of an HTML block of type ``kind`` (1-5)."""
+    if kind == "raw":
+        return _HTML_RAW_END_RE.search(text) is not None
+    return _HTML_BLOCK_ENDS[kind] in text
+
+
 def markdown_headings(text: str) -> list[dict[str, object]]:
-    """ATX and setext headings outside fenced/indented code and HTML comments."""
+    """ATX and setext headings outside fenced/indented code, HTML blocks and comments."""
     text = split_frontmatter(text)[1]
     text = re.sub(r"<!--.*?(?:-->|\Z)", "", text, flags=re.DOTALL)
     headings: list[dict[str, object]] = []
@@ -172,7 +195,24 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     previous = ""
     # Inside a list item, quote, table or HTML block until a blank line: no paragraph starts.
     in_block = False
+    # Inside an HTML block of types 1-5 until its end condition, blank lines included.
+    html_block = ""
     for line in text.splitlines():
+        if html_block:
+            if _html_block_ends(html_block, line):
+                html_block = ""
+            previous = ""
+            in_block = False
+            continue
+        if not fence and not line.startswith(("    ", "\t")):
+            html = _HTML_BLOCK_START_RE.match(line)
+            if html is not None:
+                kind = html.lastgroup or ""
+                if not _html_block_ends(kind, line[html.start(kind) - 1 :]):
+                    html_block = kind
+                previous = ""
+                in_block = False
+                continue
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
         if marker:
             value = marker.group(1)
@@ -209,6 +249,8 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
         elif _BLOCK_START_RE.match(line) or "|" in line:
             previous = ""
             in_block = True
+        elif _LINK_DEFINITION_RE.match(line):
+            previous = ""
         else:
             previous = "" if in_block else line.strip()
         if heading is not None:
