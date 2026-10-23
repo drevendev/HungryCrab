@@ -9,7 +9,8 @@ publication is installed by Everywhere.
 
 ## Install once
 
-Python 3.11+, Git and uv are required. Install the latest release of `hungry-crab` from
+Python 3.11+ and Git are required, and uv or pipx to install the tool; the build steps below
+use uv. Install the latest release of `hungry-crab` from
 [PyPI](https://pypi.org/project/hungry-crab/) (`pipx install "hungry-crab[mcp]"` works as
 well). Installation downloads the package and its dependencies.
 
