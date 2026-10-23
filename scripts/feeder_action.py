@@ -151,19 +151,25 @@ def maw_is_public(maw: Path) -> bool:
 
     The maw digest is uploaded beside the prey digest, so a private checkout digested as the maw
     is as exposed as a private prey. A maw with no recognisable origin is unconfirmed, unless it
-    is a tracked directory of the public caller's own checkout. A submodule is confirmed by its
-    own origin: it is the root of its own repository, which the forge has to call public.
+    is a tracked directory of the public caller's own checkout. Selecting a populated gitlink
+    as the maw must not bypass the refusal of local submodule bytes below a public maw.
     """
+    # Keep the original path for gitlink junctions, and resolve aliases containing '..'.
+    try:
+        roots = {maw, maw.resolve()}
+    except (OSError, RuntimeError):
+        return False
+    if any(_tracked_gitlink_checkout(root) for root in roots):
+        return False
     if maw_in_public_caller(maw):
         return True
     slug = maw_origin(maw)
     return slug is not None and _origin_is_public(slug)
 
 
-# Bounds on the checked-out submodules a public maw may carry: past them nothing is vouched for.
+# Bound the number of populated submodules reported in a refusal.
 # Uninitialised gitlinks hold nothing and do not count.
 MAX_SUBMODULES = 256
-MAX_SUBMODULE_DEPTH = 8
 
 
 def _gitlinks(directory: Path) -> list[str] | None:
@@ -190,43 +196,98 @@ def _populated(place: Path) -> bool:
 
 
 def unconfirmed_submodules(maw: Path) -> list[str] | None:
-    """Populated submodules inside a public maw that are not verifiably public.
+    """Populated gitlinks whose local bytes cannot be vouched for by a public remote.
 
     The inventory walks the maw's directory and reads whatever files sit there, so a checked-out
     submodule reaches the maw digest like the maw's own files, while the caller's visibility says
-    nothing about it. Each populated gitlink must therefore be the root of a repository whose own
-    origin is confirmed public, and the same holds for the submodules inside it. An empty
-    (uninitialised) gitlink directory holds nothing to digest. The result is the POSIX paths
-    below the maw, sorted; None means the submodules could not be listed within the bounds.
+    nothing about it. Even a public origin cannot attest to untracked, ignored, modified or
+    unpublished content. Refuse every populated gitlink, including ones without Git metadata;
+    this also blocks anything nested inside it without inspecting another repository.
+    Empty (uninitialised) gitlinks hold nothing to digest. Return sorted POSIX paths below the
+    maw, or None if they cannot be listed within the bounds.
     """
-    pending: list[tuple[Path, str, int]] = [(maw, "", 0)]
+    links = _gitlinks(maw)
+    if links is None:
+        return None
     unconfirmed: list[str] = []
-    populated = 0
-    while pending:
-        directory, prefix, depth = pending.pop()
-        links = _gitlinks(directory)
-        if links is None:
-            return None
-        for path in links:
-            name = f"{prefix}{path}"
-            place = directory / path
-            # A path that did not decode cannot be looked up, so it is not vouched for.
-            undecodable = chr(0xFFFD) in path
-            if not undecodable and not _populated(place):
-                continue
-            # Only a checked-out submodule costs a forge question; empty gitlinks are free.
-            populated += 1
-            if populated > MAX_SUBMODULES:
+    for path in links:
+        # A path that did not decode cannot be looked up, so it is not vouched for.
+        if chr(0xFFFD) in path or _populated(maw / path):
+            unconfirmed.append(path)
+            if len(unconfirmed) > MAX_SUBMODULES:
                 return None
-            if undecodable:
-                unconfirmed.append(name)
-                continue
-            slug = maw_origin(place)
-            if slug is None or depth >= MAX_SUBMODULE_DEPTH or not _origin_is_public(slug):
-                unconfirmed.append(name)
-                continue
-            pending.append((place, f"{name}/", depth + 1))
     return sorted(unconfirmed)
+
+
+# Independent nested Git checkouts are not gitlinks and may carry private files.
+# The inventory also walks untracked directories, so inspect these before digest.
+MAX_NESTED_CHECKOUTS = 256
+
+
+def _tracked_gitlink_checkout(directory: Path) -> bool:
+    """Only tracked submodules are handled by unconfirmed_submodules instead."""
+    if not GitRunner.available():
+        return False
+    parent = GitRunner(directory.parent).toplevel()
+    if parent is None:
+        return False
+    try:
+        relative = directory.relative_to(parent).as_posix()
+    except ValueError:
+        return False
+    # Git pathspecs remain case-sensitive on Windows even when the filesystem is not.
+    # Query literal case variants, then prove filesystem identity to avoid conflating
+    # distinct directories on a case-sensitive volume (including Windows ones).
+    listing = GitRunner(parent).try_run("ls-files", "-s", "-z", "--", f":(literal,icase){relative}")
+    if listing is None:
+        return False
+    for entry in listing.split("\0"):
+        if entry.startswith(f"{GITLINK_MODE} "):
+            try:
+                if (parent / entry.partition("\t")[2]).samefile(directory):
+                    return True
+            except OSError:
+                continue
+    return False
+
+
+def unconfirmed_nested_checkouts(maw: Path) -> list[str] | None:
+    """Find separately checked-out Git repositories below a public maw.
+
+    A public remote does not prove that its local worktree is safe to publish:
+    untracked, ignored, modified or unpublished files may still be private.
+    Refuse independent Git roots unless allow-private-artifact explicitly opts in.
+    Ordinary untracked build output without a Git root is left alone.
+    A failed traversal or too many nested checkouts fails closed.
+    """
+    failures: list[OSError] = []
+    unconfirmed: list[str] = []
+    examined = 0
+    for base, dirs, files in os.walk(maw, topdown=True, followlinks=False, onerror=failures.append):
+        # Git treats .GIT / .GiT as .git on case-insensitive workspaces (Windows).
+        # Match and prune all case variants before any maw inventory can read them.
+        marker = any(name.casefold() == ".git" for name in (*dirs, *files))
+        dirs[:] = [name for name in dirs if name.casefold() != ".git"]
+        checkout = Path(base)
+        if checkout == maw or not marker or _tracked_gitlink_checkout(checkout):
+            continue
+        examined += 1
+        if examined > MAX_NESTED_CHECKOUTS:
+            return None
+        # Remote visibility says nothing about local bytes read by the maw inventory.
+        unconfirmed.append(checkout.relative_to(maw).as_posix())
+    if failures:
+        return None
+    return sorted(unconfirmed)
+
+
+def _nested_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
+    if paths is None:
+        return f"the maw ({maw_label}), whose nested checkouts cannot be inspected,", False
+    shown = ", ".join(paths[:5]) + (f" and {len(paths) - 5} more" if len(paths) > 5 else "")
+    plural = len(paths) > 1
+    noun = "nested checkouts" if plural else "nested checkout"
+    return f"the {noun} {shown} inside the maw ({maw_label})", plural
 
 
 def _submodule_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]:
@@ -273,6 +334,12 @@ def run() -> int:
             if submodules != []:
                 side, plural = _submodule_side(maw_label, submodules)
                 unconfirmed.append(side)
+            # A second actions/checkout is not a gitlink, but its files reach the artifact.
+            nested = unconfirmed_nested_checkouts(maw)
+            if nested != []:
+                side, many = _nested_side(maw_label, nested)
+                unconfirmed.append(side)
+                plural = plural or many
         if unconfirmed:
             verb = "are" if len(unconfirmed) > 1 or plural else "is"
             sides = f"{' and '.join(unconfirmed)} {verb}"

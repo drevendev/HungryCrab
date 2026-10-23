@@ -195,6 +195,10 @@ Run `crab eat pypa/pipx --deterministic --maw .` to export a complete meal witho
 issue creation or ledger writes. The [Feeder guide](docs/feeder.md) shows the composite action,
 reusable workflow, weekly schedule, artifact outputs and strict mode.
 
+[GitHub Marketplace launch roadmap](docs/marketplace/README.md) is a **proposal**, with
+real cross-repository tests and evidence-first case studies still to come. This link is
+not an announcement that the Feeder is listed or that its examples were already run.
+
 ## Local MCP and HTML reports
 
 Install with the optional `[mcp]` extra and run `crab mcp --root /absolute/workspace` to expose

@@ -95,6 +95,19 @@ update with this version.
 
 ### Fixed
 
+- **Feeder:** populated submodules now require `allow-private-artifact: true` for public or
+  unknown callers even when their origin is public, including when a gitlink itself is selected
+  as the maw. Local untracked, ignored, modified and unpublished bytes cannot be proven public
+  by remote visibility. Empty, uninitialised gitlinks remain allowed
+  ([#405](https://github.com/drevendev/HungryCrab/issues/405)).
+
+- **Feeder:** for public or unknown callers, a public maw containing a separate nested Git
+  checkout (including a second `actions/checkout`) is refused before digest unless
+  `allow-private-artifact` is explicitly enabled. A public Git remote cannot vouch for
+  local, untracked, ignored, modified or unpublished files. Nested `.git` marker detection
+  covers case variants on Windows; ordinary non-Git build output is unaffected
+  ([#398](https://github.com/drevendev/HungryCrab/issues/398)).
+
 - **Feeder:** a submodule of the public calling repository, or a directory inside one, no
   longer counts as a tracked directory of the caller; its gitlink is another repository, so the
   maw is confirmed by its own origin through the forge, and refused without

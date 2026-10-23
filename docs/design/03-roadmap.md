@@ -33,6 +33,28 @@ The 0.2.1-0.5 implementations are included in it; that does not close their unfu
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
 
+### Distribution programme — GitHub Marketplace Feeder (proposed, 2026-10-22)
+
+The existing composite **Hungry Crab Feeder** Action has a separate distribution/adoption
+roadmap, not a new 0.x runtime milestone: [Marketplace launch plan](../marketplace/README.md)
+([programme #304](https://github.com/drevendev/HungryCrab/issues/304)). Its five gates are
+**M0** honest story/quickstart, **M1** unique metadata/immutable dependency pins and
+cross-repository exact-ref Linux/Windows tests, **M2** real read-only public fleet dogfood,
+**M3** verified proof plus owner-mediated Marketplace listing, and **M4** a First Feast
+video/article and measured early adoption. The Action is not assumed listed just because
+`action.yml` triggers GitHub's "Draft a release" banner. Evidence from `uses: ./` tests
+is not equivalent to a published Marketplace installation.
+
+The proposed [copy](../marketplace/positioning.md), [test matrix](../marketplace/dogfood.md),
+[proof policy](../marketplace/evidence.md) and
+[publication checklist](../marketplace/publication.md) have no invented runs or screenshots.
+Reuse [#301](https://github.com/drevendev/HungryCrab/issues/301) for Feeder maw-wiki/token
+and immutable pins, [#211](https://github.com/drevendev/HungryCrab/issues/211) for cache
+ownership, [#236](https://github.com/drevendev/HungryCrab/issues/236) for hard acquisition
+limits, and [#281](https://github.com/drevendev/HungryCrab/issues/281) for the wider
+owner-review/usefulness campaign. No code, tags, release, external workflow or Marketplace
+publication is performed by the documentation proposal.
+
 ### Project state and integration order (2026-10-21)
 
 A historical snapshot of the split before 0.6.0 landed; current status is above.

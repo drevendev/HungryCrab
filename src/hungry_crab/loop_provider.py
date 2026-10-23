@@ -80,8 +80,9 @@ class GitHubLoopProvider:
         return data
 
     def _commit_ci(self, sha: str) -> dict[str, Any]:
+        # Select latest runs locally per name/App, retaining unfinished reruns too.
         checks = self._pages(
-            f"repos/{self.slug}/commits/{sha}/check-runs?per_page=100", "check_runs"
+            f"repos/{self.slug}/commits/{sha}/check-runs?filter=all&per_page=100", "check_runs"
         )
         if any(row.get("head_sha") != sha for row in checks):
             raise CrabError("loop provider returned checks for a different commit")
