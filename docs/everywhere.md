@@ -166,7 +166,10 @@ evidence, pins and hidden decisions. Multi-prey menus retain their corroborating
 Scores are pre-ranking signals. Missing facts, incomplete evidence and an empty menu are not
 proof that the maw has no gap. Reports display snapshots and do not certify their authenticity.
 
-The renderer bounds JSON/page reads and the final output size. It refuses malformed input and
+The renderer bounds JSON/page reads and the final output size. JSON artifacts use UTF-8,
+at most 8 MiB and at most 128 nested objects/arrays. A report reads at most 512 KiB per
+Markdown page and 16 MiB in total (plus a sentinel byte to detect overflow), including failed
+page reads, then lists the pages it omitted. It refuses malformed input and
 unsafe artifact paths. A missing or unreadable digest page is identified in the report rather
 than silently disappearing. A new output is created without replacing an existing destination;
 `--force` explicitly replaces only a regular `.html` file. Rendering never changes its source.

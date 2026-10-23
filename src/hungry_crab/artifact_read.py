@@ -10,7 +10,31 @@ from typing import Any
 from .errors import CrabError
 
 MAX_JSON_BYTES = 8 * 1024 * 1024
+MAX_JSON_DEPTH = 128
 MAX_PAGE_BYTES = 512 * 1024
+
+
+def _check_json_depth(text: str) -> None:
+    """Bound nesting before allocating containers, ignoring brackets inside JSON strings."""
+    depth = 0
+    quoted = False
+    escaped = False
+    for char in text:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+        elif char in "[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise ValueError("JSON artifact exceeds its nesting limit")
+        elif char in "]}":
+            depth -= 1
 
 
 def read_bytes(path: Path, limit: int) -> bytes:
@@ -37,7 +61,9 @@ def read_object(path: Path) -> dict[str, Any]:
         return result
 
     try:
-        data = json.loads(read_bytes(path, MAX_JSON_BYTES), object_pairs_hook=unique)
+        text = read_bytes(path, MAX_JSON_BYTES).decode("utf-8-sig")
+        _check_json_depth(text)
+        data = json.loads(text, object_pairs_hook=unique)
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise CrabError(f"invalid JSON artifact: {path.name}") from exc
     if not isinstance(data, dict):

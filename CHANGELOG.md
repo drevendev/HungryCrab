@@ -11,7 +11,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Bounded reads:** GraphQL drains stdout/stderr with byte caps and a deadline while sending
   request input; digest integrity rejects oversized or size-mismatched JSON before parsing and
-  contains deep JSON errors; HTML reports stop reading when their aggregate page budget is spent,
+  rejects JSON nesting above 128 containers; HTML reports stop reading when their aggregate page budget is spent,
   including failed page reads ([#300](https://github.com/drevendev/HungryCrab/issues/300), items 1–3).
 - Document every CLI command and skill in the agent guide and glossary, correct hook coverage,
   and remove the completed installation task from the community guide. Regression checks compare

@@ -110,3 +110,28 @@ def test_deep_producer_json_is_an_integrity_error_not_a_traceback(tmp_path: Path
         "miners": [{"name": "deps", "ok": True, "files": ["deps.json"]}],
     }
     assert digest_integrity_errors(tmp_path, manifest) == ["deps: invalid producer JSON: deps.json"]
+
+
+@pytest.mark.parametrize("extra", [False, True])
+def test_artifact_json_depth_has_a_platform_independent_boundary(
+    tmp_path: Path, extra: bool
+) -> None:
+    from hungry_crab.artifact_read import MAX_JSON_DEPTH, read_object
+
+    depth = MAX_JSON_DEPTH - 1 + int(extra)
+    path = tmp_path / "deps.json"
+    path.write_bytes(b'{"value":' + b"[" * depth + b"0" + b"]" * depth + b"}")
+    if extra:
+        with pytest.raises(CrabError, match="invalid JSON"):
+            read_object(path)
+    else:
+        assert "value" in read_object(path)
+
+
+def test_json_string_brackets_and_escaped_quotes_do_not_count_as_nesting(tmp_path: Path) -> None:
+    from hungry_crab.artifact_read import read_object
+
+    data = {"text": '"[]{}\\' * 2000}
+    path = tmp_path / "deps.json"
+    path.write_text(json.dumps(data), encoding="utf-8-sig")
+    assert read_object(path) == data
