@@ -222,16 +222,44 @@ class AnalysisService:
         candidate = Path(value).expanduser()
         if not candidate.is_absolute():
             candidate = self.roots[0] / candidate
-        # Probing a path outside the roots would tell the client whether it exists, so only one
-        # that lies under a root as written is probed; `local` refuses the rest untouched.
+        # Stating a path is access too: a value that leaves the roots as written would let a
+        # client probe which local paths exist (and wake an automounter). Out-of-root and
+        # explicit values are handed to local(), which refuses them lexically without
+        # touching the disk; a value inside a root is only probed when every component
+        # below its root is a real entry, so a symlink or junction inside a root cannot
+        # turn the probe into a look at an outside target.
         lexical = Path(os.path.normpath(candidate.absolute()))
         inside = any(lexical.is_relative_to(root) for root in [*self.lexical_roots, *self.roots])
-        if explicit or not inside or candidate.exists():
+        if explicit or not inside:
+            return Target(path=self.local(value))
+        # A normalized endpoint inside a root does not prove that every raw prefix stays
+        # there. Reject implicit traversal before lstat/exists can probe an outside sibling.
+        if ".." in candidate.parts:
+            raise UsageError("cannot parse repository reference with parent traversal")
+        if self._no_link_below(candidate) and candidate.exists():
             return Target(path=self.local(value))
         slug = Slug.parse(value)
         if not self.allow_network:
             raise UsageError("remote prey requires the operator's --allow-network option")
         return Target(slug=slug)
+
+    def _no_link_below(self, path: Path) -> bool:
+        """Whether no component of ``path`` below its containing root is a symlink or junction."""
+        for root in [*self.lexical_roots, *self.roots]:
+            try:
+                parts = path.relative_to(root).parts
+            except ValueError:
+                continue
+            current = root
+            for part in parts:
+                current = current / part
+                try:
+                    if is_link_stat(current.lstat()):
+                        return False
+                except OSError:
+                    return False
+            return True
+        return False
 
     def options(self, depth: Literal["normal", "deep"]) -> DigestOptions:
         if depth not in {"normal", "deep"}:

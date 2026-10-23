@@ -13,6 +13,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and remove the completed installation task from the community guide. Regression checks compare
   the documented lists with the parser and skill directories
   ([#316](https://github.com/drevendev/HungryCrab/issues/316)).
+- **Catch:** `--since` values beyond the representable date range (e.g. 4301-digit durations)
+  are now rejected with a usage error instead of being passed through
+  ([#321](https://github.com/drevendev/HungryCrab/issues/321)).
 
 ## [0.6.2] - 2026-10-23
 

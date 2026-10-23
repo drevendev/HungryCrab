@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -175,6 +176,107 @@ def test_network_and_device_paths_are_refused_before_any_filesystem_call(
     for call in (service.local, service.prey):
         with pytest.raises(UsageError, match="network"):
             call(target)
+
+
+def test_paths_leaving_the_roots_are_refused_before_any_filesystem_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A relative prey that escapes the roots may not be stated, existing or not.
+
+    `local()` already refuses such a value lexically; `prey()` used to call `exists()` first,
+    which let a client test whether an outside path exists by comparing the two errors.
+    """
+    root = tmp_path / "approved"
+    root.mkdir()
+    (tmp_path / "outside-secret-project").mkdir()
+    service = AnalysisService([root], tmp_path / "cache")
+
+    def touched(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("the path reached the filesystem")
+
+    monkeypatch.setattr(Path, "resolve", touched)
+    monkeypatch.setattr(Path, "exists", touched)
+    with pytest.raises(UsageError, match="outside the operator-approved MCP roots"):
+        service.local("x/../../outside-secret-project")
+    with pytest.raises(UsageError, match="outside the operator-approved MCP roots"):
+        service.prey("x/../../outside-secret-project")
+    with pytest.raises(UsageError, match="outside the operator-approved MCP roots"):
+        service.prey("x/../../no-such-project")
+
+
+def _link_directory(link: Path, target: Path, kind: str) -> None:
+    """Point ``link`` at ``target`` through a symlink or a native Windows junction."""
+    if kind == "junction":
+        if sys.platform != "win32":
+            pytest.skip("junctions exist only on Windows")
+        completed = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert completed.returncode == 0, (
+            f"Windows junction creation unexpectedly failed: {completed.stderr[:300]}"
+        )
+        return
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks are unavailable here")
+
+
+@pytest.mark.parametrize("secret_present", [True, False])
+def test_implicit_traversal_cannot_probe_siblings_before_returning_inside_a_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, secret_present: bool
+) -> None:
+    approved = tmp_path / "approved"
+    (approved / "anchor").mkdir(parents=True)
+    (approved / "repo").mkdir()
+    if secret_present:
+        (tmp_path / "secret").mkdir()
+    service = AnalysisService([approved], tmp_path / "cache")
+    assert service.prey("repo").path == approved / "repo"
+
+    def touched(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("implicit traversal reached the filesystem")
+
+    with monkeypatch.context() as guard:
+        guard.setattr(Path, "lstat", touched)
+        guard.setattr(Path, "stat", touched)
+        guard.setattr(Path, "exists", touched)
+        guard.setattr(Path, "resolve", touched)
+        with pytest.raises(UsageError) as error:
+            service.prey("anchor/../../secret/../approved/repo")
+    assert str(error.value) == "cannot parse repository reference with parent traversal"
+
+
+@pytest.mark.parametrize("kind", ["symlink", "junction"])
+@pytest.mark.parametrize("secret_present", [True, False])
+def test_a_link_below_a_root_never_probes_an_outside_target(
+    tmp_path: Path, kind: str, secret_present: bool
+) -> None:
+    """A link inside a root must not turn ``prey()`` into a probe of outside paths.
+
+    ``approved/alias`` points at ``outside/mid``, so ``alias/../secret`` stays inside the
+    root lexically while a following ``exists()`` would answer for ``outside/secret``.
+    The refusal must be identical whether or not the outside target exists, and an
+    ordinary link-free prey inside the root must keep working.
+    """
+    approved = tmp_path / "approved"
+    outside = tmp_path / "outside"
+    approved.mkdir()
+    (outside / "mid").mkdir(parents=True)
+    if secret_present:
+        (outside / "secret").mkdir()
+    _link_directory(approved / "alias", outside / "mid", kind)
+    (approved / "plain-repo").mkdir()
+    service = AnalysisService([approved], tmp_path / "cache")
+
+    with pytest.raises(UsageError, match="cannot parse repository reference"):
+        service.prey("alias/../secret")
+    with pytest.raises(UsageError, match="remote prey requires"):
+        service.prey("alias/secret")
+    assert service.prey("plain-repo").path.name == "plain-repo"
 
 
 def test_a_directory_inside_an_outer_repository_is_refused(tmp_path: Path) -> None:

@@ -8,6 +8,7 @@ import pytest
 from fixture_builder import git as fixture_git
 
 from hungry_crab.cache import Slug, Target, prey_paths
+from hungry_crab.cli import main
 from hungry_crab.digest import DigestOptions, run_digest
 from hungry_crab.errors import ExternalCommandError, UsageError
 from hungry_crab.fetch.catch import CatchOptions, catch, clone_arguments, parse_since
@@ -33,6 +34,46 @@ def test_parse_since(text: str, expected: date) -> None:
 def test_parse_since_rejects_nonsense() -> None:
     with pytest.raises(UsageError):
         parse_since("yesterday", now=NOW)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["3000y", "99999999999d", "4" * 4301 + "d", "4" * 4301 + "w"],
+)
+def test_parse_since_rejects_values_beyond_the_date_range(text: str) -> None:
+    """A relative value that would reach before year 1, or a digit count beyond
+    Python 3.11+'s integer-string limit, is a usage error, not a traceback."""
+    with pytest.raises(UsageError, match="cannot parse --since"):
+        parse_since(text, now=NOW)
+
+
+@pytest.mark.parametrize("text", ["3000y", "99999999999d", "4" * 4301 + "d"])
+@pytest.mark.parametrize("existing_cache", [False, True])
+def test_since_overflow_is_exit_two_without_touching_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    text: str,
+    existing_cache: bool,
+) -> None:
+    cache = tmp_path / "cache"
+    if existing_cache:
+        cache.mkdir()
+        (cache / "keep.json").write_bytes(b"preserve cached evidence")
+
+    def no_git(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("invalid --since reached Git")
+
+    monkeypatch.setattr("hungry_crab.fetch.catch.GitRunner", no_git)
+    assert main(["--cache-dir", str(cache), "catch", "example/prey", "--since", text]) == 2
+    error = capsys.readouterr().err
+    assert "cannot parse --since" in error and "use 2y, 6m, 90d" in error
+    assert "Traceback" not in error
+    if existing_cache:
+        assert list(cache.iterdir()) == [cache / "keep.json"]
+        assert (cache / "keep.json").read_bytes() == b"preserve cached evidence"
+    else:
+        assert not cache.exists()
 
 
 def test_clone_arguments() -> None:
