@@ -317,3 +317,20 @@ def test_a_fresh_sniff_can_still_be_followed_by_catch(npm_app: Path, tmp_path: P
     sniff(slug, cache_root=cache, client=client)  # type: ignore[arg-type]
     result = catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
     assert result.sha == GitRunner(npm_app).head_sha()
+
+
+@pytest.mark.parametrize("record", ["api/sniff.json", "catch.json"])
+def test_a_legacy_marker_cannot_authorize_removing_a_bare_repository(
+    record: str, npm_app: Path, tmp_path: Path
+) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    paths = prey_paths(slug, cache)
+    paths.root.parent.mkdir(parents=True)
+    GitRunner(tmp_path).run("clone", "--bare", "--quiet", str(npm_app), str(paths.root))
+    marker = paths.root / record
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({"slug": str(slug)}), encoding="utf-8")
+    before = _snapshot(paths.root)
+    assert main(["--cache-dir", str(cache), "cache", "rm", str(slug)]) == 1
+    assert _snapshot(paths.root) == before

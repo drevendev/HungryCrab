@@ -217,6 +217,11 @@ def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) ->
         raise CrabError(
             "refusing cache mutation: no catch or sniff record names this prey", hint=_HINT
         )
+    if any(
+        entry.name not in {"api", "repo", "wiki", "digests", "catch.json"}
+        for entry in paths.root.iterdir()
+    ):
+        raise CrabError("refusing cache mutation: entry contains unrecognised data", hint=_HINT)
     previous = _record(paths.catch_file)
     recorded = previous.get("url")
     marker_path = paths.repo / ".git" / CLONE_RECORD
