@@ -284,10 +284,23 @@ class AiConfigMiner:
         warnings = []
         if suspicious_total:
             warnings.append(f"{suspicious_total} instruction-like fragments in AI config files")
-        return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
+        doc, redactions = self._doc(ctx, data)
+        data["metadata_name_redactions"] = redactions
+        if redactions:
+            warnings.append(f"{redactions} unique metadata names omitted from AI Markdown")
+        return MinerResult(self.name, data, doc=doc, warnings=warnings)
 
-    def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"AI configuration: {ctx.display_label}", source=ctx.source_line())
+    def _doc(self, ctx: MineContext, data: dict[str, Any]) -> tuple[MdDoc, int]:
+        redacted: set[str] = set()
+
+        def name(value: object, kind: str = "name") -> str:
+            shown = safe_name(value, kind)
+            # Input brackets are escaped, so this prefix belongs exclusively to the gate.
+            if shown.startswith(f"[{kind} omitted:"):
+                redacted.add(str(value))
+            return shown
+
+        doc = MdDoc(f"AI configuration: {name(ctx.label)}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data["present"]:
             if data["skills"] or data["agents"] or data["hooks"]:
@@ -302,8 +315,7 @@ class AiConfigMiner:
                 ("Tools configured", ", ".join(data["present"]) or "none"),
                 (
                     "Instruction files",
-                    ", ".join(safe_name(g["path"], "path") for g in data["instruction_files"])
-                    or "none",
+                    ", ".join(name(g["path"], "path") for g in data["instruction_files"]) or "none",
                 ),
                 ("Skills", len(data["skills"])),
                 ("Subagents", len(data["agents"])),
@@ -311,7 +323,7 @@ class AiConfigMiner:
                 ("Hook files", len(data["hooks"])),
                 (
                     "MCP servers",
-                    ", ".join(safe_name(s) for m in data["mcp"] for s in m["servers"]) or "none",
+                    ", ".join(name(s) for m in data["mcp"] for s in m["servers"]) or "none",
                 ),
                 ("Cursor rules", len(data["cursor_rules"])),
                 (
@@ -320,14 +332,14 @@ class AiConfigMiner:
                 ),
                 (
                     "Plugin manifest",
-                    safe_name(data["plugin"][0]["name"]) if data["plugin"] else "none",
+                    name(data["plugin"][0]["name"]) if data["plugin"] else "none",
                 ),
                 ("Devcontainer", data["devcontainer"]),
-                ("Instruction-like fragments flagged", data["suspicious_fragments"]),
+                ("Instruction-like file-content fragments flagged", data["suspicious_fragments"]),
             ]
         )
         for gist in data["instruction_files"]:
-            section = doc.section(f"{safe_name(gist['path'], 'path')} ({gist['tool']})", priority=2)
+            section = doc.section(f"{name(gist['path'], 'path')} ({gist['tool']})", priority=2)
             section.kv(
                 [
                     ("Size", f"{gist['lines']} lines, ~{gist['words']} words"),
@@ -343,9 +355,9 @@ class AiConfigMiner:
                 ["Path", "Name", "Description"],
                 (
                     [
-                        safe_name(s["path"], "path"),
-                        safe_name(s["frontmatter"].get("name", "")),
-                        safe_name(s["frontmatter"].get("description", "")[:120]),
+                        name(s["path"], "path"),
+                        name(s["frontmatter"].get("name", "")),
+                        name(s["frontmatter"].get("description", "")[:120]),
                     ]
                     for s in data["skills"]
                 ),
@@ -357,9 +369,9 @@ class AiConfigMiner:
                 ["Path", "Name", "Tools"],
                 (
                     [
-                        safe_name(a["path"], "path"),
-                        safe_name(a["frontmatter"].get("name", "")),
-                        safe_name(a["frontmatter"].get("tools", "")),
+                        name(a["path"], "path"),
+                        name(a["frontmatter"].get("name", "")),
+                        name(a["frontmatter"].get("tools", "")),
                     ]
                     for a in data["agents"]
                 ),
@@ -375,7 +387,7 @@ class AiConfigMiner:
                 ["Path", "Platform", "Metadata"],
                 (
                     [
-                        safe_name(g["path"], "path"),
+                        name(g["path"], "path"),
                         g["tool"],
                         "invalid JSON" if g["parse_error"] else "parsed JSON",
                     ]
@@ -386,22 +398,20 @@ class AiConfigMiner:
             settings = doc.section("Settings", priority=3)
             for gist in data["settings"]:
                 if gist.get("parse_error"):
-                    settings.bullets([f"{safe_name(gist['path'], 'path')}: not valid JSON"])
+                    settings.bullets([f"{name(gist['path'], 'path')}: not valid JSON"])
                     continue
                 settings.kv(
                     [
-                        ("File", safe_name(gist["path"], "path")),
-                        ("Keys", ", ".join(safe_name(k) for k in gist["keys"])),
+                        ("File", name(gist["path"], "path")),
+                        ("Keys", ", ".join(name(k) for k in gist["keys"])),
                         (
                             "Permissions",
-                            ", ".join(
-                                f"{safe_name(k)}: {v}" for k, v in gist["permissions"].items()
-                            )
+                            ", ".join(f"{name(k)}: {v}" for k, v in gist["permissions"].items())
                             or "none",
                         ),
                         (
                             "Hook events",
-                            ", ".join(safe_name(k) for k in gist["hook_events"]) or "none",
+                            ", ".join(name(k) for k in gist["hook_events"]) or "none",
                         ),
                     ]
                 )
@@ -409,7 +419,7 @@ class AiConfigMiner:
             other = doc.section("Other files", priority=4)
             other.bullets(
                 (
-                    safe_name(p, "path")
+                    name(p, "path")
                     for p in data["commands"]
                     + data["hooks"]
                     + data["cursor_rules"]
@@ -417,4 +427,5 @@ class AiConfigMiner:
                 ),
                 max_items=30,
             )
-        return doc
+        summary.kv([("Metadata names omitted (unique)", len(redacted))])
+        return doc, len(redacted)
