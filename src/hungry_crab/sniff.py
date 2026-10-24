@@ -11,7 +11,7 @@ from typing import Any
 
 from .cache import Slug, prey_paths
 from .cache import cache_root as default_cache_root
-from .fetch.cache_identity import require_cache_identity
+from .fetch.cache_identity import atomic_cache_text, require_cache_identity
 from .fetch.providers import RepositoryClient, client_for
 from .licensing import (
     LicenseClass,
@@ -266,11 +266,11 @@ def sniff(
         slug, repo, languages, maw_license=maw_license, relationship=relationship, now=now
     )
     paths.api.mkdir(parents=True, exist_ok=True)
-    (paths.api / "repo.json").write_text(json.dumps(repo, indent=2) + "\n", encoding="utf-8")
-    (paths.api / "languages.json").write_text(
-        json.dumps(languages, indent=2) + "\n", encoding="utf-8"
+    atomic_cache_text(paths.api / "repo.json", json.dumps(repo, indent=2) + "\n", cache_root=root)
+    atomic_cache_text(
+        paths.api / "languages.json", json.dumps(languages, indent=2) + "\n", cache_root=root
     )
-    (paths.api / "sniff.json").write_text(
-        json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
+    atomic_cache_text(
+        paths.api / "sniff.json", json.dumps(report.to_dict(), indent=2) + "\n", cache_root=root
     )
     return report

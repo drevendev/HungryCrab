@@ -6,6 +6,8 @@ import json
 import os
 import stat
 import subprocess
+import tempfile
+from collections.abc import Iterable
 from pathlib import Path
 
 from ..artifact_read import read_bytes
@@ -82,6 +84,40 @@ def _nonempty(path: Path) -> bool:
         raise CrabError("cannot inspect an existing cache directory", hint=_HINT) from exc
 
 
+def require_cache_outputs(paths: Iterable[Path], *, cache_root: Path) -> None:
+    """Every output must have real parents and no symlink or reparse-point incumbent."""
+    for path in paths:
+        _real_path(path, cache_root)
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise CrabError("cannot inspect cache output") from exc
+        if not stat.S_ISREG(info.st_mode) or is_reparse_point(info):
+            raise CrabError("cache output is not a regular, non-reparse file")
+
+
+def atomic_cache_text(path: Path, text: str | Iterable[str], *, cache_root: Path) -> None:
+    """Publish through an exclusive temporary file; never truncate an existing inode."""
+    require_cache_outputs([path], cache_root=cache_root)
+    temporary: Path | None = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        require_cache_outputs([path], cache_root=cache_root)
+        descriptor, name = tempfile.mkstemp(prefix=".crab-write-", suffix=".tmp", dir=path.parent)
+        temporary = Path(name)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as output:
+            output.writelines([text] if isinstance(text, str) else text)
+        require_cache_outputs([path], cache_root=cache_root)
+        temporary.replace(path)
+    except OSError as exc:
+        raise CrabError("cannot atomically publish cache metadata") from exc
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def _owned_entry(path: Path, slug: Slug, root: Path, *, include_sniff: bool = True) -> bool:
     records = [path / "catch.json"]
     if include_sniff:
@@ -114,7 +150,7 @@ def _metadata_has_no_aliases(git_dir: Path) -> None:
 
 
 def require_clone_identity(
-    path: Path, url: str, *, cache_root: Path, slug: Slug | None = None
+    path: Path, url: str, *, cache_root: Path, slug: Slug | None = None, is_wiki: bool = False
 ) -> None:
     """Refuse unowned or retargeted existing clones, before fetching or replacing them."""
     acquisition_env = _acquisition_env()
@@ -133,9 +169,15 @@ def require_clone_identity(
     _real_path(git_dir / CLONE_RECORD, cache_root)
     marker = _record(git_dir / CLONE_RECORD)
     owned = marker.get("url") == url and marker.get("schema") == 1
-    if not owned and not (
-        slug and _owned_entry(path.parent, slug, cache_root, include_sniff=False)
-    ):
+    caught = bool(slug and _owned_entry(path.parent, slug, cache_root, include_sniff=False))
+    if caught and is_wiki:
+        wiki_record = _record(path.parent / "catch.json").get("wiki")
+        caught = (
+            isinstance(wiki_record, dict)
+            and wiki_record.get("status") == "available"
+            and wiki_record.get("url") == url
+        )
+    if not owned and not caught:
         raise CrabError("refusing to mutate a clone with no crab ownership record", hint=_HINT)
     # Read only this regular config file: includes and environment overrides cannot supply
     # an alternative identity. Never echo a URL that might contain credentials.
@@ -200,7 +242,9 @@ def require_clone_identity(
         raise CrabError("cached clone uses external Git metadata or working tree", hint=_HINT)
 
 
-def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) -> None:
+def require_cache_identity(
+    slug: Slug, root: Path, *, url: str | None = None, wiki_url: str | None = None
+) -> None:
     """Check the live entry before sniff, catch, remove or a staged replacement can claim it."""
     _acquisition_env()
     paths = prey_paths(slug, root)
@@ -230,6 +274,32 @@ def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) ->
     fallback = marker_url if isinstance(marker_url, str) and marker_url else slug.clone_url
     source = url or (recorded if isinstance(recorded, str) and recorded else fallback)
     require_clone_identity(paths.repo, source, cache_root=root, slug=slug)
+    recorded_wiki = previous.get("wiki")
+    recorded_wiki_url = recorded_wiki.get("url") if isinstance(recorded_wiki, dict) else None
+    wiki_source = wiki_url or (
+        recorded_wiki_url
+        if isinstance(recorded_wiki_url, str) and recorded_wiki_url
+        else slug.wiki_clone_url
+    )
+    require_clone_identity(paths.wiki, wiki_source, cache_root=root, slug=slug, is_wiki=True)
+    require_cache_outputs(
+        [
+            paths.catch_file,
+            *(
+                paths.api / name
+                for name in (
+                    "repo.json",
+                    "languages.json",
+                    "sniff.json",
+                    "issues.jsonl",
+                    "discussions.json",
+                    "reviews.json",
+                    "runs.json",
+                )
+            ),
+        ],
+        cache_root=root,
+    )
 
 
 def require_replacement_identity(source: Path, target: Path, root: Path) -> None:
@@ -244,4 +314,4 @@ def require_replacement_identity(source: Path, target: Path, root: Path) -> None
     url = marker.get("url")
     if not isinstance(url, str) or not url:
         raise CrabError("staged clone has no acquisition identity")
-    require_clone_identity(target, url, cache_root=root, slug=slug)
+    require_clone_identity(target, url, cache_root=root, slug=slug, is_wiki=parts[-1] == "wiki")

@@ -21,6 +21,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   refresh, forced/policy replacement, cache removal, wiki replacement or quota publication.
   Refuse aliases and unrecognised existing data, retain the previous cache on refusal, and
   fetch only the verified origin rather than every configured remote (#211).
+  Publish API/catch metadata atomically without truncating linked files, and verify wiki
+  ownership independently before whole-entry deletion.
 
 - **Acquisition security:** remote Feeder runs require a fixed-capacity acquisition filesystem
   and share one download allowance across main repositories and wikis. Quota failures and

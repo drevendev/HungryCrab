@@ -26,7 +26,12 @@ from ..errors import CrabError, ExternalCommandError, UsageError
 from ..fs import is_reparse_point
 from . import channels
 from .acquisition import CURRENT, AcquisitionLimitError
-from .cache_identity import CLONE_RECORD, require_cache_identity, require_clone_identity
+from .cache_identity import (
+    CLONE_RECORD,
+    atomic_cache_text,
+    require_cache_identity,
+    require_clone_identity,
+)
 from .git import GitRunner
 from .issues import fetch_issues, write_issues
 from .providers import RepositoryClient, client_for
@@ -187,7 +192,13 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
             raise CrabError(f"refusing cache cleanup outside its root: {item}")
         _require_real_entries(item, cache_root=cache_root)
         try:
-            mode = item.lstat().st_mode | stat.S_IWRITE
+            info = item.lstat()
+            if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
+                raise CrabError(
+                    "refusing to change permissions on a hardlinked cache file",
+                    hint="the shared file and remaining cache data were retained for inspection",
+                )
+            mode = info.st_mode | stat.S_IWRITE
             # The entry may have become a link since it was checked: never change a target.
             if _CHMOD_NOFOLLOW:
                 item.chmod(mode, follow_symlinks=False)
@@ -244,24 +255,22 @@ def _fetch_channels(
     opts: CatchOptions,
     api_dir: Path,
     log: Callable[[str], None],
+    *,
+    cache_root: Path,
 ) -> int:
     """Fetch the requested provider samples into ``api_dir``; return the issue count."""
     issues_fetched = 0
     if opts.issues > 0:
         items = fetch_issues(client, slug, limit=opts.issues, log=log)
-        write_issues(api_dir / "issues.jsonl", items)
+        write_issues(api_dir / "issues.jsonl", items, cache_root=cache_root)
         issues_fetched = len(items)
     for name in ("discussions", "reviews", "runs"):
         limit = getattr(opts, name)
         if limit:
             data = getattr(channels, name)(client, slug, limit)
-            api_dir.mkdir(parents=True, exist_ok=True)
-            temporary = api_dir / f".{name}-{uuid.uuid4().hex}.tmp"
-            try:
-                temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-                temporary.replace(api_dir / f"{name}.json")
-            finally:
-                temporary.unlink(missing_ok=True)
+            atomic_cache_text(
+                api_dir / f"{name}.json", json.dumps(data, indent=2) + "\n", cache_root=cache_root
+            )
     return issues_fetched
 
 
@@ -302,7 +311,13 @@ def catch(
         raise UsageError("--issues, --discussions, --reviews and --runs must be in 0..3000")
     root = cache_root if cache_root is not None else default_cache_root()
     paths = prey_paths(slug, root)
-    require_cache_identity(slug, root, url=source_url or slug.clone_url)
+    require_cache_identity(
+        slug,
+        root,
+        url=source_url or slug.clone_url,
+        wiki_url=wiki_source_url
+        or (slug.wiki_clone_url if opts.wiki and source_url is None else None),
+    )
     root_existed = paths.root.exists()
     paths.root.mkdir(parents=True, exist_ok=True)
     repo_dir = paths.repo
@@ -329,11 +344,11 @@ def catch(
         # full disk) still leaves a record that `crab cache rm` accepts. Only a directory this
         # catch created is claimed: an existing one without a record may be someone's own.
         record = {"slug": str(slug), "status": INCOMPLETE}
-        paths.catch_file.write_text(json.dumps(record) + "\n", encoding="utf-8")
+        atomic_cache_text(paths.catch_file, json.dumps(record) + "\n", cache_root=root)
     if channels_only and (repo_dir / ".git").exists() and previous:
         log(f"fetching provider samples for {slug}; the cached tree stays at its commit")
         git = GitRunner(repo_dir)
-        issues_fetched = _fetch_channels(client, slug, opts, paths.api, log)
+        issues_fetched = _fetch_channels(client, slug, opts, paths.api, log, cache_root=root)
         recorded_wiki = previous.get("wiki")
         recorded_window = previous.get("history_window_applied")
         result = CatchResult(
@@ -355,7 +370,7 @@ def catch(
             "issues_fetched": issues_fetched,
             "channels_at": (now or datetime.now(UTC)).isoformat(timespec="seconds"),
         }
-        paths.catch_file.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
+        atomic_cache_text(paths.catch_file, json.dumps(recorded, indent=2) + "\n", cache_root=root)
         return result
 
     # A clone without a usable record (a cache from before the policy was recorded, or a
@@ -476,7 +491,7 @@ def catch(
             log(f"wiki: unavailable ({reason})")
             wiki_info = {"status": "unavailable", "sha": None, "url": wiki_url, "reason": reason}
 
-    issues_fetched = _fetch_channels(client, slug, opts, paths.api, log)
+    issues_fetched = _fetch_channels(client, slug, opts, paths.api, log, cache_root=root)
 
     result = CatchResult(
         slug=str(slug),
@@ -493,7 +508,7 @@ def catch(
         history_window_applied=history_window_applied,
     )
     recorded = {**result.to_dict(), "clone_policy": clone_policy(opts)}
-    paths.catch_file.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
+    atomic_cache_text(paths.catch_file, json.dumps(recorded, indent=2) + "\n", cache_root=root)
     return result
 
 
@@ -506,10 +521,13 @@ def _clone_replace(
     auth_host: str = "github.com",
     cache_root: Path,
     slug: Slug | None = None,
+    is_wiki: bool = False,
 ) -> None:
     """Publish only a complete clone, preserving the last valid tree on failure."""
     budget = CURRENT.get()
-    require_clone_identity(destination, url, cache_root=cache_root, slug=slug)
+    require_clone_identity(destination, url, cache_root=cache_root, slug=slug, is_wiki=is_wiki)
+    # Local fixture/library sources must not share read-only object inodes with the cache.
+    args = [args[0], "--no-hardlinks", *args[1:]]
     checkout = "--no-checkout" not in args
     if budget is not None:
         budget.require_path(destination)
@@ -531,8 +549,10 @@ def _clone_replace(
             raise
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
-        (staged / ".git" / CLONE_RECORD).write_text(
-            json.dumps({"schema": 1, "url": url}) + "\n", encoding="utf-8"
+        atomic_cache_text(
+            staged / ".git" / CLONE_RECORD,
+            json.dumps({"schema": 1, "url": url}) + "\n",
+            cache_root=staged.parent,
         )
         if budget is not None and checkout:
             git = GitRunner(staged)
@@ -551,7 +571,9 @@ def _clone_replace(
                 )
             git.run("reset", "--hard", "--quiet", "HEAD")
         try:
-            require_clone_identity(destination, url, cache_root=cache_root, slug=slug)
+            require_clone_identity(
+                destination, url, cache_root=cache_root, slug=slug, is_wiki=is_wiki
+            )
             if destination.exists():
                 destination.rename(backup)
             try:
@@ -587,7 +609,7 @@ def catch_wiki(
     """Wikis are independent Git repositories. An uninitialised wiki is ordinary absence."""
     budget = CURRENT.get()
     root = cache_root if cache_root is not None else destination.parent
-    require_clone_identity(destination, url, cache_root=root, slug=slug)
+    require_clone_identity(destination, url, cache_root=root, slug=slug, is_wiki=True)
     if budget is not None:
         budget.require_path(destination)
         budget.require_url(url)
@@ -621,6 +643,7 @@ def catch_wiki(
             auth_host=auth_host,
             cache_root=root,
             slug=slug,
+            is_wiki=True,
         )
     return {"status": "available", "sha": GitRunner(destination).head_sha(), "url": url}
 
@@ -642,7 +665,13 @@ def _budgeted_catch(
     root = cache_root if cache_root is not None else default_cache_root()
     paths = prey_paths(slug, root)
     budget.require_path(paths.root)
-    require_cache_identity(slug, root, url=source_url or slug.clone_url)
+    require_cache_identity(
+        slug,
+        root,
+        url=source_url or slug.clone_url,
+        wiki_url=wiki_source_url
+        or (slug.wiki_clone_url if options.wiki and source_url is None else None),
+    )
     staged_cache = budget.volume / f".acquisition-{uuid.uuid4().hex}"
     staged_cache.mkdir()
     try:
@@ -673,7 +702,9 @@ def _budgeted_catch(
         result.repo_dir = str(paths.repo)
         recorded = json.loads(staged.catch_file.read_text(encoding="utf-8"))
         recorded["repo_dir"] = result.repo_dir
-        staged.catch_file.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
+        atomic_cache_text(
+            staged.catch_file, json.dumps(recorded, indent=2) + "\n", cache_root=staged_cache
+        )
         paths.root.parent.mkdir(parents=True, exist_ok=True)
         if paths.root.exists():
             _require_crab_owned(paths.root, cache_root=root)

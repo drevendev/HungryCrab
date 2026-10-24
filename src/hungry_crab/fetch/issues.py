@@ -15,6 +15,7 @@ from typing import Any
 from ..cache import Slug
 from ..errors import CrabError
 from ..typeutil import as_dict, as_list
+from .cache_identity import atomic_cache_text
 from .gitlab import GitLabClient
 from .providers import RepositoryClient
 
@@ -106,11 +107,14 @@ def fetch_issues(
     return [items[number] for number in sorted(items, reverse=True)]
 
 
-def write_issues(path: Path, items: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="\n") as handle:
-        for item in items:
-            handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+def write_issues(
+    path: Path, items: list[dict[str, Any]], *, cache_root: Path | None = None
+) -> None:
+    atomic_cache_text(
+        path,
+        (json.dumps(item, ensure_ascii=False) + "\n" for item in items),
+        cache_root=cache_root if cache_root is not None else path.parent,
+    )
 
 
 def read_issues(path: Path) -> list[dict[str, Any]]:

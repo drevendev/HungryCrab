@@ -88,12 +88,19 @@ needs its acquisition marker or matching catch record. Sniff refuses to claim an
 unowned directory, and a checkout at the cache-entry root is refused even with a legacy marker.
 Links and Windows reparse points below the chosen cache root are
 refused; the root itself and its ancestors may be user-configured filesystem aliases.
+Generated API and catch files are checked at their exact output paths and atomically replaced
+through exclusive temporary files, so existing hardlinks are never opened for truncation.
 
 New main and wiki clones also carry an acquisition marker inside `.git`. Standalone wiki
-replacement requires that marker or a matching catch record. Quota transactions
-verify old clone identity before moving any cache entry. A refusal preserves existing data;
+replacement requires that marker or a matching wiki catch record. Whole-entry removal verifies
+wiki provenance independently from the main clone; a main-only catch record does not authorize
+deleting an unrelated wiki checkout. Quota transactions
+verify old clone identity before moving any cache entry. Ownership and output-path preflight
+refusals preserve existing data;
 an old unmarked checkout must be inspected and moved aside manually rather than adopted by
 `--force`. These checks do not claim protection from a concurrent process rewriting the cache.
+Local clones do not share object hardlinks with their source. Cleanup refuses permission
+repair on a shared file inode and reports retained data for inspection.
 
 ### Acquisition limits
 
