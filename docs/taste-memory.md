@@ -126,6 +126,14 @@ to the whole invocation; current maw hunger still applies. COPY verifies the sel
 its pinned commit; REIMPLEMENT retains clean-room receipts. Source hashes detect partial edits;
 they are not signatures or a substitute for protecting the maw's own files.
 
+For `pr-branch`, every selected source is prepared before the first provider identity query,
+listing, push or PR creation. This checks receipt kinds and nutrient identities, source files,
+maw containment, handoff hashes and secret scans over every frozen public field. A bad second
+source therefore blocks the whole selection before the first source is published. The creation
+budget counts only newly created PRs across all sources; terminal ledger entries and reconciled
+provider PRs consume no creation slots. Each returned provider receipt is saved to the ledger;
+a later provider/network failure can leave earlier successful publications recorded there.
+
 ## Scheduled HUNT
 
 Set maw-owned `loop.discovery: true` to opt in. A nonempty fixed `loop.prey` remains an allowlist.

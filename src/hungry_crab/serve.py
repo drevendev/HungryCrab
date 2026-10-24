@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -50,7 +50,11 @@ from .pr_publication import (
     load_cleanroom_implementation_receipt,
 )
 from .pr_serve import prepare_cleanroom_pull_request, publish_prepared_cleanroom_git_pull_request
-from .pr_serving import serve_cleanroom_pull_requests
+from .pr_serving import (
+    PullRequestServePlan,
+    prepare_pull_request_plan,
+    publish_pull_request_plans,
+)
 from .typeutil import as_dict, as_list
 
 MARKER_RE = re.compile(r"<!--\s*(crab:[^\s>]+)\s*-->")
@@ -689,6 +693,7 @@ def _serve_pull_requests(
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
+    publication_plans: list[PullRequestServePlan] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
@@ -722,9 +727,17 @@ def _serve_pull_requests(
             publication_guard(prepared)
         return prepared
 
+    announced = False
+
     def publish(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
     ) -> PullRequestPublication | None:
+        nonlocal announced
+        if not announced:
+            who = client.identity()
+            target = f"serving pull requests into {slug}"
+            log(f"{target} as {who}" if who else target)
+            announced = True
         return publish_prepared_cleanroom_git_pull_request(
             card.id,
             prepared,
@@ -736,7 +749,7 @@ def _serve_pull_requests(
             base_guard=base_receipts_kept(prepared) if card.license_mode in COPY_MODES else None,
         )
 
-    result = serve_cleanroom_pull_requests(
+    plan = prepare_pull_request_plan(
         cards,
         receipts,
         config=config,
@@ -744,9 +757,24 @@ def _serve_pull_requests(
         explicit_selection=explicit_selection,
         preparer=prepare,
         publisher=publish,
-        now=now,
         human_review=as_dict(menu.get("verdict")).get("human_review") is True,
     )
+    if publication_plans is not None:
+        publication_plans.append(plan)
+        return [], []
+    return publish_serve_plans([plan], config=config, ledger=ledger, now=now, log=log)
+
+
+def publish_serve_plans(
+    plans: Sequence[PullRequestServePlan],
+    *,
+    config: MawConfig,
+    ledger: Ledger,
+    now: datetime | None = None,
+    log: Callable[[str], None] = _noop,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Publish fully preflighted sources and retain normal serve report semantics."""
+    result = publish_pull_request_plans(plans, config=config, ledger=ledger, now=now)
     served: list[dict[str, Any]] = []
     skipped = list(result.skipped)
     for item in result.served:
@@ -781,6 +809,7 @@ def serve(
     prey_repo: Path | None = None,
     source_reader: SourceReader | None = None,
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
+    publication_plans: list[PullRequestServePlan] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -832,9 +861,6 @@ def serve(
             if client is not None
             else GhIssueClient(token_env=config.serve.token_env)
         )
-        who = pr_client.identity()
-        target = f"serving pull requests into {slug}"
-        log(f"{target} as {who}" if who else target)
         served, pr_skipped = _serve_pull_requests(
             cards,
             receipts,
@@ -850,6 +876,7 @@ def serve(
             prey_repo=prey_repo,
             source_reader=source_reader,
             publication_guard=publication_guard,
+            publication_plans=publication_plans,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)

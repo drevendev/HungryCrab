@@ -25,6 +25,7 @@ from .nutrients import Candidate
 from .pr_publication import (
     PreparedPullRequest,
     PullRequestPublication,
+    check_prepared_publication,
     load_cleanroom_implementation_receipt,
 )
 
@@ -40,6 +41,15 @@ class PullRequestServeReport:
     served: list[dict[str, Any]] = field(default_factory=list)
     skipped: list[dict[str, Any]] = field(default_factory=list)
     ledger_path: str | None = None
+
+
+@dataclass(frozen=True)
+class PullRequestServePlan:
+    """A source's frozen, scanned publications and its deferred provider adapter."""
+
+    publications: tuple[tuple[Candidate, PreparedPullRequest, tuple[str, ...]], ...]
+    skipped: tuple[dict[str, Any], ...]
+    publisher: PrPublisher
 
 
 def _prepare_publications(
@@ -120,11 +130,13 @@ def _prepare_publications(
                 f"{label} receipt nutrient does not match the selected nutrient",
                 hint=f"expected {card.id}, got {receipt_id}",
             )
-        planned.append((card, preparer(card, payload), working_tree_paths))
+        prepared = preparer(card, payload)
+        check_prepared_publication(prepared)
+        planned.append((card, prepared, working_tree_paths))
     return planned, skipped
 
 
-def serve_cleanroom_pull_requests(
+def prepare_pull_request_plan(
     cards: Sequence[Candidate],
     receipts: Mapping[str, str],
     *,
@@ -133,21 +145,13 @@ def serve_cleanroom_pull_requests(
     explicit_selection: bool,
     preparer: PrPreparer,
     publisher: PrPublisher,
-    now: datetime | None = None,
     human_review: bool = False,
-) -> PullRequestServeReport:
-    """Apply PR serving policy around the already guarded clean-room publisher.
+) -> PullRequestServePlan:
+    """Validate policy, receipts, containment and all public fields without provider access.
 
-    ``serve.prs: ask`` requires an explicit nutrient selection; automatic ``--top`` style
-    selection is reserved for ``auto``. Every actionable card is fully prepared into an immutable
-    publication payload before ``publisher`` is called for any card. Receipt structure, nutrient
-    identity, maw path containment, UTF-8 readability, file identity and drift detection therefore
-    all complete before the first provider reconciliation/read/effect.
-
-    ``publisher`` receives ``allow_create=False`` after the configured creation budget is spent.
-    It must still perform the safe scan + provider reconciliation and return an existing PR when
-    one is found, but it must return ``None`` instead of creating a new provider effect otherwise.
-    Consequently reconciled PRs do not consume ``max_prs_per_run``.
+    ``ask`` needs owner-selected IDs; automatic selection is reserved for ``auto``. Skips
+    preserve the normal single-source policy. Present but invalid receipts, source verification
+    failures and secret findings reject preparation of the whole invocation.
     """
 
     if config.serve.prs == "off":
@@ -161,12 +165,37 @@ def serve_cleanroom_pull_requests(
     planned, skipped = _prepare_publications(
         cards, receipts, ledger, preparer, copy_needs_ids=human_review and not explicit_selection
     )
-    report = PullRequestServeReport(skipped=skipped)
+    return PullRequestServePlan(
+        tuple((card, prepared, tuple(paths)) for card, prepared, paths in planned),
+        tuple(skipped),
+        publisher,
+    )
+
+
+def publish_pull_request_plans(
+    plans: Sequence[PullRequestServePlan],
+    *,
+    config: MawConfig,
+    ledger: Ledger,
+    now: datetime | None = None,
+) -> PullRequestServeReport:
+    """Publish already checked sources under one creation budget; reconciliation is free.
+
+    After the limit is spent, publishers still reconcile with ``allow_create=False``. They
+    return an existing provider receipt or None, never create a new PR. Every successful
+    receipt is saved immediately so a later provider failure can be reconciled on retry.
+    """
+    report = PullRequestServeReport(skipped=[item for plan in plans for item in plan.skipped])
     report.ledger_path = str(ledger.path) if ledger.path else None
     creation_limit = max(0, config.serve.max_prs_per_run)
     created = 0
 
-    for card, prepared, working_tree_paths in planned:
+    publications = (
+        (card, prepared, paths, plan.publisher)
+        for plan in plans
+        for card, prepared, paths in plan.publications
+    )
+    for card, prepared, working_tree_paths, publisher in publications:
         allow_create = created < creation_limit
         publication = publisher(card, prepared, allow_create)
         if publication is None:
@@ -196,8 +225,34 @@ def serve_cleanroom_pull_requests(
             }
         )
         if working_tree_paths:
-            report.served[-1]["working_tree_paths"] = working_tree_paths
+            report.served[-1]["working_tree_paths"] = list(working_tree_paths)
         if publication.created:
             created += 1
 
     return report
+
+
+def serve_cleanroom_pull_requests(
+    cards: Sequence[Candidate],
+    receipts: Mapping[str, str],
+    *,
+    config: MawConfig,
+    ledger: Ledger,
+    explicit_selection: bool,
+    preparer: PrPreparer,
+    publisher: PrPublisher,
+    now: datetime | None = None,
+    human_review: bool = False,
+) -> PullRequestServeReport:
+    """Prepare the whole batch before effects, then count only newly created PRs."""
+    plan = prepare_pull_request_plan(
+        cards,
+        receipts,
+        config=config,
+        ledger=ledger,
+        explicit_selection=explicit_selection,
+        preparer=preparer,
+        publisher=publisher,
+        human_review=human_review,
+    )
+    return publish_pull_request_plans([plan], config=config, ledger=ledger, now=now)

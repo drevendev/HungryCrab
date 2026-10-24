@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Publication security:** prepare and scan every selected multi-prey payload before provider
+  reads or effects, and share one budget counting only newly created PRs across all sources
+  ([#339](https://github.com/drevendev/HungryCrab/issues/339)).
+
 - Retry transient Windows sharing violations while inspecting, reading or replacing canonical
   digest refs (10 attempts, 50 ms apart); retain fail-closed behavior when retries are exhausted.
   This addresses the sharing-violation portion of

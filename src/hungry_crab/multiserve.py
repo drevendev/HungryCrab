@@ -12,12 +12,14 @@ from .errors import CrabError
 from .ledger import Ledger
 from .maw import MawConfig
 from .multifeed import load_multi
+from .pr_serving import PullRequestServePlan
 from .serve import (
     IssueClient,
     ServeOptions,
     ServeReport,
     decode_receipt_stream,
     load_cleanroom_receipts,
+    publish_serve_plans,
     select_cards,
     serve,
 )
@@ -41,10 +43,6 @@ def serve_many(
     cards, skipped = select_cards(menu, options, ledger)
     # Bound the whole invocation, not each individual source dispatch.
     cards = list({card.id: card for card in cards}.values())
-    if options.mode == "pr-branch":
-        for card in cards[config.serve.max_prs_per_run :]:
-            skipped.append({"id": card.id, "reason": "multi-prey PR budget exceeded"})
-        cards = cards[: config.serve.max_prs_per_run]
     receipts = (
         load_cleanroom_receipts(decode_receipt_stream(sys.stdin))
         if options.mode == "pr-branch"
@@ -52,6 +50,7 @@ def serve_many(
     )
     report = ServeReport(options.mode, str(maw), skipped=skipped)
     groups: dict[str, list[str]] = {}
+    plans: list[PullRequestServePlan] | None = [] if options.mode == "pr-branch" else None
     for card in cards:
         groups.setdefault(str(card.trace["primary_source"]), []).append(card.id)
     for key, ids in groups.items():
@@ -73,9 +72,15 @@ def serve_many(
             log=log,
             receipt_payloads=receipts,
             prey_repo=repo,
+            publication_plans=plans,
         )
         report.served.extend(part.served)
         report.skipped.extend(part.skipped)
         report.previews.extend(part.previews)
         report.ledger_path = part.ledger_path
+    if plans is not None:
+        served, pr_skipped = publish_serve_plans(plans, config=config, ledger=ledger, log=log)
+        report.served.extend(served)
+        report.skipped.extend(pr_skipped)
+        report.ledger_path = str(ledger.path) if ledger.path else None
     return report

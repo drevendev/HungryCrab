@@ -428,6 +428,16 @@ def _required_marker(nutrient_id: str) -> str:
     return f"<!-- {nutrient_id} -->"
 
 
+def check_prepared_publication(prepared: PreparedPullRequest) -> None:
+    """Check every frozen public field without provider access or effects."""
+    findings = scan_publication_bundle(publication_items(prepared))
+    if findings:
+        raise CrabError(
+            "refusing to publish a pull request containing a possible secret",
+            hint=format_publication_findings(findings),
+        )
+
+
 def publish_prepared_pull_request(
     prepared: PreparedPullRequest,
     publish: Callable[[PreparedPullRequest], _ResultT],
@@ -438,13 +448,7 @@ def publish_prepared_pull_request(
     such work before entering this function. A finding raises before the callback is invoked and
     reports only path/line/rule metadata, never the matched value.
     """
-
-    findings = scan_publication_bundle(publication_items(prepared))
-    if findings:
-        raise CrabError(
-            "refusing to publish a pull request containing a possible secret",
-            hint=format_publication_findings(findings),
-        )
+    check_prepared_publication(prepared)
     return publish(prepared)
 
 
