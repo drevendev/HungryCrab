@@ -13,6 +13,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   gate architecture and AI metadata, digest labels, meal cards and served issue prose through
   the same name filter. Escape active name markup and encode evidence-link delimiters while
   retaining complete source values in JSON (#192).
+  Refuse closing directives in metadata and fence receipt/obligation prose independently of
+  raw marker reconciliation; full issue URLs cannot trigger unintended GitHub closing actions
+  (#192, #218).
 
 - **Wiki provenance:** ignore Git replacement refs for tree and blob reads; report invalid
   UTF-8 page paths by raw hex identity as visibility loss instead of merging distinct names

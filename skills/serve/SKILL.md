@@ -131,7 +131,10 @@ recorded maw file is missing or unsafe. Stored array members are never silently 
 Legacy carried texts without a digest must be verified against the recorded prey commit before
 migrating them; hashing unverified stored prose would bless the same corruption. Legacy missing
 checks remain explicitly unrecorded. New COPY records retain checks, and both PR paths quote
-producer summaries/checks as data, neutralizing markers, closing references and mentions.
+producer summaries/checks as fenced data, neutralizing raw reconciliation comments separately.
+Blockquotes and HTML entities still permit GitHub closing references, including full issue
+URLs; receipt and obligation prose therefore stays in code fences that its contents cannot
+close. Metadata that carries a closing directive is redacted instead of becoming provider syntax.
 The notice names only what the crab actually
 carried in: a COPY nutrient filed as an issue took nothing and appears nowhere. Serve from a
 checkout that is up to date with the default branch: a pull request that would drop a receipt

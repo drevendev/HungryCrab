@@ -13,10 +13,13 @@ def inert_receipt_text(text: str) -> str:
 
 
 def quote_receipt_text(text: str) -> str:
-    """Quote every line and encode syntax before GitHub or reconciliation sees the body.
+    """Literal fenced data, with raw reconciliation comments disabled as a second boundary.
 
-    A fence alone is insufficient: our marker reconciler reads raw comments everywhere in
-    the body. Entities preserve the visible prose while removing raw effect-bearing syntax.
+    GitHub recognizes closing references even inside a quote and after entity decoding.
+    Code fences suppress that action; their length exceeds every backtick run in the data.
+    Our own reconciler scans raw Markdown, so comments must be neutralized separately.
     """
-    escaped = inert_receipt_text(text)
-    return "\n".join("> " + line for line in escaped.splitlines())
+    literal = text.replace("<!--", "< !--")
+    longest = max((len(run) for run in re.findall(r"`+", literal)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}text\n{literal}\n{fence}"

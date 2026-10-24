@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
+from helpers import unfenced_text
 
 from hungry_crab.cache import Slug
 from hungry_crab.errors import CrabError
@@ -45,8 +46,9 @@ def test_cleanroom_receipt_prose_and_checks_cannot_inject_provider_effects(tmp_p
     )
     assert set(parse_markers([{"number": 1, "body": prepared.body}])) == {"crab:ci:cache"}
     assert TRACE in prepared.body and "Producer-reported checks" in prepared.body
-    assert "@someone" not in prepared.body and "Closes #12" not in prepared.body
-    assert "![pixel]" not in prepared.body
+    active = unfenced_text(prepared.body)
+    assert "@someone" not in active and "Closes #12" not in active
+    assert "![pixel]" not in active
 
 
 def _write_spec(maw: Path, nutrient_id: str = "crab:ci:cache", text: str = SPEC) -> str:

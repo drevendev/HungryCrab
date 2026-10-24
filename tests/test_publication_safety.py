@@ -94,7 +94,7 @@ def test_quoting_a_receipt_does_not_disable_its_secret_scan() -> None:
     from hungry_crab.receipt_text import quote_receipt_text
 
     quoted = quote_receipt_text("credential: " + GITHUB)
-    assert GITHUB not in quoted
+    assert GITHUB in quoted, "literal data must still pass the secret scan"
     assert scan_publication("pull-request-body.md", quoted)
 
 

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from helpers import unfenced_text
 
 from hungry_crab.attribution import (
     ATTRIBUTIONS_PATH,
@@ -444,9 +445,10 @@ def test_receipt_summary_cannot_reconcile_another_nutrient(tmp_path: Path) -> No
     prepared = _prepare(_maw(tmp_path), _payload(summary=hostile))
     marked = parse_markers([{"number": 1, "body": prepared.body}])
     assert set(marked) == {"crab:ci:ci.cache"}
-    assert "Closes #12" not in prepared.body
-    assert "@someone" not in prepared.body
-    assert "![pixel]" not in prepared.body
+    active = unfenced_text(prepared.body)
+    assert "Closes #12" not in active
+    assert "@someone" not in active
+    assert "![pixel]" not in active
 
 
 def test_edited_carried_text_fails_before_notice_or_copy_writes(tmp_path: Path) -> None:

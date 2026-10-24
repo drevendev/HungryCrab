@@ -1098,9 +1098,18 @@ def _attribution_section(record: AttributionRecord, attribution_file: str) -> st
     spdx = _inline(source.license) if source.license else "no licence declared"
     taken_from = (
         f"Taken from {_code(f'{source.label}@{source.sha[:7]}')} "
-        f"({spdx}, mode {_inline(record.mode)}): {_sentence(record.obligation.text)}"
+        f"({spdx}, mode {_inline(record.mode)}):"
     )
-    lines = ["## Attribution", "", taken_from, "", "| Into | From | |", "|---|---|---|"]
+    lines = [
+        "## Attribution",
+        "",
+        taken_from,
+        "",
+        quote_receipt_text(_sentence(record.obligation.text)),
+        "",
+        "| Into | From | |",
+        "|---|---|---|",
+    ]
     for item in sorted(record.taken, key=_taken_key):
         how = "verbatim" if item.verbatim else "adapted"
         lines.append(f"| {cell(_code(item.maw_path))} | {cell(_code(item.prey_path))} | {how} |")

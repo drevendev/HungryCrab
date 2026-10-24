@@ -15,6 +15,7 @@ from typing import Any
 
 from .errors import CrabError
 from .licensing.origin import ContentOrigin, cap_mode_for_origin, normalize_origin
+from .safety import has_closing_reference
 from .typeutil import as_list
 
 CATEGORIES: tuple[str, ...] = (
@@ -52,7 +53,7 @@ def make_id(category: str, key: str) -> str:
 
 def require_nutrient_id(value: str) -> None:
     """Validate structural publication identity without rewriting a stable ledger key."""
-    if re.fullmatch(r"crab:[\w-]+:[\w./:+-]+", value) is None:
+    if re.fullmatch(r"crab:[\w-]+:[\w./:+-]+", value) is None or has_closing_reference(value):
         raise CrabError(
             "invalid nutrient publication identity",
             hint="regenerate the meal; IDs require crab:category:key "

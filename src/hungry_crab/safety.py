@@ -214,6 +214,11 @@ def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
 
 
 _NAME_SEPARATORS_RE = re.compile(r"[-_/.+,]+")
+_CLOSING_REFERENCE_RE = re.compile(
+    r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b\s*:?\s*"
+    r"(?:#\d|[\w.-]+/[\w.-]+#\d|https?://)",
+    re.IGNORECASE,
+)
 # A name made of words is judged by the imperative rules only. `system prompt` is a noun an
 # AI project names files after (`prompts/system_prompt.txt`); as a heading it stays flagged.
 _SYSTEM_PROMPT = r"\bsystem prompt\b"
@@ -226,6 +231,11 @@ _NAME_RULES: tuple[_Finder, ...] = tuple(
 
 def is_suspicious(text: str) -> bool:
     return any(next(find(text), None) is not None for find in _RULES)
+
+
+def has_closing_reference(text: str) -> bool:
+    """Publisher directives are unsafe in metadata, including full issue URLs."""
+    return _CLOSING_REFERENCE_RE.search(html.unescape(text)) is not None
 
 
 def safe_name(value: object, kind: str = "name") -> str:
@@ -242,8 +252,11 @@ def safe_name(value: object, kind: str = "name") -> str:
     """
     text = inline(value)
     spaced = inline(_NAME_SEPARATORS_RE.sub(" ", text))
-    flagged = is_suspicious(text) or (
-        spaced != text and any(next(find(spaced), None) is not None for find in _NAME_RULES)
+    flagged = (
+        has_closing_reference(text)
+        or has_closing_reference(spaced)
+        or is_suspicious(text)
+        or (spaced != text and any(next(find(spaced), None) is not None for find in _NAME_RULES))
     )
     if flagged:
         return f"[{kind} omitted: instruction-like]"

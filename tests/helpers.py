@@ -3,10 +3,27 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from hungry_crab.digest import DigestResult
+
+
+def unfenced_text(markdown: str) -> str:
+    """Text outside Markdown code fences, for checking active publication prose."""
+    lines: list[str] = []
+    fence = ""
+    for line in markdown.splitlines():
+        if fence:
+            if re.fullmatch(re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", line):
+                fence = ""
+        elif match := re.match(r"^(`{3,}|~{3,})", line):
+            fence = match[1]
+        else:
+            lines.append(line)
+    assert not fence, "publication contains an unterminated code fence"
+    return "\n".join(lines)
 
 
 def read_json(result: DigestResult, name: str) -> dict[str, Any]:
