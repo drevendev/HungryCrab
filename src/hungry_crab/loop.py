@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import time
 import uuid
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
@@ -64,7 +65,23 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        # Windows readers without FILE_SHARE_DELETE can temporarily block atomic replacement.
+        # Keep the same fsynced temporary file until the bounded retry succeeds or fails.
+        for attempt in range(20):
+            try:
+                temporary.replace(path)
+                break
+            except OSError as exc:
+                if sys.platform == "win32" and isinstance(exc, PermissionError) and attempt < 19:
+                    time.sleep(0.05)
+                    continue
+                raise CrabError(
+                    f"cannot replace loop state: {path}",
+                    hint=(
+                        "An issue, pull request or tag may already have been published. "
+                        "Reconcile provider state before retrying the effect."
+                    ),
+                ) from exc
     finally:
         temporary.unlink(missing_ok=True)
 

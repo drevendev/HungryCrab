@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import json
+import sys
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -146,6 +148,93 @@ def record(loop: Loop, phase: str, receipt: dict[str, Any], result: str = "ok") 
         note="No useful change" if result == "skip" else "",
         receipt=receipt,
     )
+
+
+def test_atomic_json_retries_windows_reader_contention(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "loop.json"
+    path.write_text('{"previous": true}\n', encoding="utf-8")
+    original_replace = Path.replace
+    attempts = 0
+
+    def briefly_blocked(source: Path, destination: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise PermissionError("simulated Windows reader sharing violation")
+        return original_replace(source, destination)
+
+    monkeypatch.setattr("hungry_crab.loop.sys.platform", "win32")
+    monkeypatch.setattr("hungry_crab.loop.time.sleep", lambda _: None)
+    monkeypatch.setattr(Path, "replace", briefly_blocked)
+
+    atomic_json(path, {"new": True})
+    assert attempts == 3
+    assert json.loads(path.read_text(encoding="utf-8")) == {"new": True}
+    assert not list(tmp_path.glob(".loop.json.*.tmp"))
+
+
+def test_atomic_json_exhausted_windows_retry_preserves_old_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "loop.json"
+    old = b'{"previous": true}\n'
+    path.write_bytes(old)
+    attempts = 0
+
+    def still_blocked(source: Path, destination: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError("simulated Windows reader sharing violation")
+
+    monkeypatch.setattr("hungry_crab.loop.sys.platform", "win32")
+    monkeypatch.setattr("hungry_crab.loop.time.sleep", lambda _: None)
+    monkeypatch.setattr(Path, "replace", still_blocked)
+
+    with pytest.raises(CrabError, match="cannot replace loop state") as caught:
+        atomic_json(path, {"new": True})
+    assert attempts == 20
+    assert "Reconcile provider state" in (caught.value.hint or "")
+    assert path.read_bytes() == old
+    assert not list(tmp_path.glob(".loop.json.*.tmp"))
+
+
+def test_atomic_json_other_replace_error_does_not_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "loop.json"
+    old = b'{"previous": true}\n'
+    path.write_bytes(old)
+    attempts = 0
+
+    def invalid_replace(source: Path, destination: Path) -> Path:
+        nonlocal attempts
+        attempts += 1
+        raise OSError("simulated disk failure")
+
+    monkeypatch.setattr("hungry_crab.loop.sys.platform", "win32")
+    monkeypatch.setattr(Path, "replace", invalid_replace)
+    with pytest.raises(CrabError, match="cannot replace loop state"):
+        atomic_json(path, {"new": True})
+    assert attempts == 1
+    assert path.read_bytes() == old
+    assert not list(tmp_path.glob(".loop.json.*.tmp"))
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows file-sharing semantics")
+def test_atomic_json_windows_open_reader(tmp_path: Path) -> None:
+    path = tmp_path / "loop.json"
+    path.write_text('{"previous": true}\n', encoding="utf-8")
+    reader = path.open("r", encoding="utf-8")
+    release = threading.Timer(0.2, reader.close)
+    release.start()
+    try:
+        atomic_json(path, {"new": True})
+    finally:
+        reader.close()
+        release.join()
+    assert json.loads(path.read_text(encoding="utf-8")) == {"new": True}
 
 
 def test_round_starts_with_goal_then_fixed_distinct_prey(loop: Loop) -> None:

@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Retry Windows loop-state replacement when a reader temporarily blocks the rename; report
+  provider-reconciliation guidance on exhausted retries without losing the previous state
+  ([#350](https://github.com/drevendev/HungryCrab/issues/350)).
+
 - Refuse ambiguous multi-prey labels before fetching sources or publishing a bundle; reject
   existing ambiguous bundles so unrelated prey-specific lessons cannot share nutrient ids
   ([#343](https://github.com/drevendev/HungryCrab/issues/343)).
