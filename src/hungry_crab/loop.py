@@ -203,6 +203,10 @@ class Loop:
             raise UsageError(f"maw does not exist: {self.maw}")
         self.config = MawConfig.load(self.maw)
         self.settings = self.config.loop
+        canonical_prey = [str(Slug.parse(item)) for item in self.settings.prey]
+        if len(canonical_prey) != len(set(canonical_prey)):
+            raise UsageError("loop.prey must contain distinct repositories after normalization")
+        self.settings.prey = canonical_prey
         self.slug = maw_slug(self.maw)
         identity = str(self.slug) if self.slug else str(self.maw)
         self.key = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
@@ -254,7 +258,9 @@ class Loop:
             raise UsageError("invalid control cadence")
         self.settings.cadence = cadence
         owner_prey = self.settings.prey
-        control_prey = strings(entry.get("prey", owner_prey), "control.prey")
+        control_prey = [
+            str(Slug.parse(item)) for item in strings(entry.get("prey", owner_prey), "control.prey")
+        ]
         if len(control_prey) != len(set(control_prey)) or any(
             prey not in owner_prey for prey in control_prey
         ):
@@ -719,17 +725,23 @@ class Loop:
                 configured = {
                     str(Slug.parse(row["prey"])) for row in discovery.get("candidates", [])
                 }
+            invalid = "HUNT must select distinct prey from the current maw shortlist within budget"
             if (
                 not isinstance(prey, list)
                 or not prey
                 or len(prey) > self.settings.prey_per_round
-                or (any(not isinstance(item, str) or item not in configured for item in prey))
-                or len(set(prey)) != len(prey)
+                or any(not isinstance(item, str) for item in prey)
             ):
-                raise CrabError(
-                    "HUNT must select distinct prey from the current maw shortlist within budget"
-                )
-            data["prey"] = prey
+                raise CrabError(invalid)
+            try:
+                selected = [str(Slug.parse(item)) for item in prey]
+            except UsageError as exc:
+                raise CrabError(invalid) from exc
+            if any(item not in configured for item in selected) or len(set(selected)) != len(
+                selected
+            ):
+                raise CrabError(invalid)
+            data["prey"] = selected
             data["prey_index"] = 0
         elif phase == "eat":
             self._eat(data, receipt)

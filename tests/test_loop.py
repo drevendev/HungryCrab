@@ -257,6 +257,94 @@ def test_round_starts_with_goal_then_fixed_distinct_prey(loop: Loop) -> None:
     assert result["history"][0]["tokens"] == 120
 
 
+@pytest.mark.parametrize("choice", [["https://github.com/pypa/hatch"], ["pypa/hatch"]])
+def test_hunt_accepts_url_configured_prey_in_both_forms(loop: Loop, choice: list[str]) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = ["https://github.com/pypa/hatch"]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    restarted = Loop(loop.maw, provider=loop.provider, now=NOW)
+    assert restarted.settings.prey == ["pypa/hatch"]
+    restarted.record(restarted.next()["active"]["token"], "crave", "ok", receipt={"goal": "Tests"})
+    ready = restarted.next()
+    assert ready["inputs"]["prey_candidates"] == ["pypa/hatch"]
+    selected = restarted.record(ready["active"]["token"], "hunt", "ok", receipt={"prey": choice})
+    assert selected["prey"] == ["pypa/hatch"]
+    assert selected["current_prey"] == "pypa/hatch"
+
+
+def test_hunt_rejects_url_slug_aliases_as_duplicate_prey(loop: Loop) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = ["https://github.com/pypa/hatch"]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    restarted = Loop(loop.maw, provider=loop.provider, now=NOW)
+    restarted.record(restarted.next()["active"]["token"], "crave", "ok", receipt={"goal": "Tests"})
+    ready = restarted.next()
+    before = restarted.path.read_bytes()
+    with pytest.raises(CrabError, match="HUNT"):
+        restarted.record(
+            ready["active"]["token"],
+            "hunt",
+            "ok",
+            receipt={"prey": ["https://github.com/pypa/hatch", "pypa/hatch"]},
+        )
+    assert restarted.path.read_bytes() == before
+
+
+def test_owner_preys_reject_url_slug_alias_collision_before_init(loop: Loop) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = ["https://github.com/pypa/hatch", "pypa/hatch"]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    original_state = loop.path.read_bytes()
+    with pytest.raises(UsageError, match=r"loop\.prey.*distinct"):
+        Loop(loop.maw, provider=loop.provider, now=NOW)
+    assert loop.path.read_bytes() == original_state
+
+
+def test_control_registry_may_narrow_url_configured_prey_by_slug(
+    loop: Loop, tmp_path: Path
+) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = [
+        "https://github.com/pypa/hatch",
+        "https://github.com/example/other",
+    ]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    control = tmp_path / "control"
+    (control / ".crab").mkdir(parents=True)
+    (control / ".crab" / "maws.yml").write_text(
+        yaml.safe_dump(
+            {"maws": [{"repo": "example/maw", "path": "../maw", "prey": ["pypa/hatch"]}]}
+        ),
+        encoding="utf-8",
+    )
+    narrowed = Loop(loop.maw, control, provider=loop.provider, now=NOW)
+    assert narrowed.settings.prey == ["pypa/hatch"]
+
+
+def test_control_registry_rejects_duplicate_url_slug_aliases(loop: Loop, tmp_path: Path) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = ["pypa/hatch"]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    control = tmp_path / "control"
+    (control / ".crab").mkdir(parents=True)
+    (control / ".crab" / "maws.yml").write_text(
+        yaml.safe_dump(
+            {
+                "maws": [
+                    {
+                        "repo": "example/maw",
+                        "path": "../maw",
+                        "prey": ["pypa/hatch", "https://github.com/pypa/hatch"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(UsageError, match="subset"):
+        Loop(loop.maw, control, provider=loop.provider, now=NOW)
+
+
 def test_lease_is_exclusive_phase_bound_and_cannot_be_replayed(loop: Loop) -> None:
     ready = loop.next()
     token = ready["active"]["token"]
