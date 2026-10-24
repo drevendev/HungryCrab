@@ -76,7 +76,8 @@ def _cohort(
     http.mkdir()
     (http / "retained.json").write_text("old HTTP cache", encoding="utf-8")
     monkeypatch.setattr("hungry_crab.feeder.maw_slug", lambda _: maw_slug)
-    monkeypatch.setattr("hungry_crab.feeder.relationship_for", lambda *_: "foreign")
+    # Sniff now resolves the same fixture identity again after fetching fork metadata.
+    monkeypatch.setattr("hungry_crab.maw.maw_slug", lambda _: maw_slug)
 
     def repo(client: GitHubClient, source: Slug) -> dict[str, Any]:
         assert client.cache_dir is not None
@@ -160,6 +161,7 @@ def test_success_publishes_one_cohort_and_retains_unrelated_digest_and_http_evid
         )
     current = prey_paths(slug, quota.cache)
     assert json.loads((current.api / "repo.json").read_text())["description"] == "new metadata"
+    assert json.loads((current.api / "sniff.json").read_text())["relationship"] == "foreign"
     assert (current.repo / "sentinel").read_text() == "new repository"
     assert (current.wiki / "Home.md").read_text() == "# New wiki"
     assert wiki == prey_paths(Slug("fixture", "maw"), quota.cache).wiki
