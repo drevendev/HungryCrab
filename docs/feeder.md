@@ -21,17 +21,25 @@ additional reaction-ranked issues, normal miner depth, top 30 cards and wiki acq
 `--no-shallow --since all` requests complete history; `--issues 0` skips issue acquisition;
 `--no-wiki` skips both wikis. A prey with no commits in the window falls back to a depth-one
 tree snapshot. A changed catch policy is applied to an existing cache too. `--wiki-dir <path>`
-supplies an independent local Git wiki checkout for local fixtures.
+supplies an independent local Git wiki repository for local fixtures. Commit local wiki edits
+before digesting: wiki evidence is read only from the recorded commit, including its raw byte
+counts. Dirty and untracked wiki files are excluded from the snapshot.
 
 Both digests are regenerated after evidence refresh. Failed/blocked miners fail the job;
 inventory or wiki visibility loss fails unless `--allow-loss` is explicit. Failed runs never export
-a success bundle. Wiki reads cap page counts and page bytes, recording any loss. Markdown
+a success bundle. Wiki reads cap the tree listing at 8 MiB, individual blobs at 2 MiB and page
+counts at 2,000 (normal) or 10,000 (deep), recording any loss. Oversized blobs retain their names
+and recorded sizes without reading their bodies; missing/unreadable blobs lose healthy coverage.
+Markdown
 budgets follow the maw's `.crab.yml`: `warn`, `enforce` or `off`;
 full JSON survives an enforced reading budget.
 
 GitHub's repository `size` must fit `--max-repo-kb` (307200 by default) before cloning.
 This is a preflight, **not a hard download or disk quota**: the estimate and independent wiki
-storage cannot prove an upper bound. LFS smudging stays disabled. The reusable job has a
+storage cannot prove an upper bound. Wikis are cloned without checkout and mined through Git
+objects, so platform-specific file names and CRLF conversion cannot hide pages or change their
+recorded sizes. This removes the wiki working-tree copy, while Git pack downloads remain outside
+a hard storage quota. LFS smudging stays disabled. The reusable job has a
 20-minute timeout; choose a suitable runner and smaller prey for stricter resource limits.
 
 ## Install in CI
@@ -131,8 +139,10 @@ crab-meal/
 
 Download from the Actions run or use `actions/download-artifact` with the returned ID.
 Start with `menu.md`; JSON contains all cards, including those outside the top N.
-Wiki page names, counts and headings are in `wiki.json`/`wiki.md`; body prose stays in the
-checkout. The independent wiki commit participates in digest identity and menu provenance.
+Wiki page names, counts and headings are in `wiki.json`/`wiki.md`; body prose stays in Git
+objects. Page counts include Markdown aliases, Creole, RDoc, Pod, AsciiDoc, MediaWiki, Org,
+Textile and reStructuredText. Heading extraction supports Markdown only. The independent wiki
+commit participates in digest identity and menu provenance.
 A maw wiki satisfies the structured documentation gap just as a docs directory does.
 
 To act, explicitly run `crab compare <prey> --maw .` in today's maw, review/select cards,

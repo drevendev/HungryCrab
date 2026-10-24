@@ -338,7 +338,9 @@ def test_wiki_catch_refresh_and_cache_invalidation(
     refreshed = run_digest(Target(slug=slug), opts)
     assert second.sha == first.sha and not refreshed.cached
     assert digest.manifest["wiki"]["sha"] != refreshed.manifest["wiki"]["sha"]
-    assert (prey_paths(slug, root).wiki / "Extra.md").is_file()
+    cached_wiki = prey_paths(slug, root).wiki
+    assert GitRunner(cached_wiki).run("show", "HEAD:Extra.md") == "# Extra page\n"
+    assert not (cached_wiki / "Extra.md").exists()
 
 
 def test_missing_wiki_is_recorded_without_failing(npm_app: Path, tmp_path: Path) -> None:

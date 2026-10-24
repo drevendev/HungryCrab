@@ -536,7 +536,7 @@ def catch_wiki(
         _clone_replace(
             destination,
             url,
-            ["clone", "--quiet", "--depth", "1", "--single-branch"],
+            ["clone", "--quiet", "--depth", "1", "--single-branch", "--no-checkout"],
             token=token,
             auth_host=auth_host,
         )

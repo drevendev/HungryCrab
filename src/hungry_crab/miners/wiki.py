@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+import subprocess
+from pathlib import PurePosixPath
 from typing import Any
 
-from ..fetch.git import GitRunner
+from ..errors import ExternalCommandError
+from ..fetch.bounded import MAX_STDERR_BYTES, ResponseTooLargeError, run_bounded
+from ..fetch.git import SAFE_CONFIG, GitRunner, git_env
 from ..mdutil import MdDoc
 from ..safety import is_suspicious, safe_name
 from .base import MineContext, MinerResult
 
-PAGE_EXTENSIONS = {".md", ".markdown", ".rst", ".textile", ".asciidoc", ".org", ".mediawiki"}
+MARKDOWN_EXTENSIONS = {".md", ".markdown", ".mkdn", ".mkd", ".mdown"}
+PAGE_EXTENSIONS = MARKDOWN_EXTENSIONS | {
+    ".rst",
+    ".rest",
+    ".textile",
+    ".asciidoc",
+    ".adoc",
+    ".asc",
+    ".org",
+    ".mediawiki",
+    ".wiki",
+    ".creole",
+    ".rdoc",
+    ".pod",
+}
 MAX_PAGES = {"normal": 2_000, "deep": 10_000}
 MAX_PAGE_BYTES = 2 * 1024 * 1024
+MAX_TREE_BYTES = 8 * 1024 * 1024
 # A heading is structure only while it is bounded: one `# ...` line can hold a page of prose.
 # The same caps as the README outline in docs.py; wiki.json records the true count.
 HEADING_CHARS = 80
@@ -340,6 +358,25 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     return headings
 
 
+def _git_bytes(git: GitRunner, *args: str, limit: int) -> bytes:
+    """Read local object plumbing with bounded pipes; never materialize a wiki path."""
+    env = git_env()
+    env["GIT_NO_LAZY_FETCH"] = "1"
+    try:
+        result = run_bounded(
+            [git.exe, *SAFE_CONFIG, "-C", str(git.cwd), *args],
+            env=env,
+            timeout=git.timeout,
+            stdout_limit=limit,
+            stderr_limit=MAX_STDERR_BYTES,
+        )
+    except (OSError, subprocess.TimeoutExpired, ResponseTooLargeError) as exc:
+        raise ExternalCommandError("cannot read wiki Git objects within the read limits") from exc
+    if result.returncode:
+        raise ExternalCommandError("cannot read wiki Git objects")
+    return result.stdout
+
+
 class WikiMiner:
     name = "wiki"
     requires: tuple[str, ...] = ()
@@ -364,31 +401,44 @@ class WikiMiner:
         root = ctx.wiki_root
         if root is not None:
             git = GitRunner(root)
-            for entry in git.run("ls-tree", "-r", "-z", "HEAD").split("\0"):
-                metadata, separator, name = entry.partition("\t")
-                if not separator or metadata.split()[0] not in ("100644", "100755"):
+            sha = ctx.wiki_info.get("sha")
+            if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", sha):
+                raise ExternalCommandError("wiki evidence has no valid recorded commit")
+            listing = _git_bytes(git, "ls-tree", "-r", "-z", "-l", sha, limit=MAX_TREE_BYTES)
+            for entry in listing.split(b"\0"):
+                metadata, separator, raw_name = entry.partition(b"\t")
+                fields = metadata.split()
+                if not separator or len(fields) != 4 or fields[0] not in (b"100644", b"100755"):
                     continue
-                path = root / name
-                if path.suffix.lower() not in PAGE_EXTENSIONS or path.is_symlink():
-                    continue
-                if not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
+                name = raw_name.decode("utf-8", errors="replace")
+                path = PurePosixPath(name)
+                if path.suffix.lower() not in PAGE_EXTENSIONS:
                     continue
                 if len(pages) >= MAX_PAGES[ctx.depth]:
                     data["coverage"].update(healthy=False, truncated=True)
                     break
-                try:
-                    with path.open("rb") as handle:
-                        raw = handle.read(MAX_PAGE_BYTES + 1)
-                except OSError:
+                raw = b""
+                size = int(fields[3]) if fields[3].isdigit() else None
+                if size is None or fields[1] != b"blob":
                     data["coverage"]["healthy"] = False
                     data["coverage"]["unreadable_pages"].append(name)
-                    raw = b""
-                if len(raw) > MAX_PAGE_BYTES:
+                elif size > MAX_PAGE_BYTES:
                     data["coverage"]["healthy"] = False
                     data["coverage"]["oversized_pages"].append(name)
-                text = raw[:MAX_PAGE_BYTES].decode("utf-8-sig", errors="replace")
+                else:
+                    try:
+                        raw = _git_bytes(
+                            git, "cat-file", "blob", fields[2].decode("ascii"), limit=MAX_PAGE_BYTES
+                        )
+                        if len(raw) != size:
+                            raise ExternalCommandError("wiki blob size differs from its tree entry")
+                    except ExternalCommandError:
+                        data["coverage"]["healthy"] = False
+                        data["coverage"]["unreadable_pages"].append(name)
+                        raw = b""
+                text = raw.decode("utf-8-sig", errors="replace")
                 found = (
-                    markdown_headings(text) if path.suffix.lower() in (".md", ".markdown") else []
+                    markdown_headings(text) if path.suffix.lower() in MARKDOWN_EXTENSIONS else []
                 )
                 headings = [
                     {"level": h["level"], "text": str(h["text"])[:HEADING_CHARS]}
@@ -397,8 +447,8 @@ class WikiMiner:
                 pages.append(
                     {
                         "path": name,
-                        "name": Path(name).stem,
-                        "bytes": path.stat().st_size,
+                        "name": path.stem,
+                        "bytes": size or 0,
                         "headings": headings,
                         "heading_count": len(found),
                         "headings_truncated": len(found) > MAX_HEADINGS

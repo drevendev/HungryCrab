@@ -23,6 +23,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   existing ambiguous bundles so unrelated prey-specific lessons cannot share nutrient ids
   ([#343](https://github.com/drevendev/HungryCrab/issues/343)).
 
+- **Wiki security:** read bounded blobs at the recorded commit, count Git object bytes and
+  all supported wiki formats, report unreadable pages as visibility loss, and acquire wiki
+  repositories without checkout so Windows file-name limits cannot hide committed pages
+  ([#300](https://github.com/drevendev/HungryCrab/issues/300), remaining items 5–6).
+
 ## [0.6.3] - 2026-10-23
 
 A security and reliability update for the CLI and both agent plugins. It bounds untrusted

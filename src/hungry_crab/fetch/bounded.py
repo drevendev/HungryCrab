@@ -1,4 +1,4 @@
-"""Bound the bytes captured from trusted API transports, before decoding JSON."""
+"""Bound captured bytes from trusted API transports and Git object plumbing."""
 
 from __future__ import annotations
 

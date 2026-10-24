@@ -281,8 +281,9 @@ def prepare_context(
             **wiki_info,
             "status": "available",
             "sha": wiki_git.head_sha(),
-            "worktree": worktree_fingerprint(wiki_git, wiki_root),
+            "source": "git-objects",
         }
+        wiki_info.pop("worktree", None)
     ctx = MineContext(
         root=root,
         sha=sha,
