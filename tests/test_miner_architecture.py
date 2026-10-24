@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from helpers import read_json, read_md, write_tree
 
 from hungry_crab.compare.candidates import Side, architecture_candidates
