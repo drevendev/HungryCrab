@@ -76,6 +76,28 @@ def test_high_confidence_secret_shapes_block_without_echoing_value(text: str, ru
     assert text not in rendered
 
 
+@pytest.mark.parametrize("secret", [GITHUB, "postgres://crab:" + PASSWORD + "@db.example/crab"])
+def test_html_entities_cannot_hide_a_published_credential(secret: str) -> None:
+    encoded = "".join(f"&#{ord(ch)};" for ch in secret)
+    findings = scan_publication("pull-request-body.md", f"safe\n> {encoded}\n")
+    assert findings and all(f.line == 2 for f in findings)
+    assert secret not in format_publication_findings(findings)
+    assert scan_publication(f"generated/{encoded}.txt", "safe")[0].path == "<redacted path>"
+    with pytest.raises(CrabError):
+        publish_prepared_pull_request(
+            PreparedPullRequest("safe", encoded, ()),
+            publish=lambda *_: pytest.fail("encoded credential reached publication"),
+        )
+
+
+def test_quoting_a_receipt_does_not_disable_its_secret_scan() -> None:
+    from hungry_crab.receipt_text import quote_receipt_text
+
+    quoted = quote_receipt_text("credential: " + GITHUB)
+    assert GITHUB not in quoted
+    assert scan_publication("pull-request-body.md", quoted)
+
+
 def test_credential_assignment_blocks_but_placeholders_do_not() -> None:
     text = "\n".join(
         [

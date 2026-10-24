@@ -17,7 +17,12 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, updater
-from .attribution import checked_attribution_file, load_attributions, render_notices
+from .attribution import (
+    check_attribution_state,
+    checked_attribution_file,
+    load_attributions,
+    render_notices,
+)
 from .cache import Slug, Target, cache_root, prey_paths, resolve_target
 from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
 from .compare.scoring import Scoring
@@ -304,6 +309,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--check",
         action="store_true",
         help="exit 1 when the notice file is missing or stale instead of writing it",
+    )
+
+    p_attribution.add_argument(
+        "--allow-remove",
+        action="store_true",
+        help="allow an intentional notice rewrite that removes previously attributed material",
     )
 
     p_spec = sub.add_parser(
@@ -826,6 +837,9 @@ def cmd_attribution(args: argparse.Namespace) -> int:
     except (OSError, UnicodeError) as exc:
         raise CrabError(f"cannot read {config.attribution_file}: {exc}") from exc
     count = f"{len(records)} receipt(s)"
+    if args.check and args.allow_remove:
+        raise CrabError("--allow-remove is only valid when rewriting the notice, not with --check")
+    check_attribution_state(maw, records, current, allow_remove=args.allow_remove)
     if args.check:
         if current == rendered or (current is None and not records):
             print(f"{config.attribution_file} is up to date ({count})")

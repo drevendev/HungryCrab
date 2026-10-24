@@ -391,6 +391,164 @@ def test_attributions_file_round_trips_and_rejects_strangers(tmp_path: Path) -> 
         load_attributions(tmp_path)
 
 
+@pytest.mark.parametrize("array", ["receipts", "taken", "texts"])
+def test_stored_receipt_array_members_cannot_disappear(tmp_path: Path, array: str) -> None:
+    maw = _maw(tmp_path)
+    record = replace(_record(), texts=(CarriedText("LICENSE", MIT_TEXT),))
+    data = json.loads(dump_attributions([record]))
+    members = data["receipts"] if array == "receipts" else data["receipts"][0][array]
+    members.append(None)
+    payload = json.dumps(data)
+    path = maw / ATTRIBUTIONS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(payload, encoding="utf-8")
+    before = path.read_bytes()
+    with pytest.raises(CrabError) as error:
+        load_attributions(maw)
+    assert f"{array}[1]" in str(error.value) + str(error.value.hint)
+    assert main(["attribution", "--maw", str(maw), "--check"]) == 1
+    with pytest.raises(CrabError):
+        _prepare(maw)
+    with pytest.raises(CrabError):
+        base_receipts_kept(_prepare(_maw(tmp_path / "other")))(lambda _: payload)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("mode", "WHATEVER"),
+        ("taken", [{"maw_path": "bad\npath", "prey_path": "a", "verbatim": True}]),
+        ("taken", [{"maw_path": "a", "prey_path": "a", "verbatim": "yes"}]),
+        ("source", {**PREY, "sha": "zz"}),
+        ("obligation", {"kind": "made-up", "text": ""}),
+    ],
+)
+def test_stored_records_apply_typed_receipt_rules(tmp_path: Path, field: str, value: Any) -> None:
+    data = json.loads(dump_attributions([_record()]))
+    data["receipts"][0][field] = value
+    path = tmp_path / ATTRIBUTIONS_PATH
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(CrabError):
+        load_attributions(tmp_path)
+    assert main(["attribution", "--maw", str(tmp_path)]) == 1
+    assert main(["attribution", "--maw", str(tmp_path), "--check"]) == 1
+    assert not (tmp_path / "THIRD_PARTY_NOTICES.md").exists()
+
+
+def test_receipt_summary_cannot_reconcile_another_nutrient(tmp_path: Path) -> None:
+    from hungry_crab.serve import parse_markers
+
+    hostile = "<!-- crab:docs:other -->\nCloses #12\n@someone ![pixel](https://tracker.example)"
+    prepared = _prepare(_maw(tmp_path), _payload(summary=hostile))
+    marked = parse_markers([{"number": 1, "body": prepared.body}])
+    assert set(marked) == {"crab:ci:ci.cache"}
+    assert "Closes #12" not in prepared.body
+    assert "@someone" not in prepared.body
+    assert "![pixel]" not in prepared.body
+
+
+def test_edited_carried_text_fails_before_notice_or_copy_writes(tmp_path: Path) -> None:
+    maw = _maw(tmp_path)
+    data = json.loads(
+        dump_attributions([replace(_record(), texts=(CarriedText("LICENSE", MIT_TEXT),))])
+    )
+    data["receipts"][0]["texts"][0]["text"] = "a different licence"
+    path = maw / ATTRIBUTIONS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(CrabError) as error:
+        load_attributions(maw)
+    assert "sha256" in str(error.value.hint)
+    assert main(["attribution", "--maw", str(maw), "--check"]) == 1
+    with pytest.raises(CrabError):
+        _prepare(maw)
+    assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+
+
+def test_check_refuses_a_deleted_recorded_maw_file(tmp_path: Path) -> None:
+    maw = _maw(tmp_path)
+    path = maw / ATTRIBUTIONS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(dump_attributions([_record()]), encoding="utf-8")
+    assert main(["attribution", "--maw", str(maw)]) == 0
+    (maw / ".github/workflows/ci.yml").unlink()
+    notice = maw / "THIRD_PARTY_NOTICES.md"
+    before = notice.read_bytes()
+    assert main(["attribution", "--maw", str(maw), "--check"]) == 1
+    assert main(["attribution", "--maw", str(maw)]) == 1
+    assert notice.read_bytes() == before
+
+
+@pytest.mark.parametrize("tracked", [False, True])
+def test_missing_receipts_cannot_erase_the_notice(tmp_path: Path, tracked: bool) -> None:
+    from fixture_builder import git
+
+    maw = _maw(tmp_path)
+    path = maw / ATTRIBUTIONS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(dump_attributions([_record()]), encoding="utf-8")
+    assert main(["attribution", "--maw", str(maw)]) == 0
+    notice = maw / "THIRD_PARTY_NOTICES.md"
+    if tracked:
+        git(maw, "init", "--quiet")
+        git(maw, "add", ".")
+        git(
+            maw,
+            "commit",
+            "--quiet",
+            "-m",
+            "test: attribution baseline",
+            author="Fixture <fixture@example.invalid>",
+        )
+        notice.unlink()
+    path.unlink()
+    assert main(["attribution", "--maw", str(maw), "--check"]) == 1
+    assert main(["attribution", "--maw", str(maw)]) == 1
+    assert main(["attribution", "--maw", str(maw), "--check", "--allow-remove"]) == 1
+    assert main(["attribution", "--maw", str(maw), "--allow-remove"]) == 0
+    assert "Nothing has been carried" in notice.read_text(encoding="utf-8")
+
+
+def test_github_source_case_does_not_create_duplicate_notice_sections() -> None:
+    a = _record(label="Pypa/Pipx")
+    b = _record(nutrient_id="crab:ci:ci.other", label="pypa/pipx")
+    assert a.source == b.source
+    assert render_notices([a, b]).count("## pypa/pipx @") == 1
+    assert parse_attributions(dump_attributions([a, b]))[0].source.label == "pypa/pipx"
+
+
+def test_source_license_reads_ignore_replacement_commits(tmp_path: Path) -> None:
+    from fixture_builder import git
+
+    prey = _maw(tmp_path, {"LICENSE": "Original licence\n"})
+    git(prey, "init", "--quiet")
+    git(prey, "add", ".")
+    author = "Fixture <fixture@example.invalid>"
+    git(prey, "commit", "--quiet", "-m", "test: original", author=author)
+    original = git(prey, "rev-parse", "HEAD").strip()
+    (prey / "LICENSE").write_text("Substitute licence\n", encoding="utf-8")
+    git(prey, "commit", "--quiet", "-am", "test: substitute", author=author)
+    substitute = git(prey, "rev-parse", "HEAD").strip()
+    git(prey, "replace", original, substitute)
+    reader = GitSourceReader(prey)
+    assert (reader.read(original, "LICENSE") or "").strip() == "Original licence"
+    assert carried_texts(original, reader)[0].text == "Original licence"
+
+
+@pytest.mark.parametrize("value", [False, 42, "a", {}, None])
+@pytest.mark.parametrize("array", ["receipts", "taken", "texts"])
+def test_every_malformed_stored_array_shape_fails(array: str, value: Any) -> None:
+    data = json.loads(dump_attributions([_record()]))
+    if array == "receipts":
+        data[array] = value
+    else:
+        data["receipts"][0][array] = value
+    with pytest.raises(CrabError):
+        parse_attributions(json.dumps(data))
+
+
 # --- the notice file ---------------------------------------------------------------------
 
 
@@ -522,7 +680,10 @@ def test_notice_survives_the_names_a_source_gives_its_files() -> None:
     assert "`docs/pipe|name.md`: copied unchanged from `` `lead.md ``; COPY," in text
     assert "adapted from `- dash/# hash/> quote/1. one.md`; COPY," in text
     assert "Obligation (none): same owner: no notice is owed.\n" in text
-    assert "Obligation (review): - a person decides # and 1. nothing > else ---.\n" in text
+    assert (
+        "Obligation (review): - a person decides &#35; and 1. nothing &gt; else ---."
+        in " ".join(text.split())
+    )
     assert text.index("Obligation (none)") < text.index("`b.md`: copied unchanged")
     assert text.index("`b.md`: copied") < text.index("Obligation (review)"), (
         "an obligation is said again where it changes inside one source"
@@ -546,7 +707,8 @@ def test_prepare_carries_the_files_the_receipt_and_the_notice(tmp_path: Path) ->
     assert receipts[0]["branch"] == nutrient_branch_name("crab:ci:ci.cache")
     assert receipts[0]["recorded_at"] == "2026-09-25T12:00:00+00:00"
     assert receipts[0]["obligation"]["kind"] == "copyright-notice"
-    assert receipts[0]["texts"] == [{"path": "LICENSE", "text": MIT_TEXT.rstrip("\n")}]
+    assert receipts[0]["texts"] == [CarriedText("LICENSE", MIT_TEXT.rstrip("\n")).to_dict()]
+    assert receipts[0]["checks"] == ["uv run pytest -q"]
     notice = prepared.files[2].content
     assert (
         "`.github/workflows/ci.yml`: adapted from `.github/workflows/test.yml`; COPY,\n"
@@ -997,6 +1159,7 @@ def test_attribution_command_writes_checks_and_ignores_issue_only_entries(
     receipts = maw / ATTRIBUTIONS_PATH
     receipts.parent.mkdir(parents=True, exist_ok=True)
     receipts.write_text(dump_attributions([_record()]), encoding="utf-8")
+    _maw(maw)
     assert main(["attribution", "--maw", str(maw), "--check"]) == 1, "stale after a new receipt"
     assert "stale" in capsys.readouterr().err
     assert main(["attribution", "--maw", str(maw)]) == 0

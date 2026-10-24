@@ -32,6 +32,7 @@ The rules were written for this module from the issuers' public token formats.
 
 from __future__ import annotations
 
+import html
 import math
 import re
 from collections import Counter
@@ -564,11 +565,23 @@ def _entropy_hit(line: str) -> bool:
 def _path_rules(logical_path: str) -> list[str]:
     """Rules a logical path matches: a generated file name is published like its content."""
 
-    segments = re.sub(r"[\\/]", " ", logical_path)
-    rules = _shape_rules(segments)
-    if not rules and _entropy_hit(segments):
-        rules.append("high-entropy-token")
-    return rules
+    rules: list[str] = []
+    for variant in dict.fromkeys((logical_path, html.unescape(logical_path))):
+        segments = re.sub(r"[\\/]", " ", variant)
+        found = _shape_rules(variant) + _shape_rules(segments)
+        if not found and _entropy_hit(segments):
+            found.append("high-entropy-token")
+        rules.extend(found)
+    return list(dict.fromkeys(rules))
+
+
+def _line_rules(line: str, *, bare_values: bool, config: bool, lock_file: bool) -> list[str]:
+    rules = _shape_rules(line)
+    if rules or lock_file:
+        return rules
+    if _credential_assignment(line, bare_values=bare_values, config=config):
+        return ["credential-assignment"]
+    return ["high-entropy-token"] if _entropy_hit(line) else []
 
 
 def scan_publication(
@@ -591,17 +604,17 @@ def scan_publication(
     lock_file = _is_lock_file(logical_path)
 
     for line_number, line in enumerate(text.splitlines(), start=1):
-        rules = _shape_rules(line)
-        if rules:
-            findings.extend(PublicationFinding(shown, line_number, rule) for rule in rules)
-            continue
-        if lock_file:
-            continue
-        if _credential_assignment(line, bare_values=bare_values, config=config):
-            findings.append(PublicationFinding(shown, line_number, "credential-assignment"))
-            continue
-        if _entropy_hit(line):
-            findings.append(PublicationFinding(shown, line_number, "high-entropy-token"))
+        # Renderers encode Markdown/provider syntax as entities. Those bytes must not hide a
+        # credential that a reader sees after one HTML decoding pass (for example `&#95;`
+        # in a token prefix, or `&#64;` in URL credentials). Preserve physical line numbers.
+        rules = []
+        for variant in dict.fromkeys((line, html.unescape(line))):
+            rules.extend(
+                _line_rules(variant, bare_values=bare_values, config=config, lock_file=lock_file)
+            )
+        findings.extend(
+            PublicationFinding(shown, line_number, rule) for rule in dict.fromkeys(rules)
+        )
 
     return findings
 

@@ -126,10 +126,22 @@ receipts and the notice in one pull request whose body says what was taken from 
 the licence asks for.
 
 `crab attribution --maw .` rewrites the notice file from the receipts; `--check` fails when it
-is missing or stale, which makes it a CI gate. The notice names only what the crab actually
+is missing or stale, a stored receipt is malformed, a carried text's SHA-256 differs, or a
+recorded maw file is missing or unsafe. Stored array members are never silently discarded.
+Legacy carried texts without a digest must be verified against the recorded prey commit before
+migrating them; hashing unverified stored prose would bless the same corruption. Legacy missing
+checks remain explicitly unrecorded. New COPY records retain checks, and both PR paths quote
+producer summaries/checks as data, neutralizing markers, closing references and mentions.
+The notice names only what the crab actually
 carried in: a COPY nutrient filed as an issue took nothing and appears nowhere. Serve from a
 checkout that is up to date with the default branch: a pull request that would drop a receipt
-the default branch already holds is refused. `attribution_file` must be a plain relative path
+the default branch already holds is refused. Rewriting refuses missing receipts evidenced by
+the old notice or this maw's Git HEAD; restore them, or review an intentional removal and use
+`crab attribution --maw . --allow-remove`, then commit the reviewed change. That flag cannot
+weaken `--check`. Keep receipts and notices in version control: outside Git, deleting both
+leaves no evidence from which the crab can discover previous copies. Stored hashes detect
+text corruption; they are not a signature proving an independently edited record's origin.
+`attribution_file` must be a plain relative path
 in the maw, and the crab never overwrites a file it did not write. A COPY card whose licence
 verdict asks for human review is published only when you name it with `--ids`.
 
