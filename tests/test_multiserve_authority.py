@@ -44,7 +44,7 @@ def test_routing_ids_do_not_authorize_automatic_publication(
 
     monkeypatch.setattr("hungry_crab.multifeed.eat", feed)
     bundle = eat_many(
-        [Target(path=path) for path in prey], maw, EatOptions(out=tmp_path / "bundle")
+        [Target(path=path) for path in prey], maw, EatOptions(out=tmp_path / "bundle", wiki=False)
     )
     config = MawConfig.load(maw)
     config.hunger["ci"] = "ideas-only" if mode == "issue" else "auto"
@@ -124,7 +124,7 @@ def test_source_bundle_commenter_guard_uses_its_own_digest_from_every_cwd(
 
     monkeypatch.setattr("hungry_crab.multifeed.eat", feed)
     bundle = eat_many(
-        [Target(path=root) for root in roots], maw, EatOptions(out=tmp_path / "bundle")
+        [Target(path=root) for root in roots], maw, EatOptions(out=tmp_path / "bundle", wiki=False)
     )
     aggregate, paths, _ = load_multi(bundle.out_dir)
     sibling_key = next(

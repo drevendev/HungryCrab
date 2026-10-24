@@ -25,7 +25,7 @@ from ..cache import cache_root as default_cache_root
 from ..errors import CrabError, ExternalCommandError, UsageError
 from ..fs import is_reparse_point
 from . import channels
-from .acquisition import CURRENT
+from .acquisition import CURRENT, AcquisitionLimitError
 from .git import GitRunner
 from .issues import fetch_issues, write_issues
 from .providers import RepositoryClient, client_for
@@ -494,9 +494,17 @@ def _clone_replace(
     staged = destination.with_name(f".{destination.name}-{uuid.uuid4().hex}")
     backup = destination.with_name(f".{destination.name}-old-{uuid.uuid4().hex}")
     try:
-        GitRunner(destination.parent, timeout=3600, github_token=token, auth_host=auth_host).run(
-            *args, url, str(staged)
-        )
+        try:
+            GitRunner(destination.parent, timeout=3600, github_token=token, auth_host=auth_host).run(
+                *args, url, str(staged)
+            )
+        except ExternalCommandError as exc:
+            if budget is not None and "no commits selected" not in exc.message.lower():
+                raise AcquisitionLimitError(
+                    "budgeted Git acquisition failed; no partial clone is usable",
+                    hint=exc.message,
+                ) from exc
+            raise
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
         try:

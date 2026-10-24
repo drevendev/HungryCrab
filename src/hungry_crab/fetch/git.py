@@ -258,9 +258,12 @@ class GitRunner:
             budget.check()
         if check and proc.returncode != 0:
             stderr = proc.stderr.decode("utf-8", errors="replace").strip()
-            if budget is not None and any(
-                marker in stderr.lower()
-                for marker in ("no space left", "disk full", "not enough space", "disk quota")
+            if budget is not None and (
+                budget.disk_exhausted()
+                or any(
+                    marker in stderr.lower()
+                    for marker in ("no space left", "disk full", "not enough space", "disk quota")
+                )
             ):
                 raise AcquisitionLimitError(
                     "acquisition disk capacity exhausted",

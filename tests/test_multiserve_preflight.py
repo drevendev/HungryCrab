@@ -148,7 +148,9 @@ def batch(
         return result
 
     monkeypatch.setattr("hungry_crab.multifeed.eat", feed)
-    bundle = eat_many([Target(path=root) for root in roots], maw, EatOptions(out=tmp_path / "meal"))
+    bundle = eat_many(
+        [Target(path=root) for root in roots], maw, EatOptions(out=tmp_path / "meal", wiki=False)
+    )
     config = MawConfig.load(maw)
     config.serve.prs = "ask"
     config.serve.max_prs_per_run = 2

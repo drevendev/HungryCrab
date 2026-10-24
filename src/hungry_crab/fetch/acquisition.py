@@ -12,6 +12,7 @@ import contextvars
 import errno
 import os
 import select
+import shutil
 import socket
 import socketserver
 import subprocess
@@ -100,6 +101,14 @@ class AcquisitionBudget:
                 hint="choose smaller prey/history or raise the acquisition limits; "
                 "no partial acquisition is usable",
             )
+
+    def disk_exhausted(self) -> bool:
+        # Diagnostic only: enforcement is the block-device capacity, not this observation.
+        if shutil.disk_usage(self.volume).free == 0:
+            return True
+        if sys.platform == "linux":
+            return os.statvfs(self.volume).f_favail == 0
+        return False
 
     def consume(self, chunk: bytes) -> None:
         with self._lock:
