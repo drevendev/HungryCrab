@@ -885,13 +885,23 @@ def architecture_candidates(prey: Side, maw: Side) -> list[Candidate]:
     hubs = [as_dict(h) for h in as_list(graph.get("hubs"))[:5]]
     if not hubs:
         return []
+    label = "import-graph hubs"
+    coverage = ""
+    if prey.architecture.get("truncated") is True:
+        label = "sampled import-graph hubs"
+        scanned = prey.architecture.get("files_scanned")
+        eligible = prey.architecture.get("files_eligible")
+        if type(scanned) is int and type(eligible) is int and 0 < scanned < eligible:
+            coverage = f" (sampled {scanned}/{eligible} eligible code files; incomplete coverage)"
+        else:
+            coverage = " (incomplete coverage; eligible file count unknown)"
     return [
         Candidate(
             category="architecture",
             origin=ContentOrigin.LICENSED.value,
             key=f"architecture.{slugify(prey.label)}.raw",
             title=f"Architecture of {prey.label}: hubs and layering (raw material)",
-            what="import-graph hubs: " + ", ".join(str(h.get("path")) for h in hubs),
+            what=f"{label}{coverage}: " + ", ".join(str(h.get("path")) for h in hubs),
             prey_state=f"{len(hubs)} hubs",
             maw_state="n/a (raw material for the architect)",
             serve_as="idea",

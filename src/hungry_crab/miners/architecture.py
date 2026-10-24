@@ -175,7 +175,8 @@ class ArchitectureMiner:
     def run(self, ctx: MineContext) -> MinerResult:
         code = [f for f in ctx.files() if f.counted and f.is_code and f.size <= READ_LIMIT]
         limit = MAX_FILES["deep" if ctx.deep else "normal"]
-        truncated = len(code) > limit
+        eligible_files = len(code)
+        truncated = eligible_files > limit
         code = code[:limit]
         paths = {f.path for f in code}
         modules = _python_modules(code)
@@ -299,6 +300,7 @@ class ArchitectureMiner:
         data: dict[str, Any] = {
             "available": bool(code),
             "files_scanned": len(code),
+            "files_eligible": eligible_files,
             "truncated": truncated,
             "languages": sorted({f.language or "" for f in code if f.language}),
             "totals": {
@@ -351,7 +353,9 @@ class ArchitectureMiner:
             ", ".join(f"{safe_name(e['name'])} ({e['imports']})" for e in graph["external_top"][:8])
             or "none"
         )
-        indexed = f"{data['files_scanned']}" + (" (truncated)" if data["truncated"] else "")
+        indexed = f"{data['files_scanned']}"
+        if data["truncated"]:
+            indexed += f" of {data['files_eligible']} eligible (truncated)"
         summary.kv(
             [
                 ("Code files indexed", indexed),
