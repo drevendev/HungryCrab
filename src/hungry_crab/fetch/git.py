@@ -98,6 +98,12 @@ def git_executable() -> str:
 
 def git_env() -> dict[str, str]:
     env = dict(os.environ)
+    if CURRENT.get() is not None:
+        # Only credentials and neutral drivers added below may enter the scoped command.
+        # Inherited URL-specific proxy settings outrank a general http.proxy setting.
+        for key in list(env):
+            if key.startswith("GIT_CONFIG_") or key == "GIT_CONFIG":
+                env.pop(key)
     env.update(
         {
             "GIT_TERMINAL_PROMPT": "0",

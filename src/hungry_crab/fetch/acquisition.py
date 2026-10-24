@@ -52,7 +52,10 @@ def volume_capacity(volume: Path) -> int:
                 hint="provide a dedicated Linux block-device filesystem, such as the fixed-size "
                 "loop image provisioned by the Feeder action",
             ) from exc
-    raise UsageError("hard acquisition capacity verification requires a Linux block-device mount")
+    else:
+        raise UsageError(
+            "hard acquisition capacity verification requires a Linux block-device mount"
+        )
 
 
 class AcquisitionBudget:
@@ -108,7 +111,8 @@ class AcquisitionBudget:
             return True
         if sys.platform == "linux":
             return os.statvfs(self.volume).f_favail == 0
-        return False
+        else:
+            return False
 
     def consume(self, chunk: bytes) -> None:
         with self._lock:

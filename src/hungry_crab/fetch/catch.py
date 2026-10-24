@@ -487,10 +487,11 @@ def _clone_replace(
 ) -> None:
     """Publish only a complete clone, preserving the last valid tree on failure."""
     budget = CURRENT.get()
+    checkout = "--no-checkout" not in args
     if budget is not None:
         budget.require_path(destination)
         budget.require_url(url)
-        args = [args[0], "--template=", *args[1:]]
+        args = [args[0], "--template=", "--no-checkout", *args[1:]]
     staged = destination.with_name(f".{destination.name}-{uuid.uuid4().hex}")
     backup = destination.with_name(f".{destination.name}-old-{uuid.uuid4().hex}")
     try:
@@ -507,6 +508,22 @@ def _clone_replace(
             raise
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
+        if budget is not None and checkout:
+            git = GitRunner(staged)
+            listing = git.run("ls-tree", "-r", "-z", "-l", "HEAD")
+            minimum = 0
+            for entry in listing.split("\0"):
+                fields = entry.partition("\t")[0].split()
+                if len(fields) == 4 and fields[1] == "blob":
+                    if not fields[3].isdigit():
+                        raise AcquisitionLimitError("cannot establish the complete checkout size")
+                    minimum += int(fields[3])
+            if minimum > shutil.disk_usage(budget.volume).free:
+                raise AcquisitionLimitError(
+                    "acquisition disk capacity cannot hold the checkout",
+                    hint="raise the fixed-volume limit or choose smaller prey/history",
+                )
+            git.run("reset", "--hard", "--quiet", "HEAD")
         try:
             if destination.exists():
                 destination.rename(backup)
