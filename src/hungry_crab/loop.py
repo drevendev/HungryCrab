@@ -205,9 +205,7 @@ class Loop:
         self.settings = self.config.loop
         canonical_prey = [str(Slug.parse(item)) for item in self.settings.prey]
         if len(canonical_prey) != len(set(canonical_prey)):
-            raise UsageError(
-                "loop.prey must contain distinct repositories after normalization"
-            )
+            raise UsageError("loop.prey must contain distinct repositories after normalization")
         self.settings.prey = canonical_prey
         self.slug = maw_slug(self.maw)
         identity = str(self.slug) if self.slug else str(self.maw)
