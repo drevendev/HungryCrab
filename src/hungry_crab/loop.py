@@ -203,7 +203,12 @@ class Loop:
             raise UsageError(f"maw does not exist: {self.maw}")
         self.config = MawConfig.load(self.maw)
         self.settings = self.config.loop
-        self.settings.prey = [str(Slug.parse(item)) for item in self.settings.prey]
+        canonical_prey = [str(Slug.parse(item)) for item in self.settings.prey]
+        if len(canonical_prey) != len(set(canonical_prey)):
+            raise UsageError(
+                "loop.prey must contain distinct repositories after normalization"
+            )
+        self.settings.prey = canonical_prey
         self.slug = maw_slug(self.maw)
         identity = str(self.slug) if self.slug else str(self.maw)
         self.key = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]

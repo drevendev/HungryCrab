@@ -290,6 +290,16 @@ def test_hunt_rejects_url_slug_aliases_as_duplicate_prey(loop: Loop) -> None:
     assert restarted.path.read_bytes() == before
 
 
+def test_owner_preys_reject_url_slug_alias_collision_before_init(loop: Loop) -> None:
+    config = yaml.safe_load(loop.config.path.read_text(encoding="utf-8"))
+    config["loop"]["prey"] = ["https://github.com/pypa/hatch", "pypa/hatch"]
+    loop.config.path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    original_state = loop.path.read_bytes()
+    with pytest.raises(UsageError, match=r"loop\.prey.*distinct"):
+        Loop(loop.maw, provider=loop.provider, now=NOW)
+    assert loop.path.read_bytes() == original_state
+
+
 def test_control_registry_may_narrow_url_configured_prey_by_slug(
     loop: Loop, tmp_path: Path
 ) -> None:
