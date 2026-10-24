@@ -222,7 +222,8 @@ def test_wiki_failure_or_cancellation_preserves_the_whole_previous_cache(
     previous.root.mkdir(parents=True)
     old = {"slug": str(slug), "sha": "old"}
     previous.catch_file.write_text(json.dumps(old), encoding="utf-8")
-    (previous.root / "sentinel").write_text("keep", encoding="utf-8")
+    previous.digests.mkdir()
+    (previous.digests / "sentinel").write_text("keep", encoding="utf-8")
     original = catch_module.catch
 
     def partial(*args: object, **kwargs: object) -> None:
@@ -237,5 +238,5 @@ def test_wiki_failure_or_cancellation_preserves_the_whole_previous_cache(
     with pytest.raises(type(failure)), quota.scope():
         original(slug, CatchOptions(), cache_root=quota.cache)
     assert json.loads(previous.catch_file.read_text()) == old
-    assert (previous.root / "sentinel").read_text() == "keep"
+    assert (previous.digests / "sentinel").read_text() == "keep"
     assert not list(quota.volume.glob(".acquisition-*"))
