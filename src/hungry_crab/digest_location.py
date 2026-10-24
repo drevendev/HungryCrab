@@ -42,7 +42,6 @@ def _retry_windows_ref_io(operation: Callable[[], _R]) -> _R:
     raise AssertionError("unreachable ref retry state")
 
 
-
 @dataclass(frozen=True)
 class DigestLocation:
     """Logical digest identity plus the physical directory selected for this read."""
