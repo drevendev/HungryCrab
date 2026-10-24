@@ -7,6 +7,7 @@ import shutil
 import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from copy import copy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -240,6 +241,55 @@ def acquisition_scope(
 
 
 def _acquire(
+    prey: Target,
+    maw: Path,
+    opts: EatOptions,
+    root: Path,
+    client: RepositoryClient,
+    config: MawConfig,
+    log: Callable[[str], None],
+) -> tuple[dict[str, Any], Path | None]:
+    budget = CURRENT.get()
+    if budget is None:
+        return _acquire_data(prey, maw, opts, root, client, config, log)
+    staged = budget.volume / f".acquisition-cohort-{uuid.uuid4().hex}"
+    staged.mkdir()
+    try:
+        staged_client = client
+        if isinstance(client, GitHubClient):
+            staged_client = copy(client)
+            staged_client.cache_dir = staged / "http"
+        acquired, maw_wiki = _acquire_data(prey, maw, opts, staged, staged_client, config, log)
+        entries: dict[Path, Path] = {}
+        if prey.slug:
+            source = prey_paths(prey.slug, staged)
+            target = prey_paths(prey.slug, root)
+            for name in ("repo", "wiki", "api", "catch.json"):
+                path = source.root / name
+                if path.exists():
+                    entries[target.root / name] = path
+            # Cache records and results must name the published path, never disposable staging.
+            record = json.loads(source.catch_file.read_text(encoding="utf-8"))
+            record["repo_dir"] = str(target.repo)
+            source.catch_file.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            acquired["catch"]["repo_dir"] = str(target.repo)
+        if maw_wiki is not None:
+            published_wiki = root / maw_wiki.relative_to(staged)
+            entries[published_wiki] = maw_wiki
+            maw_wiki = published_wiki
+        http = staged / "http"
+        if http.exists():
+            for path in http.rglob("*"):
+                if path.is_file():
+                    entries[root / path.relative_to(staged)] = path
+        budget.publish_cache([(source, target) for target, source in entries.items()])
+        return acquired, maw_wiki
+    finally:
+        if staged.exists() and not budget.recovery_required:
+            rmtree_force(staged, cache_root=budget.volume)
+
+
+def _acquire_data(
     prey: Target,
     maw: Path,
     opts: EatOptions,

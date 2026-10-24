@@ -610,7 +610,6 @@ def _budgeted_catch(
     paths = prey_paths(slug, root)
     budget.require_path(paths.root)
     staged_cache = budget.volume / f".acquisition-{uuid.uuid4().hex}"
-    backup = paths.root.with_name(f".{paths.root.name}-old-{uuid.uuid4().hex}")
     staged_cache.mkdir()
     try:
         staged_paths = prey_paths(slug, staged_cache)
@@ -644,16 +643,14 @@ def _budgeted_catch(
         paths.root.parent.mkdir(parents=True, exist_ok=True)
         if paths.root.exists():
             _require_crab_owned(paths.root, cache_root=root)
-            paths.root.rename(backup)
-        try:
-            staged.root.rename(paths.root)
-        except BaseException:
-            if backup.exists():
-                backup.rename(paths.root)
-            raise
-        if backup.exists():
-            rmtree_force(backup, cache_root=backup.parent)
+        budget.publish_cache(
+            [
+                (staged.root / name, paths.root / name)
+                for name in ("repo", "wiki", "api", "catch.json")
+                if (staged.root / name).exists()
+            ]
+        )
         return result
     finally:
-        if staged_cache.exists():
+        if staged_cache.exists() and not budget.recovery_required:
             rmtree_force(staged_cache, cache_root=budget.volume)

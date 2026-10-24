@@ -56,9 +56,17 @@ proxy bypasses and Git object/temp path overrides are cleared. There is no unmet
 
 The hard acquisition adapter currently supports Linux block-device mounts with process-group cancellation;
 other hosts fail closed for remote Feeder acquisition. Local, already acquired repository paths
-remain usable on Windows with `--no-wiki`. Main and wiki acquisition stages commit together;
-download/disk exhaustion or cancellation leaves the previous valid pair and creates no success
-bundle. Existing caches share the same filesystem cap, so choose a private volume with enough
+remain usable on Windows with `--no-wiki`. Each prey's acquisition transaction stages its
+provider preflight/API/HTTP metadata, main repository, prey wiki and requested maw wiki before
+publishing any of them. Download/disk exhaustion or handled cancellation preserves the previous
+complete cache; cancellation during publication rolls back earlier cache moves. Unrelated digest
+generations and HTTP entries are retained. An interrupted rollback preserves its backup and
+path journal for owner recovery. Hard process/machine termination cannot run cleanup handlers;
+inspect retained staging/backups before retrying on a persistent volume.
+Multi-prey invocations share one byte allowance but commit successful acquisition transactions
+per source: an earlier complete source may remain cached if a later source fails. The overall
+failed invocation creates no success bundle. Existing caches share the same filesystem cap,
+so choose a private volume with enough
 capacity for both old and staged evidence. New budgeted acquisitions are fresh complete object
 transfers under the requested shallow/history policy; no partial-clone filter or promisor is used.
 No later lazy object download is needed. Wikis have no checkout. LFS smudging remains disabled.

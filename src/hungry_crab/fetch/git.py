@@ -192,22 +192,42 @@ class GitRunner:
     def _filter_drivers(self, where: Path, env: dict[str, str]) -> list[str]:
         """The filter drivers configured where a command runs, listed once per directory.
 
-        Reading configuration runs nothing; a listing that fails leaves nothing to empty.
+        Reading configuration runs nothing. Scoped acquisition uses its sanitized environment,
+        output caps and process-group deadline here too; a scoped read failure fails closed.
+        Outside acquisition, a failed listing retains the existing empty-driver fallback.
         """
         key = str(where)
         if key not in self._filters:
+            budget = CURRENT.get()
             try:
-                proc = subprocess.run(
-                    [self.exe, "config", "--null", "--name-only", "--get-regexp", r"^filter\."],
-                    cwd=key,
-                    capture_output=True,
-                    env=env,
-                    timeout=self.timeout,
-                    check=False,
-                )
+                command = [
+                    self.exe,
+                    "config",
+                    "--null",
+                    "--name-only",
+                    "--get-regexp",
+                    r"^filter\.",
+                ]
+                if budget is not None:
+                    proc = budget.run_git(command, where, budget.git_env(env), self.timeout)
+                    budget.check()
+                else:
+                    proc = subprocess.run(
+                        command,
+                        cwd=key,
+                        capture_output=True,
+                        env=env,
+                        timeout=self.timeout,
+                        check=False,
+                    )
                 ok = proc.returncode == 0
                 listing = proc.stdout.decode("utf-8", errors="replace") if ok else ""
-            except (OSError, subprocess.TimeoutExpired):
+            except (OSError, subprocess.TimeoutExpired, ResponseTooLargeError) as exc:
+                if budget is not None:
+                    budget.check()
+                    raise ExternalCommandError(
+                        "Git filter configuration exceeds scoped read limits"
+                    ) from exc
                 listing = ""
             self._filters[key] = filter_drivers(listing)
         return self._filters[key]

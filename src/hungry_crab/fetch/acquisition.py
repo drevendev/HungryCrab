@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextvars
 import errno
+import json
 import os
 import select
 import shutil
@@ -18,6 +19,7 @@ import socketserver
 import subprocess
 import sys
 import threading
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
@@ -74,6 +76,7 @@ class AcquisitionBudget:
         self.downloaded = 0
         self.failure: str | None = None
         self.staging = False
+        self.recovery_required = False
         self._lock = threading.Lock()
         self._sockets: set[socket.socket] = set()
         self._server: socketserver.ThreadingTCPServer | None = None
@@ -198,6 +201,59 @@ class AcquisitionBudget:
             timeout=timeout,
             process_group=True,
         )
+
+    def publish_cache(self, entries: list[tuple[Path, Path]]) -> None:
+        """Publish a completed acquisition cohort, rolling back every earlier move on refusal.
+
+        Callers retain their staging until this method returns. Unrelated digest generations,
+        ledgers and other prey stay in place; no old API file is modified in place.
+        """
+        from .catch import rmtree_force
+
+        self.check()
+        backup = self.volume / f".acquisition-backup-{uuid.uuid4().hex}"
+        backup.mkdir()
+        old: list[tuple[Path, Path]] = []
+        published: list[tuple[Path, Path]] = []
+        preserve = False
+        try:
+            for source, target in entries:
+                self.require_path(source)
+                self.require_path(target)
+            journal = [
+                {"source": str(source), "target": str(target), "previous": str(backup / str(index))}
+                for index, (source, target) in enumerate(entries)
+            ]
+            with (backup / "journal.json").open("x", encoding="utf-8") as record:
+                json.dump(journal, record)
+                record.flush()
+                os.fsync(record.fileno())
+            for index, (source, target) in enumerate(entries):
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists() or target.is_symlink():
+                    previous = backup / str(index)
+                    target.rename(previous)
+                    old.append((previous, target))
+                source.rename(target)
+                published.append((target, source))
+        except BaseException:
+            try:
+                for target, source in reversed(published):
+                    target.rename(source)
+                for previous, target in reversed(old):
+                    previous.rename(target)
+            except OSError as exc:
+                preserve = True
+                self.recovery_required = True
+                raise CrabError(
+                    "acquisition cache rollback needs manual recovery",
+                    hint=f"previous entries and their recovery journal remain in {backup}; "
+                    "retain the acquisition staging",
+                ) from exc
+            raise
+        finally:
+            if not preserve:
+                rmtree_force(backup, cache_root=self.volume)
 
     @contextmanager
     def scope(self) -> Iterator[AcquisitionBudget]:

@@ -36,7 +36,7 @@ jobs:
       - name: Exercise real HTTPS Git and kernel-enforced disk exhaustion
         env:
           CRAB_TEST_QUOTA_VOLUME: ${{ steps.volume.outputs.volume }}
-        run: uv run pytest tests/test_acquisition_live.py -q
+        run: uv run pytest tests/test_acquisition_live.py tests/test_acquisition_transaction.py -q
       - name: Remove the disposable filesystem
         if: always() && steps.volume.outputs.root != ''
         env:

@@ -13,6 +13,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and share one download allowance across main repositories and wikis. Quota failures and
   cancellation discard staged acquisitions while retaining the previous valid cache (#236).
 
+- Include provider preflight/API/HTTP metadata and the maw wiki in the acquisition cache
+  transaction; roll back earlier cache moves on cancellation, retain unrelated digest evidence,
+  and apply scoped output/deadline limits to Git's filter-configuration probe (#236, #420).
+
 - **Publication security:** prepare and scan every selected multi-prey payload before provider
   reads or effects, and share one budget counting only newly created PRs across all sources
   ([#339](https://github.com/drevendev/HungryCrab/issues/339)).
