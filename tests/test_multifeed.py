@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from hungry_crab.cache import Target
+from hungry_crab.cache import Slug, Target
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.feeder import EatOptions, EatResult
@@ -104,6 +104,48 @@ def test_atomic_bundle_integrity_and_cli_menu(
     (next(iter(paths.values())) / "menu.json").write_text("{}", encoding="utf-8")
     with pytest.raises(CrabError, match="integrity"):
         load_multi(result.out_dir)
+
+
+def test_colliding_local_prey_labels_are_rejected_before_acquisition(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    first = tmp_path / "x" / "app"
+    second = tmp_path / "y" / "app"
+    first.mkdir(parents=True)
+    second.mkdir(parents=True)
+
+    def forbidden_eat(*_args: Any, **_kwargs: Any) -> EatResult:
+        pytest.fail("prey with ambiguous nutrient ids must not be acquired")
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", forbidden_eat)
+    out = tmp_path / "bundle"
+    with pytest.raises(UsageError, match="ambiguous prey labels"):
+        eat_many(
+            [Target(path=first), Target(path=second)],
+            maw,
+            EatOptions(out=out, cache_root=tmp_path / "cache"),
+        )
+    assert not out.exists()
+    assert not list(tmp_path.glob(".bundle-*"))
+
+
+def test_distinct_remote_repositories_with_colliding_slugs_are_refused(tmp_path: Path) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    with pytest.raises(UsageError, match="ambiguous prey labels"):
+        eat_many(
+            [Target(slug=Slug.parse("a/b-c")), Target(slug=Slug.parse("a-b/c"))],
+            maw,
+            EatOptions(out=tmp_path / "bundle", cache_root=tmp_path / "cache"),
+        )
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_existing_multi_menus_with_ambiguous_labels_fail_closed() -> None:
+    with pytest.raises(CrabError, match="ambiguous prey labels"):
+        merge_menus({"first": menu("a/b-c"), "second": menu("a-b/c")})
 
 
 def test_duplicate_or_failed_sources_never_publish_partial_bundle(
