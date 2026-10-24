@@ -495,9 +495,9 @@ def _clone_replace(
     backup = destination.with_name(f".{destination.name}-old-{uuid.uuid4().hex}")
     try:
         try:
-            GitRunner(destination.parent, timeout=3600, github_token=token, auth_host=auth_host).run(
-                *args, url, str(staged)
-            )
+            GitRunner(
+                destination.parent, timeout=3600, github_token=token, auth_host=auth_host
+            ).run(*args, url, str(staged))
         except ExternalCommandError as exc:
             if budget is not None and "no commits selected" not in exc.message.lower():
                 raise AcquisitionLimitError(
