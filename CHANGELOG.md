@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Wiki provenance:** ignore Git replacement refs for tree and blob reads; report invalid
+  UTF-8 page paths by raw hex identity as visibility loss instead of merging distinct names
+  into replacement characters (#418).
+
 - **Acquisition security:** remote Feeder runs require a fixed-capacity acquisition filesystem
   and share one download allowance across main repositories and wikis. Quota failures and
   cancellation discard staged acquisitions while retaining the previous valid cache (#236).

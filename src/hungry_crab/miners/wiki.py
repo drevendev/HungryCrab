@@ -362,6 +362,8 @@ def _git_bytes(git: GitRunner, *args: str, limit: int) -> bytes:
     """Read local object plumbing with bounded pipes; never materialize a wiki path."""
     env = git_env()
     env["GIT_NO_LAZY_FETCH"] = "1"
+    # A recorded object id must mean its own bytes, even in a local wiki with replace refs.
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
     try:
         result = run_bounded(
             [git.exe, *SAFE_CONFIG, "-C", str(git.cwd), *args],
@@ -395,6 +397,7 @@ class WikiMiner:
                 "truncated": False,
                 "oversized_pages": [],
                 "unreadable_pages": [],
+                "unreadable_paths": [],
             },
         }
         pages: list[dict[str, Any]] = []
@@ -410,7 +413,15 @@ class WikiMiner:
                 fields = metadata.split()
                 if not separator or len(fields) != 4 or fields[0] not in (b"100644", b"100755"):
                     continue
-                name = raw_name.decode("utf-8", errors="replace")
+                try:
+                    name = raw_name.decode("utf-8")
+                except UnicodeDecodeError:
+                    # Replacement decoding conflates distinct Git paths, including a real
+                    # U+FFFD filename. Keep raw identity as hex and refuse healthy coverage.
+                    if raw_name.lower().endswith(tuple(ext.encode() for ext in PAGE_EXTENSIONS)):
+                        data["coverage"]["healthy"] = False
+                        data["coverage"]["unreadable_paths"].append(raw_name.hex())
+                    continue
                 path = PurePosixPath(name)
                 if path.suffix.lower() not in PAGE_EXTENSIONS:
                     continue

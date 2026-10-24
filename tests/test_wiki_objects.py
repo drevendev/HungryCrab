@@ -114,6 +114,63 @@ def test_recorded_commit_wins_over_later_head_and_working_tree(tmp_path: Path) -
     assert result.data["pages"][0]["headings"] == [{"level": 1, "text": "Recorded"}]
 
 
+@pytest.mark.parametrize("kind", ["commit", "tree", "blob"])
+def test_replacement_refs_cannot_change_recorded_wiki_objects(tmp_path: Path, kind: str) -> None:
+    root = tmp_path / "objects"
+    original = _snapshot(root, {"Home.md": b"# ORIGINAL\n"})
+    substitute = _snapshot(root, {"Home.md": b"# IMPOSTOR\n"})
+    git = GitRunner(root)
+    suffix = {"commit": "", "tree": "^{tree}", "blob": ":Home.md"}[kind]
+    original_oid = git.run("rev-parse", original + suffix).strip()
+    substitute_oid = git.run("rev-parse", substitute + suffix).strip()
+    git.run("replace", original_oid, substitute_oid)
+    # The equal-length blob case defeats a byte-count-only integrity check.
+    assert len(b"# ORIGINAL\n") == len(b"# IMPOSTOR\n")
+    result = WikiMiner().run(_context(root, original))
+    assert result.data["sha"] == original
+    assert result.data["coverage"]["healthy"]
+    assert [p["path"] for p in result.data["pages"]] == ["Home.md"]
+    assert result.data["pages"][0]["headings"] == [{"level": 1, "text": "ORIGINAL"}]
+    assert not (root / "Home.md").exists()
+
+
+def test_invalid_utf8_paths_cannot_impersonate_valid_page_names(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    root = tmp_path / "objects"
+    _snapshot(root, {})
+    git = GitRunner(root)
+    oid = _object(git, "hash-object", "-w", "--stdin", data=b"# Page\n")
+    names = ["File-\ufffd.md".encode(), b"File-\xfe.md", b"File-\xff.md"]
+    tree = _object(
+        git,
+        "mktree",
+        "-z",
+        data=b"".join(b"100644 blob " + oid.encode() + b"\t" + name + b"\0" for name in names),
+    )
+    sha = git.run(
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@invalid.example",
+        "commit-tree",
+        tree,
+        "-m",
+        "docs: raw wiki paths",
+    ).strip()
+    git.run("update-ref", "HEAD", sha)
+    result = WikiMiner().run(_context(root, sha))
+    assert not result.data["coverage"]["healthy"]
+    assert result.data["coverage"]["unreadable_paths"] == [name.hex() for name in names[1:]]
+    assert [p["path"] for p in result.data["pages"]] == ["File-\ufffd.md"]
+    assert result.warnings
+    digest = run_digest(
+        Target(path=npm_app), DigestOptions(wiki_path=root, out=tmp_path / "digest")
+    )
+    with pytest.raises(CrabError, match="whole wiki"):
+        _check_digest(digest.out_dir, allow_loss=False)
+
+
 def test_oversized_blob_is_counted_without_reading_its_body(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
