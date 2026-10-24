@@ -11,12 +11,13 @@ from __future__ import annotations
 import fnmatch
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
+from functools import cached_property
+from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 
 from ..errors import CrabError
 from ..fetch.git import GitRunner
-from ..fs import is_ignored, read_text
+from ..fs import is_ignored, is_link_stat, is_personal_agent_file, read_text
 from ..mdutil import MdDoc
 
 
@@ -100,6 +101,8 @@ class MineContext:
     worktree: str = ""
     wiki_root: Path | None = None
     wiki_info: dict[str, Any] = field(default_factory=dict)
+    # File visibility also applies to an unborn worktree, which has no history runner.
+    tree_git: GitRunner | None = None
 
     @property
     def deep(self) -> bool:
@@ -157,13 +160,65 @@ class MineContext:
                 matches.append(info)
         return matches
 
+    @cached_property
+    def visible_files(self) -> frozenset[str] | None:
+        """Tracked and non-ignored untracked paths; never fall back on a Git read failure."""
+        runner = self.tree_git or self.git
+        if runner is None:
+            return None
+        listing = runner.try_run("ls-files", "--cached", "--others", "--exclude-standard", "-z")
+        if listing is None or "\ufffd" in listing:
+            raise CrabError("cannot establish the repository's analysis file set")
+        # Git emits an untracked nested checkout as a directory, not as vouched-for files.
+        return frozenset(
+            rel
+            for rel in listing.split("\0")
+            if rel and not rel.endswith("/") and not is_personal_agent_file(rel)
+        )
+
+    def _accessible(self, rel: str, *, directory: bool = False) -> bool:
+        path = PurePosixPath(rel)
+        if (
+            not rel
+            or path.is_absolute()
+            or bool(Path(rel).drive)
+            or ".." in path.parts
+            or path.as_posix() != rel
+            or is_ignored(rel, self.ignore)
+            or is_personal_agent_file(rel)
+        ):
+            return False
+        visible = self.visible_files
+        if (
+            visible is not None
+            and rel not in visible
+            and (
+                not directory
+                or not any(
+                    candidate.startswith(rel + "/") and not is_ignored(candidate, self.ignore)
+                    for candidate in visible
+                )
+            )
+        ):
+            return False
+        place = self.root
+        try:
+            (self.root / rel).resolve().relative_to(self.root.resolve())
+            for part in path.parts:
+                place /= part
+                if is_link_stat(place.lstat()):
+                    return False
+        except (OSError, ValueError, RuntimeError):
+            return False
+        return True
+
     def read(self, rel: str, *, limit: int = 512_000) -> str:
+        if not self._accessible(rel):
+            return ""
         return read_text(self.root / rel, limit=limit)
 
     def exists(self, rel: str) -> bool:
-        if is_ignored(rel, self.ignore):
-            return False
-        return (self.root / rel).exists()
+        return self._accessible(rel, directory=True)
 
 
 class Miner(Protocol):

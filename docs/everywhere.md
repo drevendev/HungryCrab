@@ -75,6 +75,13 @@ no serve, shell, ledger-edit, loop, tag or merge tool. Prey is never executed. R
 content is untrusted data, not instructions. The server serializes its own requests; this does
 not add a cross-process lock to the shared CLI cache.
 
+Local analysis includes tracked files and non-ignored untracked files, using Git's standard
+ignore rules. Personal `CLAUDE.local.md` and `.claude/settings.local.json` overrides are excluded
+even when committed. A directory without its own Git worktree root is analysed as a filesystem
+tree without parent history or cache reuse; `prey.git_scope` in the manifest records this choice.
+A Git worktree whose file set cannot be established is refused rather than walked without its
+ignore rules. Wiki inputs must name their own Git worktree root.
+
 Network acquisition is disabled by default. To allow remote GitHub/GitLab prey, the operator
 must add `--allow-network` to the server command. Remote acquisition uses a shallow 90-day
 history window, no issue/discussion/review/run collection and no wiki fetch. It may need suitable

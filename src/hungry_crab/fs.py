@@ -102,6 +102,12 @@ def is_ignored(path: str, patterns: Sequence[str]) -> bool:
     return False
 
 
+def is_personal_agent_file(path: str) -> bool:
+    """Local agent overrides describe a person, even if accidentally committed."""
+    parts = path.lower().split("/")
+    return parts[-1] == "claude.local.md" or parts[-2:] == [".claude", "settings.local.json"]
+
+
 def count_lines(text: str) -> int:
     if not text:
         return 0

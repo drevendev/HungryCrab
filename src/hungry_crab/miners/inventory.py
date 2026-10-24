@@ -16,7 +16,14 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from ..fs import BINARY_EXTENSIONS, count_lines, is_ignored, is_link_stat, looks_binary
+from ..fs import (
+    BINARY_EXTENSIONS,
+    count_lines,
+    is_ignored,
+    is_link_stat,
+    is_personal_agent_file,
+    looks_binary,
+)
 from ..mdutil import MdDoc
 from ..safety import safe_name
 from .base import FileInfo, MineContext, MinerResult
@@ -289,7 +296,9 @@ def _is_link_dir(full: str) -> bool:
     return is_link_stat(info)
 
 
-def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, Any]]:
+def walk_tree(
+    root: Path, *, max_files: int, visible_files: frozenset[str] | None = None
+) -> tuple[list[FileInfo], dict[str, Any]]:
     """Walk ``root`` without following symlinks or junctions; cap vendored dirs and total files."""
     files: list[FileInfo] = []
     stats: dict[str, Any] = {
@@ -311,6 +320,16 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
     vendored_counts: dict[str, int] = defaultdict(int)
     unreadable: list[str] = []
     root_str = str(root)
+    visible_dirs = (
+        None
+        if visible_files is None
+        else {
+            parent.as_posix()
+            for rel in visible_files
+            for parent in Path(rel).parents
+            if parent.as_posix() != "."
+        }
+    )
 
     def unlisted(_error: OSError) -> None:
         # `os.walk` drops a directory it cannot list, and everything under it, without a word.
@@ -330,6 +349,8 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
             if _is_link_dir(os.path.join(dirpath, directory)):
                 stats["symlinks"] += 1
                 continue
+            if visible_dirs is not None and "/".join((*parts, directory)) not in visible_dirs:
+                continue
             kept.append(directory)
         dirnames[:] = kept
         stats["dirs"] += len(kept)
@@ -346,6 +367,11 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
         build_output = any(p in BUILD_OUTPUT_DIRS for p in parts)
 
         for name in sorted(filenames):
+            rel = "/".join((*parts, name))
+            if is_personal_agent_file(rel) or (
+                visible_files is not None and rel not in visible_files
+            ):
+                continue
             if len(files) >= max_files:
                 stats["truncated"] = True
                 dirnames[:] = []
@@ -362,7 +388,6 @@ def walk_tree(root: Path, *, max_files: int) -> tuple[list[FileInfo], dict[str, 
             if not stat.S_ISREG(st.st_mode):
                 stats["special_files"] += 1
                 continue
-            rel = "/".join((*parts, name))
             if vendored:
                 vendored_counts[vendored_key] += 1
             files.append(
@@ -742,7 +767,11 @@ class InventoryMiner:
     md_file = "inventory.md"
 
     def run(self, ctx: MineContext) -> MinerResult:
-        files, stats = walk_tree(ctx.root, max_files=MAX_FILES["deep" if ctx.deep else "normal"])
+        files, stats = walk_tree(
+            ctx.root,
+            max_files=MAX_FILES["deep" if ctx.deep else "normal"],
+            visible_files=ctx.visible_files,
+        )
         mark_build_outputs(files)
         mark_sample_corpora(files)
         mark_example_trees(files)
@@ -751,12 +780,15 @@ class InventoryMiner:
             kept = [f for f in files if not is_ignored(f.path, ctx.ignore)]
             ignored = len(files) - len(kept)
             files = kept
-        try:
-            root_entries = sorted(
-                entry.name for entry in ctx.root.iterdir() if not is_ignored(entry.name, ctx.ignore)
-            )
-        except OSError:
-            root_entries = []
+        root_entries = sorted({info.path.split("/")[0] for info in files})
+        stats["dirs"] = len(
+            {
+                parent.as_posix()
+                for info in files
+                for parent in Path(info.path).parents
+                if parent.as_posix() != "."
+            }
+        )
         data, extra = summarize(ctx.root, files, stats, root_entries)
         data["ignored"] = {"patterns": list(ctx.ignore), "files": ignored}
         data["coverage"] = coverage_block(files, stats, ignored)

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from conftest import FIXED_NOW
 from fixture_builder import git
-from helpers import copy_repo
+from helpers import copy_repo, read_json
 
 import hungry_crab.digest as digest_module
 from hungry_crab.cache import Target
@@ -67,7 +67,9 @@ def test_markdown_budget_participates_in_cache_identity(npm_app: Path, tmp_path:
     assert unchanged_again.cached
 
 
-def test_gitignored_untracked_file_prevents_cache_reuse(npm_app: Path, tmp_path: Path) -> None:
+def test_gitignored_untracked_file_is_outside_cached_analysis(
+    npm_app: Path, tmp_path: Path
+) -> None:
     work = copy_repo(npm_app, tmp_path / "work", with_git=True)
     (work / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
     git(work, "add", ".gitignore")
@@ -80,11 +82,14 @@ def test_gitignored_untracked_file_prevents_cache_reuse(npm_app: Path, tmp_path:
     options = _options(tmp_path)
     first = run_digest(Target(path=work), options)
     assert not first.cached
-    assert first.manifest["prey"]["worktree"] == "unknown"
+    assert first.manifest["prey"]["worktree"] == "clean"
+    assert "ignored.txt" not in {
+        row["path"] for row in read_json(first, "inventory.json")["top_level"]
+    }
 
     ignored.write_text("omega\n", encoding="utf-8")
     changed = run_digest(Target(path=work), DigestOptions(**options.__dict__))
-    assert not changed.cached, "ignored untracked prey can still change miner evidence"
+    assert changed.cached, "ignored untracked files cannot change miner evidence"
 
 
 def test_a_selective_run_is_not_reused_as_a_complete_digest(npm_app: Path, tmp_path: Path) -> None:

@@ -320,6 +320,14 @@ class GitRunner:
         out = self.try_run("rev-parse", "--show-toplevel")
         return Path(out.strip()) if out and out.strip() else None
 
+    def is_repo_root(self) -> bool:
+        """Whether this directory is the worktree root, including a linked worktree."""
+        top = self.toplevel()
+        try:
+            return top is not None and self.cwd.samefile(top)
+        except OSError:
+            return False
+
     def head_sha(self) -> str:
         return self.run("rev-parse", "HEAD").strip()
 

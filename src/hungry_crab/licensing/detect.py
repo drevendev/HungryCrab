@@ -514,7 +514,10 @@ def _own_entry(path: Path, kind: Callable[[int], bool]) -> bool:
 
 
 def _license_candidates(
-    root: Path, entries: Sequence[str], findings: LicenseFindings
+    root: Path,
+    entries: Sequence[str],
+    findings: LicenseFindings,
+    allowed_files: frozenset[str] | None = None,
 ) -> list[tuple[str, str | None]]:
     """Every license file at the root or in a `LICENSES/` directory, with what its name declares.
 
@@ -537,7 +540,16 @@ def _license_candidates(
         if not _own_entry(path, stat.S_ISDIR):
             continue
         try:
-            children = sorted(child for child in path.iterdir() if _own_entry(child, stat.S_ISREG))
+            candidates = (
+                path.iterdir()
+                if allowed_files is None
+                else (
+                    root / rel
+                    for rel in allowed_files
+                    if PurePosixPath(rel).parent.as_posix() == directory
+                )
+            )
+            children = sorted(child for child in candidates if _own_entry(child, stat.S_ISREG))
         except OSError:
             continue
         # `LICENSES/MIT.txt`: here the whole stem is the license name, by the REUSE convention.
@@ -651,6 +663,7 @@ def detect_in_repo(
     vendored_license_files: Sequence[str] = (),
     api_spdx: str | None = None,
     max_header_files: int = 400,
+    allowed_files: frozenset[str] | None = None,
 ) -> LicenseFindings:
     """Combine every source of truth into one finding for the repository at ``root``."""
     findings = LicenseFindings()
@@ -660,7 +673,7 @@ def detect_in_repo(
     alternatives = True  # every named file used the `LICENSE-<name>` form: a choice, not a split
     split_mentions: list[str] = []
     root_declares_split = False
-    for rel, declared in _license_candidates(root, entries, findings):
+    for rel, declared in _license_candidates(root, entries, findings, allowed_files):
         path = root / rel
         text = read_text(path, limit=200_000)
         spdx, confidence = detect_from_text(text)

@@ -140,12 +140,12 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
     if index is None or _has_occupied_gitlink(index, root):
         return "unknown"
     diff = git.try_run("diff", "HEAD")
-    # Include ignored files: miners can still observe them, so they must block cache reuse too.
-    untracked = git.try_run("ls-files", "--others")
+    # Ignored files are outside the analysis set; only visible untracked files block reuse.
+    untracked = git.try_run("ls-files", "--others", "--exclude-standard", "-z")
     if diff is None or untracked is None:
         # A repository git cannot answer questions about is not one this can vouch for.
         return "unknown"
-    names = [line.strip() for line in untracked.splitlines() if line.strip()]
+    names = [name for name in untracked.split("\0") if name]
     if names:
         # Hashing arbitrary untracked prey can cost as much as digesting it. More importantly,
         # name/size/mtime metadata cannot prove byte equality. Fail closed on reuse instead.
@@ -159,6 +159,8 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
     encoded = json.dumps(ctx.api, sort_keys=True, separators=(",", ":"))
     return {
         "api_sha256": hashlib.sha256(encoded.encode()).hexdigest(),
+        # Invalidate digests produced before ignored/personal files were excluded (#195).
+        "file_selection": "git-visible-v1",
     }
 
 
@@ -257,9 +259,23 @@ def prepare_context(
         # untrusted data and is never read here. The maw's `ignore` reaches the maw's own
         # digest through `options.ignore`, from a caller that knows which directory is the maw.
 
-    git: GitRunner | None = GitRunner(root) if GitRunner.available() else None
-    if git is not None and not (git.is_repo() and git.has_commits()):
-        git = None
+    tree_git = GitRunner(root) if GitRunner.available() else None
+    if tree_git is not None and not tree_git.is_repo_root():
+        tree_git = None
+    marker = root / ".git"
+    try:
+        marker.lstat()
+        has_git_marker = True
+    except FileNotFoundError:
+        has_git_marker = False
+    except OSError as exc:
+        raise CrabError("cannot inspect the target's Git marker") from exc
+    if tree_git is None and has_git_marker:
+        raise CrabError(
+            "cannot establish the Git repository root for analysis",
+            hint="ensure Git is installed and the target is a readable worktree root",
+        )
+    git = tree_git if tree_git is not None and tree_git.has_commits() else None
     if git is not None:
         sha = git.head_sha()
         ref = git.current_branch() or git.default_branch()
@@ -275,8 +291,8 @@ def prepare_context(
 
     if wiki_root is not None:
         wiki_git = GitRunner(wiki_root)
-        if not wiki_root.is_dir() or not wiki_git.has_commits():
-            raise CrabError(f"wiki directory {wiki_root} is not a Git repository with commits")
+        if not wiki_root.is_dir() or not wiki_git.is_repo_root() or not wiki_git.has_commits():
+            raise CrabError(f"wiki directory {wiki_root} is not a Git repository root with commits")
         wiki_info = {
             **wiki_info,
             "status": "available",
@@ -292,6 +308,7 @@ def prepare_context(
         url=url,
         depth=options.depth,
         git=git,
+        tree_git=tree_git,
         api=api,
         maw_license=options.maw_license,
         now=options.now or datetime.now(UTC),
@@ -306,6 +323,8 @@ def prepare_context(
         wiki_root=wiki_root,
         wiki_info=wiki_info,
     )
+    # Establish Git visibility before considering a cached digest or reading any miner input.
+    _ = ctx.visible_files
     if options.out is not None:
         out_dir = options.out
     elif not _is_canonical_request(ctx, options):
@@ -649,6 +668,7 @@ def build_manifest(
             "shallow": ctx.shallow,
             "root": str(ctx.root),
             "worktree": ctx.worktree,
+            "git_scope": "repository-root" if ctx.tree_git or ctx.git else "filesystem-only",
         },
         "depth": options.depth,
         "ignore": list(ctx.ignore),

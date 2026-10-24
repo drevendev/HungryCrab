@@ -401,10 +401,13 @@ def relationship_for(
 
 
 def maw_slug(root: Path) -> Slug | None:
-    """The GitHub repository behind ``origin``, if there is one."""
+    """The forge repository behind this worktree root's ``origin``, if there is one."""
     if not GitRunner.available():
         return None
-    url = GitRunner(root).try_run("remote", "get-url", "origin")
+    git = GitRunner(root)
+    if not git.is_repo_root():
+        return None
+    url = git.try_run("remote", "get-url", "origin")
     if not url or not url.strip():
         return None
     try:

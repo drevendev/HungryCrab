@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Local analysis privacy:** analyse tracked and non-ignored untracked Git files consistently
+  across inventory, direct miner probes and licence-directory reads. Exclude personal Claude
+  overrides even when committed, and invalidate digests made under the old file-selection
+  policy (#195). Plain subdirectories no longer borrow a parent's Git identity or history;
+  their manifest declares filesystem-only analysis, and wiki inputs require a worktree root.
+  A maw subdirectory cannot borrow the parent's publication target or same-owner trust (#139).
+
 - **Prey Markdown:** neutralize addressed agent imperatives hidden in ref/path separators;
   gate architecture and AI metadata, digest labels, meal cards and served issue prose through
   the same name filter. Escape active name markup and encode evidence-link delimiters while

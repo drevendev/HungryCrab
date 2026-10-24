@@ -53,6 +53,7 @@ class LicenseMiner:
             vendored_license_files=vendored,
             api_spdx=api_spdx,
             max_header_files=800 if ctx.deep else 400,
+            allowed_files=frozenset(f.path for f in files),
         )
         cls = classify(findings.spdx)
         data: dict[str, Any] = findings.to_dict()

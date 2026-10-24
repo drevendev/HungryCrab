@@ -21,7 +21,6 @@ _FM_BLOCK_RE = re.compile(r"^[|>][+-]?\d*$")
 
 INSTRUCTION_FILES: dict[str, str] = {
     "CLAUDE.md": "claude",
-    "CLAUDE.local.md": "claude",
     "AGENTS.md": "agents",
     "GEMINI.md": "gemini",
     ".cursorrules": "cursor",
@@ -233,9 +232,7 @@ class AiConfigMiner:
             f.path for f in files if f.path.startswith((".claude/hooks/", "hooks/"))
         )
         settings = [
-            _settings_gist(ctx, rel)
-            for rel in (".claude/settings.json", ".claude/settings.local.json")
-            if rel in by_path
+            _settings_gist(ctx, rel) for rel in (".claude/settings.json",) if rel in by_path
         ]
         mcp = [
             _mcp_gist(ctx, rel)
