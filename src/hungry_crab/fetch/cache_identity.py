@@ -47,6 +47,14 @@ def _record(path: Path) -> dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
+def _nonempty(path: Path) -> bool:
+    try:
+        with os.scandir(path) as entries:
+            return next(entries, None) is not None
+    except OSError as exc:
+        raise CrabError("cannot inspect an existing cache directory", hint=_HINT) from exc
+
+
 def _owned_entry(path: Path, slug: Slug, root: Path) -> bool:
     for record in (path / "catch.json", path / "api" / "sniff.json"):
         _real_path(record, root)
@@ -84,7 +92,7 @@ def require_clone_identity(
         return
     if not path.is_dir():
         raise CrabError("refusing to replace a non-directory cache entry", hint=_HINT)
-    if not any(path.iterdir()):
+    if not _nonempty(path):
         return
     git_dir = path / ".git"
     _real_path(git_dir / "config", cache_root)
@@ -172,7 +180,7 @@ def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) ->
         return
     _real_path(paths.api, root)
     owned = _owned_entry(paths.root, slug, root)
-    if any(paths.root.iterdir()) and not owned:
+    if _nonempty(paths.root) and not owned:
         raise CrabError(
             "refusing cache mutation: no catch or sniff record names this prey", hint=_HINT
         )

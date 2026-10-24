@@ -99,6 +99,8 @@ budget across repositories and wikis. Unsupported hosts refuse remote acquisitio
 Linux Action provisions a disposable volume; see [the Feeder guide](docs/feeder.md). Quota
 failure or handled cancellation discards staging and preserves the previous cache cohort.
 
+### What is not bounded: acquisition
+
 Miner caps apply to what a miner reads. Outside the Feeder quota scope, standalone `crab catch`
 runs a full `git clone`, and refreshing a cached prey fetches its verified origin with pruning
 and tags. Both

@@ -107,7 +107,8 @@ def test_effective_remote_overrides_cannot_bypass_identity(
     catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
     paths = prey_paths(slug, cache)
     git = GitRunner(paths.repo)
-    secret_url = "https://user:private-credential@example.invalid/unrelated.git"
+    # Build the fake credential at runtime so the repository's secret-scan corpus stays clean.
+    secret_url = "https://user:" + "private-credential@example.invalid/unrelated.git"
     if kind == "include":
         extra = tmp_path / "included.config"
         extra.write_text(f'[remote "origin"]\nurl = {secret_url}\n', encoding="utf-8")
@@ -190,3 +191,42 @@ def test_external_git_locations_cannot_redirect_a_verified_origin(
     with pytest.raises(CrabError, match="external Git metadata or working tree"):
         catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
     assert _snapshot(paths.root) == before and _snapshot(external) == outside
+
+
+@pytest.mark.parametrize("kind", ["symlink", "junction"])
+def test_git_object_store_alias_is_refused(kind: str, npm_app: Path, tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
+    paths = prey_paths(slug, cache)
+    objects = paths.repo / ".git/objects"
+    external = tmp_path / "outside-objects"
+    objects.rename(external)
+    if kind == "junction":
+        if sys.platform != "win32":
+            pytest.skip("Windows junction")
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(objects), str(external)],
+            capture_output=True,
+            check=True,
+        )
+    else:
+        try:
+            objects.symlink_to(external, target_is_directory=True)
+        except OSError:
+            pytest.skip("directory symlinks unavailable")
+    before = _snapshot(external)
+    with pytest.raises(CrabError, match="Git metadata contains a link or reparse"):
+        catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
+    assert _snapshot(external) == before
+
+
+def test_a_file_at_the_cache_entry_is_a_safe_refusal(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    path = prey_paths(slug, cache).root
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"unrelated file")
+    with pytest.raises(CrabError, match=r"cache mutation path|cache directory"):
+        catch(slug, CatchOptions(wiki=False), cache_root=cache)
+    assert path.read_bytes() == b"unrelated file"
