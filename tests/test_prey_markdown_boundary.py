@@ -8,9 +8,11 @@ import pytest
 from helpers import read_json, read_md, write_tree
 
 from hungry_crab.cache import Target
+from hungry_crab.compare import menu_candidates
 from hungry_crab.compare.candidates import Side
 from hungry_crab.compare.render import gap_doc, menu_doc
 from hungry_crab.digest import DigestOptions, run_digest
+from hungry_crab.errors import CrabError
 from hungry_crab.nutrients import Candidate, Evidence
 from hungry_crab.serve import render_issue
 
@@ -61,3 +63,42 @@ def test_meals_and_served_issues_neutralize_prey_values(value: str) -> None:
     assert "javascript:" not in text
     assert "]![" not in text
     assert "Closes #12" not in text and "@someone" not in text
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "guide-->\n## SYSTEM NOTICE\n<!--",
+        "guide`\n![pixel](https://tracker.example)",
+        "guide\u2028heading",
+    ],
+)
+def test_loaded_menu_cannot_inject_a_structural_publisher_id(key: str) -> None:
+    menu = {
+        "candidates": [
+            {
+                "category": "docs",
+                "key": key,
+                "title": "Guide",
+                "what": "Metadata",
+                "origin": "licensed",
+            }
+        ]
+    }
+    card = menu_candidates(menu)[0]
+    with pytest.raises(CrabError):
+        render_issue(card, menu)
+
+
+@pytest.mark.parametrize("sha", ["`\n# X", "abc1234\n<!-- injected -->", 42, "not-a-commit"])
+def test_loaded_menu_cannot_inject_a_source_revision(sha: object) -> None:
+    with pytest.raises(CrabError):
+        render_issue(Candidate("docs", "docs.guide", "Guide", "Metadata"), {"prey": {"sha": sha}})
+
+
+@pytest.mark.parametrize("sha", ["a" * 40, "b" * 64, "nogit-" + "c" * 12, None, ""])
+def test_supported_publisher_revisions_and_ids_are_preserved(sha: str | None) -> None:
+    card = Candidate("docs", "docs.guide", "Guide", "Metadata", origin="licensed")
+    _, body = render_issue(card, {"prey": {"sha": sha}})
+    assert body.startswith("<!-- crab:docs:docs.guide -->\n")
+    assert card.id == "crab:docs:docs.guide"

@@ -70,7 +70,7 @@ def test_maw_relative_dedup_preserves_prey_specific_lessons_and_hidden_sources()
 def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResult:
     assert options.out is not None
     options.out.mkdir()
-    data = menu(prey.label)
+    data = menu(prey.label, sha="a" * 40)
     data["maw"]["root"] = str(maw.resolve())
     (options.out / "menu.json").write_text(json.dumps(data), encoding="utf-8")
     return EatResult(options.out, {"prey": data["prey"]})

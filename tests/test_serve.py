@@ -62,6 +62,35 @@ class FakeIssues:
         return f"https://github.com/{slug}/issues/{number}"
 
 
+def test_invalid_second_publisher_identity_refuses_before_provider_reads(tmp_path: Path) -> None:
+    import pytest
+
+    meal = tmp_path / "meal"
+    meal.mkdir()
+    cards = [
+        Candidate("ci", key, "Cache", "Metadata", origin="licensed")
+        for key in ("ci.good", "bad-->\n# injected")
+    ]
+    (meal / "menu.json").write_text(
+        json.dumps({"candidates": [c.to_dict() for c in cards]}), encoding="utf-8"
+    )
+    client = FakeIssues()
+    client.fail_list = True
+    ledger = Ledger(tmp_path / "ledger.json")
+    with pytest.raises(CrabError, match="invalid nutrient publication identity"):
+        serve(
+            meal,
+            tmp_path,
+            ServeOptions(top=2, mode="issue"),
+            config=MawConfig(root=tmp_path),
+            ledger=ledger,
+            client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+    assert not client.created and not client.labels
+    assert not ledger.entries and not (tmp_path / "ledger.json").exists()
+
+
 def _menu_dir(npm_app: Path, pyproject_cli: Path, cache: Path) -> Path:
     result, _, _ = run_compare(
         Target(path=npm_app),

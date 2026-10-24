@@ -42,7 +42,7 @@ from .fs import is_link_stat
 from .ledger import Ledger
 from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
-from .nutrients import Candidate, merge_notes
+from .nutrients import Candidate, merge_notes, require_nutrient_id
 from .pr_publication import (
     PreparedPullRequest,
     PullRequestPublication,
@@ -323,7 +323,7 @@ def _maw_state(card: Candidate) -> str:
 def _license_trace(card: Candidate) -> str:
     lines = [
         f"- content origin: `{card.origin}`",
-        f"- license mode: `{card.license_mode}`",
+        f"- license mode: `{safe_name(card.license_mode)}`",
     ]
     if card.license_reason:
         lines.append(f"- origin cap: {safe_name(card.license_reason)}")
@@ -332,9 +332,26 @@ def _license_trace(card: Candidate) -> str:
     return "\n".join(lines)
 
 
+def _check_publication_identity(card: Candidate, menu: dict[str, Any]) -> None:
+    require_nutrient_id(card.id)
+    sha = as_dict(menu.get("prey")).get("sha")
+    if (
+        sha is not None
+        and sha != ""
+        and (
+            not isinstance(sha, str)
+            or re.fullmatch(r"(?:[0-9a-fA-F]{7,64}|nogit-[0-9a-f]{12})", sha) is None
+        )
+    ):
+        raise CrabError(
+            "invalid prey revision in the loaded meal", hint="regenerate the meal before serving"
+        )
+
+
 def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
+    _check_publication_identity(card, menu)
     prey = as_dict(menu.get("prey"))
-    sha = str(prey.get("sha", ""))
+    sha = str(prey.get("sha") or "")
     prey_label = safe_name(prey.get("label", "the prey"))
     prey_url = prey.get("url")
     prey_ref = f"`{prey_label}@{sha[:7]}`" if sha else f"`{prey_label}`"
@@ -354,8 +371,9 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     )
     body = (
         f"<!-- {card.id} -->\n"
-        f"**Nutrient** `{card.category}` | license mode `{card.license_mode}` | "
-        f"effort {card.effort} | risk {card.risk} | score {card.score}\n\n"
+        f"**Nutrient** `{card.category}` | license mode `{safe_name(card.license_mode)}` | "
+        f"effort {safe_name(card.effort)} | risk {safe_name(card.risk)} | "
+        f"score {safe_name(card.score)}\n\n"
         f"## License trace\n\n{_license_trace(card)}\n\n"
         f"## What the prey does\n\n{safe_name(card.what)}\n{evidence}\n\n"
         f"## What this repository has\n\n{_maw_state(card)}\n\n"
@@ -826,6 +844,8 @@ def serve(
     if options.mode == "issue" and config.serve.issues == "off":
         raise CrabError("serve.issues is off in .crab.yml", hint="set serve.issues to ask or auto")
     cards, skipped = select_cards(menu, options, ledger)
+    for card in cards:
+        _check_publication_identity(card, menu)
     if options.notes is not None:
         notes = load_notes(options.notes)
         for card in cards:

@@ -35,6 +35,16 @@ def _prepared(
     )
 
 
+def test_invalid_structural_id_refuses_before_reconciliation() -> None:
+    with pytest.raises(CrabError, match="invalid nutrient publication identity"):
+        publish_prepared_transaction(
+            "crab:ci:cache-->\n# injected",
+            _prepared(),
+            lambda: pytest.fail("malformed ID reached provider reconciliation"),
+            lambda *_: pytest.fail("malformed ID reached publication"),
+        )
+
+
 def _handoff_payload(
     *,
     nutrient_id: str = "crab:ci:cache",

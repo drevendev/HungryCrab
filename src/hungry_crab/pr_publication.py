@@ -19,6 +19,7 @@ from types import BuiltinMethodType
 from typing import TypeVar
 
 from .errors import CrabError
+from .nutrients import require_nutrient_id
 from .publication_safety import format_publication_findings, scan_publication_bundle
 
 _ResultT = TypeVar("_ResultT")
@@ -425,6 +426,7 @@ def nutrient_spec_path(nutrient_id: str) -> str:
 
 
 def _required_marker(nutrient_id: str) -> str:
+    require_nutrient_id(nutrient_id)
     return f"<!-- {nutrient_id} -->"
 
 

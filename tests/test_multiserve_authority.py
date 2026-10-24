@@ -102,7 +102,7 @@ def test_source_bundle_commenter_guard_uses_its_own_digest_from_every_cwd(
             serve_as="idea",
             license_mode="IDEAS_ONLY",
             score=0.7,
-            trace={"prey": prey.label, "sha": "a"},
+            trace={"prey": prey.label, "sha": "a" * 40},
         )
         ids[name] = card.id
         menu_path = result.out_dir / "menu.json"
