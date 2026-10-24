@@ -26,6 +26,7 @@ from ..errors import CrabError, ExternalCommandError, UsageError
 from ..fs import is_reparse_point
 from . import channels
 from .acquisition import CURRENT, AcquisitionLimitError
+from .cache_identity import CLONE_RECORD, require_cache_identity, require_clone_identity
 from .git import GitRunner
 from .issues import fetch_issues, write_issues
 from .providers import RepositoryClient, client_for
@@ -301,6 +302,7 @@ def catch(
         raise UsageError("--issues, --discussions, --reviews and --runs must be in 0..3000")
     root = cache_root if cache_root is not None else default_cache_root()
     paths = prey_paths(slug, root)
+    require_cache_identity(slug, root, url=source_url or slug.clone_url)
     root_existed = paths.root.exists()
     paths.root.mkdir(parents=True, exist_ok=True)
     repo_dir = paths.repo
@@ -371,7 +373,7 @@ def catch(
             # Probe before mutating the cache. Fetch alone never updates origin/HEAD.
             branch = git.remote_default_branch()
             retargeted = git.retarget_single_branch_fetch(branch)
-            fetch_args = ["fetch", "--quiet", "--all", "--prune", "--force"]
+            fetch_args = ["fetch", "--quiet", "--prune", "--force", "origin"]
             if opts.since:
                 fetch_args += [f"--shallow-since={parse_since(opts.since, now=now).isoformat()}"]
             elif opts.shallow:
@@ -382,7 +384,7 @@ def catch(
                 git.run(*fetch_args)
             except ExternalCommandError as exc:
                 if opts.shallow and opts.since and "no commits selected" in exc.message.lower():
-                    git.run("fetch", "--quiet", "--all", "--prune", "--force", "--depth=1")
+                    git.run("fetch", "--quiet", "--prune", "--force", "--depth=1", "origin")
                     history_window_applied = False
                     log("history window has no commits; refreshed a depth-1 tree snapshot instead")
                 else:
@@ -396,7 +398,7 @@ def catch(
                 # A retargeted fetch can succeed with no selected commits when the old cache
                 # already holds the history. Keep the same bounded snapshot contract as clone.
                 if newest < parse_since(opts.since, now=now):
-                    git.run("fetch", "--quiet", "--all", "--prune", "--force", "--depth=1")
+                    git.run("fetch", "--quiet", "--prune", "--force", "--depth=1", "origin")
                     history_window_applied = False
                     log("history window has no commits; refreshed a depth-1 tree snapshot instead")
             git.run("checkout", "--quiet", "-B", branch, f"origin/{branch}")
@@ -414,7 +416,15 @@ def catch(
         log(f"cloning {url} into {repo_dir}")
         try:
             try:
-                _clone_replace(repo_dir, url, clone_args, token=token, auth_host=auth_host)
+                _clone_replace(
+                    repo_dir,
+                    url,
+                    clone_args,
+                    token=token,
+                    auth_host=auth_host,
+                    cache_root=root,
+                    slug=slug,
+                )
             except ExternalCommandError as exc:
                 if opts.shallow and opts.since and "no commits selected" in exc.message.lower():
                     log("history window has no commits; catching a depth-1 tree snapshot instead")
@@ -424,6 +434,8 @@ def catch(
                         clone_arguments(CatchOptions(shallow=True)),
                         token=token,
                         auth_host=auth_host,
+                        cache_root=root,
+                        slug=slug,
                     )
                     history_window_applied = False
                 else:
@@ -444,7 +456,15 @@ def catch(
     if opts.wiki and (source_url is None or wiki_source_url is not None):
         wiki_url = wiki_source_url or slug.wiki_clone_url
         try:
-            wiki_info = catch_wiki(paths.wiki, wiki_url, log=log, token=token, auth_host=auth_host)
+            wiki_info = catch_wiki(
+                paths.wiki,
+                wiki_url,
+                log=log,
+                token=token,
+                auth_host=auth_host,
+                cache_root=root,
+                slug=slug,
+            )
         except ExternalCommandError as exc:
             if wiki_source_url is not None:
                 raise
@@ -484,9 +504,12 @@ def _clone_replace(
     *,
     token: str | None = None,
     auth_host: str = "github.com",
+    cache_root: Path,
+    slug: Slug | None = None,
 ) -> None:
     """Publish only a complete clone, preserving the last valid tree on failure."""
     budget = CURRENT.get()
+    require_clone_identity(destination, url, cache_root=cache_root, slug=slug)
     checkout = "--no-checkout" not in args
     if budget is not None:
         budget.require_path(destination)
@@ -508,6 +531,9 @@ def _clone_replace(
             raise
         if not GitRunner(staged).has_commits():
             raise ExternalCommandError(f"{url} has no commits to digest")
+        (staged / ".git" / CLONE_RECORD).write_text(
+            json.dumps({"schema": 1, "url": url}) + "\n", encoding="utf-8"
+        )
         if budget is not None and checkout:
             git = GitRunner(staged)
             listing = git.run("ls-tree", "-r", "-z", "-l", "HEAD")
@@ -525,6 +551,7 @@ def _clone_replace(
                 )
             git.run("reset", "--hard", "--quiet", "HEAD")
         try:
+            require_clone_identity(destination, url, cache_root=cache_root, slug=slug)
             if destination.exists():
                 destination.rename(backup)
             try:
@@ -554,9 +581,13 @@ def catch_wiki(
     log: Callable[[str], None] = _noop,
     token: str | None = None,
     auth_host: str = "github.com",
+    cache_root: Path | None = None,
+    slug: Slug | None = None,
 ) -> dict[str, object]:
     """Wikis are independent Git repositories. An uninitialised wiki is ordinary absence."""
     budget = CURRENT.get()
+    root = cache_root if cache_root is not None else destination.parent
+    require_clone_identity(destination, url, cache_root=root, slug=slug)
     if budget is not None:
         budget.require_path(destination)
         budget.require_url(url)
@@ -588,6 +619,8 @@ def catch_wiki(
             ["clone", "--quiet", "--depth", "1", "--single-branch", "--no-checkout"],
             token=token,
             auth_host=auth_host,
+            cache_root=root,
+            slug=slug,
         )
     return {"status": "available", "sha": GitRunner(destination).head_sha(), "url": url}
 
@@ -609,6 +642,7 @@ def _budgeted_catch(
     root = cache_root if cache_root is not None else default_cache_root()
     paths = prey_paths(slug, root)
     budget.require_path(paths.root)
+    require_cache_identity(slug, root, url=source_url or slug.clone_url)
     staged_cache = budget.volume / f".acquisition-{uuid.uuid4().hex}"
     staged_cache.mkdir()
     try:

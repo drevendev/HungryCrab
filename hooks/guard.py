@@ -9,7 +9,8 @@ the plugin, not whatever version ``PATH`` happens to hold.
 
 The exit code is the hook contract. ``2`` refuses the tool call, and the guard writes the
 reason to stderr. ``0`` lets it through. ``1`` means the guard could not run — an interpreter
-older than 3.11 with no newer one to hand over to, or a source tree that does not import — and
+older than 3.11 with no newer one to hand over to, a source tree that does not import, or an
+unexpected exception inside the guard — and
 Claude Code shows that message to the user and proceeds. Nothing in this file exits ``2`` for
 any reason other than a guard's decision: a hook that blocked every tool call over its own
 environment would be switched off, not fixed. For the same reason the shell line starts this
@@ -93,7 +94,11 @@ def main(argv: list[str]) -> int:
         module = importlib.import_module(module_name)
     except Exception as exc:  # any import failure means "cannot guard", never "refuse"
         return _complain(f"cannot load {module_name} from {SOURCE}: {exc}")
-    return int(module.main())
+    try:
+        return int(module.main())
+    except Exception as exc:
+        # A failure is not a refusal. Do not echo exception data derived from a tool input.
+        return _complain(f"the {which} guard failed ({type(exc).__name__})")
 
 
 if __name__ == "__main__":

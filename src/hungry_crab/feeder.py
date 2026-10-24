@@ -20,6 +20,7 @@ from .compare import MEAL_FILES, compare_for_maw
 from .digest import DigestOptions, incomplete_miners
 from .errors import CrabError, UsageError
 from .fetch.acquisition import CURRENT, AcquisitionBudget
+from .fetch.cache_identity import require_cache_identity
 from .fetch.catch import CatchOptions, catch, catch_wiki, parse_since, rmtree_force
 from .fetch.github import GitHubClient
 from .fetch.providers import RepositoryClient, client_for
@@ -250,6 +251,8 @@ def _acquire(
     log: Callable[[str], None],
 ) -> tuple[dict[str, Any], Path | None]:
     budget = CURRENT.get()
+    if prey.slug:
+        require_cache_identity(prey.slug, root, url=prey.slug.clone_url)
     if budget is None:
         return _acquire_data(prey, maw, opts, root, client, config, log)
     staged = budget.volume / f".acquisition-cohort-{uuid.uuid4().hex}"
@@ -355,7 +358,13 @@ def _acquire_data(
                 path = prey_paths(slug, root).wiki
                 path.parent.mkdir(parents=True, exist_ok=True)
                 wiki = catch_wiki(
-                    path, slug.wiki_clone_url, log=log, token=maw_client.token, auth_host=slug.host
+                    path,
+                    slug.wiki_clone_url,
+                    log=log,
+                    token=maw_client.token,
+                    auth_host=slug.host,
+                    cache_root=root,
+                    slug=slug,
                 )
                 if wiki["status"] == "available":
                     maw_wiki = path

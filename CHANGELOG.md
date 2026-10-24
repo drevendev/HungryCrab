@@ -13,6 +13,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   UTF-8 page paths by raw hex identity as visibility loss instead of merging distinct names
   into replacement characters (#418).
 
+- **Guard diagnostics:** turn unexpected guard exceptions into an explicit, non-blocking
+  launcher error without echoing tool-input exception details; retain exit 2 exclusively for
+  a guard refusal (#188).
+
+- **Cache security:** prove Crab ownership and both the stored and effective origin before
+  refresh, forced/policy replacement, cache removal, wiki replacement or quota publication.
+  Refuse aliases and unrecognised existing data, retain the previous cache on refusal, and
+  fetch only the verified origin rather than every configured remote (#211).
+
 - **Acquisition security:** remote Feeder runs require a fixed-capacity acquisition filesystem
   and share one download allowance across main repositories and wikis. Quota failures and
   cancellation discard staged acquisitions while retaining the previous valid cache (#236).

@@ -29,7 +29,8 @@ MultiEdit or NotebookEdit call whose file is in the cache; `crab-cleanroom-guard
 clean-room implementer out of the cache altogether. Both run from the plugin's own `src/` through
 `hooks/guard.py`, with the first Python 3.11+ the shell finds, so they exist wherever the plugin
 is installed and do not depend on a console script being present or signed. When the launcher
-cannot run the guard — no interpreter that starts with `-I`, an unreadable source tree — it says
+cannot run the guard — no interpreter that starts with `-I`, an unreadable source tree, or an
+unexpected guard exception — it says
 so and exits 1, which Claude Code shows to you and proceeds on: a non-blocking error by design,
 because a hook that blocked every tool call over its own environment would be disabled rather
 than fixed. A PowerShell command that touches the cache is allowed only as a read cmdlet
@@ -77,15 +78,35 @@ live session, the clean-room guard has not yet. Treat them as a second line behi
 `AGENTS.md`, not as a sandbox ([#83](https://github.com/drevendev/HungryCrab/issues/83),
 [#141](https://github.com/drevendev/HungryCrab/issues/141)).
 
-### What is not bounded: acquisition
+### Cache ownership before mutation
 
-Those caps apply to what a miner reads, not to what `crab catch` downloads. By default `catch`
-runs a full `git clone`, and refreshing a cached prey runs `git fetch --all --prune --tags`. Both
+Before refreshing, replacing or removing an existing prey cache, Crab requires a catch or sniff
+record naming that prey and verifies that the clone has exactly the requested origin. It also
+checks the effective URL after Git includes, URL rewrites and environment configuration, and
+refreshes only that origin. Links and Windows reparse points below the chosen cache root are
+refused; the root itself and its ancestors may be user-configured filesystem aliases.
+
+New main and wiki clones also carry an acquisition marker inside `.git`. Standalone wiki
+replacement requires that marker or an existing prey ownership record. Quota transactions
+verify old clone identity before moving any cache entry. A refusal preserves existing data;
+an old unmarked checkout must be inspected and moved aside manually rather than adopted by
+`--force`. These checks do not claim protection from a concurrent process rewriting the cache.
+
+### Acquisition limits
+
+Remote Feeder acquisition requires a dedicated fixed-capacity filesystem and a shared download
+budget across repositories and wikis. Unsupported hosts refuse remote acquisition. The public
+Linux Action provisions a disposable volume; see [the Feeder guide](docs/feeder.md). Quota
+failure or handled cancellation discards staging and preserves the previous cache cohort.
+
+Miner caps apply to what a miner reads. Outside the Feeder quota scope, standalone `crab catch`
+runs a full `git clone`, and refreshing a cached prey fetches its verified origin with pruning
+and tags. Both
 are bounded by time — one hour for the initial clone, ten minutes for a refresh — and by nothing
 else: there is no byte, object or disk limit, and nothing refuses a repository for being too
 large. A hostile or merely enormous prey can therefore fill a disk before any miner sees it.
 
-Until that changes, the bound is yours to set:
+For standalone acquisition the bound is yours to set:
 
 - `crab sniff <prey>` reports the repository's size from the API before anything is cloned, and
   warns above 300 MB and again above 1 GB;

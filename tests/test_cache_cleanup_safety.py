@@ -108,7 +108,7 @@ def test_a_catch_never_claims_a_directory_it_did_not_create(npm_app: Path, tmp_p
     cache_root = tmp_path / "checkouts"
     root = prey_paths(Slug("me", "project"), cache_root).root
     (root / "notes").mkdir(parents=True)
-    with pytest.raises(ExternalCommandError):
+    with pytest.raises(CrabError, match="no catch or sniff record"):
         catch(
             Slug("me", "project"),
             CatchOptions(issues=10, wiki=False),
@@ -211,7 +211,7 @@ def test_cache_rm_refuses_a_checkout_the_crab_did_not_write(
 
     assert main(["--cache-dir", str(cache_root), "cache", "rm", "me/project"]) == 1
     error = capsys.readouterr().err
-    assert "no catch or sniff record" in error and "remove it yourself" in error
+    assert "no catch or sniff record" in error and "aside yourself" in error
     assert (checkout / "work.txt").read_text(encoding="utf-8") == "uncommitted work"
 
 
@@ -450,7 +450,6 @@ def test_every_cache_deletion_works_under_a_linked_cache_parent(
 
     paths.repo.mkdir(parents=True)
     (paths.repo / "interrupted-clone.txt").write_text("debris", encoding="utf-8")
-    recaught = catch(slug, cache_root=cache_root, source_url=str(npm_app))
-    assert recaught.updated is False
-    assert (paths.repo / ".git").is_dir()
-    assert not (paths.repo / "interrupted-clone.txt").exists()
+    with pytest.raises(CrabError, match="no catch or sniff record"):
+        catch(slug, cache_root=cache_root, source_url=str(npm_app))
+    assert (paths.repo / "interrupted-clone.txt").read_text() == "debris"

@@ -208,6 +208,7 @@ class AcquisitionBudget:
         Callers retain their staging until this method returns. Unrelated digest generations,
         ledgers and other prey stay in place; no old API file is modified in place.
         """
+        from .cache_identity import require_replacement_identity
         from .catch import rmtree_force
 
         self.check()
@@ -220,6 +221,7 @@ class AcquisitionBudget:
             for source, target in entries:
                 self.require_path(source)
                 self.require_path(target)
+                require_replacement_identity(source, target, self.cache)
             journal = [
                 {"source": str(source), "target": str(target), "previous": str(backup / str(index))}
                 for index, (source, target) in enumerate(entries)

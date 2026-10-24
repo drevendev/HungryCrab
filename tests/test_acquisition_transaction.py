@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from hungry_crab.cache import Slug, Target, prey_paths
-from hungry_crab.errors import ExternalCommandError
+from hungry_crab.errors import CrabError, ExternalCommandError
 from hungry_crab.feeder import EatOptions, _acquire, eat
 from hungry_crab.fetch.acquisition import AcquisitionBudget, AcquisitionLimitError
 from hungry_crab.fetch.catch import CatchResult
-from hungry_crab.fetch.git import GitRunner
+from hungry_crab.fetch.git import GitRunner, git_env, git_executable
 from hungry_crab.fetch.github import GitHubClient
 from hungry_crab.maw import MawConfig
 
@@ -26,6 +27,21 @@ def quota(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AcquisitionBudget:
 
 def _snapshot(root: Path) -> dict[str, bytes]:
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+def _fixture_clone(root: Path, url: str) -> None:
+    """Construct trusted fixture metadata without using the acquisition under test."""
+    root.mkdir(parents=True, exist_ok=True)
+    for args in (
+        ("init", "--quiet", str(root)),
+        ("-C", str(root), "config", "remote.origin.url", url),
+    ):
+        subprocess.run(
+            [git_executable(), *args], env=git_env(), capture_output=True, check=True, timeout=10
+        )
+    (root / ".git/crab-catch.json").write_text(
+        json.dumps({"schema": 1, "url": url}), encoding="utf-8"
+    )
 
 
 def _cohort(
@@ -53,6 +69,9 @@ def _cohort(
     wiki = prey_paths(maw_slug, quota.cache).wiki
     wiki.mkdir(parents=True)
     (wiki / "Home.md").write_text("# Old maw wiki", encoding="utf-8")
+    _fixture_clone(old.repo, slug.clone_url)
+    _fixture_clone(old.wiki, slug.wiki_clone_url)
+    _fixture_clone(wiki, maw_slug.wiki_clone_url)
     http = quota.cache / "http"
     http.mkdir()
     (http / "retained.json").write_text("old HTTP cache", encoding="utf-8")
@@ -81,6 +100,8 @@ def _cohort(
         (staged.repo / "sentinel").write_text("new repository", encoding="utf-8")
         staged.wiki.mkdir(exist_ok=True)
         (staged.wiki / "Home.md").write_text("# New wiki", encoding="utf-8")
+        _fixture_clone(staged.repo, slug.clone_url)
+        _fixture_clone(staged.wiki, slug.wiki_clone_url)
         result = CatchResult(
             str(slug),
             slug.clone_url,
@@ -100,6 +121,7 @@ def _cohort(
             raise AcquisitionLimitError("maw wiki download budget")
         destination.mkdir(parents=True, exist_ok=True)
         (destination / "Home.md").write_text("# New maw wiki", encoding="utf-8")
+        _fixture_clone(destination, maw_slug.wiki_clone_url)
         return {"status": "available", "sha": "b" * 40}
 
     monkeypatch.setattr("hungry_crab.feeder.catch", caught)
@@ -171,6 +193,49 @@ def test_cancellation_during_commit_rolls_back_earlier_cache_entries(
         quota.publish_cache([(staged / name, quota.cache / name) for name in ("a", "b")])
     assert _snapshot(quota.cache) == {"a": b"old", "b": b"old"}
     assert _snapshot(staged) == {"a": b"new", "b": b"new"}
+    assert not list(quota.volume.glob(".acquisition-*"))
+
+
+def test_quota_publication_checks_clone_identity_before_any_cache_move(
+    quota: AcquisitionBudget,
+) -> None:
+    slug = Slug("fixture", "prey")
+    target = prey_paths(slug, quota.cache)
+    target.root.mkdir(parents=True)
+    target.catch_file.write_text(json.dumps({"slug": str(slug)}), encoding="utf-8")
+    _fixture_clone(target.repo, "https://github.com/other/unrelated.git")
+    staged = quota.volume / "staged"
+    _fixture_clone(staged / "repo", slug.clone_url)
+    metadata = staged / "metadata"
+    metadata.write_bytes(b"new metadata")
+    before = _snapshot(quota.cache)
+    with pytest.raises(CrabError, match="origin differs"):
+        quota.publish_cache([(metadata, target.root / "metadata"), (staged / "repo", target.repo)])
+    assert _snapshot(quota.cache) == before
+    assert metadata.read_bytes() == b"new metadata"
+    assert not list(quota.volume.glob(".acquisition-*"))
+
+
+def test_feeder_rejects_unowned_live_cache_before_sniff_can_claim_it(
+    quota: AcquisitionBudget, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    slug, maw, client = _cohort(quota, tmp_path, monkeypatch, "")
+    paths = prey_paths(slug, quota.cache)
+    paths.catch_file.unlink()
+    (paths.api / "sniff.json").unlink()
+    before = _snapshot(quota.cache)
+    monkeypatch.setattr("hungry_crab.feeder.sniff", lambda *_a, **_k: pytest.fail("sniff ran"))
+    with pytest.raises(CrabError, match="no catch or sniff record"), quota.scope():
+        _acquire(
+            Target(slug=slug),
+            maw,
+            EatOptions(),
+            quota.cache,
+            client,
+            MawConfig.load(maw),
+            lambda _: None,
+        )
+    assert _snapshot(quota.cache) == before
     assert not list(quota.volume.glob(".acquisition-*"))
 
 

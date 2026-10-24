@@ -24,6 +24,7 @@ from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, failed_miners, run_digest
 from .errors import CrabError, UsageError
 from .feeder import EatOptions, eat
+from .fetch.cache_identity import require_cache_identity
 from .fetch.catch import CatchOptions, catch, rmtree_force
 from .fetch.providers import client_for
 from .hunt import format_hunt, hunt
@@ -967,6 +968,7 @@ def cmd_cache(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         if not paths.root.exists():
             print(f"{slug} is not cached")
             return 0
+        require_cache_identity(slug, root)
         rmtree_force(paths.root, cache_root=root)
         print(f"removed {paths.root}")
         return 0

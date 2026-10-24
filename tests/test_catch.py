@@ -10,7 +10,7 @@ from fixture_builder import git as fixture_git
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.cli import main
 from hungry_crab.digest import DigestOptions, run_digest
-from hungry_crab.errors import ExternalCommandError, UsageError
+from hungry_crab.errors import CrabError, ExternalCommandError, UsageError
 from hungry_crab.fetch.catch import CatchOptions, catch, clone_arguments, parse_since
 from hungry_crab.fetch.git import git_env
 
@@ -219,8 +219,7 @@ def test_failed_remote_probe_preserves_cached_tree_and_record(tmp_path: Path) ->
     paths = prey_paths(slug, cache)
     original_record = paths.catch_file.read_bytes()
     original_config = (paths.repo / ".git" / "config").read_bytes()
-    fixture_git(paths.repo, "remote", "set-url", "origin", (tmp_path / "missing.git").as_uri())
-    failed_config = (paths.repo / ".git" / "config").read_bytes()
+    remote.rename(tmp_path / "unavailable.git")
 
     with pytest.raises(ExternalCommandError, match="could not refresh") as error:
         catch(slug, opts, cache_root=cache, source_url=remote.as_uri())
@@ -229,8 +228,7 @@ def test_failed_remote_probe_preserves_cached_tree_and_record(tmp_path: Path) ->
     assert paths.catch_file.read_bytes() == original_record
     assert (paths.repo / "README.md").read_text(encoding="utf-8") == "# Last valid tree\n"
     assert fixture_git(paths.repo, "rev-parse", "HEAD").strip() == first.sha
-    assert (paths.repo / ".git" / "config").read_bytes() == failed_config
-    assert original_config != failed_config
+    assert (paths.repo / ".git" / "config").read_bytes() == original_config
 
 
 def test_changed_clone_policy_honours_requested_history(npm_app: Path, tmp_path: Path) -> None:
@@ -258,7 +256,7 @@ def test_invalid_since_and_failed_reclone_preserve_last_valid_clone(
             cache_root=cache,
             source_url=str(npm_app),
         )
-    with pytest.raises(ExternalCommandError):
+    with pytest.raises(CrabError, match="origin differs"):
         catch(
             slug, CatchOptions(force=True), cache_root=cache, source_url=str(tmp_path / "missing")
         )
@@ -303,7 +301,9 @@ def test_failed_clone_removes_partial_prey_without_losing_other_cache(
             raise ExternalCommandError("simulated failed clone")
 
     monkeypatch.setattr("hungry_crab.fetch.catch.GitRunner", BrokenGit)
-    with pytest.raises(ExternalCommandError, match="simulated failed clone"):
+    expected = CrabError if existing_metadata else ExternalCommandError
+    message = "no catch or sniff record" if existing_metadata else "simulated failed clone"
+    with pytest.raises(expected, match=message):
         catch(slug, cache_root=root, source_url=str(tmp_path / "missing.git"), now=NOW)
     assert not paths.repo.exists()
     assert not paths.catch_file.exists()
@@ -444,7 +444,8 @@ def test_a_clone_without_a_policy_record_is_refreshed_not_replaced(
     marker.write_text("same clone", encoding="utf-8")
     assert catch(slug, cache_root=cache, source_url=str(npm_app)).updated
     paths.catch_file.unlink()  # a catch that failed after cloning left no record at all
-    assert catch(slug, cache_root=cache, source_url=str(npm_app)).updated
+    with pytest.raises(CrabError, match="no catch or sniff record"):
+        catch(slug, cache_root=cache, source_url=str(npm_app))
     assert marker.is_file()
 
 

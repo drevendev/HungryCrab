@@ -241,6 +241,27 @@ def test_launcher_without_a_source_tree_proceeds_unguarded(tmp_path: Path) -> No
 # --- an interpreter older than 3.11 -------------------------------------------------------
 
 
+@pytest.mark.parametrize("which", ["prey", "cleanroom"])
+def test_guard_exception_has_an_explicit_nonblocking_diagnostic(which: str, tmp_path: Path) -> None:
+    """Exercise the real isolated launcher with a self-created failing guard module (#188)."""
+    plugin = tmp_path / "plugin"
+    launcher = plugin / "hooks/guard.py"
+    launcher.parent.mkdir(parents=True)
+    shutil.copy(LAUNCHER, launcher)
+    package = plugin / "src/hungry_crab"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / f"{which}_guard.py").write_text(
+        'def main():\n    raise RuntimeError("private tool-input detail")\n', encoding="utf-8"
+    )
+    result = _run_bytes([sys.executable, "-I", "-S", str(launcher), which], b"{}", tmp_path)
+    assert result.returncode == 1
+    stderr = result.stderr.decode("utf-8")
+    assert f"the {which} guard failed (RuntimeError)" in stderr
+    assert "the tool call proceeds unguarded" in stderr
+    assert "private tool-input detail" not in stderr and "Traceback" not in stderr
+
+
 def test_an_old_interpreter_hands_over_once(monkeypatch: pytest.MonkeyPatch) -> None:
     launcher = _launcher_module()
     monkeypatch.setattr(sys, "version_info", (3, 9, 0, "final", 0))
