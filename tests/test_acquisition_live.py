@@ -73,6 +73,10 @@ def test_real_https_git_quota_cancellation_and_cache_preservation(
         timeout=30,
     )
     monkeypatch.setenv("GIT_SSL_CAINFO", str(cert))
+    # An inherited per-URL proxy outranks a broad proxy setting unless stripped first.
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.https://github.com/fixture/prey.git.proxy")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "http://127.0.0.1:1")
 
     class GitHTTP(http.server.BaseHTTPRequestHandler):
         def log_message(self, *args: object) -> None:

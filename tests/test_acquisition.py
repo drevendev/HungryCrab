@@ -18,6 +18,7 @@ from hungry_crab.feeder import EatOptions, eat
 from hungry_crab.fetch.acquisition import AcquisitionBudget, AcquisitionLimitError
 from hungry_crab.fetch.bounded import run_bounded
 from hungry_crab.fetch.catch import CatchOptions
+from hungry_crab.fetch.git import git_env
 from hungry_crab.sniff import build_report
 
 
@@ -81,9 +82,15 @@ def test_feeder_never_exports_a_success_bundle_after_a_quota_refusal(
 
 def test_git_cannot_bypass_the_relay_or_write_to_inherited_directories(
     quota: AcquisitionBudget,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("NO_PROXY", "*")
+    monkeypatch.setenv("GIT_OBJECT_DIRECTORY", "outside")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.https://github.com/fixture/prey.git.proxy")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "http://127.0.0.1:1")
     with quota.scope():
-        env = quota.git_env({"NO_PROXY": "*", "GIT_OBJECT_DIRECTORY": "outside"})
+        env = quota.git_env(git_env())
         assert env["NO_PROXY"] == env["no_proxy"] == ""
         assert "GIT_OBJECT_DIRECTORY" not in env
         assert env["TEMP"] == str(quota.volume)
@@ -95,6 +102,7 @@ def test_git_cannot_bypass_the_relay_or_write_to_inherited_directories(
         assert values["protocol.allow"] == "never"
         assert values["protocol.https.allow"] == "always"
         assert values["http.followRedirects"] == "false"
+        assert not any(key.startswith("http.https://") for key in values)
 
 
 @pytest.mark.parametrize(
