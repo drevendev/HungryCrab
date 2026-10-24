@@ -135,6 +135,9 @@ producer summaries/checks as fenced data, neutralizing raw reconciliation commen
 Blockquotes and HTML entities still permit GitHub closing references, including full issue
 URLs; receipt and obligation prose therefore stays in code fences that its contents cannot
 close. Metadata that carries a closing directive is redacted instead of becoming provider syntax.
+GitHub also recognizes entity-encoded mentions: metadata displays `@` as `(at)` while JSON
+retains exact names. Publication scanning checks that display form as well, so the substitution
+cannot conceal a credential-bearing URL.
 The notice names only what the crab actually
 carried in: a COPY nutrient filed as an issue took nothing and appears nowhere. Serve from a
 checkout that is up to date with the default branch: a pull request that would drop a receipt

@@ -251,6 +251,17 @@ def safe_name(value: object, kind: str = "name") -> str:
     `+` and `,` read as spaces.
     """
     text = inline(value)
+    # GitHub's postprocessors recognize entity-decoded mentions/closing references. Judge a
+    # bounded canonical view and refuse deeper encoding rather than decoding quadratically.
+    for _ in range(4):
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    else:
+        if html.unescape(text) != text:
+            return f"[{kind} omitted: nested entity encoding]"
+    text = inline(text)
     spaced = inline(_NAME_SEPARATORS_RE.sub(" ", text))
     flagged = (
         has_closing_reference(text)
@@ -263,7 +274,9 @@ def safe_name(value: object, kind: str = "name") -> str:
     # Entities are rendered as literal characters, never reparsed as Markdown syntax. In
     # particular, a backtick in a path cannot close a caller's code span, nor can brackets
     # create images, links or reconciliation comments. Keep ordinary path spelling intact.
-    escaped = html.escape(inline(text), quote=False)
+    # An entity-encoded @ is still a live GitHub mention. Keep the exact spelling in JSON;
+    # a visible display substitution is unambiguous and cannot become a notification.
+    escaped = html.escape(text.replace("@", "(at)"), quote=False)
     return re.sub(r"[\\`*\[\]!@]|#(?=\d|\s)", lambda match: f"&#{ord(match[0])};", escaped)
 
 

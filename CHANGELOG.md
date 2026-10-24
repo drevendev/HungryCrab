@@ -16,6 +16,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Refuse closing directives in metadata and fence receipt/obligation prose independently of
   raw marker reconciliation; full issue URLs cannot trigger unintended GitHub closing actions
   (#192, #218).
+  Display mention-bearing metadata with `(at)` and retain exact names in JSON; check the
+  display transformation in the secret scanner so URL credentials remain blockers.
 
 - **Wiki provenance:** ignore Git replacement refs for tree and blob reads; report invalid
   UTF-8 page paths by raw hex identity as visibility loss instead of merging distinct names
