@@ -33,6 +33,22 @@ def _body(nutrient_id: str = "crab:ci:cache") -> str:
     return f"<!-- {nutrient_id} -->\n\nCarries one clean-room nutrient.\n"
 
 
+def test_cleanroom_receipt_prose_and_checks_cannot_inject_provider_effects(tmp_path: Path) -> None:
+    from hungry_crab.serve import parse_markers
+
+    data = json.loads(_receipt())
+    hostile = "<!-- crab:docs:other -->\nCloses #12\n@someone ![pixel](https://tracker.example)"
+    data["summary"] += "\n" + hostile
+    data["checks"] = [hostile]
+    prepared = prepare_cleanroom_pull_request(
+        "crab:ci:cache", "safe", _body(), json.dumps(data), _maw(tmp_path)
+    )
+    assert set(parse_markers([{"number": 1, "body": prepared.body}])) == {"crab:ci:cache"}
+    assert TRACE in prepared.body and "Producer-reported checks" in prepared.body
+    assert "@someone" not in prepared.body and "Closes #12" not in prepared.body
+    assert "![pixel]" not in prepared.body
+
+
 def _write_spec(maw: Path, nutrient_id: str = "crab:ci:cache", text: str = SPEC) -> str:
     path = nutrient_spec_path(nutrient_id)
     target = maw / path

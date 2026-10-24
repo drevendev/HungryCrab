@@ -26,6 +26,7 @@ from .pr_publication import (
     publication_handoff_from_receipt,
     publish_prepared_transaction,
 )
+from .receipt_text import quote_receipt_text
 
 MarkedPullRequests = Callable[[], Mapping[str, Mapping[str, object]]]
 GhRunner = Callable[..., str]
@@ -162,8 +163,10 @@ def prepare_cleanroom_pull_request(
     if slug is not None:
         link = f"{slug.url}/blob/{nutrient_branch_name(nutrient_id)}/{spec.path}"
     rendered_body = body.rstrip()
-    if receipt.summary not in rendered_body:
-        rendered_body += f"\n\n## Clean-room implementation\n\n{receipt.summary}"
+    rendered_body += f"\n\n## Clean-room implementation\n\n{quote_receipt_text(receipt.summary)}"
+    rendered_body += "\n\nProducer-reported checks:\n\n" + quote_receipt_text(
+        "\n".join(receipt.checks)
+    )
     if spec.path not in rendered_body:
         rendered_body += (
             f"\n\nSpecification: [`{spec.path}`]({link}), carried in this pull request."

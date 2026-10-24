@@ -13,6 +13,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   UTF-8 page paths by raw hex identity as visibility loss instead of merging distinct names
   into replacement characters (#418).
 
+- **Attribution integrity:** validate every stored receipt and array member without coercion
+  or silent drops; verify carried-text SHA-256 digests and recorded maw paths, canonicalize
+  GitHub source spelling, and refuse accidental notice shrinkage against existing evidence.
+  Quote receipt summaries/checks as inert PR data and retain producer-reported checks (#218).
+
 - **Guard diagnostics:** turn unexpected guard exceptions into an explicit, non-blocking
   launcher error without echoing tool-input exception details; retain exit 2 exclusively for
   a guard refusal (#188).

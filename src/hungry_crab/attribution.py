@@ -13,13 +13,16 @@ that *proposed* a nutrient, which is not always the one it was taken from (#70, 
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import urlsplit
 
 from .errors import CrabError
 from .fetch.git import GitRunner
@@ -31,7 +34,8 @@ from .miners.inventory import VENDORED_DIRS
 from .nutrients import Candidate
 from .pr_publication import GeneratedFile, PreparedPullRequest, nutrient_branch_name
 from .pr_serve import read_maw_text
-from .typeutil import as_dict, as_list
+from .receipt_text import inert_receipt_text, quote_receipt_text
+from .typeutil import as_dict
 
 ATTRIBUTIONS_PATH = ".crab/attributions.json"
 ATTRIBUTIONS_SCHEMA = "hungry-crab.attributions/1"
@@ -40,8 +44,8 @@ COPY_MODES = frozenset({"COPY", "COPY_FILE"})
 NOTICE_WIDTH = 80
 NOTICE_HEADING = "# Third-party notices"
 _RECEIPT_VERSION = 1
-_SHA_RE = re.compile(r"[0-9a-f]{7,40}")
-_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+_SHA_RE = re.compile(r"[0-9a-f]{7,64}")
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f\u0085\u2028\u2029]")
 _TEXT_CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 _PLAIN_RE = re.compile(r"[A-Za-z0-9(][A-Za-z0-9 ._/+()-]*")
 _LINK_RE = re.compile(r"https://[^\s<>`]+")
@@ -127,6 +131,12 @@ class SourceRef:
     sha: str
     license: str | None
 
+    def __post_init__(self) -> None:
+        # GitHub slugs are case insensitive; local paths and other forge identities are not.
+        if self.url and re.fullmatch(r"https://github\.com/[^/?#]+/[^/?#]+/?", self.url):
+            object.__setattr__(self, "label", self.label.lower())
+            object.__setattr__(self, "url", self.url.lower())
+
     def to_dict(self) -> dict[str, Any]:
         return {"label": self.label, "url": self.url, "sha": self.sha, "license": self.license}
 
@@ -174,13 +184,34 @@ class CarriedText:
 
     path: str
     text: str
+    sha256: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.sha256:
+            object.__setattr__(
+                self, "sha256", hashlib.sha256(self.text.encode("utf-8")).hexdigest()
+            )
 
     def to_dict(self) -> dict[str, Any]:
-        return {"path": self.path, "text": self.text}
+        return {"path": self.path, "text": self.text, "sha256": self.sha256}
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CarriedText:
-        return cls(path=str(data.get("path", "")), text=str(data.get("text", "")))
+        path, text, digest = data.get("path"), data.get("text"), data.get("sha256")
+        if (
+            set(data) != {"path", "text", "sha256"}
+            or not isinstance(path, str)
+            or not _canonical(path)
+        ):
+            raise _receipt_error("carried text needs a canonical path, text and sha256")
+        if not isinstance(text, str) or not isinstance(digest, str):
+            raise _receipt_error(
+                "carried text needs string text and sha256; verify legacy texts against "
+                "their source before migration"
+            )
+        if hashlib.sha256(text.encode("utf-8")).hexdigest() != digest:
+            raise _receipt_error("carried text does not match its recorded sha256")
+        return cls(path=path, text=text, sha256=digest)
 
 
 @dataclass(frozen=True)
@@ -225,7 +256,7 @@ def load_materialization_receipt(payload: str) -> MaterializationReceipt:
         raise _receipt_error("source.label must name the prey")
     sha = source_raw["sha"]
     if not isinstance(sha, str) or _SHA_RE.fullmatch(sha) is None:
-        raise _receipt_error("source.sha must be a commit hash of 7 to 40 hex digits")
+        raise _receipt_error("source.sha must be a commit hash of 7 to 64 hex digits")
     url = source_raw["url"]
     if url is not None and (not isinstance(url, str) or not url.startswith("https://")):
         raise _receipt_error("source.url must be an https URL or null")
@@ -343,6 +374,7 @@ class AttributionRecord:
     branch: str
     recorded_at: str
     texts: tuple[CarriedText, ...] = ()
+    checks: tuple[str, ...] = ()
 
     @property
     def identity(self) -> tuple[str, str]:
@@ -368,29 +400,12 @@ class AttributionRecord:
             "branch": self.branch,
             "recorded_at": self.recorded_at,
             "texts": [item.to_dict() for item in self.texts],
+            "checks": list(self.checks),
         }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> AttributionRecord:
-        return cls(
-            nutrient_id=str(data.get("nutrient_id", "")),
-            source=SourceRef.from_dict(as_dict(data.get("source"))),
-            taken=tuple(
-                TakenFile.from_dict(as_dict(item))
-                for item in as_list(data.get("taken"))
-                if isinstance(item, dict)
-            ),
-            mode=str(data.get("mode", "")),
-            obligation=Obligation.from_dict(as_dict(data.get("obligation"))),
-            summary=str(data.get("summary", "")),
-            branch=str(data.get("branch", "")),
-            recorded_at=str(data.get("recorded_at", "")),
-            texts=tuple(
-                CarriedText.from_dict(as_dict(item))
-                for item in as_list(data.get("texts"))
-                if isinstance(item, dict)
-            ),
-        )
+        return _stored_record(data)
 
 
 def _taken_key(item: TakenFile) -> tuple[str, str, bool]:
@@ -401,27 +416,122 @@ def _record_key(record: AttributionRecord) -> tuple[str, str, str]:
     return (record.source.label.lower(), record.source.sha, record.nutrient_id)
 
 
+def _object_array(value: object, field: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise _receipt_error(f"{field} must be an array")
+    result: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise _receipt_error(f"{field}[{index}] must be an object")
+        result.append(item)
+    return result
+
+
+def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
+    required = {
+        "nutrient_id",
+        "source",
+        "taken",
+        "mode",
+        "obligation",
+        "summary",
+        "branch",
+        "recorded_at",
+    }
+    if not required <= set(data) or set(data) - required - {"texts", "checks"}:
+        raise _receipt_error("stored receipt has missing or unknown fields")
+    _object_array(data["taken"], "taken")
+    checks = data.get("checks", [])
+    if not isinstance(checks, list) or any(not isinstance(c, str) or not c.strip() for c in checks):
+        raise _receipt_error("checks must be an array of non-empty strings")
+    receipt = load_materialization_receipt(
+        json.dumps(
+            {
+                "version": 1,
+                "kind": MATERIALIZATION_KIND,
+                "nutrient_id": data["nutrient_id"],
+                "source": data["source"],
+                "taken": data["taken"],
+                "summary": data["summary"],
+                "checks": checks or ["legacy checks were not recorded"],
+            }
+        )
+    )
+    if re.fullmatch(r"crab:[\w-]+:[\w./:+-]+", receipt.nutrient_id) is None:
+        raise _receipt_error("nutrient_id must be a canonical crab nutrient id")
+    if _CONTROL_RE.search(receipt.source.label):
+        raise _receipt_error("source.label may not contain control characters")
+    if receipt.source.url is not None:
+        try:
+            url = urlsplit(receipt.source.url)
+            valid_url = url.scheme == "https" and bool(url.hostname) and not url.username
+        except ValueError:
+            valid_url = False
+        if not valid_url or re.search(r"[\s<>`]", receipt.source.url):
+            raise _receipt_error("source.url must be an https URL without credentials or markup")
+    mode = data["mode"]
+    if not isinstance(mode, str) or mode not in COPY_MODES:
+        raise _receipt_error("mode must be COPY or COPY_FILE")
+    obligation = data["obligation"]
+    kinds = {"none", "review", "copyright-notice", "notice-file", "attribution", "file-license"}
+    if not isinstance(obligation, dict) or set(obligation) != {"kind", "text"}:
+        raise _receipt_error("obligation must contain exactly kind and text")
+    if not isinstance(obligation["kind"], str) or obligation["kind"] not in kinds:
+        raise _receipt_error("obligation.kind is unknown")
+    if not isinstance(obligation["text"], str) or not obligation["text"].strip():
+        raise _receipt_error("obligation.text must be non-empty text")
+    branch, stamp = data["branch"], data["recorded_at"]
+    if not isinstance(branch, str) or not _canonical(branch):
+        raise _receipt_error("branch must be a canonical relative ref name")
+    try:
+        if not isinstance(stamp, str) or datetime.fromisoformat(stamp).tzinfo is None:
+            raise ValueError
+    except ValueError as exc:
+        raise _receipt_error("recorded_at must be an ISO timestamp with a timezone") from exc
+    texts = tuple(
+        CarriedText.from_dict(item) for item in _object_array(data.get("texts", []), "texts")
+    )
+    if len({t.path for t in texts}) != len(texts):
+        raise _receipt_error("duplicate carried text path")
+    return AttributionRecord(
+        receipt.nutrient_id,
+        receipt.source,
+        receipt.taken,
+        mode,
+        Obligation.from_dict(obligation),
+        receipt.summary,
+        branch,
+        stamp,
+        texts,
+        tuple(checks),
+    )
+
+
 def parse_attributions(text: str) -> list[AttributionRecord]:
     try:
-        data = as_dict(json.loads(text))
-    except ValueError as exc:
-        raise CrabError(f"{ATTRIBUTIONS_PATH} is not valid JSON: {exc}") from exc
+        data = _strict_object(text)
+    except CrabError as exc:
+        raise CrabError(f"{ATTRIBUTIONS_PATH} is not valid JSON", hint=exc.hint) from exc
     if data.get("schema") != ATTRIBUTIONS_SCHEMA:
         raise CrabError(
             f"{ATTRIBUTIONS_PATH} has an unknown schema",
             hint=f"expected {ATTRIBUTIONS_SCHEMA}, got {data.get('schema')!r}",
         )
-    records = [
-        AttributionRecord.from_dict(as_dict(item))
-        for item in as_list(data.get("receipts"))
-        if isinstance(item, dict)
-    ]
-    for record in records:
-        if not record.nutrient_id or not record.source.sha or not record.taken:
+    if set(data) != {"schema", "receipts"}:
+        raise CrabError(f"{ATTRIBUTIONS_PATH} must contain exactly schema and receipts")
+    records: list[AttributionRecord] = []
+    seen: set[tuple[str, str]] = set()
+    for index, item in enumerate(_object_array(data["receipts"], "receipts")):
+        try:
+            record = AttributionRecord.from_dict(item)
+            if record.identity in seen:
+                raise _receipt_error("duplicate receipt identity")
+            seen.add(record.identity)
+            records.append(record)
+        except CrabError as exc:
             raise CrabError(
-                f"{ATTRIBUTIONS_PATH} holds a receipt without a nutrient, a commit or files",
-                hint="every receipt names what was taken from which commit",
-            )
+                f"invalid {ATTRIBUTIONS_PATH} receipts[{index}]", hint=exc.hint or str(exc)
+            ) from exc
     return sorted(records, key=_record_key)
 
 
@@ -429,13 +539,62 @@ def load_attributions(maw_root: Path) -> list[AttributionRecord]:
     """The maw's confirmed receipts; a maw that has taken nothing has no file."""
 
     path = maw_root / ATTRIBUTIONS_PATH
-    if not path.is_file():
+    if not path.resolve().is_relative_to(maw_root.resolve()):
+        raise CrabError(f"{ATTRIBUTIONS_PATH} resolves outside the maw")
+    if not path.exists() and not path.is_symlink():
         return []
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise CrabError(f"cannot read {ATTRIBUTIONS_PATH}: {exc}") from exc
     return parse_attributions(text)
+
+
+def check_attribution_state(
+    maw_root: Path,
+    records: Sequence[AttributionRecord],
+    current_notice: str | None,
+    *,
+    allow_remove: bool = False,
+) -> None:
+    """Validate paths and refuse to erase evidence of receipts that went missing.
+
+    The existing notice protects an uncommitted first receipt; HEAD protects a tracked pair
+    even when both files were deleted. Outside Git, deletion of both files leaves no evidence
+    from which an offline tool could discover prior copies.
+    """
+    for index, record in enumerate(records):
+        for item in record.taken:
+            try:
+                read_maw_text(maw_root, item.maw_path)
+            except CrabError as exc:
+                raise CrabError(
+                    f"attribution receipts[{index}] names a missing or unsafe maw file",
+                    hint=exc.hint,
+                ) from exc
+    # A parent checkout is not this maw's attribution history (#139).
+    git = GitRunner(maw_root)
+    top = git.try_run("--no-replace-objects", "rev-parse", "--show-toplevel")
+    baseline = (
+        git.try_run("--no-replace-objects", "show", f"HEAD:{ATTRIBUTIONS_PATH}")
+        if top and Path(top.strip()).resolve() == maw_root.resolve()
+        else None
+    )
+    previous = parse_attributions(baseline) if baseline is not None else []
+    identities = {record.identity for record in records}
+    dropped = any(record.identity not in identities for record in previous)
+    # Old notices already carry a code-spanned nutrient for each taken file.
+    pattern = r"`(crab:[\w-]+:[\w./:+-]+)`"
+    if current_notice:
+        old_ids = Counter(re.findall(pattern, current_notice))
+        new_ids = Counter(re.findall(pattern, render_notices(records)))
+        dropped = dropped or bool(old_ids - new_ids)
+    if dropped and not allow_remove:
+        raise CrabError(
+            "attribution receipts missing; refusing to shrink the notice",
+            hint="restore the receipts from version control, or review the removed material and "
+            "use `crab attribution --allow-remove` for an intentional rewrite",
+        )
 
 
 def dump_attributions(records: Iterable[AttributionRecord]) -> str:
@@ -621,7 +780,8 @@ def render_notices(records: Iterable[AttributionRecord]) -> str:
         for record in members:
             if record.obligation != obligation:
                 obligation = record.obligation
-                owed = f"Obligation ({obligation.kind}): {_sentence(obligation.text)}"
+                text = inert_receipt_text(" ".join(obligation.text.split()))
+                owed = f"Obligation ({obligation.kind}): {_sentence(text)}"
                 lines.extend([*_wrapped(_atoms(owed)), ""])
             for item in sorted(record.taken, key=_taken_key):
                 lines.extend([*_wrapped(_taken_sentence(record, item)), ""])
@@ -654,16 +814,18 @@ class GitSourceReader:
     # A path after `<sha>:` resolves from the top of the repository; `./` resolves it from the
     # directory the reader was opened at, which is the prey when the prey is a subdirectory.
     def exists(self, sha: str, path: str) -> bool:
-        return self.git.ok("cat-file", "-e", f"{sha}:./{path}")
+        return self.git.ok("--no-replace-objects", "cat-file", "-e", f"{sha}:./{path}")
 
     def read(self, sha: str, path: str) -> str | None:
-        return self.git.try_run("show", f"{sha}:./{path}")
+        return self.git.try_run("--no-replace-objects", "show", f"{sha}:./{path}")
 
     def entries(self, sha: str, directory: str = "") -> dict[str, str] | None:
         # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
         # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
         # ls-tree from filtering that tree's entries by the same directory a second time.
-        listing = self.git.try_run("ls-tree", "--full-tree", "-z", f"{sha}:./{directory}")
+        listing = self.git.try_run(
+            "--no-replace-objects", "ls-tree", "--full-tree", "-z", f"{sha}:./{directory}"
+        )
         if listing is None:
             return None
         files: dict[str, str] = {}
@@ -951,7 +1113,20 @@ def _attribution_section(record: AttributionRecord, attribution_file: str) -> st
     if record.texts:
         names = ", ".join(_code(item.path) for item in record.texts)
         carried += f" The notice reproduces the source's {names} as they stood at that commit."
-    lines.extend(["", record.summary, "", carried])
+    lines.extend(
+        [
+            "",
+            quote_receipt_text(record.summary),
+            "",
+            "Producer-reported checks:",
+            "",
+            quote_receipt_text("\n".join(record.checks))
+            if record.checks
+            else "> Not recorded (legacy receipt).",
+            "",
+            carried,
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -1019,6 +1194,7 @@ def prepare_copy_pull_request(
         branch=nutrient_branch_name(card.id),
         recorded_at=_stamp(now),
         texts=texts,
+        checks=receipt.checks,
     )
     records = add_attribution(load_attributions(maw_root), record)
     recorded = next(item for item in records if item.identity == record.identity)
