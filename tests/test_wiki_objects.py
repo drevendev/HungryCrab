@@ -114,6 +114,54 @@ def test_recorded_commit_wins_over_later_head_and_working_tree(tmp_path: Path) -
     assert result.data["pages"][0]["headings"] == [{"level": 1, "text": "Recorded"}]
 
 
+def test_replace_refs_cannot_change_recorded_wiki_evidence(tmp_path: Path) -> None:
+    """A replace ref must not make the recorded A commit export B's pages."""
+    root = tmp_path / "objects"
+    recorded_sha = _snapshot(root, {"Home.md": b"# Original\n"})
+    replacement_sha = _snapshot(root, {"Home.md": b"# Substitute\n"})
+    git = GitRunner(root)
+    git.run("replace", recorded_sha, replacement_sha)
+
+    result = WikiMiner().run(_context(root, recorded_sha))
+    assert result.data["sha"] == recorded_sha
+    assert result.data["coverage"]["healthy"]
+    assert [page["path"] for page in result.data["pages"]] == ["Home.md"]
+    assert result.data["pages"][0]["headings"] == [{"level": 1, "text": "Original"}]
+    assert _git_bytes(git, "ls-tree", "-r", "-z", "-l", recorded_sha, limit=4096).find(
+        git.run("rev-parse", f"{replacement_sha}:Home.md").strip().encode()
+    ) < 0
+
+
+def test_distinct_invalid_utf8_names_are_recorded_as_separate_loss(tmp_path: Path) -> None:
+    """Byte-distinct Git paths must not collapse into a healthy duplicate page path."""
+    root = tmp_path / "objects"
+    root.mkdir()
+    git = GitRunner(root)
+    git.run("init", "--quiet")
+
+    entries: list[bytes] = []
+    for name in (b"File-\xfe.md", b"File-\xff.md", b"Valid.md"):
+        oid = _object(git, "hash-object", "-w", "--stdin", data=b"# Page\n")
+        entries.append(b"100644 blob " + oid.encode("ascii") + b"\t" + name + b"\0")
+    tree = _object(git, "mktree", "-z", data=b"".join(entries))
+    sha = git.run(
+        "-c", "user.name=Fixture", "-c", "user.email=fixture@invalid.example",
+        "commit-tree", tree, "-m", "docs: raw byte paths",
+    ).strip()
+    git.run("update-ref", "HEAD", sha)
+
+    result = WikiMiner().run(_context(root, sha))
+    coverage = result.data["coverage"]
+    assert not coverage["healthy"]
+    assert sorted(coverage["unreadable_pages"]) == sorted(
+        ["<invalid-utf8-git-path:46696c652dfe2e6d64>",
+         "<invalid-utf8-git-path:46696c652dff2e6d64>"]
+    )
+    assert [page["path"] for page in result.data["pages"]] == ["Valid.md"]
+    assert result.data["page_count"] == 1
+    assert result.warnings
+
+
 def test_oversized_blob_is_counted_without_reading_its_body(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
