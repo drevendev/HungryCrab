@@ -22,10 +22,21 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv sync --locked --all-extras
+      - name: Prepare the hard acquisition boundary
+        id: volume
+        if: runner.os == 'Linux'
+        run: uv run python scripts/acquisition_volume.py prepare 1073741824
       - name: Acquire GitHub and GitLab, digest and compare without executing prey
         env:
           GH_TOKEN: ${{ github.token }}
+          CRAB_ACQUISITION_VOLUME: ${{ steps.volume.outputs.volume }}
+          CRAB_EXPECT_ACQUISITION_REFUSAL: ${{ runner.os == 'Windows' && 'true' || 'false' }}
         run: uv run python benchmarks/deep_smoke.py
+      - name: Remove the acquisition boundary
+        if: always() && steps.volume.outputs.root != ''
+        env:
+          CRAB_QUOTA_ROOT: ${{ steps.volume.outputs.root }}
+        run: uv run python scripts/acquisition_volume.py cleanup "$CRAB_QUOTA_ROOT"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -72,7 +83,9 @@ jobs:
       - uses: ./
         id: feeder
         with:
-          prey: pypa/pipx
+          # Remote acquisition is hardened on Linux; Windows exercises a local checkout.
+          prey: ${{ runner.os == 'Windows' && github.workspace || 'pypa/pipx' }}
+          wiki: ${{ runner.os != 'Windows' }}
           maw: ${{ steps.maw.outputs.path }}
           artifact-name: feeder-composite-${{ matrix.os }}
           issues: '10'

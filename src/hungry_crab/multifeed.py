@@ -14,7 +14,7 @@ from typing import Any
 from .cache import Target, cache_root, maw_paths, prey_paths
 from .compare import MENU_SCHEMA, load_menu, menu_candidates
 from .errors import CrabError, UsageError
-from .feeder import EatOptions, EatResult, eat
+from .feeder import EatOptions, EatResult, acquisition_scope, eat
 from .fetch.catch import rmtree_force
 from .mdutil import MdDoc, inline
 from .nutrients import Candidate, slugify
@@ -180,23 +180,24 @@ def eat_many(
         (staged / "sources").mkdir()
         menus = {}
         sources = []
-        for identity, prey in sorted(zip(identities, preys, strict=True)):
-            key = hashlib.sha256(identity.encode()).hexdigest()[:20]
-            relative = "sources/" + key
-            result = eat(prey, maw, replace(options, out=staged / relative), log=log)
-            menu = load_menu(result.out_dir)
-            if menu is None:
-                raise CrabError("a source did not produce a menu")
-            menus[key] = menu
-            sources.append(
-                {
-                    "id": key,
-                    "path": relative,
-                    "target": identity,
-                    "prey": result.manifest["prey"],
-                    "files": _fingerprints(result.out_dir),
-                }
-            )
+        with acquisition_scope(preys, maw, options):
+            for identity, prey in sorted(zip(identities, preys, strict=True)):
+                key = hashlib.sha256(identity.encode()).hexdigest()[:20]
+                relative = "sources/" + key
+                result = eat(prey, maw, replace(options, out=staged / relative), log=log)
+                menu = load_menu(result.out_dir)
+                if menu is None:
+                    raise CrabError("a source did not produce a menu")
+                menus[key] = menu
+                sources.append(
+                    {
+                        "id": key,
+                        "path": relative,
+                        "target": identity,
+                        "prey": result.manifest["prey"],
+                        "files": _fingerprints(result.out_dir),
+                    }
+                )
         menu = merge_menus(menus, top=options.top)
         menu_text = json.dumps(menu, indent=2, ensure_ascii=False) + "\n"
         (staged / "menu.json").write_text(menu_text, encoding="utf-8")

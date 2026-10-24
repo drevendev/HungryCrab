@@ -23,6 +23,8 @@ import subprocess
 from pathlib import Path
 
 from ..errors import ExternalCommandError, ToolMissingError
+from .acquisition import CURRENT, AcquisitionLimitError
+from .bounded import ResponseTooLargeError
 
 SAFE_CONFIG: tuple[str, ...] = (
     "-c", "core.quotepath=off",
@@ -226,22 +228,45 @@ class GitRunner:
             env[f"GIT_CONFIG_VALUE_{count}"] = f"AUTHORIZATION: basic {credential}"
             env["GIT_CONFIG_COUNT"] = str(count + 1)
         env.update(neutral_filter_env(self._filter_drivers(where, env), env))
+        budget = CURRENT.get()
+        if budget is not None:
+            env = budget.git_env(env)
         try:
-            proc = subprocess.run(
-                command,
-                cwd=str(where),
-                capture_output=True,
-                env=env,
-                timeout=limit,
-                check=False,
-            )
+            if budget is not None:
+                proc = budget.run_git(command, where, env, limit)
+            else:
+                proc = subprocess.run(
+                    command,
+                    cwd=str(where),
+                    capture_output=True,
+                    env=env,
+                    timeout=limit,
+                    check=False,
+                )
         except subprocess.TimeoutExpired as exc:
+            if budget is not None:
+                budget.check()
             raise ExternalCommandError(f"git {args[0]} timed out after {limit:.0f}s") from exc
         except OSError as exc:
             raise ExternalCommandError(f"failed to run git: {exc}") from exc
+        except ResponseTooLargeError as exc:
+            if budget is not None:
+                budget.check()
+            raise ExternalCommandError("Git command exceeded its captured-output limit") from exc
         stdout = proc.stdout.decode("utf-8", errors="replace")
+        if budget is not None:
+            budget.check()
         if check and proc.returncode != 0:
             stderr = proc.stderr.decode("utf-8", errors="replace").strip()
+            if budget is not None and any(
+                marker in stderr.lower()
+                for marker in ("no space left", "disk full", "not enough space", "disk quota")
+            ):
+                raise AcquisitionLimitError(
+                    "acquisition disk capacity exhausted",
+                    hint="raise the fixed-volume acquisition disk limit "
+                    "or choose smaller prey/history",
+                )
             shown = " ".join(args[:2])
             raise ExternalCommandError(
                 f"git {shown} failed (exit {proc.returncode}): {stderr[-800:]}"

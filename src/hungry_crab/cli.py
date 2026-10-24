@@ -147,6 +147,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly accept a provider whose repository size is unavailable",
     )
     p_eat.add_argument("--wiki-dir", type=Path, help="independent local Git wiki fixture/checkout")
+    p_eat.add_argument(
+        "--acquisition-volume",
+        type=Path,
+        help="dedicated fixed-capacity filesystem for remote acquisition",
+    )
+    p_eat.add_argument("--max-download-bytes", type=int, default=300 * 1024 * 1024)
+    p_eat.add_argument("--max-acquisition-disk-bytes", type=int, default=1024 * 1024 * 1024)
     p_eat.add_argument("--depth", choices=("normal", "deep"), default="normal")
     p_eat.add_argument("--top", type=int, default=30)
     p_eat.add_argument(
@@ -460,6 +467,9 @@ def cmd_eat(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         depth=args.depth,
         top=args.top,
         max_repo_kb=args.max_repo_kb,
+        acquisition_volume=args.acquisition_volume,
+        max_download_bytes=args.max_download_bytes,
+        max_acquisition_disk_bytes=args.max_acquisition_disk_bytes,
         allow_unknown_size=args.allow_unknown_size,
         allow_loss=args.allow_loss,
     )

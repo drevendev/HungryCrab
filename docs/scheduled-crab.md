@@ -190,7 +190,8 @@ Publication releases the lease and waits without advancing. After human merge an
 the exact release head, a later HARDEN lease creates `v<version>` at the verified merge commit,
 refuses conflicting tags, and records success. It never tags an unmerged release or failed CI.
 
-Hard byte/disk quotas remain in [#236](https://github.com/drevendev/HungryCrab/issues/236).
-Use bounded prey for rollout. Host hooks, branch protection and sandboxing are the runtime
+Remote Feeder acquisition requires the [hard volume and byte boundary](feeder.md); the Linux
+action provisions its volume, while unsupported runners refuse remote acquisition. Host hooks,
+branch protection and sandboxing are the runtime
 boundary against an agent bypassing the CLI; their live verification is separate from this protocol.
 Loop-specific host enforcement is tracked in [#243](https://github.com/drevendev/HungryCrab/issues/243).

@@ -26,6 +26,15 @@ on:
       max-repo-kb:
         type: number
         default: 307200
+      max-download-bytes:
+        type: number
+        default: 314572800
+      max-acquisition-disk-bytes:
+        type: number
+        default: 1073741824
+      acquisition-volume:
+        type: string
+        default: ''
       allow-loss:
         type: boolean
         default: false
@@ -81,6 +90,9 @@ jobs:
           depth: ${{ inputs.depth }}
           top: ${{ inputs.top }}
           max-repo-kb: ${{ inputs.max-repo-kb }}
+          max-download-bytes: ${{ inputs.max-download-bytes }}
+          max-acquisition-disk-bytes: ${{ inputs.max-acquisition-disk-bytes }}
+          acquisition-volume: ${{ inputs.acquisition-volume }}
           allow-loss: ${{ inputs.allow-loss }}
           artifact-name: ${{ inputs.artifact-name }}
           retention-days: ${{ inputs.retention-days }}

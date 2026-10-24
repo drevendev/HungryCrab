@@ -304,7 +304,8 @@ def run() -> int:
     temp = Path(os.environ["RUNNER_TEMP"])
     workspace = Path(os.environ["GITHUB_WORKSPACE"])
     output = os.environ.get("CRAB_OUT") or str(temp / f"crab-feeder-{uuid.uuid4().hex}")
-    cache = os.environ.get("CRAB_CACHE") or str(temp / "hungry-crab")
+    volume = os.environ.get("CRAB_ACQUISITION_VOLUME", "")
+    cache = os.environ.get("CRAB_CACHE") or str((Path(volume) if volume else temp) / "hungry-crab")
     maw = Path(os.environ.get("CRAB_MAW", "."))
     if not maw.is_absolute():
         maw = workspace / maw
@@ -356,6 +357,14 @@ def run() -> int:
         "--out",
         output,
         "--json",
+    ]
+    if volume:
+        args += ["--acquisition-volume", volume]
+    args += [
+        "--max-download-bytes",
+        os.environ.get("CRAB_MAX_DOWNLOAD_BYTES", "314572800"),
+        "--max-acquisition-disk-bytes",
+        os.environ.get("CRAB_MAX_ACQUISITION_DISK_BYTES", "1073741824"),
     ]
     for name, flag in [
         ("SINCE", "--since"),

@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from hungry_crab.cache import resolve_target
+from hungry_crab.errors import UsageError
 from hungry_crab.feeder import EatOptions, eat
 from hungry_crab.fetch.git import GitRunner
 
@@ -42,13 +43,23 @@ def main() -> None:
         "test: live smoke maw",
     )
     results = []
+    volume = os.environ.get("CRAB_ACQUISITION_VOLUME")
     for name, prey in (("github", "cli/cli"), ("gitlab", "https://gitlab.com/gitlab-org/cli")):
         protected_signals = name == "github" or bool(os.environ.get("GITLAB_TOKEN"))
+        if os.environ.get("CRAB_EXPECT_ACQUISITION_REFUSAL") == "true":
+            try:
+                eat(resolve_target(prey), maw, EatOptions(cache_root=root / "cache", wiki=False))
+            except UsageError as exc:
+                assert "acquisition-volume" in exc.message
+                results.append({"forge": name, "status": "refused_without_hard_boundary"})
+                continue
+            raise AssertionError("remote acquisition unexpectedly bypassed its hard boundary")
         result = eat(
             resolve_target(prey),
             maw,
             EatOptions(
-                cache_root=root / "cache",
+                cache_root=(Path(volume) if volume else root) / "cache",
+                acquisition_volume=Path(volume) if volume else None,
                 out=root / name,
                 wiki=False,
                 issues=3,

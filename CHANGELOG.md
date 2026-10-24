@@ -9,6 +9,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Acquisition security:** remote Feeder runs require a fixed-capacity acquisition filesystem
+  and share one download allowance across main repositories and wikis. Quota failures and
+  cancellation discard staged acquisitions while retaining the previous valid cache (#236).
+
 - **Publication security:** prepare and scan every selected multi-prey payload before provider
   reads or effects, and share one budget counting only newly created PRs across all sources
   ([#339](https://github.com/drevendev/HungryCrab/issues/339)).

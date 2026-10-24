@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import math
+import os
+import signal
 import subprocess
+import sys
 import threading
 import time
 from collections.abc import Sequence
@@ -51,6 +54,8 @@ def run_bounded(
     input_data: bytes | None = None,
     stdout_limit: int = MAX_JSON_BYTES,
     stderr_limit: int = MAX_STDERR_BYTES,
+    cwd: str | None = None,
+    process_group: bool = False,
 ) -> subprocess.CompletedProcess[bytes]:
     """Capture both API pipes concurrently, with byte limits and one deadline.
 
@@ -64,6 +69,8 @@ def run_bounded(
     """
     if not command:
         raise ValueError("API transport command must not be empty")
+    if process_group and sys.platform == "win32":
+        raise ValueError("process-group cancellation requires a POSIX runner")
     validate_timeout(timeout)
     for limit in (stdout_limit, stderr_limit):
         if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
@@ -77,6 +84,8 @@ def run_bounded(
         stderr=subprocess.PIPE,
         bufsize=0,
         env=env,
+        cwd=cwd,
+        start_new_session=process_group,
     )
     assert proc.stdout is not None and proc.stderr is not None
     streams = (proc.stdout, proc.stderr)
@@ -169,6 +178,9 @@ def run_bounded(
         return subprocess.CompletedProcess(list(command), proc.wait(timeout=1), stdout, stderr)
     finally:
         stopped.set()
+        if process_group and sys.platform != "win32":
+            with suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
         if proc.poll() is None:
             with suppress(ProcessLookupError):
                 proc.kill()

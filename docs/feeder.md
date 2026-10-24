@@ -8,8 +8,9 @@ already decided nutrients. The output is a bundle an agent or a human can read l
 ## Run locally
 
 ```bash
-crab eat pypa/pipx --deterministic --maw . --out /tmp/crab-meal
-# PowerShell: choose an empty directory outside the sources, e.g. C:/Temp/crab-meal
+crab --cache-dir /mnt/crab-quota/cache eat pypa/pipx --deterministic --maw . \
+  --acquisition-volume /mnt/crab-quota --out /tmp/crab-meal
+# /mnt/crab-quota is a separately provisioned fixed-capacity filesystem (see below).
 ```
 
 Omit `--out` to keep a unique bundle in the maw's cache. A nonempty output directory is
@@ -35,18 +36,45 @@ budgets follow the maw's `.crab.yml`: `warn`, `enforce` or `off`;
 full JSON survives an enforced reading budget.
 
 GitHub's repository `size` must fit `--max-repo-kb` (307200 by default) before cloning.
-This is a preflight, **not a hard download or disk quota**: the estimate and independent wiki
-storage cannot prove an upper bound. Wikis are cloned without checkout and mined through Git
-objects, so platform-specific file names and CRLF conversion cannot hide pages or change their
-recorded sizes. This removes the wiki working-tree copy, while Git pack downloads remain outside
-a hard storage quota. LFS smudging stays disabled. The reusable job has a
-20-minute timeout; choose a suitable runner and smaller prey for stricter resource limits.
+This remains an estimate. Remote acquisition additionally requires `--acquisition-volume`,
+a dedicated Linux block-device filesystem whose **backing-device capacity** fits `--max-acquisition-disk-bytes`
+(1 GiB by default). Put `--cache-dir` inside that volume. The kernel bounds all Git objects,
+checkout files, staging, temporary files and filesystem metadata together, including old caches
+retained during replacement. A directory on a larger disk, a free-space check or a size sampler
+does not satisfy this boundary. Raise the capacity limit and provision a larger volume together
+when existing evidence plus a replacement will not fit. Provisioning is an owner/runner operation;
+the CLI never mounts disks or elevates privileges.
+
+`--max-download-bytes` defaults to 300 MiB for the **whole invocation**, including all prey,
+prey wikis and the maw wiki. A local CONNECT relay bounds bytes forwarded from GitHub/GitLab
+to Git, including TLS overhead, reference discovery and retries. TLS remains end to end; the
+relay neither decrypts content nor holds credentials. Reads permit at most one sentinel byte
+beyond the allowance before refusing; no excess byte is forwarded. Kernel socket buffers and
+wire traffic are not metered. Provider REST requests retain their separate response limits.
+SSH, local Git transports and redirects are refused for remote budgeted acquisition, and inherited
+proxy bypasses and Git object/temp path overrides are cleared. There is no unmetered fallback.
+
+The hard acquisition adapter currently supports Linux block-device mounts with process-group cancellation;
+other hosts fail closed for remote Feeder acquisition. Local, already acquired repository paths
+remain usable on Windows with `--no-wiki`. Main and wiki acquisition stages commit together;
+download/disk exhaustion or cancellation leaves the previous valid pair and creates no success
+bundle. Existing caches share the same filesystem cap, so choose a private volume with enough
+capacity for both old and staged evidence. New budgeted acquisitions are fresh complete object
+transfers under the requested shallow/history policy; no partial-clone filter or promisor is used.
+No later lazy object download is needed. Wikis have no checkout. LFS smudging remains disabled.
+RAM/CPU limits belong to the runner; a disk quota is not a memory bound for Git delta processing.
 
 ## Install in CI
 
 The composite action installs only the trusted Hungry Crab checkout with locked dependencies
 in its own environment. It never installs the prey or the maw's packages. Check out the maw
-first; Linux and Windows hosted runners are supported.
+first. Remote acquisition uses Linux hosted runners by default: the composite action provisions
+an ephemeral fixed-size ext4 loop image with `mkfs.ext4` and noninteractive `sudo mount`,
+mounts it `nosuid,nodev,noexec`, and unmounts/removes it in an `always()` cleanup step. A runner
+without those capabilities must supply its own `acquisition-volume`; an unsupported process
+boundary still refuses remote acquisition. The existing local Windows path needs no volume.
+To retain a cache between invocations, supply an owner-provisioned volume and a cache inside it;
+the action cleans up only volumes it created itself.
 
 **Marketplace preparation:** the [Feeder listing and dogfood roadmap](marketplace/README.md)
 tracks public/limited-private acceptance, exact release pins, truthful evidence and
@@ -96,6 +124,7 @@ The composite also exports `bundle-path` and `menu-path` for later steps in the 
 Use distinct artifact names for matrix jobs. Retention defaults to 14 days.
 
 Both interfaces expose `since`, `shallow`, `issues`, `wiki`, `depth`, `top`, `max-repo-kb`,
+`acquisition-volume`, `max-download-bytes`, `max-acquisition-disk-bytes`,
 `allow-loss`, `artifact-name`, `retention-days` and `allow-private-artifact`. The composite additionally accepts `maw`,
 `out`, `cache-dir` and `token`. The reusable accepts `runner` (default `ubuntu-latest`) and
 optional secret `prey-token`. Paths/default caches live in runner temporary storage.

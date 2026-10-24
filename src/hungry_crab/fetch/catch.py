@@ -19,11 +19,13 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+from ..artifact_read import MAX_JSON_BYTES, read_bytes
 from ..cache import Slug, prey_paths
 from ..cache import cache_root as default_cache_root
 from ..errors import CrabError, ExternalCommandError, UsageError
 from ..fs import is_reparse_point
 from . import channels
+from .acquisition import CURRENT
 from .git import GitRunner
 from .issues import fetch_issues, write_issues
 from .providers import RepositoryClient, client_for
@@ -281,6 +283,18 @@ def catch(
     prey to a newer upstream commit, or replace a shallow cache with a full clone.
     """
     opts = options or CatchOptions()
+    budget = CURRENT.get()
+    if budget is not None and not channels_only and not budget.staging:
+        return _budgeted_catch(
+            slug,
+            opts,
+            cache_root=cache_root,
+            source_url=source_url,
+            wiki_source_url=wiki_source_url,
+            github=github,
+            now=now,
+            log=log,
+        )
     # Validate before changing any cache. A bad date used to delete a valid --force clone.
     clone_args = clone_arguments(opts, now=now)
     if any(not 0 <= n <= 3000 for n in (opts.issues, opts.discussions, opts.reviews, opts.runs)):
@@ -472,6 +486,11 @@ def _clone_replace(
     auth_host: str = "github.com",
 ) -> None:
     """Publish only a complete clone, preserving the last valid tree on failure."""
+    budget = CURRENT.get()
+    if budget is not None:
+        budget.require_path(destination)
+        budget.require_url(url)
+        args = [args[0], "--template=", *args[1:]]
     staged = destination.with_name(f".{destination.name}-{uuid.uuid4().hex}")
     backup = destination.with_name(f".{destination.name}-old-{uuid.uuid4().hex}")
     try:
@@ -512,6 +531,10 @@ def catch_wiki(
     auth_host: str = "github.com",
 ) -> dict[str, object]:
     """Wikis are independent Git repositories. An uninitialised wiki is ordinary absence."""
+    budget = CURRENT.get()
+    if budget is not None:
+        budget.require_path(destination)
+        budget.require_url(url)
     git = GitRunner(destination.parent, timeout=120, github_token=token, auth_host=auth_host)
     try:
         remote = git.run("ls-remote", url, "HEAD")
@@ -528,7 +551,8 @@ def catch_wiki(
     remote_sha = remote.split()[0]
     current = GitRunner(destination)
     if (
-        not (destination / ".git").exists()
+        budget is not None
+        or not (destination / ".git").exists()
         or not current.has_commits()
         or current.head_sha() != remote_sha
     ):
@@ -541,3 +565,70 @@ def catch_wiki(
             auth_host=auth_host,
         )
     return {"status": "available", "sha": GitRunner(destination).head_sha(), "url": url}
+
+
+def _budgeted_catch(
+    slug: Slug,
+    options: CatchOptions,
+    *,
+    cache_root: Path | None,
+    source_url: str | None,
+    wiki_source_url: str | None,
+    github: RepositoryClient | None,
+    now: datetime | None,
+    log: Callable[[str], None],
+) -> CatchResult:
+    """Acquire main, wiki and samples together; publish no tree on quota/cancellation failure."""
+    budget = CURRENT.get()
+    assert budget is not None
+    root = cache_root if cache_root is not None else default_cache_root()
+    paths = prey_paths(slug, root)
+    budget.require_path(paths.root)
+    staged_cache = budget.volume / f".acquisition-{uuid.uuid4().hex}"
+    backup = paths.root.with_name(f".{paths.root.name}-old-{uuid.uuid4().hex}")
+    staged_cache.mkdir()
+    try:
+        staged_paths = prey_paths(slug, staged_cache)
+        # Keep the just-fetched provider preflight, without carrying stale samples forward.
+        for name in ("repo.json", "languages.json", "sniff.json"):
+            source = paths.api / name
+            budget.require_path(source)
+            if source.exists():
+                staged_paths.api.mkdir(parents=True, exist_ok=True)
+                (staged_paths.api / name).write_bytes(read_bytes(source, MAX_JSON_BYTES))
+        budget.staging = True
+        try:
+            result = catch(
+                slug,
+                options,
+                cache_root=staged_cache,
+                source_url=source_url,
+                wiki_source_url=wiki_source_url,
+                github=github,
+                now=now,
+                log=log,
+            )
+        finally:
+            budget.staging = False
+        budget.check()
+        staged = prey_paths(slug, staged_cache)
+        result.repo_dir = str(paths.repo)
+        recorded = json.loads(staged.catch_file.read_text(encoding="utf-8"))
+        recorded["repo_dir"] = result.repo_dir
+        staged.catch_file.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
+        paths.root.parent.mkdir(parents=True, exist_ok=True)
+        if paths.root.exists():
+            _require_crab_owned(paths.root, cache_root=root)
+            paths.root.rename(backup)
+        try:
+            staged.root.rename(paths.root)
+        except BaseException:
+            if backup.exists():
+                backup.rename(paths.root)
+            raise
+        if backup.exists():
+            rmtree_force(backup, cache_root=backup.parent)
+        return result
+    finally:
+        if staged_cache.exists():
+            rmtree_force(staged_cache, cache_root=budget.volume)

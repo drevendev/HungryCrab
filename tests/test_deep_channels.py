@@ -493,6 +493,10 @@ def test_feeder_requires_explicit_unknown_size_override(
         raise RuntimeError("acquisition reached only with explicit override")
 
     monkeypatch.setattr(feeder, "catch", caught)
+    # This test isolates provider-size policy; the quota boundary has separate live tests.
+    from contextlib import nullcontext
+
+    monkeypatch.setattr(feeder, "acquisition_scope", lambda *_: nullcontext(None))
     opts = feeder.EatOptions(cache_root=tmp_path / "cache", out=tmp_path / "out", wiki=False)
     with pytest.raises(CrabError, match="size is unavailable"):
         feeder.eat(Target(slug=slug), maw, opts, github=GitLabClient())

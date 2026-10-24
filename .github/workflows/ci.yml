@@ -20,6 +20,28 @@ env:
   PYTHONIOENCODING: utf-8
 
 jobs:
+  acquisition-quota:
+    name: Hard acquisition quota (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+      - name: Prepare the disposable 64 MiB filesystem
+        id: volume
+        run: uv run python scripts/acquisition_volume.py prepare 67108864
+      - name: Exercise real HTTPS Git and kernel-enforced disk exhaustion
+        env:
+          CRAB_TEST_QUOTA_VOLUME: ${{ steps.volume.outputs.volume }}
+        run: uv run pytest tests/test_acquisition_live.py -q
+      - name: Remove the disposable filesystem
+        if: always() && steps.volume.outputs.root != ''
+        env:
+          CRAB_QUOTA_ROOT: ${{ steps.volume.outputs.root }}
+        run: uv run python scripts/acquisition_volume.py cleanup "$CRAB_QUOTA_ROOT"
   lint:
     name: Lint and type-check
     runs-on: ubuntu-latest

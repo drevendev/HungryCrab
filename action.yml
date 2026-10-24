@@ -35,6 +35,15 @@ inputs:
   max-repo-kb:
     description: GitHub repository size preflight; not a hard disk quota
     default: '307200'
+  acquisition-volume:
+    description: Fixed-capacity filesystem for acquisition; blank provisions an ephemeral Linux loop volume
+    default: ''
+  max-download-bytes:
+    description: Shared main/wiki encrypted Git response byte allowance
+    default: '314572800'
+  max-acquisition-disk-bytes:
+    description: Maximum acquisition filesystem capacity, including cache, staging and temporary files
+    default: '1073741824'
   allow-loss:
     description: Explicitly accept inventory visibility loss
     default: 'false'
@@ -78,6 +87,16 @@ runs:
       with:
         python-version: '3.11'
         enable-cache: false
+    - name: Prepare a fixed-capacity acquisition volume
+      id: acquisition
+      if: inputs.acquisition-volume == '' && runner.os == 'Linux'
+      shell: pwsh
+      env:
+        CRAB_ACTION_PATH: ${{ github.action_path }}
+        CRAB_DISK_BYTES: ${{ inputs.max-acquisition-disk-bytes }}
+      run: |
+        uv run --directory "$env:CRAB_ACTION_PATH" --locked --no-dev python "$env:CRAB_ACTION_PATH/scripts/acquisition_volume.py" prepare "$env:CRAB_DISK_BYTES"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     - name: Run the deterministic pipeline
       id: feed
       shell: pwsh
@@ -93,6 +112,9 @@ runs:
         CRAB_DEPTH: ${{ inputs.depth }}
         CRAB_TOP: ${{ inputs.top }}
         CRAB_MAX_REPO_KB: ${{ inputs.max-repo-kb }}
+        CRAB_ACQUISITION_VOLUME: ${{ inputs.acquisition-volume || steps.acquisition.outputs.volume }}
+        CRAB_MAX_DOWNLOAD_BYTES: ${{ inputs.max-download-bytes }}
+        CRAB_MAX_ACQUISITION_DISK_BYTES: ${{ inputs.max-acquisition-disk-bytes }}
         CRAB_ALLOW_LOSS: ${{ inputs.allow-loss }}
         CRAB_OUT: ${{ inputs.out }}
         CRAB_CACHE: ${{ inputs.cache-dir }}
@@ -108,3 +130,12 @@ runs:
         path: ${{ steps.feed.outputs.bundle-path }}
         if-no-files-found: error
         retention-days: ${{ inputs.retention-days }}
+    - name: Remove the ephemeral acquisition volume
+      if: always() && steps.acquisition.outputs.root != ''
+      shell: pwsh
+      env:
+        CRAB_ACTION_PATH: ${{ github.action_path }}
+        CRAB_ACQUISITION_ROOT: ${{ steps.acquisition.outputs.root }}
+      run: |
+        uv run --directory "$env:CRAB_ACTION_PATH" --locked --no-dev python "$env:CRAB_ACTION_PATH/scripts/acquisition_volume.py" cleanup "$env:CRAB_ACQUISITION_ROOT"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

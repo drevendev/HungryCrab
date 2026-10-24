@@ -191,8 +191,9 @@ or `--shallow` (default branch, tree only).
 
 ## Feeder: a menu in CI
 
-Run `crab eat pypa/pipx --deterministic --maw .` to export a complete meal without a model,
-issue creation or ledger writes. The [Feeder guide](docs/feeder.md) shows the composite action,
+Run `crab eat <local-repo> --deterministic --maw . --no-wiki` to export a complete meal
+without a model, issue creation or ledger writes. Remote Feeder acquisition requires a dedicated
+quota volume and a shared byte allowance. The [Feeder guide](docs/feeder.md) shows the composite action,
 reusable workflow, weekly schedule, artifact outputs and strict mode.
 
 [GitHub Marketplace launch roadmap](docs/marketplace/README.md) is a **proposal**, with
