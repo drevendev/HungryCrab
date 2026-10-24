@@ -211,7 +211,7 @@ def test_cache_rm_refuses_a_checkout_the_crab_did_not_write(
 
     assert main(["--cache-dir", str(cache_root), "cache", "rm", "me/project"]) == 1
     error = capsys.readouterr().err
-    assert "no catch or sniff record" in error and "aside yourself" in error
+    assert "entry is itself a working checkout" in error and "aside yourself" in error
     assert (checkout / "work.txt").read_text(encoding="utf-8") == "uncommitted work"
 
 
