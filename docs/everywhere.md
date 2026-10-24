@@ -87,7 +87,11 @@ by foreign headers or nested licences requires human resolution (`HUMAN`); unaff
 keeps the repository mode with its review flag. Inferred ownership is resolved against fetched
 fork metadata: both the parent and ultimate upstream must be known and have a trusted owner.
 Missing final provenance cannot grant the OWN exception. Older digests are rebuilt for this
-policy; regenerate older meals before relying on inferred ownership.
+policy; regenerate older meals before relying on inferred ownership. COPY preparation also
+rechecks OWN against a fresh provider response, independent of editable meal/cache metadata.
+Unavailable, mismatched or incomplete provider evidence refuses that exception before maw
+files are read; offline COPY cannot claim inferred OWN. Explicit current bypass policy remains
+an operator decision.
 
 Network acquisition is disabled by default. To allow remote GitHub/GitLab prey, the operator
 must add `--allow-network` to the server command. Remote acquisition uses a shallow 90-day

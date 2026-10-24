@@ -27,6 +27,7 @@ from urllib.parse import urlsplit
 from .cache import Slug
 from .errors import CrabError
 from .fetch.git import GitRunner
+from .fetch.providers import client_for
 from .licensing.detect import find_spdx_identifier, is_license_file_name
 from .licensing.matrix import LicenseClass, classify, normalize
 from .licensing.policy import nutrient_material
@@ -1160,9 +1161,26 @@ def _verify_elevated_relationship(menu: Mapping[str, Any], maw_root: Path) -> No
         raise CrabError(
             "cannot verify the meal's ownership provenance", hint="regenerate the meal"
         ) from exc
-    actual = relationship_for(
-        target, MawConfig.load(maw_root), repository=as_dict(prey.get("repository"))
-    )
+    config = MawConfig.load(maw_root)
+    actual = relationship_for(target, config, repository=as_dict(prey.get("repository")))
+    if claimed == "own" and actual.value == "own" and target is not None:
+        # A meal and its fork snapshot are editable together. Only a fresh provider read,
+        # independent of that meal and its cache, can authorize the notice exemption.
+        try:
+            repository = client_for(target, cache_dir=None).repo(target)
+        except (CrabError, OSError, ValueError) as exc:
+            raise CrabError(
+                "cannot verify ownership with the repository provider",
+                hint="restore read access to the provider before serving an OWN exception",
+            ) from exc
+        full_name = repository.get("full_name")
+        expected_name = f"{target.owner}/{target.repo}"
+        if not isinstance(full_name, str) or full_name.casefold() != expected_name.casefold():
+            raise CrabError(
+                "provider ownership evidence names a different repository",
+                hint="regenerate the meal from the repository's current canonical URL",
+            )
+        actual = relationship_for(target, config, repository=repository)
     if actual.value != claimed:
         raise CrabError(
             "the meal's ownership decision is not authorized by current maw policy",

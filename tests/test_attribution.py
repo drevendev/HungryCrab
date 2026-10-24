@@ -46,6 +46,7 @@ from hungry_crab.attribution import (
 )
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
+from hungry_crab.fetch.github import GitHubClient
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import MawConfig
 from hungry_crab.nutrients import Candidate
@@ -840,7 +841,14 @@ def test_a_licence_that_asks_for_its_notice_and_a_prey_with_none_to_carry_is_ref
         _prepare(_maw(tmp_path), source_reader=prey)
 
 
-def test_ones_own_code_carries_no_licence_text(tmp_path: Path) -> None:
+@pytest.mark.parametrize("fork", [False, True])
+def test_ones_own_code_carries_no_licence_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fork: bool
+) -> None:
+    metadata: dict[str, Any] = {"full_name": "pypa/pipx", "fork": fork}
+    if fork:
+        metadata.update(parent={"full_name": "pypa/parent"}, source={"full_name": "pypa/original"})
+    monkeypatch.setattr(GitHubClient, "repo", lambda *_: metadata)
     (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")
     menu = {
         **MENU,
@@ -907,6 +915,88 @@ def test_a_loaded_meal_cannot_forge_ownership(tmp_path: Path, typed: bool) -> No
             source_reader=FakePrey({}),
             now=NOW,
         )
+
+
+def test_loaded_meal_cannot_forge_both_relationship_and_fork_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")
+    menu = {
+        **MENU,
+        "prey": {**PREY, "repository": {"fork": False}},
+        "verdict": {**MENU["verdict"], "relationship": "own"},
+    }
+    calls: list[str] = []
+
+    def repository(client: GitHubClient, slug: Any) -> dict[str, Any]:
+        assert client.cache_dir is None, "ownership proof must not reuse an editable cache"
+        calls.append(str(slug))
+        return {
+            "full_name": "pypa/pipx",
+            "fork": True,
+            "parent": {"full_name": "foreign/parent"},
+            "source": {"full_name": "foreign/root"},
+        }
+
+    monkeypatch.setattr(GitHubClient, "repo", repository)
+    with pytest.raises(CrabError, match="ownership"):
+        prepare_copy_pull_request(
+            _card(),
+            menu,
+            _payload(),
+            _maw(tmp_path),
+            title="t",
+            body="<!-- crab:ci:ci.cache -->\n",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=FakePrey({(SHA, ".github/workflows/test.yml"): "name: test\n"}),
+            now=NOW,
+        )
+    assert calls == ["pypa/pipx"]
+    assert not (tmp_path / ATTRIBUTIONS_PATH).exists()
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {},
+        {"full_name": "another/repository", "fork": False},
+        {"full_name": "pypa/pipx"},
+        {"full_name": "pypa/pipx", "fork": True, "parent": {"full_name": "pypa/parent"}},
+        None,
+    ],
+)
+def test_ownership_refuses_unavailable_or_incomplete_provider_proof_before_maw_reads(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, metadata: dict[str, Any] | None
+) -> None:
+    (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")
+    menu = {
+        **MENU,
+        "prey": {**PREY, "repository": {"fork": False}},
+        "verdict": {**MENU["verdict"], "relationship": "own"},
+    }
+
+    def repository(*args: Any) -> dict[str, Any]:
+        if metadata is None:
+            raise CrabError("provider unavailable")
+        return metadata
+
+    monkeypatch.setattr(GitHubClient, "repo", repository)
+    monkeypatch.setattr(
+        "hungry_crab.attribution.read_maw_text", lambda *_: pytest.fail("maw file read")
+    )
+    with pytest.raises(CrabError, match="ownership"):
+        prepare_copy_pull_request(
+            _card(),
+            menu,
+            _payload(),
+            _maw(tmp_path),
+            title="t",
+            body="<!-- crab:ci:ci.cache -->\n",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=FakePrey({}),
+            now=NOW,
+        )
+    assert not (tmp_path / ATTRIBUTIONS_PATH).exists()
 
 
 @pytest.mark.parametrize("enabled", [False, True])

@@ -17,6 +17,7 @@ from hungry_crab.attribution import GitSourceReader, prepare_copy_pull_request
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.compare import compare_for_maw
 from hungry_crab.digest import DigestOptions
+from hungry_crab.fetch.github import GitHubClient
 from hungry_crab.fetch.providers import RepositoryClient
 from hungry_crab.licensing import Relationship
 from hungry_crab.maw import MawConfig, TrustSettings
@@ -95,6 +96,7 @@ def test_fetched_fork_reaches_compare_and_copy_notice(
         return original(target, options, log=log)
 
     monkeypatch.setattr(digest_module, "prepare_context", local_api)
+    monkeypatch.setattr(GitHubClient, "repo", lambda *_: metadata)
     result, prey_digest, _, _ = compare_for_maw(
         Target(slug=slug),
         maw,
