@@ -19,6 +19,33 @@ CLONE_RECORD = "crab-catch.json"
 _HINT = "Move an unrecognised checkout aside yourself; the crab will not adopt or replace it."
 
 
+def _acquisition_env() -> dict[str, str]:
+    from .acquisition import CURRENT
+
+    env = git_env()
+    budget = CURRENT.get()
+    if budget is not None:
+        env = budget.git_env(env)
+    if any(
+        env.get(key)
+        for key in (
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_COMMON_DIR",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_INDEX_FILE",
+            "GIT_QUARANTINE_PATH",
+            "GIT_TEMPLATE_DIR",
+        )
+    ):
+        raise CrabError(
+            "cache acquisition environment uses external Git metadata or working tree",
+            hint="unset Git path overrides before acquiring or mutating a cache",
+        )
+    return env
+
+
 def _real_path(path: Path, root: Path) -> None:
     try:
         parts = path.absolute().relative_to(root.absolute()).parts
@@ -87,6 +114,7 @@ def require_clone_identity(
     path: Path, url: str, *, cache_root: Path, slug: Slug | None = None
 ) -> None:
     """Refuse unowned or retargeted existing clones, before fetching or replacing them."""
+    acquisition_env = _acquisition_env()
     _real_path(path, cache_root)
     if not path.exists():
         return
@@ -130,12 +158,7 @@ def require_clone_identity(
         raise CrabError("cached clone origin differs from the requested source", hint=_HINT)
     # Git may rewrite that local URL through includes, insteadOf or caller configuration.
     # Ask the same effective configuration the real acquisition will use, without fetching.
-    from .acquisition import CURRENT
-
-    env = git_env()
-    budget = CURRENT.get()
-    if budget is not None:
-        env = budget.git_env(env)
+    env = acquisition_env
     try:
         effective = run_bounded(
             [git_executable(), "-C", str(path), "remote", "get-url", "--all", "origin"],
@@ -174,6 +197,7 @@ def require_clone_identity(
 
 def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) -> None:
     """Check the live entry before sniff, catch, remove or a staged replacement can claim it."""
+    _acquisition_env()
     paths = prey_paths(slug, root)
     _real_path(paths.root, root)
     if not paths.root.exists():

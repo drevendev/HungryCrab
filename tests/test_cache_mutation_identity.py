@@ -230,3 +230,34 @@ def test_a_file_at_the_cache_entry_is_a_safe_refusal(tmp_path: Path) -> None:
     with pytest.raises(CrabError, match=r"cache mutation path|cache directory"):
         catch(slug, CatchOptions(wiki=False), cache_root=cache)
     assert path.read_bytes() == b"unrelated file"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_COMMON_DIR",
+        "GIT_WORK_TREE",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_QUARANTINE_PATH",
+        "GIT_TEMPLATE_DIR",
+    ],
+)
+def test_inherited_git_paths_are_refused_even_before_a_first_clone(
+    key: str, npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    external = tmp_path / "outside"
+    external.mkdir()
+    (external / "private.txt").write_bytes(b"untouched")
+    monkeypatch.setenv(key, str(external))
+    cache = tmp_path / "cache"
+    with pytest.raises(CrabError, match="external Git metadata or working tree"):
+        catch(
+            Slug("fixture", "identity"),
+            CatchOptions(wiki=False),
+            cache_root=cache,
+            source_url=str(npm_app),
+        )
+    assert not cache.exists()
+    assert _snapshot(external) == {"private.txt": b"untouched"}
