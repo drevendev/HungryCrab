@@ -15,7 +15,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
-from .digest_location import REF_SCHEMA, DigestLocation, _require_real_directory
+from .digest_location import (
+    REF_SCHEMA,
+    DigestLocation,
+    _require_real_directory,
+    _retry_windows_ref_io,
+)
 from .errors import CrabError
 from .miners import MINER_NAMES
 
@@ -165,7 +170,7 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
             encoding="utf-8",
             newline="\n",
         )
-        temp_path.replace(ref_path)
+        _retry_windows_ref_io(lambda: temp_path.replace(ref_path))
     except OSError as exc:
         raise CrabError(
             f"could not publish digest generation {generation.name!r}",

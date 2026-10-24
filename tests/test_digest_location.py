@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 
+from hungry_crab import digest_location
 from hungry_crab.digest_location import REF_SCHEMA, resolve_canonical_digest
 from hungry_crab.errors import CrabError
 
@@ -74,3 +76,94 @@ def test_present_non_file_ref_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(CrabError, match="expected a regular file"):
         resolve_canonical_digest(digests, SHA)
+
+
+def test_windows_ref_read_retries_transient_sharing_violation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    digests = tmp_path / "digests"
+    generation = digests / ".generations" / SHA / "current"
+    generation.mkdir(parents=True)
+    _write_ref(digests, "current")
+    ref_path = digests / ".refs" / f"{SHA}.json"
+
+    monkeypatch.setattr(digest_location, "_IS_WINDOWS", True)
+    monkeypatch.setattr(digest_location, "_REF_RETRY_DELAY_SECONDS", 0)
+    original = Path.read_text
+    reads = 0
+
+    def intermittently_locked(
+        self: Path, encoding: str | None = None, errors: str | None = None
+    ) -> str:
+        nonlocal reads
+        if self == ref_path:
+            reads += 1
+            if reads <= 2:
+                raise PermissionError("simulated Windows sharing violation")
+        return original(self, encoding=encoding, errors=errors)
+
+    monkeypatch.setattr(Path, "read_text", intermittently_locked)
+
+    assert resolve_canonical_digest(digests, SHA).path == generation
+    assert reads == 3
+
+
+def test_windows_ref_stat_retries_transient_sharing_violation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    digests = tmp_path / "digests"
+    generation = digests / ".generations" / SHA / "current"
+    generation.mkdir(parents=True)
+    _write_ref(digests, "current")
+    ref_path = digests / ".refs" / f"{SHA}.json"
+
+    monkeypatch.setattr(digest_location, "_IS_WINDOWS", True)
+    monkeypatch.setattr(digest_location, "_REF_RETRY_DELAY_SECONDS", 0)
+    original = Path.lstat
+    stats = 0
+
+    def intermittently_locked(self: Path) -> os.stat_result:
+        nonlocal stats
+        if self == ref_path:
+            stats += 1
+            if stats <= 2:
+                raise PermissionError("simulated Windows sharing violation")
+        return original(self)
+
+    monkeypatch.setattr(Path, "lstat", intermittently_locked)
+
+    assert resolve_canonical_digest(digests, SHA).path == generation
+    assert stats == 3
+
+
+@pytest.mark.parametrize("is_windows, expected_attempts", [(True, 10), (False, 1)])
+def test_ref_read_denial_never_falls_back_to_legacy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    is_windows: bool,
+    expected_attempts: int,
+) -> None:
+    digests = tmp_path / "digests"
+    (digests / SHA).mkdir(parents=True)  # A stale legacy slot must never become authoritative.
+    _write_ref(digests, "current")
+    ref_path = digests / ".refs" / f"{SHA}.json"
+
+    monkeypatch.setattr(digest_location, "_IS_WINDOWS", is_windows)
+    monkeypatch.setattr(digest_location, "_REF_RETRY_DELAY_SECONDS", 0)
+    original = Path.read_text
+    reads = 0
+
+    def permanently_locked(
+        self: Path, encoding: str | None = None, errors: str | None = None
+    ) -> str:
+        nonlocal reads
+        if self == ref_path:
+            reads += 1
+            raise PermissionError("simulated Windows sharing violation")
+        return original(self, encoding=encoding, errors=errors)
+
+    monkeypatch.setattr(Path, "read_text", permanently_locked)
+
+    with pytest.raises(CrabError, match="cannot read digest ref"):
+        resolve_canonical_digest(digests, SHA)
+    assert reads == expected_attempts

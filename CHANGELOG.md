@@ -9,6 +9,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Retry transient Windows sharing violations while inspecting, reading or replacing canonical
+  digest refs (10 attempts, 50 ms apart); retain fail-closed behavior when retries are exhausted.
+  This addresses the sharing-violation portion of
+  [#214](https://github.com/drevendev/HungryCrab/issues/214); ref durability and damaged-ref
+  repair remain separate work.
+
 - Retry Windows loop-state replacement when a reader temporarily blocks the rename; report
   provider-reconciliation guidance on exhausted retries without losing the previous state
   ([#350](https://github.com/drevendev/HungryCrab/issues/350)).

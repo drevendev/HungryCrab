@@ -9,17 +9,38 @@ operation so one read cannot mix two generations.
 from __future__ import annotations
 
 import json
+import os
 import re
 import stat
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from .errors import CrabError
 from .fs import is_reparse_point
 
 REF_SCHEMA = "hungry-crab.digest-ref/1"
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+_REF_RETRY_ATTEMPTS = 10
+_REF_RETRY_DELAY_SECONDS = 0.05
+_IS_WINDOWS = os.name == "nt"
+_R = TypeVar("_R")
+
+
+def _retry_windows_ref_io(operation: Callable[[], _R]) -> _R:
+    """Retry bounded Windows sharing violations, but not other I/O errors or Unix denials."""
+    attempts = _REF_RETRY_ATTEMPTS if _IS_WINDOWS else 1
+    for attempt in range(attempts):
+        try:
+            return operation()
+        except PermissionError:
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(_REF_RETRY_DELAY_SECONDS)
+    raise AssertionError("unreachable ref retry state")
+
 
 
 @dataclass(frozen=True)
@@ -44,7 +65,7 @@ def _require_real_directory(path: Path, *, label: str) -> None:
 
 def _load_ref(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(_retry_windows_ref_io(lambda: path.read_text(encoding="utf-8")))
     except (OSError, ValueError) as exc:
         raise CrabError(f"cannot read digest ref {path}") from exc
     if not isinstance(value, dict):
@@ -74,7 +95,7 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
 
     ref_path = refs_dir / f"{sha}.json"
     try:
-        ref_info = ref_path.lstat()
+        ref_info = _retry_windows_ref_io(ref_path.lstat)
     except FileNotFoundError:
         return DigestLocation(sha=sha, path=legacy)
     except OSError as exc:

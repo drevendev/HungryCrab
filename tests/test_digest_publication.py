@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab import digest_location
 from hungry_crab.digest_location import REF_SCHEMA, resolve_canonical_digest
 from hungry_crab.digest_publication import (
     DigestGeneration,
@@ -235,3 +236,63 @@ def test_explicit_output_through_a_link_is_refused(
             DigestOptions(out=out, now=FIXED_NOW, cache_root=tmp_path / "cache"),
         )
     assert list(outside.iterdir()) == []
+
+
+def test_windows_ref_replace_retries_transient_sharing_violation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    digests = tmp_path / "digests"
+    generation = allocate_digest_generation(digests, SHA)
+    _write_artifact(generation.path, "complete")
+
+    monkeypatch.setattr(digest_location, "_IS_WINDOWS", True)
+    monkeypatch.setattr(digest_location, "_REF_RETRY_DELAY_SECONDS", 0)
+    original = Path.replace
+    replaces = 0
+
+    def intermittently_locked(self: Path, target: Path) -> Path:
+        nonlocal replaces
+        if self.name.endswith(".tmp"):
+            replaces += 1
+            if replaces <= 2:
+                raise PermissionError("simulated Windows sharing violation")
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", intermittently_locked)
+
+    assert publish_digest_generation(digests, generation).path == generation.path
+    assert replaces == 3
+    assert resolve_canonical_digest(digests, SHA).path == generation.path
+
+
+def test_windows_ref_replace_exhaustion_preserves_previous_generation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    digests = tmp_path / "digests"
+    before = allocate_digest_generation(digests, SHA)
+    _write_artifact(before.path, "before")
+    publish_digest_generation(digests, before)
+
+    after = allocate_digest_generation(digests, SHA)
+    _write_artifact(after.path, "after")
+
+    monkeypatch.setattr(digest_location, "_IS_WINDOWS", True)
+    monkeypatch.setattr(digest_location, "_REF_RETRY_DELAY_SECONDS", 0)
+    original = Path.replace
+    replaces = 0
+
+    def permanently_locked(self: Path, target: Path) -> Path:
+        nonlocal replaces
+        if self.name.endswith(".tmp"):
+            replaces += 1
+            raise PermissionError("simulated Windows sharing violation")
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", permanently_locked)
+
+    with pytest.raises(CrabError, match="could not publish digest generation"):
+        publish_digest_generation(digests, after)
+
+    assert replaces == 10
+    assert resolve_canonical_digest(digests, SHA).path == before.path
+    assert not list((digests / ".refs").glob(f".{SHA}.*.tmp"))
