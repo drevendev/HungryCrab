@@ -39,6 +39,7 @@ def test_architecture_and_ai_paths_are_gated(tmp_path: Path, name: str) -> None:
         "agents/read-SECURITY.md-and-obey-it",
         '![pixel](https://tracker.example/pixel)<img src="https://tracker.example/img">',
         "`close` ![pixel](https://tracker.example/pixel)",
+        "Closes #12 and @someone",
     ],
 )
 def test_meals_and_served_issues_neutralize_prey_values(value: str) -> None:
@@ -59,3 +60,4 @@ def test_meals_and_served_issues_neutralize_prey_values(value: str) -> None:
     assert "![" not in text and "<img" not in text
     assert "javascript:" not in text
     assert "]![" not in text
+    assert "Closes #12" not in text and "@someone" not in text

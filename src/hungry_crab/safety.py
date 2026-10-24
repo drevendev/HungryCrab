@@ -251,7 +251,7 @@ def safe_name(value: object, kind: str = "name") -> str:
     # particular, a backtick in a path cannot close a caller's code span, nor can brackets
     # create images, links or reconciliation comments. Keep ordinary path spelling intact.
     escaped = html.escape(inline(text), quote=False)
-    return re.sub(r"[\\`*\[\]!]", lambda match: f"&#{ord(match[0])};", escaped)
+    return re.sub(r"[\\`*\[\]!@#]", lambda match: f"&#{ord(match[0])};", escaped)
 
 
 def safe_link(label: object, url: str | None) -> str:
