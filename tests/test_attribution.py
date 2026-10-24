@@ -861,6 +861,22 @@ def test_ones_own_code_carries_no_licence_text(tmp_path: Path) -> None:
     assert record.texts == ()
 
 
+def test_review_flag_cannot_remove_a_foreign_sources_notice_obligation(tmp_path: Path) -> None:
+    menu = {**MENU, "verdict": {**MENU["verdict"], "relationship": "foreign", "human_review": True}}
+    with pytest.raises(CrabError, match="no licence file to carry"):
+        prepare_copy_pull_request(
+            _card(),
+            menu,
+            _payload(),
+            _maw(tmp_path),
+            title="t",
+            body="<!-- crab:ci:ci.cache -->\n",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=FakePrey({(SHA, ".github/workflows/test.yml"): "name: test\n"}),
+            now=NOW,
+        )
+
+
 @pytest.mark.parametrize("typed", [False, True])
 def test_a_loaded_meal_cannot_forge_ownership(tmp_path: Path, typed: bool) -> None:
     (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")

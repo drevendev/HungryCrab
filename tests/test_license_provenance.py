@@ -193,7 +193,8 @@ def test_reason_prose_never_establishes_ownership() -> None:
     )
     assert obligation_for(None, {"relationship": "own"}).kind == "none"
     assert (
-        obligation_for("Apache-2.0", {"relationship": "own", "human_review": True}).kind == "review"
+        obligation_for("Apache-2.0", {"relationship": "own", "human_review": True}).kind
+        == "notice-file"
     )
     assert obligation_for("MIT", {"relationship": "bypass"}).kind == "review"
 

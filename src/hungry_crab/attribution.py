@@ -331,11 +331,11 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
     establish ownership; explanatory prose is never an authorization signal.
     """
 
-    if verdict.get("human_review") is True or verdict.get("relationship") == "bypass":
+    if verdict.get("relationship") == "bypass":
         return Obligation(
             "review", "the verdict asked for human review: the notice decision is a person's"
         )
-    if verdict.get("relationship") == "own":
+    if verdict.get("relationship") == "own" and verdict.get("human_review") is not True:
         return Obligation("none", "same owner: no third-party notice is owed for one's own code")
     cls = classify(normalize(spdx))
     if cls is LicenseClass.PERMISSIVE:
