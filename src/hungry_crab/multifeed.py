@@ -17,7 +17,7 @@ from .errors import CrabError, UsageError
 from .feeder import EatOptions, EatResult, eat
 from .fetch.catch import rmtree_force
 from .mdutil import MdDoc, inline
-from .nutrients import Candidate
+from .nutrients import Candidate, slugify
 
 SCHEMA = "hungry-crab.feeder-multi/1"
 MODES = {"HUMAN": 0, "IDEAS_ONLY": 1, "REIMPLEMENT": 2, "COPY_FILE": 3, "COPY": 4}
@@ -30,6 +30,7 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
     first = ordered[0][1]
     maw = first["maw"]
     groups: dict[str, list[tuple[str, Candidate]]] = {}
+    prey_keys: dict[str, str] = {}
     for name, menu in ordered:
         if (
             menu.get("schema") != MENU_SCHEMA
@@ -37,6 +38,13 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
             or menu.get("mode") != first.get("mode")
         ):
             raise CrabError("multi-prey menus must describe the same maw snapshot and policy")
+        prey_key = slugify(str(menu["prey"]["label"]))
+        if prey_key in prey_keys:
+            raise CrabError(
+                f"multi-prey menus contain ambiguous prey labels for {prey_keys[prey_key]!r} "
+                f"and {name!r} (nutrient slug {prey_key!r})"
+            )
+        prey_keys[prey_key] = name
         for card in menu_candidates(menu):
             groups.setdefault(card.id, []).append((name, card))
     cards = []
@@ -131,6 +139,18 @@ def eat_many(
     ]
     if len(set(identities)) != len(preys):
         raise UsageError("multi-prey Feeder refuses duplicate prey")
+    # Prey-specific nutrient IDs use slugified labels, not the unique cache identities.
+    # Refuse collisions before creating a staged bundle or acquiring untrusted prey.
+    prey_keys: dict[str, str] = {}
+    for identity, prey in zip(identities, preys, strict=True):
+        prey_key = slugify(prey.label)
+        if prey_key in prey_keys:
+            raise UsageError(
+                f"multi-prey Feeder refuses ambiguous prey labels for {prey_keys[prey_key]!r} "
+                f"and {identity!r} (nutrient slug {prey_key!r}); "
+                "rename a local prey directory or use distinct repository names"
+            )
+        prey_keys[prey_key] = identity
     maw = maw.resolve()
     root = (options.cache_root or cache_root()).resolve()
     out = options.out or maw_paths(maw, root).root / "feeds" / uuid.uuid4().hex
