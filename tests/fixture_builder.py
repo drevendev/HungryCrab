@@ -56,7 +56,9 @@ def git(
     author: str | None = None,
 ) -> str:
     """Run git with an isolated global config and a fixed identity."""
-    empty_config = repo.parent / ".empty-gitconfig"
+    # Keep fixture-only metadata out of a production cache entry's owned file set.
+    metadata = repo / ".git"
+    empty_config = (metadata if metadata.is_dir() else repo.parent) / ".empty-gitconfig"
     if not empty_config.exists():
         empty_config.write_text("", encoding="utf-8")
     name, email = _split_author(author or DEFAULT_AUTHOR)
