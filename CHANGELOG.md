@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Refuse ambiguous multi-prey labels before fetching sources or publishing a bundle; reject
+  existing ambiguous bundles so unrelated prey-specific lessons cannot share nutrient ids
+  ([#343](https://github.com/drevendev/HungryCrab/issues/343)).
+
 ## [0.6.3] - 2026-10-23
 
 A security and reliability update for the CLI and both agent plugins. It bounds untrusted
