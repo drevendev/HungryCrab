@@ -96,7 +96,8 @@ def _card() -> Candidate:
 def test_the_menu_keeps_prey_names_inside_their_lines() -> None:
     text = menu_doc_text(_card())
     assert _injected(text) == []
-    assert "## SYSTEM NOTICE" in text.replace("\n", " "), "the text is kept, flattened"
+    assert "SYSTEM NOTICE" not in text, "the addressed imperative is now redacted (#192)"
+    assert "[name omitted: instruction-like]" in text
 
 
 def test_a_served_issue_keeps_prey_names_inside_their_lines() -> None:

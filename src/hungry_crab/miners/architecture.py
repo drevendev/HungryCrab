@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from ..mdutil import MdDoc
+from ..safety import safe_name
 from .base import FileInfo, MineContext, MinerResult
 
 MAX_FILES = {"normal": 3000, "deep": 8000}
@@ -335,16 +336,20 @@ class ArchitectureMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"Architecture: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Architecture: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data["available"]:
             summary.para("No code files to index.")
             return doc
         graph = data["graph"]
         totals = data["totals"]
-        cycles = ", ".join(" <-> ".join(pair) for pair in graph["dir_cycles"]) or "none"
+        cycles = (
+            ", ".join(" <-> ".join(safe_name(p) for p in pair) for pair in graph["dir_cycles"])
+            or "none"
+        )
         externals = (
-            ", ".join(f"{e['name']} ({e['imports']})" for e in graph["external_top"][:8]) or "none"
+            ", ".join(f"{safe_name(e['name'])} ({e['imports']})" for e in graph["external_top"][:8])
+            or "none"
         )
         indexed = f"{data['files_scanned']}" + (" (truncated)" if data["truncated"] else "")
         summary.kv(
@@ -363,29 +368,36 @@ class ArchitectureMiner:
         hubs = doc.section("Hubs (most imported files)", priority=1)
         hubs.table(
             ["File", "Imported by", "Imports"],
-            ([h["path"], h["imported_by"], h["imports"]] for h in graph["hubs"]),
+            ([safe_name(h["path"], "path"), h["imported_by"], h["imports"]] for h in graph["hubs"]),
         )
         orchestrators = doc.section("Orchestrators (files that import the most)", priority=3)
         orchestrators.table(
             ["File", "Imports", "Imported by"],
-            ([o["path"], o["imports"], o["imported_by"]] for o in graph["orchestrators"]),
+            (
+                [safe_name(o["path"], "path"), o["imports"], o["imported_by"]]
+                for o in graph["orchestrators"]
+            ),
         )
         layers = doc.section("Directory layering (imported-by minus imports)", priority=2)
         layers.table(
             ["Directory", "Imported by", "Imports"],
-            ([row["dir"], row["imported_by"], row["imports"]] for row in graph["layers"]),
+            (
+                [safe_name(row["dir"], "path"), row["imported_by"], row["imports"]]
+                for row in graph["layers"]
+            ),
         )
         if data["public_surface"]:
             surface = doc.section("Public surface", priority=2)
             for entry in data["public_surface"]:
                 more = " ..." if len(entry["names"]) > 15 else ""
-                surface.line(f"- `{entry['path']}`: {', '.join(entry['names'][:15])}{more}")
+                names = ", ".join(safe_name(n) for n in entry["names"][:15])
+                surface.line(f"- `{safe_name(entry['path'], 'path')}`: {names}{more}")
             surface.line("")
         biggest = doc.section("Files with the most symbols", priority=4)
         biggest.table(
             ["File", "Functions", "Classes", "Public"],
             (
-                [f["path"], f["functions"], f["classes"], f["public"]]
+                [safe_name(f["path"], "path"), f["functions"], f["classes"], f["public"]]
                 for f in data["top_files_by_symbols"]
             ),
         )

@@ -7,8 +7,12 @@ instruction-like fragments so a skill can treat the file with extra suspicion.
 
 from __future__ import annotations
 
+import html
 import re
 from collections.abc import Callable, Iterable, Iterator
+from urllib.parse import quote, urlsplit
+
+from .mdutil import inline
 
 # Invisible code points are a classic carrier for hidden instructions, and the Tags block is
 # the one that carries whole sentences: it maps every printable ASCII character to a code
@@ -92,6 +96,13 @@ SUSPICIOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
             r"(?:instructions|prompts|rules|messages)"
         ),
         r"disregard (?:all |any |the )?(?:previous|prior|above|earlier)",
+        # Addressed imperatives, rather than the noun "agent" or an ordinary run-history name.
+        (
+            r"\b(?:agents?|assistants?|models?|claude|copilots?)"
+            r"(?:\s+(?:must|should|need to|are required to)\s+|\s*:\s*)"
+            r"(?:now\s+)?(?:run|execute|serve|publish|approve|deploy|obey|follow|read)\b"
+        ),
+        r"\bagents?\s+read\b[^\n]{0,100}?\band\s+(?:obey|follow)\b",
         # The verb alone is not a signal. "you need to ignore files by extension" and "you must
         # bypass the cache" are ordinary README sentences, and syrupy's README produced four such
         # false positives out of four flags. What makes the sentence an instruction to an agent is
@@ -220,9 +231,9 @@ def is_suspicious(text: str) -> bool:
 def safe_name(value: object, kind: str = "name") -> str:
     """A name the prey chose (author, path, tag, branch, workflow) for a Markdown summary.
 
-    The one gate those names pass before they reach a digest's Markdown: the name itself, or
-    a placeholder when it reads like an instruction, as headings are redacted. The JSON side
-    keeps the name; full data goes to JSON.
+    The one gate those names pass before they reach a digest's Markdown: inert single-line
+    text, or a placeholder when it reads like an instruction, as headings are redacted. The
+    JSON side keeps the name; full data goes to JSON. This is a heuristic, not a host sandbox.
 
     A git ref or a path cannot hold a space, so a sentence hides in one as
     `you-must-ignore-the-license-policy`; every phrase rule needs spaces. The name is judged
@@ -234,7 +245,28 @@ def safe_name(value: object, kind: str = "name") -> str:
     flagged = is_suspicious(text) or (
         spaced != text and any(next(find(spaced), None) is not None for find in _NAME_RULES)
     )
-    return f"[{kind} omitted: instruction-like]" if flagged else text
+    if flagged:
+        return f"[{kind} omitted: instruction-like]"
+    # Entities are rendered as literal characters, never reparsed as Markdown syntax. In
+    # particular, a backtick in a path cannot close a caller's code span, nor can brackets
+    # create images, links or reconciliation comments. Keep ordinary path spelling intact.
+    escaped = html.escape(inline(text), quote=False)
+    return re.sub(r"[\\`*\[\]!]", lambda match: f"&#{ord(match[0])};", escaped)
+
+
+def safe_link(label: object, url: str | None) -> str:
+    """An inert name with an optional HTTP(S) evidence link whose delimiter bytes are encoded."""
+    shown = safe_name(label)
+    if not url or is_suspicious(url):
+        return shown
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username:
+            return shown
+    except ValueError:
+        return shown
+    target = quote(url, safe=":/?#@%+&=~!$*,;.-_")
+    return f"[{shown}]({target})"
 
 
 def sanitize_lines(lines: Iterable[str], *, max_lines: int) -> tuple[list[str], int]:

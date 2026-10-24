@@ -69,7 +69,7 @@ class SignalsMiner:
                 ),
             },
         }
-        doc = MdDoc(f"Provider signals: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Provider signals: {ctx.display_label}", source=ctx.source_line())
         section = doc.section("Acquisition coverage", priority=1)
         section.table(
             ["Channel", "Status", "Truncated"],

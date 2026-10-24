@@ -153,7 +153,7 @@ class IssuesMiner:
         if not items:
             reason = "no issues fetched; run `crab catch <prey> --issues 300`"
             data: dict[str, Any] = {"available": False, "reason": reason}
-            doc = MdDoc(f"Issues: {ctx.label}", source=ctx.source_line())
+            doc = MdDoc(f"Issues: {ctx.display_label}", source=ctx.source_line())
             doc.section("Summary", priority=1).para(f"Issues not available: {reason}.")
             return MinerResult(self.name, data, doc=doc)
         open_items = [i for i in items if i.get("state") == "open"]
@@ -210,7 +210,7 @@ class IssuesMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data))
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"Issues: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Issues: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         ttc = data["time_to_close_days"]
         comments = data["comments"]

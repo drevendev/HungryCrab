@@ -781,7 +781,7 @@ class InventoryMiner:
         )
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"Inventory: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Inventory: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         summary.kv(
             [

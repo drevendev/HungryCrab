@@ -374,12 +374,12 @@ class HistoryMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _unavailable(self, ctx: MineContext, reason: str) -> MdDoc:
-        doc = MdDoc(f"History: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"History: {ctx.display_label}", source=ctx.source_line())
         doc.section("Summary", priority=1).para(f"History not available: {reason}.")
         return doc
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"History: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"History: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data.get("commits"):
             summary.para("No commits on the current branch.")

@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from ..mdutil import MdDoc
-from ..safety import is_suspicious, suspicious_fragments
+from ..safety import is_suspicious, safe_name, suspicious_fragments
 from ..typeutil import as_dict
 from .base import FileInfo, MineContext, MinerResult
 from .wiki import markdown_headings, split_frontmatter
@@ -287,7 +287,7 @@ class AiConfigMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"AI configuration: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"AI configuration: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data["present"]:
             if data["skills"] or data["agents"] or data["hooks"]:
@@ -302,25 +302,32 @@ class AiConfigMiner:
                 ("Tools configured", ", ".join(data["present"]) or "none"),
                 (
                     "Instruction files",
-                    ", ".join(g["path"] for g in data["instruction_files"]) or "none",
+                    ", ".join(safe_name(g["path"], "path") for g in data["instruction_files"])
+                    or "none",
                 ),
                 ("Skills", len(data["skills"])),
                 ("Subagents", len(data["agents"])),
                 ("Commands", len(data["commands"])),
                 ("Hook files", len(data["hooks"])),
-                ("MCP servers", ", ".join(s for m in data["mcp"] for s in m["servers"]) or "none"),
+                (
+                    "MCP servers",
+                    ", ".join(safe_name(s) for m in data["mcp"] for s in m["servers"]) or "none",
+                ),
                 ("Cursor rules", len(data["cursor_rules"])),
                 (
                     "Copilot instructions",
                     len(data["copilot_instructions"]) + len(data["copilot_prompts"]),
                 ),
-                ("Plugin manifest", data["plugin"][0]["name"] if data["plugin"] else "none"),
+                (
+                    "Plugin manifest",
+                    safe_name(data["plugin"][0]["name"]) if data["plugin"] else "none",
+                ),
                 ("Devcontainer", data["devcontainer"]),
                 ("Instruction-like fragments flagged", data["suspicious_fragments"]),
             ]
         )
         for gist in data["instruction_files"]:
-            section = doc.section(f"{gist['path']} ({gist['tool']})", priority=2)
+            section = doc.section(f"{safe_name(gist['path'], 'path')} ({gist['tool']})", priority=2)
             section.kv(
                 [
                     ("Size", f"{gist['lines']} lines, ~{gist['words']} words"),
@@ -336,9 +343,9 @@ class AiConfigMiner:
                 ["Path", "Name", "Description"],
                 (
                     [
-                        s["path"],
-                        s["frontmatter"].get("name", ""),
-                        s["frontmatter"].get("description", "")[:120],
+                        safe_name(s["path"], "path"),
+                        safe_name(s["frontmatter"].get("name", "")),
+                        safe_name(s["frontmatter"].get("description", "")[:120]),
                     ]
                     for s in data["skills"]
                 ),
@@ -349,7 +356,11 @@ class AiConfigMiner:
             agents.table(
                 ["Path", "Name", "Tools"],
                 (
-                    [a["path"], a["frontmatter"].get("name", ""), a["frontmatter"].get("tools", "")]
+                    [
+                        safe_name(a["path"], "path"),
+                        safe_name(a["frontmatter"].get("name", "")),
+                        safe_name(a["frontmatter"].get("tools", "")),
+                    ]
                     for a in data["agents"]
                 ),
                 max_rows=20,
@@ -363,7 +374,11 @@ class AiConfigMiner:
             plugins.table(
                 ["Path", "Platform", "Metadata"],
                 (
-                    [g["path"], g["tool"], "invalid JSON" if g["parse_error"] else "parsed JSON"]
+                    [
+                        safe_name(g["path"], "path"),
+                        g["tool"],
+                        "invalid JSON" if g["parse_error"] else "parsed JSON",
+                    ]
                     for g in data["plugin"]
                 ),
             )
@@ -371,27 +386,35 @@ class AiConfigMiner:
             settings = doc.section("Settings", priority=3)
             for gist in data["settings"]:
                 if gist.get("parse_error"):
-                    settings.bullets([f"{gist['path']}: not valid JSON"])
+                    settings.bullets([f"{safe_name(gist['path'], 'path')}: not valid JSON"])
                     continue
                 settings.kv(
                     [
-                        ("File", gist["path"]),
-                        ("Keys", ", ".join(gist["keys"])),
+                        ("File", safe_name(gist["path"], "path")),
+                        ("Keys", ", ".join(safe_name(k) for k in gist["keys"])),
                         (
                             "Permissions",
-                            ", ".join(f"{k}: {v}" for k, v in gist["permissions"].items())
+                            ", ".join(
+                                f"{safe_name(k)}: {v}" for k, v in gist["permissions"].items()
+                            )
                             or "none",
                         ),
-                        ("Hook events", ", ".join(gist["hook_events"]) or "none"),
+                        (
+                            "Hook events",
+                            ", ".join(safe_name(k) for k in gist["hook_events"]) or "none",
+                        ),
                     ]
                 )
         if data["commands"] or data["hooks"] or data["cursor_rules"]:
             other = doc.section("Other files", priority=4)
             other.bullets(
-                data["commands"]
-                + data["hooks"]
-                + data["cursor_rules"]
-                + data["copilot_instructions"],
+                (
+                    safe_name(p, "path")
+                    for p in data["commands"]
+                    + data["hooks"]
+                    + data["cursor_rules"]
+                    + data["copilot_instructions"]
+                ),
                 max_items=30,
             )
         return doc

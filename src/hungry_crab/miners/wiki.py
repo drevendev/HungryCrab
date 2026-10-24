@@ -476,7 +476,7 @@ class WikiMiner:
                 page_count=len(pages),
                 bytes=sum(p["bytes"] for p in pages),
             )
-        doc = MdDoc(f"Wiki · {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Wiki · {ctx.display_label}", source=ctx.source_line())
         doc.section("Snapshot", priority=0).table(
             ["Metric", "Value"],
             [

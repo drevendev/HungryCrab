@@ -153,7 +153,7 @@ class BranchesMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data))
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"Branches: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Branches: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         if not data.get("available"):
             summary.para(f"Branches not available: {data.get('reason')}.")

@@ -694,7 +694,7 @@ class CiMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"CI: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"CI: {ctx.display_label}", source=ctx.source_line())
         features = data["features"]
         summary = doc.section("Summary", priority=1)
         if not data["workflows"] and not features["other_ci"]:

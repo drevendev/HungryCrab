@@ -282,7 +282,7 @@ class DocsMiner:
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
-        doc = MdDoc(f"Docs: {ctx.label}", source=ctx.source_line())
+        doc = MdDoc(f"Docs: {ctx.display_label}", source=ctx.source_line())
         summary = doc.section("Summary", priority=1)
         readme = data["readme"]
 
