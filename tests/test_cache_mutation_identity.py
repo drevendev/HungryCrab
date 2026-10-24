@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -14,6 +15,7 @@ from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
 from hungry_crab.fetch.catch import CatchOptions, catch, catch_wiki
 from hungry_crab.fetch.git import GitRunner
+from hungry_crab.sniff import sniff
 
 
 def _snapshot(path: Path) -> dict[str, bytes]:
@@ -261,3 +263,57 @@ def test_inherited_git_paths_are_refused_even_before_a_first_clone(
         )
     assert not cache.exists()
     assert _snapshot(external) == {"private.txt": b"untouched"}
+
+
+def test_sniff_cannot_claim_an_unowned_existing_checkout(npm_app: Path, tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    paths = prey_paths(slug, cache)
+    paths.root.parent.mkdir(parents=True)
+    GitRunner(tmp_path).run("clone", "--quiet", str(npm_app), str(paths.root))
+    (paths.root / "private.txt").write_text("uncommitted work", encoding="utf-8")
+    before = _snapshot(paths.root)
+    client = SimpleNamespace(transport="fixture", repo=lambda _: {}, languages=lambda _: {})
+    with pytest.raises(CrabError):
+        sniff(slug, cache_root=cache, client=client)  # type: ignore[arg-type]
+    assert _snapshot(paths.root) == before
+
+
+def test_sniff_record_does_not_prove_ownership_of_an_existing_clone(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    paths = prey_paths(slug, cache)
+    paths.api.mkdir(parents=True)
+    (paths.api / "sniff.json").write_text(json.dumps({"slug": str(slug)}), encoding="utf-8")
+    GitRunner(tmp_path).run("clone", "--quiet", str(npm_app), str(paths.repo))
+    (paths.repo / "private.txt").write_text("uncommitted work", encoding="utf-8")
+    before = _snapshot(paths.root)
+    with pytest.raises(CrabError, match="no crab ownership record"):
+        catch(slug, CatchOptions(force=True, wiki=False), cache_root=cache, source_url=str(npm_app))
+    assert _snapshot(paths.root) == before
+
+
+def test_legacy_sniff_marker_cannot_authorize_deleting_a_human_checkout(
+    npm_app: Path, tmp_path: Path
+) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    paths = prey_paths(slug, cache)
+    paths.root.parent.mkdir(parents=True)
+    GitRunner(tmp_path).run("clone", "--quiet", str(npm_app), str(paths.root))
+    paths.api.mkdir()
+    (paths.api / "sniff.json").write_text(json.dumps({"slug": str(slug)}), encoding="utf-8")
+    before = _snapshot(paths.root)
+    assert main(["--cache-dir", str(cache), "cache", "rm", str(slug)]) == 1
+    assert _snapshot(paths.root) == before
+
+
+def test_a_fresh_sniff_can_still_be_followed_by_catch(npm_app: Path, tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    slug = Slug("fixture", "identity")
+    client = SimpleNamespace(transport="fixture", repo=lambda _: {}, languages=lambda _: {})
+    sniff(slug, cache_root=cache, client=client)  # type: ignore[arg-type]
+    result = catch(slug, CatchOptions(wiki=False), cache_root=cache, source_url=str(npm_app))
+    assert result.sha == GitRunner(npm_app).head_sha()

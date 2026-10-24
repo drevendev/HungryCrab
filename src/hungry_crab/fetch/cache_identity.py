@@ -82,8 +82,11 @@ def _nonempty(path: Path) -> bool:
         raise CrabError("cannot inspect an existing cache directory", hint=_HINT) from exc
 
 
-def _owned_entry(path: Path, slug: Slug, root: Path) -> bool:
-    for record in (path / "catch.json", path / "api" / "sniff.json"):
+def _owned_entry(path: Path, slug: Slug, root: Path, *, include_sniff: bool = True) -> bool:
+    records = [path / "catch.json"]
+    if include_sniff:
+        records.append(path / "api" / "sniff.json")
+    for record in records:
         _real_path(record, root)
         named = _record(record).get("slug")
         if isinstance(named, str) and named.casefold() == str(slug).casefold():
@@ -130,7 +133,9 @@ def require_clone_identity(
     _real_path(git_dir / CLONE_RECORD, cache_root)
     marker = _record(git_dir / CLONE_RECORD)
     owned = marker.get("url") == url and marker.get("schema") == 1
-    if not owned and not (slug and _owned_entry(path.parent, slug, cache_root)):
+    if not owned and not (
+        slug and _owned_entry(path.parent, slug, cache_root, include_sniff=False)
+    ):
         raise CrabError("refusing to mutate a clone with no crab ownership record", hint=_HINT)
     # Read only this regular config file: includes and environment overrides cannot supply
     # an alternative identity. Never echo a URL that might contain credentials.
@@ -202,6 +207,10 @@ def require_cache_identity(slug: Slug, root: Path, *, url: str | None = None) ->
     _real_path(paths.root, root)
     if not paths.root.exists():
         return
+    if os.path.lexists(paths.root / ".git"):
+        raise CrabError(
+            "refusing cache mutation: the entry is itself a working checkout", hint=_HINT
+        )
     _real_path(paths.api, root)
     owned = _owned_entry(paths.root, slug, root)
     if _nonempty(paths.root) and not owned:

@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from .cache import Slug, prey_paths
+from .cache import cache_root as default_cache_root
+from .fetch.cache_identity import require_cache_identity
 from .fetch.providers import RepositoryClient, client_for
 from .licensing import (
     LicenseClass,
@@ -253,6 +255,9 @@ def sniff(
     log: Callable[[str], None] = _noop,
 ) -> SniffReport:
     """Fetch metadata, store the raw API responses in the cache, and build the report."""
+    root = cache_root if cache_root is not None else default_cache_root()
+    require_cache_identity(slug, root)
+    paths = prey_paths(slug, root)
     api = client or client_for(slug)
     log(f"sniffing {slug} via {api.transport}")
     repo = api.repo(slug)
@@ -260,7 +265,6 @@ def sniff(
     report = build_report(
         slug, repo, languages, maw_license=maw_license, relationship=relationship, now=now
     )
-    paths = prey_paths(slug, cache_root)
     paths.api.mkdir(parents=True, exist_ok=True)
     (paths.api / "repo.json").write_text(json.dumps(repo, indent=2) + "\n", encoding="utf-8")
     (paths.api / "languages.json").write_text(

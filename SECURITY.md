@@ -83,11 +83,14 @@ live session, the clean-room guard has not yet. Treat them as a second line behi
 Before refreshing, replacing or removing an existing prey cache, Crab requires a catch or sniff
 record naming that prey and verifies that the clone has exactly the requested origin. It also
 checks the effective URL after Git includes, URL rewrites and environment configuration, and
-refreshes only that origin. Links and Windows reparse points below the chosen cache root are
+refreshes only that origin. A sniff record owns provider metadata; an existing clone also
+needs its acquisition marker or matching catch record. Sniff refuses to claim an existing
+unowned directory, and a checkout at the cache-entry root is refused even with a legacy marker.
+Links and Windows reparse points below the chosen cache root are
 refused; the root itself and its ancestors may be user-configured filesystem aliases.
 
 New main and wiki clones also carry an acquisition marker inside `.git`. Standalone wiki
-replacement requires that marker or an existing prey ownership record. Quota transactions
+replacement requires that marker or a matching catch record. Quota transactions
 verify old clone identity before moving any cache entry. A refusal preserves existing data;
 an old unmarked checkout must be inspected and moved aside manually rather than adopted by
 `--force`. These checks do not claim protection from a concurrent process rewriting the cache.
