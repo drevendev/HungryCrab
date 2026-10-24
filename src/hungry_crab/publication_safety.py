@@ -564,8 +564,17 @@ def _entropy_hit(line: str) -> bool:
 
 def _display_views(text: str) -> tuple[str, ...]:
     """Raw bytes and known display transformations must retain the same secret blockers."""
-    decoded = html.unescape(text)
-    return tuple(dict.fromkeys((text, decoded, decoded.replace("(at)", "@"))))
+    views: list[str] = []
+    current = text
+    # Metadata accepts at most four entity layers, then adds one escaping layer. Keep every
+    # intermediate view: a literal entity may itself be part of a credential's bytes.
+    for _ in range(6):
+        views.extend((current, current.replace(" (at) ", "@"), current.replace("(at)", "@")))
+        decoded = html.unescape(current)
+        if decoded == current:
+            break
+        current = decoded
+    return tuple(dict.fromkeys(views))
 
 
 def _path_rules(logical_path: str) -> list[str]:

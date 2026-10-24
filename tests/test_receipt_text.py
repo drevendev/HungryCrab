@@ -64,7 +64,7 @@ def test_metadata_cannot_reconstitute_a_mention(value: str, layers: int) -> None
     assert "@" not in shown
     assert (
         "someone" in shown
-        or "(at)types" in shown
-        or "name(at)example" in shown
+        or "(at) types" in shown
+        or "name (at) example" in shown
         or "omitted" in shown
     )

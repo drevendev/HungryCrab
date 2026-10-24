@@ -98,10 +98,11 @@ def test_quoting_a_receipt_does_not_disable_its_secret_scan() -> None:
     assert scan_publication("pull-request-body.md", quoted)
 
 
-def test_visible_at_substitution_cannot_hide_url_credentials() -> None:
+@pytest.mark.parametrize("password", [PASSWORD, "password(at)" + LITERAL, "pass&Tab;word"])
+def test_visible_at_substitution_cannot_hide_url_credentials(password: str) -> None:
     from hungry_crab.safety import safe_name
 
-    shown = safe_name("postgres://crab:" + PASSWORD + "@db.example/crab")
+    shown = safe_name("postgres://crab:" + password + "@db.example/crab")
     assert "@" not in shown
     assert any(f.rule == "url-credentials" for f in scan_publication("PR_BODY", shown))
     with pytest.raises(CrabError):
