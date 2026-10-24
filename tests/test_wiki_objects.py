@@ -127,9 +127,12 @@ def test_replace_refs_cannot_change_recorded_wiki_evidence(tmp_path: Path) -> No
     assert result.data["coverage"]["healthy"]
     assert [page["path"] for page in result.data["pages"]] == ["Home.md"]
     assert result.data["pages"][0]["headings"] == [{"level": 1, "text": "Original"}]
-    assert _git_bytes(git, "ls-tree", "-r", "-z", "-l", recorded_sha, limit=4096).find(
-        git.run("rev-parse", f"{replacement_sha}:Home.md").strip().encode()
-    ) < 0
+    assert (
+        _git_bytes(git, "ls-tree", "-r", "-z", "-l", recorded_sha, limit=4096).find(
+            git.run("rev-parse", f"{replacement_sha}:Home.md").strip().encode()
+        )
+        < 0
+    )
 
 
 def test_distinct_invalid_utf8_names_are_recorded_as_separate_loss(tmp_path: Path) -> None:
@@ -145,8 +148,14 @@ def test_distinct_invalid_utf8_names_are_recorded_as_separate_loss(tmp_path: Pat
         entries.append(b"100644 blob " + oid.encode("ascii") + b"\t" + name + b"\0")
     tree = _object(git, "mktree", "-z", data=b"".join(entries))
     sha = git.run(
-        "-c", "user.name=Fixture", "-c", "user.email=fixture@invalid.example",
-        "commit-tree", tree, "-m", "docs: raw byte paths",
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@invalid.example",
+        "commit-tree",
+        tree,
+        "-m",
+        "docs: raw byte paths",
     ).strip()
     git.run("update-ref", "HEAD", sha)
 
@@ -154,8 +163,7 @@ def test_distinct_invalid_utf8_names_are_recorded_as_separate_loss(tmp_path: Pat
     coverage = result.data["coverage"]
     assert not coverage["healthy"]
     assert sorted(coverage["unreadable_pages"]) == sorted(
-        ["<invalid-utf8-git-path:46696c652dfe2e6d64>",
-         "<invalid-utf8-git-path:46696c652dff2e6d64>"]
+        ["<invalid-utf8-git-path:46696c652dfe2e6d64>", "<invalid-utf8-git-path:46696c652dff2e6d64>"]
     )
     assert [page["path"] for page in result.data["pages"]] == ["Valid.md"]
     assert result.data["page_count"] == 1
