@@ -14,6 +14,7 @@ from hungry_crab.compare.render import gap_doc, menu_doc
 from hungry_crab.digest import DigestOptions, run_digest
 from hungry_crab.errors import CrabError
 from hungry_crab.nutrients import Candidate, Evidence
+from hungry_crab.safety import safe_link
 from hungry_crab.serve import render_issue
 
 
@@ -102,3 +103,8 @@ def test_supported_publisher_revisions_and_ids_are_preserved(sha: str | None) ->
     _, body = render_issue(card, {"prey": {"sha": sha}})
     assert body.startswith("<!-- crab:docs:docs.guide -->\n")
     assert card.id == "crab:docs:docs.guide"
+
+
+@pytest.mark.parametrize("userinfo", ["user@", "user:pass@", ":pass@", "@"])
+def test_evidence_links_refuse_all_userinfo(userinfo: str) -> None:
+    assert safe_link("docs", f"https://{userinfo}example.com/guide") == "docs"

@@ -240,8 +240,8 @@ def safe_name(value: object, kind: str = "name") -> str:
     as written and once more, by the imperative rules, with its runs of `-`, `_`, `/`, `.`,
     `+` and `,` read as spaces.
     """
-    text = "" if value is None else str(value)
-    spaced = _NAME_SEPARATORS_RE.sub(" ", text)
+    text = inline(value)
+    spaced = inline(_NAME_SEPARATORS_RE.sub(" ", text))
     flagged = is_suspicious(text) or (
         spaced != text and any(next(find(spaced), None) is not None for find in _NAME_RULES)
     )
@@ -261,7 +261,12 @@ def safe_link(label: object, url: str | None) -> str:
         return shown
     try:
         parsed = urlsplit(url)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username:
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
             return shown
     except ValueError:
         return shown
