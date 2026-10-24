@@ -256,8 +256,7 @@ class Loop:
         self.settings.cadence = cadence
         owner_prey = self.settings.prey
         control_prey = [
-            str(Slug.parse(item))
-            for item in strings(entry.get("prey", owner_prey), "control.prey")
+            str(Slug.parse(item)) for item in strings(entry.get("prey", owner_prey), "control.prey")
         ]
         if len(control_prey) != len(set(control_prey)) or any(
             prey not in owner_prey for prey in control_prey
@@ -735,9 +734,8 @@ class Loop:
                 selected = [str(Slug.parse(item)) for item in prey]
             except UsageError as exc:
                 raise CrabError(invalid) from exc
-            if (
-                any(item not in configured for item in selected)
-                or len(set(selected)) != len(selected)
+            if any(item not in configured for item in selected) or len(set(selected)) != len(
+                selected
             ):
                 raise CrabError(invalid)
             data["prey"] = selected
