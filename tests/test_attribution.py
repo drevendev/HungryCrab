@@ -467,6 +467,27 @@ def test_edited_carried_text_fails_before_notice_or_copy_writes(tmp_path: Path) 
     assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
 
 
+@pytest.mark.parametrize(("field", "value"), [("label", "bad\nlabel"), ("url", "https://")])
+def test_preparation_cannot_emit_a_receipt_its_stored_parser_rejects(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    source = {**PREY, field: value}
+    maw = _maw(tmp_path)
+    with pytest.raises(CrabError):
+        prepare_copy_pull_request(
+            _card(),
+            {**MENU, "prey": source},
+            _payload(source=source),
+            maw,
+            title="safe",
+            body="<!-- crab:ci:ci.cache -->",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=_prey(),
+            now=NOW,
+        )
+    assert not (maw / ATTRIBUTIONS_PATH).exists()
+
+
 def test_check_refuses_a_deleted_recorded_maw_file(tmp_path: Path) -> None:
     maw = _maw(tmp_path)
     path = maw / ATTRIBUTIONS_PATH

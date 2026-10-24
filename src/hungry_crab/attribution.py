@@ -1196,6 +1196,8 @@ def prepare_copy_pull_request(
         texts=texts,
         checks=receipt.checks,
     )
+    # New publications must obey exactly the same schema as later reads of their history.
+    record = AttributionRecord.from_dict(record.to_dict())
     records = add_attribution(load_attributions(maw_root), record)
     recorded = next(item for item in records if item.identity == record.identity)
 
