@@ -362,6 +362,8 @@ def _git_bytes(git: GitRunner, *args: str, limit: int) -> bytes:
     """Read local object plumbing with bounded pipes; never materialize a wiki path."""
     env = git_env()
     env["GIT_NO_LAZY_FETCH"] = "1"
+    # Replacement refs can substitute a different tree/blob while the recorded SHA stays fixed.
+    env["GIT_NO_REPLACE_OBJECTS"] = "1"
     try:
         result = run_bounded(
             [git.exe, *SAFE_CONFIG, "-C", str(git.cwd), *args],
@@ -410,10 +412,20 @@ class WikiMiner:
                 fields = metadata.split()
                 if not separator or len(fields) != 4 or fields[0] not in (b"100644", b"100755"):
                     continue
-                name = raw_name.decode("utf-8", errors="replace")
-                path = PurePosixPath(name)
-                if path.suffix.lower() not in PAGE_EXTENSIONS:
+                # Git paths are byte strings. Replacement decoding can collapse two distinct
+                # committed pages into the same exported path; mark that coverage loss instead.
+                decoded_path = PurePosixPath(raw_name.decode("utf-8", errors="surrogateescape"))
+                if decoded_path.suffix.lower() not in PAGE_EXTENSIONS:
                     continue
+                try:
+                    name = raw_name.decode("utf-8")
+                except UnicodeDecodeError:
+                    data["coverage"]["healthy"] = False
+                    data["coverage"]["unreadable_pages"].append(
+                        f"<invalid-utf8-git-path:{raw_name.hex()}>"
+                    )
+                    continue
+                path = PurePosixPath(name)
                 if len(pages) >= MAX_PAGES[ctx.depth]:
                     data["coverage"].update(healthy=False, truncated=True)
                     break
