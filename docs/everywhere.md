@@ -82,6 +82,13 @@ tree without parent history or cache reuse; `prey.git_scope` in the manifest rec
 A Git worktree whose file set cannot be established is refused rather than walked without its
 ignore rules. Wiki inputs must name their own Git worktree root.
 
+Licence conflicts and review flags remain visible in meals and issue traces. Evidence covered
+by foreign headers or nested licences requires human resolution (`HUMAN`); unaffected evidence
+keeps the repository mode with its review flag. Inferred ownership is resolved against fetched
+fork metadata: both the parent and ultimate upstream must be known and have a trusted owner.
+Missing final provenance cannot grant the OWN exception. Older digests are rebuilt for this
+policy; regenerate older meals before relying on inferred ownership.
+
 Network acquisition is disabled by default. To allow remote GitHub/GitLab prey, the operator
 must add `--allow-network` to the server command. Remote acquisition uses a shallow 90-day
 history window, no issue/discussion/review/run collection and no wiki fetch. It may need suitable

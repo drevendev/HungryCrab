@@ -22,12 +22,14 @@ from ..digest_reader import locate_digest_sha
 from ..errors import CrabError
 from ..ledger import Ledger
 from ..licensing import Relationship, decide
+from ..licensing.origin import ContentOrigin
 from ..licensing.policy import apply_maw_policy, nutrient_material
 from ..maw import MawConfig, maw_slug, relationship_for
 from ..memory import learn
 from ..nutrients import Candidate
 from ..typeutil import as_dict, as_list
 from .candidates import Side, build_candidates
+from .license_policy import covered_exceptions, review_reasons
 from .render import gap_doc, menu_doc
 from .scoring import Scoring
 
@@ -58,6 +60,7 @@ class CompareOptions:
     # reads as an absent fact, and the menu cannot tell the two apart.
     allow_partial: bool = False
     mode: str = "normal"
+    maw_config: MawConfig | None = None
 
 
 @dataclass
@@ -141,12 +144,38 @@ def compare_digests(
     if not opts.allow_partial:
         _refuse_partial(prey, maw, prey_dir, maw_dir)
     maw_spdx = opts.maw_license or maw.spdx
-    verdict = decide(prey.spdx, maw_spdx, relationship=opts.relationship).to_dict()
+    repository = as_dict(as_dict(prey.manifest.get("prey")).get("repository"))
+    relationship = Relationship(opts.relationship)
+    if opts.maw_config is not None:
+        remote = Slug.parse(prey.url) if prey.url else None
+        relationship = relationship_for(remote, opts.maw_config, repository=repository)
+    elif relationship is Relationship.OWN and (
+        repository.get("fork") is not False
+        or prey.trait("is_fork") is True
+        or any(repository.get(key) is not None for key in ("parent", "source"))
+    ):
+        relationship = Relationship.FOREIGN
+    verdict = decide(prey.spdx, maw_spdx, relationship=relationship).to_dict()
+    verdict["relationship"] = relationship.value
+    review = review_reasons(prey.license)
+    if review:
+        verdict["human_review"] = True
+        verdict["reason"] = (
+            str(verdict["reason"]) + "; licence evidence requires review: " + "; ".join(review)
+        )
+    verdict["review_reasons"] = review
     scoring = Scoring.default().merged(opts.scoring)
     candidates, facts = build_candidates(prey, maw)
     now = opts.now or datetime.now(UTC)
     for candidate in candidates:
         candidate.license_mode = str(verdict["mode"])
+        exceptions = covered_exceptions(prey.license, [e.path for e in candidate.evidence])
+        if (
+            exceptions
+            and candidate.origin == ContentOrigin.LICENSED.value
+            and relationship is not Relationship.BYPASS
+        ):
+            candidate.license_mode = "HUMAN"
         candidate.material = nutrient_material(
             candidate.category, [e.path for e in candidate.evidence]
         )
@@ -172,6 +201,10 @@ def compare_digests(
             "maw_policy_reason": candidate.license_policy_reason,
             "prey_wiki_sha": prey.manifest.get("wiki", {}).get("sha"),
             "maw_wiki_sha": maw.manifest.get("wiki", {}).get("sha"),
+            "license_relationship": relationship.value,
+            "license_review_required": bool(verdict["human_review"]),
+            "license_review_reasons": review,
+            "evidence_license_exceptions": exceptions,
         }
     candidates, hidden = apply_hunger(candidates, opts.hunger)
     still: list[Candidate] = []
@@ -202,6 +235,7 @@ def compare_digests(
             "sha": prey.sha,
             "license": prey.spdx,
             "license_class": prey.license.get("class"),
+            "repository": repository,
             "ecosystems": sorted(prey.ecosystems),
         },
         "maw": {
@@ -335,9 +369,6 @@ def compare_for_maw(
                     )
             except CrabError as exc:
                 log(f"warning: could not check existing issues: {exc.message}")
-    relationship = relationship_for(prey_target, config)
-    if relationship is not Relationship.FOREIGN:
-        log(f"license relationship: {relationship.value} (from .crab.yml trust)")
     learned, memory = learn(
         ledger, Scoring.default().merged(config.scoring), config.memory, overrides=config.scoring
     )
@@ -350,13 +381,15 @@ def compare_for_maw(
         maw_license=config.license or d_opts.maw_license,
         hidden_ids=hidden,
         now=now,
-        relationship=relationship.value,
+        maw_config=config,
         allow_partial=allow_partial,
         mode=config.mode,
     )
     result, prey_digest, _ = run_compare(
         prey_target, maw_root, digest_options=d_opts, options=options, log=log
     )
+    if result.verdict["relationship"] != Relationship.FOREIGN.value:
+        log(f"license relationship: {result.verdict['relationship']} (from .crab.yml trust)")
     if record_ledger:
         new = ledger.record_meal(result.menu, result.candidates, now=now)
         saved = ledger.save(now=now)

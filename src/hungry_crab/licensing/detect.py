@@ -792,6 +792,7 @@ def detect_in_repo(
     findings.human_review = (
         bool(findings.conflicts)
         or bool(heavier)
+        or any(item.get("kind") == "header" for item in findings.exceptions)
         or cls
         in (
             LicenseClass.NONE,

@@ -21,6 +21,7 @@ from .licensing import (
     modes_by_maw_class,
     normalize,
 )
+from .maw import MawConfig, relationship_for
 
 GIANT_KB = 300 * 1024
 HUGE_KB = 1024 * 1024
@@ -66,6 +67,7 @@ class SniffReport:
     suggestions: list[str] = field(default_factory=list)
     fetched_at: str = ""
     size_available: bool = True
+    relationship: str = Relationship.FOREIGN.value
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -93,8 +95,17 @@ def build_report(
     maw_license: str | None = None,
     relationship: Relationship | str = Relationship.FOREIGN,
     now: datetime | None = None,
+    maw_config: MawConfig | None = None,
 ) -> SniffReport:
     current = now or datetime.now(UTC)
+    effective_relationship = Relationship(relationship)
+    if maw_config is not None:
+        effective_relationship = relationship_for(slug, maw_config, repository=repo)
+    elif effective_relationship is Relationship.OWN and (
+        repo.get("fork") is not False
+        or any(repo.get(key) is not None for key in ("parent", "source"))
+    ):
+        effective_relationship = Relationship.FOREIGN
     license_info = repo.get("license")
     raw_spdx: str | None = None
     license_name: str | None = None
@@ -202,12 +213,13 @@ def build_report(
             spdx if cls is not LicenseClass.UNKNOWN else "NOASSERTION"
         ),
         maw_license=maw_license,
-        mode=decide(spdx, maw_license, relationship=relationship).mode.value
+        mode=decide(spdx, maw_license, relationship=effective_relationship).mode.value
         if maw_license
         else None,
         warnings=warnings,
         suggestions=suggestions,
         fetched_at=current.isoformat(timespec="seconds"),
+        relationship=effective_relationship.value,
     )
 
 
@@ -253,6 +265,7 @@ def sniff(
     relationship: Relationship | str = Relationship.FOREIGN,
     now: datetime | None = None,
     log: Callable[[str], None] = _noop,
+    maw_config: MawConfig | None = None,
 ) -> SniffReport:
     """Fetch metadata, store the raw API responses in the cache, and build the report."""
     root = cache_root if cache_root is not None else default_cache_root()
@@ -263,7 +276,13 @@ def sniff(
     repo = api.repo(slug)
     languages = api.languages(slug)
     report = build_report(
-        slug, repo, languages, maw_license=maw_license, relationship=relationship, now=now
+        slug,
+        repo,
+        languages,
+        maw_license=maw_license,
+        relationship=relationship,
+        now=now,
+        maw_config=maw_config,
     )
     paths.api.mkdir(parents=True, exist_ok=True)
     atomic_cache_text(paths.api / "repo.json", json.dumps(repo, indent=2) + "\n", cache_root=root)

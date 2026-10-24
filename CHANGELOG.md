@@ -9,6 +9,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Licence authorization:** preserve digest conflicts and review flags in meals and served
+  issue traces; require human resolution for cards whose evidence intersects foreign headers
+  or nested licences (#201). Re-evaluate inferred ownership after reading fork metadata,
+  including the ultimate upstream, and retain that provenance in the digest and meal (#203).
+  COPY attribution uses the explicit resolved relationship rather than explanatory prose;
+  preparation rechecks elevated decisions against current maw policy. Legacy meals without
+  ownership evidence must be regenerated to claim the OWN exception.
+
 - **Local analysis privacy:** analyse tracked and non-ignored untracked Git files consistently
   across inventory, direct miner probes and licence-directory reads. Exclude personal Claude
   overrides even when committed, and invalidate digests made under the old file-selection

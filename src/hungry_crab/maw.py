@@ -376,28 +376,55 @@ def relationship_for(
     config: MawConfig,
     *,
     maw_owner: str | None = None,
+    repository: dict[str, Any] | None = None,
 ) -> Relationship:
     """Whether this prey is a stranger's code, our own, or something we stopped asking about.
 
     The license matrix answers "may we take this from someone else". It has no way to say that
     both repositories belong to the same person, and answering `IDEAS_ONLY` when a maintainer
     eats their own unlicensed repository is a wrong answer to a question nobody asked.
+
+    Without repository metadata this is a preliminary account relationship. Sniff and compare
+    resolve it again after fetching fork provenance; unknown final metadata cannot grant OWN.
     """
     if config.trust.bypass_license:
         return Relationship.BYPASS
     owner = prey_owner(target)
     if owner is None:
         return Relationship.FOREIGN
-    if config.trust.trusts(owner):
-        return Relationship.OWN
-    if config.trust.same_owner:
-        mine = maw_owner
-        if mine is None:
-            slug = maw_slug(config.root)
-            mine = prey_owner(slug)
-        if mine and mine.lower() == owner.lower():
-            return Relationship.OWN
-    return Relationship.FOREIGN
+    mine = maw_owner
+    if config.trust.same_owner and mine is None:
+        mine = prey_owner(maw_slug(config.root))
+
+    def trusted(account: str) -> bool:
+        return config.trust.trusts(account) or bool(
+            config.trust.same_owner and mine and mine.lower() == account.lower()
+        )
+
+    if not trusted(owner):
+        return Relationship.FOREIGN
+    if repository is not None:
+        if repository.get("fork") is not False:
+            if repository.get("fork") is not True:
+                return Relationship.FOREIGN
+            # GitHub's source is the ultimate upstream; parent alone can be another fork.
+            upstreams = [repository.get("parent"), repository.get("source")]
+            target_slug = target.slug if isinstance(target, Target) else target
+            assert isinstance(target_slug, Slug)
+            for upstream in upstreams:
+                name = as_dict(upstream).get("full_name")
+                if not isinstance(name, str) or not name:
+                    return Relationship.FOREIGN
+                try:
+                    upstream_slug = Slug.parse(f"https://{target_slug.host}/{name}")
+                except UsageError:
+                    return Relationship.FOREIGN
+                account = prey_owner(upstream_slug)
+                if account is None or not trusted(account):
+                    return Relationship.FOREIGN
+        elif any(repository.get(key) is not None for key in ("parent", "source")):
+            return Relationship.FOREIGN
+    return Relationship.OWN
 
 
 def maw_slug(root: Path) -> Slug | None:

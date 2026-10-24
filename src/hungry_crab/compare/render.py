@@ -87,6 +87,7 @@ def gap_doc(
             ("Maw", _stack_line(maw)),
             ("Prey", _stack_line(prey)),
             ("License", license_line),
+            ("License reason", safe_name(verdict.get("reason", ""))),
             ("Candidates", len(candidates)),
         ]
     )
@@ -171,7 +172,11 @@ def menu_doc(
             ("By category", categories),
             (
                 "Default license mode",
-                safe_name(f"{verdict.get('mode', '?')}: {verdict.get('reason', '')}"),
+                (
+                    f"{safe_name(verdict.get('mode', '?'))}"
+                    f"{' (human review)' if verdict.get('human_review') else ''}: "
+                    f"{safe_name(verdict.get('reason', ''))}"
+                ),
             ),
             ("Served as", served_as),
         ]

@@ -315,6 +315,7 @@ def _acquire_data(
             cache_root=root,
             maw_license=maw_license,
             relationship=relationship_for(prey, config),
+            maw_config=config,
             now=opts.now,
             log=log,
         )

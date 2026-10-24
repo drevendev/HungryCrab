@@ -304,9 +304,9 @@ def test_receipt_rejects_duplicate_members_and_non_objects() -> None:
         ("Apache-2.0", "Apache-2.0: carry the NOTICE file over", "notice-file"),
         ("CC-BY-4.0", "CC-BY: attribution required", "attribution"),
         ("MPL-2.0", "file-level copyleft: whole files only", "file-license"),
-        (None, "same owner: the maw's owner also owns the prey", "none"),
+        (None, "same owner: the maw's owner also owns the prey", "review"),
         ("GPL-3.0-only", "same owner, but the prey is gpl: check", "review"),
-        ("MIT", "license checks bypassed by .crab.yml (trust.bypass_license)", "review"),
+        ("MIT", "license checks bypassed by .crab.yml (trust.bypass_license)", "copyright-notice"),
         ("Foo-1.0", "unrecognised license Foo-1.0", "review"),
     ],
 )
@@ -841,7 +841,16 @@ def test_a_licence_that_asks_for_its_notice_and_a_prey_with_none_to_carry_is_ref
 
 
 def test_ones_own_code_carries_no_licence_text(tmp_path: Path) -> None:
-    menu = {**MENU, "verdict": {**MENU["verdict"], "reason": "same owner: one's own code"}}
+    (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")
+    menu = {
+        **MENU,
+        "prey": {**PREY, "repository": {"fork": False}},
+        "verdict": {
+            **MENU["verdict"],
+            "relationship": "own",
+            "reason": "same owner: one's own code",
+        },
+    }
     prepared = prepare_copy_pull_request(
         _card(), menu, _payload(), _maw(tmp_path),
         title="t", body="<!-- crab:ci:ci.cache -->\n", attribution_file="THIRD_PARTY_NOTICES.md",
@@ -850,6 +859,58 @@ def test_ones_own_code_carries_no_licence_text(tmp_path: Path) -> None:
     record = parse_attributions(prepared.files[1].content)[0]
     assert record.obligation.kind == "none"
     assert record.texts == ()
+
+
+@pytest.mark.parametrize("typed", [False, True])
+def test_a_loaded_meal_cannot_forge_ownership(tmp_path: Path, typed: bool) -> None:
+    (tmp_path / ".crab.yml").write_text("trust:\n  owners: [pypa]\n", encoding="utf-8")
+    verdict = {**MENU["verdict"], "reason": "same owner: one's own code"}
+    if typed:
+        verdict["relationship"] = "own"
+    menu = {
+        **MENU,
+        "verdict": verdict,
+        "prey": {
+            **PREY,
+            "repository": {
+                "fork": True,
+                "parent": {"full_name": "foreign/parent"},
+                "source": {"full_name": "foreign/root"},
+            },
+        },
+    }
+    with pytest.raises(CrabError, match="ownership"):
+        prepare_copy_pull_request(
+            _card(),
+            menu,
+            _payload(),
+            _maw(tmp_path),
+            title="t",
+            body="<!-- crab:ci:ci.cache -->\n",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=FakePrey({}),
+            now=NOW,
+        )
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_loaded_bypass_requires_current_explicit_maw_policy(tmp_path: Path, enabled: bool) -> None:
+    if enabled:
+        (tmp_path / ".crab.yml").write_text("trust:\n  bypass_license: true\n", encoding="utf-8")
+    menu = {**MENU, "verdict": {**MENU["verdict"], "relationship": "bypass", "human_review": True}}
+    kwargs = {
+        "title": "t",
+        "body": "<!-- crab:ci:ci.cache -->\n",
+        "attribution_file": "THIRD_PARTY_NOTICES.md",
+        "source_reader": _prey(),
+        "now": NOW,
+    }
+    if not enabled:
+        with pytest.raises(CrabError, match="ownership decision is not authorized"):
+            prepare_copy_pull_request(_card(), menu, _payload(), _maw(tmp_path), **kwargs)
+    else:
+        prepared = prepare_copy_pull_request(_card(), menu, _payload(), _maw(tmp_path), **kwargs)
+        assert parse_attributions(prepared.files[1].content)[0].obligation.kind == "review"
 
 
 def test_a_carried_text_is_fenced_past_its_own_backticks_and_cleaned() -> None:

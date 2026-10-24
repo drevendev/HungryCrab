@@ -430,6 +430,7 @@ def cmd_sniff(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         cache_root=args.cache_dir,
         maw_license=maw_license,
         relationship=relationship,
+        maw_config=MawConfig.load(_maw_dir(args.maw)) if args.maw is not None else None,
         log=log,
     )
     if args.json:

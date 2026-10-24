@@ -161,6 +161,7 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         "api_sha256": hashlib.sha256(encoded.encode()).hexdigest(),
         # Invalidate digests produced before ignored/personal files were excluded (#195).
         "file_selection": "git-visible-v1",
+        "license_provenance": 1,
     }
 
 
@@ -606,6 +607,21 @@ def _summary(ctx: MineContext) -> dict[str, Any]:
     return summary
 
 
+def _repository_provenance(repo: object) -> dict[str, Any]:
+    data = repo if isinstance(repo, dict) else {}
+    result: dict[str, Any] = {
+        "fork": data.get("fork") if isinstance(data.get("fork"), bool) else None
+    }
+    for key in ("parent", "source"):
+        if key in data:
+            upstream = data[key]
+            name = upstream.get("full_name") if isinstance(upstream, dict) else None
+            result[key] = (
+                None if upstream is None else {"full_name": name if isinstance(name, str) else None}
+            )
+    return result
+
+
 def build_manifest(
     ctx: MineContext,
     records: list[dict[str, Any]],
@@ -669,6 +685,7 @@ def build_manifest(
             "root": str(ctx.root),
             "worktree": ctx.worktree,
             "git_scope": "repository-root" if ctx.tree_git or ctx.git else "filesystem-only",
+            "repository": _repository_provenance(ctx.api.get("repo")),
         },
         "depth": options.depth,
         "ignore": list(ctx.ignore),

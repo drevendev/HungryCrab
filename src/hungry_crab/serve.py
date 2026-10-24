@@ -329,6 +329,14 @@ def _license_trace(card: Candidate) -> str:
         lines.append(f"- origin cap: {safe_name(card.license_reason)}")
     if card.license_policy_reason:
         lines.append(f"- maw policy: {safe_name(card.license_policy_reason)}")
+    if card.trace.get("license_review_required") is True:
+        lines.append("- human review required")
+        lines.extend(
+            f"- licence evidence: {safe_name(reason)}"
+            for reason in as_list(card.trace.get("license_review_reasons"))
+        )
+    if card.trace.get("license_relationship"):
+        lines.append(f"- relationship: {safe_name(card.trace['license_relationship'])}")
     return "\n".join(lines)
 
 

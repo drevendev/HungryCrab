@@ -24,11 +24,13 @@ from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlsplit
 
+from .cache import Slug
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .licensing.detect import find_spdx_identifier, is_license_file_name
 from .licensing.matrix import LicenseClass, classify, normalize
 from .licensing.policy import nutrient_material
+from .maw import MawConfig, relationship_for
 from .mdutil import cell
 from .miners.inventory import VENDORED_DIRS
 from .nutrients import Candidate
@@ -325,17 +327,16 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
     """The structured obligation behind a COPY verdict.
 
     Apache's NOTICE obligation is not a copyright line, a CC-BY credit is not a NOTICE file,
-    and one's own code owes nobody a notice; the verdict's reason says which case this is when
-    the licence alone cannot (the ``own`` relationship is not stored on the card).
+    and one's own code owes nobody a notice. Only an explicit resolved relationship can
+    establish ownership; explanatory prose is never an authorization signal.
     """
 
-    reason = str(verdict.get("reason", ""))
-    if reason.startswith("same owner:"):
-        return Obligation("none", "same owner: no third-party notice is owed for one's own code")
-    if reason.startswith(("same owner, but", "license checks bypassed")):
+    if verdict.get("human_review") is True or verdict.get("relationship") == "bypass":
         return Obligation(
             "review", "the verdict asked for human review: the notice decision is a person's"
         )
+    if verdict.get("relationship") == "own":
+        return Obligation("none", "same owner: no third-party notice is owed for one's own code")
     cls = classify(normalize(spdx))
     if cls is LicenseClass.PERMISSIVE:
         return Obligation(
@@ -1139,6 +1140,36 @@ def _attribution_section(record: AttributionRecord, attribution_file: str) -> st
     return "\n".join(lines)
 
 
+def _verify_elevated_relationship(menu: Mapping[str, Any], maw_root: Path) -> None:
+    """An old or edited menu cannot grant a current ownership/override exception."""
+    verdict = as_dict(menu.get("verdict"))
+    claimed = verdict.get("relationship")
+    reason = str(verdict.get("reason", ""))
+    if claimed not in ("own", "bypass"):
+        if reason.startswith(("same owner", "license checks bypassed")):
+            raise CrabError(
+                "legacy ownership decision has no verified provenance",
+                hint="regenerate the meal before serving COPY",
+            )
+        return
+    prey = as_dict(menu.get("prey"))
+    url = prey.get("url")
+    try:
+        target = Slug.parse(url) if claimed == "own" and isinstance(url, str) and url else None
+    except CrabError as exc:
+        raise CrabError(
+            "cannot verify the meal's ownership provenance", hint="regenerate the meal"
+        ) from exc
+    actual = relationship_for(
+        target, MawConfig.load(maw_root), repository=as_dict(prey.get("repository"))
+    )
+    if actual.value != claimed:
+        raise CrabError(
+            "the meal's ownership decision is not authorized by current maw policy",
+            hint="regenerate the meal with verified repository provenance",
+        )
+
+
 def prepare_copy_pull_request(
     card: Candidate,
     menu: Mapping[str, Any],
@@ -1167,6 +1198,7 @@ def prepare_copy_pull_request(
 
     receipt = load_materialization_receipt(receipt_payload)
     _check_against_meal(card, receipt, menu, attribution_file)
+    _verify_elevated_relationship(menu, maw_root)
     checked_attribution_file(maw_root, attribution_file)
     maw_files: dict[str, str] = {}
     for item in receipt.taken:
