@@ -353,6 +353,7 @@ def compare_for_maw(
     log: Callable[[str], None] = _noop,
     allow_partial: bool = False,
     record_ledger: bool = True,
+    persist_meal: bool = True,
 ) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
     """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
     config = MawConfig.load(maw_root)
@@ -386,7 +387,12 @@ def compare_for_maw(
         mode=config.mode,
     )
     result, prey_digest, _ = run_compare(
-        prey_target, maw_root, digest_options=d_opts, options=options, log=log
+        prey_target,
+        maw_root,
+        digest_options=d_opts,
+        options=options,
+        log=log,
+        persist_meal=persist_meal,
     )
     if result.verdict["relationship"] != Relationship.FOREIGN.value:
         log(f"license relationship: {result.verdict['relationship']} (from .crab.yml trust)")
@@ -407,8 +413,9 @@ def run_compare(
     digest_options: DigestOptions | None = None,
     options: CompareOptions | None = None,
     log: Callable[[str], None] = _noop,
+    persist_meal: bool = True,
 ) -> tuple[CompareResult, DigestResult, DigestResult]:
-    """Digest both sides (cached by SHA), compare, and write the outputs into the prey digest."""
+    """Digest both sides and compare; only persist the CLI meal when requested."""
     d_opts = digest_options or DigestOptions()
     opts = options or CompareOptions()
     prey_result = run_digest(prey_target, d_opts, log=log)
@@ -434,12 +441,14 @@ def run_compare(
         maw_root=maw_path,
         options=opts,
     )
-    meal_dir = locate_meal(result.prey.label, result.prey.sha, maw_path, d_opts)
-    result.meal_dir = meal_dir
-    write_meal(result, meal_dir)
+    if persist_meal:
+        meal_dir = locate_meal(result.prey.label, result.prey.sha, maw_path, d_opts)
+        result.meal_dir = meal_dir
+        write_meal(result, meal_dir)
     log(
         f"compared {result.prey.label}@{result.prey.short_sha} with "
         f"{result.maw.label}@{result.maw.short_sha}: {len(result.candidates)} candidates"
     )
-    log(f"meal written to {meal_dir}")
+    if persist_meal:
+        log(f"meal written to {result.meal_dir}")
     return result, prey_result, maw_result

@@ -7,6 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab.cache import Slug, Target
+from hungry_crab.compare import MEAL_FILES, compare_for_maw, load_menu
+from hungry_crab.digest import DigestOptions
 from hungry_crab.errors import UsageError
 from hungry_crab.mcp_service import AnalysisService
 
@@ -29,6 +32,7 @@ def test_local_analysis_pages_menu_and_no_source_or_ledger_writes(
     assert menu["total"] == 1 + len(rest["candidates"])
     assert rest["next_offset"] is None
     assert menu["side_effects"]["ledger_written"] is False
+    assert menu["meal_dir"] is None
     for root, files in before.items():
         assert {
             p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()
@@ -36,6 +40,47 @@ def test_local_analysis_pages_menu_and_no_source_or_ledger_writes(
     assert not (pyproject_cli / ".crab" / "ledger.json").exists()
     with pytest.raises(UsageError, match="listed digest"):
         service.digest(str(npm_app), page="../LICENSE")
+
+
+def test_mcp_menu_cannot_replace_cli_meal_with_underdeduplicated_candidates(
+    npm_app: Path,
+    pyproject_cli: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """MCP's shallow, no-issues view must not replace what crab menu/serve consume."""
+    cache = tmp_path / "cache"
+    options = DigestOptions(cache_root=cache)
+    target = Target(path=npm_app)
+    first, *_ = compare_for_maw(
+        target, pyproject_cli, digest_options=options, record_ledger=False
+    )
+    nutrient_id = first.menu["candidates"][0]["id"]
+    # Provide a deterministic local maw slug so issue dedup runs without a provider call.
+    monkeypatch.setattr("hungry_crab.compare.maw_slug", lambda _root: Slug.parse("owner/maw"))
+    cli, *_ = compare_for_maw(
+        target,
+        pyproject_cli,
+        digest_options=options,
+        record_ledger=False,
+        issue_lookup=lambda _slug, _label: {
+            nutrient_id: {"number": 7, "state": "open"}
+        },
+    )
+    assert cli.meal_dir is not None
+    saved = {name: (cli.meal_dir / name).read_bytes() for name in MEAL_FILES}
+    before = load_menu(cli.meal_dir)
+    assert before is not None
+    assert nutrient_id in {item["id"] for item in before["hidden"]}
+    assert nutrient_id not in {item["id"] for item in before["candidates"]}
+
+    mcp = AnalysisService([npm_app, pyproject_cli], cache).menu(
+        str(npm_app), str(pyproject_cli), limit=100
+    )
+    assert mcp["meal_dir"] is None
+    assert nutrient_id in {item["id"] for item in mcp["candidates"]}
+    assert {name: (cli.meal_dir / name).read_bytes() for name in MEAL_FILES} == saved
+    assert load_menu(cli.meal_dir) == before
 
 
 @pytest.mark.parametrize("target", ["../outside", "/outside", "", "example/prey"])

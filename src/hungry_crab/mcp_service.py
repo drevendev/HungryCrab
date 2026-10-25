@@ -321,6 +321,7 @@ class AnalysisService:
                 root,
                 digest_options=self.options("normal"),
                 record_ledger=False,
+                persist_meal=False,
                 issue_lookup=None,
             )
             for directory in (result.prey_dir, result.maw_dir):
@@ -343,7 +344,7 @@ class AnalysisService:
                 "prey": result.menu["prey"],
                 "maw": result.menu["maw"],
                 "verdict": result.menu["verdict"],
-                "meal_dir": str(result.meal_dir),
+                "meal_dir": str(result.meal_dir) if result.meal_dir is not None else None,
                 "candidates": selected,
                 "total": len(rows),
                 "offset": offset,
