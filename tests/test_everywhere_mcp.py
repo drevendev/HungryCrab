@@ -52,9 +52,7 @@ def test_mcp_menu_cannot_replace_cli_meal_with_underdeduplicated_candidates(
     cache = tmp_path / "cache"
     options = DigestOptions(cache_root=cache)
     target = Target(path=npm_app)
-    first, *_ = compare_for_maw(
-        target, pyproject_cli, digest_options=options, record_ledger=False
-    )
+    first, *_ = compare_for_maw(target, pyproject_cli, digest_options=options, record_ledger=False)
     nutrient_id = first.menu["candidates"][0]["id"]
     # Provide a deterministic local maw slug so issue dedup runs without a provider call.
     monkeypatch.setattr("hungry_crab.compare.maw_slug", lambda _root: Slug.parse("owner/maw"))
@@ -63,9 +61,7 @@ def test_mcp_menu_cannot_replace_cli_meal_with_underdeduplicated_candidates(
         pyproject_cli,
         digest_options=options,
         record_ledger=False,
-        issue_lookup=lambda _slug, _label: {
-            nutrient_id: {"number": 7, "state": "open"}
-        },
+        issue_lookup=lambda _slug, _label: {nutrient_id: {"number": 7, "state": "open"}},
     )
     assert cli.meal_dir is not None
     saved = {name: (cli.meal_dir / name).read_bytes() for name in MEAL_FILES}
