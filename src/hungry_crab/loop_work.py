@@ -20,6 +20,7 @@ from typing import Any
 
 from .attribution import ATTRIBUTIONS_PATH, MATERIALIZATION_KIND, receipt_kind
 from .cache import Slug, prey_paths
+from .effect_guard import guarded_effects
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
@@ -214,28 +215,29 @@ def serve_phase(
         client = TransactionClient()
         if phase == "grow":
             check_push_target(loop, GitRunner(loop.maw))
-        report = serve(
-            Path(meal["meal"]).parent,
-            loop.maw,
-            ServeOptions(
-                ids=[nutrient_id],
-                mode="issue" if phase == "serve" else "pr-branch",
-                notes=Path(meal["notes"]),
-                # The loop picked this id, not the owner. Owner selection is what lets a card
-                # past `serve.prs: ask`, an ideas-only hunger and a human-review licence verdict,
-                # so an unattended pick must never count as one.
-                explicit_ids=[],
-                transaction_marker=marker,
-            ),
-            config=config,
-            ledger=ledger,
-            client=client,
-            now=loop.now,
-            receipt_payloads={nutrient_id: receipt_payload} if receipt_payload else {},
-            prey_repo=prey_paths(Slug.parse(prey), cache_dir).repo,
-            publication_guard=guard,
-            slug_lookup=lambda _: loop.slug,
-        )
+        with guarded_effects(lambda: loop.active(data, token)):
+            report = serve(
+                Path(meal["meal"]).parent,
+                loop.maw,
+                ServeOptions(
+                    ids=[nutrient_id],
+                    mode="issue" if phase == "serve" else "pr-branch",
+                    notes=Path(meal["notes"]),
+                    # The loop picked this id, not the owner. Owner selection is what lets a card
+                    # past PR review consent, an ideas-only hunger and a human-review verdict,
+                    # so an unattended pick must never count as one.
+                    explicit_ids=[],
+                    transaction_marker=marker,
+                ),
+                config=config,
+                ledger=ledger,
+                client=client,
+                now=loop.now,
+                receipt_payloads={nutrient_id: receipt_payload} if receipt_payload else {},
+                prey_repo=prey_paths(Slug.parse(prey), cache_dir).repo,
+                publication_guard=guard,
+                slug_lookup=lambda _: loop.slug,
+            )
         entry = ledger.entries.get(nutrient_id)
         if entry is None or not entry.url:
             raise CrabError("no artifact was published or reconciled; inspect the serve report")

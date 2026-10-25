@@ -112,6 +112,88 @@ def test_working_tree_edits_cannot_grant_work_and_revocation_is_immediate(loop: 
     assert not loop._work_allowed()
 
 
+@pytest.mark.parametrize("revoked", ["ledger", "prs-off", "prs-ask"])
+@pytest.mark.parametrize("effect", ["provider", "push", "ledger"])
+def test_live_grow_policy_withdrawal_stops_the_next_provider_effect(
+    loop: Loop, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, revoked: str, effect: str
+) -> None:
+    card = Candidate(
+        "tests", "tests.unit", "Tests", "Tests", origin="licensed", license_mode="COPY"
+    )
+    _serve_round(loop, tmp_path, card)
+    issue_url = "https://github.com/example/maw/issues/1"
+    ledger = Ledger.load(loop.config.ledger_path(), maw=loop.maw.name)
+    ledger.ensure(card)
+    ledger.mark(card.id, "served", url=issue_url)
+    ledger.save()
+    assert isinstance(loop.provider, Provider)
+    loop.provider.rows[issue_url] = {
+        "body": f"<!-- {card.id} -->\n",
+        "state": "open",
+        "html_url": issue_url,
+    }
+    force_phase(loop, "grow", issues=[issue_url])
+    token = loop.next()["active"]["token"]
+    effects: list[str] = []
+
+    class Client(FakeIssues):
+        def run_gh(self, *_args: str) -> str:
+            effects.append("provider write")
+            return "unexpected"
+
+    monkeypatch.setattr("hungry_crab.loop_work.GhIssueClient", lambda **_: Client())
+    monkeypatch.setattr("hungry_crab.loop_work.check_push_target", lambda *_: None)
+    import subprocess
+
+    from hungry_crab.fetch.git import GitRunner
+
+    original_run = subprocess.run
+
+    def process(argv: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        if "push" in argv:
+            effects.append("push")
+            return subprocess.CompletedProcess(argv, 0, b"", b"")
+        return original_run(argv, **kwargs)
+
+    monkeypatch.setattr("hungry_crab.fetch.git.subprocess.run", process)
+
+    def revoke_before_effect(*_args: Any, **kwargs: Any) -> None:
+        policy_path = loop.maw / ".crab.yml"
+        policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+        if revoked == "ledger":
+            policy["ledger"] = "none"
+        else:
+            policy["serve"]["prs"] = revoked.removeprefix("prs-")
+        policy_path.write_text(yaml.safe_dump(policy), encoding="utf-8")
+        if effect == "provider":
+            kwargs["client"].run_gh("pr", "create")
+        elif effect == "push":
+            GitRunner(loop.maw).run("push", "origin", "fixture")
+        else:
+            kwargs["ledger"].save()
+
+    monkeypatch.setattr("hungry_crab.loop_work.serve", revoke_before_effect)
+    before, ledger_before = loop.path.read_bytes(), ledger.path.read_bytes()
+    with pytest.raises(CrabError, match="no longer authorizes"):
+        serve_phase(loop, token, "example/prey", card.id)
+    assert not effects
+    assert loop.path.read_bytes() == before and ledger.path.read_bytes() == ledger_before
+    # The lease guard must not escape into ordinary caller-owned operations after refusal.
+    ledger.save()
+
+
+def test_working_tree_pr_permission_cannot_replace_committed_consent(loop: Loop) -> None:
+    policy_path = loop.maw / ".crab.yml"
+    policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    policy["serve"]["prs"] = "ask"
+    policy_path.write_text(yaml.safe_dump(policy), encoding="utf-8")
+    git(loop.maw, "add", ".crab.yml")
+    git(loop.maw, "commit", "-m", "test: owner withdrew automatic PR consent")
+    policy["serve"]["prs"] = "auto"
+    policy_path.write_text(yaml.safe_dump(policy), encoding="utf-8")
+    assert not loop._work_allowed(publish_pr=True)
+
+
 @pytest.mark.parametrize("same_tree", [False, True])
 def test_pr_only_ci_requires_explicit_policy_and_identical_tested_tree(same_tree: bool) -> None:
     truth = artifact(merged=True)

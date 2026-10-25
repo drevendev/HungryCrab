@@ -119,7 +119,7 @@ def loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Loop:
     (root / ".crab.yml").write_text(
         yaml.safe_dump(
             {
-                "serve": {"issues": "auto"},
+                "serve": {"issues": "auto", "prs": "auto"},
                 "loop": {
                     "autonomy": "work",
                     "work_authorized": True,

@@ -23,6 +23,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from ..effect_guard import check_effect
 from ..errors import ExternalCommandError, ToolMissingError
 from .acquisition import CURRENT, AcquisitionLimitError
 from .bounded import ResponseTooLargeError
@@ -271,6 +272,8 @@ class GitRunner:
             position = 1 + len(SAFE_CONFIG) + at
             command[position:position] = ["-c", f"core.hooksPath={hooks.name}"]
         try:
+            if hooks is not None:
+                check_effect()
             if budget is not None:
                 proc = budget.run_git(command, where, env, limit)
             else:

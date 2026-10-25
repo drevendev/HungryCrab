@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from .config_edit import atomic_text
+from .effect_guard import check_effect
 from .errors import CrabError
 from .file_lock import state_lock
 from .nutrients import ACCEPTED_STATUSES, STATUSES, Candidate
@@ -248,6 +249,7 @@ class Ledger:
                 json.dumps(self.to_dict(now=now), indent=2, ensure_ascii=False, allow_nan=False)
                 + "\n"
             )
+            check_effect()
             atomic_text(self.path, text)
             self._snapshot = hashlib.sha256(text.encode("utf-8")).digest()
         return self.path

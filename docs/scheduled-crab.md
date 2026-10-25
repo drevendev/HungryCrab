@@ -58,7 +58,12 @@ Work also needs a persistent ledger (`repo` or `cache`).
 Commit work consent in the maw before using it. Both the current working-tree policy and
 `HEAD:.crab.yml` must authorize work; editing an uncommitted file cannot grant it. Revoking
 working-tree consent takes effect before subsequent CLI effects. Scheduled SERVE also requires
-`serve.issues: auto`. These checks do not sandbox generic agent tools: #243 remains blocked until
+current and committed `serve.issues: auto`. GROW requires `serve.prs: auto` in the operation's
+initial policy, current policy and committed policy. Changing the live ledger to `none` or PR
+consent to `ask`/`off` stops subsequent provider writes, Git fetch/push/reference updates and
+ledger saves in that operation. This process-local check does not replace host enforcement.
+
+These checks do not sandbox generic agent tools: #243 remains blocked until
 an independent host boundary has passed live adversarial tests. Use human supervision.
 
 For a maw whose workflows run only on PRs, the owner may commit `loop.pr_only_ci: true`.

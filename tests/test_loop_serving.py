@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -126,8 +125,7 @@ def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_bloc
         "hungry_crab.serve.publish_prepared_cleanroom_git_pull_request", publish_stub
     )
     # The loop's own pick is never owner selection, so GROW publishes only for an owner who
-    # set `serve.prs: auto`; the fixture's .crab.yml keeps the default `ask`.
-    loop.config = replace(loop.config, serve=replace(loop.config.serve, prs="auto"))
+    # committed `serve.prs: auto`, as the fixture's maw owner has done.
     ready = loop.next()
     if protected:
         before = loop.path.read_bytes()

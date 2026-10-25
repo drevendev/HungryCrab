@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Security review follow-ups (#436–#440):** bound copyright metadata instead of swallowing
+  restrictive prose; retain explicit AND/OR semantics when proving immutable COPY grants,
+  including REUSE declarations; verify required notices at every retained provenance hop.
+  Recheck live GROW consent before provider, Git and ledger effects. Add hook-override
+  precedence, lifetime, failure-cleanup and acquisition-scope regressions.
 - **Supervised security hardening:** isolate MCP menus from publishable CLI meals; freeze loop
   EAT evidence and bind recovery to round-owned transactions, current provider truth and committed
   maw work consent. Default loops to read-only, make pause revoke a running lease, support an

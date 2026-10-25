@@ -131,6 +131,31 @@ does not certify a live host. Neither a timeout nor launcher exit 1 counts as a 
 
 ## Validation record
 
+### Review follow-up: #436–#440
+
+The review at `be7d693` reproduced four remaining acceptance defects despite green
+[CI 40175197841](https://github.com/drevendev/HungryCrab/actions/runs/40175197841), plus a focused
+hook-test gap. The follow-up changes and executable controls are:
+
+| Issue | Correction and regression evidence |
+|---|---|
+| #436 | Copyright metadata must match bounded year/holder forms; separate sentences, clauses and unstructured phrases refuse, including case changes and standalone SPDX tags. `test_security_review.py` exercises detection and complete COPY refusal plus ordinary notices. Unrecognized holder formats require review. |
+| #437 | Immutable root expressions retain their operators; named component texts cannot replace an explicit AND with OR. REUSE requires a matching immutable manifest or per-file declaration. Complete preparation tests cover weaker receipts, equivalent reordered expressions and both terms' AND notices. |
+| #438 | GROW requires initial/current/committed automatic PR consent and a current persistent ledger. Process-local effect checks cover built-in Git effects and ledger writes as well as provider calls. Tests revoke ledger/PR permission on the same operation and assert zero subsequent writes/pushes and unchanged persisted state; guards do not escape to ordinary caller operations. |
+| #439 | Every retained upstream ancestor is checked for required notices, independently of OWN. Tests cover damage at several supported depths, positive distinct multi-hop notices, ownership and existing unrelated-path/bounds controls. |
+| #440 | `test_git_hooks.py` stubs ordinary/scoped process execution for fetch/push/update-ref, verifies final override precedence and an existing empty directory during execution, and checks cleanup on success, nonzero exit, timeout, OS error and output-limit failure. Scoped directories stay on the quota volume; read-only calls allocate none. |
+
+Initial follow-up integration: 710 passed, four unavailable symlink controls skipped on Windows
+Python 3.11. Further effect-boundary integration: 134 passed. Final expanded integration:
+762 passed, four unavailable symlink cases skipped; nine pure metadata controls passed after
+the final capitalization refinement. The full matrix's job timeout is 30 minutes to accommodate
+the observed 18.5-minute Windows real-Git baseline and additional regressions; individual
+performance/security test limits are unchanged. The PR records the immutable final
+follow-up head, repeated full CI, second review and actual merge-commit CI. H1 remains BLOCKED;
+the process-local checks do not certify an agent-host sandbox or enable unattended operation.
+
+### Original implementation checks
+
 Local platform: Windows, Python 3.11.16 and installed Python 3.14.7. Every source change is
 reviewed/tested against synthetic data; no real prey setup, test, build or install was executed.
 
@@ -150,7 +175,7 @@ reviewed/tested against synthetic data; no real prey setup, test, build or insta
 | Real Linux hard-quota job | PASS (preliminary candidate) | Dedicated job in [40173273984](https://github.com/drevendev/HungryCrab/actions/runs/40173273984) passed at `8c88a41092e96e31879d09685080e28a56e2dd5e`; final-head CI repeats it. Local Windows skips are not evidence. |
 | Live agent-host shell/API/edit/isolation and revocation | BLOCKED | H1 prerequisites above; no host adapter is certified. |
 | Live clean-room host activation | NOT_RUN | Launcher/event tests do not establish session activation. |
-| Actual merged-master CI | NOT_RUN | No merge requested/performed; merge must retain the exact-head CI requirement. |
+| Actual merged-master CI | NOT_RUN (pending follow-up review) | The owner authorized merge after the #436–#440 fixes and a clean second review; the PR records the eventual merge revision and its CI. |
 | Release/advisory publication | NOT_RUN | Separate publication decision required; no version/tag/advisory changes. |
 
 No selected issue is automatically closed by this batch. In particular, partial issue slices

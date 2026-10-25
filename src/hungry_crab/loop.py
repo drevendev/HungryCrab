@@ -423,15 +423,17 @@ class Loop:
             raise CrabError("provider truth is required before loop issue or PR work")
         return self.provider
 
-    def _work_allowed(self) -> bool:
+    def _work_allowed(self, *, publish_pr: bool = False) -> bool:
         import yaml
 
         from .fetch.git import GitRunner
 
+        current = MawConfig.load(self.maw)
         committed = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
         try:
             policy = yaml.safe_load(committed or "")
             grant = policy.get("loop", {}) if isinstance(policy, dict) else {}
+            serve = policy.get("serve", {}) if isinstance(policy, dict) else {}
         except yaml.YAMLError:
             return False
         return (
@@ -442,8 +444,18 @@ class Loop:
             and grant.get("autonomy") == "work"
             and grant.get("work_authorized") is True
             and policy.get("ledger", "repo") != "none"
-            and MawConfig.load(self.maw).loop.autonomy == "work"
-            and MawConfig.load(self.maw).loop.work_authorized
+            and current.ledger != "none"
+            and current.loop.autonomy == "work"
+            and current.loop.work_authorized
+            and (
+                not publish_pr
+                or (
+                    self.config.serve.prs == "auto"
+                    and isinstance(serve, dict)
+                    and serve.get("prs", "ask") == "auto"
+                    and current.serve.prs == "auto"
+                )
+            )
         )
 
     def serving_allowed(self) -> bool:
@@ -532,7 +544,7 @@ class Loop:
         if (
             data["phase"] in WORK_PHASES
             and not self._optional_empty(data)
-            and not self._work_allowed()
+            and not self._work_allowed(publish_pr=data["phase"] == "grow")
         ):
             return "work requires loop.autonomy: work and maw-owned work_authorized: true"
         used = data["phases_today"] if data["day"] == self.now.date().isoformat() else 0
@@ -748,7 +760,7 @@ class Loop:
         if (
             data["phase"] in WORK_PHASES
             and not self._optional_empty(data)
-            and not self._work_allowed()
+            and not self._work_allowed(publish_pr=data["phase"] == "grow")
         ):
             raise CrabError("maw policy no longer authorizes loop work")
         if data["phase"] == "serve" and (

@@ -30,6 +30,7 @@ from .fetch.git import GitRunner
 from .fetch.providers import client_for
 from .licensing.detect import (
     LICENSE_DIRS,
+    combined_root_grant,
     detect_from_text,
     find_spdx_identifier,
     is_license_file_name,
@@ -1015,20 +1016,26 @@ def upstream_records(
         record = _stored_record(
             row, _seen=frozenset({(receipt.source.url or receipt.source.label, receipt.source.sha)})
         )
-        expected = obligation_for(record.source.license, {})
-        if expected.kind in _NOTICE_OWED and not record.texts:
-            raise _receipt_error("matching upstream receipt has lost its licence notices")
+        _verify_upstream_notices(record)
         matches.append(record)
     return tuple(matches)
+
+
+def _verify_upstream_notices(record: AttributionRecord) -> None:
+    expected = obligation_for(record.source.license, {})
+    if expected.kind in _NOTICE_OWED and not record.texts:
+        raise _receipt_error("matching upstream receipt has lost its licence notices")
+    for ancestor in record.upstream:
+        _verify_upstream_notices(ancestor)
 
 
 def verify_root_grant(
     receipt: MaterializationReceipt, reader: SourceReader, texts: tuple[CarriedText, ...]
 ) -> None:
     """Recheck immutable source grants so an old or edited COPY menu cannot grant rights."""
-    declared = set(license_terms(receipt.source.license))
-    observed: set[str] = set()
-    for name in reader.entries(receipt.source.sha) or {}:
+    roots = reader.entries(receipt.source.sha) or {}
+    grants: dict[str, str] = {}
+    for name in roots:
         if not is_license_file_name(name):
             continue
         text = reader.read(receipt.source.sha, name)
@@ -1041,15 +1048,36 @@ def verify_root_grant(
                 grant, _ = detect_from_text(
                     reader.read(receipt.source.sha, pointer.group(1).rstrip(".")) or ""
                 )
-        if grant is None or not set(license_terms(grant)) <= declared:
+        if grant is None:
             raise publication_error(
                 "source root grant is unreadable or contradicts the COPY receipt", hint=name
             )
-        observed.update(license_terms(grant))
-    for carried in texts:
-        grant, _ = detect_from_text(carried.text)
-        if grant:
-            observed.update(license_terms(grant))
+        grants[name] = grant
+    established = combined_root_grant(grants)
+    if not grants:
+        # A REUSE text is a component, not proof of how the source combines components.
+        declarations: list[str] = []
+        for name in ("package.json", "pyproject.toml", "Cargo.toml", "composer.json", "setup.cfg"):
+            if name in roots:
+                declared, _ = manifest_license(name, reader.read(receipt.source.sha, name) or "")
+                if declared:
+                    declarations.append(declared)
+        headers = [
+            find_spdx_identifier((reader.read(receipt.source.sha, item.prey_path) or "")[:4000])
+            for item in receipt.taken
+        ]
+        if all(headers):
+            declarations.extend(header for header in headers if header is not None)
+        if declarations and all(
+            canonical_expression(declared) == canonical_expression(receipt.source.license)
+            for declared in declarations
+        ):
+            established = declarations[0]
+    if canonical_expression(established) != canonical_expression(receipt.source.license):
+        raise publication_error("source root grant contradicts the COPY receipt's expression")
+    observed = {
+        term for carried in texts for term in license_terms(detect_from_text(carried.text)[0])
+    }
     if not set(selected_terms(receipt.source.license)) <= observed:
         raise publication_error("source grant cannot establish the COPY receipt's selected terms")
 
