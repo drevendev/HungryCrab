@@ -1114,6 +1114,7 @@ def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
     assert decide(findings.spdx, "AGPL-3.0-only").mode is Mode.HUMAN
     assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
 
+
 @pytest.mark.parametrize(
     "restriction",
     [
