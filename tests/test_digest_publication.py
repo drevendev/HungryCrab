@@ -278,7 +278,6 @@ def test_generation_and_temp_ref_fsync_precede_ref_switch(
     assert resolve_canonical_digest(digests, SHA).path == generation.path
 
 
-
 def test_generation_fsync_failure_does_not_switch_active_ref(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
