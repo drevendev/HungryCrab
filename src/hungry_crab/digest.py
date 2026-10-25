@@ -31,7 +31,11 @@ from .budget import (
 from .cache import Target, maw_paths, prey_paths
 from .digest_integrity import digest_integrity_errors
 from .digest_location import resolve_canonical_digest
-from .digest_publication import allocate_digest_generation, publish_digest_generation
+from .digest_publication import (
+    allocate_digest_generation,
+    check_digest_ref_publishable,
+    publish_digest_generation,
+)
 from .errors import CrabError
 from .fetch.catch import CatchOptions, catch
 from .fetch.git import GitRunner
@@ -940,6 +944,9 @@ def run_digest(
     ctx, requested_out_dir = prepare_context(target, opts, log=log)
     canonical = _is_canonical_request(ctx, opts)
     digests_dir = requested_out_dir.parent if canonical else None
+    if canonical:
+        assert digests_dir is not None
+        check_digest_ref_publishable(digests_dir, ctx.sha)
 
     if not opts.force:
         cache_dir = requested_out_dir

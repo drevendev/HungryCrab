@@ -8,8 +8,16 @@ import pytest
 from conftest import FIXED_NOW
 from helpers import read_json, read_md, write_tree
 
+from hungry_crab import digest as digest_module
 from hungry_crab.cache import Target
-from hungry_crab.digest import MD_BUDGET, SCHEMA, DigestOptions, DigestResult, run_digest
+from hungry_crab.digest import (
+    MD_BUDGET,
+    SCHEMA,
+    DigestOptions,
+    DigestResult,
+    prepare_context,
+    run_digest,
+)
 from hungry_crab.errors import CrabError
 from hungry_crab.miners import ALL_MINERS, MINER_NAMES, select_miners
 from hungry_crab.tokens import estimate_tokens
@@ -403,3 +411,36 @@ def test_in_tree_output_does_not_expose_staging_to_inventory(tmp_path: Path) -> 
         == read_json(baseline, "inventory.json")["top_level"]
     )
     assert not list(root.rglob("*.crab-*"))
+
+
+@pytest.mark.parametrize("bad_entry", ["refs-file", "ref-directory"])
+def test_force_rejects_unsafe_ref_before_mining(
+    npm_app: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    bad_entry: str,
+) -> None:
+    options = DigestOptions(force=True, cache_root=tmp_path / "cache")
+    ctx, requested_out_dir = prepare_context(Target(path=npm_app), options)
+    digests_dir = requested_out_dir.parent
+    refs = digests_dir / ".refs"
+    if bad_entry == "refs-file":
+        refs.parent.mkdir(parents=True, exist_ok=True)
+        refs.write_text("unowned root sentinel\\n", encoding="utf-8")
+        sentinel = refs
+    else:
+        refs.mkdir(parents=True)
+        ref_entry = refs / f"{ctx.sha}.json"
+        ref_entry.mkdir()
+        sentinel = ref_entry / "keep-me.txt"
+        sentinel.write_text("unowned ref sentinel\\n", encoding="utf-8")
+
+    def forbidden_mining(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("unsafe ref preflight must reject before running miners")
+
+    monkeypatch.setattr(digest_module, "run_miners", forbidden_mining)
+    with pytest.raises(CrabError, match="unsafe digest ref") as exc:
+        run_digest(Target(path=npm_app), options)
+    assert exc.value.hint is not None and "manually" in exc.value.hint
+    assert sentinel.read_text(encoding="utf-8").startswith("unowned")
+    assert not (digests_dir / ".generations").exists()

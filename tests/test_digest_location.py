@@ -167,3 +167,21 @@ def test_ref_read_denial_never_falls_back_to_legacy(
     with pytest.raises(CrabError, match="cannot read digest ref"):
         resolve_canonical_digest(digests, SHA)
     assert reads == expected_attempts
+
+
+def test_unreadable_ref_has_actionable_force_hint(tmp_path: Path) -> None:
+    digests = tmp_path / "digests"
+    _write_ref(digests, "gone")
+    (digests / ".refs" / f"{SHA}.json").write_text("", encoding="utf-8")
+    with pytest.raises(CrabError, match="cannot read digest ref") as exc:
+        resolve_canonical_digest(digests, SHA)
+    assert exc.value.hint is not None and "--force" in exc.value.hint
+
+
+def test_missing_generation_hint_requires_force(tmp_path: Path) -> None:
+    digests = tmp_path / "digests"
+    _write_ref(digests, "gone")
+    (digests / ".generations" / SHA).mkdir(parents=True)
+    with pytest.raises(CrabError, match="points to missing generation") as exc:
+        resolve_canonical_digest(digests, SHA)
+    assert exc.value.hint is not None and "--force" in exc.value.hint
