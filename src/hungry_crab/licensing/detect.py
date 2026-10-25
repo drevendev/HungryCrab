@@ -517,7 +517,8 @@ def _copyright_metadata(line: str) -> bool:
     # restriction-shaped holder phrases even when title-cased as plausible names.
     # Ambiguous headers require review, never a clean MIT classification.
     if re.search(
-        r"\b(?:non[- ]?commercial|no[- ]?(?:derivatives?|redistribution|reproduction|resale|copying)"
+        r"\b(?:non[- ]?commercial|"
+        r"no[- ]?(?:derivatives?|redistribution|reproduction|resale|copying)"
         r"|(?:reproduction|redistribution|derivatives?|resale|copying|distribution)"
         r"\s+(?:forbidden|prohibited|restricted)"
         r"|(?:internal|personal)\s+use\s+only|permission\s+required)\b",
