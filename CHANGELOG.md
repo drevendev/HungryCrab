@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-10-25
+
 ### Added
 
 - Record supervised exploration goals, immutable inputs, original candidate sets, examined
@@ -1152,7 +1154,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/drevendev/HungryCrab/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...v0.6.2

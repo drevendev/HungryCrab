@@ -38,19 +38,21 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.4](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.4) is the latest
-release, a security update on
+**Status: [0.6.5](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.5) is the latest
+release, adding supervised source exploration and safer portable evidence on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
-Update the CLI and plugins for acquisition quotas, cache ownership, verified licence grants,
-retained upstream notices and stronger publication checks (see the [changelog](CHANGELOG.md)).
-Remote Feeder acquisition has enforced quotas; standalone catch still needs an operator-set disk
-limit. Agent-host isolation remains deferred under #243. The supported scope is
+Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
+runtime evidence and source-linked behavior findings (see the [changelog](CHANGELOG.md)).
+Standalone catch supports an explicitly selected fixed-capacity volume; without one it remains
+unbounded. Agent-host isolation remains deferred under #243. The supported scope is
 deterministic, human-supervised analysis: the CLI, scoped local MCP, portable skills and
 offline HTML reports. PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
 experimental; their live acceptance criteria are deferred to post-release work, not declared
 complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 [release record](docs/releases/0.6.0-readiness.md).
+The [0.6.5 execution report](docs/experiments/discovery-453-report.md) records the bounded
+public replay and its remaining unexplored facets.
 
 ## The metaphor, in five words
 
