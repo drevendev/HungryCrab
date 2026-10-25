@@ -7,7 +7,9 @@ public surface, which is what an architect subagent needs to start from.
 
 from __future__ import annotations
 
+import io
 import re
+import tokenize
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from typing import Any, TypeVar
@@ -57,6 +59,95 @@ _CS_NAMESPACE_RE = re.compile(r"^\s*namespace\s+([\w.]+)", re.MULTILINE)
 _CS_USING_RE = re.compile(r"^\s*using\s+(?:static\s+)?([\w.]+)\s*;", re.MULTILINE)
 _TS_EXTS = (".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs")
 _GROUP_DIRS = ("src", "lib", "packages", "apps", "tests", "test")
+
+
+def _blank_inert(chars: list[str], start: int, end: int) -> None:
+    """Hide inert lexical spans while preserving offsets and line boundaries."""
+    for position in range(start, end):
+        if chars[position] not in "\r\n":
+            chars[position] = " "
+
+
+def _js_code_views(text: str) -> tuple[str, str, bool]:
+    """Return code-only and import-literal views without parsing untrusted JavaScript.
+
+    Quotes remain in the second view for real module specifiers. Comments and
+    templates are inert in both views; embedded template expressions are
+    conservatively excluded and reported as uncertain coverage.
+    """
+    code, imports = list(text), list(text)
+    position, end = 0, len(text)
+    complete = True
+    while position < end:
+        if text.startswith("//", position):
+            stop = text.find("\n", position + 2)
+            stop = end if stop < 0 else stop
+            _blank_inert(code, position, stop)
+            _blank_inert(imports, position, stop)
+            position = stop
+        elif text.startswith("/*", position):
+            close = text.find("*/", position + 2)
+            stop = end if close < 0 else close + 2
+            if close < 0:
+                complete = False
+            _blank_inert(code, position, stop)
+            _blank_inert(imports, position, stop)
+            position = stop
+        elif text[position] in ("'", '"', chr(96)):
+            quote = text[position]
+            stop = position + 1
+            while stop < end:
+                if text[stop] == "\\":
+                    stop += 2
+                elif text[stop] == quote:
+                    stop += 1
+                    break
+                else:
+                    stop += 1
+            else:
+                complete = False
+            stop = min(stop, end)
+            if quote == chr(96) and chr(36) + "{" in text[position:stop]:
+                complete = False
+            _blank_inert(code, position, stop)
+            if quote == chr(96):
+                _blank_inert(imports, position, stop)
+            position = stop
+        else:
+            position += 1
+    return "".join(code), "".join(imports), complete
+
+
+def _python_visible_code(text: str) -> tuple[str, bool]:
+    """Use Python's tokenizer to ignore real comments and string/docstring tokens."""
+    visible = list(text)
+    line_starts = [0, *(match.end() for match in re.finditer("\n", text))]
+    try:
+        for token in tokenize.generate_tokens(io.StringIO(text).readline):
+            if token.type == tokenize.ERRORTOKEN and token.string in ("'", '"'):
+                return " " * len(text), False
+            if token.type in (tokenize.COMMENT, tokenize.STRING):
+                start = line_starts[token.start[0] - 1] + token.start[1]
+                end = line_starts[token.end[0] - 1] + token.end[1]
+                _blank_inert(visible, start, end)
+    except (tokenize.TokenError, IndentationError):
+        return " " * len(text), False
+    return "".join(visible), True
+
+
+def _ts_import_specs(code: str, module_literals: str) -> list[str]:
+    """Only accept imported modules whose keyword survives the lexical mask."""
+    specs: list[str] = []
+    for match in _TS_IMPORT_RE.finditer(module_literals):
+        keyword = re.search(r"\b(?:import|export)\b", match.group())
+        if keyword:
+            start = match.start() + keyword.start()
+            if code[start : start + len(keyword.group())] == keyword.group():
+                specs.append(match.group(1))
+    for match in _TS_REQUIRE_RE.finditer(module_literals):
+        if code[match.start() : match.start() + len("require")] == "require":
+            specs.append(match.group(1))
+    return specs
 
 
 def _resolve_ts(source: str, spec: str, files: set[str]) -> str | None:
@@ -182,11 +273,11 @@ class ArchitectureMiner:
         modules = _python_modules(code)
         namespaces: dict[str, list[str]] = defaultdict(list)
         file_namespaces: dict[str, list[str]] = defaultdict(list)
-        texts: dict[str, str] = {}
+        import_specs: dict[str, list[str]] = {}
+        lexical_uncertain_files = 0
         symbols: dict[str, dict[str, Any]] = {}
         for info in code:
             text = ctx.read(info.path, limit=READ_LIMIT)
-            texts[info.path] = text
             entry: dict[str, Any] = {
                 "functions": 0,
                 "classes": 0,
@@ -194,25 +285,41 @@ class ArchitectureMiner:
                 "public": [],
             }
             if info.ext in _TS_EXTS:
-                names = _TS_EXPORT_RE.findall(text)
-                for group in _TS_EXPORT_LIST_RE.findall(text):
+                visible, module_literals, complete = _js_code_views(text)
+                lexical_uncertain_files += int(not complete)
+                import_specs[info.path] = _ts_import_specs(visible, module_literals)
+                names = _TS_EXPORT_RE.findall(visible)
+                for group in _TS_EXPORT_LIST_RE.findall(visible):
                     names += [n.strip().split(" as ")[-1] for n in group.split(",") if n.strip()]
                 entry["exports"] = sorted(set(names))[:60]
-                entry["functions"] = len(_TS_FUNCTION_RE.findall(text))
-                entry["classes"] = len(_TS_CLASS_RE.findall(text))
+                entry["functions"] = len(_TS_FUNCTION_RE.findall(visible))
+                entry["classes"] = len(_TS_CLASS_RE.findall(visible))
                 entry["public"] = entry["exports"]
             elif info.ext == ".py":
-                entry["functions"] = len(_PY_DEF_RE.findall(text))
-                entry["classes"] = len(_PY_CLASS_RE.findall(text))
-                all_match = _PY_ALL_RE.search(text)
+                visible, complete = _python_visible_code(text)
+                lexical_uncertain_files += int(not complete)
+                import_specs[info.path] = _PY_FROM_RE.findall(visible) + _PY_IMPORT_RE.findall(
+                    visible
+                )
+                entry["functions"] = len(_PY_DEF_RE.findall(visible))
+                entry["classes"] = len(_PY_CLASS_RE.findall(visible))
+                all_match = next(
+                    (
+                        match
+                        for match in _PY_ALL_RE.finditer(text)
+                        if visible[match.start() : match.start() + len("__all__")] == "__all__"
+                    ),
+                    None,
+                )
                 if all_match:
                     entry["public"] = sorted(
                         {n.strip().strip("'\"") for n in all_match.group(1).split(",") if n.strip()}
                     )[:60]
                 else:
-                    found = _PY_DEF_RE.findall(text) + _PY_CLASS_RE.findall(text)
+                    found = _PY_DEF_RE.findall(visible) + _PY_CLASS_RE.findall(visible)
                     entry["public"] = sorted({n for n in found if not n.startswith("_")})[:60]
             elif info.ext == ".cs":
+                import_specs[info.path] = _CS_USING_RE.findall(text)
                 types = _CS_TYPE_RE.findall(text)
                 entry["classes"] = len(types)
                 entry["functions"] = len(_CS_METHOD_RE.findall(text))
@@ -227,9 +334,8 @@ class ArchitectureMiner:
         edges: set[tuple[str, str]] = set()
         external: Counter[str] = Counter()
         for info in code:
-            text = texts[info.path]
+            specs = import_specs.get(info.path, [])
             if info.ext in _TS_EXTS:
-                specs = _TS_IMPORT_RE.findall(text) + _TS_REQUIRE_RE.findall(text)
                 for spec in specs:
                     target = _resolve_ts(info.path, spec, paths)
                     if target and target != info.path:
@@ -238,7 +344,7 @@ class ArchitectureMiner:
                         head = spec.split("/")
                         external["/".join(head[:2]) if spec.startswith("@") else head[0]] += 1
             elif info.ext == ".py":
-                for spec in _PY_FROM_RE.findall(text) + _PY_IMPORT_RE.findall(text):
+                for spec in specs:
                     target = _resolve_py(info.path, spec, modules)
                     if target:
                         edges.add((info.path, target))
@@ -248,7 +354,7 @@ class ArchitectureMiner:
                 own = set(file_namespaces.get(info.path, []))
                 # parent namespaces are visible without a using directive
                 implicit = {p for ns in own for p in _namespace_parents(ns)}
-                for used in set(_CS_USING_RE.findall(text)) | implicit:
+                for used in set(specs) | implicit:
                     if used in namespaces and used not in own:
                         for target in namespaces[used][:5]:
                             if target != info.path:
@@ -302,6 +408,7 @@ class ArchitectureMiner:
             "files_scanned": len(code),
             "files_eligible": eligible_files,
             "truncated": truncated,
+            "lexical_uncertain_files": lexical_uncertain_files,
             "languages": sorted({f.language or "" for f in code if f.language}),
             "totals": {
                 "functions": sum(e["functions"] for e in symbols.values()),
@@ -335,6 +442,11 @@ class ArchitectureMiner:
             "edges": [list(edge) for edge in sorted(edges)[:2000]],
         }
         warnings = ["symbol index truncated; use --depth deep"] if truncated else []
+        if lexical_uncertain_files:
+            warnings.append(
+                f"lexical coverage partial in {lexical_uncertain_files} code file(s); "
+                "symbols/import edges may be incomplete"
+            )
         return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _doc(self, ctx: MineContext, data: dict[str, Any]) -> MdDoc:
