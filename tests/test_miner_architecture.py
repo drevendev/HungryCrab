@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from helpers import read_json, read_md, write_tree
@@ -167,3 +168,87 @@ def test_architecture_hubs_disclose_sampling_boundary(
     del legacy["files_eligible"]
     old = Side(label="prey", sha="deadbeef", url=None, root=None, architecture=legacy)
     assert "eligible file count unknown" in architecture_candidates(old, maw)[0].what
+
+
+def _synthetic_architecture_json(tmp_path: Path, files: dict[str, str]) -> dict[str, Any]:
+    """Exercise the actual digest output, not only isolated regexes."""
+    prey, output = tmp_path / "prey", tmp_path / "digest"
+    write_tree(prey, files)
+    subprocess.run(
+        [sys.executable, "-c", _SEEDED_DIGEST, str(prey), str(output)],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    return json.loads((output / "architecture.json").read_text(encoding="utf-8"))
+
+
+def test_ts_architecture_excludes_inert_symbols_and_imports(tmp_path: Path) -> None:
+    source = (
+        "/*\nexport function phantom() {}\nimport { ghost } from './ghost';\n*/\n"
+        "// require('./ghost');\n"
+        'const quoted = "require(' + "'./ghost'" + ')";\n'
+        "const template = \x60export function hidden() {}\nimport './ghost';\x60;\n"
+        "export function actual() {}\n"
+        "import { value } from './real';\n"
+        "const module = require('./real');\n"
+    )
+    data = _synthetic_architecture_json(
+        tmp_path,
+        {
+            "src/index.ts": source,
+            "src/ghost.ts": "export const ghost = 1;\n",
+            "src/real.ts": "export const value = 1;\n",
+        },
+    )
+    assert data["totals"]["functions"] == 1
+    assert data["edges"] == [["src/index.ts", "src/real.ts"]]
+    assert data["graph"]["hubs"] == [
+        {"path": "src/real.ts", "imported_by": 1, "imports": 0}
+    ]
+    assert data["public_surface"] == [{"path": "src/index.ts", "names": ["actual"]}]
+    assert data["lexical_uncertain_files"] == 0
+
+
+def test_python_architecture_excludes_docstring_symbols_and_imports(tmp_path: Path) -> None:
+    source = (
+        '"""\ndef phantom():\n    pass\nclass Ghost:\n    pass\n'
+        "from pkg.ghost import VALUE\n__all__ = ['ghost']\n"
+        '"""\n'
+        "# import pkg.ghost\n"
+        "text = 'from pkg.ghost import VALUE'\n"
+        '__all__ = ["actual"]\n'
+        "class ActualClass:\n    pass\n"
+        "def actual():\n    pass\n"
+        "from pkg.real import VALUE\n"
+    )
+    data = _synthetic_architecture_json(
+        tmp_path,
+        {
+            "pkg/__init__.py": "",
+            "pkg/ghost.py": "VALUE = 1\n",
+            "pkg/real.py": "VALUE = 1\n",
+            "pkg/main.py": source,
+        },
+    )
+    assert data["totals"]["functions"] == 1
+    assert data["totals"]["classes"] == 1
+    assert data["edges"] == [["pkg/main.py", "pkg/real.py"]]
+    assert data["graph"]["hubs"] == [
+        {"path": "pkg/real.py", "imported_by": 1, "imports": 0}
+    ]
+    main = next(row for row in data["top_files_by_symbols"] if row["path"] == "pkg/main.py")
+    assert main["public"] == 1
+    assert data["lexical_uncertain_files"] == 0
+
+
+def test_architecture_marks_unsupported_template_expressions(tmp_path: Path) -> None:
+    data = _synthetic_architecture_json(
+        tmp_path,
+        {
+            "src/index.ts": "const line = \x60hello " + "$" + "{name}\x60;\nexport function real() {}\n",
+        },
+    )
+    assert data["lexical_uncertain_files"] == 1
+    assert data["totals"]["functions"] == 1
