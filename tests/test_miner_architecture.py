@@ -243,10 +243,7 @@ def test_architecture_marks_unsupported_template_expressions(tmp_path: Path) -> 
     data = _synthetic_architecture_json(
         tmp_path,
         {
-            "src/index.ts": (
-                "const line = \x60hello " "$" "{name}\x60;\n"
-                "export function real() {}\n"
-            ),
+            "src/index.ts": ("const line = \x60hello ${name}\x60;\nexport function real() {}\n"),
         },
     )
     assert data["lexical_uncertain_files"] == 1
