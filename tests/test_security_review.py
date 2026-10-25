@@ -69,6 +69,27 @@ def test_bounded_copyright_metadata_retains_ordinary_mit_notices(notice: str) ->
     assert detect_from_text(notice + "\nSPDX-License-Identifier: MIT\n")[0] == "MIT"
 
 
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        ".",
+        " All rights reserved.",
+        ". All rights reserved.",
+        " <authors@example.test>",
+        " <authors@example.test>.",
+        " All rights reserved. <authors@example.test>.",
+        " <authors@example.test>. All rights reserved.",
+    ],
+)
+def test_copyright_metadata_suffixes_do_not_change_the_grant(suffix: str) -> None:
+    notice = "Copyright (c) 2026 Alice Crab" + suffix
+    text = MIT.replace("Copyright (c) 2026 Original Authors", notice)
+    assert detect_from_text(text)[0] == "MIT"
+    assert detect_from_text(notice + "\nSPDX-License-Identifier: MIT\n")[0] == "MIT"
+    restricted = "Copyright (c) 2026 Vendor. Redistribution requires permission" + suffix
+    assert detect_from_text(restricted + "\n" + MIT)[0] is None
+
+
 def _files(root: Path) -> dict[str, bytes]:
     return {
         path.relative_to(root).as_posix(): path.read_bytes()

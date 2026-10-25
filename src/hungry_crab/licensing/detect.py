@@ -506,8 +506,15 @@ def _copyright_metadata(line: str) -> bool:
     )
     if match is None:
         return False
-    holder = re.sub(r"\s+all rights reserved\.?$", "", match.group(1).removesuffix("."), flags=re.I)
-    holder = re.sub(r"\s+<(?:[^\s<>@]+@[^\s<>@]+|https://[^\s<>]+)>$", "", holder)
+    holder = match.group(1)
+    # Contacts and the conventional reservation can follow each other, with terminal
+    # punctuation. Remove only these complete suffixes, in a bounded number of passes.
+    for _ in range(3):
+        previous = holder
+        holder = re.sub(r"\s+all rights reserved\.?$", "", holder.removesuffix("."), flags=re.I)
+        holder = re.sub(r"\s+<(?:[^\s<>@]+@[^\s<>@]+|https://[^\s<>]+)>$", "", holder)
+        if holder == previous:
+            break
     words = holder.split()
     if not words or len(words) > 16:
         return False
