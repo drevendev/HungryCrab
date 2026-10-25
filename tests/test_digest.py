@@ -426,14 +426,14 @@ def test_force_rejects_unsafe_ref_before_mining(
     refs = digests_dir / ".refs"
     if bad_entry == "refs-file":
         refs.parent.mkdir(parents=True, exist_ok=True)
-        refs.write_text("unowned root sentinel\\n", encoding="utf-8")
+        refs.write_text("unowned root sentinel\n", encoding="utf-8")
         sentinel = refs
     else:
         refs.mkdir(parents=True)
         ref_entry = refs / f"{ctx.sha}.json"
         ref_entry.mkdir()
         sentinel = ref_entry / "keep-me.txt"
-        sentinel.write_text("unowned ref sentinel\\n", encoding="utf-8")
+        sentinel.write_text("unowned ref sentinel\n", encoding="utf-8")
 
     def forbidden_mining(*_args: object, **_kwargs: object) -> None:
         pytest.fail("unsafe ref preflight must reject before running miners")
