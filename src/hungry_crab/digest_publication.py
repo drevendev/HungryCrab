@@ -124,7 +124,6 @@ def _require_complete_manifest(generation: DigestGeneration) -> None:
         )
 
 
-
 def _sync_directory(path: Path) -> None:
     """Persist directory entries on POSIX; Windows cannot use this fd-based primitive."""
     if os.name == "nt":
@@ -141,7 +140,9 @@ def _sync_directory(path: Path) -> None:
 
 def _sync_generation_files(generation: DigestGeneration, digests_dir: Path) -> None:
     """Sync complete flat generation files and their directory ancestry before publishing."""
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    # Windows _commit uses FlushFileBuffers and needs a writable file handle.
+    flags = (os.O_RDWR if os.name == "nt" else os.O_RDONLY) | getattr(os, "O_BINARY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
     for entry in sorted(generation.path.iterdir()):
         observed = entry.lstat()
         if not stat.S_ISREG(observed.st_mode) or is_reparse_point(observed):

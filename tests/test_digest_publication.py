@@ -216,7 +216,6 @@ def test_publication_ref_is_a_regular_small_pointer_file(tmp_path: Path) -> None
     assert not list(ref_path.parent.glob(f".{SHA}.*.tmp"))
 
 
-
 def test_generation_and_temp_ref_fsync_precede_ref_switch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
