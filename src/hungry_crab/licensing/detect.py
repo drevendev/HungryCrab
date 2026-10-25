@@ -513,6 +513,18 @@ def _copyright_metadata(line: str) -> bool:
         re.I,
     ):
         return False
+    # A copyright holder's name is attribution, not an additional grant. Reject
+    # restriction-shaped holder phrases even when title-cased as plausible names.
+    # Ambiguous headers require review, never a clean MIT classification.
+    if re.search(
+        r"\b(?:non[- ]?commercial|no[- ]?(?:derivatives?|redistribution|reproduction|resale|copying)"
+        r"|(?:reproduction|redistribution|derivatives?|resale|copying|distribution)"
+        r"\s+(?:forbidden|prohibited|restricted)"
+        r"|(?:internal|personal)\s+use\s+only|permission\s+required)\b",
+        holder,
+        re.I,
+    ):
+        return False
     years = r"\d{4}(?:\s*[-,]\s*(?:\d{2,4}|present))*"
     holder = re.sub(rf"^{years}\s+", "", holder, count=1, flags=re.I)
     holder = re.sub(rf"\s+{years}$", "", holder, count=1, flags=re.I)
