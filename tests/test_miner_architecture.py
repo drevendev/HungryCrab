@@ -188,7 +188,7 @@ def test_ts_architecture_excludes_inert_symbols_and_imports(tmp_path: Path) -> N
     source = (
         "/*\nexport function phantom() {}\nimport { ghost } from './ghost';\n*/\n"
         "// require('./ghost');\n"
-        'const quoted = "require(' + "'./ghost'" + ')";\n'
+        "const quoted = \"require('./ghost')\";\n"
         "const template = \x60export function hidden() {}\nimport './ghost';\x60;\n"
         "export function actual() {}\n"
         "import { value } from './real';\n"
@@ -204,9 +204,7 @@ def test_ts_architecture_excludes_inert_symbols_and_imports(tmp_path: Path) -> N
     )
     assert data["totals"]["functions"] == 1
     assert data["edges"] == [["src/index.ts", "src/real.ts"]]
-    assert data["graph"]["hubs"] == [
-        {"path": "src/real.ts", "imported_by": 1, "imports": 0}
-    ]
+    assert data["graph"]["hubs"] == [{"path": "src/real.ts", "imported_by": 1, "imports": 0}]
     assert data["public_surface"] == [{"path": "src/index.ts", "names": ["actual"]}]
     assert data["lexical_uncertain_files"] == 0
 
@@ -235,9 +233,7 @@ def test_python_architecture_excludes_docstring_symbols_and_imports(tmp_path: Pa
     assert data["totals"]["functions"] == 1
     assert data["totals"]["classes"] == 1
     assert data["edges"] == [["pkg/main.py", "pkg/real.py"]]
-    assert data["graph"]["hubs"] == [
-        {"path": "pkg/real.py", "imported_by": 1, "imports": 0}
-    ]
+    assert data["graph"]["hubs"] == [{"path": "pkg/real.py", "imported_by": 1, "imports": 0}]
     main = next(row for row in data["top_files_by_symbols"] if row["path"] == "pkg/main.py")
     assert main["public"] == 1
     assert data["lexical_uncertain_files"] == 0
@@ -247,7 +243,7 @@ def test_architecture_marks_unsupported_template_expressions(tmp_path: Path) -> 
     data = _synthetic_architecture_json(
         tmp_path,
         {
-            "src/index.ts": "const line = \x60hello " + "$" + "{name}\x60;\nexport function real() {}\n",
+            "src/index.ts": "const line = \x60hello " "$" "{name}\x60;\nexport function real() {}\n",
         },
     )
     assert data["lexical_uncertain_files"] == 1
