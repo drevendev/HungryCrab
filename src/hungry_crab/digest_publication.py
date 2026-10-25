@@ -43,7 +43,6 @@ def _require_safe_component(value: str, *, label: str) -> None:
         raise CrabError(f"invalid canonical digest {label} {value!r}")
 
 
-
 def check_digest_ref_publishable(digests_dir: Path, sha: str) -> None:
     """Reject unsafe ref entries before expensive mining without deleting unowned data."""
     _require_safe_component(sha, label="sha")
