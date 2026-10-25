@@ -7,7 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-10-25
+
 ### Fixed
+
+- Report sampled architecture graph coverage and visibility limits instead of presenting
+  partial graphs as complete (#430). Reject unsafe canonical digest refs before mining (#433).
+  Canonicalize configured/selected loop prey references (#427), and accept leading-dot and
+  underscore repository names in cache keys (#320).
 
 - **Security review follow-ups (#436–#440):** bound copyright metadata instead of swallowing
   restrictive prose; retain explicit AND/OR semantics when proving immutable COPY grants,
@@ -27,7 +34,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Content-origin narrowing now updates prose/mode/trace together and widening is refused.
   Unicode instruction heuristics use bounded matching-only views; compressed report failures
   discard partial facts. #243 host enforcement remains BLOCKED; this batch enables no unattended
-  host, release, scheduler or deployment. See the security-hardening evidence for limits.
+  host, scheduler or deployment. See the security-hardening evidence for limits.
 
 - **Licence authorization:** preserve digest conflicts and review flags in meals and served
   issue traces; require human resolution for cards whose evidence intersects foreign headers
@@ -1114,7 +1121,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...HEAD
+[0.6.4]: https://github.com/drevendev/HungryCrab/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/drevendev/HungryCrab/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/drevendev/HungryCrab/compare/v0.6.0...v0.6.1

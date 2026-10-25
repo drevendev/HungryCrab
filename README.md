@@ -38,12 +38,14 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.3](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.3) is the latest
+**Status: [0.6.4](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.4) is the latest
 release, a security update on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
-Update the CLI and plugins for bounded artifact/provider reads, strict copy policy and stronger
-publication/release checks (see the [changelog](CHANGELOG.md)). The supported scope is
+Update the CLI and plugins for acquisition quotas, cache ownership, verified licence grants,
+retained upstream notices and stronger publication checks (see the [changelog](CHANGELOG.md)).
+Remote Feeder acquisition has enforced quotas; standalone catch still needs an operator-set disk
+limit. Agent-host isolation remains deferred under #243. The supported scope is
 deterministic, human-supervised analysis: the CLI, scoped local MCP, portable skills and
 offline HTML reports. PR publication, Scheduled Crab work autonomy and measured learning/usefulness remain
 experimental; their live acceptance criteria are deferred to post-release work, not declared
