@@ -69,9 +69,7 @@ def _load_ref(path: Path) -> dict[str, Any]:
     except (OSError, ValueError) as exc:
         raise CrabError(f"cannot read digest ref {path}", hint=_REF_REPAIR_HINT) from exc
     if not isinstance(value, dict):
-        raise CrabError(
-            f"invalid digest ref {path}: expected an object", hint=_REF_REPAIR_HINT
-        )
+        raise CrabError(f"invalid digest ref {path}: expected an object", hint=_REF_REPAIR_HINT)
     return value
 
 
@@ -115,14 +113,10 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
 
     ref = _load_ref(ref_path)
     if ref.get("schema") != REF_SCHEMA:
-        raise CrabError(
-            f"invalid digest ref {ref_path}: unsupported schema", hint=_REF_REPAIR_HINT
-        )
+        raise CrabError(f"invalid digest ref {ref_path}: unsupported schema", hint=_REF_REPAIR_HINT)
     generation = ref.get("generation")
     if not isinstance(generation, str) or not _SAFE_NAME.fullmatch(generation):
-        raise CrabError(
-            f"invalid digest ref {ref_path}: invalid generation", hint=_REF_REPAIR_HINT
-        )
+        raise CrabError(f"invalid digest ref {ref_path}: invalid generation", hint=_REF_REPAIR_HINT)
 
     generations_dir = digests_dir / ".generations"
     sha_dir = generations_dir / sha
