@@ -109,6 +109,7 @@ FORMATTER_CONFIGS: dict[str, str] = {
 }
 _TEST_TOOLS = {
     "pytest",
+    "unittest",
     "vitest",
     "jest",
     "mocha",

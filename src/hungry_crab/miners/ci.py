@@ -78,6 +78,13 @@ TOOL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
         ("mypy", r"\bmypy\b"),
         ("pyright", r"\bpyright\b"),
         ("pytest", r"\bpytest\b"),
+        (
+            "unittest",
+            (
+                r"(?:^|[;&|\n])\s*(?:uv\s+run\s+)?python(?:\d+(?:\.\d+)*)?(?:\.exe)?"
+                r"\s+-m\s+unittest(?=\s|$)"
+            ),
+        ),
         ("tox", r"\btox\b"),
         ("nox", r"\bnox\b"),
         ("uv", r"\buv (?:sync|run|pip|lock|build|publish)\b"),

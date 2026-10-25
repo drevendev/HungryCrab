@@ -167,6 +167,8 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         "file_selection": "git-visible-v1",
         # Re-mine same-version caches after the #436/#437 grant-establishment corrections.
         "license_provenance": 3,
+        # Same-version caches may predate recognition of stdlib unittest CI commands.
+        "ci_tool_detection": "unittest-v1",
         "instruction_matching": "unicode-matching-v2",
     }
 
