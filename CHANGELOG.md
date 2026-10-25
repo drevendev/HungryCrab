@@ -7,6 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Run commit-pinned Python CodeQL analysis on pull requests, master pushes and a weekly
+  schedule, with job-scoped upload permissions and preserved MIT attribution.
+
 ## [0.6.4] - 2026-10-25
 
 ### Fixed
