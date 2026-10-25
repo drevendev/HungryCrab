@@ -41,11 +41,23 @@ def test_provider_reads_every_page_counts_marked_artifacts_and_checks_envelopes(
     def run(*args: str) -> str:
         calls.append(args)
         endpoint = args[-1]
+        if endpoint == "user":
+            return json.dumps({"login": "publisher", "type": "User"})
         if endpoint.endswith("issues?state=open&per_page=100"):
             return json.dumps(
                 [
-                    [{"body": "<!-- crab:tests:unit -->"}, {"body": "Unrelated"}],
-                    [{"body": "<!-- crab:loop:x:1:molt -->", "pull_request": {}}],
+                    [
+                        {"body": "<!-- crab:tests:unit -->", "user": {"login": "publisher"}},
+                        {"body": "Unrelated"},
+                    ],
+                    [
+                        {
+                            "body": "<!-- crab:loop:x:1:molt -->",
+                            "pull_request": {},
+                            "user": {"login": "publisher"},
+                            "html_url": URL,
+                        }
+                    ],
                 ]
             )
         if endpoint.endswith("check-runs?filter=all&per_page=100"):
@@ -57,7 +69,16 @@ def test_provider_reads_every_page_counts_marked_artifacts_and_checks_envelopes(
             )
         if endpoint.endswith("/status"):
             return json.dumps({"sha": SHA, "statuses": []})
-        return json.dumps({"html_url": URL, "head": {"sha": SHA}})
+        return json.dumps(
+            {
+                "html_url": URL,
+                "head": {
+                    "sha": SHA,
+                    "ref": "crab/tests/unit",
+                    "repo": {"full_name": "example/maw"},
+                },
+            }
+        )
 
     provider = GitHubLoopProvider(Slug("example", "maw"), run)
     assert provider.counts() == (1, 1)
@@ -95,7 +116,22 @@ def test_file_visibility_limit_and_duplicate_markers_refuse_publication() -> Non
     provider = GitHubLoopProvider(Slug("example", "maw"), lambda *_: json.dumps(payload))
     with pytest.raises(CrabError, match="visibility limit"):
         provider.files(URL)
-    payload = [[{"body": "<!-- crab:loop:marker -->"}] * 2]
+    payload = [
+        [
+            {
+                "body": "<!-- crab:loop:marker -->",
+                "user": {"login": "publisher"},
+                "head": {"repo": {"full_name": "example/maw"}},
+            }
+        ]
+        * 2
+    ]
+    provider = GitHubLoopProvider(
+        Slug("example", "maw"),
+        lambda *args: json.dumps(
+            {"login": "publisher", "type": "User"} if args[-1] == "user" else payload
+        ),
+    )
     with pytest.raises(CrabError, match="multiple"):
         provider.find_pr("<!-- crab:loop:marker -->")
 
@@ -108,6 +144,8 @@ def test_merged_pr_reads_ci_for_its_actual_merge_commit(conclusion: str | None) 
     def run(*args: str) -> str:
         endpoint = args[-1]
         reads.append(endpoint)
+        if "/git/commits/" in endpoint:
+            return json.dumps({"sha": endpoint.rsplit("/", 1)[1], "tree": {"sha": "c" * 40}})
         if endpoint.endswith("check-runs?filter=all&per_page=100"):
             sha = endpoint.split("/commits/")[1].split("/")[0]
             checks = (
@@ -156,7 +194,16 @@ def test_provider_refuses_checks_or_status_bound_to_another_commit() -> None:
                 )
             if endpoint.endswith("/status"):
                 return json.dumps({"sha": "b" * 40, "statuses": []})
-            return json.dumps({"html_url": URL, "head": {"sha": SHA}})
+            return json.dumps(
+                {
+                    "html_url": URL,
+                    "head": {
+                        "sha": SHA,
+                        "ref": "crab/tests/unit",
+                        "repo": {"full_name": "example/maw"},
+                    },
+                }
+            )
 
         with pytest.raises(CrabError, match=r"different commit|invalid commit statuses"):
             GitHubLoopProvider(Slug("example", "maw"), run).artifact(URL)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -80,12 +81,29 @@ def evidence(loop: Loop, directory: Path, digest: Path | None = None) -> dict[st
         atomic_json(digest / "manifest.json", data)
     else:
         data = json.loads((digest / "manifest.json").read_text(encoding="utf-8"))
+    if digest != directory / "digest":
+        shutil.copytree(digest, directory / "digest")
+        digest = directory / "digest"
+    data["prey"].update(label="example/prey")
+    atomic_json(digest / "manifest.json", data)
+    maw_digest = directory / "maw-digest"
+    maw_digest.mkdir()
+    atomic_json(
+        maw_digest / "manifest.json",
+        {
+            "schema": "hungry-crab.digest/1",
+            "prey": {"label": "maw", "root": str(loop.maw), "sha": data["prey"]["sha"]},
+            "coverage": {"healthy": True},
+            "files": [],
+            "miners": [{"name": "inventory", "ok": True, "files": []}],
+        },
+    )
     sha = data["prey"]["sha"]
     menu = {
         "schema": "hungry-crab.menu/1",
         "generated_at": NOW.isoformat(),
         "prey": {"label": "example/prey", "sha": sha},
-        "maw": {"root": str(loop.maw), "sha": sha},
+        "maw": {"label": "maw", "root": str(loop.maw), "sha": sha},
         "candidates": [{"id": "crab:tests:tests.unit"}],
     }
     meal = {
@@ -94,7 +112,7 @@ def evidence(loop: Loop, directory: Path, digest: Path | None = None) -> dict[st
         "prey": menu["prey"],
         "maw": menu["maw"],
         "prey_digest": str(digest),
-        "maw_digest": str(digest),
+        "maw_digest": str(maw_digest),
     }
     atomic_json(directory / "meal.json", meal)
     atomic_json(directory / "menu.json", menu)

@@ -602,6 +602,7 @@ class ServeOptions:
     mode: str = "dry-run"
     notes: Path | None = None
     explicit_ids: list[str] | None = None
+    transaction_marker: str = ""
 
     @property
     def owner_selected_ids(self) -> list[str]:
@@ -720,9 +721,12 @@ def _serve_pull_requests(
     source_reader: SourceReader | None = None,
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
     publication_plans: list[PullRequestServePlan] | None = None,
+    transaction_marker: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
+        if transaction_marker:
+            body += f"\n{transaction_marker}\n"
         if card.license_mode in COPY_MODES:
             reader = source_reader
             if reader is None and prey_repo is not None:
@@ -904,6 +908,7 @@ def serve(
             prey_repo=prey_repo,
             source_reader=source_reader,
             publication_guard=publication_guard,
+            transaction_marker=options.transaction_marker,
             publication_plans=publication_plans,
         )
         report.served.extend(served)
@@ -986,6 +991,8 @@ def serve(
                 )
                 continue
         title, body = render_issue(card, menu)
+        if options.transaction_marker:
+            body += f"\n{options.transaction_marker}\n"
         report.previews.append({"id": card.id, "title": title, "body": body})
         if options.mode != "issue":
             continue

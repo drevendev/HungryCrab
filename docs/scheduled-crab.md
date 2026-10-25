@@ -12,13 +12,13 @@ The maw owner adds this block to `.crab.yml`:
 ```yaml
 loop:
   cadence: daily
-  autonomy: serve          # read | serve | work
+  autonomy: read           # read | serve | work; defaults to read
   work_authorized: false  # explicit owner consent required for work and tags
   prey: [pypa/hatch, astral-sh/ruff]
   budget:
     phases_per_day: 4
     prey_per_round: 2      # at most 3
-    open_issues_max: 10    # open artifacts starting with a crab marker
+    open_issues_max: 10    # marked artifacts owned by the publishing account
     open_prs_max: 2
   max_attempts: 3
   lease_minutes: 60
@@ -55,6 +55,19 @@ write its generated attribution records and notice. Set both `autonomy: work` an
 only after the S0/S1 observation period. A control repository cannot grant work consent.
 Work also needs a persistent ledger (`repo` or `cache`).
 
+Commit work consent in the maw before using it. Both the current working-tree policy and
+`HEAD:.crab.yml` must authorize work; editing an uncommitted file cannot grant it. Revoking
+working-tree consent takes effect before subsequent CLI effects. Scheduled SERVE also requires
+`serve.issues: auto`. These checks do not sandbox generic agent tools: #243 remains blocked until
+an independent host boundary has passed live adversarial tests. Use human supervision.
+
+For a maw whose workflows run only on PRs, the owner may commit `loop.pr_only_ci: true`.
+Only when the merge commit has no checks/statuses, the provider proves its Git tree equals the
+tested PR head tree, and that head satisfies the approved check name/App requirements, may the
+CLI use the head's CI evidence. Failed, unfinished or different-tree merge evidence never falls
+back. The default continues to require merge-commit checks. This opt-in also requires current and
+committed consent; it does not change this repository's required master CI.
+
 A merged PR counts as landed only when the provider reports a `User` merger distinct from the
 authenticated publishing account (`gh api user` through the configured token). Bot merges,
 missing merger data, an unavailable publishing identity, or merging with the publishing
@@ -90,6 +103,18 @@ EAT can record a meal exported by `crab eat --deterministic`. Digest references 
 Feeder bundle resolve relative to its `meal.json`; ordinary absolute cache references still
 work. Both forms must pass artifact integrity, inventory visibility and any declared wiki
 visibility checks, including bundles exported with Feeder's explicit `--allow-loss` override.
+
+EAT binds each digest's repository, commit and maw root to the meal and menu. It records hashes
+of the meal, menu, notes and digest manifests, then rechecks them and digest integrity before
+SERVE/GROW. An accepted menu or notes file cannot be edited in place: repeat EAT instead.
+Legacy unfrozen receipts require a fresh EAT; no automatic migration asserts their validity.
+
+Publication records a durable transaction intent before effects. Recovery adopts an open artifact
+only when its random transaction identity, payload and publishing account belong to this round.
+Old ledger URLs and already merged PRs cannot advance it. Starting a new round clears its issue
+and transaction scope. A changed owned GROW head can be explicitly acknowledged and retrialled;
+another actor's PR cannot be closed by drop/skip. Pause writes a revocation signal even while a
+CLI effect holds the state lock; subsequent guarded effects recheck it and lease expiry.
 
 Configure an existing local scheduler to invoke `/crab:loop --maw <absolute-path>` once per
 wake-up. Cadence belongs to that scheduler. To avoid model costs while blocked, a harness can

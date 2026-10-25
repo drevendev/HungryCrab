@@ -32,6 +32,12 @@ from hungry_crab.updater import (
 CLAUDE, CODEX = AGENTS
 
 
+@pytest.fixture(autouse=True)
+def isolated_install_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
+
+
 class FakeGitHub:
     """Serves the files `fetch_remote` reads, or raises."""
 
@@ -82,13 +88,17 @@ def fake_runner(responses: dict[str, tuple[bool, str]], calls: list[list[str]] |
 def claude_list(version: str | None) -> str:
     if version is None:
         return json.dumps([{"id": "other@market", "version": "1.0.0"}])
-    return json.dumps([{"id": PLUGIN_ID, "version": version, "enabled": True}])
+    return json.dumps(
+        [{"id": PLUGIN_ID, "version": version, "enabled": True, "gitCommitSha": "a" * 40}]
+    )
 
 
 def codex_list(version: str | None) -> str:
     installed = [{"pluginId": "documents@openai", "version": "1", "installed": True}]
     if version is not None:
-        installed.append({"pluginId": PLUGIN_ID, "version": version, "installed": True})
+        installed.append(
+            {"pluginId": PLUGIN_ID, "version": version, "installed": True, "revision": "a" * 40}
+        )
     return json.dumps({"installed": installed})
 
 
@@ -161,7 +171,7 @@ def test_cli_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_agent_component_states(monkeypatch: pytest.MonkeyPatch) -> None:
-    remote = Remote(claude_plugin_version="0.3.0", codex_plugin_version="0.3.0")
+    remote = Remote(claude_plugin_version="0.3.0", codex_plugin_version="0.3.0", sha="a" * 40)
     monkeypatch.setattr(updater.shutil, "which", lambda exe: None)
     absent = check_agent(CLAUDE, remote, runner=fake_runner({}))
     assert absent.status == ABSENT and absent.commands == []
@@ -264,8 +274,8 @@ def test_apply_runs_plugins_but_never_replaces_a_running_uv_tool(
     assert "codex plugin add crab@hungry-crab" in executed
     cli, claude, codex = report.components
     assert cli.status == OUTDATED and "while it is running" in cli.detail
-    assert claude.status == OK and claude.detail == "updated"
-    assert codex.status == OK
+    assert claude.status == OUTDATED  # The simulated host still reports the old install.
+    assert codex.status == OUTDATED
     assert report.executed is True
     assert "ok: claude plugin update crab" in format_report(report)
 
@@ -610,3 +620,45 @@ def test_pipx_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     assert updater.pipx_metadata() is None
     (tmp_path / "pipx_metadata.json").write_text("{}", encoding="utf-8")
     assert updater.cli_install_kind() == "pipx"
+
+
+@pytest.mark.parametrize("agent", AGENTS)
+def test_same_version_different_revision_is_actionable_and_unknown_is_explicit(
+    agent: updater.AgentSpec, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(updater.shutil, "which", lambda name: name)
+    remote = Remote(claude_plugin_version="0.3.0", codex_plugin_version="0.3.0", sha="b" * 40)
+    listing = claude_list if agent.key == "claude" else codex_list
+    runner = fake_runner({"plugin list": (True, listing("0.3.0"))})
+    result = check_agent(agent, remote, runner=runner)
+    assert result.status == OUTDATED
+    assert "installed revision" in result.detail and result.commands
+    if agent.key == "claude":
+        assert ["claude", "plugin", "uninstall", PLUGIN_ID] in result.commands
+    monkeypatch.setattr(updater, "plugin_revision", lambda *_: None)
+    assert check_agent(agent, remote, runner=runner).status == UNKNOWN
+
+
+def test_successful_version_only_update_is_not_reported_as_fresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(updater.shutil, "which", lambda name: name)
+    remote = Remote(claude_plugin_version="0.3.0", sha="b" * 40)
+    runner = fake_runner({"plugin list": (True, claude_list("0.3.0"))})
+    component = check_agent(CLAUDE, remote, runner=runner)
+    updater.apply(UpdateReport([component], remote, False), runner=runner)
+    assert component.status == OUTDATED
+
+
+def test_codex_revision_is_read_from_installed_snapshot_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path))
+    root = tmp_path / "plugins" / "cache" / "hungry-crab" / "crab" / "0.3.0"
+    root.mkdir(parents=True)
+    (root / ".codex-marketplace-install.json").write_text(
+        json.dumps({"revision": "b" * 40}), encoding="utf-8"
+    )
+    payload = {"installed": [{"pluginId": PLUGIN_ID, "version": "0.3.0", "installed": True}]}
+    assert updater.plugin_revision(CODEX, payload) == "b" * 40

@@ -108,6 +108,26 @@ class GitHubLoopProvider:
                 ):
                     raise CrabError("loop provider returned an invalid merge commit")
                 data["merge_ci"] = {"sha": merge_sha, **self._commit_ci(merge_sha)}
+                if not data["merge_ci"]["checks"] and not data["merge_ci"]["statuses"]:
+                    trees: list[str] = []
+                    for commit_sha in (sha, merge_sha):
+                        try:
+                            commit = json.loads(
+                                self.run("api", f"repos/{self.slug}/git/commits/{commit_sha}")
+                            )
+                            tree = commit.get("tree", {}).get("sha")
+                            if (
+                                commit.get("sha") != commit_sha
+                                or not isinstance(tree, str)
+                                or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", tree)
+                            ):
+                                raise ValueError
+                            trees.append(tree)
+                        except (ValueError, AttributeError) as exc:
+                            raise CrabError(
+                                "cannot verify merged and tested tree identities"
+                            ) from exc
+                    data["merge_tree_matches_head"] = trees[0] == trees[1]
         return data
 
     def _commit_ci(self, sha: str) -> dict[str, Any]:
@@ -132,11 +152,21 @@ class GitHubLoopProvider:
 
     def counts(self) -> tuple[int, int]:
         rows = self._pages(f"repos/{self.slug}/issues?state=open&per_page=100")
+        publisher = self.identity()
         issues = prs = 0
         for row in rows:
-            if not str(row.get("body") or "").lstrip().startswith("<!-- crab:"):
+            if (
+                not str(row.get("body") or "").lstrip().startswith("<!-- crab:")
+                or row.get("user", {}).get("login") != publisher
+            ):
                 continue
             if "pull_request" in row:
+                url = str(row.get("html_url", "")).replace("/issues/", "/pull/")
+                truth = self.artifact(url)
+                if truth.get("head", {}).get("repo", {}).get("full_name") != str(
+                    self.slug
+                ) or not str(truth.get("head", {}).get("ref", "")).startswith("crab/"):
+                    continue
                 prs += 1
             else:
                 issues += 1
@@ -145,6 +175,14 @@ class GitHubLoopProvider:
     def find_pr(self, marker: str) -> dict[str, Any] | None:
         rows = self._pages(f"repos/{self.slug}/pulls?state=all&per_page=100")
         matches = [row for row in rows if str(row.get("body") or "").startswith(marker)]
+        if matches:
+            publisher = self.identity()
+            matches = [
+                row
+                for row in matches
+                if row.get("user", {}).get("login") == publisher
+                and row.get("head", {}).get("repo", {}).get("full_name") == str(self.slug)
+            ]
         if len(matches) > 1:
             raise CrabError("multiple pull requests carry this loop phase marker")
         return self.artifact(matches[0]["html_url"]) if matches else None

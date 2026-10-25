@@ -32,14 +32,18 @@ The rules were written for this module from the issuers' public token formats.
 
 from __future__ import annotations
 
+import hashlib
 import html
+import json
 import math
 import re
 from collections import Counter
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import PurePosixPath
+
+from .errors import CrabError
 
 # Each shape names the issuer-chosen part `body`; a body that documentation writes as a
 # placeholder (all zeros or all x, or AWS's `...EXAMPLE` key) is not a secret.
@@ -243,6 +247,27 @@ class PublicationFinding:
     path: str
     line: int
     rule: str
+    identity: str = field(default="", compare=False)
+
+
+def safe_validation_detail(detail: str) -> str:
+    """Keep validation errors useful without echoing secret-shaped paths or JSON keys."""
+    findings = scan_publication("<validation>", detail)
+    if not findings:
+        return detail
+    category = detail.split(":", 1)[0]
+    if scan_publication("<validation>", category):
+        category = "validation failure"
+    identity = hashlib.sha256(detail.encode("utf-8")).hexdigest()[:16]
+    rules = ", ".join(sorted({finding.rule for finding in findings}))
+    return f"{category}: <redacted {identity}> ({rules})"
+
+
+def publication_error(message: str, *, hint: str | None = None) -> CrabError:
+    return CrabError(
+        safe_validation_detail(message),
+        hint=safe_validation_detail(hint) if hint is not None else None,
+    )
 
 
 def _looks_placeholder(value: str) -> bool:
@@ -631,7 +656,20 @@ def scan_publication(
             PublicationFinding(shown, line_number, rule) for rule in dict.fromkeys(rules)
         )
 
-    return findings
+    content_id = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return [
+        PublicationFinding(
+            finding.path,
+            finding.line,
+            finding.rule,
+            hashlib.sha256(
+                json.dumps(
+                    [logical_path, content_id, finding.line, finding.rule], ensure_ascii=True
+                ).encode("utf-8")
+            ).hexdigest(),
+        )
+        for finding in findings
+    ]
 
 
 def scan_publication_bundle(items: Iterable[tuple[str, str]]) -> list[PublicationFinding]:
@@ -647,8 +685,8 @@ def format_publication_findings(findings: Iterable[PublicationFinding]) -> str:
     """Render blockers without ever echoing the matched values."""
 
     return "\n".join(
-        f"{finding.path} (path: {finding.rule})"
+        f"{finding.path} (path: {finding.rule}; finding {finding.identity})"
         if finding.line == 0
-        else f"{finding.path}:{finding.line} ({finding.rule})"
+        else f"{finding.path}:{finding.line} ({finding.rule}; finding {finding.identity})"
         for finding in findings
     )

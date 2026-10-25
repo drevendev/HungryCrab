@@ -7,9 +7,12 @@ check out that tree, run its hooks, push the default branch, or merge a pull req
 from __future__ import annotations
 
 import fnmatch
+import hashlib
+import json
 import math
 import re
 import tempfile
+import uuid
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -88,6 +91,10 @@ def serve_phase(
         meal = next((row for row in data["meals"] if row["prey"] == prey), None)
         if meal is None:
             raise CrabError("choose a prey with an accepted EAT receipt in this round")
+        loop.verify_meal(meal, data)
+        menu = json.loads(Path(meal["menu"]).read_text(encoding="utf-8"))
+        if not any(row.get("id") == nutrient_id for row in menu.get("candidates", [])):
+            raise CrabError("selected nutrient is absent from this round's frozen menu")
         issues, prs = loop._provider().counts()
         if (phase == "serve" and issues >= loop.settings.open_issues_max) or (
             phase == "grow" and prs >= loop.settings.open_prs_max
@@ -98,6 +105,44 @@ def serve_phase(
         ):
             raise CrabError("GROW publishes at most one nutrient per round")
         ledger = Ledger.load(loop.config.ledger_path(cache_dir), maw=loop.maw.name)
+        transaction_key = f"{data['round']}:{phase}:{nutrient_id}"
+        transactions = data.setdefault("transactions", {})
+        transaction = transactions.get(transaction_key)
+        if transaction is None:
+            transaction = {
+                "id": uuid.uuid4().hex,
+                "payload": hashlib.sha256(
+                    (json.dumps(meal["hashes"], sort_keys=True) + (receipt_payload or "")).encode()
+                ).hexdigest(),
+            }
+            transactions[transaction_key] = transaction
+        payload_id = hashlib.sha256(
+            (json.dumps(meal["hashes"], sort_keys=True) + (receipt_payload or "")).encode()
+        ).hexdigest()
+        if transaction["payload"] != payload_id:
+            raise CrabError("publication payload changed within this transaction")
+        marker = f"<!-- crab:transaction:{transaction['id']} -->"
+
+        def check_transaction(url: str) -> dict[str, Any]:
+            truth = loop._provider().artifact(url)
+            if (
+                truth.get("state") != "open"
+                or truth.get("merged_at")
+                or marker not in str(truth.get("body", "")).splitlines()
+                or truth.get("user", {}).get("login") != loop._provider().identity()
+            ):
+                raise CrabError("artifact does not belong to this round's authorized transaction")
+            if "/pull/" in url:
+                loop.require_owned_pr(truth)
+            return truth
+
+        existing_entry = ledger.entries.get(nutrient_id)
+        if (
+            existing_entry
+            and existing_entry.url
+            and not (phase == "grow" and existing_entry.url in data["issues"])
+        ):
+            check_transaction(existing_entry.url)
         if phase == "grow":
             entry = ledger.entries.get(nutrient_id)
             if entry is None or not entry.url:
@@ -119,6 +164,8 @@ def serve_phase(
                 loop.config.serve, max_prs_per_run=min(1, loop.config.serve.max_prs_per_run)
             ),
         )
+        if phase == "serve" and config.serve.issues != "auto":
+            raise CrabError("scheduled SERVE requires explicit serve.issues: auto in maw policy")
 
         def guard(prepared: PreparedPullRequest) -> None:
             check_paths(
@@ -129,7 +176,42 @@ def serve_phase(
                 ),
             )
 
-        client = GhIssueClient(token_env=config.serve.token_env)
+        base_client = GhIssueClient(token_env=config.serve.token_env)
+
+        class TransactionClient:
+            def identity(self) -> str:
+                return base_client.identity()
+
+            def run_gh(self, *args: str) -> str:
+                loop.active(data, token)
+                loop._save(data)
+                return base_client.run_gh(*args)
+
+            def ensure_label(self, slug: Slug, label: str) -> bool:
+                loop.active(data, token)
+                loop._save(data)
+                return base_client.ensure_label(slug, label)
+
+            def create(
+                self, slug: Slug, title: str, body: str, labels: list[str], assignees: list[str]
+            ) -> str:
+                loop.active(data, token)
+                loop._save(data)
+                return base_client.create(slug, title, body, labels, assignees)
+
+            def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
+                rows = base_client.list_marked(slug, label)
+                if nutrient_id in rows and rows[nutrient_id].get("url"):
+                    check_transaction(rows[nutrient_id]["url"])
+                return rows
+
+            def list_marked_prs(self, slug: Slug) -> dict[str, dict[str, Any]]:
+                rows = base_client.list_marked_prs(slug)
+                if nutrient_id in rows and rows[nutrient_id].get("url"):
+                    check_transaction(rows[nutrient_id]["url"])
+                return rows
+
+        client = TransactionClient()
         if phase == "grow":
             check_push_target(loop, GitRunner(loop.maw))
         report = serve(
@@ -143,6 +225,7 @@ def serve_phase(
                 # past `serve.prs: ask`, an ideas-only hunger and a human-review licence verdict,
                 # so an unattended pick must never count as one.
                 explicit_ids=[],
+                transaction_marker=marker,
             ),
             config=config,
             ledger=ledger,
@@ -156,7 +239,7 @@ def serve_phase(
         entry = ledger.entries.get(nutrient_id)
         if entry is None or not entry.url:
             raise CrabError("no artifact was published or reconciled; inspect the serve report")
-        truth = loop._provider().artifact(entry.url)
+        truth = check_transaction(entry.url)
         if phase == "serve":
             if "/issues/" not in entry.url:
                 raise CrabError("SERVE did not reconcile an issue")
@@ -181,6 +264,7 @@ def serve_phase(
                     "state": "open",
                     "nutrient_id": nutrient_id,
                     "files": files,
+                    "transaction": marker,
                 }
             )
             data["waiting_on"] = {"kind": "ci", "reason": "waiting for GROW CI"}
@@ -386,6 +470,7 @@ def publish(
                         "existing loop branch contains a different payload; human recovery required"
                     )
             else:
+                loop.active(data, token)
                 commit = git.run(
                     "-c", "commit.gpgsign=false", "commit-tree", tree, "-p", base_sha, "-m", title
                 ).strip()
@@ -393,6 +478,7 @@ def publish(
             with tempfile.TemporaryDirectory(prefix="crab-loop-") as scratch:
                 body_path = Path(scratch) / "body.md"
                 body_path.write_text(body, encoding="utf-8")
+                loop.active(data, token)
                 url = run(
                     "pr",
                     "create",
@@ -410,6 +496,7 @@ def publish(
             existing = loop._provider().artifact(url)
         if existing.get("state") != "open" or not str(existing.get("body", "")).startswith(marker):
             raise CrabError("loop phase PR is closed or has a different marker; reconcile manually")
+        loop.require_owned_pr(existing)
         url = existing["html_url"]
         if existing["head"].get("ref") != branch or existing.get("base", {}).get("ref") != base:
             raise CrabError("provider PR has a different loop branch or default base")
@@ -468,6 +555,7 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
                 "configure loop.required_checks with check name/app_id pairs before tagging"
             )
         truth = loop._provider().artifact(pr["url"])
+        loop.require_owned_pr(truth)
         if not truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:
             raise CrabError("release PR must be merged at the reviewed head before tagging")
         if not human_merge(truth, loop._provider().identity()):
@@ -476,7 +564,12 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
             )
         if ci_state(truth) != "pass":
             raise CrabError("release PR must have passing CI at the reviewed head before tagging")
-        if merge_ci_state(truth, loop.settings.required_checks) != "pass":
+        if (
+            merge_ci_state(
+                truth, loop.settings.required_checks, allow_pr_only=loop.pr_only_ci_allowed()
+            )
+            != "pass"
+        ):
             raise CrabError("release merge commit must have passing CI before tagging")
         sha = truth["merge_commit_sha"]
         if truth.get("base", {}).get("ref") != pr.get("base"):
@@ -499,6 +592,7 @@ def tag(loop: Loop, token: str) -> dict[str, Any]:
             if target != sha:
                 raise CrabError("release tag already points to a different commit")
         else:
+            loop.active(data, token, "harden")
             local = git.try_run("rev-parse", "--verify", f"refs/tags/{name}^{{commit}}")
             if local is not None and local.strip() != sha:
                 raise CrabError("local release tag already points to a different commit")

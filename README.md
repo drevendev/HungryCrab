@@ -103,6 +103,11 @@ its own: turn that on once in `/plugin` → **Marketplaces** → `hungry-crab` �
 auto-update**, or refresh by hand with `claude plugin marketplace update hungry-crab` followed by
 `claude plugin update crab@hungry-crab`.
 
+For development snapshots, run `crab update` to compare installed revisions as well as
+versions. A same-version snapshot can still be stale; the report gives a refresh/reinstall path
+and verifies the revision after applying it. Missing provenance and host hook activation are
+reported as UNKNOWN. Restart the agent and verify hook loading after a refresh.
+
 **Codex**, same plugin, same marketplace:
 
 ```bash
@@ -281,6 +286,7 @@ serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT and COPY)
   max_prs_per_run: 3
+  publication_allow: []    # exact content-bound finding/reason entries; commit before use
   labels: [hungry-crab]
   assignees: []
   token_env: ""            # environment variable holding the token to file issues as, e.g.
@@ -300,7 +306,7 @@ ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 loop:
   cadence: daily           # cadence belongs to your scheduler; the CLI never starts one
-  autonomy: serve          # read | serve | work; merging always belongs to a human
+  autonomy: read           # read | serve | work; merging always belongs to a human
   work_authorized: false   # the maw owner must explicitly authorize work, including tags
   discovery: false         # opt in to a lease-bound HUNT shortlist
   prey: []                 # fixed allowlist; empty requires discovery

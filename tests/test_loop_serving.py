@@ -49,7 +49,12 @@ def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_bloc
             self, slug: Any, title: str, body: str, labels: list[str], assignees: list[str]
         ) -> str:
             url = super().create(slug, title, body, labels, assignees)
-            provider.rows[url] = {"html_url": url, "body": body, "state": "open"}
+            provider.rows[url] = {
+                "html_url": url,
+                "body": body,
+                "state": "open",
+                "user": {"login": "loop-publisher"},
+            }
             return url
 
     client = Client()
@@ -111,6 +116,7 @@ def test_served_issue_becomes_one_licensed_grow_pr_and_protected_payload_is_bloc
         assert nutrient == card.id
         publications.append(prepared)
         provider.rows[URL] = artifact()
+        provider.rows[URL]["body"] = prepared.body
         provider.changed[URL] = [
             {"filename": file.path, "status": "added"} for file in prepared.files
         ]

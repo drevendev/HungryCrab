@@ -70,6 +70,6 @@ class LicenseMiner:
         )
         warnings: list[str] = []
         if findings.human_review:
-            reason = "; ".join(findings.conflicts) or findings.notes[-1] if findings.notes else ""
+            reason = "; ".join(findings.conflicts) or (findings.notes[-1] if findings.notes else "")
             warnings.append(f"license needs human review ({reason or 'unclear license'})")
         return MinerResult(self.name, data, warnings=warnings)

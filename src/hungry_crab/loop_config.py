@@ -51,8 +51,9 @@ class RequiredCheck:
 @dataclass
 class LoopSettings:
     cadence: str = "daily"
-    autonomy: str = "serve"
+    autonomy: str = "read"
     work_authorized: bool = False
+    pr_only_ci: bool = False
     prey: list[str] = field(default_factory=list)
     discovery: bool = False
     phases_per_day: int = 4
@@ -74,6 +75,7 @@ class LoopSettings:
                 "cadence",
                 "autonomy",
                 "work_authorized",
+                "pr_only_ci",
                 "prey",
                 "discovery",
                 "budget",
@@ -94,6 +96,10 @@ class LoopSettings:
         if not isinstance(authorization, bool):
             raise UsageError("loop.work_authorized must be a boolean")
         result.work_authorized = authorization
+        pr_only_ci = data.get("pr_only_ci", False)
+        if not isinstance(pr_only_ci, bool):
+            raise UsageError("loop.pr_only_ci must be a boolean")
+        result.pr_only_ci = pr_only_ci
         discovery = data.get("discovery", False)
         if not isinstance(discovery, bool):
             raise UsageError("loop.discovery must be a boolean")

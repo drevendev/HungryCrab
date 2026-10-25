@@ -80,6 +80,13 @@ live session, the clean-room guard has not yet. Treat them as a second line behi
 
 ### Cache ownership before mutation
 
+The [security-hardening evidence](docs/releases/security-hardening-evidence.md) separates tested
+CLI boundaries from agent-host enforcement. No host is currently certified for unattended work
+under #243. In particular, a fresh installed plugin revision does not prove hooks are active.
+The launcher keeps its exit contract: exit 2 is a classifier refusal; environment failures remain
+visible exit-1 errors. Neither a shell heuristic nor a successful CI job is a filesystem,
+subprocess or provider sandbox.
+
 Before refreshing, replacing or removing an existing prey cache, Crab requires a catch or sniff
 record naming that prey and verifies that the clone has exactly the requested origin. It also
 checks the effective URL after Git includes, URL rewrites and environment configuration, and

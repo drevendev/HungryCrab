@@ -315,10 +315,7 @@ def test_digest_of_a_plain_directory_without_git(tmp_path: Path) -> None:
         tmp_path / "plain",
         {
             "README.md": "# Plain\n\n## Usage\n\nRun it.\n",
-            "LICENSE": "MIT License\n\nPermission is hereby granted, free of charge, to any person "
-            "obtaining a copy of this software, to deal in the Software without restriction. "
-            "The above copyright notice and this permission notice shall be included in all "
-            "copies or substantial portions of the Software.\n",
+            "LICENSE": (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8"),
             "src/app.py": "print('hi')\n",
         },
     )

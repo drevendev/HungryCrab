@@ -7,6 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from hungry_crab.cache import Target
+from hungry_crab.compare import compare_for_maw, menu_candidates
+from hungry_crab.digest import DigestOptions
 from hungry_crab.errors import UsageError
 from hungry_crab.mcp_service import AnalysisService
 
@@ -36,6 +39,38 @@ def test_local_analysis_pages_menu_and_no_source_or_ledger_writes(
     assert not (pyproject_cli / ".crab" / "ledger.json").exists()
     with pytest.raises(UsageError, match="listed digest"):
         service.digest(str(npm_app), page="../LICENSE")
+
+
+def test_mcp_pagination_cannot_replace_a_deduplicated_cli_meal(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from hungry_crab.cache import Slug
+
+    monkeypatch.setattr("hungry_crab.compare.maw_slug", lambda _: Slug("example", "maw"))
+    options = DigestOptions(cache_root=tmp_path / "cache")
+    baseline, _, _, _ = compare_for_maw(
+        Target(path=npm_app), pyproject_cli, digest_options=options, record_ledger=False
+    )
+    hidden_id = baseline.candidates[0].id
+    cli, _, _, _ = compare_for_maw(
+        Target(path=npm_app),
+        pyproject_cli,
+        digest_options=options,
+        record_ledger=False,
+        issue_lookup=lambda *_: {hidden_id: {"number": 7, "state": "open"}},
+    )
+    assert cli.meal_dir is not None
+    before = {path.name: path.read_bytes() for path in cli.meal_dir.iterdir() if path.is_file()}
+    selected = [card.id for card in menu_candidates(cli.menu)]
+    assert hidden_id not in selected
+    service = AnalysisService([npm_app, pyproject_cli], options.cache_root)
+    first = service.menu(str(npm_app), str(pyproject_cli), limit=1)
+    service.menu(str(npm_app), str(pyproject_cli), offset=1, limit=100)
+    assert first["origin"] == "analysis-only" and first["meal_dir"] is None
+    assert {
+        path.name: path.read_bytes() for path in cli.meal_dir.iterdir() if path.is_file()
+    } == before
+    assert not (pyproject_cli / ".crab" / "ledger.json").exists()
 
 
 @pytest.mark.parametrize("target", ["../outside", "/outside", "", "example/prey"])

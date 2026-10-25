@@ -86,6 +86,7 @@ serve:
   issues: ask              # auto | ask | off
   prs: ask                 # auto | ask | off; gates --as pr-branch (REIMPLEMENT and COPY)
   max_prs_per_run: 3
+  publication_allow: []    # exact content-bound finding/reason entries; commit before use
   labels: [hungry-crab]
   assignees: []
   token_env: ""            # environment variable holding the token to file issues as, e.g.
@@ -105,7 +106,7 @@ ledger: repo               # repo (.crab/ledger.json, committed) | cache | none
 scoring: {}                # overrides for data/scoring.yml sections; `crab tune` suggests them
 loop:
   cadence: daily           # cadence belongs to your scheduler; the CLI never starts one
-  autonomy: serve          # read | serve | work; merging always belongs to a human
+  autonomy: read           # read | serve | work; merging always belongs to a human
   work_authorized: false   # the maw owner must explicitly authorize work, including tags
   discovery: false         # opt in to a lease-bound HUNT shortlist
   prey: []                 # fixed allowlist; empty requires discovery
@@ -196,6 +197,7 @@ class ServeSettings:
     labels: list[str] = field(default_factory=lambda: [DEFAULT_LABEL])
     assignees: list[str] = field(default_factory=list)
     token_env: str = ""
+    publication_allow: tuple[str, ...] = ()
 
     @property
     def label(self) -> str:
@@ -292,7 +294,15 @@ class MawConfig:
         serve = _required_mapping_section(data, "serve", path)
         _reject_unknown_keys(
             serve,
-            {"issues", "prs", "max_prs_per_run", "labels", "assignees", "token_env"},
+            {
+                "issues",
+                "prs",
+                "max_prs_per_run",
+                "labels",
+                "assignees",
+                "token_env",
+                "publication_allow",
+            },
             path,
             "serve",
         )
@@ -303,6 +313,8 @@ class MawConfig:
                 hint="use 0, 1, 2, ...",
             )
         labels = [str(label) for label in as_list(serve.get("labels")) if str(label).strip()]
+        from .publication_policy import parse_publication_allow
+
         config.serve = ServeSettings(
             issues=_choice(serve.get("issues", "ask"), SERVE_MODES, "serve.issues"),
             prs=_choice(serve.get("prs", "ask"), SERVE_MODES, "serve.prs"),
@@ -310,6 +322,7 @@ class MawConfig:
             labels=labels or [DEFAULT_LABEL],
             assignees=[str(a) for a in as_list(serve.get("assignees"))],
             token_env=str(serve.get("token_env") or "").strip(),
+            publication_allow=parse_publication_allow(serve.get("publication_allow", [])),
         )
         trust = _required_mapping_section(data, "trust", path)
         _reject_unknown_keys(trust, {"same_owner", "owners", "bypass_license"}, path, "trust")

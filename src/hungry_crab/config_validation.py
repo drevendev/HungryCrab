@@ -56,7 +56,15 @@ def validate(data: dict[str, Any]) -> None:
     serve = section(
         data.get("serve", {}),
         "serve",
-        {"issues", "prs", "max_prs_per_run", "labels", "assignees", "token_env"},
+        {
+            "issues",
+            "prs",
+            "max_prs_per_run",
+            "labels",
+            "assignees",
+            "token_env",
+            "publication_allow",
+        },
     )
     trust = section(data.get("trust", {}), "trust", {"same_owner", "owners", "bypass_license"})
     max_prs = serve.get("max_prs_per_run", 3)

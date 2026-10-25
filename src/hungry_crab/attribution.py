@@ -28,8 +28,22 @@ from .cache import Slug
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .fetch.providers import client_for
-from .licensing.detect import find_spdx_identifier, is_license_file_name
-from .licensing.matrix import LicenseClass, classify, normalize
+from .licensing.detect import (
+    LICENSE_DIRS,
+    detect_from_text,
+    find_spdx_identifier,
+    is_license_file_name,
+    manifest_license,
+)
+from .licensing.matrix import (
+    LicenseClass,
+    canonical_expression,
+    classify,
+    decide,
+    license_terms,
+    normalize,
+    selected_terms,
+)
 from .licensing.policy import nutrient_material
 from .maw import MawConfig, relationship_for
 from .mdutil import cell
@@ -37,6 +51,7 @@ from .miners.inventory import VENDORED_DIRS
 from .nutrients import Candidate
 from .pr_publication import GeneratedFile, PreparedPullRequest, nutrient_branch_name
 from .pr_serve import read_maw_text
+from .publication_safety import publication_error
 from .receipt_text import inert_receipt_text, quote_receipt_text
 from .typeutil import as_dict
 
@@ -66,7 +81,7 @@ def _stamp(now: datetime | None) -> str:
 
 
 def _receipt_error(detail: str) -> CrabError:
-    return CrabError(
+    return publication_error(
         "invalid materialization receipt; refusing to attribute what it does not state",
         hint=detail,
     )
@@ -84,7 +99,7 @@ def _canonical(path: str) -> bool:
         or path.startswith("/")
         or "\\" in path
         or _CONTROL_RE.search(path) is not None
-        or any(not part or part in {".", ".."} for part in parts)
+        or any(not part or part in {".", ".."} or part.rstrip(" .") != part for part in parts)
         or ":" in parts[0]
     )
 
@@ -101,10 +116,12 @@ def _strict_object(payload: str) -> dict[str, object]:
         return parsed
 
     try:
+        if len(payload) > 1024 * 1024:
+            raise ValueError("receipt exceeds its byte budget")
         raw: object = json.loads(payload, object_pairs_hook=reject_duplicates)
-    except ValueError as exc:
+    except (ValueError, RecursionError) as exc:
         detail = str(exc) if str(exc).startswith("duplicate") else "receipt must be valid JSON"
-        raise _receipt_error(detail) from exc
+        raise _receipt_error(detail) from None
     if not isinstance(raw, dict):
         raise _receipt_error("receipt root must be an object")
     return raw
@@ -284,9 +301,9 @@ def load_materialization_receipt(payload: str) -> MaterializationReceipt:
             raise _receipt_error("prey_path must be a canonical prey-relative POSIX path")
         if not isinstance(verbatim, bool):
             raise _receipt_error("verbatim must be true or false")
-        if maw_path in seen:
+        if maw_path.casefold() in seen:
             raise _receipt_error(f"duplicate maw path: {maw_path}")
-        seen.add(maw_path)
+        seen.add(maw_path.casefold())
         taken.append(TakenFile(maw_path=maw_path, prey_path=prey_path, verbatim=verbatim))
 
     summary = raw["summary"]
@@ -338,6 +355,15 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
         )
     if verdict.get("relationship") == "own" and verdict.get("human_review") is not True:
         return Obligation("none", "same owner: no third-party notice is owed for one's own code")
+    terms = selected_terms(spdx)
+    if len(terms) > 1:
+        duties = [obligation_for(term, {}) for term in terms]
+        return Obligation(
+            "combined",
+            "; ".join(f"{term}: {duty.text}" for term, duty in zip(terms, duties, strict=True)),
+        )
+    if len(terms) == 1 and normalize(spdx) != terms[0]:
+        return obligation_for(terms[0], verdict)
     cls = classify(normalize(spdx))
     if cls is LicenseClass.PERMISSIVE:
         return Obligation(
@@ -377,6 +403,7 @@ class AttributionRecord:
     recorded_at: str
     texts: tuple[CarriedText, ...] = ()
     checks: tuple[str, ...] = ()
+    upstream: tuple[AttributionRecord, ...] = ()
 
     @property
     def identity(self) -> tuple[str, str]:
@@ -389,7 +416,12 @@ class AttributionRecord:
         The carried texts are not part of it: they are the source's files at that commit, which
         the identity already fixes.
         """
-        return (self.mode, self.obligation.kind, tuple(sorted(self.taken, key=_taken_key)))
+        return (
+            self.mode,
+            self.obligation.kind,
+            tuple(sorted(self.taken, key=_taken_key)),
+            tuple((record.source, record.material, record.texts) for record in self.upstream),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -403,6 +435,11 @@ class AttributionRecord:
             "recorded_at": self.recorded_at,
             "texts": [item.to_dict() for item in self.texts],
             "checks": list(self.checks),
+            **(
+                {"upstream": [record.to_dict() for record in self.upstream]}
+                if self.upstream
+                else {}
+            ),
         }
 
     @classmethod
@@ -429,7 +466,11 @@ def _object_array(value: object, field: str) -> list[dict[str, Any]]:
     return result
 
 
-def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
+def _stored_record(
+    data: Mapping[str, Any], _depth: int = 0, _seen: frozenset[tuple[str, str]] = frozenset()
+) -> AttributionRecord:
+    if _depth > 8:
+        raise _receipt_error("upstream provenance exceeds eight hops")
     required = {
         "nutrient_id",
         "source",
@@ -440,7 +481,7 @@ def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
         "branch",
         "recorded_at",
     }
-    if not required <= set(data) or set(data) - required - {"texts", "checks"}:
+    if not required <= set(data) or set(data) - required - {"texts", "checks", "upstream"}:
         raise _receipt_error("stored receipt has missing or unknown fields")
     _object_array(data["taken"], "taken")
     checks = data.get("checks", [])
@@ -475,7 +516,15 @@ def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
     if not isinstance(mode, str) or mode not in COPY_MODES:
         raise _receipt_error("mode must be COPY or COPY_FILE")
     obligation = data["obligation"]
-    kinds = {"none", "review", "copyright-notice", "notice-file", "attribution", "file-license"}
+    kinds = {
+        "none",
+        "review",
+        "copyright-notice",
+        "notice-file",
+        "attribution",
+        "file-license",
+        "combined",
+    }
     if not isinstance(obligation, dict) or set(obligation) != {"kind", "text"}:
         raise _receipt_error("obligation must contain exactly kind and text")
     if not isinstance(obligation["kind"], str) or obligation["kind"] not in kinds:
@@ -488,13 +537,20 @@ def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
     try:
         if not isinstance(stamp, str) or datetime.fromisoformat(stamp).tzinfo is None:
             raise ValueError
-    except ValueError as exc:
-        raise _receipt_error("recorded_at must be an ISO timestamp with a timezone") from exc
+    except ValueError:
+        raise _receipt_error("recorded_at must be an ISO timestamp with a timezone") from None
     texts = tuple(
         CarriedText.from_dict(item) for item in _object_array(data.get("texts", []), "texts")
     )
     if len({t.path for t in texts}) != len(texts):
         raise _receipt_error("duplicate carried text path")
+    source_id = (receipt.source.url or receipt.source.label, receipt.source.sha)
+    if source_id in _seen:
+        raise _receipt_error("upstream provenance cycle")
+    upstream = _object_array(data.get("upstream", []), "upstream")
+    if len(upstream) > 32:
+        raise _receipt_error("too many upstream provenance records")
+    ancestors = tuple(_stored_record(item, _depth + 1, _seen | {source_id}) for item in upstream)
     return AttributionRecord(
         receipt.nutrient_id,
         receipt.source,
@@ -506,6 +562,7 @@ def _stored_record(data: Mapping[str, Any]) -> AttributionRecord:
         stamp,
         texts,
         tuple(checks),
+        ancestors,
     )
 
 
@@ -513,14 +570,14 @@ def parse_attributions(text: str) -> list[AttributionRecord]:
     try:
         data = _strict_object(text)
     except CrabError as exc:
-        raise CrabError(f"{ATTRIBUTIONS_PATH} is not valid JSON", hint=exc.hint) from exc
+        raise publication_error(f"{ATTRIBUTIONS_PATH} is not valid JSON", hint=exc.hint) from None
     if data.get("schema") != ATTRIBUTIONS_SCHEMA:
-        raise CrabError(
+        raise publication_error(
             f"{ATTRIBUTIONS_PATH} has an unknown schema",
             hint=f"expected {ATTRIBUTIONS_SCHEMA}, got {data.get('schema')!r}",
         )
     if set(data) != {"schema", "receipts"}:
-        raise CrabError(f"{ATTRIBUTIONS_PATH} must contain exactly schema and receipts")
+        raise publication_error(f"{ATTRIBUTIONS_PATH} must contain exactly schema and receipts")
     records: list[AttributionRecord] = []
     seen: set[tuple[str, str]] = set()
     for index, item in enumerate(_object_array(data["receipts"], "receipts")):
@@ -531,9 +588,9 @@ def parse_attributions(text: str) -> list[AttributionRecord]:
             seen.add(record.identity)
             records.append(record)
         except CrabError as exc:
-            raise CrabError(
+            raise publication_error(
                 f"invalid {ATTRIBUTIONS_PATH} receipts[{index}]", hint=exc.hint or str(exc)
-            ) from exc
+            ) from None
     return sorted(records, key=_record_key)
 
 
@@ -542,13 +599,13 @@ def load_attributions(maw_root: Path) -> list[AttributionRecord]:
 
     path = maw_root / ATTRIBUTIONS_PATH
     if not path.resolve().is_relative_to(maw_root.resolve()):
-        raise CrabError(f"{ATTRIBUTIONS_PATH} resolves outside the maw")
+        raise publication_error(f"{ATTRIBUTIONS_PATH} resolves outside the maw")
     if not path.exists() and not path.is_symlink():
         return []
     try:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
-        raise CrabError(f"cannot read {ATTRIBUTIONS_PATH}: {exc}") from exc
+        raise publication_error(f"cannot read {ATTRIBUTIONS_PATH}: {exc}") from None
     return parse_attributions(text)
 
 
@@ -570,10 +627,10 @@ def check_attribution_state(
             try:
                 read_maw_text(maw_root, item.maw_path)
             except CrabError as exc:
-                raise CrabError(
+                raise publication_error(
                     f"attribution receipts[{index}] names a missing or unsafe maw file",
                     hint=exc.hint,
-                ) from exc
+                ) from None
     # A parent checkout is not this maw's attribution history (#139).
     git = GitRunner(maw_root)
     top = git.try_run("--no-replace-objects", "rev-parse", "--show-toplevel")
@@ -592,7 +649,7 @@ def check_attribution_state(
         new_ids = Counter(re.findall(pattern, render_notices(records)))
         dropped = dropped or bool(old_ids - new_ids)
     if dropped and not allow_remove:
-        raise CrabError(
+        raise publication_error(
             "attribution receipts missing; refusing to shrink the notice",
             hint="restore the receipts from version control, or review the removed material and "
             "use `crab attribution --allow-remove` for an intentional rewrite",
@@ -629,7 +686,7 @@ def add_attribution(
         if existing.identity != record.identity:
             continue
         if existing.material != record.material:
-            raise CrabError(
+            raise publication_error(
                 f"an attribution receipt for {record.nutrient_id} from "
                 f"{record.source.label}@{record.source.sha[:7]} already exists with different "
                 "material",
@@ -750,7 +807,12 @@ def render_notices(records: Iterable[AttributionRecord]) -> str:
     names is discharged with, in fenced blocks a formatter does not touch.
     """
 
-    ordered = sorted(records, key=_record_key)
+    def flatten(record: AttributionRecord) -> Iterable[AttributionRecord]:
+        yield record
+        for upstream in record.upstream:
+            yield from flatten(upstream)
+
+    ordered = sorted((item for record in records for item in flatten(record)), key=_record_key)
     intro = (
         f"Written by `crab attribution` from `{ATTRIBUTIONS_PATH}`, the receipts of material "
         "Hungry Crab carried into this repository. Edit the receipts, not this file; rerunning "
@@ -812,6 +874,8 @@ class GitSourceReader:
     def __init__(self, repo: Path) -> None:
         self.repo = repo
         self.git = GitRunner(repo)
+        self._trees: dict[tuple[str, str], dict[str, str] | None] = {}
+        self._texts: dict[tuple[str, str], str | None] = {}
 
     # A path after `<sha>:` resolves from the top of the repository; `./` resolves it from the
     # directory the reader was opened at, which is the prey when the prey is a subdirectory.
@@ -819,9 +883,31 @@ class GitSourceReader:
         return self.git.ok("--no-replace-objects", "cat-file", "-e", f"{sha}:./{path}")
 
     def read(self, sha: str, path: str) -> str | None:
-        return self.git.try_run("--no-replace-objects", "show", f"{sha}:./{path}")
+        key = (sha, path)
+        if key in self._texts:
+            return self._texts[key]
+        size = self.git.try_run("--no-replace-objects", "cat-file", "-s", f"{sha}:./{path}")
+        if size is None or not size.strip().isdigit() or int(size.strip()) > 2 * 1024 * 1024:
+            return None
+        text = self.git.try_run("--no-replace-objects", "show", f"{sha}:./{path}")
+        self._texts[key] = text
+        return text
 
     def entries(self, sha: str, directory: str = "") -> dict[str, str] | None:
+        tree = self._tree(sha, directory)
+        return (
+            {name: mode for name, mode in tree.items() if mode != "040000"}
+            if tree is not None
+            else None
+        )
+
+    def directories(self, sha: str) -> list[str]:
+        return [name for name, mode in (self._tree(sha, "") or {}).items() if mode == "040000"]
+
+    def _tree(self, sha: str, directory: str) -> dict[str, str] | None:
+        key = (sha, directory)
+        if key in self._trees:
+            return self._trees[key]
         # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
         # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
         # ls-tree from filtering that tree's entries by the same directory a second time.
@@ -834,47 +920,138 @@ class GitSourceReader:
         for entry in listing.split("\0"):
             meta, _, name = entry.partition("\t")
             mode, kind = [*meta.split(" "), "", ""][:2]
-            if name and kind in ("blob", "commit"):
+            if name and kind in ("blob", "commit", "tree"):
                 files[name] = mode
+        self._trees[key] = files
         return files
 
 
 # A licence obligation that asks for the source's own notice to travel with the material.
-_NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution"})
+_NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution", "combined"})
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
 # A regular file, executable or not; a link (120000) or a submodule (160000) is not material.
 _FILE_MODES = frozenset({"100644", "100755"})
 
 
-def carried_texts(sha: str, reader: SourceReader) -> tuple[CarriedText, ...]:
+def carried_texts(
+    sha: str, reader: SourceReader, spdx: str | None = None
+) -> tuple[CarriedText, ...]:
     """The licence and NOTICE files at the root of the source at ``sha``, in name order."""
 
     names = reader.entries(sha)
     if names is None:
-        raise CrabError(
+        raise publication_error(
             "cannot list the prey's files at the commit the material came from",
             hint=f"{sha[:7]} is not in the prey's clone; catch it again without --shallow",
         )
     texts: list[CarriedText] = []
+    terms = selected_terms(spdx)
+    directories: tuple[str, ...] = (
+        "LICENSES",
+        "licenses",
+        "Licenses",
+        "LICENCES",
+        "licences",
+        "Licences",
+        "license-files",
+    )
+    if isinstance(reader, GitSourceReader):
+        directories = tuple(
+            name for name in reader.directories(sha) if name.lower() in LICENSE_DIRS
+        )
+    for directory in directories:
+        for name, mode in (reader.entries(sha, directory) or {}).items():
+            if normalize(Path(name).stem) in terms:
+                names[f"{directory}/{name}"] = mode
     for name in sorted(names):
-        if not (is_license_file_name(name) or _SOURCE_NOTICE_RE.fullmatch(name)):
+        reuse = "/" in name and normalize(Path(name).stem) in terms
+        if not (is_license_file_name(name) or _SOURCE_NOTICE_RE.fullmatch(name) or reuse):
             continue
+        if terms and len(terms) == 1 and is_license_file_name(name):
+            detected, _ = detect_from_text(reader.read(sha, name) or "")
+            if detected is not None and detected not in terms:
+                continue
         if names[name] not in _FILE_MODES:
             # A link's blob is the path it points at; carried as text it would be a notice that
             # reproduces a file name, and it would satisfy the refusal below by its name alone.
-            raise CrabError(
+            raise publication_error(
                 "a licence file of the prey is a symbolic link, which the crab does not follow",
                 hint=f"{name} at {sha[:7]} points at another file; carry the notice by hand",
             )
         text = reader.read(sha, name)
         if text is None or len(text) > _MAX_CARRIED:
-            raise CrabError(
+            raise publication_error(
                 "cannot carry a licence file of the prey",
                 hint=f"{name} at {sha[:7]} is unreadable or longer than {_MAX_CARRIED} characters",
             )
         texts.append(CarriedText(name, clean_text(text)))
     return tuple(texts)
+
+
+def upstream_records(
+    receipt: MaterializationReceipt, reader: SourceReader
+) -> tuple[AttributionRecord, ...]:
+    """Carry matching source receipts without fetching or trusting an ownership shortcut."""
+    if not reader.exists(receipt.source.sha, ATTRIBUTIONS_PATH):
+        return ()
+    payload = reader.read(receipt.source.sha, ATTRIBUTIONS_PATH)
+    if payload is None or len(payload.encode("utf-8")) > 1024 * 1024:
+        raise _receipt_error("upstream attribution evidence is unreadable or too large")
+    data = _strict_object(payload)
+    rows = data.get("receipts")
+    if data.get("schema") != ATTRIBUTIONS_SCHEMA or not isinstance(rows, list) or len(rows) > 1024:
+        raise _receipt_error("upstream attribution evidence has an invalid schema or size")
+    paths = {item.prey_path for item in receipt.taken}
+    matches: list[AttributionRecord] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise _receipt_error("upstream receipt is not an object")
+        taken = row.get("taken")
+        if not isinstance(taken, list):
+            raise _receipt_error("upstream receipt has no usable path scope")
+        if not any(isinstance(item, dict) and item.get("maw_path") in paths for item in taken):
+            continue
+        record = _stored_record(
+            row, _seen=frozenset({(receipt.source.url or receipt.source.label, receipt.source.sha)})
+        )
+        expected = obligation_for(record.source.license, {})
+        if expected.kind in _NOTICE_OWED and not record.texts:
+            raise _receipt_error("matching upstream receipt has lost its licence notices")
+        matches.append(record)
+    return tuple(matches)
+
+
+def verify_root_grant(
+    receipt: MaterializationReceipt, reader: SourceReader, texts: tuple[CarriedText, ...]
+) -> None:
+    """Recheck immutable source grants so an old or edited COPY menu cannot grant rights."""
+    declared = set(license_terms(receipt.source.license))
+    observed: set[str] = set()
+    for name in reader.entries(receipt.source.sha) or {}:
+        if not is_license_file_name(name):
+            continue
+        text = reader.read(receipt.source.sha, name)
+        grant, _ = detect_from_text(text or "")
+        if grant is None:
+            pointer = re.fullmatch(
+                r"\s*(?:see|license(?: is)? in)\s+([\w./-]+)[.\s]*", text or "", re.I
+            )
+            if pointer and _canonical(pointer.group(1).rstrip(".")):
+                grant, _ = detect_from_text(
+                    reader.read(receipt.source.sha, pointer.group(1).rstrip(".")) or ""
+                )
+        if grant is None or not set(license_terms(grant)) <= declared:
+            raise publication_error(
+                "source root grant is unreadable or contradicts the COPY receipt", hint=name
+            )
+        observed.update(license_terms(grant))
+    for carried in texts:
+        grant, _ = detect_from_text(carried.text)
+        if grant:
+            observed.update(license_terms(grant))
+    if not set(selected_terms(receipt.source.license)) <= observed:
+        raise publication_error("source grant cannot establish the COPY receipt's selected terms")
 
 
 def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) -> None:
@@ -891,7 +1068,7 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
         parts = item.prey_path.split("/")
         vendored = next((part for part in parts[:-1] if part in VENDORED_DIRS), None)
         if vendored is not None:
-            raise CrabError(
+            raise publication_error(
                 "a taken file lives in vendored code, which the source's licence does not cover",
                 hint=f"{item.prey_path} is under {vendored}/; take it from its own upstream",
             )
@@ -900,16 +1077,33 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
             directory = "/".join(parts[:depth])
             names = reader.entries(sha, directory)
             if names is None:
-                raise CrabError(
+                raise publication_error(
                     "cannot list a directory of the prey at the commit the material came from",
                     hint=f"{directory or 'the root'} at {sha[:7]}",
                 )
             listed = names
             if not directory:
                 continue  # the root's licence is the verdict's own
+            for name in (
+                "package.json",
+                "pyproject.toml",
+                "Cargo.toml",
+                "composer.json",
+                "setup.cfg",
+            ):
+                if name in names:
+                    text = reader.read(sha, f"{directory}/{name}")
+                    declared, _ = manifest_license(name, text or "")
+                    if declared and canonical_expression(declared) != canonical_expression(
+                        receipt.source.license
+                    ):
+                        raise publication_error(
+                            "taken file is under a differing package-manifest grant",
+                            hint=f"{directory}/{name}",
+                        )
             own = next((name for name in sorted(names) if is_license_file_name(name)), None)
             if own is not None:
-                raise CrabError(
+                raise publication_error(
                     "a taken file lives under a licence of its own, which the verdict does not "
                     "answer for",
                     hint=f"{item.prey_path} is under {directory}/{own}; a person decides",
@@ -918,13 +1112,15 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
             # A directory, a link or a submodule is not material: git would hand back a tree
             # listing, the path a link points at, or nothing, and any of them would pass as
             # the source of an adapted file.
-            raise CrabError(
+            raise publication_error(
                 "a taken prey path is not a regular file at that commit",
                 hint=f"{item.prey_path} is a directory, a link or a submodule; take a file",
             )
         declared = find_spdx_identifier((reader.read(sha, item.prey_path) or "")[:4000])
-        if declared and normalize(declared) != normalize(receipt.source.license):
-            raise CrabError(
+        if declared and canonical_expression(declared) != canonical_expression(
+            receipt.source.license
+        ):
+            raise publication_error(
                 "a taken file declares another licence than the source's",
                 hint=(
                     f"{item.prey_path} says SPDX-License-Identifier: {declared}, the source is "
@@ -952,23 +1148,23 @@ def checked_attribution_file(maw_root: Path, name: str) -> str:
         or any(part.casefold() == ".git" for part in parts)
         or name == ATTRIBUTIONS_PATH
     ):
-        raise CrabError(
+        raise publication_error(
             f"attribution_file {name!r} in .crab.yml is not a plain path inside the maw",
             hint="name a relative path such as THIRD_PARTY_NOTICES.md, without ./ or ..",
         )
     target = maw_root / name
     root = maw_root.resolve()
     if not target.resolve().is_relative_to(root):
-        raise CrabError(
+        raise publication_error(
             f"attribution_file {name!r} leads outside the maw", hint="a link must not carry it out"
         )
     if target.exists():
         try:
             head = target.read_text(encoding="utf-8")[:200]
         except (OSError, UnicodeError) as exc:
-            raise CrabError(f"cannot read {name}: {exc}") from exc
+            raise publication_error(f"cannot read {name}: {exc}") from None
         if not head.startswith(NOTICE_HEADING):
-            raise CrabError(
+            raise publication_error(
                 f"attribution_file {name!r} is a file the crab did not write",
                 hint="name another file in .crab.yml; the crab overwrites only its own notice",
             )
@@ -996,7 +1192,7 @@ def base_receipts_kept(
         dropped = [record for record in parse_attributions(base) if record.identity not in kept]
         if dropped:
             names = ", ".join(f"{r.nutrient_id}@{r.source.sha[:7]}" for r in dropped[:5])
-            raise CrabError(
+            raise publication_error(
                 "this pull request would drop receipts the default branch already holds",
                 hint=f"the maw's checkout is behind; pull, then serve again ({names})",
             )
@@ -1015,22 +1211,31 @@ def verify_sources(
 
     for item in receipt.taken:
         if not reader.exists(receipt.source.sha, item.prey_path):
-            raise CrabError(
+            raise publication_error(
                 "materialization receipt names a source path the prey does not have",
                 hint=(
                     f"{item.prey_path} is not in {receipt.source.label} at {receipt.source.sha[:7]}"
                 ),
             )
-        if not item.verbatim:
-            continue
         original = reader.read(receipt.source.sha, item.prey_path)
         if original is None:
-            raise CrabError(
+            raise publication_error(
                 "cannot read the source of a verbatim copy from the prey",
                 hint=f"{item.prey_path} at {receipt.source.sha[:7]}",
             )
+        if not item.verbatim:
+            destination = _normalized(maw_files[item.maw_path])
+            for line in original.splitlines():
+                if re.search(r"\bcopyright\b|SPDX-License-Identifier:", line, re.I):
+                    notice = line.strip().strip("/*#<>!- ")
+                    if notice and _normalized(notice) not in destination:
+                        raise publication_error(
+                            "adapted material must retain copyright and SPDX notices",
+                            hint=item.maw_path,
+                        )
+            continue
         if _normalized(original) != _normalized(maw_files[item.maw_path]):
-            raise CrabError(
+            raise publication_error(
                 "a file declared as a verbatim copy differs from its source",
                 hint=(
                     f"{item.maw_path} is not byte for byte {item.prey_path} at "
@@ -1046,12 +1251,12 @@ def _check_against_meal(
     attribution_file: str,
 ) -> None:
     if card.license_mode not in COPY_MODES:
-        raise CrabError(
+        raise publication_error(
             f"license mode {card.license_mode} does not materialize prey files",
             hint="COPY and COPY_FILE carry files with attribution; REIMPLEMENT uses the clean room",
         )
     if receipt.nutrient_id != card.id:
-        raise CrabError(
+        raise publication_error(
             "materialization receipt nutrient does not match the selected nutrient",
             hint=f"expected {card.id}, got {receipt.nutrient_id}",
         )
@@ -1059,12 +1264,12 @@ def _check_against_meal(
         if menu.get("mode") == "strict" and nutrient_material(
             card.category, [item.prey_path, item.maw_path]
         ) not in {"configuration", "template"}:
-            raise CrabError(
+            raise publication_error(
                 "strict maw policy refuses materialization of code",
                 hint=f"{item.prey_path} -> {item.maw_path} requires clean-room REIMPLEMENT",
             )
         if item.maw_path in (ATTRIBUTIONS_PATH, attribution_file):
-            raise CrabError(
+            raise publication_error(
                 "a materialization receipt may not take over the attribution files",
                 hint=f"{item.maw_path} is written by the crab, not taken from the prey",
             )
@@ -1081,7 +1286,7 @@ def _check_against_meal(
         if got != want
     ]
     if mismatches:
-        raise CrabError(
+        raise publication_error(
             "materialization receipt names a different source than the meal",
             hint=(
                 f"{', '.join(mismatches)} differ; the meal was eaten from "
@@ -1089,7 +1294,7 @@ def _check_against_meal(
             ),
         )
     if card.license_mode == "COPY_FILE" and any(not item.verbatim for item in receipt.taken):
-        raise CrabError(
+        raise publication_error(
             "COPY_FILE carries whole files that keep their own licence",
             hint="every taken file must be verbatim under COPY_FILE",
         )
@@ -1148,7 +1353,7 @@ def _verify_elevated_relationship(menu: Mapping[str, Any], maw_root: Path) -> No
     reason = str(verdict.get("reason", ""))
     if claimed not in ("own", "bypass"):
         if reason.startswith(("same owner", "license checks bypassed")):
-            raise CrabError(
+            raise publication_error(
                 "legacy ownership decision has no verified provenance",
                 hint="regenerate the meal before serving COPY",
             )
@@ -1157,10 +1362,10 @@ def _verify_elevated_relationship(menu: Mapping[str, Any], maw_root: Path) -> No
     url = prey.get("url")
     try:
         target = Slug.parse(url) if claimed == "own" and isinstance(url, str) and url else None
-    except CrabError as exc:
-        raise CrabError(
+    except CrabError:
+        raise publication_error(
             "cannot verify the meal's ownership provenance", hint="regenerate the meal"
-        ) from exc
+        ) from None
     config = MawConfig.load(maw_root)
     actual = relationship_for(target, config, repository=as_dict(prey.get("repository")))
     if claimed == "own" and actual.value == "own" and target is not None:
@@ -1168,21 +1373,21 @@ def _verify_elevated_relationship(menu: Mapping[str, Any], maw_root: Path) -> No
         # independent of that meal and its cache, can authorize the notice exemption.
         try:
             repository = client_for(target, cache_dir=None).repo(target)
-        except (CrabError, OSError, ValueError) as exc:
-            raise CrabError(
+        except (CrabError, OSError, ValueError):
+            raise publication_error(
                 "cannot verify ownership with the repository provider",
                 hint="restore read access to the provider before serving an OWN exception",
-            ) from exc
+            ) from None
         full_name = repository.get("full_name")
         expected_name = f"{target.owner}/{target.repo}"
         if not isinstance(full_name, str) or full_name.casefold() != expected_name.casefold():
-            raise CrabError(
+            raise publication_error(
                 "provider ownership evidence names a different repository",
                 hint="regenerate the meal from the repository's current canonical URL",
             )
         actual = relationship_for(target, config, repository=repository)
     if actual.value != claimed:
-        raise CrabError(
+        raise publication_error(
             "the meal's ownership decision is not authorized by current maw policy",
             hint="regenerate the meal with verified repository provenance",
         )
@@ -1223,19 +1428,28 @@ def prepare_copy_pull_request(
         try:
             maw_files[item.maw_path] = read_maw_text(maw_root, item.maw_path)
         except CrabError as exc:
-            raise CrabError(
+            raise publication_error(
                 "a file the materialization receipt declares cannot be published from the maw",
                 hint=exc.hint,
-            ) from exc
+            ) from None
     verify_sources(receipt, source_reader, maw_files)
     check_taken_licences(receipt, source_reader)
 
     obligation = obligation_for(receipt.source.license, as_dict(menu.get("verdict")))
+    if as_dict(menu.get("verdict")).get("relationship", "foreign") == "foreign":
+        maw_license = MawConfig.load(maw_root).license or as_dict(menu.get("maw")).get("license")
+        current = decide(receipt.source.license, maw_license)
+        if current.mode.value not in COPY_MODES or (
+            current.mode.value == "COPY_FILE" and any(not item.verbatim for item in receipt.taken)
+        ):
+            raise publication_error("current licence policy does not authorize this COPY receipt")
     texts: tuple[CarriedText, ...] = ()
     if obligation.kind != "none":
-        texts = carried_texts(receipt.source.sha, source_reader)
-    if obligation.kind in _NOTICE_OWED and not any(is_license_file_name(t.path) for t in texts):
-        raise CrabError(
+        texts = carried_texts(receipt.source.sha, source_reader, receipt.source.license)
+    if obligation.kind in _NOTICE_OWED and not any(
+        is_license_file_name(t.path) or t.path.split("/")[0].lower() in LICENSE_DIRS for t in texts
+    ):
+        raise publication_error(
             "the source's licence asks for its notice to travel with the material, and the "
             "prey has no licence file to carry",
             hint=(
@@ -1243,6 +1457,8 @@ def prepare_copy_pull_request(
                 "root; serve the nutrient as an issue, or carry the notice by hand"
             ),
         )
+    if as_dict(menu.get("verdict")).get("relationship", "foreign") == "foreign":
+        verify_root_grant(receipt, source_reader, texts)
     record = AttributionRecord(
         nutrient_id=card.id,
         source=receipt.source,
@@ -1254,6 +1470,7 @@ def prepare_copy_pull_request(
         recorded_at=_stamp(now),
         texts=texts,
         checks=receipt.checks,
+        upstream=upstream_records(receipt, source_reader),
     )
     # New publications must obey exactly the same schema as later reads of their history.
     record = AttributionRecord.from_dict(record.to_dict())
@@ -1267,4 +1484,6 @@ def prepare_copy_pull_request(
     # Always the crab's own section, last: a note or an evidence path that happens to contain
     # the heading must not be what the reader takes for the attribution.
     rendered_body = body.rstrip() + "\n\n" + _attribution_section(recorded, attribution_file)
-    return PreparedPullRequest(title=title, body=rendered_body + "\n", files=tuple(files))
+    return PreparedPullRequest(
+        title=title, body=rendered_body + "\n", files=tuple(files), policy_root=maw_root
+    )

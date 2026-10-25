@@ -64,9 +64,10 @@ def test_copyleft_prey_needs_care_and_maw_mode() -> None:
 
 def test_custom_license_goes_to_a_human() -> None:
     other = {"key": "other", "name": "Other", "spdx_id": "NOASSERTION"}
-    report = build_report(SLUG, _repo(license=other), {}, now=NOW)
+    report = build_report(SLUG, _repo(license=other), {}, maw_license="MIT", now=NOW)
     assert report.verdict == VERDICT_HUMAN
-    assert report.license_spdx is None
+    assert report.license_spdx == "NOASSERTION"
+    assert report.mode == "HUMAN"
     assert any("human" in warning for warning in report.warnings)
 
 

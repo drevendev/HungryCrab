@@ -20,6 +20,7 @@ import base64
 import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 from ..errors import ExternalCommandError, ToolMissingError
@@ -257,6 +258,18 @@ class GitRunner:
         budget = CURRENT.get()
         if budget is not None:
             env = budget.git_env(env)
+        at = 0
+        while at < len(args) and args[at].startswith("-"):
+            at += 2 if args[at] in _GLOBAL_OPTIONS_WITH_VALUE else 1
+        hooks: tempfile.TemporaryDirectory[str] | None = None
+        if at < len(args) and args[at] in {"fetch", "push", "update-ref"}:
+            hooks = tempfile.TemporaryDirectory(
+                prefix="crab-no-hooks-", dir=budget.volume if budget is not None else None
+            )
+            # The last command-line configuration before the subcommand outranks inherited
+            # and caller-supplied hook settings. An empty value would re-enable .git/hooks.
+            position = 1 + len(SAFE_CONFIG) + at
+            command[position:position] = ["-c", f"core.hooksPath={hooks.name}"]
         try:
             if budget is not None:
                 proc = budget.run_git(command, where, env, limit)
@@ -279,6 +292,9 @@ class GitRunner:
             if budget is not None:
                 budget.check()
             raise ExternalCommandError("Git command exceeded its captured-output limit") from exc
+        finally:
+            if hooks is not None:
+                hooks.cleanup()
         stdout = proc.stdout.decode("utf-8", errors="replace")
         if budget is not None:
             budget.check()

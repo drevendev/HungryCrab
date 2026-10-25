@@ -20,7 +20,8 @@ restrictive mode when in doubt.
 
 ## When the table does not apply
 
-Two relationships short-circuit the whole matrix, and `license.json` records which one was used.
+Two relationships short-circuit the whole matrix. The pair's `menu.json` verdict and card traces
+record the effective relationship; the repository's `license.json` retains licence evidence.
 
 | Relationship | When | Mode |
 |---|---|---|

@@ -13,9 +13,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .cache import Slug
-from .errors import CrabError
 from .fetch.git import GitRunner
 from .pr_publication import GeneratedFile, PreparedPullRequest
+from .publication_safety import publication_error
 
 GhRunner = Callable[..., str]
 
@@ -38,19 +38,19 @@ def _prepared_paths(prepared: PreparedPullRequest) -> tuple[str, ...]:
             or ":" in parts[0]
             or any(part.casefold() == ".git" for part in parts)
         ):
-            raise CrabError(
+            raise publication_error(
                 "prepared pull request contains an unsafe maw path",
                 hint=f"refusing path: {path!r}",
             )
         if path in seen:
-            raise CrabError(
+            raise publication_error(
                 "prepared pull request contains a duplicate maw path",
                 hint=f"duplicate path: {path}",
             )
         seen.add(path)
         paths.append(path)
     if not paths:
-        raise CrabError("prepared pull request contains no files")
+        raise publication_error("prepared pull request contains no files")
     return tuple(paths)
 
 
@@ -62,7 +62,7 @@ def _index_mode(git: GitRunner, path: str) -> str:
         return "100644"
     mode = entry.split(" ", 1)[0]
     if mode not in {"100644", "100755"}:
-        raise CrabError(
+        raise publication_error(
             "prepared pull request target has an unsupported git mode",
             hint=f"refusing {path}: mode {mode}",
         )
@@ -88,7 +88,7 @@ def _stage_exact_file(
         str(payload),
     ).strip()
     if not blob:
-        raise CrabError(
+        raise publication_error(
             "git returned no object id for prepared pull request content",
             hint=f"refusing path: {generated.path}",
         )
@@ -131,14 +131,14 @@ def publish_git_pull_request(
     path_set = set(paths)
     git = git or GitRunner(maw_root)
     if not git.is_repo():
-        raise CrabError("the maw is not a git repository; cannot publish a pull request")
+        raise publication_error("the maw is not a git repository; cannot publish a pull request")
 
     git.run("check-ref-format", "--branch", branch)
     base = run_gh("api", f"repos/{slug}", "--jq", ".default_branch").strip()
     if not base:
-        raise CrabError("GitHub returned no default branch for the maw")
+        raise publication_error("GitHub returned no default branch for the maw")
     if branch == base:
-        raise CrabError("refusing to publish a nutrient to the maw's default branch")
+        raise publication_error("refusing to publish a nutrient to the maw's default branch")
     git.run("check-ref-format", "--branch", base)
 
     git.run("fetch", "--no-tags", "origin", f"+refs/heads/{base}:refs/remotes/origin/{base}")
@@ -167,7 +167,7 @@ def publish_git_pull_request(
         }
         extras = sorted(existing_paths - path_set)
         if extras:
-            raise CrabError(
+            raise publication_error(
                 "existing nutrient branch contains files outside the prepared payload",
                 hint="unexpected paths: " + ", ".join(extras),
             )
@@ -206,7 +206,7 @@ def publish_git_pull_request(
             ]
             unexpected = sorted(set(staged) - path_set)
             if unexpected:
-                raise CrabError(
+                raise publication_error(
                     "git index contains paths outside the prepared publication payload",
                     hint="unexpected paths: " + ", ".join(unexpected),
                 )
@@ -226,7 +226,7 @@ def publish_git_pull_request(
                     f"HEAD:refs/heads/{branch}",
                 )
             elif not branch_exists:
-                raise CrabError(
+                raise publication_error(
                     "prepared pull request makes no file changes; "
                     "refusing to create an empty branch"
                 )
@@ -249,7 +249,7 @@ def publish_git_pull_request(
             )
             lines = [line.strip() for line in output.splitlines() if line.strip()]
             if not lines:
-                raise CrabError(
+                raise publication_error(
                     "pull request publication returned no URL; "
                     "reconcile provider state before retrying"
                 )

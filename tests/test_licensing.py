@@ -30,18 +30,12 @@ from hungry_crab.licensing.detect import (
 )
 from hungry_crab.licensing.matrix import fits_gpl_maw, governing_id, restricts_copying
 
-MIT_TEXT = (
-    "MIT License\n\nCopyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, "
-    "to any person obtaining a copy of this software and associated documentation files (the "
-    '"Software"), to deal in the Software without restriction, including without limitation '
-    "the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies "
-    "of the Software.\n\nThe above copyright notice and this permission notice shall be included "
-    "in all copies or substantial portions of the Software.\n"
-)
-MIT0_TEXT = MIT_TEXT.replace(
-    "The above copyright notice and this permission notice shall be included in all copies or "
-    "substantial portions of the Software.",
-    "",
+MIT_TEXT = (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8")
+MIT0_TEXT = MIT_TEXT.replace("MIT License", "MIT No Attribution").replace(
+    ", subject to the following conditions:\n\n"
+    "The above copyright notice and this permission notice shall be included in all\n"
+    "copies or substantial portions of the Software.",
+    ".",
 )
 ISC_TEXT = (
     "ISC License\n\nPermission to use, copy, modify, and/or distribute this software for any "
@@ -470,8 +464,15 @@ def test_license_files_named_after_their_license_are_found_and_are_not_a_choice(
 
 
 def test_a_licenses_directory_is_read(tmp_path: Path) -> None:
-    write_tree(tmp_path, {"LICENSES/MIT.txt": MIT_TEXT, "LICENSES/Apache-2.0.txt": APACHE_TEXT})
-    findings = detect_in_repo(tmp_path, [])
+    write_tree(
+        tmp_path,
+        {
+            "LICENSES/MIT.txt": MIT_TEXT,
+            "LICENSES/Apache-2.0.txt": APACHE_TEXT,
+            "package.json": '{"license":"MIT AND Apache-2.0"}',
+        },
+    )
+    findings = detect_in_repo(tmp_path, [], manifests=["package.json"])
     assert sorted(findings.license_files) == ["LICENSES/Apache-2.0.txt", "LICENSES/MIT.txt"]
     assert findings.resolution == "split"
     assert set(findings.candidates) == {"MIT", "Apache-2.0"}
@@ -691,8 +692,8 @@ def test_an_incompatible_lgpl_verdict_names_both_licences() -> None:
     [
         # The LGPL path accepted any `GPL-` prefix. GPL-1.0 is reached neither by LGPL-2.x's
         # "version 2 or any later" nor by LGPLv3, and the GPL path already said no.
-        ("LGPL-2.1-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
-        ("LGPL-3.0-only", "GPL-1.0-only", Mode.IDEAS_ONLY),
+        ("LGPL-2.1-only", "GPL-1.0-only", Mode.HUMAN),
+        ("LGPL-3.0-only", "GPL-1.0-only", Mode.HUMAN),
         # Between LGPL versions, 2.0 and 2.1 are different licences.
         ("LGPL-2.1-only", "LGPL-2.0-only", Mode.IDEAS_ONLY),
         ("LGPL-2.0-only", "LGPL-2.1-only", Mode.IDEAS_ONLY),
@@ -909,7 +910,7 @@ def test_a_declared_split_with_a_source_available_part_is_not_copyable(tmp_path:
     findings = detect_in_repo(tmp_path, [], nested_license_files=["ee/LICENSE"])
     assert findings.resolution == "split"
     assert findings.spdx is not None and "BUSL-1.1" in findings.spdx
-    assert decide(findings.spdx, "MIT").mode is Mode.IDEAS_ONLY
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
 
 
 def test_a_nested_restriction_the_root_is_silent_about_is_flagged(tmp_path: Path) -> None:
@@ -996,8 +997,9 @@ def test_a_declared_split_does_not_take_in_licences_from_outside_the_project(
         },
     )
     findings = detect_in_repo(tmp_path, [], vendored_license_files=["vendor/lib/LICENSE"])
-    assert findings.spdx == "Apache-2.0"
-    assert decide(findings.spdx, "MIT").mode is Mode.COPY
+    assert "NOASSERTION" in (findings.spdx or "")
+    assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
+    assert {e["kind"] for e in findings.exceptions} == {"vendored-license"}
 
 
 def test_the_licence_miner_weighs_the_project_and_only_records_the_rest(tmp_path: Path) -> None:
@@ -1075,7 +1077,7 @@ def test_a_source_file_called_license_does_not_decide_a_split(tmp_path: Path) ->
     options = DigestOptions(out=tmp_path / "out", cache_root=tmp_path / "cache", miners=["license"])
     result = run_digest(Target(path=repo), options)
     data = json.loads((result.out_dir / "license.json").read_text(encoding="utf-8"))
-    assert data["spdx"] == "Apache-2.0"
+    assert "NOASSERTION" in data["spdx"]
     assert not [e for e in data["exceptions"] if "licensing/" in e["path"]]
 
 

@@ -327,7 +327,8 @@ def test_secret_hit_blocks_before_any_publication_effect(
         publish_prepared_pull_request(prepared, publish)
 
     assert effects == []
-    assert raised.value.hint == location
+    assert raised.value.hint is not None
+    assert raised.value.hint.startswith(location.removesuffix(")") + "; finding ")
     assert secret not in raised.value.message
     assert secret not in (raised.value.hint or "")
 

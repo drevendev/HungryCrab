@@ -79,6 +79,12 @@ clean-room receipt, freezes their current UTF-8 bytes, and then follows the guar
 4. only then create/reuse the deterministic nutrient branch and create the PR;
 5. write the provider URL to the ledger after GitHub returns it.
 
+For a reviewed false positive, use `serve.publication_allow` in the maw's committed `.crab.yml`:
+each entry has an exact `finding` SHA-256 identity printed by the refusal and a non-secret `reason`.
+Commit the policy before retrying. The CLI rechecks it against HEAD before effects; a different
+file, content, line or rule invalidates the exception. Never put the matched value in policy,
+use a wildcard, or disable scanning. Secret-shaped paths are reported by opaque identity.
+
 The branch effect uses a detached temporary worktree and stages the frozen bytes without repository
 clean filters. A rerun after a successful PR but failed ledger save reconciles the existing PR by
 its opening `<!-- crab:<id> -->` marker instead of creating a duplicate. `max_prs_per_run` counts

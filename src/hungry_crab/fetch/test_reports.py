@@ -14,6 +14,14 @@ import zipfile
 import zlib
 from typing import Any
 
+try:
+    from compression.zstd import ZstdError  # type: ignore[import-not-found,unused-ignore]
+except ImportError:  # Python before 3.14 has no standard-library Zstandard reader.
+
+    class ZstdError(Exception):  # type: ignore[no-redef,unused-ignore]
+        """Unavailable decompressor; never enables another compression method."""
+
+
 ZIP_LIMIT = 8 * 1024 * 1024
 XML_LIMIT = 1024 * 1024
 CHUNK = 64 * 1024
@@ -92,6 +100,7 @@ def parse_junit_archive(body: bytes) -> dict[str, Any]:
         RuntimeError,
         zlib.error,
         lzma.LZMAError,
+        ZstdError,
     ):
         return {"status": "invalid-report", "tests": [], "reports": 0}
     return {"status": "available", "tests": tests, "reports": reports}

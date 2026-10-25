@@ -1,5 +1,12 @@
 version: 2
 updates:
+  - package-ecosystem: npm
+    directory: /scripts/skills-installer
+    schedule:
+      interval: weekly
+    groups:
+      skills-installer:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

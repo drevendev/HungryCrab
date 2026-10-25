@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import re
+import unicodedata
 from collections.abc import Callable, Iterable, Iterator
 from urllib.parse import quote, urlsplit
 
@@ -199,6 +200,65 @@ _RULES: tuple[_Finder, ...] = tuple(
     _LINEAR.get(pattern, pattern.finditer) for pattern in SUSPICIOUS_PATTERNS
 )
 
+# Matching-only confusables for the Latin directive vocabulary. This does not transliterate
+# ordinary prose or modify transferred evidence. NFKC covers width/compatibility forms; format
+# characters inside a directive are omitted and whitespace runs collapse in linear time.
+_CONFUSABLES = str.maketrans(
+    {
+        "\u0430": "a",
+        "\u0410": "A",
+        "\u0435": "e",
+        "\u0415": "E",
+        "\u043e": "o",
+        "\u041e": "O",
+        "\u0440": "p",
+        "\u0420": "P",
+        "\u0441": "c",
+        "\u0421": "C",
+        "\u0443": "y",
+        "\u0423": "Y",
+        "\u0445": "x",
+        "\u0425": "X",
+        "\u0456": "i",
+        "\u0406": "I",
+        "\u0458": "j",
+        "\u0408": "J",
+        "\u0455": "s",
+        "\u0405": "S",
+        "\u03b1": "a",
+        "\u0391": "A",
+        "\u03bf": "o",
+        "\u039f": "O",
+        "\u03c1": "p",
+        "\u03a1": "P",
+        "\u03b9": "i",
+        "\u0399": "I",
+        "\u03b5": "e",
+        "\u0395": "E",
+        "\u03c4": "t",
+        "\u03a4": "T",
+        "\u03bd": "v",
+        "\u039d": "N",
+        "\u03ba": "k",
+        "\u039a": "K",
+    }
+)
+
+
+def _matching_view(text: str) -> tuple[str, list[int]]:
+    characters: list[str] = []
+    offsets: list[int] = []
+    for index, original in enumerate(text):
+        if unicodedata.category(original) == "Cf":
+            continue
+        for character in unicodedata.normalize("NFKC", original).translate(_CONFUSABLES):
+            character = " " if character.isspace() else character
+            if character == " " and characters and characters[-1] == " ":
+                continue
+            characters.append(character)
+            offsets.append(index)
+    return "".join(characters), offsets
+
 
 def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
     """Short snippets around instruction-like matches (for the JSON side, never for Markdown)."""
@@ -210,6 +270,17 @@ def suspicious_fragments(text: str, *, limit: int = 10) -> list[str]:
             found.append(snippet[:_SNIPPET])
             if len(found) >= limit:
                 return found
+    matching, offsets = _matching_view(text)
+    if matching != text:
+        for find in _RULES:
+            for match in find(matching):
+                start = max(0, offsets[match.start()] - 20)
+                end = offsets[match.end() - 1] + 21
+                snippet = text[start:end].replace("\n", " ").strip()[:_SNIPPET]
+                if snippet not in found:
+                    found.append(snippet)
+                if len(found) >= limit:
+                    return found
     return found
 
 
@@ -230,7 +301,10 @@ _NAME_RULES: tuple[_Finder, ...] = tuple(
 
 
 def is_suspicious(text: str) -> bool:
-    return any(next(find(text), None) is not None for find in _RULES)
+    if any(next(find(text), None) is not None for find in _RULES):
+        return True
+    matching, _ = _matching_view(text)
+    return matching != text and any(next(find(matching), None) is not None for find in _RULES)
 
 
 def has_closing_reference(text: str) -> bool:

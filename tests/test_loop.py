@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 import threading
@@ -10,6 +11,7 @@ from typing import Any
 
 import pytest
 import yaml
+from fixture_builder import git as fixture_git
 
 from hungry_crab.cache import Slug
 from hungry_crab.cli import main
@@ -72,7 +74,8 @@ def artifact(
 ) -> dict[str, Any]:
     return {
         "html_url": url,
-        "head": {"sha": sha},
+        "user": {"login": "loop-publisher"},
+        "head": {"sha": sha, "repo": {"full_name": "example/maw"}, "ref": "crab/tests/unit"},
         "state": state,
         "body": "<!-- crab:tests:tests.unit -->\nA proposal",
         "merged_at": "today" if merged else None,
@@ -116,17 +119,21 @@ def loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Loop:
     (root / ".crab.yml").write_text(
         yaml.safe_dump(
             {
+                "serve": {"issues": "auto"},
                 "loop": {
                     "autonomy": "work",
                     "work_authorized": True,
                     "required_checks": [{"name": "tests", "app_id": APP_ID}],
                     "prey": ["example/prey", "example/other"],
                     "budget": {"phases_per_day": 50},
-                }
+                },
             }
         ),
         encoding="utf-8",
     )
+    fixture_git(root, "init", "-b", "main")
+    fixture_git(root, "add", ".crab.yml")
+    fixture_git(root, "commit", "-m", "test: maw-owned loop policy")
     instance = Loop(root, provider=Provider(), now=NOW)
     instance.init()
     return instance
@@ -134,7 +141,20 @@ def loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Loop:
 
 def force_phase(loop: Loop, phase: str, **fields: Any) -> None:
     data = loop._load()
-    data.update(phase=phase, active=None, attempt=0, waiting_on=None, **fields)
+    for meal in fields.get("meals", []):
+        menu_path = Path(meal["meal"]).parent / "menu.json"
+        meal.setdefault("menu", str(menu_path))
+        meal.setdefault("round", data["round"])
+        meal.setdefault(
+            "hashes",
+            {
+                str(path.resolve()): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in (menu_path, Path(meal["notes"]))
+                if path.exists()
+            },
+        )
+    data.update(phase=phase, active=None, attempt=0, waiting_on=None)
+    data.update(fields)
     atomic_json(loop.path, data)
 
 

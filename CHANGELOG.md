@@ -9,6 +9,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Supervised security hardening:** isolate MCP menus from publishable CLI meals; freeze loop
+  EAT evidence and bind recovery to round-owned transactions, current provider truth and committed
+  maw work consent. Default loops to read-only, make pause revoke a running lease, support an
+  explicit identical-tree PR-only CI policy, and neutralize fetch/push/reference hooks.
+- **Publication and installation:** redact secret-shaped validation paths, expose content-bound
+  per-finding overrides in committed maw policy, compare installed plugin revisions and verify
+  refresh results. Pin executable CI dependencies and lock/isolate the optional skills installer.
+- **MIT transfers:** require established operative grants, preserve complete SPDX expressions,
+  fail closed on unsupported identifiers, compare equivalent expressions, carry REUSE/compound
+  notices and bounded upstream receipts, retain adapted notices and reject package/path aliases.
+  Content-origin narrowing now updates prose/mode/trace together and widening is refused.
+  Unicode instruction heuristics use bounded matching-only views; compressed report failures
+  discard partial facts. #243 host enforcement remains BLOCKED; this batch enables no unattended
+  host, release, scheduler or deployment. See the security-hardening evidence for limits.
+
 - **Licence authorization:** preserve digest conflicts and review flags in meals and served
   issue traces; require human resolution for cards whose evidence intersects foreign headers
   or nested licences (#201). Re-evaluate inferred ownership after reading fork metadata,

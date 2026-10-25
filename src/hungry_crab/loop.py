@@ -147,7 +147,10 @@ def ci_state(artifact: dict[str, Any]) -> str:
 
 
 def merge_ci_state(
-    artifact: dict[str, Any], required_checks: list[RequiredCheck] | None = None
+    artifact: dict[str, Any],
+    required_checks: list[RequiredCheck] | None = None,
+    *,
+    allow_pr_only: bool = False,
 ) -> str:
     """Bind release CI to the merge SHA and each maw-approved check name/App pair."""
     sha = artifact.get("merge_commit_sha")
@@ -159,6 +162,24 @@ def merge_ci_state(
         or evidence.get("sha") != sha
     ):
         return "pending"
+    if (
+        allow_pr_only
+        and not evidence.get("checks")
+        and not evidence.get("statuses")
+        and artifact.get("merge_tree_matches_head") is True
+    ):
+        head_sha = artifact.get("head", {}).get("sha")
+        return merge_ci_state(
+            {
+                "merge_commit_sha": head_sha,
+                "merge_ci": {
+                    "sha": head_sha,
+                    "checks": artifact.get("checks", []),
+                    "statuses": artifact.get("statuses", []),
+                },
+            },
+            required_checks,
+        )
     if required_checks is None:
         return ci_state(evidence)
     if not required_checks:
@@ -220,6 +241,7 @@ class Loop:
         )
         self.provider = provider
         self.now = (now or datetime.now(UTC)).astimezone(UTC)
+        self.started_monotonic = time.monotonic()
 
     def _control_settings(self) -> None:
         import yaml
@@ -356,6 +378,7 @@ class Loop:
                 _require(data["waiting_on"]["kind"] in {"human", "ci", "merge"})
         except (AssertionError, KeyError, TypeError, ValueError) as exc:
             raise CrabError("malformed loop state; preserve it for recovery") from exc
+        data["paused"] = data["paused"] or self.path.with_suffix(".pause").exists()
         return data
 
     def _save(self, data: dict[str, Any]) -> None:
@@ -401,11 +424,94 @@ class Loop:
         return self.provider
 
     def _work_allowed(self) -> bool:
+        import yaml
+
+        from .fetch.git import GitRunner
+
+        committed = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
+        try:
+            policy = yaml.safe_load(committed or "")
+            grant = policy.get("loop", {}) if isinstance(policy, dict) else {}
+        except yaml.YAMLError:
+            return False
         return (
             self.settings.autonomy == "work"
             and self.settings.work_authorized
             and self.config.ledger != "none"
+            and isinstance(grant, dict)
+            and grant.get("autonomy") == "work"
+            and grant.get("work_authorized") is True
+            and policy.get("ledger", "repo") != "none"
+            and MawConfig.load(self.maw).loop.autonomy == "work"
+            and MawConfig.load(self.maw).loop.work_authorized
         )
+
+    def serving_allowed(self) -> bool:
+        import yaml
+
+        from .fetch.git import GitRunner
+
+        current = MawConfig.load(self.maw)
+        text = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
+        try:
+            policy = yaml.safe_load(text or "")
+            if not isinstance(policy, dict):
+                return False
+            grant, serve = policy.get("loop", {}), policy.get("serve", {})
+            return bool(
+                isinstance(grant, dict)
+                and isinstance(serve, dict)
+                and grant.get("autonomy", "read") in {"serve", "work"}
+                and serve.get("issues", "ask") == "auto"
+                and current.loop.autonomy in {"serve", "work"}
+                and current.serve.issues == "auto"
+            )
+        except yaml.YAMLError:
+            return False
+
+    def pr_only_ci_allowed(self) -> bool:
+        import yaml
+
+        from .fetch.git import GitRunner
+
+        text = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
+        try:
+            policy = yaml.safe_load(text or "")
+            return bool(
+                self.settings.pr_only_ci
+                and isinstance(policy, dict)
+                and isinstance(policy.get("loop"), dict)
+                and policy["loop"].get("pr_only_ci") is True
+                and MawConfig.load(self.maw).loop.pr_only_ci
+            )
+        except yaml.YAMLError:
+            return False
+
+    def require_owned_pr(self, truth: dict[str, Any]) -> None:
+        if (
+            self.slug is None
+            or truth.get("user", {}).get("login") != self._provider().identity()
+            or truth.get("head", {}).get("repo", {}).get("full_name") != str(self.slug)
+        ):
+            raise CrabError("pull request is not owned by this maw's loop publisher")
+
+    def verify_meal(self, meal: dict[str, Any], data: dict[str, Any]) -> None:
+        """Old state needs a fresh EAT receipt; mutable menu/notes are never authority."""
+        hashes = meal.get("hashes")
+        if meal.get("round") != data["round"] or not isinstance(hashes, dict) or not hashes:
+            raise CrabError("EAT evidence is not frozen for this round; repeat EAT")
+        try:
+            if any(
+                hashlib.sha256(Path(path).read_bytes()).hexdigest() != expected
+                for path, expected in hashes.items()
+            ):
+                raise CrabError("EAT evidence changed after acceptance; repeat EAT")
+            for path in meal.get("digests", []):
+                directory = Path(path)
+                if digest_integrity_errors(directory, read_json(directory / "manifest.json")):
+                    raise CrabError("EAT digest evidence changed after acceptance; repeat EAT")
+        except OSError as exc:
+            raise CrabError("frozen EAT evidence is unavailable; repeat EAT") from exc
 
     def _optional_empty(self, data: dict[str, Any]) -> bool:
         return data["phase"] in {"molt", "harden"} and not self._landed(data)
@@ -421,6 +527,8 @@ class Loop:
             return "retry limit; human acknowledgement required"
         if data["phase"] == "serve" and self.settings.autonomy == "read":
             return "read autonomy stops before SERVE"
+        if data["phase"] == "serve" and not self.serving_allowed():
+            return "SERVE requires current and committed maw-owned serving consent"
         if (
             data["phase"] in WORK_PHASES
             and not self._optional_empty(data)
@@ -513,6 +621,14 @@ class Loop:
             if pr["round"] != data["round"] or pr.get("state") in {"merged", "closed"}:
                 continue
             truth = self._provider().artifact(pr["url"])
+            try:
+                self.require_owned_pr(truth)
+            except CrabError:
+                data["waiting_on"] = {
+                    "kind": "human",
+                    "reason": "Cannot verify the loop publishing identity or PR ownership",
+                }
+                return
             if truth["head"]["sha"] != pr["sha"]:
                 data["waiting_on"] = {
                     "kind": "human",
@@ -535,7 +651,7 @@ class Loop:
                     }
                     return
                 required = self.settings.required_checks if pr["phase"] == "harden" else None
-                status = merge_ci_state(truth, required)
+                status = merge_ci_state(truth, required, allow_pr_only=self.pr_only_ci_allowed())
                 if status == "fail":
                     data["waiting_on"] = {"kind": "human", "reason": "Merge commit CI failed"}
                     return
@@ -582,14 +698,23 @@ class Loop:
                 if json.dumps(data, sort_keys=True) != before:
                     self._save(data)
                 return self._view(data)
-            if data["phase"] in ("serve", *WORK_PHASES) and not self._optional_empty(data):
+            if data["phase"] in ("serve", "grow", "molt", "harden") and not self._optional_empty(
+                data
+            ):
                 issues, prs = self._provider().counts()
                 limit = (
                     issues >= self.settings.open_issues_max
                     if data["phase"] == "serve"
                     else prs >= self.settings.open_prs_max
                 )
-                if limit:
+                # HARDEN's tag step opens no PR and must be possible at a full PR budget.
+                if limit and not (
+                    data["phase"] == "harden"
+                    and any(
+                        pr["round"] == data["round"] and pr["phase"] == "harden"
+                        for pr in data["prs"]
+                    )
+                ):
                     return {**self._view(data), "blocked_reason": "open artifact budget exhausted"}
             if data["day"] != self.now.date().isoformat():
                 data["day"] = self.now.date().isoformat()
@@ -608,9 +733,15 @@ class Loop:
 
     def active(self, data: dict[str, Any], token: str, phase: str | None = None) -> None:
         lease = data["active"]
-        if data["paused"] or not lease or lease["token"] != token:
+        if (
+            data["paused"]
+            or self.path.with_suffix(".pause").exists()
+            or not lease
+            or lease["token"] != token
+        ):
             raise CrabError("no matching active loop lease (or the loop is paused)")
-        if datetime.fromisoformat(lease["expires_at"]) <= self.now:
+        live_now = self.now + timedelta(seconds=time.monotonic() - self.started_monotonic)
+        if datetime.fromisoformat(lease["expires_at"]) <= live_now:
             raise CrabError("loop lease expired; reconcile effects before retrying")
         if phase is not None and data["phase"] != phase:
             raise CrabError("record phase does not match the active phase")
@@ -620,7 +751,9 @@ class Loop:
             and not self._work_allowed()
         ):
             raise CrabError("maw policy no longer authorizes loop work")
-        if data["phase"] == "serve" and self.settings.autonomy == "read":
+        if data["phase"] == "serve" and (
+            self.settings.autonomy == "read" or not self.serving_allowed()
+        ):
             raise CrabError("maw policy no longer authorizes issue serving")
 
     def _event(self, data: dict[str, Any], result: str, note: str, receipt: dict[str, Any]) -> None:
@@ -653,6 +786,8 @@ class Loop:
             raise CrabError("meal and menu must describe the active prey at the same commit")
         if Path(meal.get("maw", {}).get("root", "")).resolve() != self.maw:
             raise CrabError("meal belongs to another maw")
+        if menu.get("maw") != meal.get("maw"):
+            raise CrabError("meal and menu must describe the same maw")
         try:
             generated = datetime.fromisoformat(meal["generated_at"])
             if (
@@ -663,16 +798,25 @@ class Loop:
                 raise ValueError
         except (KeyError, TypeError, ValueError) as exc:
             raise CrabError("EAT requires a fresh meal/menu generated during this lease") from exc
+        digests: list[Path] = []
         for key in ("prey_digest", "maw_digest"):
             directory = Path(_text(meal, key))
             if not directory.is_absolute():
                 directory = meal_path.parent / directory
             manifest = read_json(directory / "manifest.json")
+            digests.append(directory.resolve())
             side = "prey" if key == "prey_digest" else "maw"
             if manifest.get("schema") != "hungry-crab.digest/1" or manifest.get("prey", {}).get(
                 "sha"
             ) != meal[side].get("sha"):
                 raise CrabError("meal digest commit differs from the compared side")
+            identity = manifest.get("prey", {})
+            if identity.get("label") != meal[side].get("label"):
+                raise CrabError("meal digest repository differs from the compared side")
+            if side == "maw" and Path(identity.get("root", "")).resolve() != self.maw:
+                raise CrabError("maw digest belongs to another repository root")
+            if side == "prey" and identity.get("label") != prey:
+                raise CrabError("prey digest belongs to another selected repository")
             problem = digest_integrity_errors(directory, manifest)
             if (
                 problem
@@ -702,6 +846,17 @@ class Loop:
                 "meal": str(menu_path.parent / "meal.json"),
                 "menu": str(menu_path),
                 "notes": receipt["notes"],
+                "round": data["round"],
+                "hashes": {
+                    str(path.resolve()): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in (
+                        meal_path,
+                        menu_path,
+                        Path(receipt["notes"]),
+                        *(directory / "manifest.json" for directory in digests),
+                    )
+                },
+                "digests": [str(directory) for directory in digests],
             }
         )
 
@@ -815,6 +970,8 @@ class Loop:
             data["prey"] = []
             data["prey_index"] = 0
             data["meals"] = []
+            data["issues"] = []
+            data.pop("transactions", None)
             data.pop("discovery", None)
         else:
             data["phase"] = PHASES[PHASES.index(phase) + 1]
@@ -864,6 +1021,7 @@ class Loop:
                         and pr["state"] == "open"
                     ):
                         truth = self._provider().artifact(pr["url"])
+                        self.require_owned_pr(truth)
                         if truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:
                             raise CrabError("MOLT head changed or merged; human attention required")
                         self._provider().close_pr(pr["url"])
@@ -886,10 +1044,24 @@ class Loop:
         ]
 
     def pause(self, paused: bool) -> dict[str, Any]:
+        signal = self.path.with_suffix(".pause")
+        if paused:
+            # Revocation does not wait for a long-running effect's state lock.
+            atomic_json(signal, {"paused": True})
+        try:
+            return self._pause_state(paused)
+        except CrabError as exc:
+            if paused and "another process" in str(exc):
+                return {"paused": True, "revocation_pending": True}
+            raise
+
+    def _pause_state(self, paused: bool) -> dict[str, Any]:
         with state_lock(self.path):
             data = self._load()
             data["paused"] = paused
             self._save(data)
+            if not paused:
+                self.path.with_suffix(".pause").unlink(missing_ok=True)
             return self._view(data)
 
     def _drop_grow(self, data: dict[str, Any], url: str, note: str) -> None:
@@ -904,6 +1076,7 @@ class Loop:
         if pr is None:
             raise CrabError("drop requires this round's GROW pull request")
         truth = self._provider().artifact(url)
+        self.require_owned_pr(truth)
         if truth.get("merged_at") or truth["head"]["sha"] != pr["sha"]:
             raise CrabError("cannot drop a merged or changed GROW head")
         if truth.get("state") == "open":
@@ -923,6 +1096,29 @@ class Loop:
                     raise CrabError("human drop is available at TRIAL only")
                 self._drop_grow(data, drop_pr, "human rejected implementation")
                 data["phase"] = "taste"
+            elif data["phase"] == "trial":
+                pr = next(
+                    (
+                        row
+                        for row in data["prs"]
+                        if row["round"] == data["round"] and row["phase"] == "grow"
+                    ),
+                    None,
+                )
+                if pr is not None:
+                    truth = self._provider().artifact(pr["url"])
+                    if truth["head"]["sha"] != pr["sha"]:
+                        if (
+                            not pr.get("transaction")
+                            or pr["transaction"] not in str(truth.get("body", "")).splitlines()
+                            or truth.get("user", {}).get("login") != self._provider().identity()
+                        ):
+                            raise CrabError("changed PR is not owned by the recorded transaction")
+                        from .loop_work import check_paths
+
+                        files = self._provider().files(pr["url"])
+                        check_paths(self, [row["filename"] for row in files])
+                        pr.update(sha=truth["head"]["sha"], files=files)
             if data["phase"] == "harden" and any(
                 pr["round"] == data["round"] and pr["phase"] == "harden" and pr["state"] == "closed"
                 for pr in data["prs"]

@@ -255,6 +255,60 @@ def test_an_exhausted_allocation_is_a_size_limit(monkeypatch: pytest.MonkeyPatch
     }
 
 
+@pytest.mark.parametrize(
+    "error_type", [test_reports.lzma.LZMAError, test_reports.ZstdError, zlib.error]
+)
+def test_a_later_decompression_error_discards_the_whole_archive(
+    monkeypatch: pytest.MonkeyPatch, error_type: type[Exception]
+) -> None:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as writer:
+        writer.writestr("valid.xml", b'<testsuite><testcase name="first"/></testsuite>')
+        writer.writestr("corrupt.xml", b"invalid")
+    inflate = test_reports._inflate
+
+    def fail_later(reader: zipfile.ZipFile, entry: zipfile.ZipInfo, limit: int) -> bytes:
+        if entry.filename == "corrupt.xml":
+            raise error_type("synthetic decompressor failure")
+        return inflate(reader, entry, limit)
+
+    monkeypatch.setattr(test_reports, "_inflate", fail_later)
+    assert parse_junit_archive(buffer.getvalue()) == {
+        "status": "invalid-report",
+        "tests": [],
+        "reports": 0,
+    }
+
+
+def test_native_zstandard_corruption_is_contained_on_python314(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    method = getattr(zipfile, "ZIP_ZSTANDARD", None)
+    if method is None:
+        pytest.skip("native Zstandard decompressor requires Python 3.14")
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=method) as writer:
+        writer.writestr("valid.xml", b'<testsuite><testcase name="first"/></testsuite>')
+        writer.writestr("corrupt.xml", b"<testsuite/>")
+    body = bytearray(buffer.getvalue())
+    with zipfile.ZipFile(io.BytesIO(body)) as reader:
+        entry = reader.infolist()[1]
+        position = entry.header_offset + 30 + len(entry.filename.encode()) + len(entry.extra)
+        body[position] = 0
+    # Production continues to refuse this unbounded compression method before opening it.
+    assert parse_junit_archive(bytes(body))["status"] == "unsupported-compression"
+    monkeypatch.setattr(
+        test_reports, "COMPRESSION_METHODS", {*test_reports.COMPRESSION_METHODS, method}
+    )
+    with zipfile.ZipFile(io.BytesIO(body)) as reader, pytest.raises(test_reports.ZstdError):
+        test_reports._inflate(reader, reader.infolist()[1], CHUNK)
+    assert parse_junit_archive(bytes(body)) == {
+        "status": "invalid-report",
+        "tests": [],
+        "reports": 0,
+    }
+
+
 def test_graphql_client_never_sends_a_mutation() -> None:
     with pytest.raises(ExternalCommandError, match="queries only"):
         GitHubClient().graphql("mutation { deleteRepository }", {})

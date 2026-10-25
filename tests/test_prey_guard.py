@@ -522,7 +522,11 @@ def test_a_cache_path_the_shell_assembles_is_judged(command: str, home: Path) ->
 
 
 @pytest.mark.parametrize("command", ORDINARY)
-def test_ordinary_commands_stay_allowed(command: str, home: Path) -> None:
+def test_ordinary_commands_stay_allowed(
+    command: str, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Known-safe controls must not inherit a developer's cache-bearing executable search path.
+    monkeypatch.setenv("PATH", str(home / "bin"))
     root = home / ".cache" / "hungry-crab"
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
 
@@ -718,7 +722,10 @@ def test_powershell_read_cmdlets_with_literal_arguments_are_allowed(
 
 
 @pytest.mark.parametrize("command", POWERSHELL_ORDINARY)
-def test_ordinary_powershell_stays_allowed(command: str, home: Path) -> None:
+def test_ordinary_powershell_stays_allowed(
+    command: str, home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PATH", str(home / "bin"))
     assert _powershell(command, home) is None
 
 

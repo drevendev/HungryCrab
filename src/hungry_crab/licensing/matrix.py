@@ -15,7 +15,7 @@ more restrictive mode.
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from enum import StrEnum
 
 
@@ -283,12 +283,82 @@ def _parse_or(tokens: list[str], pos: int) -> tuple[_Expr, int] | None:
 
 def parse_expression(text: str) -> _Expr | None:
     """The expression, or ``None`` when it is not one this parser understands."""
+    if len(text) > 8192:
+        return None
     tokens = _tokenize(text)
+    depth = 0
+    if len(tokens) > 256:
+        return None
+    for token in tokens:
+        depth += (token == "(") - (token == ")")
+        if depth < 0 or depth > 32:
+            return None
+    if depth:
+        return None
     parsed = _parse_or(tokens, 0)
     if parsed is None:
         return None
     expr, pos = parsed
     return expr if pos == len(tokens) else None
+
+
+def canonical_expression(text: str | None) -> str | None:
+    """Compare associative/commutative terms without confusing AND and OR."""
+    if text is None:
+        return None
+    expr = parse_expression(text)
+    if expr is None:
+        return normalize(text)
+
+    def canonical(node: _Expr) -> str:
+        if not node.op:
+            return _render(node)
+        operands: list[_Expr] = []
+
+        def flatten(child: _Expr) -> None:
+            if child.op == node.op:
+                for operand in child.operands:
+                    flatten(operand)
+            else:
+                operands.append(child)
+
+        flatten(node)
+        return f"{node.op}({','.join(sorted({canonical(child) for child in operands}))})"
+
+    return canonical(expr)
+
+
+def selected_terms(text: str | None) -> tuple[str, ...]:
+    """All duties of a proven AND, or the actual least-restrictive established OR branch."""
+    expr = parse_expression(normalize(text) or "")
+    if expr is None:
+        return ()
+
+    def selected(node: _Expr) -> tuple[str, ...]:
+        if not node.op:
+            return (_render(node),)
+        if node.op == "OR":
+            chosen = min(
+                node.operands, key=lambda child: (_RANK.index(_evaluate(child)[0]), _render(child))
+            )
+            return selected(chosen)
+        return tuple(sorted({term for child in node.operands for term in selected(child)}))
+
+    return selected(expr)
+
+
+def license_terms(text: str | None) -> tuple[str, ...]:
+    """Every leaf of an expression, retaining alternatives for evidence comparison."""
+    expr = parse_expression(normalize(text) or "")
+    if expr is None:
+        return ()
+
+    def leaves(node: _Expr) -> tuple[str, ...]:
+        if not node.op:
+            return (_render(node),)
+        return tuple(term for child in node.operands for term in leaves(child))
+
+    return tuple(sorted(set(leaves(expr))))
 
 
 def _normalize_id(text: str) -> str:
@@ -434,25 +504,36 @@ def _classify_id(ident: str) -> LicenseClass:
         return LicenseClass.PERMISSIVE_NOTICE
     if ident in PERMISSIVE_IDS:
         return LicenseClass.PERMISSIVE
-    if ident.startswith(("MPL-", "EPL-", "CDDL-")):
+    if ident in {"MPL-2.0", "EPL-1.0", "EPL-2.0", "CDDL-1.0"}:
         return LicenseClass.FILE_COPYLEFT
     if ident.startswith("LGPL-"):
         # The version parser is the supported-policy boundary, including deprecated spellings.
         # An unknown version must not reach either the COPY or clean-room compatibility rules.
         return LicenseClass.LGPL if _lgpl_version(ident) is not None else LicenseClass.UNKNOWN
-    if ident.startswith("AGPL-"):
+    if ident in {"AGPL-3.0-only", "AGPL-3.0-or-later"}:
         return LicenseClass.AGPL
-    if ident.startswith("GPL-"):
+    if ident in {"GPL-2.0-only", "GPL-2.0-or-later", "GPL-3.0-only", "GPL-3.0-or-later"}:
         return LicenseClass.GPL
-    if ident in SOURCE_AVAILABLE_IDS or ident.startswith("LicenseRef-"):
+    if ident in SOURCE_AVAILABLE_IDS or ident in {
+        "LicenseRef-PolyForm",
+        "LicenseRef-SustainableUse",
+    }:
         return LicenseClass.SOURCE_AVAILABLE
-    if ident.startswith("CC-BY"):
+    if ident in {
+        "CC-BY-3.0",
+        "CC-BY-4.0",
+        "CC-BY-SA-3.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-ND-4.0",
+    }:
         if "-NC" in ident or "-ND" in ident:
             return LicenseClass.DOCS_RESTRICTED
         if "-SA" in ident:
             return LicenseClass.DOCS_SHARE_ALIKE
         return LicenseClass.DOCS_ATTRIBUTION
-    if ident.startswith("GFDL-"):
+    if ident == "GFDL-1.3-only":
         return LicenseClass.DOCS_SHARE_ALIKE
     return LicenseClass.UNKNOWN
 
@@ -495,6 +576,8 @@ class Verdict:
     share_alike: bool = False
     human_review: bool = False
     reason: str = ""
+    selected_licenses: tuple[str, ...] = ()
+    obligations: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
@@ -589,6 +672,8 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
     prey = normalize(prey_spdx)
     cls = classify(prey)
     maw_id = normalize(maw_spdx) or ""
+    if maw_id and classify(maw_id) is LicenseClass.UNKNOWN:
+        return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
     if maw_id.upper().startswith("LGPL-") and classify(maw_id) is LicenseClass.UNKNOWN:
         return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
     if cls is LicenseClass.PERMISSIVE:
@@ -705,7 +790,31 @@ def decide(
     *,
     relationship: Relationship | str = Relationship.FOREIGN,
 ) -> Verdict:
-    return decide_related(prey_spdx, maw_class(maw_spdx), maw_spdx, Relationship(str(relationship)))
+    verdict = decide_related(
+        prey_spdx, maw_class(maw_spdx), maw_spdx, Relationship(str(relationship))
+    )
+    if verdict.mode not in {Mode.COPY, Mode.COPY_FILE}:
+        return verdict
+    terms = selected_terms(prey_spdx)
+    if Relationship(str(relationship)) is Relationship.OWN and not verdict.human_review:
+        return replace(verdict, selected_licenses=terms)
+    duties: set[str] = set()
+    for term in terms:
+        cls = classify(term)
+        if cls is LicenseClass.PERMISSIVE:
+            duties.add("copyright-notice")
+        elif cls is LicenseClass.PERMISSIVE_NOTICE:
+            duties.update(("copyright-notice", "notice-file", "modification-notice"))
+        elif cls is LicenseClass.DOCS_ATTRIBUTION:
+            duties.add("attribution")
+        else:
+            duties.add("file-license")
+    return replace(
+        verdict,
+        selected_licenses=terms,
+        obligations=tuple(sorted(duties)),
+        notice_required=verdict.notice_required or "notice-file" in duties,
+    )
 
 
 _SAMPLE_MAWS: dict[MawClass, str | None] = {

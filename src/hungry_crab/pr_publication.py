@@ -20,7 +20,12 @@ from typing import TypeVar
 
 from .errors import CrabError
 from .nutrients import require_nutrient_id
-from .publication_safety import format_publication_findings, scan_publication_bundle
+from .publication_policy import current_publication_allow, unapproved_findings
+from .publication_safety import (
+    format_publication_findings,
+    publication_error,
+    scan_publication_bundle,
+)
 
 _ResultT = TypeVar("_ResultT")
 _BRANCH_SAFE_RE = re.compile(r"[^a-z0-9._-]+")
@@ -73,6 +78,7 @@ class PreparedPullRequest:
     title: str
     body: str
     files: tuple[GeneratedFile, ...]
+    policy_root: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -93,13 +99,13 @@ class _DuplicateObjectMemberError(ValueError):
 
 
 def _handoff_error(detail: str) -> CrabError:
-    return CrabError(
+    return publication_error(
         "invalid publication handoff; refusing to infer files from the maw", hint=detail
     )
 
 
 def _receipt_error(detail: str) -> CrabError:
-    return CrabError(
+    return publication_error(
         "invalid clean-room implementation receipt; refusing to infer files from the maw",
         hint=detail,
     )
@@ -147,11 +153,13 @@ def load_cleanroom_implementation_receipt(payload: str) -> CleanroomImplementati
     """
 
     try:
+        if len(payload) > 1024 * 1024:
+            raise ValueError("receipt exceeds its byte budget")
         raw: object = json.loads(payload, object_pairs_hook=_reject_duplicate_object_members)
     except _DuplicateObjectMemberError as exc:
-        raise _receipt_error(f"duplicate JSON object member: {exc.key}") from exc
-    except (json.JSONDecodeError, TypeError) as exc:
-        raise _receipt_error("receipt must be valid JSON") from exc
+        raise _receipt_error(f"duplicate JSON object member: {exc.key}") from None
+    except (ValueError, TypeError, RecursionError):
+        raise _receipt_error("receipt must be valid JSON") from None
     if not isinstance(raw, dict):
         raise _receipt_error("receipt root must be an object")
     if set(raw) != {"version", "nutrient_id", "changed_paths", "summary", "checks"}:
@@ -227,8 +235,8 @@ def _read_receipt_maw_text(maw: object, path: str) -> str:
     if mapping is not None:
         try:
             content = mapping[path]
-        except KeyError as exc:
-            raise _receipt_error(f"declared changed file is missing: {path}") from exc
+        except KeyError:
+            raise _receipt_error(f"declared changed file is missing: {path}") from None
         if not isinstance(content, str):
             raise _receipt_error(f"declared changed file is not UTF-8 text: {path}")
         return content
@@ -240,29 +248,29 @@ def _read_receipt_maw_text(maw: object, path: str) -> str:
 
     try:
         root = maw.resolve(strict=True)
-    except OSError as exc:
-        raise _receipt_error("maw root cannot be resolved safely") from exc
+    except OSError:
+        raise _receipt_error("maw root cannot be resolved safely") from None
 
     try:
         resolved = (root / path).resolve(strict=True)
-    except FileNotFoundError as exc:
-        raise _receipt_error(f"declared changed file is missing: {path}") from exc
-    except OSError as exc:
-        raise _receipt_error(f"declared changed file cannot be resolved safely: {path}") from exc
+    except FileNotFoundError:
+        raise _receipt_error(f"declared changed file is missing: {path}") from None
+    except OSError:
+        raise _receipt_error(f"declared changed file cannot be resolved safely: {path}") from None
 
     try:
         resolved.relative_to(root)
-    except ValueError as exc:
-        raise _receipt_error(f"declared changed file resolves outside the maw: {path}") from exc
+    except ValueError:
+        raise _receipt_error(f"declared changed file resolves outside the maw: {path}") from None
 
     if not resolved.is_file():
         raise _receipt_error(f"declared changed path is not a regular file: {path}")
     try:
         return resolved.read_text(encoding="utf-8")
-    except UnicodeError as exc:
-        raise _receipt_error(f"declared changed file is not UTF-8 text: {path}") from exc
-    except OSError as exc:
-        raise _receipt_error(f"declared changed file cannot be read safely: {path}") from exc
+    except UnicodeError:
+        raise _receipt_error(f"declared changed file is not UTF-8 text: {path}") from None
+    except OSError:
+        raise _receipt_error(f"declared changed file cannot be read safely: {path}") from None
 
 
 def publication_handoff_from_receipt(
@@ -313,11 +321,13 @@ def load_publication_handoff(payload: str) -> PublicationHandoff:
     """
 
     try:
+        if len(payload) > 1024 * 1024:
+            raise ValueError("handoff exceeds its byte budget")
         raw: object = json.loads(payload, object_pairs_hook=_reject_duplicate_object_members)
     except _DuplicateObjectMemberError as exc:
-        raise _handoff_error(f"duplicate JSON object member: {exc.key}") from exc
-    except (json.JSONDecodeError, TypeError) as exc:
-        raise _handoff_error("handoff must be valid JSON") from exc
+        raise _handoff_error(f"duplicate JSON object member: {exc.key}") from None
+    except (ValueError, TypeError, RecursionError):
+        raise _handoff_error("handoff must be valid JSON") from None
     if not isinstance(raw, dict):
         raise _handoff_error("handoff root must be an object")
     if set(raw) != {"version", "nutrient_id", "files"}:
@@ -374,8 +384,8 @@ def generated_files_from_handoff(
     for declared in handoff.files:
         try:
             content = read_maw_text(declared.path)
-        except (KeyError, OSError) as exc:
-            raise _handoff_error(f"declared file is missing: {declared.path}") from exc
+        except (KeyError, OSError):
+            raise _handoff_error(f"declared file is missing: {declared.path}") from None
         if not isinstance(content, str):
             raise _handoff_error(f"declared file is not UTF-8 text: {declared.path}")
         actual = hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -399,7 +409,7 @@ def _nutrient_slug(nutrient_id: str) -> str:
     """The readable, ref- and file-safe form of a nutrient id plus eight hex digits of its hash."""
 
     if not nutrient_id.startswith("crab:"):
-        raise CrabError("pull-request publication requires a crab nutrient id")
+        raise publication_error("pull-request publication requires a crab nutrient id")
     readable = _BRANCH_SAFE_RE.sub("-", nutrient_id.removeprefix("crab:").lower())
     readable = _BRANCH_REPEAT_RE.sub("-", readable).strip("-.") or "nutrient"
     digest = hashlib.sha256(nutrient_id.encode("utf-8")).hexdigest()[:8]
@@ -433,8 +443,10 @@ def _required_marker(nutrient_id: str) -> str:
 def check_prepared_publication(prepared: PreparedPullRequest) -> None:
     """Check every frozen public field without provider access or effects."""
     findings = scan_publication_bundle(publication_items(prepared))
+    if prepared.policy_root is not None:
+        findings = unapproved_findings(findings, current_publication_allow(prepared.policy_root))
     if findings:
-        raise CrabError(
+        raise publication_error(
             "refusing to publish a pull request containing a possible secret",
             hint=format_publication_findings(findings),
         )
@@ -473,21 +485,21 @@ def publish_prepared_transaction(
     branch = nutrient_branch_name(nutrient_id)
     marker = _required_marker(nutrient_id)
     if not prepared.body.lstrip().startswith(marker):
-        raise CrabError("prepared pull request body must open with its nutrient marker")
+        raise publication_error("prepared pull request body must open with its nutrient marker")
 
     def reconcile_then_publish(payload: PreparedPullRequest) -> PullRequestPublication:
         existing = list_marked_prs().get(nutrient_id)
         if existing is not None:
             url = existing.get("url")
             if not isinstance(url, str) or not url.strip():
-                raise CrabError(
+                raise publication_error(
                     "matching pull request has no usable URL; refusing to create a duplicate"
                 )
             return PullRequestPublication(branch=branch, url=url, created=False)
 
         url = publish(branch, payload)
         if not url.strip():
-            raise CrabError(
+            raise publication_error(
                 "pull request publication returned no URL; reconcile provider state before retrying"
             )
         return PullRequestPublication(branch=branch, url=url, created=True)

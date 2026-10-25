@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -146,6 +147,51 @@ def plugin_version(agent: AgentSpec, payload: Any) -> str | None:
             version = data.get("version")
             return str(version) if version is not None else None
     return None
+
+
+def plugin_revision(agent: AgentSpec, payload: Any) -> str | None:
+    """Read recorded install provenance; version equality is never revision evidence."""
+    entries = (
+        as_list(payload) if agent.key == "claude" else as_list(as_dict(payload).get("installed"))
+    )
+    matches = [
+        as_dict(item)
+        for item in entries
+        if as_dict(item).get("id" if agent.key == "claude" else "pluginId") == PLUGIN_ID
+    ]
+    version = plugin_version(agent, payload)
+    if agent.key == "codex" and version and re.fullmatch(r"[A-Za-z0-9._-]{1,64}", version):
+        base = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
+        matches.append(
+            {"installPath": str(base / "plugins" / "cache" / MARKETPLACE / PLUGIN / version)}
+        )
+    if agent.key == "claude":
+        base = Path(os.environ.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude")))
+        metadata = base / "plugins" / "installed_plugins.json"
+        try:
+            if metadata.stat().st_size <= 1024 * 1024:
+                stored = json.loads(metadata.read_text(encoding="utf-8"))
+                matches.extend(
+                    as_dict(item)
+                    for item in as_list(as_dict(as_dict(stored).get("plugins")).get(PLUGIN_ID))
+                )
+        except (OSError, ValueError):
+            pass
+    revisions: set[str] = set()
+    for entry in matches:
+        revision = entry.get("gitCommitSha", entry.get("revision"))
+        if revision is None and isinstance(entry.get("installPath"), str):
+            metadata = Path(entry["installPath"]) / ".codex-marketplace-install.json"
+            try:
+                if metadata.stat().st_size <= 1024 * 1024:
+                    revision = as_dict(json.loads(metadata.read_text(encoding="utf-8"))).get(
+                        "revision"
+                    )
+            except (OSError, ValueError):
+                pass
+        if isinstance(revision, str) and re.fullmatch(r"[0-9a-f]{40}", revision):
+            revisions.add(revision)
+    return next(iter(revisions)) if len(revisions) == 1 else None
 
 
 @dataclass
@@ -396,6 +442,8 @@ class UpdateReport:
             "remote": self.remote.to_dict(),
             "executed": self.executed,
             "actionable": [c.name for c in self.actionable],
+            "running_python": sys.executable,
+            "path_cli": shutil.which("crab"),
         }
 
 
@@ -492,7 +540,34 @@ def check_agent(
     if available != installed:
         detail = f"marketplace has {available}"
         return Component(name, installed, available, OUTDATED, detail, commands)
-    return Component(name, installed, available, OK, "same version as master", commands)
+    revision = plugin_revision(agent, payload)
+    if revision is None or remote.sha is None:
+        return Component(
+            name,
+            installed,
+            available,
+            UNKNOWN,
+            "installed revision is UNKNOWN; version equality does not verify hooks",
+            commands,
+        )
+    if revision != remote.sha:
+        if agent.key == "claude":
+            commands = [
+                agent.command(agent.refresh_marketplace),
+                agent.command(("plugin", "uninstall", PLUGIN_ID)),
+                agent.command(agent.install),
+            ]
+        return Component(
+            name,
+            installed,
+            available,
+            OUTDATED,
+            f"installed revision {revision}; master {remote.sha}; restart the host after refresh",
+            commands,
+        )
+    return Component(
+        name, installed, available, OK, f"verified installed revision {revision}", commands
+    )
 
 
 def check(
@@ -546,8 +621,16 @@ def apply(
                 component.detail = f"failed: {output.strip()[-200:]}"
                 break
         else:
-            component.status = OK
-            component.detail = "updated"
+            agent = next(
+                (item for item in AGENTS if component.name == f"{item.label} plugin"), None
+            )
+            if agent is None:
+                component.status = OK
+                component.detail = "updated"
+            else:
+                verified = check_agent(agent, report.remote, runner=call)
+                component.status = verified.status
+                component.detail = verified.detail
     report.executed = True
     return report
 
@@ -561,9 +644,16 @@ def format_report(report: UpdateReport) -> str:
         )
         if component.detail:
             lines.append(f"{'':<22}{component.detail}")
+        if component.name.endswith(" plugin"):
+            lines.append(
+                f"{'':<22}host hook activation: UNKNOWN; verify in a restarted agent session"
+            )
         for entry in component.ran:
             mark = "ok" if entry["ok"] else "FAILED"
             lines.append(f"{'':<22}{mark}: {entry['command']}")
+    if report.components:
+        lines.append(f"\nRunning Python: {sys.executable}")
+        lines.append(f"crab on PATH: {shutil.which('crab') or 'not found'}")
     if report.remote.error:
         lines.append(f"\ncould not read master: {report.remote.error}")
     pending = [c for c in report.actionable if not c.ran]

@@ -8,8 +8,9 @@ batch preparation, per-run creation limits and committing provider receipts into
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from .attribution import (
@@ -59,6 +60,7 @@ def _prepare_publications(
     preparer: PrPreparer,
     *,
     copy_needs_ids: bool = False,
+    policy_root: Path | None = None,
 ) -> tuple[list[tuple[Candidate, PreparedPullRequest, list[str]]], list[dict[str, Any]]]:
     """Freeze every actionable card before the first provider read or effect.
 
@@ -130,7 +132,7 @@ def _prepare_publications(
                 f"{label} receipt nutrient does not match the selected nutrient",
                 hint=f"expected {card.id}, got {receipt_id}",
             )
-        prepared = preparer(card, payload)
+        prepared = replace(preparer(card, payload), policy_root=policy_root)
         check_prepared_publication(prepared)
         planned.append((card, prepared, working_tree_paths))
     return planned, skipped
@@ -163,7 +165,12 @@ def prepare_pull_request_plan(
         )
 
     planned, skipped = _prepare_publications(
-        cards, receipts, ledger, preparer, copy_needs_ids=human_review and not explicit_selection
+        cards,
+        receipts,
+        ledger,
+        preparer,
+        copy_needs_ids=human_review and not explicit_selection,
+        policy_root=config.root,
     )
     return PullRequestServePlan(
         tuple((card, prepared, tuple(paths)) for card, prepared, paths in planned),

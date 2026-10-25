@@ -142,17 +142,11 @@ class FakePrey:
         return names if known else None
 
 
-MIT_TEXT = """\
-MIT License
-
-Copyright (c) 2024 Prey Owner
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software").
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-"""
+MIT_TEXT = (
+    (Path(__file__).parents[1] / "LICENSE")
+    .read_text(encoding="utf-8")
+    .replace("2026 Dreven", "2024 Prey Owner")
+)
 
 
 def _prey() -> FakePrey:
@@ -814,7 +808,10 @@ def test_an_apache_source_carries_its_licence_and_its_notice_file(tmp_path: Path
     prey = FakePrey(
         {
             (SHA, ".github/workflows/test.yml"): "name: test\n",
-            (SHA, "LICENSE"): "Apache License\nVersion 2.0, January 2004\n",
+            (SHA, "LICENSE"): (
+                "Apache License\nVersion 2.0, January 2004\n"
+                "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n"
+            ),
             (SHA, "NOTICE"): "Widget\nCopyright 2020 The Widget Authors\n",
             (SHA, "README.md"): "# widget\n",
         }

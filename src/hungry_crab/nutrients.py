@@ -135,10 +135,13 @@ class Candidate:
     def __setattr__(self, name: str, value: Any) -> None:
         ready = self.__dict__.get("_ready", False)
         if name == "origin":
-            object.__setattr__(self, name, normalize_origin(value).value)
-            # A narrower origin narrows the mode the card carries; a wider one never widens
-            # it back, because the cap only ever lowers a mode.
+            normalized = normalize_origin(value).value
+            ranks = {"licensed": 0, "commenters": 1, "unknown": 2}
+            if ready and ranks[normalized] < ranks[self.origin]:
+                raise ValueError("content origin cannot be widened after construction")
+            object.__setattr__(self, name, normalized)
             if ready:
+                self._enforce_origin_policy()
                 self._apply_cap()
             return
         if name == "license_mode":

@@ -161,7 +161,8 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         "api_sha256": hashlib.sha256(encoded.encode()).hexdigest(),
         # Invalidate digests produced before ignored/personal files were excluded (#195).
         "file_selection": "git-visible-v1",
-        "license_provenance": 1,
+        "license_provenance": 2,
+        "instruction_matching": "unicode-matching-v2",
     }
 
 

@@ -12,8 +12,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from .cache import Slug
-from .errors import CrabError
 from .fetch.git import GitRunner
+from .fs import is_link_stat
 from .pr_effects import publish_git_pull_request
 from .pr_publication import (
     GeneratedFile,
@@ -26,6 +26,7 @@ from .pr_publication import (
     publication_handoff_from_receipt,
     publish_prepared_transaction,
 )
+from .publication_safety import publication_error
 from .receipt_text import quote_receipt_text
 
 MarkedPullRequests = Callable[[], Mapping[str, Mapping[str, object]]]
@@ -41,44 +42,63 @@ def read_maw_text(maw_root: Path, path: str) -> str:
 
     try:
         root = maw_root.resolve(strict=True)
-    except OSError as exc:
-        raise CrabError("cannot resolve the maw safely for pull-request publication") from exc
+    except OSError:
+        raise publication_error(
+            "cannot resolve the maw safely for pull-request publication"
+        ) from None
+    current = root
+    for part in path.split("/"):
+        try:
+            alias = is_link_stat(current.lstat())
+            names = set() if alias else {entry.name for entry in current.iterdir()}
+        except OSError:
+            raise publication_error(
+                "publication path cannot be inspected safely", hint=path
+            ) from None
+        if alias:
+            raise publication_error("publication path traverses a filesystem alias", hint=path)
+        if part.rstrip(" .") != part or part not in names:
+            raise publication_error(
+                "publication path is missing or aliases another filesystem name",
+                hint=f"declared file is missing: {path}",
+            )
+        current = current / part
     try:
         target = (root / path).resolve(strict=True)
-    except FileNotFoundError as exc:
-        raise CrabError(
+    except FileNotFoundError:
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared file is missing: {path}",
-        ) from exc
-    except OSError as exc:
-        raise CrabError(
+        ) from None
+    except OSError:
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared file cannot be resolved safely: {path}",
-        ) from exc
+        ) from None
     try:
         target.relative_to(root)
-    except ValueError as exc:
-        raise CrabError(
+    except ValueError:
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared file resolves outside the maw: {path}",
-        ) from exc
+        ) from None
     if not target.is_file():
-        raise CrabError(
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared path is not a regular file: {path}",
         )
     try:
         return target.read_text(encoding="utf-8")
-    except UnicodeError as exc:
-        raise CrabError(
+    except UnicodeError:
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared file is not UTF-8 text: {path}",
-        ) from exc
-    except OSError as exc:
-        raise CrabError(
+        ) from None
+    except OSError:
+        raise publication_error(
             "publication handoff changed after clean-room implementation",
             hint=f"declared file cannot be read safely: {path}",
-        ) from exc
+        ) from None
 
 
 def _read_specification(maw_root: Path, nutrient_id: str) -> GeneratedFile:
@@ -92,32 +112,40 @@ def _read_specification(maw_root: Path, nutrient_id: str) -> GeneratedFile:
     path = nutrient_spec_path(nutrient_id)
     try:
         root = maw_root.resolve(strict=True)
-    except OSError as exc:
-        raise CrabError("cannot resolve the maw safely for pull-request publication") from exc
+    except OSError:
+        raise publication_error(
+            "cannot resolve the maw safely for pull-request publication"
+        ) from None
     try:
         target = (root / path).resolve(strict=True)
-    except FileNotFoundError as exc:
-        raise CrabError(
+    except FileNotFoundError:
+        raise publication_error(
             "clean-room specification missing; refusing to publish without it",
             hint=(
                 f"write the Stage A specification to {path} before serving "
                 f"(`crab spec {nutrient_id}` prints the path)"
             ),
-        ) from exc
-    except OSError as exc:
-        raise CrabError("clean-room specification cannot be resolved safely", hint=path) from exc
+        ) from None
+    except OSError:
+        raise publication_error(
+            "clean-room specification cannot be resolved safely", hint=path
+        ) from None
     try:
         target.relative_to(root)
-    except ValueError as exc:
-        raise CrabError("clean-room specification resolves outside the maw", hint=path) from exc
+    except ValueError:
+        raise publication_error(
+            "clean-room specification resolves outside the maw", hint=path
+        ) from None
     if not target.is_file():
-        raise CrabError("clean-room specification is not a regular file", hint=path)
+        raise publication_error("clean-room specification is not a regular file", hint=path)
     try:
         return GeneratedFile(path=path, content=target.read_text(encoding="utf-8"))
-    except UnicodeError as exc:
-        raise CrabError("clean-room specification is not UTF-8 text", hint=path) from exc
-    except OSError as exc:
-        raise CrabError("clean-room specification cannot be read safely", hint=path) from exc
+    except UnicodeError:
+        raise publication_error("clean-room specification is not UTF-8 text", hint=path) from None
+    except OSError:
+        raise publication_error(
+            "clean-room specification cannot be read safely", hint=path
+        ) from None
 
 
 def prepare_cleanroom_pull_request(
@@ -142,7 +170,7 @@ def prepare_cleanroom_pull_request(
 
     receipt = load_cleanroom_implementation_receipt(receipt_payload)
     if receipt.nutrient_id != nutrient_id:
-        raise CrabError(
+        raise publication_error(
             "clean-room receipt nutrient does not match the selected nutrient",
             hint=f"expected {nutrient_id}, got {receipt.nutrient_id}",
         )
@@ -172,7 +200,9 @@ def prepare_cleanroom_pull_request(
             f"\n\nSpecification: [`{spec.path}`]({link}), carried in this pull request."
         )
     rendered_body += "\n"
-    return PreparedPullRequest(title=title, body=rendered_body, files=tuple(files))
+    return PreparedPullRequest(
+        title=title, body=rendered_body, files=tuple(files), policy_root=maw_root
+    )
 
 
 def publish_prepared_cleanroom_git_pull_request(

@@ -116,7 +116,7 @@ def build_report(
         license_name = name_value if isinstance(name_value, str) else None
 
     if raw_spdx and raw_spdx.upper() == "NOASSERTION":
-        spdx: str | None = None
+        spdx: str | None = "NOASSERTION"
         cls = LicenseClass.UNKNOWN
     else:
         spdx = normalize(raw_spdx)

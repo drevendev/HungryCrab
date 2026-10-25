@@ -22,6 +22,42 @@ from mcp_probe import probe
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def installer_environment(directory: Path) -> dict[str, str]:
+    """Allow only process necessities; npm never inherits developer/cloud credentials."""
+    keys = {"PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC", "SYSTEMDRIVE"}
+    env = {key: value for key, value in os.environ.items() if key.upper() in keys}
+    home = directory / "installer-home"
+    home.mkdir()
+    temporary = home / "tmp"
+    temporary.mkdir()
+    env.update(
+        {
+            "HOME": str(home),
+            "USERPROFILE": str(home),
+            "APPDATA": str(home / "appdata"),
+            "LOCALAPPDATA": str(home / "localappdata"),
+            "XDG_CONFIG_HOME": str(home / "config"),
+            "XDG_CACHE_HOME": str(home / "cache"),
+            "TEMP": str(temporary),
+            "TMP": str(temporary),
+            "TMPDIR": str(temporary),
+            "NPM_CONFIG_CACHE": str(home / "npm-cache"),
+            "NPM_CONFIG_USERCONFIG": str(home / ".npmrc"),
+            "NPM_CONFIG_GLOBALCONFIG": str(home / "global.npmrc"),
+            "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org",
+            "NPM_CONFIG_IGNORE_SCRIPTS": "true",
+            "NPM_CONFIG_AUDIT": "false",
+            "NPM_CONFIG_FUND": "false",
+            "DO_NOT_TRACK": "1",
+            "DISABLE_TELEMETRY": "1",
+            "CI": "true",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }
+    )
+    return env
+
+
 def run(args: list[str], *, cwd: Path, env: dict[str, str], code: int = 0) -> str:
     result = subprocess.run(
         args,
@@ -155,16 +191,26 @@ def main() -> int:
                 anyio.run(probe, command, workspace, directory / "mcp-cache")
             print(f"PASS: {extra} ({package.suffix}), installed CLI, digest and HTML")
         if args.skills:
-            npx = shutil.which("npx.cmd" if os.name == "nt" else "npx")
-            if npx is None:
-                raise RuntimeError("npx is required for --skills")
+            npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
+            node = shutil.which("node")
+            if npm is None or node is None:
+                raise RuntimeError("npm and Node.js are required for --skills")
+            installer = directory / "skills-installer"
+            installer.mkdir()
+            for name in ("package.json", "package-lock.json"):
+                shutil.copyfile(ROOT / "scripts" / "skills-installer" / name, installer / name)
+            installer_env = installer_environment(directory)
+            run(
+                [npm, "ci", "--ignore-scripts", "--no-audit", "--no-fund"],
+                cwd=installer,
+                env=installer_env,
+            )
             project = directory / "skills consumer"
             project.mkdir()
             run(
                 [
-                    npx,
-                    "--yes",
-                    "skills",
+                    node,
+                    str(installer / "node_modules" / "skills" / "bin" / "cli.mjs"),
                     "add",
                     str(ROOT / "skills" / "eat"),
                     "--skill",
@@ -175,10 +221,12 @@ def main() -> int:
                     "--yes",
                 ],
                 cwd=project,
-                env=env,
+                env=installer_env,
             )
             assert (project / ".agents" / "skills" / "eat" / "SKILL.md").is_file()
-            print("PASS: npx skills add installs our portable eat skill in an isolated project")
+            print(
+                "PASS: locked skills installer copies our portable eat skill in an isolated project"
+            )
     return 0
 
 

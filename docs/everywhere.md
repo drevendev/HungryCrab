@@ -144,6 +144,10 @@ Client settings and approval remain the host's responsibility. The implementatio
 acceptance uses a real stdio SDK client in modern and initialize-handshake legacy modes on
 Windows/Linux; it does not claim that a GUI model-driven meal ran in every host.
 
+MCP menus are analysis-only results held in memory (`origin: analysis-only`, `meal_dir: null`).
+Pagination never replaces a CLI meal, including its issue-dedup selection. Use the CLI's normal
+compare/menu workflow before reviewed publication.
+
 References: [Cursor MCP](https://cursor.com/docs/mcp),
 [Claude Code MCP](https://code.claude.com/docs/en/mcp),
 [official Python SDK](https://github.com/modelcontextprotocol/python-sdk).

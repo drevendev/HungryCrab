@@ -344,7 +344,7 @@ def test_real_git_molt_harden_round_preserves_dirty_files_and_never_runs_hooks(
         provider.rows[url] = {
             **artifact(url, sha=sha),
             "body": body,
-            "head": {"sha": sha, "ref": branch},
+            "head": {"sha": sha, "ref": branch, "repo": {"full_name": "example/maw"}},
             "base": {"ref": "master"},
         }
         provider.changed[url] = (

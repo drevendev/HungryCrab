@@ -627,7 +627,7 @@ def test_bundle_reports_only_safe_location_metadata() -> None:
     assert findings == [PublicationFinding("generated/settings.yml", 2, "github-token")]
     rendered = format_publication_findings(findings)
     assert GITHUB not in rendered
-    assert rendered == "generated/settings.yml:2 (github-token)"
+    assert rendered == f"generated/settings.yml:2 (github-token; finding {findings[0].identity})"
 
 
 def test_a_secret_shaped_path_blocks_and_is_never_rendered() -> None:
@@ -649,8 +649,8 @@ def test_a_secret_shaped_path_blocks_and_is_never_rendered() -> None:
     rendered = format_publication_findings(findings)
     assert GITHUB not in rendered and AWS not in rendered
     assert rendered.splitlines() == [
-        "<redacted path #2> (path: github-token)",
-        "<redacted path #2>:1 (aws-access-key)",
+        f"<redacted path #2> (path: github-token; finding {findings[0].identity})",
+        f"<redacted path #2>:1 (aws-access-key; finding {findings[1].identity})",
     ]
     assert scan_publication(f"generated/{GITHUB}.txt", "safe\n") == [
         PublicationFinding("<redacted path>", 0, "github-token")

@@ -1,0 +1,6 @@
+{
+  "name": "crab-install-smoke-skills",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {"skills": "1.7.4"}
+}

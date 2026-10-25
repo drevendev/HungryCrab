@@ -83,7 +83,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: astral-sh/setup-uv@v7
+    - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       with:
         python-version: '3.11'
         enable-cache: false
@@ -123,7 +123,7 @@ runs:
       run: |
         uv run --directory "$env:CRAB_ACTION_PATH" --locked --no-dev python "$env:CRAB_ACTION_PATH/scripts/feeder_action.py"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    - uses: actions/upload-artifact@v7
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       id: upload
       with:
         name: ${{ inputs.artifact-name }}

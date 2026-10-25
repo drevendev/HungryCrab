@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
+import pytest
 from conftest import FIXED_NOW
 
 from hungry_crab.cache import Target
@@ -42,10 +44,29 @@ def test_reassigning_the_origin_recaps_the_mode_and_refreshes_the_trace() -> Non
     assert card.trace["content_origin"] == ContentOrigin.COMMENTERS.value
     assert "IDEAS_ONLY" in card.trace["origin_license_reason"]
 
-    # widening the origin again never widens the mode back
-    card.origin = ContentOrigin.LICENSED.value
+    assert card.title == "Issue-derived demand signal"
+    assert card.what != "w"
+    # Origin is monotone, including after serialization and loading.
+    with pytest.raises(ValueError, match="cannot be widened"):
+        card.origin = ContentOrigin.LICENSED.value
     assert card.license_mode == Mode.IDEAS_ONLY.value
-    assert card.trace["content_origin"] == ContentOrigin.LICENSED.value
+    restored = Candidate.from_dict(card.to_dict())
+    assert restored.to_dict() == card.to_dict()
+    assert restored.trace["content_origin"] == ContentOrigin.COMMENTERS.value
+
+
+def test_all_candidate_calls_explicitly_declare_origin() -> None:
+    root = Path(__file__).parents[1] / "src" / "hungry_crab" / "compare"
+    calls = 0
+    for source in root.rglob("*.py"):
+        for node in ast.walk(ast.parse(source.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Call) and (
+                (isinstance(node.func, ast.Name) and node.func.id == "Candidate")
+                or (isinstance(node.func, ast.Attribute) and node.func.attr == "Candidate")
+            ):
+                calls += 1
+                assert any(k.arg == "origin" for k in node.keywords), (source, node.lineno)
+    assert calls >= 20
 
 
 def test_every_builder_declares_its_origin(
