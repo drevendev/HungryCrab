@@ -159,6 +159,8 @@ copyright notices. The licensing/preparation group passed 325 tests with four un
 symlink skips, and native Python 3.14 passed 92 review regressions before that final metadata
 refinement; eight direct full-body/tag controls verify the added metadata forms. Final-head
 CI repeats the complete matrix after these changes.
+Same-development-version digests from licence-policy revision 2 are also invalidated and
+re-mined under revision 3, so cached pre-review grants cannot survive an ordinary rerun.
 
 ### Original implementation checks
 
