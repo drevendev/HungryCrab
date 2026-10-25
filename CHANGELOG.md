@@ -12,6 +12,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Run commit-pinned Python CodeQL analysis on pull requests, master pushes and a weekly
   schedule, with job-scoped upload permissions and preserved MIT attribution.
 
+### Fixed
+
+- Recognize explicit Python unittest invocations in CI, including versioned interpreters
+  and uv wrappers, so stdlib projects do not receive a false missing-test-runner nutrient.
+  Re-mine same-development-version digests created before this detection policy.
+
 ## [0.6.4] - 2026-10-25
 
 ### Fixed
