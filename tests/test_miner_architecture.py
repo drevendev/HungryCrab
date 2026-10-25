@@ -216,6 +216,8 @@ def test_python_architecture_excludes_docstring_symbols_and_imports(tmp_path: Pa
         '"""\n'
         "# import pkg.ghost\n"
         "text = 'from pkg.ghost import VALUE'\n"
+        "formatted = f'''\ndef formatted_phantom():\n    pass\n"
+        "import pkg.ghost\n'''\n"
         '__all__ = ["actual"]\n'
         "class ActualClass:\n    pass\n"
         "def actual():\n    pass\n"
