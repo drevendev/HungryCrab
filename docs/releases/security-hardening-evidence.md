@@ -139,13 +139,14 @@ reviewed/tested against synthetic data; no real prey setup, test, build or insta
 | Focused loop/publication/COPY integration | PASS | 125 tests, Windows Python 3.11; `.venv/security-integration-2.log` (local log, not packaged). |
 | Final grant/publication integration | PASS | 469 tests, Windows Python 3.11; four unavailable symlink cases and native 3.14 decompression are explicitly skipped here. |
 | Final guard/ownership/summary controls | PASS | 997 tests, Windows Python 3.11; includes all cache guard cases and verified OWN/fork controls. |
+| Final enclosing-grant review | PASS | 429 tests, Windows Python 3.11; separate restrictive clauses before MIT and after choice prose refuse, ordinary titles remain recognized; four unavailable symlink cases skipped. |
 | Ruff, format, strict mypy | PASS | Local checks; final candidate CI repeats them. |
 | Initial local Python 3.11 suite | FAIL | Earlier working tree: 3,522 passed, 8 failed, 43 platform skips. Changed valid-grant/summary fixtures, README defaults and verified OWN duties; isolated known-safe PATH controls. The wiki timing control passes without concurrent full-suite load. Final candidate requires a new full run. |
 | Initial local Python 3.14 suite | FAIL | Same eight earlier-working-tree findings; 3,522 passed, 43 platform skips. Superseded only by final candidate runs, not by a claim that skips passed. |
 | Source/wheel and optional installer smoke | PASS | Installed sdist and wheel CLI/digest/HTML, real stdio MCP, and locked portable skills installer. |
 | Fresh sdist/wheel, contents and self-digest | PASS | Isolated `.venv/security-package/dist`, successful `check_sdist.py`; 14 miners, zero failures, healthy visibility and budget. |
-| Linux/Windows 3.11/3.14 CI matrix and installed-artifact jobs | NOT_RUN | Require completed green runs on the PR candidate. |
-| Real Linux hard-quota job | NOT_RUN | Require completed green dedicated CI job; local Windows skips are not evidence. |
+| Final-head Linux/Windows 3.11/3.14 CI matrix and installed-artifact jobs | NOT_RUN (pending) | [PR #434](https://github.com/drevendev/HungryCrab/pull/434) records the final candidate. Preliminary run [40173273984](https://github.com/drevendev/HungryCrab/actions/runs/40173273984) at `8c88a41092e96e31879d09685080e28a56e2dd5e`: Linux 3.11/3.14, lint, base and both clean-install jobs passed; Windows tests were still running when this record was written. The additional grant review requires fresh final-head CI. |
+| Real Linux hard-quota job | PASS (preliminary candidate) | Dedicated job in [40173273984](https://github.com/drevendev/HungryCrab/actions/runs/40173273984) passed at `8c88a41092e96e31879d09685080e28a56e2dd5e`; final-head CI repeats it. Local Windows skips are not evidence. |
 | Live agent-host shell/API/edit/isolation and revocation | BLOCKED | H1 prerequisites above; no host adapter is certified. |
 | Live clean-room host activation | NOT_RUN | Launcher/event tests do not establish session activation. |
 | Actual merged-master CI | NOT_RUN | No merge requested/performed; merge must retain the exact-head CI requirement. |

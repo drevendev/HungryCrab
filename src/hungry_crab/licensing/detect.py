@@ -406,11 +406,7 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
         if canonical_expression(detected_grant) == canonical_expression(ident):
             return ident, confidence
         return None, 0.0
-    mentions = set(licenses_mentioned(text))
-    choice = re.search(
-        r"at your option|your choice of|licensed under either|dual[- ]licensed", normalized
-    )
-    if choice and mentions == {"MIT", "Apache-2.0"} and not is_split_license_text(text):
+    if _mit_apache_choice(normalized):
         return "MIT OR Apache-2.0", 0.95
     head = normalized[:700]
     if not _offers_an_open_choice(text, normalized):
@@ -426,6 +422,24 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
     if "all rights reserved" in normalized and len(normalized) < 3000:
         return "LicenseRef-Proprietary", 0.5
     return None, 0.0
+
+
+def _mit_apache_choice(text: str) -> bool:
+    """Only a complete established choice statement, never arbitrary enclosing custom terms."""
+    if len(text) > 500:
+        return False
+    mit = r"(?:the )?mit(?: license)?"
+    apache = r"(?:the )?apache(?:-2\.0| license(?:,? version)? 2\.0)"
+    prefix = (
+        r"(?:(?:this (?:project|software|repository) is )?"
+        r"(?:dual[- ]licensed(?: under)?|licensed under either"
+        r"|licensed under|your choice of)[: ]+)?"
+        r"(?:you may use it under )?"
+    )
+    branches = rf"(?:{mit} or (?:under )?{apache}|{apache} or (?:under )?{mit})"
+    return (
+        re.fullmatch(prefix + branches + r"(?:,? at your (?:option|choice))?\.?", text) is not None
+    )
 
 
 _MIT_GRANT = (
@@ -450,18 +464,27 @@ _MIT_WARRANTY = (
 
 
 def _detect_mit(text: str) -> tuple[str | None, float]:
-    normalized = _norm(text)
-    start = normalized.find("permission is hereby granted, free of charge")
-    preamble, body = normalized[:start].strip(), normalized[start:]
-    allowed_preamble = re.compile(
-        r"^(?:#*\s*(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?[.:]?\s*)?"
-        r"(?:copyright\b.{0,1500})?$"
-    )
-    if not allowed_preamble.fullmatch(preamble) or re.search(
-        r"\b(?:prohibited|restrictions?|only|commercial|training|terms|must|shall|licensed)\b",
-        preamble,
-    ):
+    start = re.search(r"permission\s+is\s+hereby\s+granted,\s*free\s+of\s+charge", text, re.I)
+    if start is None or start.start() > 1500:
         return None, 0.0
+    body = _norm(text[start.start() :])
+    title = re.compile(
+        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|expat license)[.:]?"
+    )
+    for raw in text[: start.start()].splitlines():
+        line = _norm(raw.strip("#/* \t"))
+        if not line or title.fullmatch(line) or line == "all rights reserved.":
+            continue
+        if not re.match(r"(?:copyright\b|spdx-filecopyrighttext:|\u00a9)", line):
+            return None, 0.0
+        # Judge metadata one line at a time. Collapsing it let a copyright prefix swallow
+        # unrelated operative clauses on later lines before a bundled MIT notice (#189).
+        if re.search(
+            r"\b(?:prohibited|forbidden|restrictions?|only|commercial|training|terms"
+            r"|must|shall|licensed|do not|may not)\b",
+            line,
+        ):
+            return None, 0.0
     mit = f"{_MIT_GRANT}, subject to the following conditions: {_MIT_NOTICE} {_MIT_WARRANTY}"
     mit0 = f"{_MIT_GRANT}. {_MIT_WARRANTY}"
     if body == mit:

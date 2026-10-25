@@ -36,6 +36,25 @@ def test_a_bundled_mit_notice_does_not_replace_proprietary_terms() -> None:
     assert detect_from_text(text)[0] is None
 
 
+@pytest.mark.parametrize(
+    "restriction",
+    [
+        "Do not redistribute.",
+        "Redistribution is forbidden.",
+        "Use requires permission from the vendor.",
+    ],
+)
+def test_a_copyright_prefix_cannot_hide_terms_before_a_bundled_mit_notice(restriction: str) -> None:
+    text = f"Copyright (c) 2026 Vendor\n{restriction}\n\n{MIT}"
+    assert detect_from_text(text)[0] is None
+
+
+@pytest.mark.parametrize("title", ["The MIT License (MIT)", "Expat License", "MIT"])
+def test_ordinary_mit_title_and_copyright_variations_remain_recognized(title: str) -> None:
+    text = MIT.replace("MIT License", title).replace("Copyright (c)", "Copyright \u00a9")
+    assert detect_from_text(text)[0] == "MIT"
+
+
 @pytest.mark.parametrize("name", ["LICENSE", "LICENSE-MIT", "LICENSE.txt"])
 def test_unreadable_root_cannot_be_replaced_by_weaker_evidence(name: str, tmp_path: Path) -> None:
     root = write_tree(
@@ -109,6 +128,14 @@ def test_equivalent_choices_do_not_create_conflicts_or_header_exceptions(tmp_pat
 )
 def test_established_mit_apache_choice_wording(wording: str) -> None:
     assert detect_from_text(wording)[0] == "MIT OR Apache-2.0"
+
+
+def test_an_enclosing_custom_clause_cannot_inherit_an_embedded_choice() -> None:
+    text = (
+        "This project is dual-licensed under MIT or Apache-2.0. "
+        "Redistribution requires separate permission."
+    )
+    assert detect_from_text(text)[0] is None
 
 
 def test_compound_duties_and_actual_or_choice_are_structured() -> None:
