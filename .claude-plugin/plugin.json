@@ -1,6 +1,6 @@
 {
   "name": "crab",
-  "version": "0.6.4",
+  "version": "0.6.5-dev.0",
   "description": "Eat a foreign repository, digest it, and extract everything useful for your own repo without violating licenses.",
   "author": {
     "name": "Dreven",
