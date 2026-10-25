@@ -122,6 +122,10 @@ def _python_visible_code(text: str) -> tuple[str, bool]:
     """Use Python's tokenizer to ignore real comments and string/docstring tokens."""
     visible = list(text)
     line_starts = [0, *(match.end() for match in re.finditer("\n", text))]
+    fstring_start = getattr(tokenize, "FSTRING_START", -1)
+    fstring_end = getattr(tokenize, "FSTRING_END", -1)
+    fstring_depth = 0
+    fstring_begin = 0
     try:
         for token in tokenize.generate_tokens(io.StringIO(text).readline):
             if token.type == tokenize.ERRORTOKEN and token.string in ("'", '"'):
@@ -130,7 +134,18 @@ def _python_visible_code(text: str) -> tuple[str, bool]:
                 start = line_starts[token.start[0] - 1] + token.start[1]
                 end = line_starts[token.end[0] - 1] + token.end[1]
                 _blank_inert(visible, start, end)
+            elif token.type == fstring_start:
+                if fstring_depth == 0:
+                    fstring_begin = line_starts[token.start[0] - 1] + token.start[1]
+                fstring_depth += 1
+            elif token.type == fstring_end:
+                fstring_depth -= 1
+                if fstring_depth == 0:
+                    end = line_starts[token.end[0] - 1] + token.end[1]
+                    _blank_inert(visible, fstring_begin, end)
     except (tokenize.TokenError, IndentationError):
+        return " " * len(text), False
+    if fstring_depth:
         return " " * len(text), False
     return "".join(visible), True
 
