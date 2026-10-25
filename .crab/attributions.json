@@ -1,0 +1,40 @@
+{
+  "schema": "hungry-crab.attributions/1",
+  "receipts": [
+    {
+      "nutrient_id": "crab:security:security.codeql",
+      "source": {
+        "label": "yamadashy/repomix",
+        "url": "https://github.com/yamadashy/repomix",
+        "sha": "5f4923b92a6289cb6497666c6945e95752a1df90",
+        "license": "MIT"
+      },
+      "taken": [
+        {
+          "maw_path": ".github/workflows/codeql.yml",
+          "prey_path": ".github/workflows/codeql.yml",
+          "verbatim": false
+        }
+      ],
+      "mode": "COPY",
+      "obligation": {
+        "kind": "copyright-notice",
+        "text": "the source's copyright and permission notice travel with the material; its licence file is reproduced below"
+      },
+      "summary": "Adapted the donor's CodeQL workflow for HungryCrab's Python code, master branch, immutable pins and minimal job permissions.",
+      "branch": "crab/security-security.codeql-5b0e115a",
+      "recorded_at": "2026-10-25T14:41:00+00:00",
+      "texts": [
+        {
+          "path": "LICENSE",
+          "text": "Copyright 2024 Kazuki Yamada\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+          "sha256": "26d97401891ad8c34fa02a657105098e770cbed9c2e62467af13d9d5739bc3be"
+        }
+      ],
+      "checks": [
+        "python scripts/check_supply_chain.py",
+        "YAML structure checked; CodeQL v4.39.0 peeled to the pinned commit through GitHub's API; actual workflow execution is pending PR CI."
+      ]
+    }
+  ]
+}
