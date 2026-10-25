@@ -426,7 +426,7 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
     ):
         return None, 0.0
     if ident:
-        remaining = [line.strip().lstrip("#/* ") for line in body.splitlines() if line.strip()]
+        remaining = [line.strip() for line in body.splitlines() if line.strip()]
         if not remaining or all(_copyright_metadata(line) for line in remaining):
             return ident, 0.99
         detected_grant, confidence = detect_from_text(body)
@@ -496,6 +496,8 @@ def _copyright_metadata(line: str) -> bool:
     Unrecognized notices need review. Holder names allow identifiers, capitalized name words,
     conventional connectors/initials/company suffixes and a final contact address.
     """
+    line = re.sub(r"^(?://|\#|/\*|\*|<!--)\s*", "", line.strip())
+    line = re.sub(r"\s*(?:\*/|-->)$", "", line).strip()
     match = re.fullmatch(
         r"(?:copyright\s*(?:(?:\(c\)|\u00a9)\s*)?|spdx-filecopyrighttext:\s*|\u00a9\s*)"
         r"\d{4}(?:\s*[-,]\s*\d{2,4})*\s+(.{1,300})",
@@ -504,7 +506,7 @@ def _copyright_metadata(line: str) -> bool:
     )
     if match is None:
         return False
-    holder = re.sub(r"\s+all rights reserved\.?$", "", match.group(1), flags=re.I)
+    holder = re.sub(r"\s+all rights reserved\.?$", "", match.group(1).removesuffix("."), flags=re.I)
     holder = re.sub(r"\s+<(?:[^\s<>@]+@[^\s<>@]+|https://[^\s<>]+)>$", "", holder)
     words = holder.split()
     if not words or len(words) > 16:
@@ -514,11 +516,11 @@ def _copyright_metadata(line: str) -> bool:
     groups = holder.split(" and ")
     name_form = all(len(group.split()) <= 2 for group in groups)
     initials = all(re.fullmatch(r"(?:[A-Z]\.){1,6}", word) for word in words[:-1])
-    organization = words[-1].rstrip(",").casefold() in {
-        "inc.",
-        "ltd.",
-        "corp.",
-        "co.",
+    organization = words[-1].rstrip(",.").casefold() in {
+        "inc",
+        "ltd",
+        "corp",
+        "co",
         "llc",
         "foundation",
         "association",

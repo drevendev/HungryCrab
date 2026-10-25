@@ -51,12 +51,16 @@ def test_restrictive_copyright_metadata_never_authorizes_copy(
         "Copyright (C) 2010-2026, 2027 Alice Crab",
         "Copyright 2026 A. N. Other",
         "Copyright 2026 Example, Inc. <authors@example.test>",
+        "Copyright 2026 Example, Inc. <authors@example.test>.",
         "COPYRIGHT (C) 2026 FREE SOFTWARE FOUNDATION, INC.",
         "Copyright 2026 The University of Example",
         "Copyright 2026 sindresorhus",
         "SPDX-FileCopyrightText: 2026 Original Authors",
         "\u00a9 2026 \u5f20\u4e09",
         "Copyright (c) 2026 Original Authors All rights reserved.",
+        "Copyright (c) 2026 Alice Crab.",
+        "/* Copyright (c) 2026 Alice Crab */",
+        "<!-- Copyright (c) 2026 Alice Crab -->",
     ],
 )
 def test_bounded_copyright_metadata_retains_ordinary_mit_notices(notice: str) -> None:

@@ -154,6 +154,12 @@ performance/security test limits are unchanged. The PR records the immutable fin
 follow-up head, repeated full CI, second review and actual merge-commit CI. H1 remains BLOCKED;
 the process-local checks do not certify an agent-host sandbox or enable unattended operation.
 
+Repeat-review compatibility controls also retain terminal punctuation and C/HTML-commented
+copyright notices. The licensing/preparation group passed 325 tests with four unavailable
+symlink skips, and native Python 3.14 passed 92 review regressions before that final metadata
+refinement; eight direct full-body/tag controls verify the added metadata forms. Final-head
+CI repeats the complete matrix after these changes.
+
 ### Original implementation checks
 
 Local platform: Windows, Python 3.11.16 and installed Python 3.14.7. Every source change is
