@@ -1,0 +1,51 @@
+name: Public MIT snapshot validation
+on:
+  push:
+    branches: [codex/mit-pilot-public-acquisition]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    name: MIT ${{ matrix.source.repo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        source: [{"repo":"yamadashy/repomix","sha":"5f4923b92a6289cb6497666c6945e95752a1df90","license_path":"LICENSE","license_blob":"cc6cde3b20418ea0c9f503be0ab2e301bb02d6db"},{"repo":"coderamp-labs/gitingest","sha":"4e259a02fe72115bee538271622f1234a81c8e1a","license_path":"LICENSE","license_blob":"4d8225f89995fe3690b1b2a8c874c1f5efcaa56a"},{"repo":"tox-dev/tox","sha":"d7ea3f58aa47ac60e56ff8b61ad90be5c947f345","license_path":"LICENSE","license_blob":"364982344fbd94d55705e1f27a9a87abaa255333"},{"repo":"RichardLitt/standard-readme","sha":"5d18ad4db6a39fde5dc845258828153eda9828e8","license_path":"LICENSE","license_blob":"8b4190d7b76d73c1ce12385916651da1e9a218d0"},{"repo":"vale-cli/vale","sha":"8b9bfb97700a707140fff9f444048439df5bc9b1","license_path":"LICENSE","license_blob":"8ed286bfc811f1fe0968e9fda6a3072be5b3c28c"},{"repo":"charmbracelet/vhs","sha":"24fa2254a9806091e6ee6a980e9f3bcfe0a9ba53","license_path":"LICENSE","license_blob":"3d2e904d47afc944918d810c646a67c791bed357"}]
+    env:
+      PYTHONIOENCODING: utf-8
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.11"
+      - name: Install released CLI outside all source caches
+        run: |
+          uv venv "$RUNNER_TEMP/tool-env"
+          uv pip install --python "$RUNNER_TEMP/tool-env/bin/python" "hungry-crab==0.6.4"
+      - name: Prepare fixed-capacity noexec filesystem
+        id: volume
+        run: python scripts/acquisition_volume.py prepare 1073741824
+      - name: Validate pinned public MIT snapshot as inert data
+        env:
+          CRAB_VOLUME: ${{ steps.volume.outputs.volume }}
+          PUBLIC_DONOR: ${{ toJSON(matrix.source) }}
+        run: '"$RUNNER_TEMP/tool-env/bin/python" -I scripts/public_mit_snapshot.py'
+      - name: Upload public evidence and refusal details
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: public-mit-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/public-mit-snapshot/
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Unmount disposable filesystem
+        if: always() && steps.volume.outputs.root != ''
+        env:
+          CRAB_QUOTA_ROOT: ${{ steps.volume.outputs.root }}
+        run: python scripts/acquisition_volume.py cleanup "$CRAB_QUOTA_ROOT"
