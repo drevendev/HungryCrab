@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,7 @@ from .digest_location import (
     _retry_windows_ref_io,
 )
 from .errors import CrabError
+from .fs import is_reparse_point
 from .miners import MINER_NAMES
 
 _SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -39,6 +41,42 @@ class DigestGeneration:
 def _require_safe_component(value: str, *, label: str) -> None:
     if not _SAFE_COMPONENT.fullmatch(value):
         raise CrabError(f"invalid canonical digest {label} {value!r}")
+
+
+def check_digest_ref_publishable(digests_dir: Path, sha: str) -> None:
+    """Reject unsafe ref entries before expensive mining without deleting unowned data."""
+    _require_safe_component(sha, label="sha")
+    refs_dir = digests_dir / ".refs"
+    try:
+        root_info = refs_dir.lstat()
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise CrabError(
+            f"cannot inspect digest refs root {refs_dir}",
+            hint="inspect the cache entry and repair it manually before retrying",
+        ) from exc
+    if not stat.S_ISDIR(root_info.st_mode) or is_reparse_point(root_info):
+        raise CrabError(
+            f"unsafe digest refs root {refs_dir}: expected a real directory",
+            hint="move the unexpected .refs entry aside manually; --force cannot replace it",
+        )
+
+    ref_path = refs_dir / f"{sha}.json"
+    try:
+        ref_info = _retry_windows_ref_io(ref_path.lstat)
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        raise CrabError(
+            f"cannot inspect digest ref {ref_path}",
+            hint="inspect cache permissions before retrying",
+        ) from exc
+    if not stat.S_ISREG(ref_info.st_mode) or is_reparse_point(ref_info):
+        raise CrabError(
+            f"unsafe digest ref entry {ref_path}: expected a regular file",
+            hint="move the unexpected ref entry aside manually; do not delete its contents",
+        )
 
 
 def _require_complete_manifest(generation: DigestGeneration) -> None:
@@ -153,6 +191,7 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
 
     _require_complete_manifest(generation)
 
+    check_digest_ref_publishable(digests_dir, generation.sha)
     refs_dir = digests_dir / ".refs"
     try:
         refs_dir.mkdir(exist_ok=True)

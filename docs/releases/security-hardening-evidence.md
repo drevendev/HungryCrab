@@ -3,6 +3,11 @@
 Date: 2026-10-25. Implementation base: `1c640d14c462a26f376f21a127023633d743a53e`.
 Scope: [next-security-hardening-scope.md](next-security-hardening-scope.md).
 
+Integration target: `4cbcc259989aed5f7f6b3ee1ce4a1478c3f77880`. While this batch was implemented,
+master independently fixed MCP meal isolation in `a16987a` and added architecture coverage and
+canonical-ref preflight fixes. Those changes are integrated and preserved; this branch retains
+the explicit analysis origin and pagination regression on top of the upstream isolation fix.
+
 The supervised CLI changes are implemented in this branch. The complete batch remains
 **incomplete** because H1 has no independently verified agent host. No deployment, scheduler,
 credential provisioning, release tag, advisory edit or issue closure is part of this change.

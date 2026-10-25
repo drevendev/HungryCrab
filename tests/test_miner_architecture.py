@@ -6,10 +6,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from helpers import read_json, read_md, write_tree
 
+from hungry_crab.compare.candidates import Side, architecture_candidates
 from hungry_crab.digest import DigestResult
-from hungry_crab.miners.architecture import _resolve_py, _resolve_ts
+from hungry_crab.miners.architecture import ArchitectureMiner, _resolve_py, _resolve_ts
+from hungry_crab.miners.base import FileInfo, MineContext, MinerResult
 
 
 def test_resolvers() -> None:
@@ -100,3 +103,67 @@ def test_the_import_graph_does_not_depend_on_the_hash_seed(tmp_path: Path) -> No
     assert len(graphs) == 1
     hubs = json.loads(graphs.pop())["hubs"]
     assert [hub["path"] for hub in hubs] == sorted(hub["path"] for hub in hubs)
+
+
+def test_architecture_hubs_disclose_sampling_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A late hub beats the sampled hub, but cannot appear in the truncated graph."""
+
+    def file_info(name: str) -> FileInfo:
+        return FileInfo(
+            path=f"pkg/{name}.py",
+            name=f"{name}.py",
+            ext=".py",
+            size=40,
+            language="Python",
+            is_code=True,
+            vendored=False,
+            generated=False,
+            binary=False,
+            loc=1,
+            depth=2,
+            lockfile=False,
+            manifest_kind=None,
+        )
+
+    names = [f"n{i:04d}" for i in range(3000)] + ["z_late"]
+    files = [file_info(name) for name in names]
+    ctx = MineContext(root=tmp_path, sha="deadbeef", ref="HEAD", label="synthetic")
+    ctx.results["inventory"] = MinerResult("inventory", {}, extra={"files": files})
+
+    def synthetic_read(rel: str, *, limit: int = 512_000) -> str:
+        if rel in {f"pkg/n{i:04d}.py" for i in range(1, 4)}:
+            return "from pkg.n0000 import X\n"
+        if rel in {f"pkg/n{i:04d}.py" for i in range(4, 24)}:
+            return "from pkg.z_late import X\n"
+        return "X = 1\n"
+
+    monkeypatch.setattr(ctx, "read", synthetic_read)
+    miner = ArchitectureMiner()
+    normal = miner.run(ctx)
+    assert normal.data["files_scanned"] == 3000
+    assert normal.data["files_eligible"] == 3001
+    assert normal.data["truncated"] is True
+    assert normal.data["graph"]["hubs"][0]["path"] == "pkg/n0000.py"
+    assert all(h["path"] != "pkg/z_late.py" for h in normal.data["graph"]["hubs"])
+
+    maw = Side(label="maw", sha="deadbeef", url=None, root=None)
+    sampled = Side(label="prey", sha="deadbeef", url=None, root=None, architecture=normal.data)
+    card = architecture_candidates(sampled, maw)[0]
+    assert "sampled import-graph hubs" in card.what
+    assert "3000/3001 eligible code files" in card.what
+    assert "incomplete coverage" in card.what
+
+    ctx.depth = "deep"
+    complete = miner.run(ctx)
+    assert complete.data["truncated"] is False
+    assert complete.data["files_eligible"] == complete.data["files_scanned"] == 3001
+    assert complete.data["graph"]["hubs"][0]["path"] == "pkg/z_late.py"
+    full = Side(label="prey", sha="deadbeef", url=None, root=None, architecture=complete.data)
+    assert architecture_candidates(full, maw)[0].what.startswith("import-graph hubs: ")
+
+    legacy = dict(normal.data)
+    del legacy["files_eligible"]
+    old = Side(label="prey", sha="deadbeef", url=None, root=None, architecture=legacy)
+    assert "eligible file count unknown" in architecture_candidates(old, maw)[0].what

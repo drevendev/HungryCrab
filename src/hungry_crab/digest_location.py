@@ -22,6 +22,7 @@ from .errors import CrabError
 from .fs import is_reparse_point
 
 REF_SCHEMA = "hungry-crab.digest-ref/1"
+_REF_REPAIR_HINT = "run `crab digest <prey> --force` to republish the canonical ref"
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _REF_RETRY_ATTEMPTS = 10
 _REF_RETRY_DELAY_SECONDS = 0.05
@@ -66,9 +67,9 @@ def _load_ref(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(_retry_windows_ref_io(lambda: path.read_text(encoding="utf-8")))
     except (OSError, ValueError) as exc:
-        raise CrabError(f"cannot read digest ref {path}") from exc
+        raise CrabError(f"cannot read digest ref {path}", hint=_REF_REPAIR_HINT) from exc
     if not isinstance(value, dict):
-        raise CrabError(f"invalid digest ref {path}: expected an object")
+        raise CrabError(f"invalid digest ref {path}: expected an object", hint=_REF_REPAIR_HINT)
     return value
 
 
@@ -90,7 +91,10 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
     except CrabError as exc:
         if isinstance(exc.__cause__, FileNotFoundError):
             return DigestLocation(sha=sha, path=legacy)
-        raise
+        raise CrabError(
+            exc.message,
+            hint="move the unexpected .refs entry aside manually; --force cannot replace it",
+        ) from exc
 
     ref_path = refs_dir / f"{sha}.json"
     try:
@@ -98,16 +102,21 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
     except FileNotFoundError:
         return DigestLocation(sha=sha, path=legacy)
     except OSError as exc:
-        raise CrabError(f"cannot inspect digest ref {ref_path}") from exc
+        raise CrabError(
+            f"cannot inspect digest ref {ref_path}", hint="check cache permissions"
+        ) from exc
     if not stat.S_ISREG(ref_info.st_mode) or is_reparse_point(ref_info):
-        raise CrabError(f"invalid digest ref {ref_path}: expected a regular file")
+        raise CrabError(
+            f"invalid digest ref {ref_path}: expected a regular file",
+            hint="move the unexpected ref entry aside manually; --force cannot replace it",
+        )
 
     ref = _load_ref(ref_path)
     if ref.get("schema") != REF_SCHEMA:
-        raise CrabError(f"invalid digest ref {ref_path}: unsupported schema")
+        raise CrabError(f"invalid digest ref {ref_path}: unsupported schema", hint=_REF_REPAIR_HINT)
     generation = ref.get("generation")
     if not isinstance(generation, str) or not _SAFE_NAME.fullmatch(generation):
-        raise CrabError(f"invalid digest ref {ref_path}: invalid generation")
+        raise CrabError(f"invalid digest ref {ref_path}: invalid generation", hint=_REF_REPAIR_HINT)
 
     generations_dir = digests_dir / ".generations"
     sha_dir = generations_dir / sha
@@ -120,7 +129,7 @@ def resolve_canonical_digest(digests_dir: Path, sha: str) -> DigestLocation:
         if isinstance(exc.__cause__, FileNotFoundError):
             raise CrabError(
                 f"digest ref {ref_path} points to missing generation {generation!r}",
-                hint="re-run the digest to publish a complete canonical generation",
+                hint=_REF_REPAIR_HINT,
             ) from exc
         raise CrabError(
             f"digest ref {ref_path} does not resolve to a safe generation {generation!r}",

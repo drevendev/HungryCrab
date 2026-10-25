@@ -415,7 +415,7 @@ def run_compare(
     log: Callable[[str], None] = _noop,
     persist_meal: bool = True,
 ) -> tuple[CompareResult, DigestResult, DigestResult]:
-    """Digest both sides (cached by SHA), compare, and write the outputs into the prey digest."""
+    """Digest both sides and compare; only persist the CLI meal when requested."""
     d_opts = digest_options or DigestOptions()
     opts = options or CompareOptions()
     prey_result = run_digest(prey_target, d_opts, log=log)
@@ -441,8 +441,8 @@ def run_compare(
         maw_root=maw_path,
         options=opts,
     )
-    meal_dir = locate_meal(result.prey.label, result.prey.sha, maw_path, d_opts)
     if persist_meal:
+        meal_dir = locate_meal(result.prey.label, result.prey.sha, maw_path, d_opts)
         result.meal_dir = meal_dir
         write_meal(result, meal_dir)
     log(
@@ -450,5 +450,5 @@ def run_compare(
         f"{result.maw.label}@{result.maw.short_sha}: {len(result.candidates)} candidates"
     )
     if persist_meal:
-        log(f"meal written to {meal_dir}")
+        log(f"meal written to {result.meal_dir}")
     return result, prey_result, maw_result
