@@ -222,12 +222,35 @@ def test_generation_and_temp_ref_fsync_precede_ref_switch(
     digests = tmp_path / "digests"
     generation = allocate_digest_generation(digests, SHA)
     _write_artifact(generation.path, "complete")
+    (generation.path / "payload.json").write_text("extra artifact\n", encoding="utf-8")
     events: list[str] = []
     original_fsync = digest_publication.os.fsync
     original_replace = Path.replace
+    refs_dir = digests / ".refs"
+    known_paths = {
+        "manifest": generation.path / "manifest.json",
+        "payload": generation.path / "payload.json",
+        "generation_dir": generation.path,
+        "sha_dir": generation.path.parent,
+        "generations_dir": generation.path.parent.parent,
+        "digests_dir": digests,
+        "refs_dir": refs_dir,
+    }
 
     def tracked_fsync(fd: int) -> None:
-        events.append("fsync")
+        opened = os.fstat(fd)
+        targets = [
+            name
+            for name, path in known_paths.items()
+            if path.exists() and os.path.samestat(opened, path.stat())
+        ]
+        targets.extend(
+            "temp_ref"
+            for path in refs_dir.glob(f".{SHA}.*.tmp")
+            if os.path.samestat(opened, path.stat())
+        )
+        assert len(targets) == 1, "each durability barrier must have a known descriptor"
+        events.append(targets[0])
         original_fsync(fd)
 
     def tracked_replace(self: Path, target: Path) -> Path:
@@ -241,10 +264,19 @@ def test_generation_and_temp_ref_fsync_precede_ref_switch(
     publish_digest_generation(digests, generation)
 
     assert events.count("replace") == 1
-    assert events.index("replace") >= 2, "generation and temp-ref files must sync first"
+    switch = events.index("replace")
+    before, after = events[:switch], events[switch + 1 :]
+    for name in ("manifest", "payload", "temp_ref"):
+        assert before.count(name) == 1, f"{name} must be synced before ref switch"
     if os.name != "nt":
-        assert events[-1] == "fsync", "POSIX refs directory must sync after replacement"
+        for name in ("generation_dir", "sha_dir", "generations_dir"):
+            assert before.count(name) == 1, f"{name} must be synced before ref switch"
+        assert before.count("digests_dir") >= 2, "cache root must be synced after refs mkdir"
+        assert after == ["refs_dir"], "canonical refs directory must sync after replacement"
+    else:
+        assert not after, "Windows directory fsync is explicitly unsupported"
     assert resolve_canonical_digest(digests, SHA).path == generation.path
+
 
 
 def test_generation_fsync_failure_does_not_switch_active_ref(
@@ -265,6 +297,37 @@ def test_generation_fsync_failure_does_not_switch_active_ref(
         publish_digest_generation(digests, after)
 
     assert resolve_canonical_digest(digests, SHA).path == before.path
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX directory sync only")
+def test_late_parent_directory_sync_failure_preserves_active_ref(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    digests = tmp_path / "digests"
+    before = allocate_digest_generation(digests, SHA)
+    _write_artifact(before.path, "before")
+    publish_digest_generation(digests, before)
+    after = allocate_digest_generation(digests, SHA)
+    _write_artifact(after.path, "after")
+
+    original_sync_directory = digest_publication._sync_directory
+    root_sync_calls = 0
+
+    def refuse_second_root_sync(path: Path) -> None:
+        nonlocal root_sync_calls
+        if path == digests:
+            root_sync_calls += 1
+            if root_sync_calls == 2:
+                raise OSError("simulated late pre-switch directory sync failure")
+        original_sync_directory(path)
+
+    monkeypatch.setattr(digest_publication, "_sync_directory", refuse_second_root_sync)
+    with pytest.raises(CrabError, match="could not prepare digest refs root"):
+        publish_digest_generation(digests, after)
+
+    assert root_sync_calls == 2
+    assert resolve_canonical_digest(digests, SHA).path == before.path
+    assert not list((digests / ".refs").glob(f".{SHA}.*.tmp"))
 
 
 def test_post_switch_sync_failure_does_not_claim_rollback(
