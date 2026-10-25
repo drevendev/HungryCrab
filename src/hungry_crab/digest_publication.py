@@ -9,6 +9,7 @@ prevents an incomplete generation from becoming authoritative.
 from __future__ import annotations
 
 import json
+import os
 import re
 import stat
 from contextlib import suppress
@@ -123,6 +124,48 @@ def _require_complete_manifest(generation: DigestGeneration) -> None:
         )
 
 
+
+def _sync_directory(path: Path) -> None:
+    """Persist directory entries on POSIX; Windows cannot use this fd-based primitive."""
+    if os.name == "nt":
+        return
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(path, flags)
+    try:
+        if not stat.S_ISDIR(os.fstat(fd).st_mode):
+            raise OSError(f"not a directory for digest sync: {path}")
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def _sync_generation_files(generation: DigestGeneration, digests_dir: Path) -> None:
+    """Sync complete flat generation files and their directory ancestry before publishing."""
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    for entry in sorted(generation.path.iterdir()):
+        observed = entry.lstat()
+        if not stat.S_ISREG(observed.st_mode) or is_reparse_point(observed):
+            raise CrabError(f"unsafe digest generation entry {entry}: expected a real file")
+        fd = os.open(entry, flags)
+        try:
+            opened = os.fstat(fd)
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or (opened.st_dev, opened.st_ino) != (observed.st_dev, observed.st_ino)
+            ):
+                raise CrabError(f"digest generation entry changed during sync: {entry}")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    for directory in (
+        generation.path,
+        generation.path.parent,
+        generation.path.parent.parent,
+        digests_dir,
+    ):
+        _sync_directory(directory)
+
+
 def allocate_digest_generation(digests_dir: Path, sha: str) -> DigestGeneration:
     """Allocate a never-reused physical generation directory for one logical digest."""
     _require_safe_component(sha, label="sha")
@@ -168,7 +211,9 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
     may have resolved the old path immediately before the ref switch and is allowed to keep that
     snapshot for the rest of its operation.
 
-    The ref replacement is an atomic visibility boundary, not a claim of power-loss durability.
+    The ref replacement is an atomic visibility boundary. POSIX file/directory fsync
+    barriers reduce crash-loss risk, but unsupported filesystems and Windows directory
+    durability remain unproven; do not claim crash consistency without fault testing.
     A generation must also contain a readable manifest proving every registered producer
     completed successfully before the ref may advance.
     """
@@ -190,12 +235,19 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
         ) from exc
 
     _require_complete_manifest(generation)
+    try:
+        _sync_generation_files(generation, digests_dir)
+    except OSError as exc:
+        raise CrabError(
+            "could not sync complete digest generation before ref switch", hint=str(exc)
+        ) from exc
 
     check_digest_ref_publishable(digests_dir, generation.sha)
     refs_dir = digests_dir / ".refs"
     try:
         refs_dir.mkdir(exist_ok=True)
         _require_real_directory(refs_dir, label="digest refs root")
+        _sync_directory(digests_dir)
     except OSError as exc:
         raise CrabError("could not prepare digest refs root", hint=str(exc)) from exc
 
@@ -203,14 +255,22 @@ def publish_digest_generation(digests_dir: Path, generation: DigestGeneration) -
     temp_path = refs_dir / f".{generation.sha}.{uuid4().hex}.tmp"
     payload = {"schema": REF_SCHEMA, "generation": generation.name}
 
+    ref_switched = False
     try:
-        temp_path.write_text(
-            json.dumps(payload, sort_keys=True) + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        with temp_path.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(payload, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
         _retry_windows_ref_io(lambda: temp_path.replace(ref_path))
+        ref_switched = True
+        _sync_directory(refs_dir)
     except OSError as exc:
+        if ref_switched:
+            raise CrabError(
+                f"digest ref may already point to generation {generation.name!r}, "
+                "but directory sync failed",
+                hint="inspect the canonical ref before retrying; do not replay blindly",
+            ) from exc
         raise CrabError(
             f"could not publish digest generation {generation.name!r}",
             hint=str(exc),
