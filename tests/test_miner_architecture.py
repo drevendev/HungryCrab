@@ -250,3 +250,30 @@ def test_architecture_marks_unsupported_template_expressions(tmp_path: Path) -> 
     )
     assert data["lexical_uncertain_files"] == 1
     assert data["totals"]["functions"] == 1
+
+
+def test_nested_template_text_cannot_escape_the_lexical_mask(tmp_path: Path) -> None:
+    data = _synthetic_architecture_json(
+        tmp_path,
+        {
+            "src/index.ts": (
+                "const line = `outer ${`inner\nexport function phantom() {}\n"
+                "import './ghost';\n`}`;\nexport function actual() {}\nimport './real';\n"
+            ),
+            "src/ghost.ts": "export const ghost = 1;\n",
+            "src/real.ts": "export const real = 1;\n",
+        },
+    )
+    assert data["totals"]["functions"] == 1
+    assert data["edges"] == [["src/index.ts", "src/real.ts"]]
+    assert data["lexical_uncertain_files"] == 1
+
+
+def test_python_template_strings_are_inert_on_supported_interpreters(tmp_path: Path) -> None:
+    data = _synthetic_architecture_json(
+        tmp_path,
+        {
+            "app.py": "text = t'''\ndef phantom():\n    pass\n'''\ndef actual():\n    pass\n",
+        },
+    )
+    assert data["totals"]["functions"] == 1

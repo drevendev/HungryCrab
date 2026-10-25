@@ -68,6 +68,53 @@ def _blank_inert(chars: list[str], start: int, end: int) -> None:
             chars[position] = " "
 
 
+def _js_literal_end(text: str, start: int) -> tuple[int, bool]:
+    """Skip nested templates iteratively; ambiguous expressions fail closed."""
+    stack = [(text[start], 0)]
+    position = start + 1
+    partial = False
+    while position < len(text) and stack:
+        mode, braces = stack[-1]
+        char = text[position]
+        if char == "\\" and mode != "}":
+            position = min(position + 2, len(text))
+            continue
+        if mode == "`" and text.startswith("${", position):
+            partial = True
+            stack.append(("}", 1))
+            position += 2
+            continue
+        if mode == "}":
+            if char in "'\"`":
+                stack.append((char, 0))
+            elif char == "{":
+                stack[-1] = (mode, braces + 1)
+            elif char == "}":
+                if braces == 1:
+                    stack.pop()
+                else:
+                    stack[-1] = (mode, braces - 1)
+            elif text.startswith("//", position):
+                stop = text.find("\n", position + 2)
+                position = len(text) if stop < 0 else stop
+                continue
+            elif text.startswith("/*", position):
+                stop = text.find("*/", position + 2)
+                if stop < 0:
+                    return len(text), False
+                position = stop + 2
+                continue
+            elif char == "/":
+                # Regex/division inside an excluded expression needs a real parser.
+                return len(text), False
+        elif char == mode:
+            stack.pop()
+        elif char in "\r\n" and mode != "`":
+            return len(text), False
+        position += 1
+    return position, not stack and not partial
+
+
 def _js_code_views(text: str) -> tuple[str, str, bool]:
     """Return code-only and import-literal views without parsing untrusted JavaScript.
 
@@ -95,25 +142,15 @@ def _js_code_views(text: str) -> tuple[str, str, bool]:
             position = stop
         elif text[position] in ("'", '"', chr(96)):
             quote = text[position]
-            stop = position + 1
-            while stop < end:
-                if text[stop] == "\\":
-                    stop += 2
-                elif text[stop] == quote:
-                    stop += 1
-                    break
-                else:
-                    stop += 1
-            else:
-                complete = False
-            stop = min(stop, end)
-            if quote == chr(96) and chr(36) + "{" in text[position:stop]:
-                complete = False
+            stop, literal_complete = _js_literal_end(text, position)
+            complete = complete and literal_complete
             _blank_inert(code, position, stop)
             if quote == chr(96):
                 _blank_inert(imports, position, stop)
             position = stop
         else:
+            if text[position] in "/<":
+                complete = False  # Regex, JSX and generic syntax are not fully parsed.
             position += 1
     return "".join(code), "".join(imports), complete
 
@@ -122,8 +159,8 @@ def _python_visible_code(text: str) -> tuple[str, bool]:
     """Use Python's tokenizer to ignore real comments and string/docstring tokens."""
     visible = list(text)
     line_starts = [0, *(match.end() for match in re.finditer("\n", text))]
-    fstring_start = getattr(tokenize, "FSTRING_START", -1)
-    fstring_end = getattr(tokenize, "FSTRING_END", -1)
+    string_starts = {getattr(tokenize, name, -1) for name in ("FSTRING_START", "TSTRING_START")}
+    string_ends = {getattr(tokenize, name, -1) for name in ("FSTRING_END", "TSTRING_END")}
     fstring_depth = 0
     fstring_begin = 0
     try:
@@ -134,11 +171,11 @@ def _python_visible_code(text: str) -> tuple[str, bool]:
                 start = line_starts[token.start[0] - 1] + token.start[1]
                 end = line_starts[token.end[0] - 1] + token.end[1]
                 _blank_inert(visible, start, end)
-            elif token.type == fstring_start:
+            elif token.type in string_starts:
                 if fstring_depth == 0:
                     fstring_begin = line_starts[token.start[0] - 1] + token.start[1]
                 fstring_depth += 1
-            elif token.type == fstring_end:
+            elif token.type in string_ends:
                 fstring_depth -= 1
                 if fstring_depth == 0:
                     end = line_starts[token.end[0] - 1] + token.end[1]
@@ -334,6 +371,7 @@ class ArchitectureMiner:
                     found = _PY_DEF_RE.findall(visible) + _PY_CLASS_RE.findall(visible)
                     entry["public"] = sorted({n for n in found if not n.startswith("_")})[:60]
             elif info.ext == ".cs":
+                lexical_uncertain_files += 1  # C# remains a regex-only approximation.
                 import_specs[info.path] = _CS_USING_RE.findall(text)
                 types = _CS_TYPE_RE.findall(text)
                 entry["classes"] = len(types)
