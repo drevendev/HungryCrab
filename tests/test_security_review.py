@@ -27,6 +27,10 @@ from hungry_crab.licensing.matrix import canonical_expression
         "Copyright (c) 2026 Vendor. Redistribution Requires Separate Permission.",
         "Copyright (c) 2026 Vendor Redistribution Requires Separate Permission",
         "Copyright (c) 2026 Vendor REDISTRIBUTION REQUIRES SEPARATE PERMISSION",
+        "Copyright (c) 2026 Vendor You Must Ask The Authors",
+        "Copyright (c) 2026 Vendor Distribution Requires Permission From The Authors",
+        "Copyright (c) 2026 Vendor Must Pay Foundation",
+        "Copyright (c) 2026 University of Example You Must Pay Authors",
     ],
 )
 @pytest.mark.parametrize("tag_only", [False, True])

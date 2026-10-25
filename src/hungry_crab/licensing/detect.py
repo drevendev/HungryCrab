@@ -520,10 +520,14 @@ def _copyright_metadata(line: str) -> bool:
         return False
     # Longer unstructured phrases are not a holder-name field. In particular, capitalization
     # cannot turn a sentence after the owner into metadata. Recognize explicit name forms.
+    connectors = {"and", "of", "the", "de", "van", "von"}
     groups = holder.split(" and ")
-    name_form = all(len(group.split()) <= 2 for group in groups)
+    name_form = all(
+        0 < sum(word.casefold() not in connectors for word in group.split()) <= 2
+        for group in groups
+    )
     initials = all(re.fullmatch(r"(?:[A-Z]\.){1,6}", word) for word in words[:-1])
-    organization = words[-1].rstrip(",.").casefold() in {
+    entity_suffixes = {
         "inc",
         "ltd",
         "corp",
@@ -536,10 +540,20 @@ def _copyright_metadata(line: str) -> bool:
         "authors",
         "contributors",
     }
-    university = holder.casefold().startswith(("university of ", "the university of "))
+    organization = words[-1].rstrip(",.").casefold() in entity_suffixes and (
+        len(words) <= 3
+        or (
+            len(words) == 4
+            and words[-2].rstrip(",.").casefold() in entity_suffixes
+            and words[-1].rstrip(",.").casefold() in {"inc", "ltd", "corp", "co", "llc"}
+        )
+    )
+    university = any(
+        holder.casefold().startswith(prefix) and len(holder[len(prefix) :].split()) <= 2
+        for prefix in ("university of ", "the university of ")
+    )
     if not (name_form or initials or organization or university):
         return False
-    connectors = {"and", "of", "the", "de", "van", "von"}
     for word in words:
         word = word.rstrip(",")
         if re.fullmatch(r"(?:[A-Z]\.){1,6}", word):
