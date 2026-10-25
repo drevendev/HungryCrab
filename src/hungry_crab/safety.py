@@ -243,6 +243,7 @@ _CONFUSABLES = str.maketrans(
         "\u039a": "K",
     }
 )
+_MATCHING_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _matching_view(text: str) -> tuple[str, list[int]]:
@@ -301,6 +302,11 @@ _NAME_RULES: tuple[_Finder, ...] = tuple(
 
 
 def is_suspicious(text: str) -> bool:
+    if text.isascii():
+        # ASCII has no format/width/confusable characters. Folding whitespace preserves all
+        # raw positive rules, so one scan covers both views without a source-offset map.
+        matching = _MATCHING_WHITESPACE_RE.sub(" ", text)
+        return any(next(find(matching), None) is not None for find in _RULES)
     if any(next(find(text), None) is not None for find in _RULES):
         return True
     matching, _ = _matching_view(text)
