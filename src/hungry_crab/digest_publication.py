@@ -150,9 +150,9 @@ def _sync_generation_files(generation: DigestGeneration, digests_dir: Path) -> N
         fd = os.open(entry, flags)
         try:
             opened = os.fstat(fd)
-            if (
-                not stat.S_ISREG(opened.st_mode)
-                or (opened.st_dev, opened.st_ino) != (observed.st_dev, observed.st_ino)
+            if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (
+                observed.st_dev,
+                observed.st_ino,
             ):
                 raise CrabError(f"digest generation entry changed during sync: {entry}")
             os.fsync(fd)
