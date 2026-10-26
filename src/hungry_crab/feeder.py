@@ -262,7 +262,14 @@ def _acquire(
         if isinstance(client, GitHubClient):
             staged_client = copy(client)
             staged_client.cache_dir = staged / "http"
-        acquired, maw_wiki = _acquire_data(prey, maw, opts, staged, staged_client, config, log)
+        # The entire Feeder cohort owns staging. Catch must not publish an inner
+        # transaction against the live cache while its destination is this cohort.
+        previous_staging = budget.staging
+        budget.staging = True
+        try:
+            acquired, maw_wiki = _acquire_data(prey, maw, opts, staged, staged_client, config, log)
+        finally:
+            budget.staging = previous_staging
         entries: dict[Path, Path] = {}
         if prey.slug:
             source = prey_paths(prey.slug, staged)

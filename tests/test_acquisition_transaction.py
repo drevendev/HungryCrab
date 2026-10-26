@@ -89,6 +89,7 @@ def _cohort(
     monkeypatch.setattr(GitHubClient, "languages", lambda *_: {"Python": 2})
 
     def caught(*args: Any, **kwargs: Any) -> CatchResult:
+        assert quota.staging, "Feeder must own the whole acquisition cohort"
         # A failed catch preserves its own Git transaction; the regression is sniff's writes.
         if failure == "main":
             raise AcquisitionLimitError("main download budget")
@@ -143,6 +144,7 @@ def test_actual_sniff_and_late_wiki_failure_preserve_every_old_cache_byte(
     assert _snapshot(quota.cache) == before
     assert not out.exists() and not list(quota.volume.glob(".acquisition-*"))
     assert client.cache_dir == quota.cache / "http"
+    assert not quota.staging
 
 
 def test_success_publishes_one_cohort_and_retains_unrelated_digest_and_http_evidence(
@@ -172,6 +174,8 @@ def test_success_publishes_one_cohort_and_retains_unrelated_digest_and_http_evid
     assert acquired["catch"]["repo_dir"] == str(current.repo)
     assert json.loads(current.catch_file.read_text())["repo_dir"] == str(current.repo)
     assert not list(quota.volume.glob(".acquisition-*"))
+
+    assert not quota.staging
 
 
 def test_cancellation_during_commit_rolls_back_earlier_cache_entries(

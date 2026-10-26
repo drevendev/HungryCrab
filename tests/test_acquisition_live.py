@@ -16,10 +16,12 @@ from pathlib import Path
 import pytest
 from fixture_builder import git
 
-from hungry_crab.cache import Slug, prey_paths
+from hungry_crab.cache import Slug, Target, prey_paths
+from hungry_crab.feeder import EatOptions, _acquire
 from hungry_crab.fetch.acquisition import AcquisitionBudget, AcquisitionLimitError
 from hungry_crab.fetch.catch import CatchOptions, catch
 from hungry_crab.fetch.github import GitHubClient
+from hungry_crab.maw import MawConfig
 
 
 def _fingerprints(root: Path) -> dict[str, str]:
@@ -165,6 +167,28 @@ def test_real_https_git_quota_cancellation_and_cache_preservation(
 
         try:
             acquire()
+            # Exercise real catch inside the outer Feeder transaction, not a mocked
+            # catch: nested publication used to mistake the cohort for the live cache.
+            maw = tmp_path / "maw"
+            maw.mkdir()
+            monkeypatch.setattr(
+                GitHubClient, "repo", lambda *_: {"size": 1, "has_wiki": True, "fork": False}
+            )
+            monkeypatch.setattr(GitHubClient, "languages", lambda *_: {"Python": 1})
+            budget = AcquisitionBudget(volume, cache, 200 * 1024 * 1024, 64 * 1024 * 1024)
+            with budget.scope():
+                acquired, _ = _acquire(
+                    Target(slug=slug),
+                    maw,
+                    EatOptions(shallow=True, since=None, issues=0),
+                    cache,
+                    GitHubClient(prefer_gh=False),
+                    MawConfig(maw, license="MIT"),
+                    lambda _: None,
+                )
+                assert not budget.staging
+            assert acquired["catch"]["repo_dir"] == str(prey_paths(slug, cache).repo)
+            assert not list(volume.glob(".acquisition-*"))
             old = _fingerprints(prey_paths(slug, cache).root)
             with pytest.raises(AcquisitionLimitError, match="download budget"):
                 acquire(1024)
