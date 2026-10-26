@@ -70,12 +70,15 @@ crab hunt --for . --json
 crab hunt --for . --query "topic:testing language:Python" --limit 5
 ```
 
-Hunt digests only the explicit maw, builds missing-trait queries from its enabled hunger, and reads
-GitHub repository-search metadata. It makes at most four requests with at most 100 results each.
-It neither clones nor evaluates a found prey's code. Search topic matches suggest where to look;
-they do not prove that a repository implements the missing trait. Stack compatibility and bounded
-star signals rank the shortlist; confirmed earlier decisions adjust a previously visited prey's
-fit when revisiting is explicitly enabled. README bodies and descriptions do not reach the report.
+Hunt digests only the explicit maw, builds bounded missing-trait search hints from its enabled
+hunger, and reads GitHub repository-search metadata. It makes at most four requests with at most
+100 results each. Default queries prioritize known trait terms in repository README search before
+falling back to category topics; repository search **cannot inspect workflow code or file paths**.
+These matches are unverified hints, not proof that a prey implements any trait. The highest
+matched gap priority orders the default shortlist, then stack fit, confirmed memory and bounded
+stars break ties. Explicit maw-owned queries retain generic compatibility scoring. A pinned digest
+must independently verify features and licensing before any recommendation to serve; no found prey
+is cloned or executed. README bodies and descriptions do not reach the report.
 
 ```yaml
 hunt:

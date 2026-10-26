@@ -56,6 +56,19 @@ TOPICS = {
     "deps": "library",
 }
 
+# Repository Search sees README text, not workflow code or arbitrary file paths.
+# Each term is an unverified search hint, never proof of a missing trait in prey.
+README_TRAIT_TERMS = {
+    "security.codeql": "CodeQL",
+    "security.scanning": '"security scanning"',
+    "tests.coverage": "coverage",
+    "hygiene.notice-file": "NOTICE",
+    "ai-config.claude-settings": '"Claude Code"',
+    "ai-config.mcp": "MCP",
+    "tooling.renovate": "Renovate",
+    "tooling.dependabot": "Dependabot",
+}
+
 
 def gaps_for(side: Side, config: MawConfig, scoring: Scoring) -> list[dict[str, Any]]:
     gaps = []
@@ -94,15 +107,37 @@ def discover(
     gaps = gaps_for(side, config, scoring)
     languages = sorted(LANGUAGES[eco] for eco in side.ecosystems if eco in LANGUAGES)
     queries = list(settings.queries)
+    gap_searches: dict[str, tuple[str, float]] = {}
     if not queries:
-        topics = list(dict.fromkeys(TOPICS.get(gap["category"], "template") for gap in gaps))[:4]
-        if not topics:
-            topics = ["template"]
         language = (" language:" + languages[0]) if languages else ""
-        queries = [
-            f"topic:{topic}{language} archived:false fork:false stars:>={settings.min_stars}"
-            for topic in topics
-        ]
+        # Prefer a trait-level README hint over a generic category topic. Four calls maximum.
+        for specific in (True, False):
+            for gap in gaps:
+                term = README_TRAIT_TERMS.get(gap["key"])
+                if bool(term) != specific:
+                    continue
+                prefix = f"{term} in:readme" if term else (
+                    f"topic:{TOPICS.get(gap['category'], 'template')}"
+                )
+                query = (
+                    f"{prefix}{language} archived:false fork:false "
+                    f"stars:>={settings.min_stars}"
+                )
+                if query in gap_searches:
+                    continue
+                # Topic fallback is less indicative than a trait-named README match.
+                priority = gap["priority"] * (1.0 if term else 0.25)
+                gap_searches[query] = (gap["key"], round(priority, 6))
+                queries.append(query)
+                if len(queries) == 4:
+                    break
+            if len(queries) == 4:
+                break
+        if not queries:
+            queries = [
+                f"topic:template{language} archived:false fork:false "
+                f"stars:>={settings.min_stars}"
+            ]
     seen = {meal.prey.casefold() for meal in ledger.meals}
     excluded = {str(Slug.parse(item)).casefold() for item in settings.exclude}
     own = maw_slug(config.root)
@@ -177,9 +212,12 @@ def discover(
             stack = ECOSYSTEMS.get(str(repo_language)) in side.ecosystems
             stats = counts(groups.get(key, []))
             multiplier = factor(stats, config.memory)
-            score = round(
+            fit_score = round(
                 (0.7 if stack else 0.35) * multiplier + min(0.2, math.log10(stars + 1) / 25), 6
             )
+            # A matching search query suggests a gap to inspect; it does not verify the trait.
+            hint = gap_searches.get(query)
+            score = hint[1] if hint else (0.0 if gap_searches else fit_score)
             if key not in found:
                 verdict = decide(spdx, config.license or side.spdx).to_dict()
                 found[key] = {
@@ -196,11 +234,25 @@ def discover(
                         "same_stack": stack,
                         "previous_decisions": stats,
                         "memory_factor": multiplier,
+                        "query_gap_hints": [],
                     },
                     "queries": [],
                 }
+            if hint:
+                found[key]["score"] = max(found[key]["score"], hint[1])
+                if hint[0] not in found[key]["signals"]["query_gap_hints"]:
+                    found[key]["signals"]["query_gap_hints"].append(hint[0])
             found[key]["queries"].append(query)
-    candidates = sorted(found.values(), key=lambda item: (-item["score"], item["prey"].casefold()))
+    candidates = sorted(
+        found.values(),
+        key=lambda item: (
+            -item["score"],
+            -int(item["signals"]["same_stack"]),
+            -item["signals"]["memory_factor"],
+            -min(0.02, math.log10(item["stars"] + 1) / 250),
+            item["prey"].casefold(),
+        ),
+    )
     return {
         "schema": "hungry-crab.hunt/1",
         "generated_at": now.isoformat(timespec="seconds"),

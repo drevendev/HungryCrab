@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from hungry_crab.compare.candidates import Side
+from hungry_crab.compare.rules import TRAIT_RULES
 from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.hunt import discover
 from hungry_crab.hunt_config import HuntSettings
@@ -154,3 +155,37 @@ def test_dynamic_loop_shortlist_is_bound_to_current_lease(tmp_path: Path) -> Non
     with pytest.raises(CrabError, match="HUNT"):
         loop.record(token, "hunt", "ok", receipt={"prey": ["other/repo"]})
     assert loop.record(token, "hunt", "ok", receipt={"prey": ["x/y"]})["phase"] == "eat"
+
+
+def test_default_hunt_prioritizes_trait_query_over_stars(tmp_path: Path) -> None:
+    traits: dict[str, Any] = {rule.trait: True for rule in TRAIT_RULES}
+    traits.update({"ecosystems": ["python"], "ci_codeql": False, "coverage_configured": False})
+    side = Side("maw", "a" * 40, None, tmp_path, traits=traits)
+
+    class GapSearch:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def get(self, path: str) -> dict[str, Any]:
+            query = parse_qs(urlparse(path).query)["q"][0]
+            self.calls.append(query)
+            if "CodeQL in:readme" in query:
+                items = [repo("smaller/codeql", stargazers_count=100)]
+            else:
+                items = [repo("popular/generic", stargazers_count=100000)]
+            return {"items": items, "total_count": len(items), "incomplete_results": False}
+
+    client = GapSearch()
+    report = discover(
+        side, MawConfig(tmp_path), Ledger(None), HuntSettings(), client=client  # type: ignore[arg-type]
+    )
+    assert len(client.calls) == 2
+    assert all("in:readme" in query for query in client.calls)
+    assert "CodeQL in:readme" in client.calls[0]
+    assert [row["prey"] for row in report["candidates"]] == [
+        "smaller/codeql",
+        "popular/generic",
+    ]
+    assert report["candidates"][0]["score"] > report["candidates"][1]["score"]
+    assert "security.codeql" in report["candidates"][0]["signals"]["query_gap_hints"]
+    assert "recheck pinned digest" in report["candidates"][0]["license_review"]
