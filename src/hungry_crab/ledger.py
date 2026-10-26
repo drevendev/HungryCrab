@@ -105,6 +105,10 @@ class LedgerEntry:
             raise CrabError("ledger contains invalid confirmed feedback")
         if entry.status not in STATUSES:
             raise CrabError(f"ledger contains unknown status {entry.status!r}")
+        # Before 0.6, explicit decisions lived only in status. Carry the vote into
+        # feedback at load time so a later serve does not erase Taste Memory.
+        if entry.feedback is None and entry.status in {"accepted", "merged", "rejected"}:
+            entry.feedback = entry.status
         # A ledger written before sightings were recorded knows one prey per entry: the last
         # one, because every meal overwrote it. That is still the best guess for both.
         entry.last_prey = entry.last_prey or entry.prey

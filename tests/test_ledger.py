@@ -8,6 +8,7 @@ import pytest
 
 from hungry_crab.errors import CrabError
 from hungry_crab.ledger import LEDGER_SCHEMA, Ledger, LedgerEntry
+from hungry_crab.memory import confirmed, decision
 from hungry_crab.nutrients import Candidate
 
 NOW = datetime(2025, 6, 1, 12, 0, tzinfo=UTC)
@@ -145,3 +146,64 @@ def test_invalid_ledger_file_is_reported(tmp_path: Path) -> None:
         Ledger.load(path)
     entry = LedgerEntry.from_dict({"id": "crab:a:b", "status": "served", "extra": 1})
     assert entry.category == "" and entry.status == "served"
+
+
+@pytest.mark.parametrize("status", ["accepted", "merged", "rejected"])
+def test_legacy_decision_survives_serve_and_roundtrip(tmp_path: Path, status: str) -> None:
+    """Pre-0.6 ledgers stored votes in status, before feedback existed."""
+    path = tmp_path / "legacy-ledger.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": LEDGER_SCHEMA,
+                "maw": "test-maw",
+                "meals": [],
+                "entries": [
+                    {
+                        "id": "crab:ci:ci.cache",
+                        "category": "ci",
+                        "key": "ci.cache",
+                        "title": "Cache",
+                        "status": status,
+                        "prey": "example/prey",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    ledger = Ledger.load(path)
+    entry = ledger.entries["crab:ci:ci.cache"]
+    assert entry.feedback == status
+    assert decision(entry) == status
+    assert confirmed(ledger) == [entry]
+
+    ledger.mark(entry.id, "served", url="https://github.com/example/repo/issues/1", now=NOW)
+    assert entry.status == "served" and entry.feedback == status
+    assert decision(entry) == status
+    assert confirmed(ledger) == [entry]
+    ledger.save(now=NOW)
+    saved = Ledger.load(path)
+    assert saved.entries[entry.id].feedback == status
+    assert len(confirmed(saved)) == 1
+
+
+def test_legacy_served_is_not_inferred_to_be_accepted() -> None:
+    entry = LedgerEntry.from_dict(
+        {"id": "crab:ci:ci.cache", "category": "ci", "key": "ci.cache",
+         "title": "Cache", "status": "served"}
+    )
+    assert entry.feedback is None
+    assert decision(entry) == "served"
+    ledger = Ledger(None, maw="synthetic")
+    ledger.entries[entry.id] = entry
+    assert confirmed(ledger) == []
+
+
+def test_explicit_feedback_is_not_overridden_during_legacy_migration() -> None:
+    entry = LedgerEntry.from_dict(
+        {"id": "crab:ci:ci.cache", "category": "ci", "key": "ci.cache",
+         "title": "Cache", "status": "merged", "feedback": "rejected"}
+    )
+    assert entry.feedback == "rejected"
+    assert decision(entry) == "rejected"
