@@ -7,6 +7,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-10-26
+
+### Fixed
+
+- Reject restrictive and ambiguous MIT copyright-holder preambles, including standalone
+  limitation markers and rights-shaped compound adjectives, while retaining ordinary names
+  such as Nonprofit Labs and Nonlinear Systems (#457, #458).
+- Use bounded trait-specific README search hints and gap priority for default hunt ranking.
+  Request GitHub best-match acquisition for generated gap queries instead of truncating by
+  stars; preserve explicit query behavior and disclose unverified hints (#459, #460).
+- Preserve explicit legacy accepted, merged and rejected Taste Memory votes when entries
+  are later served, without inferring acceptance from legacy served entries (#461).
+- Keep remote Feeder acquisition in its outer cohort transaction. Fix Linux composite,
+  reusable and Deep Bite smoke failures caused by nested staging publication; exercise
+  real HTTPS Git within the Feeder cohort on both hard-quota CI platforms.
+
+
 ## [0.6.5] - 2026-10-25
 
 ### Added
@@ -1154,7 +1171,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/drevendev/HungryCrab/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/drevendev/HungryCrab/compare/v0.6.2...v0.6.3
