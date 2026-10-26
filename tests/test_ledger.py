@@ -190,8 +190,13 @@ def test_legacy_decision_survives_serve_and_roundtrip(tmp_path: Path, status: st
 
 def test_legacy_served_is_not_inferred_to_be_accepted() -> None:
     entry = LedgerEntry.from_dict(
-        {"id": "crab:ci:ci.cache", "category": "ci", "key": "ci.cache",
-         "title": "Cache", "status": "served"}
+        {
+            "id": "crab:ci:ci.cache",
+            "category": "ci",
+            "key": "ci.cache",
+            "title": "Cache",
+            "status": "served",
+        }
     )
     assert entry.feedback is None
     assert decision(entry) == "served"
@@ -202,8 +207,14 @@ def test_legacy_served_is_not_inferred_to_be_accepted() -> None:
 
 def test_explicit_feedback_is_not_overridden_during_legacy_migration() -> None:
     entry = LedgerEntry.from_dict(
-        {"id": "crab:ci:ci.cache", "category": "ci", "key": "ci.cache",
-         "title": "Cache", "status": "merged", "feedback": "rejected"}
+        {
+            "id": "crab:ci:ci.cache",
+            "category": "ci",
+            "key": "ci.cache",
+            "title": "Cache",
+            "status": "merged",
+            "feedback": "rejected",
+        }
     )
     assert entry.feedback == "rejected"
     assert decision(entry) == "rejected"
