@@ -304,8 +304,12 @@ def run() -> int:
     temp = Path(os.environ["RUNNER_TEMP"])
     workspace = Path(os.environ["GITHUB_WORKSPACE"])
     output = os.environ.get("CRAB_OUT") or str(temp / f"crab-feeder-{uuid.uuid4().hex}")
+    if not Path(output).is_absolute():
+        output = str(workspace / output)
     volume = os.environ.get("CRAB_ACQUISITION_VOLUME", "")
     cache = os.environ.get("CRAB_CACHE") or str((Path(volume) if volume else temp) / "hungry-crab")
+    if not Path(cache).is_absolute():
+        cache = str(workspace / cache)
     maw = Path(os.environ.get("CRAB_MAW", "."))
     if not maw.is_absolute():
         maw = workspace / maw

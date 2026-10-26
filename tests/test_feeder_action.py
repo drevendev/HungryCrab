@@ -36,6 +36,8 @@ def test_action_resolves_local_paths_in_the_caller_and_preserves_literal_inputs(
         "GITHUB_STEP_SUMMARY": str(summary),
         "CRAB_PREY": "donor;literal",
         "CRAB_MAW": ".",
+        "CRAB_OUT": "meal with spaces",
+        "CRAB_CACHE": "cache;literal",
         "CRAB_SINCE": "all",
         "CRAB_ISSUES": "0",
         "CRAB_TOP": "30",
@@ -59,8 +61,25 @@ def test_action_resolves_local_paths_in_the_caller_and_preserves_literal_inputs(
     assert module.run() == 0
     assert calls[0][calls[0].index("eat") + 1] == str(prey.resolve())
     assert calls[0][calls[0].index("--maw") + 1] == str(workspace)
+    assert calls[0][calls[0].index("--out") + 1] == str(workspace / "meal with spaces")
+    assert calls[0][calls[0].index("--cache-dir") + 1] == str(workspace / "cache;literal")
     assert "candidate-count=2" in outputs.read_text()
     assert "2 candidates" in summary.read_text()
+
+
+def test_action_keeps_absolute_output_and_cache_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="donor", event={"repository": {"private": True}}
+    )
+    output = tmp_path / "absolute meal"
+    cache = tmp_path / "absolute cache"
+    monkeypatch.setenv("CRAB_OUT", str(output))
+    monkeypatch.setenv("CRAB_CACHE", str(cache))
+    assert module.run() == 0
+    assert calls[0][calls[0].index("--out") + 1] == str(output)
+    assert calls[0][calls[0].index("--cache-dir") + 1] == str(cache)
 
 
 def _action(
