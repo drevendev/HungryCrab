@@ -1113,3 +1113,57 @@ def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
     findings = detect_in_repo(tmp_path, [])
     assert decide(findings.spdx, "AGPL-3.0-only").mode is Mode.HUMAN
     assert decide(findings.spdx, "MIT").mode is Mode.HUMAN
+
+
+@pytest.mark.parametrize(
+    "restriction",
+    [
+        "Noncommercial Only",
+        "No Derivatives",
+        "Reproduction Forbidden",
+        "No Redistribution",
+        "Copying Prohibited",
+        "No Sublicensing",
+        "No Modifications",
+        "No Sharing",
+        "No Hosting",
+        "Research Only",
+        "Sharing Forbidden",
+        "Distribution Restricted",
+        "Non Transferable",
+        "Read Only",
+        "Nontransferable Rights",
+        "Nonshareable Content",
+        "Nonmodifiable Software",
+        "Noncommercially Available",
+        "Unlicensed Software",
+        "Unauthorized Sharing",
+    ],
+)
+@pytest.mark.parametrize("spdx_tag", [False, True])
+def test_restrictive_copyright_preamble_cannot_launder_mit(
+    restriction: str, spdx_tag: bool
+) -> None:
+    """Title-cased restrictions are not legitimate MIT holder metadata (#457)."""
+    text = MIT_TEXT.replace("Copyright (c) 2026 Dreven", f"Copyright (c) 2026 {restriction}")
+    if spdx_tag:
+        text = "SPDX-License-Identifier: MIT\n" + text
+    assert detect_from_text(text) == (None, 0.0)
+
+
+@pytest.mark.parametrize(
+    "holder",
+    [
+        "Dreven",
+        "Jane Doe",
+        "Example Tools LLC",
+        "University of Nicosia",
+        "Jane Doe <jane@example.org>",
+        "Nonprofit Labs",
+        "Nonlinear Systems",
+    ],
+)
+def test_regular_copyright_holders_keep_canonical_mit(holder: str) -> None:
+    """Conservative rider rejection must preserve ordinary MIT attribution (#457)."""
+    text = MIT_TEXT.replace("Copyright (c) 2026 Dreven", f"Copyright (c) 2026 {holder}")
+    assert detect_from_text(text) == ("MIT", 0.99)
