@@ -152,18 +152,21 @@ def discover(
         rejected[reason] = rejected.get(reason, 0) + 1
 
     for query in queries:
-        response = client.get(
-            "search/repositories?"
-            + urlencode(
-                {"q": query, "sort": "stars", "order": "desc", "per_page": settings.max_candidates}
-            )
-        )
+        # The default gap-directed search uses GitHub's relevance ranking rather than
+        # dropping all but the most-starred README matches before trait scoring.
+        # Explicit maw-authored queries retain their previous star-sort behavior.
+        ranking = "best_match" if query in gap_searches else "stars"
+        params: dict[str, Any] = {"q": query, "per_page": settings.max_candidates}
+        if ranking == "stars":
+            params.update({"sort": "stars", "order": "desc"})
+        response = client.get("search/repositories?" + urlencode(params))
         if not isinstance(response, dict) or not isinstance(response.get("items"), list):
             raise CrabError("GitHub search returned an invalid repository response")
         items = response["items"]
         evidence.append(
             {
                 "query": query,
+                "ranking": ranking,
                 "total_count": response.get("total_count"),
                 "returned": len(items),
                 "incomplete_results": response.get("incomplete_results") is True,

@@ -82,6 +82,9 @@ def test_custom_queries_encoded_and_size_license_opt_ins(tmp_path: Path) -> None
     )
     result = discover(side, MawConfig(tmp_path), Ledger(None), settings, client=client)  # type: ignore[arg-type]
     assert len(client.calls) == 1 and "%3A" in client.calls[0]
+    params = parse_qs(urlparse(client.calls[0]).query)
+    assert params["sort"] == ["stars"] and params["order"] == ["desc"]
+    assert result["search"][0]["ranking"] == "stars"
     assert [row["prey"] for row in result["candidates"]] == ["ok/repo"]
     assert result["candidates"][0]["size_kb"] is None
 
@@ -155,6 +158,44 @@ def test_dynamic_loop_shortlist_is_bound_to_current_lease(tmp_path: Path) -> Non
     with pytest.raises(CrabError, match="HUNT"):
         loop.record(token, "hunt", "ok", receipt={"prey": ["other/repo"]})
     assert loop.record(token, "hunt", "ok", receipt={"prey": ["x/y"]})["phase"] == "eat"
+
+
+def test_generated_trait_query_uses_best_match_before_candidate_truncation(
+    tmp_path: Path,
+) -> None:
+    traits: dict[str, Any] = {rule.trait: True for rule in TRAIT_RULES}
+    traits.update({"ecosystems": ["python"], "ci_codeql": False})
+    side = Side("maw", "a" * 40, None, tmp_path, traits=traits)
+
+    class SearchWindow:
+        def __init__(self) -> None:
+            self.calls: list[dict[str, list[str]]] = []
+
+        def get(self, path: str) -> dict[str, Any]:
+            params = parse_qs(urlparse(path).query)
+            self.calls.append(params)
+            # Model different server-side candidate windows for the same README query.
+            # This pins request semantics, not actual GitHub relevance/precision.
+            items = (
+                [repo("popular/generic", stargazers_count=100_000)]
+                if params.get("sort") == ["stars"]
+                else [repo("smaller/codeql", stargazers_count=40)]
+            )
+            return {"items": items, "total_count": 1_000, "incomplete_results": False}
+
+    client = SearchWindow()
+    report = discover(
+        side, MawConfig(tmp_path), Ledger(None), HuntSettings(),
+        client=client,  # type: ignore[arg-type]
+    )
+    assert len(client.calls) == 1
+    params = client.calls[0]
+    assert "CodeQL in:readme" in params["q"][0]
+    assert "sort" not in params and "order" not in params
+    assert params["per_page"] == ["50"]
+    assert report["search"][0]["ranking"] == "best_match"
+    assert report["search"][0]["truncated"]
+    assert [row["prey"] for row in report["candidates"]] == ["smaller/codeql"]
 
 
 def test_default_hunt_prioritizes_trait_query_over_stars(tmp_path: Path) -> None:
