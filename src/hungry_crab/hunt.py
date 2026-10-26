@@ -135,8 +135,7 @@ def discover(
                 break
         if not queries:
             queries = [
-                f"topic:template{language} archived:false fork:false "
-                f"stars:>={settings.min_stars}"
+                f"topic:template{language} archived:false fork:false stars:>={settings.min_stars}"
             ]
     seen = {meal.prey.casefold() for meal in ledger.meals}
     excluded = {str(Slug.parse(item)).casefold() for item in settings.exclude}
