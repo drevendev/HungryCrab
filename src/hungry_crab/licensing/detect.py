@@ -526,6 +526,17 @@ def _copyright_metadata(line: str) -> bool:
         re.I,
     ):
         return False
+    # Title-cased words are not proof of a copyright holder's identity. A
+    # negation or policy-limiting modifier is ambiguous regardless of the
+    # following noun ("No Sublicensing", "Research Only", "Sharing Forbidden").
+    # Fail closed rather than enumerating every possibly prohibited activity.
+    if re.search(
+        r"\\b(?:no|non|not|never|without|except|unless|only|"
+        r"forbidden|prohibited|restricted)\\b",
+        holder,
+        re.I,
+    ):
+        return False
     years = r"\d{4}(?:\s*[-,]\s*(?:\d{2,4}|present))*"
     holder = re.sub(rf"^{years}\s+", "", holder, count=1, flags=re.I)
     holder = re.sub(rf"\s+{years}$", "", holder, count=1, flags=re.I)

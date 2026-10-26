@@ -1123,6 +1123,15 @@ def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
         "Reproduction Forbidden",
         "No Redistribution",
         "Copying Prohibited",
+        "No Sublicensing",
+        "No Modifications",
+        "No Sharing",
+        "No Hosting",
+        "Research Only",
+        "Sharing Forbidden",
+        "Distribution Restricted",
+        "Non Transferable",
+        "Read Only",
     ],
 )
 @pytest.mark.parametrize("spdx_tag", [False, True])
