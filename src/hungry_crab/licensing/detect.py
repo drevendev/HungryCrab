@@ -541,10 +541,10 @@ def _copyright_metadata(line: str) -> bool:
     # while ordinary names such as Nonprofit Labs are not grant restrictions.
     # Only reject rights/permission-shaped compounds, not every non* name.
     if re.search(
-        r"\\b(?:non[- ]?(?:commercial\\w*|transf\\w*|shar\\w*|modif\\w*|"
-        r"redistribut\\w*|reproduc\\w*|copy\\w*|resell\\w*|"
-        r"sublicens\\w*|licen[cs]\\w*|assign\\w*|derivat\\w*)"
-        r"|un(?:licen[cs]\\w*|authoriz\\w*))\\b",
+        r"\b(?:non[- ]?(?:commercial\w*|transf\w*|shar\w*|modif\w*|"
+        r"redistribut\w*|reproduc\w*|copy\w*|resell\w*|"
+        r"sublicens\w*|licen[cs]\w*|assign\w*|derivat\w*)"
+        r"|un(?:licen[cs]\w*|authoriz\w*))\b",
         holder,
         re.I,
     ):
