@@ -1132,6 +1132,12 @@ def test_the_elasticsearch_shape_asks_a_human(tmp_path: Path) -> None:
         "Distribution Restricted",
         "Non Transferable",
         "Read Only",
+        "Nontransferable Rights",
+        "Nonshareable Content",
+        "Nonmodifiable Software",
+        "Noncommercially Available",
+        "Unlicensed Software",
+        "Unauthorized Sharing",
     ],
 )
 @pytest.mark.parametrize("spdx_tag", [False, True])
@@ -1153,6 +1159,8 @@ def test_restrictive_copyright_preamble_cannot_launder_mit(
         "Example Tools LLC",
         "University of Nicosia",
         "Jane Doe <jane@example.org>",
+        "Nonprofit Labs",
+        "Nonlinear Systems",
     ],
 )
 def test_regular_copyright_holders_keep_canonical_mit(holder: str) -> None:

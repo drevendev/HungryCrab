@@ -537,6 +537,18 @@ def _copyright_metadata(line: str) -> bool:
         re.I,
     ):
         return False
+    # Restriction adjectives can be fused (Nontransferable, Nonmodifiable),
+    # while ordinary names such as Nonprofit Labs are not grant restrictions.
+    # Only reject rights/permission-shaped compounds, not every non* name.
+    if re.search(
+        r"\\b(?:non[- ]?(?:commercial\\w*|transf\\w*|shar\\w*|modif\\w*|"
+        r"redistribut\\w*|reproduc\\w*|copy\\w*|resell\\w*|"
+        r"sublicens\\w*|licen[cs]\\w*|assign\\w*|derivat\\w*)"
+        r"|un(?:licen[cs]\\w*|authoriz\\w*))\\b",
+        holder,
+        re.I,
+    ):
+        return False
     years = r"\d{4}(?:\s*[-,]\s*(?:\d{2,4}|present))*"
     holder = re.sub(rf"^{years}\s+", "", holder, count=1, flags=re.I)
     holder = re.sub(rf"\s+{years}$", "", holder, count=1, flags=re.I)
