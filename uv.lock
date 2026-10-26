@@ -338,7 +338,7 @@ wheels = [
 
 [[package]]
 name = "hungry-crab"
-version = "0.6.6"
+version = "0.6.7.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },
