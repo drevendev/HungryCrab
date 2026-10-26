@@ -185,7 +185,10 @@ def test_generated_trait_query_uses_best_match_before_candidate_truncation(
 
     client = SearchWindow()
     report = discover(
-        side, MawConfig(tmp_path), Ledger(None), HuntSettings(),
+        side,
+        MawConfig(tmp_path),
+        Ledger(None),
+        HuntSettings(),
         client=client,  # type: ignore[arg-type]
     )
     assert len(client.calls) == 1
