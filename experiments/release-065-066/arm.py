@@ -10,6 +10,7 @@ import sys
 import time
 from dataclasses import replace
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -124,7 +125,8 @@ def main() -> None:
         config, ledger = configurations[maw["id"]], ledgers[maw["id"]]
         search = FrozenSearch()
         hunt_report, hunt_costs = measured(
-            lambda: discover(
+            partial(
+                discover,
                 Side.load(digests[maw["repo"]].out_dir, root=config.root),
                 config,
                 ledger,
@@ -165,11 +167,12 @@ def main() -> None:
             source = next(s for s in spec["sources"] if s["requested"] == requested)
             prey_repo = prey_paths(Slug.parse(source["repo"]), inputs).repo
             result, costs = measured(
-                lambda s=source, p=prey_repo: compare_digests(
-                    digests[s["repo"]].out_dir,
+                partial(
+                    compare_digests,
+                    digests[source["repo"]].out_dir,
                     digests[maw["repo"]].out_dir,
-                    prey_root=p,
-                    prey_objects=p,
+                    prey_root=prey_repo,
+                    prey_objects=prey_repo,
                     maw_root=config.root,
                     options=options,
                 )
