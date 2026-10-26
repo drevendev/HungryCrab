@@ -1161,9 +1161,56 @@ def test_restrictive_copyright_preamble_cannot_launder_mit(
         "Jane Doe <jane@example.org>",
         "Nonprofit Labs",
         "Nonlinear Systems",
+        "Dreven (drevendev)",
+        "Jane Doe (jane-doe)",
+        "Jane Doe (@jane-doe) <jane@example.org>",
+        "Dreven (" + "a" * 39 + ")",
     ],
 )
 def test_regular_copyright_holders_keep_canonical_mit(holder: str) -> None:
     """Conservative rider rejection must preserve ordinary MIT attribution (#457)."""
     text = MIT_TEXT.replace("Copyright (c) 2026 Dreven", f"Copyright (c) 2026 {holder}")
     assert detect_from_text(text) == ("MIT", 0.99)
+
+
+@pytest.mark.parametrize(
+    "holder",
+    [
+        "Dreven (research only)",
+        "Dreven (non-commercial)",
+        "Dreven (@No-Hosting)",
+        "Dreven (permission)",
+        "Dreven (drevendev) No Sharing",
+        "Dreven (drevendev) (another)",
+        "Dreven ((drevendev))",
+        "Dreven (jane--doe)",
+        "Dreven (-drevendev)",
+        "Dreven (drevendev-)",
+        "Dreven (jane.doe)",
+        "Dreven (https://example.org)",
+        "Dreven (" + "a" * 40 + ")",
+        "(drevendev)",
+        "Research Only (drevendev)",
+    ],
+)
+@pytest.mark.parametrize("spdx_tag", [False, True])
+def test_parenthesized_prose_is_not_copyright_account_metadata(holder: str, spdx_tag: bool) -> None:
+    text = MIT_TEXT.replace("Copyright (c) 2026 Dreven", f"Copyright (c) 2026 {holder}")
+    if spdx_tag:
+        text = "SPDX-License-Identifier: MIT\n" + text
+    assert detect_from_text(text) == (None, 0.0)
+
+
+def test_parenthesized_account_keeps_maw_license_recognized(tmp_path: Path) -> None:
+    """Devostasis' ordinary holder alias must not turn a MIT maw into HUMAN."""
+    write_tree(
+        tmp_path,
+        {
+            "LICENSE": MIT_TEXT.replace("Dreven", "Dreven (drevendev)"),
+            "pyproject.toml": '[project]\nlicense = "MIT"\n',
+        },
+    )
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.spdx == "MIT"
+    assert not findings.conflicts
+    assert decide("MIT", findings.spdx).mode is Mode.COPY

@@ -494,7 +494,8 @@ def _copyright_metadata(line: str) -> bool:
     """Recognize a bounded year/holder notice, never arbitrary copyright-prefixed prose.
 
     Unrecognized notices need review. Holder names allow identifiers, capitalized name words,
-    conventional connectors/initials/company suffixes and a final contact address.
+    conventional connectors/initials/company suffixes, one parenthesized account handle and
+    a final contact address.
     """
     line = re.sub(r"^(?://|\#|/\*|\*|<!--)\s*", "", line.strip())
     line = re.sub(r"\s*(?:\*/|-->)$", "", line).strip()
@@ -566,6 +567,14 @@ def _copyright_metadata(line: str) -> bool:
         )
         if holder == previous:
             break
+    # A single account handle after a recognized holder is attribution, not a second name
+    # word. Keep the grammar narrow: never discard arbitrary parenthesized prose, and run
+    # all restriction checks above on the original text before removing the handle.
+    alias = re.fullmatch(
+        r"([^()]+)\s+\(@?([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)\)", holder
+    )
+    if alias is not None and "--" not in alias.group(2):
+        holder = alias.group(1).rstrip()
     words = holder.split()
     if not words or len(words) > 16:
         return False
