@@ -531,8 +531,8 @@ def _copyright_metadata(line: str) -> bool:
     # following noun ("No Sublicensing", "Research Only", "Sharing Forbidden").
     # Fail closed rather than enumerating every possibly prohibited activity.
     if re.search(
-        r"\\b(?:no|non|not|never|without|except|unless|only|"
-        r"forbidden|prohibited|restricted)\\b",
+        r"\b(?:no|non|not|never|without|except|unless|only|"
+        r"forbidden|prohibited|restricted)\b",
         holder,
         re.I,
     ):
