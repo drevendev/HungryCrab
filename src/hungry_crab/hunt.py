@@ -116,13 +116,12 @@ def discover(
                 term = README_TRAIT_TERMS.get(gap["key"])
                 if bool(term) != specific:
                     continue
-                prefix = f"{term} in:readme" if term else (
-                    f"topic:{TOPICS.get(gap['category'], 'template')}"
+                prefix = (
+                    f"{term} in:readme"
+                    if term
+                    else (f"topic:{TOPICS.get(gap['category'], 'template')}")
                 )
-                query = (
-                    f"{prefix}{language} archived:false fork:false "
-                    f"stars:>={settings.min_stars}"
-                )
+                query = f"{prefix}{language} archived:false fork:false stars:>={settings.min_stars}"
                 if query in gap_searches:
                     continue
                 # Topic fallback is less indicative than a trait-named README match.

@@ -177,7 +177,11 @@ def test_default_hunt_prioritizes_trait_query_over_stars(tmp_path: Path) -> None
 
     client = GapSearch()
     report = discover(
-        side, MawConfig(tmp_path), Ledger(None), HuntSettings(), client=client  # type: ignore[arg-type]
+        side,
+        MawConfig(tmp_path),
+        Ledger(None),
+        HuntSettings(),
+        client=client,  # type: ignore[arg-type]
     )
     assert len(client.calls) == 2
     assert all("in:readme" in query for query in client.calls)
