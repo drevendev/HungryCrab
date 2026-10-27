@@ -573,7 +573,38 @@ def _copyright_metadata(line: str) -> bool:
     alias = re.fullmatch(
         r"([^()]+)\s+\(@?([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)\)", holder
     )
-    if alias is not None and "--" not in alias.group(2):
+    if alias is not None:
+        # A syntactically valid handle can also spell a license restriction.
+        # Split CamelCase before interpreting potential policy words; the checks
+        # on the unsplit notice above do not see fused labels like NoExternalUse.
+        handle = alias.group(2).removeprefix("@")
+        spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", handle.replace("-", " "))
+        compact = handle.replace("-", "").casefold()
+        ambiguous = (
+            "--" in handle
+            or bool(
+                re.search(
+                    r"\b(?:no|non|not|never|without|except|unless|only|"
+                    r"licen[cs]\w*|permission|restrict\w*|prohibit\w*|forbidden|"
+                    r"commercial|sharing|redistribut\w*|reproduc\w*|copying|"
+                    r"derivativ\w*|sublicens\w*|research|internal|personal|"
+                    r"hosting|read|rights|reserved|use)\b",
+                    spaced,
+                    re.I,
+                )
+            )
+            or bool(
+                re.search(
+                    r"(?:^no(?:external|shar|host|us(?:e|age)|modif|copy|redistribut|"
+                    r"reproduc|commercial|derivativ|sublicens|transf)|"
+                    r"^(?:for|only|noncommercial|unlicensed|internal|personal|research|read)|"
+                    r"(?:only|forbidden|prohibited|restricted)$)",
+                    compact,
+                )
+            )
+        )
+        if ambiguous:
+            return False
         holder = alias.group(1).rstrip()
     words = holder.split()
     if not words or len(words) > 16:
