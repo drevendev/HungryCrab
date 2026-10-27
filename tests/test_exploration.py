@@ -165,6 +165,182 @@ def test_genuine_evidenced_no_gap_control(tmp_path: Path) -> None:
     assert not any(event["record"]["kind"] == "registration" for event in events(directory))
 
 
+def test_multiple_hypotheses_in_one_facet_remain_independently_pending(tmp_path: Path) -> None:
+    directory, _, _, finding = pair(tmp_path, gap=False)
+    for hypothesis, disposition, reviewed in (
+        ("first deferred", "budget-deferred", False),
+        ("second completed", "NO_GAP", True),
+    ):
+        record(
+            directory,
+            observation(
+                finding,
+                kind="facet",
+                facet="performance-streaming",
+                state="examined",
+                hypothesis=hypothesis,
+            ),
+        )
+        record(
+            directory,
+            observation(
+                finding,
+                kind="decision",
+                hypothesis=hypothesis,
+                disposition=disposition,
+                reviewed=reviewed,
+                **({"examined_scope": "bounded reads verified"} if reviewed else {}),
+            ),
+        )
+    unresolved = report(directory)
+    assert unresolved["pending_facets"] == []
+    assert unresolved["unresolved_hypotheses"] == ["first deferred"]
+    assert not unresolved["exploration_complete"]
+    assert unresolved["events"] == 4
+
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="first deferred",
+            disposition="NO_GAP",
+            reviewed=True,
+            examined_scope="bounded reads verified on later review",
+        ),
+    )
+    resolved = report(directory)
+    assert resolved["unresolved_hypotheses"] == []
+    assert resolved["exploration_complete"]
+    assert resolved["events"] == 5
+
+
+def test_later_inapplicable_facet_cannot_erase_unreviewed_work(tmp_path: Path) -> None:
+    directory, _, _, finding = pair(tmp_path, gap=False)
+    record(
+        directory,
+        observation(
+            finding,
+            kind="facet",
+            facet="performance-streaming",
+            state="examined",
+            hypothesis="earlier unreviewed",
+        ),
+    )
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="earlier unreviewed",
+            disposition="budget-deferred",
+            reviewed=False,
+        ),
+    )
+    record(
+        directory,
+        observation(
+            finding, kind="facet", facet="performance-streaming", state="inapplicable"
+        ),
+    )
+    pending = report(directory)
+    assert pending["facets"]["performance-streaming"] == "inapplicable"
+    assert pending["pending_facets"] == []
+    assert pending["unresolved_hypotheses"] == ["earlier unreviewed"]
+    assert not pending["exploration_complete"]
+
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="earlier unreviewed",
+            disposition="NO_GAP",
+            reviewed=True,
+            examined_scope="later review resolves the same hypothesis",
+        ),
+    )
+    assert report(directory)["exploration_complete"]
+
+
+def test_decision_only_deferred_hypothesis_is_not_dropped(tmp_path: Path) -> None:
+    directory, _, _, finding = pair(tmp_path, gap=False)
+    assert report(directory)["unresolved_hypotheses"] == []
+    record(
+        directory,
+        observation(
+            finding, kind="facet", facet="performance-streaming", state="inapplicable"
+        ),
+    )
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="decision without facet",
+            disposition="not-investigated",
+            reviewed=False,
+        ),
+    )
+    pending = report(directory)
+    assert pending["pending_facets"] == []
+    assert pending["unresolved_hypotheses"] == ["decision without facet"]
+    assert not pending["exploration_complete"]
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="decision without facet",
+            disposition="NO_GAP",
+            reviewed=True,
+            examined_scope="explicitly inspected despite missing facet hypothesis",
+        ),
+    )
+    assert report(directory)["exploration_complete"]
+
+
+def test_different_facets_keep_independent_unresolved_history(tmp_path: Path) -> None:
+    original, _, maw, finding = pair(tmp_path, gap=False)
+    directory = initialize(
+        original.parent.parent,
+        {**PLAN, "facets": ["performance-streaming", "testing"]},
+        maw=maw,
+    )
+    baseline = report(directory)
+    assert baseline["unresolved_hypotheses"] == []
+    assert baseline["pending_facets"] == ["performance-streaming", "testing"]
+    for facet, hypothesis in (
+        ("performance-streaming", "stream hypothesis"),
+        ("testing", "test hypothesis"),
+    ):
+        record(
+            directory,
+            observation(
+                finding,
+                kind="facet",
+                facet=facet,
+                state="examined",
+                hypothesis=hypothesis,
+            ),
+        )
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="stream hypothesis",
+            disposition="NO_GAP",
+            reviewed=True,
+            examined_scope="bounded read verified",
+        ),
+    )
+    pending = report(directory)
+    assert pending["pending_facets"] == []
+    assert pending["unresolved_hypotheses"] == ["test hypothesis"]
+    assert not pending["exploration_complete"]
+
+
 def test_non_trait_gap_registers_with_immutable_source_and_default_hunger(tmp_path: Path) -> None:
     directory, donor, _, finding = pair(tmp_path)
     event = register(directory, finding, source_repo=donor)

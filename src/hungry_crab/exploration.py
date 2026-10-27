@@ -391,15 +391,16 @@ def report(directory: Path) -> dict[str, Any]:
     facets = dict.fromkeys(data["plan"]["facets"], "unexplored")
     decisions: dict[str, dict[str, Any]] = {}
     hypotheses: dict[str, dict[str, Any]] = {}
-    examined_hypotheses: dict[str, str] = {}
+    observed_hypotheses: dict[str, None] = {}
     phases: dict[str, Any] = dict.fromkeys(PHASES, "NOT_RUN")
     for event in history:
         entry = event["record"]
         if entry["kind"] == "facet":
             facets[entry["facet"]] = entry["state"]
             if entry["state"] == "examined":
-                examined_hypotheses[entry["facet"]] = entry["hypothesis"]
+                observed_hypotheses.setdefault(entry["hypothesis"], None)
         elif entry["kind"] == "decision":
+            observed_hypotheses.setdefault(entry["hypothesis"], None)
             hypotheses[entry["hypothesis"]] = entry
             if entry.get("candidate_id"):
                 decisions[entry["candidate_id"]] = entry
@@ -415,10 +416,12 @@ def report(directory: Path) -> dict[str, Any]:
         for c in data["initial_candidates"]
         if not decisions.get(c["id"], {}).get("reviewed")
     ]
+    # Facet transitions and newer hypotheses must not hide earlier unresolved work.
+    # A later explicit review of the same hypothesis is the only resolution.
     unresolved_hypotheses = [
         hypothesis
-        for facet, hypothesis in examined_hypotheses.items()
-        if facets[facet] == "examined" and not hypotheses.get(hypothesis, {}).get("reviewed")
+        for hypothesis in observed_hypotheses
+        if not hypotheses.get(hypothesis, {}).get("reviewed")
     ]
     return {
         "schema": SCHEMA,
