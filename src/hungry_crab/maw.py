@@ -11,7 +11,7 @@ import yaml
 
 from .budget import BUDGET_POLICIES
 from .cache import Slug, Target, maw_paths
-from .config_edit import atomic_text, replace_section
+from .config_edit import atomic_text, verified_replace_section
 from .config_validation import validate
 from .errors import CrabError, UsageError
 from .fetch.git import GitRunner
@@ -358,7 +358,8 @@ class MawConfig:
         if self.exists:
             with self.path.open(encoding="utf-8", newline="") as source:
                 text = source.read()
-        atomic_text(self.path, replace_section(text, "scoring", scoring))
+        candidate = verified_replace_section(text, "scoring", scoring, data)
+        atomic_text(self.path, candidate)
         self.raw = data
         self.scoring = scoring
         self.exists = True
@@ -370,8 +371,11 @@ def write_default_config(root: Path, *, force: bool = False, profile: str = "bal
     if path.exists() and not force:
         raise CrabError(f"{path} already exists", hint="pass --force to overwrite it")
     text = DEFAULT_CONFIG_TEXT.replace("profile: balanced", "profile: " + profile, 1)
-    text = replace_section(text, "hunger", hunger_for(profile))
-    atomic_text(path, text)
+    hunger = hunger_for(profile)
+    expected = as_dict(yaml.safe_load(text))
+    expected["hunger"] = hunger
+    candidate = verified_replace_section(text, "hunger", hunger, expected)
+    atomic_text(path, candidate)
     return path
 
 
