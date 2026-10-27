@@ -52,6 +52,14 @@ def test_explicit_receiving_target_must_match_observed_checkout(tmp_path: Path) 
     assert initialize(directory.parent.parent, plan, maw=maw).is_dir()
 
 
+def test_init_cannot_relabel_a_stale_comparison_with_a_new_receiving_branch(tmp_path: Path) -> None:
+    directory, _, maw, _ = pair(tmp_path)
+    git(maw, "checkout", "-qb", "another-target")
+    with pytest.raises(CrabError, match="receiving context changed after comparison"):
+        initialize(directory.parent.parent, PLAN, maw=maw)
+    assert report(directory)["receiving_context"]["selected_ref"] != "another-target"
+
+
 @pytest.mark.parametrize("field", ["worktree", "policy", "scoring", "ledger", "context"])
 def test_merge_refuses_mixed_receiving_inputs(field: str) -> None:
     sources = {"a": menu("x/a"), "b": menu("x/b")}

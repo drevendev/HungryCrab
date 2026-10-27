@@ -173,6 +173,14 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
     if ledger is None and ledger_path is not None and ledger_path.is_file():
         ledger = read_object(ledger_path)
     observed_context = receiving_context(maw, manifests["maw"], config.raw, ledger)
+    compared_context = as_dict(menu.get("receiving_context"))
+    if any(
+        key in compared_context and compared_context[key] != observed_context[key]
+        for key in ("root", "sha", "selected_ref", "policy")
+    ):
+        raise CrabError(
+            "receiving context changed after comparison; regenerate the meal before exploration"
+        )
     selected = plan.get("receiving_context", {})
     if not isinstance(selected, dict):
         raise CrabError("plan receiving_context must be a mapping")
