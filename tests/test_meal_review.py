@@ -62,6 +62,7 @@ def test_registration_joins_derived_menu_and_separate_phase_observations(tmp_pat
     assert not projected["explorations"][0]["exploration_complete"]
     rendered = render_report(directory.parent.parent)
     assert "analyst-reviewed" in rendered and "another question" in rendered
+    assert "budget-deferred" in rendered and "verified-gap" in rendered
     assert "not independent provider verification" in rendered
     unrelated = copy.deepcopy(current)
     unrelated["maw"]["sha"] = "f" * 40

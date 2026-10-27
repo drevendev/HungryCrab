@@ -286,6 +286,13 @@ def _menu(menu: dict[str, Any], directory: Path | None = None) -> str:
                 ]
             ],
         )
+        content += _table(
+            ["Hypothesis", "Disposition", "Reviewed", "Reason"],
+            [
+                [entry.get(key) for key in ("hypothesis", "disposition", "reviewed", "reason")]
+                for entry in exploration["decisions"]
+            ],
+        )
     for phase, observations in review["phases"].items():
         content += _table(
             [

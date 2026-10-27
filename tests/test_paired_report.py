@@ -51,7 +51,10 @@ def experiment(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     root = paired_report.freeze(plan_path, tmp_path / "experiment")
     costs = tmp_path / "measurements.json"
     costs.write_text(
-        json.dumps({"wall_seconds": 1.25, "installed_source": source}), encoding="utf-8"
+        json.dumps(
+            {"wall_seconds": 1.25, "acquisition_wall_seconds": 3.0, "installed_source": source}
+        ),
+        encoding="utf-8",
     )
     schedule = json.loads((root / "experiment.json").read_text())["schedule"]
     roots = {}
@@ -73,6 +76,8 @@ def test_paired_tokens_duplicates_and_relocation_preserve_raw_bytes(tmp_path: Pa
     )
     assert result["runs"][0]["costs"]["cost_usd"] is None
     assert result["runs"][0]["costs"]["model_tokens_in"] is None
+    assert result["runs"][0]["costs"]["acquisition_wall_seconds"] == 3.0
+    assert result["runs"][0]["costs"]["wall_seconds"] == 1.25
     assert result["unique_artifact_bundles"] == 1
     assert result["receiving_scoped_ids"] == 1
     assert all(pair["equal"] for pair in result["semantic_equal_pairs"])

@@ -740,6 +740,11 @@ def print_menu(
                 f"{exploration['pending_facets']}; unresolved: "
                 f"{exploration['unresolved_hypotheses']}"
             )
+            dispositions: dict[str, int] = {}
+            for entry in exploration["decisions"]:
+                disposition = str(entry.get("disposition", "unknown"))
+                dispositions[disposition] = dispositions.get(disposition, 0) + 1
+            print("Hypothesis dispositions: " + json.dumps(dispositions, sort_keys=True))
     print(
         f"{'#':>3} {'score':>5}  {'category':<15}{'nutrient':<52}{'mode':<12}{'eff':<4}"
         f"{'serve':<6}id"

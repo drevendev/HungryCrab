@@ -142,6 +142,8 @@ def project_menu(menu: dict[str, Any], directory: Path | None = None) -> dict[st
                     "unresolved_hypotheses",
                     "unreviewed_candidates",
                     "exploration_complete",
+                    "decisions",
+                    "examined_hypotheses",
                 )
             }
             for r in reports

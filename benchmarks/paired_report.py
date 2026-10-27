@@ -36,6 +36,11 @@ METRICS = (
     "model_tokens_in",
     "model_tokens_out",
     "cost_usd",
+    "acquisition_wall_seconds",
+    "ci_setup_wall_seconds",
+    "ci_queue_wall_seconds",
+    "source_review_wall_seconds",
+    "model_wall_seconds",
 )
 T = TypeVar("T")
 
