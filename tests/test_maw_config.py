@@ -207,7 +207,10 @@ def test_scoring_rewrite_rejects_unsafe_layout_without_writing(tmp_path: Path, s
 def test_init_retains_code_policy_inline_comment(tmp_path: Path) -> None:
     path = write_default_config(tmp_path)
     rewritten = path.read_text(encoding="utf-8")
-    assert "code: ideas-only  # source-linked behavior findings from crab explore register" in rewritten
+    assert (
+        "code: ideas-only  # source-linked behavior findings from crab explore register"
+        in rewritten
+    )
     assert MawConfig.load(tmp_path).hunger["code"] == "ideas-only"
 
 
