@@ -603,7 +603,14 @@ def _copyright_metadata(line: str) -> bool:
                 )
             )
         )
-        if ambiguous:
+        # A bare syntactic handle may actually be unrecognized policy prose
+        # (nosale, sharealike, etc.). The finite denylist above is not proof
+        # of account identity: only remove an alias clearly tied to the named
+        # copyright holder. Unrelated handles remain HUMAN/NOASSERTION.
+        owner_key = re.sub(r"[^a-z0-9]", "", alias.group(1).casefold())
+        handle_key = re.sub(r"[^a-z0-9]", "", handle.casefold())
+        owner_linked = bool(owner_key) and handle_key in {owner_key, owner_key + "dev"}
+        if ambiguous or not owner_linked:
             return False
         holder = alias.group(1).rstrip()
     words = holder.split()

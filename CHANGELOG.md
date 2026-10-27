@@ -9,8 +9,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- Recognize a bounded parenthesized account handle in MIT copyright notices, including
-  Devostasis' `Dreven (drevendev)`, while continuing to reject restrictive preambles and riders.
+- Recognize holder-linked parenthesized account handles in MIT copyright notices,
+  including Devostasis' `Dreven (drevendev)`, while rejecting unrelated aliases,
+  restrictive preambles and riders for human review.
 
 ## [0.6.6] - 2026-10-26
 
