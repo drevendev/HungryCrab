@@ -303,13 +303,27 @@ def _submodule_side(maw_label: str, paths: list[str] | None) -> tuple[str, bool]
 def run() -> int:
     temp = Path(os.environ["RUNNER_TEMP"])
     workspace = Path(os.environ["GITHUB_WORKSPACE"])
-    output = os.environ.get("CRAB_OUT") or str(temp / f"crab-feeder-{uuid.uuid4().hex}")
-    if not Path(output).is_absolute():
-        output = str(workspace / output)
+    # Explicit destinations must be absolute: default maw="." is GITHUB_WORKSPACE,
+    # so anchoring a relative output/cache there violates Feeder's source protections.
+    output_input = os.environ.get("CRAB_OUT", "")
+    if output_input and not Path(output_input).is_absolute():
+        print(
+            "Feeder action: CRAB_OUT must be an absolute path outside the maw; "
+            "leave out empty to use runner temporary storage.",
+            file=sys.stderr,
+        )
+        return 2
+    output = output_input or str(temp / f"crab-feeder-{uuid.uuid4().hex}")
     volume = os.environ.get("CRAB_ACQUISITION_VOLUME", "")
-    cache = os.environ.get("CRAB_CACHE") or str((Path(volume) if volume else temp) / "hungry-crab")
-    if not Path(cache).is_absolute():
-        cache = str(workspace / cache)
+    cache_input = os.environ.get("CRAB_CACHE", "")
+    if cache_input and not Path(cache_input).is_absolute():
+        print(
+            "Feeder action: CRAB_CACHE must be an absolute path outside the maw; "
+            "leave cache-dir empty to use runner temporary storage.",
+            file=sys.stderr,
+        )
+        return 2
+    cache = cache_input or str((Path(volume) if volume else temp) / "hungry-crab")
     maw = Path(os.environ.get("CRAB_MAW", "."))
     if not maw.is_absolute():
         maw = workspace / maw
