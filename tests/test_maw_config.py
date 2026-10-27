@@ -171,6 +171,48 @@ def test_write_scoring_keeps_other_keys(tmp_path: Path) -> None:
     assert MawConfig.load(tmp_path / "other").scoring == {"traits": {"ci.cache": 1.0}}
 
 
+def test_scoring_rewrite_preserves_surviving_inline_comments(tmp_path: Path) -> None:
+    source = (
+        "scoring:\n"
+        "  categories:\n"
+        "    docs: 0.3   # docs PRs never land here\n"
+        "    ci: 0.95    # CI is our bottleneck\n"
+    )
+    path = tmp_path / CONFIG_FILE
+    path.write_text(source, encoding="utf-8")
+    config = MawConfig.load(tmp_path)
+    config.write_scoring({"categories": {"docs": 0.3, "ci": 1.0}})
+    rewritten = path.read_text(encoding="utf-8")
+    assert "docs: 0.3  # docs PRs never land here" in rewritten
+    assert "ci: 1.0  # CI is our bottleneck" in rewritten
+    assert MawConfig.load(tmp_path).scoring == {"categories": {"docs": 0.3, "ci": 1.0}}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "  mode: strict\n  scoring: {}\n  ledger: repo\n",
+        "mode: strict\nledger: repo\n...\n",
+    ],
+)
+def test_scoring_rewrite_rejects_unsafe_layout_without_writing(
+    tmp_path: Path, source: str
+) -> None:
+    path = tmp_path / CONFIG_FILE
+    path.write_bytes(source.encode("utf-8"))
+    config = MawConfig.load(tmp_path)
+    with pytest.raises(UsageError, match="cannot safely rewrite YAML section"):
+        config.write_scoring({"categories": {"docs": 0.3, "ci": 1.0}})
+    assert path.read_bytes() == source.encode("utf-8")
+
+
+def test_init_retains_code_policy_inline_comment(tmp_path: Path) -> None:
+    path = write_default_config(tmp_path)
+    rewritten = path.read_text(encoding="utf-8")
+    assert "code: ideas-only  # produced by nothing until 0.4" in rewritten
+    assert MawConfig.load(tmp_path).hunger["code"] == "ideas-only"
+
+
 def test_maw_slug_recognizes_supported_forge_remotes(tmp_path: Path, npm_app: Path) -> None:
     assert maw_slug(npm_app) is None
     repo = tmp_path / "with-remote"
