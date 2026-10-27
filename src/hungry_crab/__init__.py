@@ -6,4 +6,4 @@ it analyses and never calls a language model; judgment is left to the Agent Skil
 
 from __future__ import annotations
 
-__version__ = "0.6.7.dev0"
+__version__ = "0.6.7"

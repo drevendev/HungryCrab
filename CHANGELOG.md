@@ -7,6 +7,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-10-28
+
+### Added
+
+- Add shared CLI/HTML evidence-state projections for structural seeds, analyst review,
+  unresolved hypotheses, explicit selections and scoped outcome observations. Conflicting
+  selections remain explicit and cannot inflate selected-change counts (#469, #476).
+- Add offline paired cost/yield reporting with frozen effective inputs, immutable raw receipts,
+  explicit relocation and unknown-cost handling. Add ranking diagnostics without changing
+  B1 labels, thresholds or scoring defaults (#468, #476).
+
 ### Fixed
 
 - Bind supervised discovery to the selected receiving context, refuse stale registrations and
@@ -17,9 +28,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   members without exposing configured values.
 - Reuse verified session-local MCP analysis across pages; refuse stale continuations and retain
   shallow/partial evidence and read-only boundaries.
-- Distinguish structural seeds, analyst review, pending hypotheses and scoped outcome observations
-  in ordinary CLI/HTML views. Add reproducible paired cost/yield reporting and ranking diagnostics
-  without changing B1 labels, thresholds or scoring defaults.
+- Detect branch/detached-HEAD transitions and receiving edits during MCP snapshot validation;
+  require a current receiving context before exploration initialization (#470, #476).
+- Preserve every unresolved hypothesis across facet transitions instead of letting a later
+  investigation hide earlier deferred work (#471).
+- Reject unsafe relative output/cache paths in the Feeder Action while preserving explicit
+  absolute destinations and temporary defaults (#463).
 - Recognize holder-linked parenthesized account handles in MIT copyright notices,
   including Devostasis' `Dreven (drevendev)`, while rejecting unrelated aliases,
   restrictive preambles and riders for human review.
@@ -1188,7 +1202,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...HEAD
+[0.6.7]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/drevendev/HungryCrab/compare/v0.6.3...v0.6.4
