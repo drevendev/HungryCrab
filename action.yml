@@ -48,10 +48,10 @@ inputs:
     description: Explicitly accept inventory visibility loss
     default: 'false'
   out:
-    description: New or empty output directory (default is a unique runner temporary directory)
+    description: Absolute new or empty output directory outside the maw; relative paths are refused (default is runner temporary storage)
     default: ''
   cache-dir:
-    description: Cache directory (default is in runner temporary storage; never uploaded)
+    description: Absolute cache directory outside the maw; relative paths are refused (default is runner temporary storage; never uploaded)
     default: ''
   artifact-name:
     description: Artifact name; use a distinct name for each matrix job
