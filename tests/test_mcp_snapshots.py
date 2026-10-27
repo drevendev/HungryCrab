@@ -9,7 +9,7 @@ from fixture_builder import git
 from test_discovery_inputs import repository
 
 from hungry_crab import digest as digest_module
-from hungry_crab import mcp_service
+from hungry_crab import mcp_service, mcp_snapshot
 from hungry_crab.errors import CrabError
 from hungry_crab.mcp_service import AnalysisService
 
@@ -63,7 +63,7 @@ def test_shallow_pages_use_one_analysis_and_preserve_sources(
 
 
 @pytest.mark.parametrize(
-    "change", ["source", "policy", "receiving", "refs", "shallow", "expired", "corrupt"]
+    "change", ["source", "policy", "receiving", "detached", "refs", "shallow", "expired", "corrupt"]
 )
 def test_changed_inputs_refuse_continuation_and_rebuild_from_zero(
     tmp_path: Path, change: str
@@ -78,6 +78,8 @@ def test_changed_inputs_refuse_continuation_and_rebuild_from_zero(
         )
     elif change == "receiving":
         (maw / "app.py").write_text("pass # receiving change\n", encoding="utf-8")
+    elif change == "detached":
+        git(maw, "checkout", "--detach", "-q", "HEAD")
     elif change == "refs":
         git(prey, "branch", "new-observed-ref")
     elif change == "shallow":
@@ -134,3 +136,35 @@ def test_category_filter_reuses_analysis_and_eviction_requires_restart(tmp_path:
     service.digest(str(prey))
     with pytest.raises(CrabError, match="unavailable"):
         service.menu(str(prey), str(maw), offset=1)
+
+
+def test_evicted_digest_page_cannot_silently_start_another_snapshot(tmp_path: Path) -> None:
+    service, prey, maw = service_pair(tmp_path)
+    service.snapshots.capacity = 1
+    service.digest(str(prey))
+    service.menu(str(prey), str(maw))
+    analyses = service.snapshots.counters["analyses"]
+    (prey / "app.py").write_text("pass # changed after eviction\n", encoding="utf-8")
+    with pytest.raises(CrabError, match="snapshot"):
+        service.digest(str(prey), page="inventory.md")
+    assert service.snapshots.counters["analyses"] == analyses
+    assert not service.digest(str(prey))["snapshot"]["reused"]
+    assert service.digest(str(prey), page="inventory.md")["snapshot"]["reused"]
+
+
+def test_receiving_edit_during_hit_validation_refuses_continuation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    service, prey, maw = service_pair(tmp_path)
+    service.menu(str(prey), str(maw), limit=1)
+    original = mcp_snapshot.evidence_identity
+
+    def edit_during_validation(value: mcp_snapshot.Analysis) -> str:
+        evidence = original(value)
+        (maw / "app.py").write_text("pass # edit during validation\n", encoding="utf-8")
+        return evidence
+
+    monkeypatch.setattr(mcp_snapshot, "evidence_identity", edit_during_validation)
+    with pytest.raises(CrabError, match="snapshot"):
+        service.menu(str(prey), str(maw), offset=1)
+    assert service.snapshots.counters["analyses"] == 1

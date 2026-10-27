@@ -281,12 +281,11 @@ class AnalysisService:
             target = self.prey(prey)
             options = self.options(depth)
             key = ("digest", str(target), depth)
-            prior = key in self.snapshots.entries
             result, snapshot, hit = self.snapshots.get(
                 key,
                 lambda: input_identity(target, options),
                 lambda: run_digest(target, options),
-                continuation=page is not None and prior,
+                continuation=page is not None,
             )
             assert isinstance(result, DigestResult)
             errors = digest_integrity_errors(result.out_dir, result.manifest)

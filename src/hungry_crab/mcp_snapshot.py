@@ -40,6 +40,7 @@ def _source(ctx: MineContext) -> dict[str, Any] | None:
         "root": str(ctx.root.resolve()),
         "sha": ctx.sha,
         "ref": ctx.ref,
+        "selected_ref": ctx.git.current_branch(),
         "worktree": ctx.worktree,
         "shallow": ctx.shallow,
         "boundary": fingerprint(read_bytes(boundary, 1024 * 1024).hex())
@@ -141,7 +142,11 @@ class SnapshotStore:
         ):
             self.counters["validations"] += 1
             try:
-                healthy = evidence_identity(saved.value) == saved.evidence
+                healthy = (
+                    evidence_identity(saved.value) == saved.evidence
+                    and inputs() == saved.inputs
+                    and time.monotonic() - saved.created < self.ttl
+                )
             except CrabError:
                 healthy = False
         if healthy:
