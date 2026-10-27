@@ -58,6 +58,19 @@ renaming them. Exact trait overrides win over family overrides. Generic maw-rela
 one decision each. Uptake uses `same_stack`, `transferable` or `other_stack` from scoring; all three
 weights now affect the corresponding cards.
 
+Tune uses an explicit `--min-decisions` first, otherwise the maw's `memory.min_decisions`.
+Negative-only traits need `max(2, minimum)` decisions; positive-only traits need
+`max(3, minimum)`. Serving, sightings and uninvestigated triage are not votes. Automatic
+memory still respects owner weights; the explicit tune/write action pins its suggestions.
+Only known behavior families aggregate across prey. Issue numbers, cluster ranks and unknown
+suffixes keep exact keys. Ambiguous legacy wildcard overrides remain in the owner's file but
+are diagnosed as unsupported/not applied; stable IDs and existing votes are unchanged.
+
+Scoring rewrites preserve supported inline comments/CRLF and validate both intended policy and
+rendered YAML before atomic replacement. Unsupported indented roots, end markers, anchors and
+flow-style roots fail without writing. Invalid scoring values name their section/member, never
+the configured value. The broader anchored/flow-style editing work remains separate.
+
 Ledger writes use an atomic replacement. Unknown fields in a supported schema survive a save;
 future schemas, duplicate ids, invalid statuses and malformed collections fail before rewrite.
 A nonblocking OS lock protects replacement. A stale writer fails before overwriting newer

@@ -182,11 +182,14 @@ def _digest(directory: Path, manifest: dict[str, Any]) -> str:
     )
 
 
-def _card(card: dict[str, Any], index: int) -> str:
+def _card(card: dict[str, Any], index: int, review: dict[str, Any] | None = None) -> str:
     evidence = [row for row in as_list(card.get("evidence")) if isinstance(row, dict)]
     trace = as_dict(card.get("trace"))
     parts = [
-        f'<article class="card"><div class="muted">Recommendation {index}</div>',
+        (
+            f'<article class="card"><div class="muted">Candidate {index} · '
+            f"{text(as_dict(review).get('review', 'structural-seed'))}</div>"
+        ),
         f"<h3>{text(card.get('title'))}</h3>",
     ]
     for label in (
@@ -229,7 +232,10 @@ def _card(card: dict[str, Any], index: int) -> str:
     return "".join(parts)
 
 
-def _menu(menu: dict[str, Any]) -> str:
+def _menu(menu: dict[str, Any], directory: Path | None = None) -> str:
+    from .meal_review import project_menu
+
+    review = project_menu(menu, directory)
     raw = menu.get("candidates")
     if not isinstance(raw, list) or any(not isinstance(row, dict) for row in raw):
         raise CrabError("menu has an invalid candidate list")
@@ -251,6 +257,63 @@ def _menu(menu: dict[str, Any]) -> str:
             (menu.get("mode", "normal"), "maw policy"),
         ]
     )
+    content += "<section><h2>Evidence and completion</h2>"
+    content += _table(
+        ["Measure", "Count"], [[key, value] for key, value in review["counts"].items()]
+    )
+    content += _notice(review["phase_evidence"])
+    content += _notice(f"{review['evidence_scope']}; as of {review['as_of']}")
+    for exploration in review["explorations"]:
+        content += f"<p>Explore report: <code>{text(exploration['report_path'])}</code></p>"
+        content += _table(
+            [
+                "Scope",
+                "Complete",
+                "Pending facets",
+                "Unresolved hypotheses",
+                "Unreviewed candidates",
+            ],
+            [
+                [
+                    exploration[key]
+                    for key in (
+                        "scope",
+                        "exploration_complete",
+                        "pending_facets",
+                        "unresolved_hypotheses",
+                        "unreviewed_candidates",
+                    )
+                ]
+            ],
+        )
+    for phase, observations in review["phases"].items():
+        content += _table(
+            [
+                phase,
+                "Repository",
+                "Artifact/head",
+                "Method",
+                "Workflow/job",
+                "Runner",
+                "Executed steps",
+            ],
+            [
+                [
+                    entry.get("state"),
+                    entry.get("repository"),
+                    entry.get("artifact"),
+                    entry.get("method"),
+                    f"{entry.get('workflow', 'Unknown')} / {entry.get('job', 'Unknown')}",
+                    entry.get("runner"),
+                    entry.get("executed_steps"),
+                ]
+                for entry in observations
+            ]
+            or [["Unknown / not recorded", None, None, None, None, None, None]],
+        )
+    for diagnostic in review["diagnostics"]:
+        content += _notice(diagnostic)
+    content += "</section>"
     verdict = as_dict(menu.get("verdict"))
     if verdict:
         content += (
@@ -276,7 +339,10 @@ def _menu(menu: dict[str, Any]) -> str:
     )
     for number, (category, rows) in enumerate(groups.items()):
         content += f'<section id="category-{number}"><h2>{text(category)}</h2><div class="cards">'
-        content += "".join(_card(row, index) for index, row in rows) + "</div></section>"
+        content += (
+            "".join(_card(row, index, review["cards"].get(row["id"])) for index, row in rows)
+            + "</div></section>"
+        )
     if hidden:
         content += '<section><h2>Hidden decisions</h2><div class="panel">'
         content += (
@@ -303,7 +369,7 @@ def render_report(source: Path) -> str:
     from .compare import MENU_SCHEMA
 
     if data.get("schema") == MENU_SCHEMA:
-        return _menu(data)
+        return _menu(data, source.parent)
     raise UsageError("report source must be a digest directory/manifest or a meal directory/menu")
 
 

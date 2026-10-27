@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .compare.scoring import Scoring
 from .errors import UsageError
+from .learning_keys import ambiguous_overrides
 from .ledger import Ledger, LedgerEntry
 from .loop_config import mapping, positive
 
@@ -81,6 +82,7 @@ class MemoryReport:
     min_decisions: int
     strength: float
     categories: dict[str, dict[str, Any]] = field(default_factory=dict)
+    diagnostics: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {"schema": "hungry-crab.memory/1", **asdict(self)}
@@ -100,6 +102,7 @@ def learn(
     report = MemoryReport(
         settings.enabled, len(entries), fingerprint, settings.min_decisions, settings.strength
     )
+    report.diagnostics = ambiguous_overrides(scoring.traits)
     result = scoring.merged(None)
     manual = (overrides or {}).get("categories", {})
     groups: dict[str, list[LedgerEntry]] = {}

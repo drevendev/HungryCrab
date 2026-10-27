@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ranking_metrics import diagnostics, mean_diagnostics
 
 from hungry_crab.compare import CompareOptions, compare_digests
 
@@ -54,6 +55,7 @@ class PairResult:
     missed: list[str] = field(default_factory=list)
     noisy: list[str] = field(default_factory=list)
     must_not_total: int = 0
+    ranking: dict[str, float] = field(default_factory=dict)
 
     @property
     def recall(self) -> float:
@@ -96,6 +98,9 @@ def run(root: Path = ROOT, *, top: int = TOP) -> tuple[list[PairResult], dict[st
                 missed=[key for key in must if key not in shown],
                 noisy=[key for key in must_not if key in shown],
                 must_not_total=len(must_not),
+                ranking=diagnostics(
+                    shown, {**dict.fromkeys(must_not, 0), **dict.fromkeys(must, 1)}
+                ),
             )
         )
     return results, spec
@@ -151,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
                     "schema": "hungry-crab.menu-benchmark-result/1",
                     "top": args.top,
                     "summary": summary,
+                    "ranking_diagnostics_at_10": mean_diagnostics(
+                        [result.ranking for result in results]
+                    ),
                     "pairs": [asdict(r) for r in results],
                     "failures": failures,
                 },
@@ -176,6 +184,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  MISSED  {result.prey}: {key}")
     for failure in failures:
         print(f"\nFAIL: {failure}")
+    print(
+        "Ranking diagnostics @10 (historical relevance proxy; no new gate): "
+        + json.dumps(mean_diagnostics([result.ranking for result in results]), sort_keys=True)
+    )
     return 1 if failures else 0
 
 

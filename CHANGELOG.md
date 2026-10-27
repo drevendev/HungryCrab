@@ -9,6 +9,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Bind supervised discovery to the selected receiving context, refuse stale registrations and
+  incompatible multi-prey receiving/learning policies while retaining all restrictive sources.
+- Honor configured tune minimums and safe cross-prey behavior families; diagnose ambiguous
+  legacy wildcard pins without changing nutrient IDs or ledger votes.
+- Validate comment-preserving scoring/init YAML before replacement and identify invalid scoring
+  members without exposing configured values.
+- Reuse verified session-local MCP analysis across pages; refuse stale continuations and retain
+  shallow/partial evidence and read-only boundaries.
+- Distinguish structural seeds, analyst review, pending hypotheses and scoped outcome observations
+  in ordinary CLI/HTML views. Add reproducible paired cost/yield reporting and ranking diagnostics
+  without changing B1 labels, thresholds or scoring defaults.
 - Recognize holder-linked parenthesized account handles in MIT copyright notices,
   including Devostasis' `Dreven (drevendev)`, while rejecting unrelated aliases,
   restrictive preambles and riders for human review.

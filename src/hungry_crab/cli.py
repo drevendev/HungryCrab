@@ -425,8 +425,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_tune.add_argument(
         "--min-decisions",
         type=int,
-        default=3,
-        help="minimum labelled decisions before suggesting weights (default: 3)",
+        default=None,
+        help="minimum labelled decisions (default: maw memory.min_decisions)",
     )
     p_tune.add_argument("--json", action="store_true", help="print the result as JSON")
 
@@ -715,7 +715,12 @@ def cmd_digest(args: argparse.Namespace, log: Callable[[str], None]) -> int:
 
 
 def print_menu(
-    menu: dict[str, Any], cards: list[Candidate], *, top: int, show_hidden: bool
+    menu: dict[str, Any],
+    cards: list[Candidate],
+    *,
+    top: int,
+    show_hidden: bool,
+    review: dict[str, Any] | None = None,
 ) -> None:
     prey = menu.get("prey", {})
     maw = menu.get("maw", {})
@@ -726,15 +731,29 @@ def print_menu(
         f"({counts.get('total', len(cards))} candidates, {counts.get('hidden', 0)} hidden, "
         f"default mode {verdict.get('mode', '?')})"
     )
+    if review is not None:
+        print("Evidence counts: " + json.dumps(review["counts"], sort_keys=True))
+        print(review["phase_evidence"])
+        for exploration in review["explorations"]:
+            print(
+                f"Explore report: {exploration['report_path']}; pending facets: "
+                f"{exploration['pending_facets']}; unresolved: "
+                f"{exploration['unresolved_hypotheses']}"
+            )
     print(
         f"{'#':>3} {'score':>5}  {'category':<15}{'nutrient':<52}{'mode':<12}{'eff':<4}"
         f"{'serve':<6}id"
     )
     for index, card in enumerate(cards[:top], start=1):
         title = card.title if len(card.title) <= 50 else card.title[:47] + "..."
+        state = (
+            review["cards"].get(card.id, {}).get("review", "structural-seed")
+            if review
+            else "structural-seed"
+        )
         print(
             f"{index:>3} {card.score:>5.2f}  {card.category:<15}{title:<52}{card.license_mode:<12}"
-            f"{card.effort:<4}{card.serve_as:<6}{card.id}"
+            f"{card.effort:<4}{card.serve_as:<6}{card.id} [{state}]"
         )
     if show_hidden:
         for item in menu.get("hidden", []):
@@ -780,10 +799,15 @@ def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         prey_objects=args.prey_objects,
         record_ledger=not args.no_ledger,
     )
+    from .meal_review import project_menu
+
+    review = project_menu(result.menu, result.meal_dir)
     if args.json:
-        print(json.dumps(result.menu, indent=2, ensure_ascii=False))
+        print(json.dumps({**result.menu, "analysis_review": review}, indent=2, ensure_ascii=False))
         return 0
-    print_menu(result.menu, result.candidates, top=min(args.top, 15), show_hidden=False)
+    print_menu(
+        result.menu, result.candidates, top=min(args.top, 15), show_hidden=False, review=review
+    )
     print(f"meal written to {result.meal_dir}")
     return 0
 
@@ -1001,7 +1025,8 @@ def cmd_tune(args: argparse.Namespace) -> int:
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     scoring = Scoring.default().merged(config.scoring)
-    report = analyse(ledger, scoring, min_decisions=args.min_decisions, hunger=config.hunger)
+    minimum = config.memory.min_decisions if args.min_decisions is None else args.min_decisions
+    report = analyse(ledger, scoring, min_decisions=minimum, hunger=config.hunger)
     written = None
     if args.write and any(s.kind in ("category", "trait") for s in report.suggestions):
         apply_tuning(report, config)
@@ -1018,6 +1043,8 @@ def cmd_tune(args: argparse.Namespace) -> int:
 
 
 def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    from .meal_review import project_menu
+
     menu: dict[str, Any] | None
     if bool(args.prey) == bool(args.meal_dir):
         raise UsageError("menu needs exactly one prey or --meal-dir")
@@ -1034,16 +1061,18 @@ def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
             hint=f"run: crab compare {args.prey} --maw <path to the maw repository>",
         )
     cards = menu_candidates(menu)
+    review = project_menu(menu, meal_dir)
     if args.category:
         wanted = {c.strip() for c in args.category.split(",") if c.strip()}
         cards = [card for card in cards if card.category in wanted]
     if args.json:
         payload = dict(menu)
         payload["candidates"] = [card.to_dict() for card in cards[: args.top]]
+        payload["analysis_review"] = review
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
     log(f"menu from {meal_dir / 'menu.json'}")
-    print_menu(menu, cards, top=args.top, show_hidden=args.all)
+    print_menu(menu, cards, top=args.top, show_hidden=args.all, review=review)
     return 0
 
 

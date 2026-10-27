@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from difflib import get_close_matches
 from pathlib import Path
@@ -264,7 +265,13 @@ class MawConfig:
             loaded = {}
         if not isinstance(loaded, dict):
             raise UsageError(f"{path}: configuration must be a YAML mapping")
-        data = loaded
+        return cls.from_data(root, loaded)
+
+    @classmethod
+    def from_data(cls, root: Path, data: dict[str, Any]) -> MawConfig:
+        """Validate an in-memory configuration through exactly the normal read path."""
+        config = cls(root=root.resolve())
+        path = config.path
         config.exists = True
         config.raw = data
         license_value = data.get("license")
@@ -350,15 +357,18 @@ class MawConfig:
 
     def write_scoring(self, scoring: dict[str, Any]) -> Path:
         """Atomically replace only scoring, preserving the owner's surrounding policy."""
-        if self.exists and scoring == self.scoring:
-            return self.path
         data = dict(self.raw) if self.exists else as_dict(yaml.safe_load(DEFAULT_CONFIG_TEXT))
         data["scoring"] = scoring
+        MawConfig.from_data(self.root, data)
+        if self.exists and scoring == self.scoring:
+            return self.path
         text = DEFAULT_CONFIG_TEXT
         if self.exists:
             with self.path.open(encoding="utf-8", newline="") as source:
                 text = source.read()
-        atomic_text(self.path, replace_section(text, "scoring", scoring))
+        rendered = replace_section(text, "scoring", scoring)
+        _validated_rewrite(self.root, rendered, data)
+        atomic_text(self.path, rendered)
         self.raw = data
         self.scoring = scoring
         self.exists = True
@@ -370,9 +380,27 @@ def write_default_config(root: Path, *, force: bool = False, profile: str = "bal
     if path.exists() and not force:
         raise CrabError(f"{path} already exists", hint="pass --force to overwrite it")
     text = DEFAULT_CONFIG_TEXT.replace("profile: balanced", "profile: " + profile, 1)
+    intended = as_dict(yaml.safe_load(text))
+    intended["hunger"] = hunger_for(profile)
     text = replace_section(text, "hunger", hunger_for(profile))
+    _validated_rewrite(root, text, intended)
     atomic_text(path, text)
     return path
+
+
+def _validated_rewrite(root: Path, text: str, intended: dict[str, Any]) -> None:
+    MawConfig.from_data(root, intended)
+    try:
+        loaded = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise UsageError(
+            "configuration rewrite is not valid YAML", hint="edit scoring manually"
+        ) from exc
+    if not isinstance(loaded, dict):
+        raise UsageError("configuration rewrite must remain a mapping")
+    MawConfig.from_data(root, loaded)
+    if json.dumps(loaded, sort_keys=True) != json.dumps(intended, sort_keys=True):
+        raise UsageError("configuration rewrite changed owner policy", hint="edit scoring manually")
 
 
 def prey_owner(target: Target | Slug | None) -> str | None:

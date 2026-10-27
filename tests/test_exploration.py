@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,7 +35,12 @@ STREAMING = (
 
 
 def pair(
-    tmp_path: Path, *, gap: bool = True, hunger: str = "ideas-only", header: str = ""
+    tmp_path: Path,
+    *,
+    gap: bool = True,
+    hunger: str = "ideas-only",
+    header: str = "",
+    now: datetime | None = None,
 ) -> tuple[Path, Path, Path, dict[str, Any]]:
     donor = repository(
         tmp_path / "donor",
@@ -55,7 +61,8 @@ def pair(
     result, _, _, _ = compare_for_maw(
         Target(path=donor),
         maw,
-        digest_options=DigestOptions(cache_root=tmp_path / "cache"),
+        digest_options=DigestOptions(cache_root=tmp_path / "cache", now=now),
+        now=now,
         record_ledger=False,
     )
     assert result.meal_dir is not None

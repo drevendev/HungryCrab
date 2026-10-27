@@ -90,14 +90,19 @@ def validate(data: dict[str, Any]) -> None:
         {"categories", "traits", "modes", "effort", "risk", "uptake"},
     )
     for name, values in scoring.items():
-        if not isinstance(values, dict) or any(
-            not isinstance(key, str)
-            or isinstance(weight, bool)
-            or not isinstance(weight, int | float)
-            or not math.isfinite(weight)
-            or not 0 <= weight <= 1
-            for key, weight in values.items()
-        ):
+        if not isinstance(values, dict):
             raise UsageError(
                 f"scoring.{name} must map string keys to finite weights between 0 and 1"
             )
+        for position, (key, weight) in enumerate(values.items(), 1):
+            if not isinstance(key, str):
+                raise UsageError(f"scoring.{name} member {position} must have a string key")
+            # Member names are owner input too; keep diagnostics bounded and single-line.
+            member = key[:120].encode("unicode_escape").decode("ascii")
+            if (
+                isinstance(weight, bool)
+                or not isinstance(weight, int | float)
+                or not math.isfinite(weight)
+                or not 0 <= weight <= 1
+            ):
+                raise UsageError(f"scoring.{name}.{member} must be a finite weight between 0 and 1")

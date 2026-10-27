@@ -12,7 +12,10 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
 ## Protocol
 
 1. **Define the goal.** Record the maw's actual user flows, problems, architecture,
-   runtime/dependency constraints and allowed effects. Select relevant facets from
+   runtime/dependency constraints and allowed effects. State the selected ref/SHA/worktree
+   and intended implementation target before choosing prey. Inspect receiving code/tests and
+   a bounded backlog; retain acquisition time/coverage, or not-acquired. An unconfirmed branch
+   stays unknown; never switch or fetch implicitly. Select relevant facets from
    `docs/discovery.md`: behavior, algorithms, recovery/resources/concurrency, streaming,
    testing, architecture, operations and documentation. A quick structural pass is useful
    when requested, but cannot close a deeper exploration goal.
@@ -38,7 +41,10 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    Each reviewed decision needs its own hypothesis, donor revision/path/range, receiving
    evidence, reason and author/tool/attempt. Category-only triage stays proposed, not reviewed.
    Keep unexplored, budget-deferred, unsupported, policy-blocked and licence-unresolved
-   findings visible. NO_GAP needs an examined scope and actual receiving behavior.
+   findings visible. NO_GAP needs an examined scope and actual receiving behavior; spend any
+   remaining budget on another concrete receiving hypothesis. Platform/stdlib constraints
+   need a receiving-evidenced decision, not donor eligibility alone. Optional `selected: true`
+   on a reviewed verified-gap decision records a choice; alternatives retain IDs and reasons.
 6. **Register non-trait behavior.** Use `crab explore register <exploration> --input finding.json
    --source-repo <inert-repo>`. Give a stable maw-relative `code.<behavior>` key, verified gap,
    before/after behavior, adaptation, maintenance cost and acceptance check. The CLI verifies
@@ -59,6 +65,8 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    exploration, implementation, review/CI, publication and default-branch acceptance separately.
    Bind CI to its repository/head/workflow/job/runner/executed steps. A companion billing or
    app-attachment failure does not negate successful target CI or GitHub publication.
+   Link the actual explore report in the completion summary. Ordinary menu/HTML views project
+   matching records; prose, hashes and recorded PASS assertions are not independent approval.
 10. **Learn only from grounded decisions.** `crab ledger mark <id> accepted|rejected --reason ...`
     records an actual authorized usefulness decision, never unexamined category triage.
     Automatic served is not human acceptance. Exploration writes no learning labels; audit

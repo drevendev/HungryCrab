@@ -178,7 +178,7 @@ def menu_doc(
                     f"{safe_name(verdict.get('reason', ''))}"
                 ),
             ),
-            ("Served as", served_as),
+            ("Proposed output kinds (not published PRs)", served_as),
         ]
     )
     table = doc.section("Ranked candidates", priority=1)

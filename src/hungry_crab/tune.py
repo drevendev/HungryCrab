@@ -11,7 +11,7 @@ from typing import Any
 
 from .compare.scoring import Scoring
 from .errors import UsageError
-from .learning_keys import learning_key
+from .learning_keys import ambiguous_overrides, learning_key
 from .ledger import Ledger
 from .maw import MawConfig
 from .memory import NEGATIVE, POSITIVE, decision
@@ -44,6 +44,7 @@ class TuneReport:
     min_decisions: int
     suggestions: list[Suggestion] = field(default_factory=list)
     categories: dict[str, dict[str, int]] = field(default_factory=dict)
+    diagnostics: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -51,10 +52,15 @@ class TuneReport:
             "min_decisions": self.min_decisions,
             "suggestions": [s.to_dict() for s in self.suggestions],
             "categories": self.categories,
+            "diagnostics": self.diagnostics,
         }
 
     def to_markdown(self) -> str:
         lines = ["# Tuning suggestions", ""]
+        lines.extend(
+            f"Warning: {key}: unsupported legacy learning family; retained, not applied."
+            for key in self.diagnostics
+        )
         if self.decisions == 0:
             lines += [
                 "No decisions in the ledger yet. Decide a few nutrients first:",
@@ -120,6 +126,7 @@ def analyse(
     entries = list(ledger.entries.values())
     decided = [e for e in entries if decision(e) in POSITIVE | NEGATIVE]
     report = TuneReport(decisions=len(decided), min_decisions=min_decisions)
+    report.diagnostics = ambiguous_overrides(scoring.traits)
     by_category: dict[str, list[Any]] = {}
     by_key: dict[str, list[Any]] = {}
     by_prey: dict[str, list[Any]] = {}
@@ -178,7 +185,7 @@ def analyse(
     for key, items in sorted(by_key.items()):
         counts = _counts(items)
         total = counts["accepted"] + counts["rejected"]
-        if total < 2:
+        if total < max(2, min_decisions):
             continue
         current_value = scoring.traits.get(key)
         if counts["accepted"] == 0 and current_value != 0.2:
@@ -189,7 +196,7 @@ def analyse(
                     total, 0.0,
                 )
             )  # fmt: skip
-        elif counts["rejected"] == 0 and total >= 3 and current_value != 1.0:
+        elif counts["rejected"] == 0 and total >= max(3, min_decisions) and current_value != 1.0:
             report.suggestions.append(
                 Suggestion(
                     "trait", key, current_value, 1.0,

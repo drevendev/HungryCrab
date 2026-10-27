@@ -121,3 +121,31 @@ commenter-origin cards. Raw issue titles cannot re-enter the menu or served body
 There is no PR or kept-card quota. Measure examined hypotheses, useful verified gaps,
 adaptation/maintenance costs and later maintainer acceptance. Report the selected scope and
 pending work. An immutable receipt, green CI or a published PR is not default-branch acceptance.
+
+## Receiving target and report joins (0.6.7)
+
+State the selected ref/SHA/worktree, intended implementation target and platform/dependency
+constraints before donor selection. Inspect receiving code/tests and a bounded backlog;
+retain acquisition time/coverage/limits, or explicitly not-acquired. Observing a checkout does
+not confirm an intended branch. Commands never switch, fetch or widen policy to resolve it.
+
+Comparisons now include optional `receiving_context` metadata. Explore init freezes the actual
+observation; a plan may assert `receiving_context.sha`, `selected_ref` and `root`. A mismatch
+is refused. Legacy missing metadata is unknown. After receiving code, HEAD, ref or policy
+changes, regenerate before registration; historical reports remain readable. Multi-prey menus
+require compatible receiving/learning/policy inputs, retain all source cards and keep restrictive
+ceilings. Equivalent ledger read timestamps do not change context.
+
+`crab menu --json` adds `analysis_review`; HTML uses the same projection. A validated snapshot
+plus registration events must match the derived menu, not an arbitrary latest report. Missing,
+stale or corrupt exploration remains unknown. Structural seeds, analyst review, registrations,
+holds and conflicting observations are distinct. Phase observations retain repository/head,
+method and CI details. Offline views do not authenticate provider truth or the current checkout.
+Historical ledger acceptance and nonempty why/how do not prove CI or default-branch ancestry.
+
+An optional `selected: true` decision requires a reviewed verified gap and a known original or
+registered candidate. Record alternative choices/reasons separately; selection never renames
+IDs, authorizes publication or trains learning. Counts distinguish initial/visible occurrences,
+receiving-scoped unique IDs, hidden records, registrations, examined hypotheses and explicit
+selections. Unknown selections/costs remain null. Completion links the actual explore report
+and preserves earlier deferred hypotheses when a facet later investigates something else.

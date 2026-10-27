@@ -5,18 +5,20 @@ from __future__ import annotations
 import os
 import re
 import threading
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Literal
 
 from .artifact_read import MAX_PAGE_BYTES, markdown_pages, read_bytes, read_object
 from .cache import Slug, Target
-from .compare import compare_for_maw
-from .digest import DigestOptions, incomplete_miners, run_digest
+from .compare import CompareResult, compare_for_maw
+from .digest import DigestOptions, DigestResult, incomplete_miners, run_digest
 from .digest_integrity import digest_integrity_errors
 from .errors import CrabError, UsageError
 from .fetch.catch import CatchOptions
 from .fetch.git import GitRunner
 from .fs import is_link_stat
+from .mcp_snapshot import SnapshotStore, input_identity
 from .nutrients import CATEGORIES
 
 _GIT_STORES = ("objects", "refs", "packed-refs", "info/grafts", "shallow")
@@ -74,6 +76,7 @@ class AnalysisService:
         self.allow_network = allow_network
         # The CLI cache is shared mutable state; serialize this server's own requests.
         self.lock = threading.Lock()
+        self.snapshots = SnapshotStore()
         if not validate:
             # `crab mcp --check` builds the server only to prove the SDK loads; it serves no
             # request, so it needs no roots and no cache placed outside them.
@@ -266,6 +269,7 @@ class AnalysisService:
             raise UsageError("depth must be normal or deep")
         return DigestOptions(
             depth=depth,
+            force=True,
             cache_root=self.cache,
             catch_options=CatchOptions(shallow=True, since="90d", issues=0, wiki=False),
         )
@@ -275,7 +279,16 @@ class AnalysisService:
     ) -> dict[str, Any]:
         with self.lock:
             target = self.prey(prey)
-            result = run_digest(target, self.options(depth))
+            options = self.options(depth)
+            key = ("digest", str(target), depth)
+            prior = key in self.snapshots.entries
+            result, snapshot, hit = self.snapshots.get(
+                key,
+                lambda: input_identity(target, options),
+                lambda: run_digest(target, options),
+                continuation=page is not None and prior,
+            )
+            assert isinstance(result, DigestResult)
             errors = digest_integrity_errors(result.out_dir, result.manifest)
             if (
                 errors
@@ -290,6 +303,11 @@ class AnalysisService:
                 "manifest": result.manifest,
                 "digest_dir": str(result.out_dir),
                 "pages": pages,
+                "snapshot": {
+                    "id": snapshot,
+                    "reused": hit,
+                    "as_of": result.manifest.get("generated_at"),
+                },
                 "side_effects": {
                     "scope": "cache only",
                     "ledger_written": False,
@@ -305,7 +323,7 @@ class AnalysisService:
                         "utf-8", errors="replace"
                     ),
                 }
-            return payload
+            return deepcopy(payload)
 
     def menu(
         self, prey: str, maw: str, offset: int = 0, limit: int = 15, category: str | None = None
@@ -316,14 +334,21 @@ class AnalysisService:
             raise UsageError("unknown nutrient category")
         with self.lock:
             target, root = self.prey(prey), self.local(maw)
-            result, _, _, _ = compare_for_maw(
-                target,
-                root,
-                digest_options=self.options("normal"),
-                record_ledger=False,
-                persist_meal=False,
-                issue_lookup=None,
+            options = self.options("normal")
+            result, snapshot, hit = self.snapshots.get(
+                ("menu", str(target), str(root)),
+                lambda: input_identity(target, options, root),
+                lambda: compare_for_maw(
+                    target,
+                    root,
+                    digest_options=options,
+                    record_ledger=False,
+                    persist_meal=False,
+                    issue_lookup=None,
+                )[0],
+                continuation=offset > 0,
             )
+            assert isinstance(result, CompareResult)
             for directory in (result.prey_dir, result.maw_dir):
                 if directory is None:
                     raise CrabError("MCP menu is missing its source digest")
@@ -338,24 +363,31 @@ class AnalysisService:
             if category is not None:
                 rows = [row for row in rows if row["category"] == category]
             selected = rows[offset : offset + limit]
-            return {
-                "schema": "hungry-crab.mcp-menu/1",
-                "untrusted_data": True,
-                "prey": result.menu["prey"],
-                "maw": result.menu["maw"],
-                "verdict": result.menu["verdict"],
-                "meal_dir": None,
-                "origin": "analysis-only",
-                "candidates": selected,
-                "total": len(rows),
-                "offset": offset,
-                "next_offset": offset + len(selected)
-                if offset + len(selected) < len(rows)
-                else None,
-                "hidden_count": len(result.hidden),
-                "side_effects": {
-                    "scope": "cache only",
-                    "ledger_written": False,
-                    "published": False,
-                },
-            }
+            return deepcopy(
+                {
+                    "schema": "hungry-crab.mcp-menu/1",
+                    "untrusted_data": True,
+                    "prey": result.menu["prey"],
+                    "maw": result.menu["maw"],
+                    "verdict": result.menu["verdict"],
+                    "meal_dir": None,
+                    "origin": "analysis-only",
+                    "snapshot": {
+                        "id": snapshot,
+                        "reused": hit,
+                        "as_of": result.menu["generated_at"],
+                    },
+                    "candidates": selected,
+                    "total": len(rows),
+                    "offset": offset,
+                    "next_offset": offset + len(selected)
+                    if offset + len(selected) < len(rows)
+                    else None,
+                    "hidden_count": len(result.hidden),
+                    "side_effects": {
+                        "scope": "cache only",
+                        "ledger_written": False,
+                        "published": False,
+                    },
+                }
+            )

@@ -11,6 +11,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from .analysis_context import fingerprint, ledger_identity
 from .cache import Target, cache_root, maw_paths, prey_paths
 from .compare import MENU_SCHEMA, load_menu, menu_candidates
 from .errors import CrabError, UsageError
@@ -29,6 +30,7 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
     ordered = sorted(sources.items())
     first = ordered[0][1]
     maw = first["maw"]
+    context = _receiving_identity(first)
     groups: dict[str, list[tuple[str, Candidate]]] = {}
     prey_keys: dict[str, str] = {}
     for name, menu in ordered:
@@ -36,6 +38,7 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
             menu.get("schema") != MENU_SCHEMA
             or menu.get("maw") != maw
             or menu.get("mode") != first.get("mode")
+            or _receiving_identity(menu) != context
         ):
             raise CrabError("multi-prey menus must describe the same maw snapshot and policy")
         prey_key = slugify(str(menu["prey"]["label"]))
@@ -78,6 +81,10 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
         "mode": first.get("mode", "normal"),
         "hunger": first.get("hunger", {}),
         "memory": first.get("memory", {}),
+        "receiving_context": first.get("receiving_context"),
+        "receiving_context_status": "observed"
+        if first.get("receiving_context")
+        else "legacy-unknown",
         "counts": {
             "total": len(cards),
             "top": top,
@@ -87,6 +94,21 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
         "candidates": cards,
         "hidden": hidden,
     }
+
+
+def _receiving_identity(menu: dict[str, Any]) -> str:
+    inputs = menu.get("analysis_inputs", {})
+    return fingerprint(
+        {
+            "context": menu.get("receiving_context"),
+            "worktree": menu.get("post_comparison_worktree"),
+            "policy": inputs.get("policy"),
+            "ledger": ledger_identity(inputs.get("ledger")),
+            "hunger": menu.get("hunger"),
+            "scoring": menu.get("scoring"),
+            "memory": menu.get("memory"),
+        }
+    )
 
 
 def menu_prey(menu: dict[str, Any]) -> dict[str, Any]:
@@ -259,6 +281,10 @@ def load_multi(root: Path) -> tuple[dict[str, Any], dict[str, Path], dict[str, s
         if saved is None:
             raise ValueError("missing aggregate menu")
         rebuilt = merge_menus(menus, top=saved["counts"]["top"])
+        # Older saved aggregates did not advertise receiving-context coverage.
+        for additive in ("receiving_context", "receiving_context_status"):
+            if additive not in saved:
+                rebuilt.pop(additive, None)
         if rebuilt != saved:
             raise ValueError("aggregate menu differs from its sources")
         return rebuilt, paths, targets

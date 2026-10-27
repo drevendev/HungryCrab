@@ -199,6 +199,16 @@ than silently disappearing. A new output is created without replacing an existin
 
 ## Reproduce the installation acceptance
 
+MCP paging reuses a bounded server-session snapshot (eight entries, up to 60 seconds). Source
+HEAD/worktree/refs/shallow boundary, acquired API/wiki evidence, receiving policy/ledger, tool
+identity and freshness are rechecked; digest artifacts are verified on hits. Changed, damaged,
+expired or evicted menu snapshots refuse continuation with a restart-at-offset-0 hint. Digest
+clients relist pages without `page` after invalidation. Responses expose snapshot id/as-of/reuse.
+New analyses force fresh evidence within MCP; this does not make shallow digests canonical or
+change global digest reuse. Unknown non-Git identity cannot support a reusable snapshot. No
+implicit deepening/fetch, source/ledger writes or CLI meal replacement is introduced. Visibility
+refusals identify the affected side and recovery direction; deep-menu support stays separate.
+
 ```sh
 uv sync --locked --all-extras
 uv run python scripts/install_smoke.py --skills

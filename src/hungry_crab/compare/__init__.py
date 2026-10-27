@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ..analysis_context import receiving_context
 from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, run_digest
 from ..digest_integrity import digest_integrity_errors
@@ -384,6 +385,8 @@ def compare_for_maw(
     learned, memory = learn(
         ledger, Scoring.default().merged(config.scoring), config.memory, overrides=config.scoring
     )
+    for key in memory.diagnostics:
+        log(f"warning: legacy learning family {key[:120]!r} is retained but not applied")
     options = CompareOptions(
         hunger=config.hunger,
         scoring=learned.to_dict(),
@@ -410,6 +413,10 @@ def compare_for_maw(
     if result.verdict["relationship"] != Relationship.FOREIGN.value:
         log(f"license relationship: {result.verdict['relationship']} (from .crab.yml trust)")
     result.menu["analysis_inputs"] = {"ledger": ledger_input, "policy": config.raw}
+    assert result.maw_dir is not None
+    result.menu["receiving_context"] = receiving_context(
+        maw_root, result.maw.manifest, config.raw, ledger_input
+    )
     if record_ledger:
         new = ledger.record_meal(result.menu, result.candidates, now=now)
         saved = ledger.save(now=now)

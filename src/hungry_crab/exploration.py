@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from . import __version__
+from .analysis_context import installed_source_identity, receiving_context
 from .artifact_read import read_bytes, read_object
 from .attribution import (
     GitSourceReader,
@@ -32,6 +32,7 @@ from .digest_integrity import digest_integrity_errors
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .file_lock import state_lock
+from .fs import is_link_stat
 from .licensing.matrix import decide
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
@@ -106,12 +107,7 @@ def _write_new(path: Path, data: object) -> None:
 
 
 def _tool_identity() -> dict[str, str]:
-    root = Path(__file__).parent
-    sources = {
-        p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted(root.rglob("*.py"))
-    }
-    return {"version": __version__, "source_sha256": fingerprint(sources)}
+    return installed_source_identity()
 
 
 def _digest_identity(directory: Path, manifest: dict[str, Any]) -> dict[str, Any]:
@@ -176,6 +172,13 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
     ledger = as_dict(menu.get("analysis_inputs")).get("ledger")
     if ledger is None and ledger_path is not None and ledger_path.is_file():
         ledger = read_object(ledger_path)
+    observed_context = receiving_context(maw, manifests["maw"], config.raw, ledger)
+    selected = plan.get("receiving_context", {})
+    if not isinstance(selected, dict):
+        raise CrabError("plan receiving_context must be a mapping")
+    for key in ("sha", "selected_ref", "root"):
+        if key in selected and selected[key] != observed_context[key]:
+            raise CrabError(f"selected receiving {key} differs from the observed checkout")
     identities = {
         "tool": _tool_identity(),
         "menu": fingerprint(menu),
@@ -199,6 +202,8 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
         "legacy_denominator_unknown": "initial_candidates" not in menu,
         "ledger_snapshot": ledger,
         "maw_root": str(maw.resolve()),
+        "receiving_context": observed_context,
+        "legacy_context_unknown": "receiving_context" not in menu,
         "channels": {
             "shallow": as_dict(manifests["prey"].get("prey")).get("shallow"),
             "coverage": manifests["prey"].get("coverage"),
@@ -289,7 +294,9 @@ def _references(
     return True
 
 
-def _validate_record(data: dict[str, Any], record: dict[str, Any]) -> None:
+def _validate_record(
+    data: dict[str, Any], record: dict[str, Any], registered_ids: set[str]
+) -> None:
     for key in ("author", "tool", "attempt", "reason"):
         _text(record, key)
     kind = record.get("kind")
@@ -319,8 +326,23 @@ def _validate_record(data: dict[str, Any], record: dict[str, Any]) -> None:
         ):
             raise CrabError("invalid disposition or reviewed flag")
         candidate = record.get("candidate_id")
-        if candidate is not None and candidate not in {c["id"] for c in data["initial_candidates"]}:
+        if (
+            candidate is not None
+            and candidate not in {c["id"] for c in data["initial_candidates"]} | registered_ids
+        ):
             raise CrabError("decision does not name an original candidate")
+        if "selected" in record and (
+            type(record["selected"]) is not bool
+            or (
+                record["selected"]
+                and (
+                    not record["reviewed"]
+                    or record["disposition"] != "verified-gap"
+                    or not candidate
+                )
+            )
+        ):
+            raise CrabError("selection requires a reviewed verified gap and candidate identity")
         if record["reviewed"] and not (source and receiving):
             raise CrabError(
                 "individual review requires inspected donor and receiving-project evidence"
@@ -362,7 +384,12 @@ def _validate_record(data: dict[str, Any], record: dict[str, Any]) -> None:
 def record(directory: Path, payload: dict[str, Any]) -> dict[str, Any]:
     with state_lock(directory / "events.json"):
         snapshot = _snapshot(directory)
-        _validate_record(snapshot, payload)
+        registered_ids = {
+            entry["record"]["card"]["id"]
+            for entry in events(directory)
+            if entry["record"]["kind"] == "registration"
+        }
+        _validate_record(snapshot, payload, registered_ids)
         return _append(directory, payload)
 
 
@@ -392,6 +419,7 @@ def report(directory: Path) -> dict[str, Any]:
     decisions: dict[str, dict[str, Any]] = {}
     hypotheses: dict[str, dict[str, Any]] = {}
     observed_hypotheses: dict[str, None] = {}
+    examined: set[str] = set()
     phases: dict[str, Any] = dict.fromkeys(PHASES, "NOT_RUN")
     for event in history:
         entry = event["record"]
@@ -399,9 +427,12 @@ def report(directory: Path) -> dict[str, Any]:
             facets[entry["facet"]] = entry["state"]
             if entry["state"] == "examined":
                 observed_hypotheses.setdefault(entry["hypothesis"], None)
+                examined.add(entry["hypothesis"])
         elif entry["kind"] == "decision":
             observed_hypotheses.setdefault(entry["hypothesis"], None)
             hypotheses[entry["hypothesis"]] = entry
+            if entry.get("reviewed"):
+                examined.add(entry["hypothesis"])
             if entry.get("candidate_id"):
                 decisions[entry["candidate_id"]] = entry
         elif entry["kind"] == "phase":
@@ -427,6 +458,13 @@ def report(directory: Path) -> dict[str, Any]:
         "schema": SCHEMA,
         "snapshot": directory.name,
         "scope": data["plan"]["scope"],
+        "receiving_context": data.get("receiving_context"),
+        "legacy_context_unknown": data.get("legacy_context_unknown", True),
+        "decisions": list(hypotheses.values()),
+        "examined_hypotheses": sorted(examined),
+        "registrations": [
+            event["record"] for event in history if event["record"]["kind"] == "registration"
+        ],
         "facets": facets,
         "pending_facets": pending,
         "denominator": data["denominator"],
@@ -467,10 +505,39 @@ def _registered_menu(data: dict[str, Any], history: list[dict[str, Any]]) -> dic
     return menu
 
 
+def matching_reports(meal_dir: Path, menu: dict[str, Any]) -> list[dict[str, Any]]:
+    """Join only validated original snapshots plus their legitimate registration events."""
+    root = meal_dir / "exploration"
+    if not root.exists():
+        return []
+    if is_link_stat(root.lstat()):
+        raise CrabError("exploration directory must not be linked")
+    directories = sorted(root.iterdir())
+    if len(directories) > 64:
+        raise CrabError("meal exploration snapshot read budget exceeded")
+    result = []
+    total = 0
+    for directory in directories:
+        if re.fullmatch(r"[a-f0-9]{64}", directory.name) is None:
+            continue
+        if is_link_stat(directory.lstat()) or not directory.is_dir():
+            raise CrabError("exploration snapshot directory must be a real directory")
+        artifacts = [directory / "snapshot.json", *directory.glob("event-*.json")]
+        total += sum(path.lstat().st_size for path in artifacts)
+        if total > 32 * 1024 * 1024:
+            raise CrabError("meal exploration evidence read budget exceeded")
+        data = _snapshot(directory)
+        history = events(directory)
+        if fingerprint(_registered_menu(data, history)) == fingerprint(menu):
+            result.append({**report(directory), "report_path": str(directory)})
+    return result
+
+
 def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> dict[str, Any]:
     """Validate a source-linked behavior nutrient and carry it into the guarded meal."""
     with state_lock(directory / "events.json"):
         data = _snapshot(directory)
+        _require_current_receiving(data)
         if finding.get("disposition") != "verified-gap":
             raise CrabError("only an evidenced verified gap can register a behavior nutrient")
         if finding.get("origin", "licensed") != "licensed":
@@ -629,3 +696,28 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             ).render(3500),
         )
         return event
+
+
+def _require_current_receiving(data: dict[str, Any]) -> None:
+    """Historical observations remain readable; only a matching checkout can alter its meal."""
+    root = Path(data["maw_root"])
+    menu = data["menu"]
+    git = GitRunner(root)
+    declared = as_dict(menu.get("maw")).get("root")
+    expected = data["identities"]["maw_worktree"]
+    if (
+        (declared is not None and str(root.resolve()) != str(Path(declared).resolve()))
+        or not git.is_repo_root()
+        or git.head_sha() != menu["maw"].get("sha")
+        or expected == "unknown"
+        or worktree_fingerprint(git, root) != expected
+    ):
+        raise CrabError(
+            "receiving worktree changed after exploration initialization",
+            hint="regenerate the meal and exploration before registration",
+        )
+    context = data.get("receiving_context")
+    if isinstance(context, dict):
+        current_ref = git.try_run("symbolic-ref", "--quiet", "--short", "HEAD")
+        if (current_ref.strip() if current_ref else None) != context.get("selected_ref"):
+            raise CrabError("selected receiving ref changed; regenerate the exploration")
