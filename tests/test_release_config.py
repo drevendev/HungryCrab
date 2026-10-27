@@ -95,6 +95,16 @@ def test_invalid_boolean_cannot_hide_as_an_equal_zero_noop(tmp_path: Path) -> No
     assert path.read_bytes() == before
 
 
+def test_rewrite_preserves_safe_yaml_scalar_types_without_json_conversion(tmp_path: Path) -> None:
+    path = tmp_path / ".crab.yml"
+    path.write_text("license: 2026-10-27\nscoring: {}\n", encoding="utf-8")
+    config = MawConfig.load(tmp_path)
+    original = config.raw["license"]
+    config.write_scoring({"categories": {"docs": 0.6}})
+    assert MawConfig.load(tmp_path).raw["license"] == original
+    assert path.read_text().startswith("license: 2026-10-27\n")
+
+
 def family_ledger(count: int, status: str = "rejected") -> Ledger:
     ledger = Ledger(None)
     for index in range(count):

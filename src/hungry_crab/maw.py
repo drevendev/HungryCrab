@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from difflib import get_close_matches
 from pathlib import Path
@@ -399,7 +398,9 @@ def _validated_rewrite(root: Path, text: str, intended: dict[str, Any]) -> None:
     if not isinstance(loaded, dict):
         raise UsageError("configuration rewrite must remain a mapping")
     MawConfig.from_data(root, loaded)
-    if json.dumps(loaded, sort_keys=True) != json.dumps(intended, sort_keys=True):
+    # Canonical YAML preserves the safe loader's scalar types (including dates), while
+    # distinguishing booleans from equal-valued integers. No unsupported JSON conversion.
+    if yaml.safe_dump(loaded, sort_keys=True) != yaml.safe_dump(intended, sort_keys=True):
         raise UsageError("configuration rewrite changed owner policy", hint="edit scoring manually")
 
 
