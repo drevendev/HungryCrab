@@ -188,7 +188,8 @@ def _card(card: dict[str, Any], index: int, review: dict[str, Any] | None = None
     parts = [
         (
             f'<article class="card"><div class="muted">Candidate {index} · '
-            f"{text(as_dict(review).get('review', 'structural-seed'))}</div>"
+            f"{text(as_dict(review).get('review', 'structural-seed'))} · "
+            f"Selection: {text(as_dict(review).get('selection', 'unknown'))}</div>"
         ),
         f"<h3>{text(card.get('title'))}</h3>",
     ]

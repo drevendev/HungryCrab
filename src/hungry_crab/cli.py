@@ -756,9 +756,12 @@ def print_menu(
             if review
             else "structural-seed"
         )
+        selection = (
+            review["cards"].get(card.id, {}).get("selection", "unknown") if review else "unknown"
+        )
         print(
             f"{index:>3} {card.score:>5.2f}  {card.category:<15}{title:<52}{card.license_mode:<12}"
-            f"{card.effort:<4}{card.serve_as:<6}{card.id} [{state}]"
+            f"{card.effort:<4}{card.serve_as:<6}{card.id} [{state}; selection={selection}]"
         )
     if show_hidden:
         for item in menu.get("hidden", []):

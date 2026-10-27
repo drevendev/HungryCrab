@@ -79,3 +79,71 @@ def test_prose_and_permissive_source_do_not_establish_readiness() -> None:
     assert result["cards"][aggregate["candidates"][0]["id"]]["review"] == "structural-seed"
     assert aggregate["candidates"][0]["license_mode"] == "HUMAN"
     assert result["counts"]["selected_changes"] is None
+
+
+def test_later_hold_cannot_leave_a_conflicting_candidate_counted_as_selected(
+    tmp_path: Path,
+) -> None:
+    directory, donor, _, finding = pair(tmp_path)
+    nutrient_id = register(directory, finding, source_repo=donor)["record"]["card"]["id"]
+    for hypothesis, disposition, reviewed, selected in (
+        ("bounded reads", "verified-gap", True, True),
+        ("receiving policy", "policy-blocked", False, False),
+    ):
+        record(
+            directory,
+            observation(
+                finding,
+                kind="decision",
+                hypothesis=hypothesis,
+                candidate_id=nutrient_id,
+                disposition=disposition,
+                reviewed=reviewed,
+                selected=selected,
+            ),
+        )
+    current = load_menu(directory.parent.parent)
+    assert current is not None
+    projected = project_menu(current, directory.parent.parent)
+    assert projected["counts"]["selected_changes"] is None
+    assert projected["cards"][nutrient_id]["selection"] == "conflicting-selection"
+    assert projected["cards"][nutrient_id]["review"] == "conflicting-review"
+    assert projected["counts"]["selection_conflicts"] == 1
+    assert "conflicting-selection" in render_report(directory.parent.parent)
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="receiving policy",
+            candidate_id=nutrient_id,
+            disposition="verified-gap",
+            reviewed=True,
+            selected=True,
+        ),
+    )
+    resolved = project_menu(current, directory.parent.parent)
+    assert resolved["counts"]["selected_changes"] == 1
+    assert resolved["counts"]["selection_conflicts"] == 0
+
+
+def test_current_unresolved_decision_does_not_inherit_registered_review(tmp_path: Path) -> None:
+    directory, donor, _, finding = pair(tmp_path)
+    nutrient_id = register(directory, finding, source_repo=donor)["record"]["card"]["id"]
+    record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="remaining investigation",
+            candidate_id=nutrient_id,
+            disposition="budget-deferred",
+            reviewed=False,
+            selected=False,
+        ),
+    )
+    current = load_menu(directory.parent.parent)
+    assert current is not None
+    projected = project_menu(current, directory.parent.parent)
+    assert projected["cards"][nutrient_id]["review"] == "analyst-unresolved"
+    assert projected["counts"]["selected_changes"] == 0
