@@ -188,7 +188,6 @@ def test_scoring_rewrite_preserves_surviving_inline_comments(tmp_path: Path) -> 
     assert MawConfig.load(tmp_path).scoring == {"categories": {"docs": 0.3, "ci": 1.0}}
 
 
-
 def test_scoring_rewrite_preserves_mapping_header_inline_comment(tmp_path: Path) -> None:
     source = (
         "scoring:\n  categories:  # manual categories for this team\n    ci: 0.95  # CI budget\n"
