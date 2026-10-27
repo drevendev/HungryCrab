@@ -78,6 +78,10 @@ def _restore_child_inline_comments(
                 if suffix.startswith("#"):
                     comments[child_path] = suffix
             elif isinstance(child, yaml.MappingNode) and not child.flow_style:
+                suffix = old_lines[key.start_mark.line][key.end_mark.column :]
+                before, marker, after = suffix.partition("#")
+                if marker and before.strip() == ":":
+                    comments[child_path] = "#" + after.rstrip("\r\n")
                 collect(child, child_path)
 
     collect(old_value, ())
@@ -99,6 +103,7 @@ def _restore_child_inline_comments(
             if isinstance(child, yaml.ScalarNode) and child.end_mark.line == key.start_mark.line:
                 positions[child_path] = key.start_mark.line
             elif isinstance(child, yaml.MappingNode) and not child.flow_style:
+                positions[child_path] = key.start_mark.line
                 locate(child, child_path)
 
     locate(section_values[0], ())
