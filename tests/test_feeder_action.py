@@ -10,7 +10,9 @@ from typing import Any
 import pytest
 from fixture_builder import git
 
-from hungry_crab.errors import CrabError
+from hungry_crab.cache import Target
+from hungry_crab.errors import CrabError, UsageError
+from hungry_crab.feeder import EatOptions, eat
 
 CALLER = "owner/caller"
 
@@ -36,8 +38,6 @@ def test_action_resolves_local_paths_in_the_caller_and_preserves_literal_inputs(
         "GITHUB_STEP_SUMMARY": str(summary),
         "CRAB_PREY": "donor;literal",
         "CRAB_MAW": ".",
-        "CRAB_OUT": "meal with spaces",
-        "CRAB_CACHE": "cache;literal",
         "CRAB_SINCE": "all",
         "CRAB_ISSUES": "0",
         "CRAB_TOP": "30",
@@ -61,10 +61,49 @@ def test_action_resolves_local_paths_in_the_caller_and_preserves_literal_inputs(
     assert module.run() == 0
     assert calls[0][calls[0].index("eat") + 1] == str(prey.resolve())
     assert calls[0][calls[0].index("--maw") + 1] == str(workspace)
-    assert calls[0][calls[0].index("--out") + 1] == str(workspace / "meal with spaces")
-    assert calls[0][calls[0].index("--cache-dir") + 1] == str(workspace / "cache;literal")
+    assert calls[0][calls[0].index("--out") + 1].startswith(str(tmp_path / "crab-feeder-"))
+    assert calls[0][calls[0].index("--cache-dir") + 1] == str(tmp_path / "hungry-crab")
     assert "candidate-count=2" in outputs.read_text()
     assert "2 candidates" in summary.read_text()
+
+
+@pytest.mark.parametrize(
+    ("input_name", "value"),
+    [("CRAB_OUT", "meal with spaces"), ("CRAB_CACHE", "cache;literal")],
+)
+def test_action_refuses_relative_destinations_before_acquisition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    input_name: str,
+    value: str,
+) -> None:
+    module, calls = _action(
+        tmp_path, monkeypatch, prey="donor", event={"repository": {"private": True}}
+    )
+    monkeypatch.setenv(input_name, value)
+    assert module.run() == 2
+    assert calls == []
+    message = capsys.readouterr().err
+    assert f"{input_name} must be an absolute path outside the maw" in message
+
+
+@pytest.mark.parametrize(
+    ("bad_destination", "message"),
+    [("cache", "Feeder cache must be outside"), ("out", "Feeder output must not contain")],
+)
+def test_actual_feeder_preflight_guards_source_tree(
+    tmp_path: Path, bad_destination: str, message: str
+) -> None:
+    # No GitHub, network, fixture prey, or acquisition: real eat() guards run first.
+    maw = tmp_path / "workspace"
+    maw.mkdir()
+    prey = tmp_path / "synthetic-prey"
+    prey.mkdir()
+    cache = maw / "cache" if bad_destination == "cache" else tmp_path / "safe-cache"
+    out = maw / "meal" if bad_destination == "out" else tmp_path / "safe-meal"
+    with pytest.raises(UsageError, match=message):
+        eat(Target(path=prey), maw, EatOptions(out=out, cache_root=cache, since=None))
 
 
 def test_action_keeps_absolute_output_and_cache_inputs(
