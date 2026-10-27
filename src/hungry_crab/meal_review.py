@@ -150,7 +150,14 @@ def project_menu(menu: dict[str, Any], directory: Path | None = None) -> dict[st
         "phase_evidence": "recorded analyst attestations; not independent provider verification",
         "unknown_source_explorations": unknown,
         "receiving_context": menu.get("receiving_context"),
-        "context_status": "observed" if menu.get("receiving_context") else "legacy-unknown",
+        "context_status": (
+            "legacy-unknown"
+            if not menu.get("receiving_context")
+            else "unknown"
+            if not isinstance(as_dict(menu["receiving_context"]).get("worktree"), str)
+            or as_dict(menu["receiving_context"])["worktree"] in {"", "unknown"}
+            else "observed"
+        ),
         "as_of": menu.get("generated_at"),
         "evidence_scope": "frozen snapshot; current checkout/provider truth is not rechecked",
         "diagnostics": diagnostics,

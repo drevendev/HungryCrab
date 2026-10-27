@@ -34,6 +34,13 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
     groups: dict[str, list[tuple[str, Candidate]]] = {}
     prey_keys: dict[str, str] = {}
     for name, menu in ordered:
+        observed = menu.get("receiving_context")
+        if isinstance(observed, dict) and (
+            not isinstance(observed.get("worktree"), str) or observed["worktree"] in {"", "unknown"}
+        ):
+            raise CrabError(
+                "multi-prey receiving snapshot is unknown; regenerate from a known worktree"
+            )
         if (
             menu.get("schema") != MENU_SCHEMA
             or menu.get("maw") != maw

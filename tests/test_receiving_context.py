@@ -69,7 +69,7 @@ def test_merge_refuses_mixed_receiving_inputs(field: str) -> None:
         other["receiving_context"] = {"sha": "m", "selected_ref": "work"}
     else:
         other["analysis_inputs"][field] = {"changed": True}
-    with pytest.raises(CrabError, match="snapshot and policy"):
+    with pytest.raises(CrabError, match="snapshot"):
         merge_menus(sources)
 
 
@@ -82,6 +82,14 @@ def test_read_timestamps_do_not_make_equivalent_contexts_different() -> None:
     assert merged["receiving_context_status"] == "legacy-unknown"
     assert len(merged["candidates"][0]["trace"]["sources"]) == 2
     assert sources == before
+
+
+def test_explicit_unknown_receiving_state_cannot_certify_a_multi_prey_merge() -> None:
+    sources = {"a": menu("x/a"), "b": menu("x/b")}
+    for source in sources.values():
+        source["receiving_context"] = {"worktree": "unknown"}
+    with pytest.raises(CrabError, match="snapshot is unknown"):
+        merge_menus(sources)
 
 
 def test_bounded_walkthrough_records_selected_branch_constraints_and_deferred_work(
