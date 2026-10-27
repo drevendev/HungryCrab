@@ -206,7 +206,8 @@ expired or evicted menu snapshots refuse continuation with a restart-at-offset-0
 clients relist pages without `page` after invalidation. Responses expose snapshot id/as-of/reuse.
 New analyses force fresh evidence within MCP; this does not make shallow digests canonical or
 change global digest reuse. Unknown non-Git identity cannot support a reusable snapshot. No
-implicit deepening/fetch, source/ledger writes or CLI meal replacement is introduced. Visibility
+deepening/fetch on invalidation, source/ledger writes or CLI meal replacement is introduced.
+Initial operator-opted-in acquisition keeps its existing bounded path. Visibility
 refusals identify the affected side and recovery direction; deep-menu support stays separate.
 
 ```sh

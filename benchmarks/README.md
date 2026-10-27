@@ -41,13 +41,15 @@ construction, so it becomes a gate only when a scoring change earns it. Its nega
 disables category weights and must miss them. The original B1 labels and thresholds remain unchanged; larger human
 labeling is [#200](https://github.com/drevendev/HungryCrab/issues/200).
 
-## B2 · Meal benchmark
+## Additional diagnostics and paired reporting
 
 ### 0.6.7 paired yield/cost importer
 
 See [paired-report.md](paired-report.md) for the offline freeze/seal/report procedure, raw-artifact
 relocation, portable/unknown cost fields and a preregistered held-out follow-up protocol. It uses
 the ordinary meal evidence projection; synthetic infrastructure checks are not discovery gains.
+
+### Ranking diagnostics
 
 B1 also reports stdlib MRR/nDCG/Judged@10 diagnostics. Relevance is the unchanged historical
 must/must_not proxy, not new default-branch acceptance. DCG uses `(2^grade - 1)/log2(rank+1)`;
@@ -56,6 +58,16 @@ IDCG sorts all known grades. Unknown labels contribute zero gain and are disclos
 zero. MRR is the unweighted mean of first-positive reciprocal ranks; deterministic menu order
 breaks ties. Oracle and reversed-order tests validate sensitivity. No new thresholds or weight
 changes are introduced; #200/#303 retain their broader acceptance.
+
+Measured on the unchanged frozen B1 corpus at introduction (macro mean over its three pairs):
+
+| Diagnostic | At introduction | Gate |
+|---|---|---|
+| MRR@10 | 0.833333 | none |
+| nDCG@10 | 0.870574 | none |
+| Judged@10 | 0.700000 | none |
+
+## B2 · Meal benchmark
 
 `meal_benchmark.py` implements the frozen experiment protocol from
 [06-benchmark.md](../docs/design/06-benchmark.md). It imports real runs from an operator-selected
