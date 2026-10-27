@@ -239,9 +239,7 @@ def test_later_inapplicable_facet_cannot_erase_unreviewed_work(tmp_path: Path) -
     )
     record(
         directory,
-        observation(
-            finding, kind="facet", facet="performance-streaming", state="inapplicable"
-        ),
+        observation(finding, kind="facet", facet="performance-streaming", state="inapplicable"),
     )
     pending = report(directory)
     assert pending["facets"]["performance-streaming"] == "inapplicable"
@@ -268,9 +266,7 @@ def test_decision_only_deferred_hypothesis_is_not_dropped(tmp_path: Path) -> Non
     assert report(directory)["unresolved_hypotheses"] == []
     record(
         directory,
-        observation(
-            finding, kind="facet", facet="performance-streaming", state="inapplicable"
-        ),
+        observation(finding, kind="facet", facet="performance-streaming", state="inapplicable"),
     )
     record(
         directory,
