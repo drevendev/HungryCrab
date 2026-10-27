@@ -195,9 +195,7 @@ def test_scoring_rewrite_preserves_surviving_inline_comments(tmp_path: Path) -> 
         "mode: strict\nledger: repo\n...\n",
     ],
 )
-def test_scoring_rewrite_rejects_unsafe_layout_without_writing(
-    tmp_path: Path, source: str
-) -> None:
+def test_scoring_rewrite_rejects_unsafe_layout_without_writing(tmp_path: Path, source: str) -> None:
     path = tmp_path / CONFIG_FILE
     path.write_bytes(source.encode("utf-8"))
     config = MawConfig.load(tmp_path)
@@ -209,7 +207,7 @@ def test_scoring_rewrite_rejects_unsafe_layout_without_writing(
 def test_init_retains_code_policy_inline_comment(tmp_path: Path) -> None:
     path = write_default_config(tmp_path)
     rewritten = path.read_text(encoding="utf-8")
-    assert "code: ideas-only  # produced by nothing until 0.4" in rewritten
+    assert "code: ideas-only  # source-linked behavior findings from crab explore register" in rewritten
     assert MawConfig.load(tmp_path).hunger["code"] == "ideas-only"
 
 
