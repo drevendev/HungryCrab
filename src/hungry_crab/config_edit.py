@@ -57,7 +57,75 @@ def replace_section(text: str, name: str, value: dict[str, Any]) -> str:
     elif "#" in lines[start][key.end_mark.column :]:
         tail = "#" + lines[start][key.end_mark.column :].split("#", 1)[1].strip()
         block = block.replace(newline, "  " + tail + newline, 1)
+    if isinstance(val, yaml.MappingNode) and not val.flow_style:
+        block = _restore_child_inline_comments(val, lines, block, name, newline)
     return "".join(lines[:start]) + block + "".join(comment_lines) + "".join(lines[end:])
+
+
+def _restore_child_inline_comments(
+    old_value: yaml.MappingNode, old_lines: list[str], block: str, section: str, newline: str
+) -> str:
+    """Keep owner notes beside surviving scalar child keys, including nested keys."""
+    comments: dict[tuple[str, ...], str] = {}
+
+    def collect(mapping: yaml.MappingNode, path: tuple[str, ...]) -> None:
+        for key, child in mapping.value:
+            if not isinstance(key, yaml.ScalarNode):
+                continue
+            child_path = (*path, key.value)
+            if isinstance(child, yaml.ScalarNode) and child.end_mark.line == key.start_mark.line:
+                suffix = old_lines[key.start_mark.line][child.end_mark.column :].strip()
+                if suffix.startswith("#"):
+                    comments[child_path] = suffix
+            elif isinstance(child, yaml.MappingNode) and not child.flow_style:
+                collect(child, child_path)
+
+    collect(old_value, ())
+    if not comments:
+        return block
+    replacement = yaml.compose(block)
+    if not isinstance(replacement, yaml.MappingNode):
+        return block
+    section_values = [value for key, value in replacement.value if key.value == section]
+    if len(section_values) != 1 or not isinstance(section_values[0], yaml.MappingNode):
+        return block
+    positions: dict[tuple[str, ...], int] = {}
+
+    def locate(mapping: yaml.MappingNode, path: tuple[str, ...]) -> None:
+        for key, child in mapping.value:
+            if not isinstance(key, yaml.ScalarNode):
+                continue
+            child_path = (*path, key.value)
+            if isinstance(child, yaml.ScalarNode) and child.end_mark.line == key.start_mark.line:
+                positions[child_path] = key.start_mark.line
+            elif isinstance(child, yaml.MappingNode) and not child.flow_style:
+                locate(child, child_path)
+
+    locate(section_values[0], ())
+    lines = block.splitlines(keepends=True)
+    for path, comment in comments.items():
+        line_index = positions.get(path)
+        if line_index is not None:
+            lines[line_index] = lines[line_index].rstrip("\r\n") + "  " + comment + newline
+    return "".join(lines)
+
+
+def verified_replace_section(
+    text: str, name: str, value: dict[str, Any], expected: dict[str, Any]
+) -> str:
+    """Refuse a layout that would change YAML policy or fail to parse after replacement."""
+    updated = replace_section(text, name, value)
+    try:
+        actual = yaml.safe_load(updated)
+    except yaml.YAMLError as exc:
+        raise UsageError(
+            f"cannot safely rewrite YAML section {name!r}", hint="edit scoring manually"
+        ) from exc
+    if actual != expected:
+        raise UsageError(
+            f"cannot safely rewrite YAML section {name!r}", hint="edit scoring manually"
+        )
+    return updated
 
 
 def atomic_text(path: Path, text: str) -> None:
