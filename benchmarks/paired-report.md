@@ -30,6 +30,7 @@ with exact `version` and 64-hex `source_sha256` for each arm, and `shared_inputs
     "prey": {"control": {"sha": "FULL_PREY_SHA"}},
     "policy": {"control": "64_HEX_POLICY_FINGERPRINT"},
     "ledger": {"control": "64_HEX_LEDGER_FINGERPRINT"},
+    "digest_inputs": {"control": {"prey": "64_HEX_PREY_INPUT_HASH", "maw": "64_HEX_MAW_INPUT_HASH"}},
     "backlog": {"status": "not-acquired", "acquired_at": null},
     "coverage": {"history": "shallow", "issues": "not-acquired"},
     "limits": {"hypotheses_per_pair": 2, "review_minutes_per_pair": 10},
@@ -43,8 +44,16 @@ Replace all symbolic pins. Policy uses `fingerprint(actual_policy)` and ledger u
 `digest_paths` maps sides to relative raw directories (defaults `prey-digest`, `maw-digest`).
 Recorded absolute runner paths never locate digests.
 Receiving worktree identity is required (a hash for a frozen dirty tree); unknown cannot certify
-paired inputs. A non-null selected ref is asserted against observed receiving metadata. Prey
+paired inputs. A selected ref is required: a string asserts that branch and null asserts detached
+HEAD, both checked against observed receiving metadata. Prey
 defaults to a clean immutable tree. Menu and both digests must share the preregistered clock.
+
+For each pair and side, compute `paired_report.digest_input_identity(shared_manifest)` before
+either arm runs. The fingerprint binds repository/ref/worktree/shallow state, acquired API hash,
+depth, ignore rules, licence context, coverage, wiki metadata and effective Markdown budgets.
+It excludes runner paths, implementation-specific results and measured token totals. Report
+checks every run against these frozen inputs, including repeated arms. Human review/time limits
+remain operator declarations; this offline tool cannot independently verify their execution.
 
 ```text
 uv run python benchmarks/paired_report.py freeze plan.json experiment
@@ -68,7 +77,8 @@ uv run python benchmarks/paired_report.py report experiment roots.json paired-re
 `roots.json` explicitly maps scheduled run ids to raw bundle directories. Receipts seal raw bytes
 and measurements without changing them. Relocation uses a derived roots map. Existing receipts
 and report outputs cannot be overwritten. Changed plans/receipts/raw bytes, mismatched pins or
-policy/ledger, incomplete digests, invalid token fields, links and unsafe paths are refused.
+policy/ledger/effective digest inputs, incomplete digests, invalid token fields, links and unsafe
+paths are refused.
 
 `paired_report.measure(callable)` measures portable wall/self CPU and installed source identity.
 Unix child CPU and cumulative peak RSS have explicit scope/platform units. Unsupported Windows

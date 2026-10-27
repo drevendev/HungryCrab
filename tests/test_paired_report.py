@@ -16,7 +16,7 @@ from hungry_crab.errors import CrabError
 from hungry_crab.exploration import register
 
 
-def experiment(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+def experiment(tmp_path: Path, *, changed_input: str = "") -> tuple[Path, dict[str, str]]:
     directory, donor, _, finding = pair(
         tmp_path / "fixture", now=datetime(2026, 10, 27, tzinfo=UTC)
     )
@@ -29,6 +29,10 @@ def experiment(tmp_path: Path) -> tuple[Path, dict[str, str]]:
         shutil.copytree(info[f"{side}_digest"], raw / f"{side}-digest")
     source = installed_source_identity()
     current = json.loads((raw / "menu.json").read_text())
+    manifests = {
+        side: json.loads((raw / f"{side}-digest" / "manifest.json").read_text())
+        for side in ("prey", "maw")
+    }
     plan = {
         "arms": ["a", "b"],
         "pairs": ["synthetic"],
@@ -36,7 +40,15 @@ def experiment(tmp_path: Path) -> tuple[Path, dict[str, str]]:
         "arm_sources": {"a": source, "b": source},
         "shared_inputs": {
             "as_of": current["generated_at"],
-            "receiving": {"synthetic": {"sha": current["maw"]["sha"], "worktree": "clean"}},
+            "receiving": {
+                "synthetic": {
+                    "sha": current["maw"]["sha"],
+                    "worktree": "clean",
+                    "selected_ref": None
+                    if changed_input == "selected-ref"
+                    else current["receiving_context"]["selected_ref"],
+                }
+            },
             "prey": {"synthetic": {"sha": current["prey"]["sha"]}},
             "policy": {"synthetic": fingerprint(current["analysis_inputs"]["policy"])},
             "ledger": {"synthetic": ledger_identity(current["analysis_inputs"]["ledger"])},
@@ -44,11 +56,26 @@ def experiment(tmp_path: Path) -> tuple[Path, dict[str, str]]:
             "coverage": "synthetic complete source snapshot",
             "limits": {"hypotheses": 2},
             "held_out_protocol": "synthetic controls only",
+            "digest_inputs": {
+                "synthetic": {
+                    side: paired_report.digest_input_identity(manifest)
+                    for side, manifest in manifests.items()
+                }
+            },
         },
     }
     plan_path = tmp_path / "plan.json"
     plan_path.write_text(json.dumps(plan), encoding="utf-8")
     root = paired_report.freeze(plan_path, tmp_path / "experiment")
+    if changed_input and changed_input != "selected-ref":
+        manifest = manifests["prey"]
+        if changed_input == "depth":
+            manifest["depth"] = "deep"
+        elif changed_input == "budget":
+            manifest["budget"]["markdown_total"] += 1
+        elif changed_input == "api":
+            manifest["analysis_identity"]["api_sha256"] = "0" * 64
+        (raw / "prey-digest" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     costs = tmp_path / "measurements.json"
     costs.write_text(
         json.dumps(
@@ -128,3 +155,12 @@ def test_missing_manifest_fields_are_unknown_and_wrong_old_name_is_not_zero() ->
     )
     with pytest.raises(CrabError, match="token estimate"):
         paired_report.token_estimates({"markdown_tokens_est": True})
+
+
+@pytest.mark.parametrize("changed_input", ["depth", "budget", "api", "selected-ref"])
+def test_changed_effective_inputs_cannot_be_certified_as_a_frozen_pair(
+    tmp_path: Path, changed_input: str
+) -> None:
+    root, roots = experiment(tmp_path, changed_input=changed_input)
+    with pytest.raises(CrabError, match="frozen"):
+        paired_report.report(root, roots)

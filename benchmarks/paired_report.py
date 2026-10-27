@@ -25,6 +25,7 @@ from hungry_crab.digest_integrity import digest_integrity_errors
 from hungry_crab.errors import CrabError
 from hungry_crab.fs import is_link_stat
 from hungry_crab.meal_review import project_menu
+from hungry_crab.typeutil import as_dict
 
 MAX_BYTES = 256 * 1024 * 1024
 METRICS = (
@@ -123,6 +124,31 @@ def token_estimates(manifest: dict[str, Any]) -> dict[str, int | None]:
     return result
 
 
+def digest_input_identity(manifest: dict[str, Any]) -> str:
+    """Pin effective acquired inputs and limits, excluding arm output and runner paths."""
+    prey = as_dict(manifest.get("prey"))
+    budget = as_dict(manifest.get("budget"))
+    wiki = as_dict(manifest.get("wiki"))
+    return fingerprint(
+        {
+            "repository": prey.get("url") or prey.get("label"),
+            "source": {
+                key: prey.get(key)
+                for key in ("sha", "ref", "worktree", "shallow", "git_scope", "repository")
+            },
+            "api_sha256": as_dict(manifest.get("analysis_identity")).get("api_sha256"),
+            "depth": manifest.get("depth"),
+            "ignore": manifest.get("ignore"),
+            "maw_license": manifest.get("maw_license"),
+            "coverage": manifest.get("coverage"),
+            "budget": {
+                key: budget.get(key) for key in ("per_markdown_file", "markdown_total", "policy")
+            },
+            "wiki": {key: value for key, value in wiki.items() if key != "root"},
+        }
+    )
+
+
 def _inventory(root: Path) -> dict[str, str]:
     if root.is_symlink() or is_link_stat(root.lstat()):
         raise CrabError("paired raw root must not be linked")
@@ -170,6 +196,7 @@ def freeze(plan_path: Path, output: Path) -> Path:
         "coverage",
         "limits",
         "held_out_protocol",
+        "digest_inputs",
     }
     if not isinstance(shared, dict) or required - shared.keys():
         raise CrabError("paired shared inputs lack pins/policy/coverage/budget/held-out metadata")
@@ -199,11 +226,29 @@ def freeze(plan_path: Path, output: Path) -> Path:
             or any(re.fullmatch(r"[a-f0-9]{64}", str(value)) is None for value in pins.values())
         ):
             raise CrabError(f"paired {field} inputs need frozen fingerprints for every pair")
+    digests = shared["digest_inputs"]
+    if (
+        not isinstance(digests, dict)
+        or set(digests) != set(pairs)
+        or any(
+            not isinstance(sides, dict)
+            or set(sides) != {"prey", "maw"}
+            or any(re.fullmatch(r"[a-f0-9]{64}", str(pin)) is None for pin in sides.values())
+            for sides in digests.values()
+        )
+    ):
+        raise CrabError("paired digest inputs need frozen prey/maw fingerprints for every pair")
     if any(
         not isinstance(pin.get("worktree"), str) or pin["worktree"] in {"", "unknown"}
         for pin in shared["receiving"].values()
     ):
         raise CrabError("paired receiving inputs need a known worktree identity")
+    if any(
+        "selected_ref" not in pin
+        or (pin["selected_ref"] is not None and not isinstance(pin["selected_ref"], str))
+        for pin in shared["receiving"].values()
+    ):
+        raise CrabError("paired receiving inputs need a selected ref or explicit detached null")
     arm_sources = plan.get("arm_sources")
     if not isinstance(arm_sources, dict) or set(arm_sources) != set(arms):
         raise CrabError("paired plan must pin each installed arm source/version")
@@ -339,6 +384,10 @@ def report(root: Path, roots: dict[str, str]) -> dict[str, Any]:
             relative = experiment["plan"].get("digest_paths", {}).get(side, side + "-digest")
             directory = raw / _relative(relative)
             manifest = read_object(directory / "manifest.json")
+            if digest_input_identity(manifest) != shared["digest_inputs"][run["pair"]][side]:
+                raise CrabError(
+                    f"paired {side} effective digest inputs differ from the frozen plan"
+                )
             if (
                 digest_integrity_errors(directory, manifest)
                 or incomplete_miners(manifest)
@@ -352,11 +401,9 @@ def report(root: Path, roots: dict[str, str]) -> dict[str, Any]:
                 raise CrabError(f"paired {side} worktree differs from the frozen inputs")
             if not _same_time(manifest.get("generated_at"), shared["as_of"]):
                 raise CrabError(f"paired {side} digest differs from the frozen as-of clock")
-            selected_ref = expected_pin.get("selected_ref")
-            if (
-                side == "maw"
-                and selected_ref is not None
-                and menu.get("receiving_context", {}).get("selected_ref") != selected_ref
+            if side == "maw" and (
+                "selected_ref" not in menu.get("receiving_context", {})
+                or menu["receiving_context"]["selected_ref"] != expected_pin["selected_ref"]
             ):
                 raise CrabError("paired selected receiving ref differs from the frozen target")
             tokens[side] = token_estimates(manifest)
