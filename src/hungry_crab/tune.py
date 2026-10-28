@@ -6,8 +6,11 @@ after a few decisions, by a fixed step, and every line says which numbers it cam
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any
+
+import yaml
 
 from .compare.scoring import Scoring
 from .errors import UsageError
@@ -220,7 +223,7 @@ def analyse(
     return report
 
 
-def apply(report: TuneReport, config: MawConfig) -> dict[str, Any]:
+def apply(report: TuneReport, config: MawConfig, *, write: bool = True) -> dict[str, Any]:
     """Write category and trait suggestions into ``.crab.yml`` under ``scoring``."""
     scoring = {
         key: dict(value) if isinstance(value, dict) else value
@@ -242,6 +245,57 @@ def apply(report: TuneReport, config: MawConfig) -> dict[str, Any]:
         scoring["categories"] = categories
     if traits:
         scoring["traits"] = traits
-    if changed:
+    if changed and write:
         config.write_scoring(scoring)
     return scoring
+
+
+def manual_patch(report: TuneReport, config: MawConfig) -> dict[str, Any]:
+    """Describe a manual edit, binding it to untouched bytes rather than rewriting aliases."""
+    source = config.path.read_bytes() if config.exists else b""
+    try:
+        node = yaml.compose(source)
+    except yaml.YAMLError as exc:
+        raise UsageError("manual scoring patch requires valid YAML") from exc
+    visited: set[int] = set()
+
+    def unique(current: yaml.Node | None) -> None:
+        if current is None or id(current) in visited:
+            return
+        visited.add(id(current))
+        if isinstance(current, yaml.MappingNode):
+            keys: set[str] = set()
+            for key, value in current.value:
+                if not isinstance(key, yaml.ScalarNode) or key.value in keys:
+                    raise UsageError(
+                        "manual scoring patch refuses ambiguous or duplicate YAML keys"
+                    )
+                keys.add(key.value)
+                unique(value)
+        elif isinstance(current, yaml.SequenceNode):
+            for value in current.value:
+                unique(value)
+
+    unique(node)
+    current = yaml.safe_load(source) if source else {}
+    if (current or {}) != config.raw:
+        raise UsageError("configuration changed while preparing the manual scoring patch")
+    scoring = apply(report, config, write=False)
+    from .config_validation import validate
+
+    validate({**config.raw, "scoring": scoring})
+    return {
+        "schema": "hungry-crab.scoring-patch/1",
+        "config_sha256": hashlib.sha256(source).hexdigest(),
+        "operation": {
+            "op": "replace" if "scoring" in config.raw else "add",
+            "path": "/scoring",
+            "value": scoring,
+        },
+        "changes_required": scoring != config.scoring,
+        "write_performed": False,
+        "application": (
+            "manual only: verify config_sha256, edit only scoring while preserving shared aliases, "
+            "then validate the full configuration"
+        ),
+    }

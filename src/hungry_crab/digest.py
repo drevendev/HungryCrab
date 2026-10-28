@@ -168,6 +168,7 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         # Re-mine same-version caches after the #436/#437 grant-establishment corrections.
         "license_provenance": 6,
         "markdown_structure": "html-blocks-v2",
+        "license_summary": "representative-maws-v1",
         # Same-version caches may predate recognition of stdlib unittest CI commands.
         "ci_tool_detection": "shared-scripts-v3",
         "runtime_detection": "first-party-v2",

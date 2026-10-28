@@ -358,6 +358,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicitly accept missing provider repository-size metadata",
     )
     p_hunt.add_argument("--json", action="store_true", help="print the result as JSON")
+    p_hunt.add_argument(
+        "--plan", type=Path, help="bounded behavior plan bound to the receiving context"
+    )
+    p_hunt.add_argument(
+        "--request-budget", type=int, help="maximum search requests in 1..16 (default: 4)"
+    )
+    p_hunt.add_argument(
+        "--language-neutral",
+        action="store_true",
+        help="also search for language-neutral behavior analogies",
+    )
 
     p_ledger = sub.add_parser("ledger", help="show or update the maw ledger")
     p_ledger.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
@@ -421,7 +432,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_tune = sub.add_parser("tune", help="suggest scoring weight changes from the ledger")
     p_tune.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
-    p_tune.add_argument("--write", action="store_true", help="apply the suggestions to .crab.yml")
+    tuning_effect = p_tune.add_mutually_exclusive_group()
+    tuning_effect.add_argument(
+        "--write", action="store_true", help="apply the suggestions to .crab.yml"
+    )
+    tuning_effect.add_argument(
+        "--patch",
+        action="store_true",
+        help="emit a config-bound JSON scoring patch for manual application without rewriting YAML",
+    )
     p_tune.add_argument(
         "--min-decisions",
         type=int,
@@ -835,13 +854,22 @@ def cmd_hunt(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         ("queries", args.query),
         ("limit", args.limit),
         ("min_stars", args.min_stars),
+        ("request_budget", args.request_budget),
     ):
         if value is not None:
             raw[name] = value
-    for name in ("include_seen", "allow_unknown_size"):
+    for name in ("include_seen", "allow_unknown_size", "language_neutral"):
         if getattr(args, name):
             raw[name] = True
-    report = hunt(maw, settings=HuntSettings.load(raw), cache_root=args.cache_dir, log=log)
+    from .hunt_plan import read_plan
+
+    report = hunt(
+        maw,
+        settings=HuntSettings.load(raw),
+        cache_root=args.cache_dir,
+        log=log,
+        plan=read_plan(args.plan) if args.plan else None,
+    )
     print(
         json.dumps(report, indent=2, ensure_ascii=False) if args.json else format_hunt(report),
         end="\n" if args.json else "",
@@ -1039,9 +1067,13 @@ def cmd_tune(args: argparse.Namespace) -> int:
     if args.write and any(s.kind in ("category", "trait") for s in report.suggestions):
         apply_tuning(report, config)
         written = config.path
-    if args.json:
+    if args.json or args.patch:
         payload = report.to_dict()
         payload["written"] = str(written) if written else None
+        if args.patch:
+            from .tune import manual_patch
+
+            payload["manual_patch"] = manual_patch(report, config)
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
     print(report.to_markdown(), end="")

@@ -19,6 +19,9 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    `docs/discovery.md`: behavior, algorithms, recovery/resources/concurrency, streaming,
    testing, architecture, operations and documentation. A quick structural pass is useful
    when requested, but cannot close a deeper exploration goal.
+   When discovering donors, translate selected behavior hypotheses into a bounded
+   `hunt --plan` using the observed receiving context; keep plan files outside the maw.
+   Set `--request-budget` explicitly and retain deferred queries. See `docs/discovery.md`.
 2. **Qualify and acquire.** Run `crab sniff <prey> --maw .`; pin an immutable revision and
    establish its operative grant. Honor any narrower donor policy, including MIT-only.
    HUMAN needs a human licence decision before transfer; IDEAS_ONLY carries ideas only.

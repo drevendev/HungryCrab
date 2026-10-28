@@ -533,7 +533,7 @@ class Loop:
             return "paused"
         if data["waiting_on"]:
             return str(data["waiting_on"].get("reason", data["waiting_on"]["kind"]))
-        if data["active"] and datetime.fromisoformat(data["active"]["expires_at"]) > self.now:
+        if data["active"] and self._lease_live(data["active"], self.now):
             return "phase already leased"
         if data["attempt"] >= self.settings.max_attempts:
             return "retry limit; human acknowledgement required"
@@ -581,7 +581,11 @@ class Loop:
         }
 
     def status(self) -> dict[str, Any]:
-        return self._view(self._load())
+        with state_lock(self.path):
+            data = self._load()
+            if self._expire(data):
+                self._save(data)
+            return self._view(data)
 
     def discover(
         self, token: str, *, search: Callable[[Path], dict[str, Any]] | None = None
@@ -697,18 +701,19 @@ class Loop:
     def next(self) -> dict[str, Any]:
         with state_lock(self.path):
             data = self._load()
+            if self._expire(data):
+                self._save(data)
             if data["paused"]:
                 return self._view(data)
             before = json.dumps(data, sort_keys=True)
-            if data["active"] and datetime.fromisoformat(data["active"]["expires_at"]) <= self.now:
-                self._event(data, "fail", "lease expired; interrupted work is not success", {})
-                data["active"] = None
-                self._save(data)
-            self._reconcile(data)
-            reason = self._reason(data)
-            if reason:
+            try:
+                self._reconcile(data)
+            finally:
+                # Provider effects cannot be forgotten if a later lookup or budget check fails.
                 if json.dumps(data, sort_keys=True) != before:
                     self._save(data)
+            reason = self._reason(data)
+            if reason:
                 return self._view(data)
             if data["phase"] in ("serve", "grow", "molt", "harden") and not self._optional_empty(
                 data
@@ -743,6 +748,21 @@ class Loop:
             self._save(data)
             return self._view(data, ready=True)
 
+    def _lease_live(self, lease: dict[str, Any], now: datetime) -> bool:
+        started = datetime.fromisoformat(lease["started_at"])
+        expires = datetime.fromisoformat(lease["expires_at"])
+        maximum = started + timedelta(minutes=self.settings.lease_minutes)
+        return started <= now < expires <= maximum
+
+    def _expire(self, data: dict[str, Any]) -> bool:
+        if data["active"] and not self._lease_live(data["active"], self.now):
+            self._event(
+                data, "fail", "lease expired or clock-invalid; interrupted work is not success", {}
+            )
+            data["active"] = None
+            return True
+        return False
+
     def active(self, data: dict[str, Any], token: str, phase: str | None = None) -> None:
         lease = data["active"]
         if (
@@ -753,7 +773,7 @@ class Loop:
         ):
             raise CrabError("no matching active loop lease (or the loop is paused)")
         live_now = self.now + timedelta(seconds=time.monotonic() - self.started_monotonic)
-        if datetime.fromisoformat(lease["expires_at"]) <= live_now:
+        if not self._lease_live(lease, live_now):
             raise CrabError("loop lease expired; reconcile effects before retrying")
         if phase is not None and data["phase"] != phase:
             raise CrabError("record phase does not match the active phase")
@@ -1070,6 +1090,7 @@ class Loop:
     def _pause_state(self, paused: bool) -> dict[str, Any]:
         with state_lock(self.path):
             data = self._load()
+            self._expire(data)
             data["paused"] = paused
             self._save(data)
             if not paused:
@@ -1101,6 +1122,8 @@ class Loop:
         """A human-only recovery command; the phase skill must never call it."""
         with state_lock(self.path):
             data = self._load()
+            if self._expire(data):
+                self._save(data)
             if data["active"]:
                 raise CrabError("cannot acknowledge while a phase is leased")
             if drop_pr:

@@ -6,6 +6,7 @@ from typing import Any
 
 from ..licensing import classify, decide, modes_by_maw_class
 from ..licensing.detect import detect_in_repo, is_license_file_name
+from ..licensing.matrix import mode_maw_samples
 from .base import MineContext, MinerResult
 
 _ROOT_MANIFESTS = {
@@ -61,6 +62,7 @@ class LicenseMiner:
             {
                 "class": cls.value,
                 "modes_by_maw_class": modes_by_maw_class(findings.spdx),
+                "mode_maw_samples": mode_maw_samples(),
                 "maw_license": ctx.maw_license,
                 "verdict": decide(findings.spdx, ctx.maw_license).to_dict()
                 if ctx.maw_license

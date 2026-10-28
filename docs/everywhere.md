@@ -65,11 +65,17 @@ the approved source roots; choose it with global `--cache-dir` before `mcp` if n
   Markdown page names. First call without `page`, then supply one listed `page` to read it;
   a page request requires the still-valid session snapshot, including after eviction. JSON miner bodies are not
   exposed as arbitrary file reads. Failed/blocked or damaged producer evidence is refused.
-- `crab_menu(prey, maw, offset=0, limit=15, category=null)` compares with a local maw, respecting
+- `crab_menu(prey, maw, offset=0, limit=15, category=null, depth="normal")` compares with a local maw, respecting
   its licence, hunger, memory and existing ledger decisions. `limit` is 1–100. Follow
   `next_offset` until null to read all matching candidates. It does not record a meal or decision
   in the ledger and does not query the issue tracker for duplicate issues. The MCP menu is
   returned in memory and does not overwrite the CLI meal used by `crab menu` and `crab serve`.
+
+Both tools refuse failed/blocked miners, damaged artifacts and lost file visibility.
+Refusals identify the prey/maw side and the coverage cause. Use `depth="deep"` on
+the same tool when the normal file list is truncated; permission/read failures
+still require repair. Depth is part of the session snapshot identity: restart at
+offset zero when changing it, rather than continuing another depth's menu.
 
 Both tools write only their analysis cache. They are marked as non-destructive, idempotent
 analysis operations with `read_only_hint=false` because cache writes are real writes. There is
