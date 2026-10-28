@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import errno
 import hashlib
 import json
 import sys
@@ -721,6 +722,24 @@ def test_status_reads_busy_snapshot_with_live_lease(loop: Loop) -> None:
         assert view["active"]["token"] == ready["active"]["token"]
         assert view["blocked_reason"] == "phase already leased"
         assert loop.path.read_bytes() == original
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX-only flock error contract")
+@pytest.mark.parametrize("lock_errno", [errno.EACCES, errno.EIO])
+def test_status_fails_closed_on_posix_lock_errors(
+    loop: Loop, monkeypatch: pytest.MonkeyPatch, lock_errno: int
+) -> None:
+    import fcntl
+
+    original = loop.path.read_bytes()
+
+    def deny_lock(_fd: int, _flags: int) -> None:
+        raise OSError(lock_errno, "synthetic flock failure")
+
+    monkeypatch.setattr(fcntl, "flock", deny_lock)
+    with pytest.raises(CrabError, match="cannot acquire loop state lock"):
+        loop.status()
+    assert loop.path.read_bytes() == original
 
 
 def test_cli_roundtrip_needs_no_provider_and_pause_has_no_required_flags(
