@@ -94,15 +94,23 @@ def state_lock(path: Path, *, allow_busy: bool = False) -> Iterator[bool]:
     Status may observe the last atomic snapshot without obtaining the writer
     lock. Every mutation still requires acquiring that exclusive lock.
     """
-    safe_parent(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    safe_parent(path.with_suffix(".lock"))
-    with path.with_suffix(".lock").open("a+b") as stream:
-        stream.seek(0, os.SEEK_END)
-        if stream.tell() == 0:
-            stream.write(b"0")
-            stream.flush()
-        stream.seek(0)
+    lock_path = path.with_suffix(".lock")
+    try:
+        safe_parent(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        safe_parent(lock_path)
+        stream = lock_path.open("a+b")
+    except OSError as exc:
+        raise CrabError(f"cannot open loop state lock: {lock_path}") from exc
+    with stream:
+        try:
+            stream.seek(0, os.SEEK_END)
+            if stream.tell() == 0:
+                stream.write(b"0")
+                stream.flush()
+            stream.seek(0)
+        except OSError as exc:
+            raise CrabError(f"cannot initialize loop state lock: {lock_path}") from exc
         try:
             if sys.platform == "win32":
                 import msvcrt
@@ -115,12 +123,19 @@ def state_lock(path: Path, *, allow_busy: bool = False) -> Iterator[bool]:
         except OSError as exc:
             # Contention is not permission to recover or rewrite a lease. Treat only
             # OS lock-conflict errors as busy; unrelated lock failures still fail closed.
-            contended = exc.errno in (errno.EACCES, errno.EAGAIN) or (
-                getattr(exc, "winerror", None) == 33
-            )
+            if sys.platform == "win32":
+                contended = exc.errno in (errno.EACCES, errno.EAGAIN) or (
+                    getattr(exc, "winerror", None) == 33
+                )
+            else:
+                # POSIX flock signals nonblocking contention with EWOULDBLOCK;
+                # a permission failure must not be reported as a busy writer.
+                contended = exc.errno in (errno.EWOULDBLOCK, errno.EAGAIN)
             if allow_busy and contended:
                 yield False
                 return
+            if not contended:
+                raise CrabError("cannot acquire loop state lock; inspect lock file access") from exc
             raise CrabError("another process is updating this loop; try the next wake-up") from exc
         try:
             yield True
