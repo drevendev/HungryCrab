@@ -9,8 +9,8 @@ import pytest
 
 from hungry_crab.compare.candidates import Side
 from hungry_crab.compare.rules import TRAIT_RULES
-from hungry_crab.errors import CrabError, UsageError
-from hungry_crab.hunt import discover
+from hungry_crab.errors import CrabError, ExternalCommandError, UsageError
+from hungry_crab.hunt import discover, format_hunt
 from hungry_crab.hunt_config import HuntSettings
 from hungry_crab.ledger import Ledger, Meal
 from hungry_crab.loop import Loop
@@ -237,3 +237,69 @@ def test_default_hunt_prioritizes_trait_query_over_stars(tmp_path: Path) -> None
     assert report["candidates"][0]["score"] > report["candidates"][1]["score"]
     assert "security.codeql" in report["candidates"][0]["signals"]["query_gap_hints"]
     assert "recheck pinned digest" in report["candidates"][0]["license_review"]
+
+
+@pytest.mark.parametrize(
+    ("message", "hint"),
+    [
+        ("GET failed with HTTP 401", "check authentication with: gh auth status"),
+        ("GET failed with HTTP 429", "GitHub requested a retry after 60s; retry the job later"),
+        ("GET failed: network timeout", None),
+    ],
+)
+def test_partial_search_retains_failure_diagnostics_and_earlier_results(
+    tmp_path: Path, message: str, hint: str | None
+) -> None:
+    class Interrupted:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def get(self, path: str) -> dict[str, Any]:
+            self.calls.append(path)
+            if len(self.calls) == 1:
+                return {"items": [repo("example/retained")], "total_count": 1}
+            raise ExternalCommandError(message, hint=hint)
+
+    client = Interrupted()
+    result = discover(
+        Side("maw", "a", None, tmp_path),
+        MawConfig(tmp_path),
+        Ledger(None),
+        HuntSettings(queries=["first", "second", "deferred"]),
+        client=client,  # type: ignore[arg-type]
+    )
+    assert len(client.calls) == 2
+    assert [row["prey"] for row in result["candidates"]] == ["example/retained"]
+    assert result["search"][-1]["error_message"] == message
+    assert result["search"][-1]["error_hint"] == hint
+    assert result["query_plan"][-1]["state"] == "provider-deferred"
+    markdown = format_hunt(result)
+    assert message in markdown
+    if hint:
+        assert hint in markdown
+
+
+def test_provider_diagnostics_are_bounded_single_line_and_redact_credentials(
+    tmp_path: Path,
+) -> None:
+    secret = "ghp_" + "A" * 36
+
+    class Unavailable:
+        def get(self, path: str) -> dict[str, Any]:
+            raise ExternalCommandError(
+                "HTTP 401 credential: " + secret,
+                hint="\x1b[31mRetry\x1b[0m\r\n" + "x" * 6000,
+            )
+
+    result = discover(
+        Side("maw", "a", None, tmp_path),
+        MawConfig(tmp_path),
+        Ledger(None),
+        HuntSettings(queries=["probe"]),
+        client=Unavailable(),  # type: ignore[arg-type]
+    )
+    failure = result["search"][0]
+    assert failure["error_message"] == "[redacted provider diagnostic]"
+    assert secret not in str(result) and secret not in format_hunt(result)
+    assert len(failure["error_hint"]) <= 500
+    assert "\x1b" not in failure["error_hint"] and "\n" not in failure["error_hint"]

@@ -252,6 +252,8 @@ def apply(report: TuneReport, config: MawConfig, *, write: bool = True) -> dict[
 
 def manual_patch(report: TuneReport, config: MawConfig) -> dict[str, Any]:
     """Describe a manual edit, binding it to untouched bytes rather than rewriting aliases."""
+    if config.path.is_file() != config.exists:
+        raise UsageError("configuration changed while preparing the manual scoring patch")
     source = config.path.read_bytes() if config.exists else b""
     try:
         node = yaml.compose(source)
@@ -277,22 +279,24 @@ def manual_patch(report: TuneReport, config: MawConfig) -> dict[str, Any]:
                 unique(value)
 
     unique(node)
-    current = yaml.safe_load(source) if source else {}
-    if (current or {}) != config.raw:
+    current = yaml.safe_load(source) if node is not None else {}
+    if not isinstance(current, dict):
+        raise UsageError("manual scoring patch requires a YAML mapping")
+    fresh = MawConfig.from_data(config.root, current)
+    # Python equality collapses bool/int/float distinctions that owner policy validates.
+    if yaml.safe_dump(current, sort_keys=True) != yaml.safe_dump(config.raw, sort_keys=True):
         raise UsageError("configuration changed while preparing the manual scoring patch")
-    scoring = apply(report, config, write=False)
-    from .config_validation import validate
-
-    validate({**config.raw, "scoring": scoring})
+    scoring = apply(report, fresh, write=False)
+    MawConfig.from_data(config.root, {**current, "scoring": scoring})
     return {
         "schema": "hungry-crab.scoring-patch/1",
         "config_sha256": hashlib.sha256(source).hexdigest(),
         "operation": {
-            "op": "replace" if "scoring" in config.raw else "add",
+            "op": "replace" if "scoring" in current else "add",
             "path": "/scoring",
             "value": scoring,
         },
-        "changes_required": scoring != config.scoring,
+        "changes_required": scoring != fresh.scoring,
         "write_performed": False,
         "application": (
             "manual only: verify config_sha256, edit only scoring while preserving shared aliases, "

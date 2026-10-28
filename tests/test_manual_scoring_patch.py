@@ -62,3 +62,44 @@ def test_cli_patch_is_json_without_a_write(
     assert result["manual_patch"]["schema"] == "hungry-crab.scoring-patch/1"
     assert result["manual_patch"]["operation"]["op"] == "add"
     assert path.read_text() == source
+
+
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        ("hunt: {request_budget: 4}\n", "hunt: {request_budget: 4.0}\n"),
+        ("hunt: {include_seen: false}\n", "hunt: {include_seen: 0}\n"),
+        ("scoring: {categories: {docs: 0}}\n", "scoring: {categories: {docs: false}}\n"),
+        ("scoring: {categories: {docs: 1}}\n", "scoring: {categories: {docs: 1.0}}\n"),
+    ],
+)
+def test_patch_refuses_typed_equal_concurrent_edits(
+    tmp_path: Path, before: str, after: str
+) -> None:
+    path = tmp_path / ".crab.yml"
+    path.write_text(before)
+    config = MawConfig.load(tmp_path)
+    path.write_text(after)
+    with pytest.raises(UsageError):
+        manual_patch(TuneReport(0, 3), config)
+    assert path.read_text() == after
+
+
+@pytest.mark.parametrize("source", ["false\n", "0\n", "[]\n", "null\n"])
+def test_patch_refuses_scalar_replacement_of_empty_config(tmp_path: Path, source: str) -> None:
+    path = tmp_path / ".crab.yml"
+    path.write_text("{}\n")
+    config = MawConfig.load(tmp_path)
+    path.write_text(source)
+    with pytest.raises(UsageError, match="mapping"):
+        manual_patch(TuneReport(0, 3), config)
+    assert path.read_text() == source
+
+
+def test_patch_refuses_config_created_after_load(tmp_path: Path) -> None:
+    config = MawConfig.load(tmp_path)
+    path = tmp_path / ".crab.yml"
+    path.write_text("{}\n")
+    with pytest.raises(UsageError, match="changed"):
+        manual_patch(TuneReport(0, 3), config)
+    assert path.read_text() == "{}\n"

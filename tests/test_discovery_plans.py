@@ -8,12 +8,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fixture_builder import git as fixture_git
 from test_hunt import Search
 
+import hungry_crab.hunt as hunt_module
+from hungry_crab.analysis_context import receiving_context
 from hungry_crab.cli import main
 from hungry_crab.compare.candidates import Side
 from hungry_crab.compare.rules import TRAIT_RULES
+from hungry_crab.digest import DigestResult, worktree_fingerprint
 from hungry_crab.errors import CrabError, UsageError
+from hungry_crab.fetch.git import GitRunner
 from hungry_crab.hunt import discover, hunt
 from hungry_crab.hunt_config import HuntSettings
 from hungry_crab.hunt_plan import PLAN_SCHEMA, read_plan
@@ -32,6 +37,7 @@ def context(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, Any]:
         "ledger": "ledger",
     }
     monkeypatch.setattr("hungry_crab.hunt.receiving_context", lambda *_: value)
+    monkeypatch.setattr("hungry_crab.hunt._require_current_context", lambda *_: None)
     return value
 
 
@@ -185,6 +191,66 @@ def test_invalid_priorities_fail_before_provider_access(
             plan=selected,
             client=client,
         )  # type: ignore[arg-type]
+    assert not client.calls
+
+
+@pytest.mark.parametrize("change", ["tracked-file", "same-branch-commit", "selected-ref"])
+def test_hunt_rechecks_live_checkout_after_digest_before_provider(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    maw = tmp_path / "maw"
+    shutil.copytree(npm_app, maw)
+    cache = tmp_path / "cache"
+    original = hunt(maw, cache_root=cache, client=Search([]))  # type: ignore[arg-type]
+    selected = plan(original["receiving_context"])
+    run_digest = hunt_module.run_digest
+
+    def change_after_digest(*args: Any, **kwargs: Any) -> DigestResult:
+        result = run_digest(*args, **kwargs)
+        if change == "tracked-file":
+            (maw / "src" / "main.ts").write_text("export const changed = true;\n")
+        elif change == "same-branch-commit":
+            fixture_git(maw, "commit", "--allow-empty", "-m", "test: receiving commit changed")
+        else:
+            fixture_git(maw, "checkout", "-b", "changed")
+        return result
+
+    monkeypatch.setattr(hunt_module, "run_digest", change_after_digest)
+    client = Search([])
+    with pytest.raises(UsageError, match="receiving context"):
+        hunt(maw, cache_root=cache, plan=selected, client=client)  # type: ignore[arg-type]
+    assert not client.calls
+
+
+@pytest.mark.parametrize("changed", ["policy", "ledger"])
+def test_retained_side_rechecks_owner_inputs_before_search(tmp_path: Path, changed: str) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    (maw / ".gitignore").write_text(".crab.yml\n")
+    (maw / "main.py").write_text("print('synthetic receiving code; never executed')\n")
+    fixture_git(maw, "init", "-b", "main")
+    fixture_git(maw, "add", ".gitignore", "main.py")
+    fixture_git(maw, "commit", "-m", "test: receiving identity")
+    path = maw / ".crab.yml"
+    path.write_text("hunt: {request_budget: 4}\n")
+    config = MawConfig.load(maw)
+    ledger = Ledger.load(tmp_path / "ledger.json", maw="maw")
+    ledger.save()
+    git = GitRunner(maw)
+    manifest = {"prey": {"sha": git.head_sha(), "worktree": "clean"}}
+    context = receiving_context(maw, manifest, config.raw, ledger.to_dict())
+    selected = plan(context)
+    side = Side("maw", git.head_sha(), None, maw, manifest=manifest)
+    if changed == "policy":
+        path.write_text("hunt: {request_budget: 5}\n")
+    else:
+        updated = Ledger.load(ledger.path, maw="maw")
+        updated.extra["review_marker"] = "changed"
+        updated.save()
+    assert worktree_fingerprint(git, maw) == "clean"
+    client = Search([])
+    with pytest.raises(UsageError, match="receiving context"):
+        discover(side, config, ledger, HuntSettings(), plan=selected, client=client)  # type: ignore[arg-type]
     assert not client.calls
 
 
