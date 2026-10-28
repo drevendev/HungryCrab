@@ -55,7 +55,8 @@ before synonyms, and add a language-neutral pool only when explicitly requested.
 Unknown runtimes stay unknown. The report retains `query_plan` attribution, actual
 requests, budget/provider deferrals, raw search results and deferred languages.
 On a provider failure it preserves the attempted request, stops further requests
-and labels the result partial. Explicit queries retain their legacy ranking and
+and labels the result partial; the CLI prints that report and returns a nonzero
+exit status. Explicit queries retain their legacy ranking and
 unverified language attribution. Pinned acquisition and source/license verification
 are still required after discovery. Code/test index search is separate future work.
 
