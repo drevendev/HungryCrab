@@ -418,13 +418,18 @@ def test_registration_rejects_receiving_git_identity_change(
     }
     if change == "head":
         git(
-            maw, "commit", "--quiet", "--allow-empty", "-m", "test: new receiving HEAD",
+            maw,
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "test: new receiving HEAD",
             author="Fixture <fixture@example.invalid>",
         )
     else:
         git(maw, "checkout", "--quiet", "-b", "other-receiving-ref")
 
-    with pytest.raises(CrabError, match="receiving worktree changed|selected receiving ref"):
+    with pytest.raises(CrabError, match=r"receiving worktree changed|selected receiving ref"):
         register(directory, finding, source_repo=donor)
     assert not list(directory.glob("event-*.json"))
     assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
