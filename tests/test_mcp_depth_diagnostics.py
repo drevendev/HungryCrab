@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.mcp_service import AnalysisService, _require_evidence
+from hungry_crab.miners.inventory import MAX_FILES
 
 
 def test_deep_menu_can_cover_a_normal_truncated_source(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setitem(
-        __import__("hungry_crab.miners.inventory", fromlist=["MAX_FILES"]).MAX_FILES, "normal", 5
-    )
+    monkeypatch.setitem(MAX_FILES, "normal", 5)
     service = AnalysisService([npm_app, pyproject_cli], tmp_path / "cache")
     with pytest.raises(CrabError, match=r"prey|truncated") as error:
         service.menu(str(npm_app), str(pyproject_cli))
@@ -54,3 +55,26 @@ def test_refusal_does_not_suggest_depth_for_producer_or_integrity_failure(
     with pytest.raises(CrabError, match=r"architecture.*integrity") as error:
         _require_evidence(tmp_path, manifest, side="maw", depth="deep", kind="menu source")
     assert 'depth="deep"' not in (error.value.hint or "")
+
+
+def test_sdk_exposes_intentional_coverage_refusal_and_hint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("mcp")
+    from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError
+
+    from hungry_crab.mcp_server import create_server
+
+    root = tmp_path / "source"
+    root.mkdir()
+    service = AnalysisService([root], tmp_path / "cache")
+
+    def refuse(*_: Any) -> dict[str, Any]:
+        raise CrabError("maw file list truncated", hint='retry with depth="deep"')
+
+    monkeypatch.setattr(service, "menu", refuse)
+    server = create_server(service)
+    with pytest.raises(ToolError, match="maw file list truncated") as error:
+        asyncio.run(server.call_tool("crab_menu", {"prey": str(root), "maw": str(root)}))
+    assert not isinstance(error.value, UnexpectedToolError)
+    assert 'depth="deep"' in str(error.value)
