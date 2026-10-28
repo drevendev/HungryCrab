@@ -38,10 +38,10 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.8 is a prepared release candidate](docs/releases/0.6.8-candidate.md).
-No 0.6.8 tag or package has been published. [0.6.7](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.7) is the latest
-release, adding receiving-context checks, verified MCP paging and explicit discovery evidence
-states on [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
+**Status: [0.6.8](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.8) is the latest
+release, adding behavior-planned donor searches, runtime coverage, safer loop recovery and
+actionable MCP diagnostics on
+[0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
 Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
 runtime evidence and source-linked behavior findings (see the [changelog](CHANGELOG.md)).
