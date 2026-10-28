@@ -7,6 +7,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Recognize bounded contributor/team credits, comma-separated holders and common
+  year/company notation around an otherwise exact MIT grant. Restrictive metadata
+  and changed grant/rider text still require review; invalidate earlier same-version digests.
+- Keep ATX-looking body lines inside CommonMark HTML blocks of types 6/7 out of
+  README and wiki outlines; resume heading detection at their terminating blank line.
+
 ## [0.6.7] - 2026-10-28
 
 ### Added

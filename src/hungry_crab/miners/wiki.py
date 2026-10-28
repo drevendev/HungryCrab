@@ -264,6 +264,73 @@ _HTML_BLOCK_START_RE = re.compile(
 )
 _HTML_RAW_END_RE = re.compile(r"</(?:pre|script|style|textarea)>", re.IGNORECASE)
 _HTML_BLOCK_ENDS = {"cdata": "]]>", "comment": "-->", "instruction": "?>", "declaration": ">"}
+# CommonMark 0.31.2 HTML types 6/7 end at a blank line, not a closing tag.
+# Names are syntax facts from https://spec.commonmark.org/0.31.2/#html-blocks.
+_HTML_BLANK_BLOCK_RE = re.compile(
+    r" {0,3}</?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|"
+    r"colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|"
+    r"frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|"
+    r"nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|"
+    r"th|thead|title|tr|track|ul)(?=[ \t]|/?>|$)",
+    re.IGNORECASE,
+)
+_HTML_TAG_OPEN_RE = re.compile(r" {0,3}<(/?)([A-Za-z][A-Za-z0-9-]*)")
+_HTML_ATTRIBUTE_RE = re.compile(r"[A-Za-z_:][A-Za-z0-9_.:-]*")
+
+
+def _complete_html_tag(line: str) -> bool:
+    """Recognize a type-7 tag line with one bounded forward scan of attributes."""
+    opening = _HTML_TAG_OPEN_RE.match(line)
+    if opening is None:
+        return False
+    position = opening.end()
+    if opening.group(1):
+        return line[position:].strip(" \t") == ">"
+    if opening.group(2).lower() in {"pre", "script", "style", "textarea"}:
+        return False
+    size = len(line)
+    while position < size:
+        before = position
+        while position < size and line[position] in " \t":
+            position += 1
+        if position >= size:
+            return False
+        if line[position] == ">":
+            return not line[position + 1 :].strip(" \t")
+        if line.startswith("/>", position):
+            return not line[position + 2 :].strip(" \t")
+        if before == position:
+            return False
+        attribute = _HTML_ATTRIBUTE_RE.match(line, position)
+        if attribute is None:
+            return False
+        position = attribute.end()
+        equals = position
+        while equals < size and line[equals] in " \t":
+            equals += 1
+        if equals >= size or line[equals] != "=":
+            continue
+        position = equals + 1
+        while position < size and line[position] in " \t":
+            position += 1
+        if position >= size:
+            return False
+        if line[position] in "\"'":
+            end = line.find(line[position], position + 1)
+            if end < 0:
+                return False
+            position = end + 1
+        else:
+            start = position
+            while position < size and line[position] not in " \t>":
+                if line[position] in "\"'=<`":
+                    return False
+                position += 1
+            if position == start:
+                return False
+    return False
+
+
 # `[label]: destination "title"` defines a link and is not paragraph text, so `===` under it
 # does not make the definition, URL and all, a heading. Only a whole line of that shape is a
 # definition: a destination (`<...>` or one run without spaces) and an optional quoted or
@@ -296,7 +363,14 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
     in_block = False
     # Inside an HTML block of types 1-5 until its end condition, blank lines included.
     html_block = ""
+    html_until_blank = False
     for line in text.splitlines():
+        if html_until_blank:
+            if not line.strip():
+                html_until_blank = False
+                in_block = False
+            previous = ""
+            continue
         if html_block:
             if _html_block_ends(html_block, line):
                 html_block = ""
@@ -308,6 +382,10 @@ def markdown_headings(text: str) -> list[dict[str, object]]:
                 kind = html.lastgroup or ""
                 if not _html_block_ends(kind, line[html.start(kind) - 1 :]):
                     html_block = kind
+                previous = ""
+                continue
+            if _HTML_BLANK_BLOCK_RE.match(line) or (not previous and _complete_html_tag(line)):
+                html_until_blank = True
                 previous = ""
                 continue
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
