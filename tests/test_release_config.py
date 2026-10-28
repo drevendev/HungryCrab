@@ -39,7 +39,7 @@ def test_scoring_shape_and_non_string_member_are_bounded() -> None:
 def test_scoring_rewrite_keeps_comments_by_full_member_path(tmp_path: Path) -> None:
     path = tmp_path / ".crab.yml"
     path.write_bytes(
-        b"# Owner\r\nscoring:\r\n  categories:\r\n    docs: 0.3 # category\r\n"
+        b"# Owner\r\nscoring:\r\n  categories: # category header\r\n    docs: 0.3 # category\r\n"
         b"  traits:\r\n    'key#quoted': 0.4 # quoted hash\r\n    docs: 0.6 # trait\r\n"
         b"# Outside\r\nledger: none\r\n"
     )
@@ -47,6 +47,7 @@ def test_scoring_rewrite_keeps_comments_by_full_member_path(tmp_path: Path) -> N
     config = MawConfig.load(tmp_path)
     config.write_scoring(scoring)
     result = path.read_bytes()
+    assert b"categories:  # category header\r\n" in result
     assert b"docs: 0.7  # category\r\n" in result
     assert b"docs: 0.8  # trait\r\n" in result
     assert b"# quoted hash\r\n" in result
