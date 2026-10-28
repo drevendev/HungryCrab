@@ -742,6 +742,34 @@ def test_status_fails_closed_on_posix_lock_errors(
     assert loop.path.read_bytes() == original
 
 
+@pytest.mark.parametrize("lock_errno", [errno.EACCES, errno.EIO])
+def test_status_handles_lock_file_open_errors(
+    loop: Loop,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    lock_errno: int,
+) -> None:
+    original = loop.path.read_bytes()
+    lock_path = loop.path.with_suffix(".lock")
+    original_open = Path.open
+
+    def deny_lock_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+        if path == lock_path:
+            raise OSError(lock_errno, "synthetic lock-file open failure")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", deny_lock_open)
+    with pytest.raises(CrabError, match="cannot open loop state lock"):
+        loop.status()
+    assert loop.path.read_bytes() == original
+
+    monkeypatch.setattr("hungry_crab.loop_cli.maw_slug", lambda _: None)
+    monkeypatch.chdir(loop.maw)
+    assert main(["loop", "status"]) == 1
+    assert "cannot open loop state lock" in capsys.readouterr().err
+    assert loop.path.read_bytes() == original
+
+
 def test_cli_roundtrip_needs_no_provider_and_pause_has_no_required_flags(
     loop: Loop, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
