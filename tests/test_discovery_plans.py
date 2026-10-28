@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import copy
+import shutil
 from pathlib import Path
 from typing import Any
 
 import pytest
 from test_hunt import Search
 
+from hungry_crab.cli import main
 from hungry_crab.compare.candidates import Side
 from hungry_crab.compare.rules import TRAIT_RULES
 from hungry_crab.errors import CrabError, UsageError
@@ -208,16 +210,29 @@ def test_provider_failure_retains_attempt_and_defers_remaining_requests(
     assert [row["state"] for row in result["query_plan"]] == ["failed", "provider-deferred"]
 
 
+def test_cli_prints_partial_search_report_but_returns_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        "hungry_crab.cli.hunt",
+        lambda *_args, **_kwargs: {"search_status": "provider-failed-partial", "candidates": []},
+    )
+    assert main(["hunt", "--for", str(tmp_path), "--json"]) == 1
+    assert "provider-failed-partial" in capsys.readouterr().out
+
+
 def test_real_hunt_plan_cannot_reuse_a_changed_receiving_checkout(
     npm_app: Path, tmp_path: Path
 ) -> None:
+    maw = tmp_path / "maw"
+    shutil.copytree(npm_app, maw)
     cache = tmp_path / "cache"
-    original = hunt(npm_app, cache_root=cache, client=Search([]))  # type: ignore[arg-type]
+    original = hunt(maw, cache_root=cache, client=Search([]))  # type: ignore[arg-type]
     selected = plan(original["receiving_context"])
-    unchanged = hunt(npm_app, cache_root=cache, plan=selected, client=Search([]))  # type: ignore[arg-type]
+    unchanged = hunt(maw, cache_root=cache, plan=selected, client=Search([]))  # type: ignore[arg-type]
     assert unchanged["queries"]
-    (npm_app / "src" / "index.ts").write_text("export const changed = true;\n")
+    (maw / "src" / "main.ts").write_text("export const changed = true;\n")
     client = Search([])
     with pytest.raises(UsageError, match="receiving context"):
-        hunt(npm_app, cache_root=cache, plan=selected, client=client)  # type: ignore[arg-type]
+        hunt(maw, cache_root=cache, plan=selected, client=client)  # type: ignore[arg-type]
     assert not client.calls

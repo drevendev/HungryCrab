@@ -874,7 +874,7 @@ def cmd_hunt(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         json.dumps(report, indent=2, ensure_ascii=False) if args.json else format_hunt(report),
         end="\n" if args.json else "",
     )
-    return 0
+    return 1 if report.get("search_status") == "provider-failed-partial" else 0
 
 
 def print_ledger(ledger: Ledger, config: MawConfig) -> None:
