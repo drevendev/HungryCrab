@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fixture_builder import git
 from test_discovery_inputs import repository
 
+from hungry_crab import exploration as exploration_module
 from hungry_crab.cache import Target
 from hungry_crab.compare import compare_for_maw, load_menu
 from hungry_crab.digest import DigestOptions
@@ -358,6 +360,74 @@ def test_non_trait_gap_registers_with_immutable_source_and_default_hunger(tmp_pa
     assert menu is not None and any(c["id"] == card["id"] for c in menu["candidates"])
     assert menu["initial_candidates"] == [] and report(directory)["denominator"] == 0
     assert not report(directory)["exploration_complete"]
+
+
+@pytest.mark.parametrize("when", ["before", "during"])
+def test_registration_rejects_changed_receiving_without_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, when: str
+) -> None:
+    directory, donor, maw, finding = pair(tmp_path)
+    meal_dir = directory.parent.parent
+    before = {
+        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
+    }
+    if when == "before":
+        (maw / "app.py").write_text(STREAMING, encoding="utf-8")
+    else:
+        original = exploration_module.apply_hunger
+
+        def mutate_late(*args: Any, **kwargs: Any) -> Any:
+            (maw / "app.py").write_text(STREAMING, encoding="utf-8")
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(exploration_module, "apply_hunger", mutate_late)
+
+    with pytest.raises(CrabError, match="receiving worktree changed"):
+        register(directory, finding, source_repo=donor)
+    assert not list(directory.glob("event-*.json"))
+    assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
+
+
+@pytest.mark.parametrize("fingerprint", ["", "unknown"])
+def test_registration_rejects_unverifiable_frozen_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fingerprint: str
+) -> None:
+    directory, donor, _, finding = pair(tmp_path)
+    meal_dir = directory.parent.parent
+    before = {
+        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
+    }
+    snapshot = exploration_module._snapshot(directory)
+    snapshot["identities"]["maw_worktree"] = fingerprint
+    monkeypatch.setattr(exploration_module, "_snapshot", lambda _path: snapshot)
+
+    with pytest.raises(CrabError, match="receiving worktree changed"):
+        register(directory, finding, source_repo=donor)
+    assert not list(directory.glob("event-*.json"))
+    assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
+
+
+@pytest.mark.parametrize("change", ["head", "ref"])
+def test_registration_rejects_receiving_git_identity_change(
+    tmp_path: Path, change: str
+) -> None:
+    directory, donor, maw, finding = pair(tmp_path)
+    meal_dir = directory.parent.parent
+    before = {
+        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
+    }
+    if change == "head":
+        git(
+            maw, "commit", "--quiet", "--allow-empty", "-m", "test: new receiving HEAD",
+            author="Fixture <fixture@example.invalid>",
+        )
+    else:
+        git(maw, "checkout", "--quiet", "-b", "other-receiving-ref")
+
+    with pytest.raises(CrabError, match="receiving worktree changed|selected receiving ref"):
+        register(directory, finding, source_repo=donor)
+    assert not list(directory.glob("event-*.json"))
+    assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
 
 
 def test_hunger_hold_is_visible_and_does_not_change_policy(tmp_path: Path) -> None:
