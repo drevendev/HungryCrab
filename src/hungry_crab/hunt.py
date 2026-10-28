@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -15,16 +16,18 @@ from .cache import Slug, Target
 from .compare.candidates import Side
 from .compare.rules import TRAIT_RULES
 from .compare.scoring import Scoring
-from .digest import DigestOptions, run_digest
+from .digest import DigestOptions, run_digest, worktree_fingerprint
 from .errors import CrabError, UsageError
+from .fetch.git import GitRunner
 from .fetch.github import GitHubClient
 from .hunt_config import HuntSettings
-from .hunt_plan import allocate_queries, behavior_seeds
+from .hunt_plan import CONTEXT_KEYS, allocate_queries, behavior_seeds
 from .ledger import Ledger
 from .licensing import decide
 from .maw import MawConfig, maw_slug
 from .mdutil import inline
 from .memory import confirmed, counts, factor, learn
+from .publication_safety import scan_publication
 
 LANGUAGES = {
     "python": "Python",
@@ -70,6 +73,35 @@ README_TRAIT_TERMS = {
     "tooling.renovate": "Renovate",
     "tooling.dependabot": "Dependabot",
 }
+
+
+def _require_current_context(config: MawConfig, ledger: Ledger, expected: dict[str, Any]) -> None:
+    """Recheck live owner inputs after digest/plan preparation, before network requests."""
+    git = GitRunner(config.root)
+    if not GitRunner.available() or not git.is_repo_root() or not git.has_commits():
+        raise UsageError("hunt plan requires a current known receiving context")
+    worktree = worktree_fingerprint(git, config.root)
+    policy = MawConfig.load(config.root)
+    decisions = Ledger.load(ledger.path, maw=ledger.maw)
+    current = receiving_context(
+        config.root,
+        {"prey": {"sha": git.head_sha(), "worktree": worktree}},
+        policy.raw,
+        decisions.to_dict(),
+    )
+    if worktree == "unknown" or any(current.get(key) != expected.get(key) for key in CONTEXT_KEYS):
+        raise UsageError("receiving context changed while preparing the hunt plan; regenerate it")
+
+
+def _provider_diagnostic(value: str | None) -> str | None:
+    """Bound provider diagnostics, remove terminal controls and withhold secret-shaped text."""
+    if value is None:
+        return None
+    plain = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", value[:4096])
+    plain = " ".join("".join(c if c.isprintable() else " " for c in plain).split())
+    if scan_publication("provider-error.txt", plain):
+        return "[redacted provider diagnostic]"
+    return plain[:500]
 
 
 def gaps_for(side: Side, config: MawConfig, scoring: Scoring) -> list[dict[str, Any]]:
@@ -190,6 +222,8 @@ def discover(
 
     attempted: list[str] = []
     failed_query: str | None = None
+    if plan is not None:
+        _require_current_context(config, ledger, context)
     for query in queries:
         # The default gap-directed search uses GitHub's relevance ranking rather than
         # dropping all but the most-starred README matches before trait scoring.
@@ -209,6 +243,8 @@ def discover(
                     "ranking": ranking,
                     "status": "failed",
                     "error_type": type(exc).__name__,
+                    "error_message": _provider_diagnostic(str(exc)),
+                    "error_hint": _provider_diagnostic(exc.hint),
                     "returned": 0,
                     "truncated": False,
                     "incomplete_results": True,
@@ -418,4 +454,11 @@ def format_hunt(report: dict[str, Any]) -> str:
             f"{report.get('requests', {}).get('budget', 4)}. Deferred queries remain in query_plan."
         ),
     ]
+    for failure in report.get("search", []):
+        if failure.get("status") != "failed":
+            continue
+        if failure.get("error_message"):
+            lines.append(f"Provider error: {inline(failure['error_message'])}")
+        if failure.get("error_hint"):
+            lines.append(f"Recovery hint: {inline(failure['error_hint'])}")
     return "\n".join(lines) + "\n"
