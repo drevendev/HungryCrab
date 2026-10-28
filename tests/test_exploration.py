@@ -368,9 +368,7 @@ def test_registration_rejects_changed_receiving_without_writes(
 ) -> None:
     directory, donor, maw, finding = pair(tmp_path)
     meal_dir = directory.parent.parent
-    before = {
-        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
-    }
+    before = {name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")}
     if when == "before":
         (maw / "app.py").write_text(STREAMING, encoding="utf-8")
     else:
@@ -394,9 +392,7 @@ def test_registration_rejects_unverifiable_frozen_identity(
 ) -> None:
     directory, donor, _, finding = pair(tmp_path)
     meal_dir = directory.parent.parent
-    before = {
-        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
-    }
+    before = {name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")}
     snapshot = exploration_module._snapshot(directory)
     snapshot["identities"]["maw_worktree"] = fingerprint
     monkeypatch.setattr(exploration_module, "_snapshot", lambda _path: snapshot)
@@ -408,14 +404,10 @@ def test_registration_rejects_unverifiable_frozen_identity(
 
 
 @pytest.mark.parametrize("change", ["head", "ref"])
-def test_registration_rejects_receiving_git_identity_change(
-    tmp_path: Path, change: str
-) -> None:
+def test_registration_rejects_receiving_git_identity_change(tmp_path: Path, change: str) -> None:
     directory, donor, maw, finding = pair(tmp_path)
     meal_dir = directory.parent.parent
-    before = {
-        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
-    }
+    before = {name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")}
     if change == "head":
         git(
             maw,
@@ -440,9 +432,7 @@ def test_registration_rejects_non_repository_receiving_without_writes(
 ) -> None:
     directory, donor, maw, finding = pair(tmp_path)
     meal_dir = directory.parent.parent
-    before = {
-        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
-    }
+    before = {name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")}
     (maw / ".git").rename(maw / ".git-disabled")
 
     with pytest.raises(CrabError, match="receiving worktree changed"):
