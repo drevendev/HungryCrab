@@ -825,8 +825,13 @@ _SAMPLE_MAWS: dict[MawClass, str | None] = {
 
 
 def modes_by_maw_class(prey_spdx: str | None) -> dict[str, str]:
-    """The mode a nutrient would get in a permissive, a GPL and a proprietary maw."""
+    """Representative modes, not guarantees for every member of a license family."""
     return {
         maw.value: decide_for_class(prey_spdx, maw, sample).mode.value
         for maw, sample in _SAMPLE_MAWS.items()
     }
+
+
+def mode_maw_samples() -> dict[str, str | None]:
+    """Name the concrete maw behind each backward-compatible summary key."""
+    return {maw.value: sample for maw, sample in _SAMPLE_MAWS.items()}

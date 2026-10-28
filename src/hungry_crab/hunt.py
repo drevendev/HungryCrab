@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
+from .analysis_context import receiving_context
 from .cache import Slug, Target
 from .compare.candidates import Side
 from .compare.rules import TRAIT_RULES
@@ -18,6 +19,7 @@ from .digest import DigestOptions, run_digest
 from .errors import CrabError, UsageError
 from .fetch.github import GitHubClient
 from .hunt_config import HuntSettings
+from .hunt_plan import allocate_queries, behavior_seeds
 from .ledger import Ledger
 from .licensing import decide
 from .maw import MawConfig, maw_slug
@@ -96,8 +98,9 @@ def discover(
     *,
     client: GitHubClient | None = None,
     now: datetime | None = None,
+    plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """At most four requests and 100 results per request; no repository content is fetched."""
+    """Bounded metadata discovery; no repository content is fetched."""
     settings = HuntSettings.load(asdict(settings))
     client = client or GitHubClient()
     now = now or datetime.now(UTC)
@@ -105,12 +108,27 @@ def discover(
         ledger, Scoring.default().merged(config.scoring), config.memory, overrides=config.scoring
     )
     gaps = gaps_for(side, config, scoring)
-    languages = sorted(LANGUAGES[eco] for eco in side.ecosystems if eco in LANGUAGES)
-    queries = list(settings.queries)
+    context = receiving_context(config.root, side.manifest, config.raw, ledger.to_dict())
+    language_set = {LANGUAGES[eco] for eco in side.compatible_ecosystems if eco in LANGUAGES}
+    runtime = side.traits.get("runtime_evidence", {})
+    npm_files = runtime.get("npm", []) if isinstance(runtime, dict) else []
+    js_languages = {
+        "JavaScript" if Path(path).suffix in {".js", ".jsx", ".mjs", ".cjs"} else "TypeScript"
+        for path in npm_files
+        if isinstance(path, str)
+        and Path(path).suffix in {".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"}
+    }
+    if js_languages:
+        language_set.discard("TypeScript")
+        language_set.update(js_languages)
+    languages = sorted(language_set)
     gap_searches: dict[str, tuple[str, float]] = {}
-    if not queries:
-        language = (" language:" + languages[0]) if languages else ""
-        # Prefer a trait-level README hint over a generic category topic. Four calls maximum.
+    if plan is not None and settings.queries:
+        raise UsageError("choose a behavior plan or explicit queries, not both")
+    seeds = []
+    if plan is not None:
+        seeds = behavior_seeds(plan, context)
+    elif not settings.queries:
         for specific in (True, False):
             for gap in gaps:
                 term = README_TRAIT_TERMS.get(gap["key"])
@@ -121,21 +139,40 @@ def discover(
                     if term
                     else (f"topic:{TOPICS.get(gap['category'], 'template')}")
                 )
-                query = f"{prefix}{language} archived:false fork:false stars:>={settings.min_stars}"
-                if query in gap_searches:
-                    continue
-                # Topic fallback is less indicative than a trait-named README match.
                 priority = gap["priority"] * (1.0 if term else 0.25)
-                gap_searches[query] = (gap["key"], round(priority, 6))
-                queries.append(query)
-                if len(queries) == 4:
-                    break
-            if len(queries) == 4:
-                break
-        if not queries:
-            queries = [
-                f"topic:template{language} archived:false fork:false stars:>={settings.min_stars}"
+                seeds.append(
+                    {
+                        "id": gap["key"],
+                        "facet": gap["category"],
+                        "terms": [prefix],
+                        "priority": round(priority, 6),
+                        "confidence": "unverified_trait_hint" if term else "unverified_topic_hint",
+                    }
+                )
+        if not seeds:
+            seeds = [
+                {
+                    "id": "fallback",
+                    "facet": "fallback",
+                    "terms": ["topic:template"],
+                    "priority": 0.0,
+                    "confidence": "unverified_metadata",
+                }
             ]
+    planned = allocate_queries(
+        seeds, languages, neutral=settings.language_neutral, min_stars=settings.min_stars
+    )
+    if settings.queries:
+        planned = [
+            {"query": query, "confidence": "unverified_metadata", "language": None}
+            for query in dict.fromkeys(settings.queries)
+        ]
+    queries = list(dict.fromkeys(row["query"] for row in planned))[: settings.request_budget]
+    for row in planned:
+        if "hypothesis" in row:
+            previous = gap_searches.get(row["query"])
+            if previous is None or previous[1] < row["priority"]:
+                gap_searches[row["query"]] = (row["hypothesis"], row["priority"])
     seen = {meal.prey.casefold() for meal in ledger.meals}
     excluded = {str(Slug.parse(item)).casefold() for item in settings.exclude}
     own = maw_slug(config.root)
@@ -151,6 +188,8 @@ def discover(
     def reject(reason: str) -> None:
         rejected[reason] = rejected.get(reason, 0) + 1
 
+    attempted: list[str] = []
+    failed_query: str | None = None
     for query in queries:
         # The default gap-directed search uses GitHub's relevance ranking rather than
         # dropping all but the most-starred README matches before trait scoring.
@@ -159,7 +198,23 @@ def discover(
         params: dict[str, Any] = {"q": query, "per_page": settings.max_candidates}
         if ranking == "stars":
             params.update({"sort": "stars", "order": "desc"})
-        response = client.get("search/repositories?" + urlencode(params))
+        attempted.append(query)
+        try:
+            response = client.get("search/repositories?" + urlencode(params))
+        except CrabError as exc:
+            failed_query = query
+            evidence.append(
+                {
+                    "query": query,
+                    "ranking": ranking,
+                    "status": "failed",
+                    "error_type": type(exc).__name__,
+                    "returned": 0,
+                    "truncated": False,
+                    "incomplete_results": True,
+                }
+            )
+            break
         if not isinstance(response, dict) or not isinstance(response.get("items"), list):
             raise CrabError("GitHub search returned an invalid repository response")
         items = response["items"]
@@ -169,6 +224,8 @@ def discover(
                 "ranking": ranking,
                 "total_count": response.get("total_count"),
                 "returned": len(items),
+                "status": "available",
+                "results": items,
                 "incomplete_results": response.get("incomplete_results") is True,
                 "truncated": int(response.get("total_count", 0)) > len(items),
             }
@@ -210,7 +267,7 @@ def discover(
                 reject("license_filter")
                 continue
             repo_language = item.get("language")
-            stack = ECOSYSTEMS.get(str(repo_language)) in side.ecosystems
+            stack = ECOSYSTEMS.get(str(repo_language)) in side.compatible_ecosystems
             stats = counts(groups.get(key, []))
             multiplier = factor(stats, config.memory)
             fit_score = round(
@@ -236,6 +293,7 @@ def discover(
                         "previous_decisions": stats,
                         "memory_factor": multiplier,
                         "query_gap_hints": [],
+                        "behavior_hypotheses": [],
                     },
                     "queries": [],
                 }
@@ -243,6 +301,14 @@ def discover(
                 found[key]["score"] = max(found[key]["score"], hint[1])
                 if hint[0] not in found[key]["signals"]["query_gap_hints"]:
                     found[key]["signals"]["query_gap_hints"].append(hint[0])
+                if plan is not None:
+                    for row in planned:
+                        if (
+                            row["query"] == query
+                            and row["hypothesis"]
+                            not in found[key]["signals"]["behavior_hypotheses"]
+                        ):
+                            found[key]["signals"]["behavior_hypotheses"].append(row["hypothesis"])
             found[key]["queries"].append(query)
     candidates = sorted(
         found.values(),
@@ -258,15 +324,47 @@ def discover(
         "schema": "hungry-crab.hunt/1",
         "generated_at": now.isoformat(timespec="seconds"),
         "maw": {"label": side.label, "sha": side.sha, "profile": config.profile},
+        "receiving_context": context,
         "memory": memory.to_dict(),
         "gaps": gaps,
-        "queries": queries,
+        "queries": attempted,
+        "search_status": "provider-failed-partial" if failed_query else "bounded-metadata-search",
+        "query_plan": [
+            {
+                **row,
+                "state": (
+                    "failed"
+                    if row["query"] == failed_query
+                    else "executed"
+                    if row["query"] in attempted
+                    else "provider-deferred"
+                    if row["query"] in queries
+                    else "budget-deferred"
+                ),
+            }
+            for row in planned
+        ],
+        "requests": {
+            "budget": settings.request_budget,
+            "executed": len(evidence),
+            "planned_unique": len({row["query"] for row in planned}),
+        },
+        "deferred_languages": [
+            language
+            for language in languages
+            if not any(
+                row.get("language") == language and row["query"] in attempted for row in planned
+            )
+        ]
+        if not settings.queries
+        else [],
         "search": evidence,
         "filters": rejected,
         "settings": asdict(settings),
         "eligible": len(candidates),
         "candidates": candidates[: settings.limit],
         "truncated": len(candidates) > settings.limit
+        or len({row["query"] for row in planned}) > len(attempted)
         or any(row["truncated"] or row["incomplete_results"] for row in evidence),
     }
 
@@ -278,6 +376,7 @@ def hunt(
     cache_root: Path | None = None,
     client: GitHubClient | None = None,
     log: Callable[[str], None] = lambda _: None,
+    plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     config = MawConfig.load(maw)
     # Only the explicit maw supplies policy. The digest reads its files without running them.
@@ -290,7 +389,7 @@ def hunt(
     )
     side = Side.load(digest.out_dir)
     ledger = Ledger.load(config.ledger_path(cache_root), maw=config.root.name)
-    return discover(side, config, ledger, settings or config.hunt, client=client)
+    return discover(side, config, ledger, settings or config.hunt, client=client, plan=plan)
 
 
 def format_hunt(report: dict[str, Any]) -> str:
@@ -313,5 +412,10 @@ def format_hunt(report: dict[str, Any]) -> str:
     lines += [
         "",
         f"Eligible: {report['eligible']}. Search or shortlist truncated: {report['truncated']}.",
+        f"Search status: {report.get('search_status', 'bounded-metadata-search')}.",
+        (
+            f"Requests: {report.get('requests', {}).get('executed', 0)} / "
+            f"{report.get('requests', {}).get('budget', 4)}. Deferred queries remain in query_plan."
+        ),
     ]
     return "\n".join(lines) + "\n"

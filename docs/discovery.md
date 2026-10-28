@@ -11,6 +11,54 @@ and permitted effects. Select relevant facets: `behavior`, `algorithms`,
 against stated hypotheses. Record history/issues/wiki acquisition limits before using
 absence; shallow history and zero fetched issues are unexamined channels.
 
+## Behavior-led donor searches
+
+`hunt` finds repositories before acquisition; its repository-search channel reads
+metadata/topics and README hints. The digest miners already inspect source, tests,
+workflows and other acquired channels. A search hint is not evidence that a donor
+implements a behavior or that its code may be copied.
+
+Use `crab hunt --for MAW --json` to capture the actual `receiving_context`, then
+write a bounded JSON plan **outside the maw checkout**. Saving plan/report files in
+the receiving tree can change the worktree identity the plan is bound to.
+
+```json
+{
+  "schema": "hungry-crab.hunt-plan/1",
+  "receiving_context": "replace with the complete object from the hunt report",
+  "hypotheses": [
+    {
+      "id": "strict-jsonl",
+      "facet": "input-validation",
+      "behavior": "Reject duplicate keys before using corpus-selection JSONL",
+      "queries": ["strict JSONL", "duplicate keys"],
+      "priority": 0.9
+    }
+  ]
+}
+```
+
+```text
+crab hunt --for MAW --plan EXTERNAL_PLAN.json --request-budget 8 --language-neutral --json
+```
+
+Plans accept 1..20 hypotheses, each with 1..4 bounded keyword phrases, a distinct
+ID, facet, behavior and optional finite priority in 0..1. They must match the known
+receiving root, commit/ref, worktree, policy and ledger. Changed or unknown inputs,
+duplicate JSON keys and provider qualifiers in keyword phrases are refused before
+search. Explicit owner `--query` values remain supported; do not combine them with
+a behavior plan. The agent chooses semantic hypotheses; the CLI makes no model call.
+
+The request budget defaults to four and is capped at sixteen. Default plans rotate
+across supported dependency/first-party runtime evidence, visit distinct facets
+before synonyms, and add a language-neutral pool only when explicitly requested.
+Unknown runtimes stay unknown. The report retains `query_plan` attribution, actual
+requests, budget/provider deferrals, raw search results and deferred languages.
+On a provider failure it preserves the attempted request, stops further requests
+and labels the result partial. Explicit queries retain their legacy ranking and
+unverified language attribution. Pinned acquisition and source/license verification
+are still required after discovery. Code/test index search is separate future work.
+
 ## Portable donor artifacts
 
 ```text

@@ -7,8 +7,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Feed bounded receiving-context behavior plans into `hunt`, rotate supported
+  runtimes, and optionally search a language-neutral pool. Allocate an explicit
+  1..16 request budget across facets before synonyms; retain query/source metadata,
+  failed attempts and deferred coverage (#481, #482, #483).
+- Emit a configuration-hash-bound manual JSON scoring patch with `tune --patch`
+  for anchored/flow-style YAML while preserving the original file (#258).
+- Support `crab_menu(..., depth="deep")`, depth-specific paging snapshots and
+  side-specific producer/integrity/visibility diagnostics (#328).
+
 ### Fixed
 
+- Persist loop provider reconciliation before an artifact-budget stop, and recover
+  expired or clock-invalid leases while paused without spending another phase
+  or discarding a live lease (#347, #348).
+- Name the actual representative maw behind license summary modes, keeping legacy
+  JSON keys and distinguishing GPL-3.0-only from GPL-2.0-only decisions (#207).
 - Recognize bounded contributor/team credits, comma-separated holders and common
   year/company notation around an otherwise exact MIT grant. Restrictive metadata
   and changed grant/rider text still require review; invalidate earlier same-version digests.

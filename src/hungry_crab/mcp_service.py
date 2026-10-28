@@ -19,9 +19,36 @@ from .fetch.catch import CatchOptions
 from .fetch.git import GitRunner
 from .fs import is_link_stat
 from .mcp_snapshot import SnapshotStore, input_identity
+from .miners.inventory import describe_coverage
 from .nutrients import CATEGORIES
 
 _GIT_STORES = ("objects", "refs", "packed-refs", "info/grafts", "shallow")
+
+
+def _require_evidence(
+    directory: Path, manifest: dict[str, Any], *, side: str, depth: str, kind: str
+) -> None:
+    failed = incomplete_miners(manifest)
+    errors = digest_integrity_errors(directory, manifest)
+    coverage = manifest.get("coverage", {})
+    reasons = []
+    if failed:
+        reasons.append("failed/incomplete miners: " + ", ".join(failed))
+    if errors:
+        reasons.append(f"artifact integrity errors: {len(errors)}")
+    if coverage.get("healthy") is not True:
+        reasons.append(describe_coverage(coverage))
+    if reasons:
+        hint = (
+            'retry with depth="deep" for the truncated file list'
+            if depth == "normal" and coverage.get("loss", {}).get("truncated")
+            else "repair the named source coverage/producer problem and regenerate evidence"
+        )
+        raise CrabError(
+            f"MCP refuses incomplete {kind} evidence ({side}): " + "; ".join(reasons), hint=hint
+        )
+
+
 # Git itself follows alternates of alternates this deep.
 _MAX_ALTERNATE_DEPTH = 5
 _GIT_DATA_OUTSIDE = "this directory's git data lies outside the operator-approved roots"
@@ -288,13 +315,9 @@ class AnalysisService:
                 continuation=page is not None,
             )
             assert isinstance(result, DigestResult)
-            errors = digest_integrity_errors(result.out_dir, result.manifest)
-            if (
-                errors
-                or incomplete_miners(result.manifest)
-                or result.manifest.get("coverage", {}).get("healthy") is not True
-            ):
-                raise CrabError("MCP refuses incomplete or damaged digest evidence")
+            _require_evidence(
+                result.out_dir, result.manifest, side="prey", depth=depth, kind="or damaged digest"
+            )
             pages = markdown_pages(result.out_dir, result.manifest)
             payload: dict[str, Any] = {
                 "schema": "hungry-crab.mcp-digest/1",
@@ -325,7 +348,13 @@ class AnalysisService:
             return deepcopy(payload)
 
     def menu(
-        self, prey: str, maw: str, offset: int = 0, limit: int = 15, category: str | None = None
+        self,
+        prey: str,
+        maw: str,
+        offset: int = 0,
+        limit: int = 15,
+        category: str | None = None,
+        depth: Literal["normal", "deep"] = "normal",
     ) -> dict[str, Any]:
         if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 100:
             raise UsageError("offset must be non-negative and limit must be in 1..100")
@@ -333,9 +362,9 @@ class AnalysisService:
             raise UsageError("unknown nutrient category")
         with self.lock:
             target, root = self.prey(prey), self.local(maw)
-            options = self.options("normal")
+            options = self.options(depth)
             result, snapshot, hit = self.snapshots.get(
-                ("menu", str(target), str(root)),
+                ("menu", str(target), str(root), depth),
                 lambda: input_identity(target, options, root),
                 lambda: compare_for_maw(
                     target,
@@ -348,16 +377,11 @@ class AnalysisService:
                 continuation=offset > 0,
             )
             assert isinstance(result, CompareResult)
-            for directory in (result.prey_dir, result.maw_dir):
+            for side, directory in (("prey", result.prey_dir), ("maw", result.maw_dir)):
                 if directory is None:
-                    raise CrabError("MCP menu is missing its source digest")
+                    raise CrabError(f"MCP menu is missing its {side} source digest")
                 manifest = read_object(directory / "manifest.json")
-                if (
-                    incomplete_miners(manifest)
-                    or digest_integrity_errors(directory, manifest)
-                    or manifest.get("coverage", {}).get("healthy") is not True
-                ):
-                    raise CrabError("MCP refuses incomplete menu source evidence")
+                _require_evidence(directory, manifest, side=side, depth=depth, kind="menu source")
             rows = result.menu["candidates"]
             if category is not None:
                 rows = [row for row in rows if row["category"] == category]

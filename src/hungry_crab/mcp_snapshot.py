@@ -101,7 +101,11 @@ def evidence_identity(result: Analysis) -> str:
             detail = "; ".join([*failed, *errors, describe_coverage(coverage)])
             raise CrabError(
                 f"MCP refuses {side} digest evidence: {detail}",
-                hint="repair that side; visibility loss may require a separate deep digest",
+                hint=(
+                    'retry this analysis with depth="deep" for the truncated file list'
+                    if coverage.get("loss", {}).get("truncated")
+                    else "repair that side's producer, visibility or artifact integrity"
+                ),
             )
         identities[side] = _digest_identity(directory, manifest)
     return fingerprint(identities)
