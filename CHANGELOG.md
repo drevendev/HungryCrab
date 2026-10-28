@@ -20,6 +20,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Preserve multi-prey target casing, typed source dispatch and version 1 bundle
+  compatibility, including the Windows identity and historical aggregate controls (#475).
 - Persist loop provider reconciliation before an artifact-budget stop, and recover
   expired or clock-invalid leases while paused without spending another phase
   or discarding a live lease (#347, #348).
