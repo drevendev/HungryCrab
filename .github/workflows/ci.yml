@@ -71,8 +71,8 @@ jobs:
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
-    # Windows real-Git fixtures already take up to 18.5 minutes before review regressions.
-    timeout-minutes: 30
+    # Windows pytest can take 29.5 minutes; leave time for benchmarks and self-digest.
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 45 || 30 }}
     strategy:
       fail-fast: false
       matrix:
