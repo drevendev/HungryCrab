@@ -47,7 +47,9 @@ Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`
 
 - `crab sniff <prey> --maw .` prints the mode for this maw.
 - `license.json` in the prey digest has `modes_by_maw_class` (permissive, gpl, proprietary maws)
-  and `verdict` when a maw license was known at digest time.
+  and `verdict` when a maw license was known at digest time. `mode_maw_samples`
+  names the representatives: `gpl` is GPL-3.0-only, not the whole GPL family.
+  Use the actual maw's verdict for adoption decisions.
 - The full matrix is in `references/matrix.md`.
 
 This is a compliance aid, not legal advice; say so when the user asks about an edge case.
