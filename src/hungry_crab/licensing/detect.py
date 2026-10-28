@@ -499,7 +499,8 @@ def _attribution_identifier(value: str) -> bool:
     return not (
         re.search(
             r"\b(?:no|non|not|never|without|only|except|unless|permission|licen[cs]e|"
-            r"use|commercial|research|personal|internal|read|sharing|reserved)\b",
+            r"use|commercial|research|personal|internal|read|sharing|reserved|"
+            r"proprietary|confidential|nda)\b",
             spaced,
         )
         or re.search(
