@@ -94,15 +94,23 @@ def state_lock(path: Path, *, allow_busy: bool = False) -> Iterator[bool]:
     Status may observe the last atomic snapshot without obtaining the writer
     lock. Every mutation still requires acquiring that exclusive lock.
     """
-    safe_parent(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    safe_parent(path.with_suffix(".lock"))
-    with path.with_suffix(".lock").open("a+b") as stream:
-        stream.seek(0, os.SEEK_END)
-        if stream.tell() == 0:
-            stream.write(b"0")
-            stream.flush()
-        stream.seek(0)
+    lock_path = path.with_suffix(".lock")
+    try:
+        safe_parent(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        safe_parent(lock_path)
+        stream = lock_path.open("a+b")
+    except OSError as exc:
+        raise CrabError(f"cannot open loop state lock: {lock_path}") from exc
+    with stream:
+        try:
+            stream.seek(0, os.SEEK_END)
+            if stream.tell() == 0:
+                stream.write(b"0")
+                stream.flush()
+            stream.seek(0)
+        except OSError as exc:
+            raise CrabError(f"cannot initialize loop state lock: {lock_path}") from exc
         try:
             if sys.platform == "win32":
                 import msvcrt
