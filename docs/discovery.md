@@ -56,7 +56,10 @@ Unknown runtimes stay unknown. The report retains `query_plan` attribution, actu
 requests, budget/provider deferrals, raw search results and deferred languages.
 On a provider failure it preserves the attempted request, stops further requests
 and labels the result partial; the CLI prints that report and returns a nonzero
-exit status. Explicit queries retain their legacy ranking and
+exit status. Failed search rows retain bounded, sanitized `error_message` and
+`error_hint` diagnostics, also shown in Markdown. Planned searches recheck live
+receiving commits, refs, worktrees, policy and ledger before provider requests.
+Explicit queries retain their legacy ranking and
 unverified language attribution. Pinned acquisition and source/license verification
 are still required after discovery. Code/test index search is separate future work.
 

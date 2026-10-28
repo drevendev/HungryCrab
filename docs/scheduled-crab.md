@@ -86,6 +86,10 @@ crab loop status --maw /path/to/maw --json
 crab loop next --maw /path/to/maw --json
 ```
 
+Status returns the last persisted snapshot with `writer_busy: true` while a worker
+holds the state lock. A busy status read never recovers or rewrites a lease; an
+unlocked status call performs normal interrupted-lease recovery.
+
 Own-maw state is `.crab/loop.json`. For foreign maws pass `--control /path/to/control` to every
 command: each maw gets `.crab/loops/<identity>.json`, without loop state in the foreign maw.
 Optional `.crab/maws.yml` in the control repository configures its targets:
