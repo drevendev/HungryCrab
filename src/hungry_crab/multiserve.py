@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
-from .cache import prey_paths, resolve_target
+from .cache import prey_paths
 from .errors import CrabError
 from .ledger import Ledger
 from .maw import MawConfig
@@ -54,12 +54,12 @@ def serve_many(
     for card in cards:
         groups.setdefault(str(card.trace["primary_source"]), []).append(card.id)
     for key, ids in groups.items():
-        target = resolve_target(targets[key])
+        target = targets[key]
         repo = (
             target.path
-            if target.path
+            if target.path is not None
             else prey_paths(target.slug, cache_root).repo
-            if target.slug
+            if target.slug is not None
             else None
         )
         part = serve(

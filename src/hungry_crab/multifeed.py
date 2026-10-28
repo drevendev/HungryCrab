@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .analysis_context import fingerprint, ledger_identity
-from .cache import Target, cache_root, maw_paths, prey_paths
+from .cache import Slug, Target, cache_root, maw_paths, prey_paths
 from .compare import MENU_SCHEMA, load_menu, menu_candidates
 from .errors import CrabError, UsageError
 from .feeder import EatOptions, EatResult, acquisition_scope, eat
@@ -20,7 +20,8 @@ from .fetch.catch import rmtree_force
 from .mdutil import MdDoc, inline
 from .nutrients import Candidate, slugify
 
-SCHEMA = "hungry-crab.feeder-multi/1"
+LEGACY_SCHEMA = "hungry-crab.feeder-multi/1"
+SCHEMA = "hungry-crab.feeder-multi/2"
 MODES = {"HUMAN": 0, "IDEAS_ONLY": 1, "REIMPLEMENT": 2, "COPY_FILE": 3, "COPY": 4}
 
 
@@ -153,6 +154,121 @@ def _fingerprints(root: Path) -> dict[str, str]:
     return result
 
 
+def _target_identity(target: Target) -> str:
+    if target.slug is not None and target.path is None:
+        return str(target.slug).casefold()
+    if target.path is not None and target.slug is None:
+        return os.path.normcase(str(target.path.resolve()))
+    raise UsageError("a multi-prey target must be exactly one slug or local path")
+
+
+def _target_record(target: Target) -> dict[str, str]:
+    if target.slug is not None and target.path is None:
+        return {"kind": "slug", "value": str(target.slug)}
+    if target.path is not None and target.slug is None:
+        return {"kind": "path", "value": str(target.path)}
+    raise UsageError("a multi-prey target must be exactly one slug or local path")
+
+
+def _source_id(identity: str) -> str:
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20]
+
+
+def _parse_recorded_slug(value: str) -> Slug:
+    try:
+        slug = Slug.parse(value)
+    except UsageError as exc:
+        raise ValueError("invalid recorded slug") from exc
+    if str(slug) != value:
+        raise ValueError("recorded slug is not canonical")
+    return slug
+
+
+def _parse_recorded_slug_url(value: str) -> Slug:
+    try:
+        slug = Slug.parse(value)
+    except UsageError as exc:
+        raise ValueError("invalid recorded slug URL") from exc
+    if slug.url != value:
+        raise ValueError("recorded slug URL is not canonical")
+    return slug
+
+
+def _local_source_root(path: Path) -> str:
+    try:
+        manifest = json.loads((path / "prey-digest" / "manifest.json").read_text(encoding="utf-8"))
+        prey = manifest["prey"]
+        root = prey["root"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ValueError("missing local prey source identity") from exc
+    if not isinstance(root, str):
+        raise ValueError("invalid local prey source identity")
+    return root
+
+
+def _target_from_v2(source: dict[str, Any], path: Path, menu: dict[str, Any]) -> Target:
+    identity = source.get("identity")
+    if not isinstance(identity, str) or not identity:
+        raise ValueError("missing source identity")
+    key = source.get("id")
+    if key != _source_id(identity):
+        raise ValueError("source id does not match identity")
+    record = source.get("target")
+    if not isinstance(record, dict) or set(record) != {"kind", "value"}:
+        raise ValueError("invalid typed target")
+    kind, value = record.get("kind"), record.get("value")
+    if not isinstance(value, str) or not value:
+        raise ValueError("invalid target value")
+    prey = menu.get("prey")
+    if not isinstance(prey, dict):
+        raise ValueError("missing source prey identity")
+    if kind == "slug":
+        slug = _parse_recorded_slug(value)
+        if identity != str(slug).casefold():
+            raise ValueError("source identity does not match slug target")
+        if prey.get("label") != value or prey.get("url") != slug.url:
+            raise ValueError("slug target does not match source menu")
+        return Target(slug=slug)
+    if kind == "path":
+        local_path = Path(value)
+        if not local_path.is_absolute() or str(local_path.resolve()) != value:
+            raise ValueError("local target must be a canonical absolute path")
+        if identity != os.path.normcase(value):
+            raise ValueError("source identity does not match local target")
+        if prey.get("url") is not None or prey.get("label") != local_path.name:
+            raise ValueError("local target does not match source menu")
+        if _local_source_root(path) != value:
+            raise ValueError("local target does not match acquired source path")
+        return Target(path=local_path)
+    raise ValueError("invalid target kind")
+
+
+def _target_from_v1(value: str, path: Path, menu: dict[str, Any]) -> Target:
+    prey = menu.get("prey")
+    if not isinstance(prey, dict) or not isinstance(prey.get("label"), str):
+        raise ValueError("missing legacy source prey identity")
+    url = prey.get("url")
+    if isinstance(url, str) and url:
+        slug = _parse_recorded_slug_url(url)
+        if prey["label"] != str(slug) or value != str(slug).casefold():
+            raise ValueError("legacy slug target does not match source menu")
+        return Target(slug=slug)
+    if url is not None:
+        raise ValueError("invalid legacy source URL")
+    local_path = Path(value)
+    if not local_path.is_absolute():
+        raise ValueError("legacy local target must be absolute")
+    identity = os.path.normcase(str(local_path.resolve()))
+    if value != identity or os.path.normcase(prey["label"]) != os.path.normcase(local_path.name):
+        raise ValueError("legacy local target does not match source menu")
+    source_root = _local_source_root(path)
+    # Version 1 did not record the producer CWD. If this relative digest root now
+    # resolves differently, its source cannot be matched safely; fail closed.
+    if os.path.normcase(str(Path(source_root).resolve())) != identity:
+        raise ValueError("legacy local target does not match acquired source path")
+    return Target(path=local_path)
+
+
 def eat_many(
     preys: list[Target],
     maw: Path,
@@ -162,10 +278,11 @@ def eat_many(
 ) -> EatResult:
     if not 2 <= len(preys) <= 10:
         raise UsageError("multi-prey Feeder accepts between two and ten prey")
-    identities = [
-        os.path.normcase(str(prey.path.resolve())) if prey.path else str(prey.slug).casefold()
+    preys = [
+        Target(path=prey.path.resolve()) if prey.path is not None and prey.slug is None else prey
         for prey in preys
     ]
+    identities = [_target_identity(prey) for prey in preys]
     if len(set(identities)) != len(preys):
         raise UsageError("multi-prey Feeder refuses duplicate prey")
     # Prey-specific nutrient IDs use slugified labels, not the unique cache identities.
@@ -211,7 +328,7 @@ def eat_many(
         sources = []
         with acquisition_scope(preys, maw, options):
             for identity, prey in sorted(zip(identities, preys, strict=True)):
-                key = hashlib.sha256(identity.encode()).hexdigest()[:20]
+                key = _source_id(identity)
                 relative = "sources/" + key
                 result = eat(prey, maw, replace(options, out=staged / relative), log=log)
                 menu = load_menu(result.out_dir)
@@ -222,8 +339,9 @@ def eat_many(
                     {
                         "id": key,
                         "path": relative,
-                        "target": identity,
-                        "prey": result.manifest["prey"],
+                        "identity": identity,
+                        "target": _target_record(prey),
+                        "prey": menu["prey"],
                         "files": _fingerprints(result.out_dir),
                     }
                 )
@@ -251,13 +369,15 @@ def eat_many(
             rmtree_force(staged, cache_root=staged.parent)
 
 
-def load_multi(root: Path) -> tuple[dict[str, Any], dict[str, Path], dict[str, str]]:
+def load_multi(root: Path) -> tuple[dict[str, Any], dict[str, Path], dict[str, Target]]:
     """Verify source files and rebuild the aggregate before a menu can drive serving."""
     root = root.resolve()
     try:
         manifest = json.loads((root / "feeder.json").read_text(encoding="utf-8"))
-        if manifest.get("schema") != SCHEMA or not isinstance(manifest.get("sources"), list):
+        schema = manifest.get("schema")
+        if schema not in {LEGACY_SCHEMA, SCHEMA} or not isinstance(manifest.get("sources"), list):
             raise ValueError("unsupported multi-prey schema")
+        legacy = schema == LEGACY_SCHEMA
         paths = {}
         targets = {}
         menus = {}
@@ -279,10 +399,19 @@ def load_multi(root: Path) -> tuple[dict[str, Any], dict[str, Path], dict[str, s
                 raise ValueError("invalid source path")
             if _fingerprints(path) != source["files"]:
                 raise ValueError("source bundle integrity mismatch")
-            paths[key], targets[key] = path, source["target"]
             menu = load_menu(path)
             if menu is None:
                 raise ValueError("missing source menu")
+            if source.get("prey") != menu.get("prey"):
+                raise ValueError("source prey identity differs from its menu")
+            if legacy:
+                target = source.get("target")
+                if not isinstance(target, str) or key != _source_id(target):
+                    raise ValueError("source id does not match legacy target")
+                targets[key] = _target_from_v1(target, path, menu)
+            else:
+                targets[key] = _target_from_v2(source, path, menu)
+            paths[key] = path
             menus[key] = menu
         saved = load_menu(root)
         if saved is None:
