@@ -490,6 +490,26 @@ _MIT_WARRANTY = (
 )
 
 
+def _attribution_identifier(value: str) -> bool:
+    """Bound a project/company identifier used only in an explicit credit form."""
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,62}", value) is None:
+        return False
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value.replace("-", " ")).casefold()
+    compact = value.replace("-", "").casefold()
+    return not (
+        re.search(
+            r"\b(?:no|non|not|never|without|only|except|unless|permission|licen[cs]e|"
+            r"use|commercial|research|personal|internal|read|sharing|reserved)\b",
+            spaced,
+        )
+        or re.search(
+            r"^(?:no|non|not|never|without|only|except|unless|for|research|personal|"
+            r"internal|read|sharealike)|(?:only|forbidden|prohibited|restricted)$",
+            compact,
+        )
+    )
+
+
 def _copyright_metadata(line: str) -> bool:
     """Recognize a bounded year/holder notice, never arbitrary copyright-prefixed prose.
 
@@ -550,8 +570,8 @@ def _copyright_metadata(line: str) -> bool:
         re.I,
     ):
         return False
-    years = r"\d{4}(?:\s*[-,]\s*(?:\d{2,4}|present))*"
-    holder = re.sub(rf"^{years}\s+", "", holder, count=1, flags=re.I)
+    years = r"\d{4}(?:\s*[-,]\s*(?:\d{2,4}|[12]\d{2}x|present))*"
+    holder = re.sub(rf"^{years},?\s+", "", holder, count=1, flags=re.I)
     holder = re.sub(rf"\s+{years}$", "", holder, count=1, flags=re.I)
     if len(holder) > 300:
         return False
@@ -613,13 +633,35 @@ def _copyright_metadata(line: str) -> bool:
         if ambiguous or not owner_linked:
             return False
         holder = alias.group(1).rstrip()
+    # These complete credit forms identify contributors or named team members;
+    # they do not admit free-form sentences after a holder. The full original
+    # notice has already passed restriction checks above.
+    collective = re.fullmatch(
+        r"(.+) and (?:the )?(?:([A-Za-z0-9-]{1,63}) )?(?:contributors|developers|others)",
+        holder,
+    )
+    if collective is not None:
+        if collective.group(2) and not _attribution_identifier(collective.group(2)):
+            return False
+        holder = collective.group(1)
+    project = re.fullmatch(r"(?:[Tt]he )?([A-Za-z0-9-]{1,63}) (?:developers|contributors)", holder)
+    if project is not None:
+        return _attribution_identifier(project.group(1))
+    team = re.fullmatch(r"([A-Za-z0-9-]{1,63}) dev team: (.+)", holder)
+    if team is not None:
+        if not _attribution_identifier(team.group(1)):
+            return False
+        holder = team.group(2)
+    company = re.fullmatch(r"([a-z][A-Za-z0-9-]{0,62}), (?:LLC|Inc|Ltd|Corp|Co)\.?", holder)
+    if company is not None:
+        return _attribution_identifier(company.group(1))
     words = holder.split()
     if not words or len(words) > 16:
         return False
     # Longer unstructured phrases are not a holder-name field. In particular, capitalization
     # cannot turn a sentence after the owner into metadata. Recognize explicit name forms.
     connectors = {"and", "of", "the", "de", "van", "von"}
-    groups = holder.split(" and ")
+    groups = re.split(r" and |,\s+", holder)
     name_form = all(
         0 < sum(word.casefold() not in connectors for word in group.split()) <= 2
         for group in groups
