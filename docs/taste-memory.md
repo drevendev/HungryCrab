@@ -128,8 +128,15 @@ working directory. Traversal, network paths and relative symlink or junction ali
 before reading commenter-origin evidence; malformed or missing required evidence blocks copying
 commenter prose into a publication.
 The aggregate `menu.json` uses `hungry-crab.menu/1` with `kind: multi-prey`; `feeder.json` uses
-`hungry-crab.feeder-multi/1` and records every source file hash. Markdown is paged without dropping
-cards. Reading and serving rebuild the aggregate from its verified source menus.
+`hungry-crab.feeder-multi/2` and records every source file hash. Each source stores a hash identity
+for deduplication separately from its typed target, which retains the original slug casing or
+canonical local path. Loading checks the source id against that identity and binds the target to its
+verified source menu or digest. Version 1 bundles remain readable; remote slug casing is recovered
+from their source menu. A version 1 local bundle created through the direct API with a relative
+`Path` is not portable across working directories because that format did not record the producer
+CWD; it fails closed if the relative digest root resolves differently. Use an absolute local path
+for a portable bundle. Markdown is paged without dropping cards. Reading and serving rebuild the
+aggregate from its verified source menus.
 
 Generic cards deduplicate by stable nutrient id; prey-specific lessons stay distinct. Every merged
 card retains all original cards, commits, evidence, origins and license modes in `trace.sources`.
@@ -140,7 +147,8 @@ that source's score: corroboration does not grant extra votes or a more permissi
 per-source policy and verification. Selection is made once across the aggregate. PR limits apply
 to the whole invocation; current maw hunger still applies. COPY verifies the selected source at
 its pinned commit; REIMPLEMENT retains clean-room receipts. Source hashes detect partial edits;
-they are not signatures or a substitute for protecting the maw's own files.
+identity and target checks are consistency checks, not signatures or a substitute for protecting the
+maw's own files.
 
 For `pr-branch`, every selected source is prepared before the first provider identity query,
 listing, push or PR creation. This checks receipt kinds and nutrient identities, source files,

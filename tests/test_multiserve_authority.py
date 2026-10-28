@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 from fixture_builder import git
-from test_multifeed import fake_eat
+from test_multifeed import fake_acquisition_scope, fake_eat
 from test_serve import FakeIssues
 
-from hungry_crab.cache import Target
+from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.errors import CrabError
 from hungry_crab.feeder import EatOptions, EatResult
 from hungry_crab.ledger import Ledger
@@ -17,7 +17,7 @@ from hungry_crab.maw import MawConfig
 from hungry_crab.multifeed import eat_many, load_multi
 from hungry_crab.multiserve import serve_many
 from hungry_crab.nutrients import Candidate
-from hungry_crab.serve import ServeOptions, commenter_titles
+from hungry_crab.serve import ServeOptions, ServeReport, commenter_titles
 
 
 @pytest.mark.parametrize("explicit", [False, True])
@@ -113,7 +113,7 @@ def test_source_bundle_commenter_guard_uses_its_own_digest_from_every_cwd(
             json.dumps({"prey_digest": "prey-digest"}), encoding="utf-8"
         )
         digest = result.out_dir / "prey-digest"
-        digest.mkdir()
+        digest.mkdir(exist_ok=True)
         title = (
             quote if name == "a" else "Please add a separate feature for observing release notes"
         )
@@ -218,3 +218,66 @@ def test_bundle_digest_cannot_redirect_through_a_symlink_or_windows_junction(
 
     monkeypatch.setattr(serving, "_commenter_artifact", guarded)
     assert commenter_titles(meal) is None
+
+
+def test_serve_many_uses_recorded_slug_path_despite_shadow_local_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    prey_slug = Slug.parse("Owner/MixedRepo")
+    shadow = tmp_path / "Owner" / "MixedRepo"
+    shadow.mkdir(parents=True)
+    cache = tmp_path / "cache"
+    source_ids: dict[str, str] = {}
+
+    def feed(prey: Target, maw: Path, options: EatOptions, **kwargs: object) -> EatResult:
+        result = fake_eat(prey, maw, options, **kwargs)
+        assert prey.slug is not None
+        menu_path = result.out_dir / "menu.json"
+        data = json.loads(menu_path.read_text(encoding="utf-8"))
+        card = Candidate(
+            "ci",
+            f"ci.{prey.slug.repo.casefold()}",
+            "Cache CI",
+            "A source-specific candidate.",
+            license_mode="COPY",
+            origin="licensed",
+            score=0.7,
+        )
+        source_ids[str(prey.slug)] = card.id
+        data["candidates"] = [card.to_dict()]
+        menu_path.write_text(json.dumps(data), encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", feed)
+    monkeypatch.setattr("hungry_crab.multifeed.acquisition_scope", fake_acquisition_scope)
+    bundle = eat_many(
+        [Target(slug=prey_slug), Target(slug=Slug.parse("Other/SecondRepo"))],
+        maw,
+        EatOptions(out=tmp_path / "bundle", cache_root=cache),
+    )
+    monkeypatch.chdir(tmp_path)
+    observed: list[Path] = []
+
+    def record_serve(
+        _path: Path, _maw: Path, options: ServeOptions, **kwargs: object
+    ) -> ServeReport:
+        prey_repo = kwargs["prey_repo"]
+        assert isinstance(prey_repo, Path)
+        observed.append(prey_repo)
+        return ServeReport(options.mode, str(_maw))
+
+    monkeypatch.setattr("hungry_crab.multiserve.serve", record_serve)
+    serve_many(
+        bundle.out_dir,
+        maw,
+        ServeOptions(ids=[source_ids[str(prey_slug)]]),
+        config=MawConfig.load(maw),
+        ledger=Ledger.load(None, maw="maw"),
+        client=FakeIssues(),
+        cache_root=cache,
+    )
+
+    assert [str(path) for path in observed] == [str(prey_paths(prey_slug, cache).repo)]
+    assert observed[0] != shadow
