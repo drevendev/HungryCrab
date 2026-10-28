@@ -430,6 +430,22 @@ def test_registration_rejects_receiving_git_identity_change(
     assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
 
 
+def test_registration_rejects_non_repository_receiving_without_writes(
+    tmp_path: Path,
+) -> None:
+    directory, donor, maw, finding = pair(tmp_path)
+    meal_dir = directory.parent.parent
+    before = {
+        name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")
+    }
+    (maw / ".git").rename(maw / ".git-disabled")
+
+    with pytest.raises(CrabError, match="receiving worktree changed"):
+        register(directory, finding, source_repo=donor)
+    assert not list(directory.glob("event-*.json"))
+    assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
+
+
 def test_hunger_hold_is_visible_and_does_not_change_policy(tmp_path: Path) -> None:
     directory, donor, maw, finding = pair(tmp_path, hunger="false")
     original = (maw / ".crab.yml").read_bytes()
