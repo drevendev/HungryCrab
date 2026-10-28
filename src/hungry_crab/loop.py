@@ -7,6 +7,7 @@ reserves the daily budget before work and prevents concurrent schedulers from do
 from __future__ import annotations
 
 import contextlib
+import errno
 import hashlib
 import json
 import os
@@ -87,8 +88,12 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
 
 
 @contextlib.contextmanager
-def state_lock(path: Path) -> Iterator[None]:
-    """OS advisory locks disappear on process death, including on Windows."""
+def state_lock(path: Path, *, allow_busy: bool = False) -> Iterator[bool]:
+    """OS advisory locks disappear on process death, including on Windows.
+
+    Status may observe the last atomic snapshot without obtaining the writer
+    lock. Every mutation still requires acquiring that exclusive lock.
+    """
     safe_parent(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     safe_parent(path.with_suffix(".lock"))
@@ -108,9 +113,17 @@ def state_lock(path: Path) -> Iterator[None]:
 
                 fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as exc:
+            # Contention is not permission to recover or rewrite a lease. Treat only
+            # OS lock-conflict errors as busy; unrelated lock failures still fail closed.
+            contended = exc.errno in (errno.EACCES, errno.EAGAIN) or (
+                getattr(exc, "winerror", None) == 33
+            )
+            if allow_busy and contended:
+                yield False
+                return
             raise CrabError("another process is updating this loop; try the next wake-up") from exc
         try:
-            yield
+            yield True
         finally:
             stream.seek(0)
             if sys.platform == "win32":
@@ -581,11 +594,15 @@ class Loop:
         }
 
     def status(self) -> dict[str, Any]:
-        with state_lock(self.path):
+        with state_lock(self.path, allow_busy=True) as acquired:
             data = self._load()
-            if self._expire(data):
+            if acquired and self._expire(data):
                 self._save(data)
-            return self._view(data)
+            view = self._view(data)
+            # Never attempt lease recovery during a writer's provider work.
+            # The last atomically persisted state remains available for monitoring.
+            view["writer_busy"] = not acquired
+            return view
 
     def discover(
         self, token: str, *, search: Callable[[Path], dict[str, Any]] | None = None
