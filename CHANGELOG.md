@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-10-28
+
 ### Added
 
 - Feed bounded receiving-context behavior plans into `hunt`, rotate supported
@@ -20,6 +22,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Recheck live receiving commits, refs, worktrees, owner policy and ledger before
+  behavior-plan searches; retain bounded provider causes and recovery hints in
+  partial JSON/Markdown reports (#497, #499).
+- Validate fresh YAML and preserve scalar type distinctions before emitting
+  manual scoring patches, including concurrent configuration changes (#498).
+- Keep loop status readable during writer activity with an explicit busy marker;
+  recover interrupted leases only while holding the writer lock (#500, #501).
 - Preserve multi-prey target casing, typed source dispatch and version 1 bundle
   compatibility, including the Windows identity and historical aggregate controls (#475).
 - Persist loop provider reconciliation before an artifact-budget stop, and recover
@@ -1228,7 +1237,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.8...HEAD
+[0.6.8]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/drevendev/HungryCrab/compare/v0.6.4...v0.6.5

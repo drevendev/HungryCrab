@@ -34,6 +34,11 @@ The 0.2.1-0.5 implementations are included in it; that does not close their unfu
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
 
+Prepared candidate: **0.6.8** (2026-10-28), tracked by #494. Its release/reopen
+commits retain the normal tag and CI gates; it has not been tagged or published.
+See the [candidate record](../releases/0.6.8-candidate.md). The released list above
+continues to describe published versions.
+
 The 0.6.7 discovery-reliability release packages the selected #469 scope, including the final
 #476 review repairs. It adds receiving-context checks, verified MCP paging, conservative
 configuration/learning behavior and explicit evidence-state reporting.
