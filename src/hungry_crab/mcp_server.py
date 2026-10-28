@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal
 
 from . import __version__
-from .errors import UsageError
+from .errors import CrabError, UsageError
 from .mcp_service import AnalysisService
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 def create_server(service: AnalysisService) -> MCPServer:
     try:
         from mcp.server import MCPServer
+        from mcp.server.mcpserver.exceptions import ToolError
         from mcp_types import ToolAnnotations
     except ModuleNotFoundError as exc:
         raise UsageError(
@@ -39,12 +41,21 @@ def create_server(service: AnalysisService) -> MCPServer:
         open_world_hint=service.allow_network,
     )
 
+    def invoke(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+        try:
+            return operation()
+        except CrabError as exc:
+            message = str(exc)
+            if exc.hint:
+                message += f"; hint: {exc.hint}"
+            raise ToolError(message) from None
+
     @server.tool(name="crab_digest", annotations=annotations)
     def crab_digest(
         prey: str, depth: Literal["normal", "deep"] = "normal", page: str | None = None
     ) -> dict[str, Any]:
         """Digest approved local or opted-in remote prey; read a listed Markdown page."""
-        return service.digest(prey, depth, page)
+        return invoke(lambda: service.digest(prey, depth, page))
 
     @server.tool(name="crab_menu", annotations=annotations)
     def crab_menu(
@@ -56,6 +67,6 @@ def create_server(service: AnalysisService) -> MCPServer:
         depth: Literal["normal", "deep"] = "normal",
     ) -> dict[str, Any]:
         """Compare prey with an approved local maw; page the menu without recording decisions."""
-        return service.menu(prey, maw, offset, limit, category, depth)
+        return invoke(lambda: service.menu(prey, maw, offset, limit, category, depth))
 
     return server
