@@ -655,6 +655,12 @@ def _copyright_metadata(line: str) -> bool:
     company = re.fullmatch(r"([a-z][A-Za-z0-9-]{0,62}), (?:LLC|Inc|Ltd|Corp|Co)\.?", holder)
     if company is not None:
         return _attribution_identifier(company.group(1))
+    # Newly admitted comma-separated holders must not turn an extra policy
+    # label (ShareAlike, NoExternalUse, etc.) into another person's name.
+    if "," in holder and not all(
+        _attribution_identifier(word.rstrip(",.")) for word in holder.split()
+    ):
+        return False
     words = holder.split()
     if not words or len(words) > 16:
         return False

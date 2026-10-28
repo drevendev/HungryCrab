@@ -51,6 +51,10 @@ def test_conventional_credit_forms_keep_the_exact_mit_grant(credit: str, spdx: b
         "sharealike, LLC.",
         "NoExternalUse dev team: Mira Vale, Alex Stone",
         "Mira Vale, Permission Required",
+        "Mira Vale, ShareAlike",
+        "Mira Vale, Nosale",
+        "Mira Vale, NoExternalUse",
+        "Mira Vale, InternalUseOnly",
         "Mira Vale and contributors. No distribution",
     ],
 )
