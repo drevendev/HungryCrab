@@ -51,7 +51,12 @@ unlearned scoring. Menus include the decision fingerprint, counts and effective 
 apply hunger or prey suggestions automatically. Repeating it with unchanged decisions leaves the
 file byte-identical after the first run. It replaces only the scoring section and preserves the
 surrounding comments, line endings and policy. Anchored or flow-style top-level YAML is refused
-before a write; paste the proposed weights manually for those configurations.
+before a write; use `crab tune --patch` for those configurations. Its JSON result
+contains a complete proposed scoring value, a JSON Pointer operation and the SHA-256
+of the unchanged configuration bytes. This is a manual edit description, not an
+automatic YAML patcher: verify the hash, preserve shared aliases and comments, edit
+only scoring, then run `crab tune --json` to reparse and validate the full config.
+`--patch` and `--write` are mutually exclusive; ambiguous/duplicate keys are refused.
 
 Prey-specific learning families such as `history-lesson.*.fix-prone` aggregate distinct ids without
 renaming them. Exact trait overrides win over family overrides. Generic maw-relative cards remain
@@ -84,18 +89,21 @@ crab hunt --for . --query "topic:testing language:Python" --limit 5
 ```
 
 Hunt digests only the explicit maw, builds bounded missing-trait search hints from its enabled
-hunger, and reads GitHub repository-search metadata. It makes at most four requests with at most
+hunger, and reads GitHub repository-search metadata. It defaults to four requests with at most
 100 results each. Default queries prioritize known trait terms in repository README search before
 falling back to category topics; repository search **cannot inspect workflow code or file paths**.
 These matches are unverified hints, not proof that a prey implements any trait. The highest
 matched gap priority orders the default shortlist, then stack fit, confirmed memory and bounded
 stars break ties. Explicit maw-owned queries retain generic compatibility scoring. A pinned digest
 must independently verify features and licensing before any recommendation to serve; no found prey
-is cloned or executed. README bodies and descriptions do not reach the report.
+is cloned or executed. README bodies are never fetched. Descriptions remain untrusted raw JSON
+search evidence; the human-readable shortlist prints structured metadata only.
 
 ```yaml
 hunt:
-  queries: []                # derive up to four from gaps when empty
+  queries: []                # derive queries from gaps when empty
+  request_budget: 4          # hard-bounded request budget in 1..16
+  language_neutral: false    # opt in to a language-neutral behavior pool
   exclude: [example/avoid]
   licenses: []               # optional SPDX metadata allowlist
   min_stars: 20
@@ -181,8 +189,9 @@ discovery, lease selection, aggregate licensing, provenance, integrity and faile
 The existing B1 and ranking benchmarks retain their frozen thresholds and labels.
 
 These tests establish correctness, not real-world usefulness lift. The live held-out evaluation is
-[#256](https://github.com/drevendev/HungryCrab/issues/256); complex YAML editing is
-[#258](https://github.com/drevendev/HungryCrab/issues/258). The paid B2 baseline and human
+[#256](https://github.com/drevendev/HungryCrab/issues/256). Complex YAML has the manual
+patch workflow from [#258](https://github.com/drevendev/HungryCrab/issues/258); automatic
+alias/flow rewriting remains unsupported. The paid B2 baseline and human
 audit in #250 remain open. A live Taste Memory comparison needs a frozen 0.4 baseline, separate
 training and held-out meals, independently recorded owner decisions, uptake/noise metrics and
 publication traces. Release and longitudinal rollout gates in #224 and #242 remain separate.

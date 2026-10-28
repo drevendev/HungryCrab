@@ -21,6 +21,7 @@ from .licensing import (
     modes_by_maw_class,
     normalize,
 )
+from .licensing.matrix import mode_maw_samples
 from .maw import MawConfig, relationship_for
 
 GIANT_KB = 300 * 1024
@@ -64,6 +65,7 @@ class SniffReport:
     maw_license: str | None
     mode: str | None
     warnings: list[str] = field(default_factory=list)
+    mode_maw_samples: dict[str, str | None] = field(default_factory=dict)
     suggestions: list[str] = field(default_factory=list)
     fetched_at: str = ""
     size_available: bool = True
@@ -217,6 +219,7 @@ def build_report(
         if maw_license
         else None,
         warnings=warnings,
+        mode_maw_samples=mode_maw_samples(),
         suggestions=suggestions,
         fetched_at=current.isoformat(timespec="seconds"),
         relationship=effective_relationship.value,
@@ -229,7 +232,11 @@ def format_report(report: SniffReport) -> str:
         lines.append(f"  {report.description[:200]}")
     license_text = report.license_spdx or report.license_name or "none"
     lines.append(f"License: {license_text} ({report.license_class})  ->  verdict {report.verdict}")
-    modes = ", ".join(f"{k} maw: {v}" for k, v in report.modes_by_maw_class.items())
+    samples = report.mode_maw_samples or mode_maw_samples()
+    modes = ", ".join(
+        f"{k} maw ({samples[k] or 'unlicensed'} sample): {v}"
+        for k, v in report.modes_by_maw_class.items()
+    )
     lines.append(f"Modes: {modes}")
     if report.maw_license:
         lines.append(f"Mode for maw ({report.maw_license}): {report.mode}")

@@ -33,6 +33,11 @@ the matrix was consulted and it was not.
 
 ## GPL and LGPL version compatibility (prey into a GPL maw)
 
+The backward-compatible `modes_by_maw_class.gpl` summary is a **GPL-3.0-only
+representative**, not a verdict for the entire GPL family. `mode_maw_samples`
+names every representative in sniff/digest JSON; the terminal also names it.
+Use the actual maw SPDX identifier and effective menu verdict for a decision.
+
 | Prey | GPL-2.0-only maw | GPL-2.0-or-later maw | GPL-3.0 maw | AGPL-3.0 maw |
 |---|---|---|---|---|
 | GPL-2.0-only | `COPY` | `COPY` | `IDEAS_ONLY` | `IDEAS_ONLY` |

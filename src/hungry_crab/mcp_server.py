@@ -48,9 +48,14 @@ def create_server(service: AnalysisService) -> MCPServer:
 
     @server.tool(name="crab_menu", annotations=annotations)
     def crab_menu(
-        prey: str, maw: str, offset: int = 0, limit: int = 15, category: str | None = None
+        prey: str,
+        maw: str,
+        offset: int = 0,
+        limit: int = 15,
+        category: str | None = None,
+        depth: Literal["normal", "deep"] = "normal",
     ) -> dict[str, Any]:
         """Compare prey with an approved local maw; page the menu without recording decisions."""
-        return service.menu(prey, maw, offset, limit, category)
+        return service.menu(prey, maw, offset, limit, category, depth)
 
     return server

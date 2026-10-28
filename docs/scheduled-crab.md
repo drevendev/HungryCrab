@@ -149,7 +149,11 @@ crab loop metrics --json         # wall time and optional measured tokens/cost h
 
 Pass the same maw/control arguments as `next`. Pause survives restart and blocks in-flight
 effects/recording; resume preserves an unexpired lease. Acknowledgement cannot discard an
-active lease or skip hardening of landed changes. Read stops before SERVE; serve stops before
+active lease or skip hardening of landed changes. `status`, `pause`, `next` and
+`acknowledge` record and clear an expired or clock-invalid lease once, even while
+paused, without reserving another phase. Future starts, nonpositive lifetimes and
+expiries beyond the configured lease duration are invalid; live leases remain
+protected. Read stops before SERVE; serve stops before
 GROW. A human can skip implementation, then TASTE and empty MOLT/HARDEN finish the round.
 Subsequent rounds start at HUNT and use the last TASTE goal and lesson.
 TRIAL can record a reasoned skip with `{"drop_pr": "<recorded-GROW-URL>"}`; the CLI closes that
