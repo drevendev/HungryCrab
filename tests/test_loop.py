@@ -689,6 +689,40 @@ def test_lock_is_nonblocking_and_released_after_exception(loop: Loop) -> None:
     assert loop.next()["ready"]
 
 
+def test_status_reads_busy_snapshot_without_recovering_expired_lease(loop: Loop) -> None:
+    ready = loop.next()
+    token = ready["active"]["token"]
+    loop.now += timedelta(minutes=61)
+    original = loop.path.read_bytes()
+    with state_lock(loop.path):
+        view = loop.status()
+        assert view["writer_busy"] is True
+        assert not view["ready"]
+        assert view["active"]["token"] == token
+        assert view["history"] == ready["history"]
+        assert loop.path.read_bytes() == original
+
+    recovered = loop.status()
+    assert recovered["writer_busy"] is False
+    assert recovered["active"] is None
+    assert len(recovered["history"]) == len(ready["history"]) + 1
+    assert recovered["history"][-1]["result"] == "fail"
+    after = loop.path.read_bytes()
+    assert loop.status()["history"] == recovered["history"]
+    assert loop.path.read_bytes() == after
+
+
+def test_status_reads_busy_snapshot_with_live_lease(loop: Loop) -> None:
+    ready = loop.next()
+    original = loop.path.read_bytes()
+    with state_lock(loop.path):
+        view = loop.status()
+        assert view["writer_busy"] is True
+        assert view["active"]["token"] == ready["active"]["token"]
+        assert view["blocked_reason"] == "phase already leased"
+        assert loop.path.read_bytes() == original
+
+
 def test_cli_roundtrip_needs_no_provider_and_pause_has_no_required_flags(
     loop: Loop, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
