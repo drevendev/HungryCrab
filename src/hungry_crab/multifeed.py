@@ -32,6 +32,7 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
     first = ordered[0][1]
     maw = first["maw"]
     context = _receiving_identity(first)
+    all_verified = all(_verified_receiving_evidence(menu) for _, menu in ordered)
     groups: dict[str, list[tuple[str, Candidate]]] = {}
     prey_keys: dict[str, str] = {}
     for name, menu in ordered:
@@ -93,9 +94,7 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
         "hunger": first.get("hunger", {}),
         "memory": first.get("memory", {}),
         "receiving_context": first.get("receiving_context"),
-        "receiving_context_status": "observed"
-        if first.get("receiving_context")
-        else "legacy-unknown",
+        "receiving_context_status": "observed" if all_verified else "legacy-unknown",
         "counts": {
             "total": len(cards),
             "top": top,
@@ -125,6 +124,38 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
             "memory": menu.get("memory"),
         }
     )
+
+
+
+def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
+    """Certify complete, internally consistent inputs; legacy absence is not evidence."""
+    context = menu.get("receiving_context")
+    inputs = menu.get("analysis_inputs")
+    if not isinstance(context, dict) or not isinstance(inputs, dict):
+        return False
+    required = {
+        "root", "sha", "selected_ref", "worktree", "policy", "ledger",
+        "depth", "analysis_identity", "ignore", "wiki",
+    }
+    if not required.issubset(context) or not {"policy", "ledger"}.issubset(inputs):
+        return False
+    if any(
+        not isinstance(context.get(field), str) or not context[field].strip()
+        for field in ("root", "sha", "policy", "ledger", "depth")
+    ):
+        return False
+    if (
+        _unknown_worktree(context["worktree"])
+        or _unknown_worktree(menu.get("post_comparison_worktree"))
+        or not isinstance(context["analysis_identity"], dict)
+        or not context["analysis_identity"]
+        or not isinstance(context["ignore"], list)
+        or context["policy"] != fingerprint(inputs["policy"])
+        or context["ledger"] != ledger_identity(inputs["ledger"])
+        or not all(isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory"))
+    ):
+        return False
+    return True
 
 
 def menu_prey(menu: dict[str, Any]) -> dict[str, Any]:
@@ -354,6 +385,8 @@ def eat_many(
                     }
                 )
         menu = merge_menus(menus, top=options.top)
+        if menu["receiving_context_status"] != "observed":
+            raise CrabError("multi-prey export requires complete receiving analysis evidence")
         menu_text = json.dumps(menu, indent=2, ensure_ascii=False) + "\n"
         (staged / "menu.json").write_text(menu_text, encoding="utf-8")
         pages = render_multi(menu).render_pages(3500, filename="menu.md")
@@ -430,7 +463,17 @@ def load_multi(root: Path) -> tuple[dict[str, Any], dict[str, Path], dict[str, T
             if additive not in saved:
                 rebuilt.pop(additive, None)
         if rebuilt != saved:
-            raise ValueError("aggregate menu differs from its sources")
+            # Older verified-hash bundles could label partial identity "observed".
+            # Accept only this historical status correction, without weakening any
+            # source-file hashes, aggregate cards, or provenance comparisons.
+            historical = dict(saved)
+            if (
+                historical.get("receiving_context_status") == "observed"
+                and rebuilt.get("receiving_context_status") == "legacy-unknown"
+            ):
+                historical["receiving_context_status"] = "legacy-unknown"
+            if rebuilt != historical:
+                raise ValueError("aggregate menu differs from its sources")
         return rebuilt, paths, targets
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         raise CrabError(f"invalid multi-prey bundle: {exc}") from exc
