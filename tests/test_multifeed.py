@@ -227,6 +227,34 @@ def test_new_bundle_refuses_partial_receiving_evidence(
     assert not list(tmp_path.glob(".bundle-*"))
 
 
+
+def test_new_bundle_refuses_receiving_change_during_comparison(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    preys = [tmp_path / "a", tmp_path / "b"]
+    for prey in preys:
+        prey.mkdir()
+
+    def changed_eat(prey: Target, maw: Path, options: EatOptions, **kwargs: Any) -> EatResult:
+        result = fake_eat(prey, maw, options, **kwargs)
+        path = result.out_dir / "menu.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        # Both sources report the same transition: matching each other is not
+        # proof that either observed an unchanged receiving checkout.
+        data["post_comparison_worktree"] = "d" * 64
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", changed_eat)
+    output = tmp_path / "bundle"
+    with pytest.raises(CrabError, match="complete receiving analysis evidence"):
+        eat_many([Target(path=prey) for prey in preys], maw, EatOptions(out=output, wiki=False))
+    assert not output.exists()
+    assert not list(tmp_path.glob(".bundle-*"))
+
+
 def test_atomic_bundle_integrity_and_cli_menu(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
