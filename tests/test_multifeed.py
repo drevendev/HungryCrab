@@ -77,6 +77,33 @@ def test_maw_relative_dedup_preserves_prey_specific_lessons_and_hidden_sources()
         merge_menus(sources)
 
 
+@pytest.mark.parametrize("value", ["", "unknown", " UNKNOWN ", 42, {}])
+def test_unknown_final_receiving_worktree_is_not_certified(value: object) -> None:
+    sources = {"a": menu("x/a"), "b": menu("x/b")}
+    for source in sources.values():
+        source["post_comparison_worktree"] = value
+    with pytest.raises(CrabError, match="receiving snapshot is unknown"):
+        merge_menus(sources)
+
+
+@pytest.mark.parametrize("value", ["invalid", [], 42, False])
+def test_malformed_receiving_context_is_not_certified(value: object) -> None:
+    sources = {"a": menu("x/a"), "b": menu("x/b")}
+    for source in sources.values():
+        source["receiving_context"] = value
+    with pytest.raises(CrabError, match="receiving snapshot is unknown"):
+        merge_menus(sources)
+
+
+def test_known_final_receiving_worktree_stays_mergeable() -> None:
+    sources = {"a": menu("x/a"), "b": menu("x/b")}
+    for source in sources.values():
+        source["post_comparison_worktree"] = "clean"
+    merged = merge_menus(sources)
+    assert merged["counts"]["total"] == 1
+    assert merged["receiving_context_status"] == "legacy-unknown"
+
+
 def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResult:
     assert options.out is not None
     options.out.mkdir()
