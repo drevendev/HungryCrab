@@ -141,7 +141,17 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         "policy": fingerprint(policy),
         "ledger": ledger_identity(ledger),
         "depth": "normal",
-        "analysis_identity": {"fixture": "same receiving digest"},
+        "analysis_identity": {
+            "api_sha256": hashlib.sha256(b"{}").hexdigest(),
+            "file_selection": "git-visible-v1",
+            "license_provenance": 6,
+            "markdown_structure": "html-blocks-v2",
+            "license_summary": "representative-maws-v1",
+            "ci_tool_detection": "shared-scripts-v3",
+            "runtime_detection": "first-party-v2",
+            "evidence_inventory": "portable-v1",
+            "instruction_matching": "unicode-matching-v2",
+        },
         "ignore": [],
         "wiki": None,
     }
@@ -152,6 +162,47 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         json.dumps({"prey": {"root": str(prey_root)}}), encoding="utf-8"
     )
     return EatResult(options.out, {"prey": data["prey"]})
+
+
+def test_matching_nonempty_truncated_digest_identity_is_legacy_unknown(tmp_path: Path) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    sources: dict[str, dict[str, Any]] = {}
+    for name in ("a", "b"):
+        prey = tmp_path / name
+        prey.mkdir()
+        result = fake_eat(
+            Target(path=prey), maw, EatOptions(out=tmp_path / f"out-{name}", wiki=False)
+        )
+        source = json.loads((result.out_dir / "menu.json").read_text(encoding="utf-8"))
+        source["receiving_context"]["analysis_identity"] = {"fixture": "same receiving digest"}
+        sources[name] = source
+    assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
+
+
+def test_new_bundle_refuses_matching_truncated_digest_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    preys = [tmp_path / "a", tmp_path / "b"]
+    for prey in preys:
+        prey.mkdir()
+
+    def truncated_eat(prey: Target, maw: Path, options: EatOptions, **kwargs: Any) -> EatResult:
+        result = fake_eat(prey, maw, options, **kwargs)
+        path = result.out_dir / "menu.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["receiving_context"]["analysis_identity"] = {"fixture": "same receiving digest"}
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", truncated_eat)
+    output = tmp_path / "bundle"
+    with pytest.raises(CrabError, match="complete receiving analysis evidence"):
+        eat_many([Target(path=prey) for prey in preys], maw, EatOptions(out=output, wiki=False))
+    assert not output.exists()
+    assert not list(tmp_path.glob(".bundle-*"))
 
 
 def legacy_v1_bundle(root: Path, sources: list[tuple[str, dict[str, Any], str]]) -> dict[str, Any]:
