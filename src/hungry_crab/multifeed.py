@@ -126,7 +126,6 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
     )
 
 
-
 def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
     """Certify complete, internally consistent inputs; legacy absence is not evidence."""
     context = menu.get("receiving_context")
@@ -134,8 +133,16 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
     if not isinstance(context, dict) or not isinstance(inputs, dict):
         return False
     required = {
-        "root", "sha", "selected_ref", "worktree", "policy", "ledger",
-        "depth", "analysis_identity", "ignore", "wiki",
+        "root",
+        "sha",
+        "selected_ref",
+        "worktree",
+        "policy",
+        "ledger",
+        "depth",
+        "analysis_identity",
+        "ignore",
+        "wiki",
     }
     if not required.issubset(context) or not {"policy", "ledger"}.issubset(inputs):
         return False
@@ -154,11 +161,16 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         or not isinstance(context["ignore"], list)
         or context["root"] != menu.get("maw", {}).get("root")
         or context["sha"] != menu.get("maw", {}).get("sha")
-        or (context["selected_ref"] is not None and not isinstance(context["selected_ref"], str))
+        or (
+            context["selected_ref"] is not None
+            and not isinstance(context["selected_ref"], str)
+        )
         or (isinstance(context["selected_ref"], str) and not context["selected_ref"].strip())
         or context["policy"] != fingerprint(inputs["policy"])
         or context["ledger"] != ledger_identity(inputs["ledger"])
-        or not all(isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory"))
+        or not all(
+            isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory")
+        )
     )
 
 
