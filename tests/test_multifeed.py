@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from hungry_crab.analysis_context import fingerprint, ledger_identity
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError, UsageError
@@ -104,6 +105,16 @@ def test_known_final_receiving_worktree_stays_mergeable() -> None:
     assert merged["receiving_context_status"] == "legacy-unknown"
 
 
+def test_matching_partial_context_is_not_certified_as_observed() -> None:
+    sources = {"a": menu("x/a"), "b": menu("x/b")}
+    for source in sources.values():
+        source["receiving_context"] = {"worktree": "clean"}
+        source["post_comparison_worktree"] = "clean"
+    merged = merge_menus(sources)
+    assert merged["receiving_context_status"] == "legacy-unknown"
+
+
+
 def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResult:
     assert options.out is not None
     options.out.mkdir()
@@ -115,6 +126,25 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         assert prey.path is not None
         prey_root = prey.path
     data["maw"]["root"] = str(maw.resolve())
+    policy: dict[str, Any] = {"mode": "normal"}
+    ledger: dict[str, Any] = {"entries": []}
+    data["analysis_inputs"] = {"policy": policy, "ledger": ledger}
+    data["hunger"] = {}
+    data["scoring"] = {}
+    data["memory"] = {}
+    data["post_comparison_worktree"] = "clean"
+    data["receiving_context"] = {
+        "root": str(maw.resolve()),
+        "sha": "m" * 40,
+        "selected_ref": "main",
+        "worktree": "clean",
+        "policy": fingerprint(policy),
+        "ledger": ledger_identity(ledger),
+        "depth": "normal",
+        "analysis_identity": {"fixture": "same receiving digest"},
+        "ignore": [],
+        "wiki": None,
+    }
     (options.out / "menu.json").write_text(json.dumps(data), encoding="utf-8")
     digest = options.out / "prey-digest"
     digest.mkdir()
@@ -170,6 +200,31 @@ def legacy_v1_bundle(root: Path, sources: list[tuple[str, dict[str, Any], str]])
         encoding="utf-8",
     )
     return aggregate
+
+
+def test_new_bundle_refuses_partial_receiving_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    preys = [tmp_path / "a", tmp_path / "b"]
+    for prey in preys:
+        prey.mkdir()
+
+    def partial_eat(prey: Target, maw: Path, options: EatOptions, **kwargs: Any) -> EatResult:
+        result = fake_eat(prey, maw, options, **kwargs)
+        path = result.out_dir / "menu.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["receiving_context"].pop("analysis_identity")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", partial_eat)
+    output = tmp_path / "bundle"
+    with pytest.raises(CrabError, match="complete receiving analysis evidence"):
+        eat_many([Target(path=prey) for prey in preys], maw, EatOptions(out=output, wiki=False))
+    assert not output.exists()
+    assert not list(tmp_path.glob(".bundle-*"))
 
 
 def test_atomic_bundle_integrity_and_cli_menu(
@@ -310,7 +365,7 @@ def test_multi_bundle_v1_preserves_receiving_context_and_recovers_slug_case(
     bundle = tmp_path / "legacy-bundle"
     saved = legacy_v1_bundle(bundle, sources)
     assert saved["receiving_context"] == context
-    assert saved["receiving_context_status"] == "observed"
+    assert saved["receiving_context_status"] == "legacy-unknown"
     if pre_context_aggregate:
         saved.pop("receiving_context")
         saved.pop("receiving_context_status")
@@ -322,10 +377,35 @@ def test_multi_bundle_v1_preserves_receiving_context_and_recovers_slug_case(
         assert "receiving_context_status" not in merged
     else:
         assert merged["receiving_context"] == context
-        assert merged["receiving_context_status"] == "observed"
+        assert merged["receiving_context_status"] == "legacy-unknown"
     for slug in slugs:
         source_id = hashlib.sha256(str(slug).casefold().encode("utf-8")).hexdigest()[:20]
         assert targets[source_id] == Target(slug=slug)
+
+
+def test_historical_v1_observed_partial_context_is_readable_but_downgraded(
+    tmp_path: Path,
+) -> None:
+    context = {"sha": "m" * 40, "selected_ref": "main", "root": "/maw", "worktree": "clean"}
+    slugs = [Slug.parse("Owner/One"), Slug.parse("Other/Two")]
+    source_menus = []
+    for slug in slugs:
+        source = menu(str(slug))
+        source["prey"]["url"] = slug.url
+        source["receiving_context"] = context
+        source_menus.append(
+            (str(slug).casefold(), source, str(prey_paths(slug, tmp_path / "cache").repo))
+        )
+    root = tmp_path / "old-bundle"
+    legacy_v1_bundle(root, source_menus)
+    path = root / "menu.json"
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    saved["receiving_context_status"] = "observed"
+    path.write_text(json.dumps(saved), encoding="utf-8")
+    rebuilt, _paths, _targets = load_multi(root)
+    assert rebuilt["receiving_context_status"] == "legacy-unknown"
+    # The legacy artifact itself is still intact and hash-verified, not rewritten.
+    assert json.loads(path.read_text(encoding="utf-8"))["receiving_context_status"] == "observed"
 
 
 def test_multi_bundle_v1_relative_local_target_fails_closed_after_cwd_changes(
