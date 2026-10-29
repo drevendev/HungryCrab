@@ -407,9 +407,7 @@ def test_registration_rechecks_gitignored_policy_after_validation(
     original = exploration_module.apply_hunger
 
     def mutate_policy(*args: Any, **kwargs: Any) -> Any:
-        (maw / ".crab.yml").write_text(
-            "ledger: none\nhunger:\n  code: false\n", encoding="utf-8"
-        )
+        (maw / ".crab.yml").write_text("ledger: none\nhunger:\n  code: false\n", encoding="utf-8")
         return original(*args, **kwargs)
 
     monkeypatch.setattr(exploration_module, "apply_hunger", mutate_policy)
