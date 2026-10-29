@@ -36,8 +36,11 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
     prey_keys: dict[str, str] = {}
     for name, menu in ordered:
         observed = menu.get("receiving_context")
-        if isinstance(observed, dict) and (
-            not isinstance(observed.get("worktree"), str) or observed["worktree"] in {"", "unknown"}
+        final_worktree = menu.get("post_comparison_worktree")
+        if (
+            (observed is not None and not isinstance(observed, dict))
+            or (isinstance(observed, dict) and _unknown_worktree(observed.get("worktree")))
+            or (final_worktree is not None and _unknown_worktree(final_worktree))
         ):
             raise CrabError(
                 "multi-prey receiving snapshot is unknown; regenerate from a known worktree"
@@ -102,6 +105,11 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
         "candidates": cards,
         "hidden": hidden,
     }
+
+
+def _unknown_worktree(value: object) -> bool:
+    """Unknown or malformed fingerprints must not certify a receiving snapshot."""
+    return not isinstance(value, str) or value.strip().lower() in {"", "unknown"}
 
 
 def _receiving_identity(menu: dict[str, Any]) -> str:
