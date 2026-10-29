@@ -114,7 +114,6 @@ def test_matching_partial_context_is_not_certified_as_observed() -> None:
     assert merged["receiving_context_status"] == "legacy-unknown"
 
 
-
 def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResult:
     assert options.out is not None
     options.out.mkdir()
