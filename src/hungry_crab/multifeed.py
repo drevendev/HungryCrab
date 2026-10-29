@@ -38,9 +38,9 @@ def merge_menus(sources: Mapping[str, dict[str, Any]], *, top: int = 30) -> dict
         observed = menu.get("receiving_context")
         final_worktree = menu.get("post_comparison_worktree")
         if (
-            (observed is not None and not isinstance(observed, dict))
+            ("receiving_context" in menu and not isinstance(observed, dict))
             or (isinstance(observed, dict) and _unknown_worktree(observed.get("worktree")))
-            or (final_worktree is not None and _unknown_worktree(final_worktree))
+            or ("post_comparison_worktree" in menu and _unknown_worktree(final_worktree))
         ):
             raise CrabError(
                 "multi-prey receiving snapshot is unknown; regenerate from a known worktree"

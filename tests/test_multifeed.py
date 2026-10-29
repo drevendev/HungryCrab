@@ -77,7 +77,7 @@ def test_maw_relative_dedup_preserves_prey_specific_lessons_and_hidden_sources()
         merge_menus(sources)
 
 
-@pytest.mark.parametrize("value", ["", "unknown", " UNKNOWN ", 42, {}])
+@pytest.mark.parametrize("value", ["", "unknown", " UNKNOWN ", 42, {}, None])
 def test_unknown_final_receiving_worktree_is_not_certified(value: object) -> None:
     sources = {"a": menu("x/a"), "b": menu("x/b")}
     for source in sources.values():
@@ -86,7 +86,7 @@ def test_unknown_final_receiving_worktree_is_not_certified(value: object) -> Non
         merge_menus(sources)
 
 
-@pytest.mark.parametrize("value", ["invalid", [], 42, False])
+@pytest.mark.parametrize("value", ["invalid", [], 42, False, None])
 def test_malformed_receiving_context_is_not_certified(value: object) -> None:
     sources = {"a": menu("x/a"), "b": menu("x/b")}
     for source in sources.values():
