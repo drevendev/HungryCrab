@@ -146,7 +146,7 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         for field in ("root", "sha", "policy", "ledger", "depth")
     ):
         return False
-    if (
+    return not (
         _unknown_worktree(context["worktree"])
         or _unknown_worktree(menu.get("post_comparison_worktree"))
         or not isinstance(context["analysis_identity"], dict)
@@ -159,9 +159,7 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         or context["policy"] != fingerprint(inputs["policy"])
         or context["ledger"] != ledger_identity(inputs["ledger"])
         or not all(isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory"))
-    ):
-        return False
-    return True
+    )
 
 
 def menu_prey(menu: dict[str, Any]) -> dict[str, Any]:
