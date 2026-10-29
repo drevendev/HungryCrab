@@ -227,7 +227,6 @@ def test_new_bundle_refuses_partial_receiving_evidence(
     assert not list(tmp_path.glob(".bundle-*"))
 
 
-
 def test_new_bundle_refuses_receiving_change_during_comparison(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
