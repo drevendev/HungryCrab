@@ -37,7 +37,10 @@ def serve_many(
     log: Callable[[str], None] = lambda _: None,
 ) -> ServeReport:
     menu, paths, targets = load_multi(bundle)
-    if options.mode in {"issue", "pr-branch"} and menu.get("receiving_context_status") != "observed":
+    if (
+        options.mode in {"issue", "pr-branch"}
+        and menu.get("receiving_context_status") != "observed"
+    ):
         raise CrabError(
             "multi-prey publication requires verified receiving analysis context; "
             "regenerate this bundle before serving"
