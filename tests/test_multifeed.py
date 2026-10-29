@@ -126,6 +126,7 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         assert prey.path is not None
         prey_root = prey.path
     data["maw"]["root"] = str(maw.resolve())
+    data["maw"]["sha"] = "m" * 40
     policy: dict[str, Any] = {"mode": "normal"}
     ledger: dict[str, Any] = {"entries": []}
     data["analysis_inputs"] = {"policy": policy, "ledger": ledger}
@@ -239,6 +240,7 @@ def test_atomic_bundle_integrity_and_cli_menu(
         EatOptions(out=tmp_path / "bundle", cache_root=tmp_path / "cache"),
     )
     merged, paths, _ = load_multi(result.out_dir)
+    assert merged["receiving_context_status"] == "observed"
     assert len(paths) == 2 and merged["counts"]["total"] == 1
     assert result.manifest["side_effects"] == {"issues_created": 0, "ledger_written": False}
     assert not (maw / ".crab").exists()
