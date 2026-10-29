@@ -126,6 +126,37 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
     )
 
 
+# Keep this minimum digest identity aligned with digest._analysis_identity().
+# New/changed producer markers must be reviewed before certifying old menus.
+_DIGEST_IDENTITY_MARKERS: dict[str, str | int] = {
+    "file_selection": "git-visible-v1",
+    "license_provenance": 6,
+    "markdown_structure": "html-blocks-v2",
+    "license_summary": "representative-maws-v1",
+    "ci_tool_detection": "shared-scripts-v3",
+    "runtime_detection": "first-party-v2",
+    "evidence_inventory": "portable-v1",
+    "instruction_matching": "unicode-matching-v2",
+}
+
+
+def _valid_digest_analysis_identity(value: object) -> bool:
+    """Do not certify an arbitrary nonempty dict as producer provenance."""
+    if not isinstance(value, dict):
+        return False
+    api_sha256 = value.get("api_sha256")
+    if not (
+        isinstance(api_sha256, str)
+        and len(api_sha256) == 64
+        and all(char in "0123456789abcdef" for char in api_sha256)
+    ):
+        return False
+    return all(
+        type(value.get(key)) is type(expected) and value[key] == expected
+        for key, expected in _DIGEST_IDENTITY_MARKERS.items()
+    )
+
+
 def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
     """Certify complete, internally consistent inputs; legacy absence is not evidence."""
     context = menu.get("receiving_context")
@@ -157,8 +188,7 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         _unknown_worktree(context["worktree"])
         or _unknown_worktree(menu.get("post_comparison_worktree"))
         or context["worktree"] != menu["post_comparison_worktree"]
-        or not isinstance(context["analysis_identity"], dict)
-        or not context["analysis_identity"]
+        or not _valid_digest_analysis_identity(context["analysis_identity"])
         or not isinstance(context["ignore"], list)
         or context["root"] != menu.get("maw", {}).get("root")
         or context["sha"] != menu.get("maw", {}).get("sha")
