@@ -600,13 +600,7 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         check_taken_licences(receipt, reader)
         maw = Path(data["maw_root"])
         config = MawConfig.load(maw)
-        policy = (
-            hashlib.sha256(config.path.read_bytes()).hexdigest()
-            if config.path.is_file()
-            else fingerprint(config.raw)
-        )
-        if policy != data["identities"]["policy"]:
-            raise CrabError("maw policy changed; regenerate the exploration snapshot")
+        _require_current_policy(data, config)
         legal = decide(prey_ref.license, config.license or menu["maw"].get("license"))
         mode, reason = apply_maw_policy(legal.mode.value, policy=config.mode, material="code")
         paths = [ref["path"] for ref in source]
@@ -681,8 +675,9 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             "card": card.to_dict(),
             "policy_blocked": not kept or bool(hidden),
         }
-        # Donor validation can be slow; refuse a changed receiving tree at publication.
+        # Donor validation can be slow; recheck the checkout AND policy before publication.
         _require_current_receiving(data)
+        _require_current_policy(data, config)
         event = _append(directory, payload)
         output = _registered_menu(data, events(directory))
         atomic_text(meal_dir / "menu.json", json.dumps(output, indent=2, ensure_ascii=False) + "\n")
@@ -706,6 +701,20 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             ).render(3500),
         )
         return event
+
+
+def _require_current_policy(data: dict[str, Any], config: MawConfig) -> None:
+    """Recheck policy bytes, including an ignored .crab.yml invisible to git diff."""
+    try:
+        current = (
+            hashlib.sha256(config.path.read_bytes()).hexdigest()
+            if config.path.is_file()
+            else fingerprint(config.raw)
+        )
+    except OSError as exc:
+        raise CrabError("maw policy unreadable; regenerate the exploration snapshot") from exc
+    if current != data["identities"]["policy"]:
+        raise CrabError("maw policy changed; regenerate the exploration snapshot")
 
 
 def _require_current_receiving(data: dict[str, Any]) -> None:
