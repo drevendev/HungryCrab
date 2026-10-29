@@ -156,6 +156,7 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
     return not (
         _unknown_worktree(context["worktree"])
         or _unknown_worktree(menu.get("post_comparison_worktree"))
+        or context["worktree"] != menu["post_comparison_worktree"]
         or not isinstance(context["analysis_identity"], dict)
         or not context["analysis_identity"]
         or not isinstance(context["ignore"], list)
