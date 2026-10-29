@@ -681,6 +681,8 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             "card": card.to_dict(),
             "policy_blocked": not kept or bool(hidden),
         }
+        # Donor validation can be slow; refuse a changed receiving tree at publication.
+        _require_current_receiving(data)
         event = _append(directory, payload)
         output = _registered_menu(data, events(directory))
         atomic_text(meal_dir / "menu.json", json.dumps(output, indent=2, ensure_ascii=False) + "\n")
@@ -713,12 +715,17 @@ def _require_current_receiving(data: dict[str, Any]) -> None:
     git = GitRunner(root)
     declared = as_dict(menu.get("maw")).get("root")
     expected = data["identities"]["maw_worktree"]
+    observed = worktree_fingerprint(git, root) if git.is_repo_root() else ""
     if (
         (declared is not None and str(root.resolve()) != str(Path(declared).resolve()))
         or not git.is_repo_root()
         or git.head_sha() != menu["maw"].get("sha")
+        or not isinstance(expected, str)
+        or not expected
         or expected == "unknown"
-        or worktree_fingerprint(git, root) != expected
+        or not observed
+        or observed == "unknown"
+        or observed != expected
     ):
         raise CrabError(
             "receiving worktree changed after exploration initialization",
