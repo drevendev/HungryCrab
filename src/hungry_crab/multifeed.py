@@ -139,6 +139,8 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
     }
     if not required.issubset(context) or not {"policy", "ledger"}.issubset(inputs):
         return False
+    if not isinstance(inputs["policy"], dict) or not isinstance(inputs["ledger"], dict):
+        return False
     if any(
         not isinstance(context.get(field), str) or not context[field].strip()
         for field in ("root", "sha", "policy", "ledger", "depth")
@@ -153,6 +155,7 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         or context["root"] != menu.get("maw", {}).get("root")
         or context["sha"] != menu.get("maw", {}).get("sha")
         or (context["selected_ref"] is not None and not isinstance(context["selected_ref"], str))
+        or (isinstance(context["selected_ref"], str) and not context["selected_ref"].strip())
         or context["policy"] != fingerprint(inputs["policy"])
         or context["ledger"] != ledger_identity(inputs["ledger"])
         or not all(isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory"))
