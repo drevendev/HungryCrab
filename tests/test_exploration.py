@@ -43,6 +43,7 @@ def pair(
     hunger: str = "ideas-only",
     header: str = "",
     now: datetime | None = None,
+    ignored_policy: bool = False,
 ) -> tuple[Path, Path, Path, dict[str, Any]]:
     donor = repository(
         tmp_path / "donor",
@@ -53,13 +54,13 @@ def pair(
             )
         },
     )
-    maw = repository(
-        tmp_path / "maw",
-        {
-            "app.py": BUFFERED if gap else STREAMING,
-            ".crab.yml": f"ledger: none\nhunger:\n  code: {hunger}\n",
-        },
-    )
+    maw_files = {
+        "app.py": BUFFERED if gap else STREAMING,
+        ".crab.yml": f"ledger: none\nhunger:\n  code: {hunger}\n",
+    }
+    if ignored_policy:
+        maw_files[".gitignore"] = ".crab.yml\n"
+    maw = repository(tmp_path / "maw", maw_files)
     result, _, _, _ = compare_for_maw(
         Target(path=donor),
         maw,
@@ -382,6 +383,41 @@ def test_registration_rejects_changed_receiving_without_writes(
 
     with pytest.raises(CrabError, match="receiving worktree changed"):
         register(directory, finding, source_repo=donor)
+    assert not list(directory.glob("event-*.json"))
+    assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
+
+
+@pytest.mark.parametrize("late_change", [False, True])
+def test_registration_rechecks_gitignored_policy_after_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, late_change: bool
+) -> None:
+    directory, donor, maw, finding = pair(tmp_path, ignored_policy=True)
+    assert ".crab.yml" not in git(maw, "ls-files")
+    initial_worktree = exploration_module.worktree_fingerprint(
+        exploration_module.GitRunner(maw), maw
+    )
+    assert initial_worktree == "clean"
+    meal_dir = directory.parent.parent
+    before = {name: (meal_dir / name).read_bytes() for name in ("menu.json", "menu.md")}
+
+    if not late_change:
+        assert register(directory, finding, source_repo=donor)["record"]["kind"] == "registration"
+        return
+
+    original = exploration_module.apply_hunger
+
+    def mutate_policy(*args: Any, **kwargs: Any) -> Any:
+        (maw / ".crab.yml").write_text(
+            "ledger: none\nhunger:\n  code: false\n", encoding="utf-8"
+        )
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(exploration_module, "apply_hunger", mutate_policy)
+    with pytest.raises(CrabError, match="maw policy changed"):
+        register(directory, finding, source_repo=donor)
+    assert initial_worktree == exploration_module.worktree_fingerprint(
+        exploration_module.GitRunner(maw), maw
+    )
     assert not list(directory.glob("event-*.json"))
     assert all((meal_dir / name).read_bytes() == data for name, data in before.items())
 
