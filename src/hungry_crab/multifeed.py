@@ -150,6 +150,9 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         or not isinstance(context["analysis_identity"], dict)
         or not context["analysis_identity"]
         or not isinstance(context["ignore"], list)
+        or context["root"] != menu.get("maw", {}).get("root")
+        or context["sha"] != menu.get("maw", {}).get("sha")
+        or (context["selected_ref"] is not None and not isinstance(context["selected_ref"], str))
         or context["policy"] != fingerprint(inputs["policy"])
         or context["ledger"] != ledger_identity(inputs["ledger"])
         or not all(isinstance(menu.get(field), dict) for field in ("hunger", "scoring", "memory"))
