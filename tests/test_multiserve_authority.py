@@ -20,6 +20,38 @@ from hungry_crab.nutrients import Candidate
 from hungry_crab.serve import ServeOptions, ServeReport, commenter_titles
 
 
+@pytest.mark.parametrize("mode", ["issue", "pr-branch"])
+def test_unverified_legacy_aggregate_cannot_publish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    unverified = {
+        "maw": {"root": str(maw.resolve())},
+        "receiving_context_status": "legacy-unknown",
+    }
+    monkeypatch.setattr(
+        "hungry_crab.multiserve.load_multi",
+        lambda _bundle: (unverified, {}, {}),
+    )
+    monkeypatch.setattr(
+        "hungry_crab.multiserve.serve",
+        lambda *_args, **_kwargs: pytest.fail("publication reached unverified source"),
+    )
+    client = FakeIssues()
+    ledger = Ledger.load(None, maw="maw")
+    with pytest.raises(CrabError, match="requires verified receiving analysis context"):
+        serve_many(
+            tmp_path / "legacy-bundle",
+            maw,
+            ServeOptions(mode=mode, ids=["crab:ci:ci.cache"]),
+            config=MawConfig.load(maw),
+            ledger=ledger,
+            client=client,
+        )
+    assert not client.created and not ledger.entries
+
+
 @pytest.mark.parametrize("explicit", [False, True])
 @pytest.mark.parametrize("mode", ["issue", "pr-branch"])
 def test_routing_ids_do_not_authorize_automatic_publication(
