@@ -467,7 +467,7 @@ def _repo_receipt_ledger(maw: Path) -> Ledger:
     return Ledger.load(path, maw=str(maw))
 
 
-@pytest.mark.parametrize("tamper", ["none", "receiving_source", "ledger_bytes"])
+@pytest.mark.parametrize("tamper", ["none", "receiving_source", "ledger_bytes", "lock_bytes"])
 def test_multi_issue_repo_ledger_receipts_do_not_hide_changes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tamper: str
 ) -> None:
@@ -488,6 +488,8 @@ def test_multi_issue_repo_ledger_receipts_do_not_hide_changes(
             elif tamper == "ledger_bytes":
                 assert ledger.path is not None
                 ledger.path.write_bytes(ledger.path.read_bytes() + b"\n")
+            elif tamper == "lock_bytes":
+                (maw / ".crab" / "ledger.lock").write_bytes(b"unexpected lock content")
         return result
 
     monkeypatch.setattr(ledger, "save", save_then_external_change)
