@@ -56,9 +56,12 @@ def _receipt_free_worktree(git: GitRunner, maw: Path) -> str:
     if names - {_REPO_LEDGER_RELATIVE, _REPO_LOCK_RELATIVE}:
         return "unknown"
     lock = maw / _REPO_LOCK_RELATIVE
-    if lock.exists() and (
-        lock.is_symlink() or not lock.is_file() or lock.read_bytes() != b"0"
-    ):
+    try:
+        if lock.exists() and (
+            lock.is_symlink() or not lock.is_file() or lock.read_bytes() != b"0"
+        ):
+            return "unknown"
+    except OSError:
         return "unknown"
     return "clean" if not diff else hashlib.sha1(diff.encode("utf-8", "replace")).hexdigest()[:12]
 
