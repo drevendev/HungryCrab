@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -476,7 +478,7 @@ def test_multi_issue_repo_ledger_receipts_do_not_hide_changes(
     original_save = ledger.save
     save_count = 0
 
-    def save_then_external_change(*, now: object = None) -> Path | None:
+    def save_then_external_change(*, now: datetime | None = None) -> Path | None:
         nonlocal save_count
         result = original_save(now=now)
         save_count += 1
@@ -526,7 +528,7 @@ def test_multi_pr_repo_ledger_receipt_recheck_between_publications(
     original_save = ledger.save
     saves = 0
 
-    def save_and_optionally_tamper(*, now: object = None) -> Path | None:
+    def save_and_optionally_tamper(*, now: datetime | None = None) -> Path | None:
         nonlocal saves
         result = original_save(now=now)
         saves += 1
@@ -545,7 +547,7 @@ def test_multi_pr_repo_ledger_receipt_recheck_between_publications(
         options: ServeOptions,
         *,
         publication_plans: list[PullRequestServePlan],
-        before_publication: object,
+        before_publication: Callable[[], None] | None,
         **_kwargs: object,
     ) -> ServeReport:
         assert before_publication is not None
@@ -568,7 +570,7 @@ def test_multi_pr_repo_ledger_receipt_recheck_between_publications(
         def publish(
             card: Candidate, _prepared: PreparedPullRequest, _allow_create: bool
         ) -> PullRequestPublication:
-            before_publication()  # type: ignore[operator]
+            before_publication()
             published.append(card.id)
             return PullRequestPublication(
                 "crab/fixture", f"https://github.com/example/maw/pull/{len(published)}", True
