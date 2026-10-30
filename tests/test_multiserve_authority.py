@@ -9,6 +9,7 @@ from fixture_builder import git
 from test_multifeed import fake_acquisition_scope, fake_eat
 from test_serve import FakeIssues
 
+from hungry_crab.analysis_context import fingerprint
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.errors import CrabError
 from hungry_crab.feeder import EatOptions, EatResult
@@ -78,6 +79,9 @@ def test_routing_ids_do_not_authorize_automatic_publication(
     bundle = eat_many(
         [Target(path=path) for path in prey], maw, EatOptions(out=tmp_path / "bundle", wiki=False)
     )
+    # This test isolates selection authority; live receiving freshness has its
+    # own committed-repository regressions below.
+    monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_: None)
     config = MawConfig.load(maw)
     config.hunger["ci"] = "ideas-only" if mode == "issue" else "auto"
     config.serve.prs = "ask"
@@ -313,3 +317,115 @@ def test_serve_many_uses_recorded_slug_path_despite_shadow_local_directory(
 
     assert [str(path) for path in observed] == [str(prey_paths(prey_slug, cache).repo)]
     assert observed[0] != shadow
+
+
+def _current_receiving_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, Path, list[str]]:
+    """Make source menus with real, current Git and policy identity."""
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    git(maw, "init", "-b", "main")
+    (maw / ".gitignore").write_text(".crab.yml\\n", encoding="utf-8")
+    (maw / "app.py").write_text("print('before')\\n", encoding="utf-8")
+    git(maw, "add", ".gitignore", "app.py")
+    git(maw, "commit", "-m", "initial receiving snapshot")
+    head = git(maw, "rev-parse", "HEAD").strip()
+    policy = MawConfig.load(maw).raw
+    prey_roots = [tmp_path / "source-a", tmp_path / "source-b"]
+    for prey in prey_roots:
+        prey.mkdir()
+
+    def feed(prey: Target, maw: Path, options: EatOptions, **kwargs: object) -> EatResult:
+        result = fake_eat(prey, maw, options, **kwargs)
+        assert prey.path is not None
+        path = result.out_dir / "menu.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        card = Candidate(
+            "ci", f"ci.{prey.path.name}.cache", "Cache CI", "Synthetic cache finding",
+            license_mode="COPY", origin="licensed", score=0.7,
+            trace={"prey": prey.label, "sha": "a" * 40},
+        )
+        data["candidates"] = [card.to_dict()]
+        data["maw"]["sha"] = head
+        data["analysis_inputs"]["policy"] = policy
+        data["receiving_context"].update({
+            "sha": head, "selected_ref": "main", "worktree": "clean",
+            "policy": fingerprint(policy),
+        })
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return result
+
+    monkeypatch.setattr("hungry_crab.multifeed.eat", feed)
+    bundle = eat_many(
+        [Target(path=prey) for prey in prey_roots],
+        maw,
+        EatOptions(out=tmp_path / "verified-bundle", wiki=False),
+    )
+    menu, _, _ = load_multi(bundle.out_dir)
+    assert menu["receiving_context_status"] == "observed"
+    return maw, bundle.out_dir, [card["id"] for card in menu["candidates"]]
+
+
+@pytest.mark.parametrize("change", ["worktree", "head", "selected_ref", "ignored_policy"])
+def test_multi_issue_publication_refuses_stale_live_receiving(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
+    if change == "worktree":
+        (maw / "app.py").write_text("print('modified')\\n", encoding="utf-8")
+    elif change == "head":
+        (maw / "app.py").write_text("print('committed')\\n", encoding="utf-8")
+        git(maw, "add", "app.py")
+        git(maw, "commit", "-m", "change receiving HEAD")
+    elif change == "selected_ref":
+        git(maw, "checkout", "-b", "different")
+    else:
+        # Ignored policy changes do not necessarily affect Git worktree identity.
+        (maw / ".crab.yml").write_text("mode: strict\\n", encoding="utf-8")
+    client = FakeIssues()
+    ledger = Ledger.load(None, maw="maw")
+    with pytest.raises(CrabError, match="receiving checkout or policy changed"):
+        serve_many(
+            bundle, maw, ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw), ledger=ledger, client=client,
+        )
+    assert not client.created and not client.labels and not ledger.entries
+
+
+def test_multi_issue_rechecks_live_receiving_between_source_effects(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
+    client = FakeIssues()
+    ledger = Ledger.load(None, maw="maw")
+    original_create = client.create
+
+    def change_after_first(*args: object, **kwargs: object) -> str:
+        result = original_create(*args, **kwargs)
+        if len(client.created) == 1:
+            (maw / "app.py").write_text("print('changed after first issue')\\n", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(client, "create", change_after_first)
+    with pytest.raises(CrabError, match="receiving checkout or policy changed"):
+        serve_many(
+            bundle, maw, ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw), ledger=ledger, client=client,
+        )
+    # Do not invent rollback of an already-created remote issue.
+    assert len(client.created) == 1
+    assert len([entry for entry in ledger.entries.values() if entry.status == "served"]) == 1
+
+
+def test_multi_issue_unchanged_receiving_context_can_publish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
+    client = FakeIssues()
+    ledger = Ledger.load(None, maw="maw")
+    report = serve_many(
+        bundle, maw, ServeOptions(mode="issue", ids=ids),
+        config=MawConfig.load(maw), ledger=ledger, client=client,
+    )
+    assert len(report.served) == len(client.created) == 2
