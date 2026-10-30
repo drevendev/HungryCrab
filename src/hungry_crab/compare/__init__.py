@@ -372,6 +372,9 @@ def compare_for_maw(
     ledger = Ledger.load(config.ledger_path(d_opts.cache_root), maw=maw_root.name)
     ledger_input = ledger.to_dict(now=now)
     hidden = ledger.hidden_ids()
+    # The Feeder deliberately omits live issue lookup. Preserve that choice rather
+    # than presenting a ledger-only fingerprint as a completed GitHub query.
+    issue_lookup_status = "disabled" if issue_lookup is None else "unavailable"
     if issue_lookup is not None:
         slug = maw_slug(maw_root)
         if slug is not None:
@@ -381,7 +384,10 @@ def compare_for_maw(
                         nutrient_id, f"issue #{info.get('number')} ({info.get('state')})"
                     )
             except CrabError as exc:
+                issue_lookup_status = "failed"
                 log(f"warning: could not check existing issues: {exc.message}")
+            else:
+                issue_lookup_status = "complete"
     learned, memory = learn(
         ledger, Scoring.default().merged(config.scoring), config.memory, overrides=config.scoring
     )
@@ -417,6 +423,7 @@ def compare_for_maw(
         "ledger": ledger_input,
         "policy": config.raw,
         "hidden_ids_sha256": fingerprint(hidden),
+        "issue_lookup_status": issue_lookup_status,
     }
     assert result.maw_dir is not None
     result.menu["receiving_context"] = receiving_context(

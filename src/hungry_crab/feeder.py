@@ -149,6 +149,8 @@ def eat(
                 "disk_bytes": budget.disk_limit,
                 "volume_capacity_bytes": budget.capacity,
             }
+    # Feeder exports are deliberately read-only and do not query live maw Issues.
+    # compare_for_maw records this as "disabled", never as a successful lookup.
     result, prey_digest, _, _ = compare_for_maw(
         prey,
         maw,
