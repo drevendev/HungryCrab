@@ -60,6 +60,10 @@ class _Batch:
     existing: set[str]
 
     def run(self, monkeypatch: pytest.MonkeyPatch) -> ServeReport:
+        # These legacy fixtures exercise multi-source preflight and provider budgets,
+        # not receiving-checkout freshness. Their maw has no commit yet. Freshness
+        # is covered by real committed-Git regressions in test_multiserve_authority.
+        monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_: None)
         # Keep the actual multi-receipt decoder, kind/identity checks and payload preparation.
         monkeypatch.setattr("sys.stdin", io.StringIO("\n".join(self.receipts.values())))
         return serve_many(
