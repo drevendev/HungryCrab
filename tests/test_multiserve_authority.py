@@ -458,7 +458,6 @@ def test_multi_issue_unchanged_receiving_context_can_publish(
     assert len(report.served) == len(client.created) == 2
 
 
-
 def _repo_receipt_ledger(maw: Path) -> Ledger:
     # The repo path is the default, and the parent normally exists after crab init.
     path = MawConfig.load(maw).ledger_path()
