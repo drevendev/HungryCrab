@@ -535,7 +535,11 @@ def test_multi_issue_repo_ledger_receipts_do_not_hide_changes(
 
     monkeypatch.setattr(ledger, "save", save_then_external_change)
     if tamper != "none":
-        error_pattern = "receiving ledger changed" if tamper == "ledger_bytes" else "receiving checkout or policy changed"
+        error_pattern = (
+            "receiving ledger changed"
+            if tamper == "ledger_bytes"
+            else "receiving checkout or policy changed"
+        )
         with pytest.raises(CrabError, match=error_pattern):
             serve_many(
                 bundle,
