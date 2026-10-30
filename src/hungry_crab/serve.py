@@ -722,6 +722,7 @@ def _serve_pull_requests(
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
     publication_plans: list[PullRequestServePlan] | None = None,
     transaction_marker: str = "",
+    before_publication: Callable[[], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
         title, body = render_issue(card, menu)
@@ -768,6 +769,8 @@ def _serve_pull_requests(
             target = f"serving pull requests into {slug}"
             log(f"{target} as {who}" if who else target)
             announced = True
+        if before_publication is not None:
+            before_publication()
         return publish_prepared_cleanroom_git_pull_request(
             card.id,
             prepared,
@@ -844,6 +847,7 @@ def serve(
     source_reader: SourceReader | None = None,
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
     publication_plans: list[PullRequestServePlan] | None = None,
+    before_publication: Callable[[], None] | None = None,
 ) -> ServeReport:
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
@@ -914,6 +918,7 @@ def serve(
             publication_guard=publication_guard,
             transaction_marker=options.transaction_marker,
             publication_plans=publication_plans,
+            before_publication=before_publication,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)
@@ -1001,6 +1006,15 @@ def serve(
         if options.mode != "issue":
             continue
         assert client is not None and slug is not None
+        if before_publication is not None:
+            try:
+                before_publication()
+            except CrabError:
+                # An earlier issue in this source might already exist remotely.
+                # Persist its receipt so a partial batch remains reconcilable.
+                if report.served:
+                    ledger.save(now=now)
+                raise
         if not label_ready:
             if not client.ensure_label(slug, label):
                 labels = []
