@@ -59,9 +59,7 @@ def _receipt_free_worktree(git: GitRunner, maw: Path) -> str:
         return "unknown"
     lock = maw / _REPO_LOCK_RELATIVE
     try:
-        if lock.exists() and (
-            lock.is_symlink() or not lock.is_file() or lock.read_bytes() != b"0"
-        ):
+        if lock.exists() and (lock.is_symlink() or not lock.is_file() or lock.read_bytes() != b"0"):
             return "unknown"
     except OSError:
         return "unknown"
@@ -116,9 +114,8 @@ def _require_current_receiving(
         current_policy = fingerprint(MawConfig.load(maw).raw)
     except (CrabError, OSError) as exc:
         raise CrabError("cannot verify current receiving checkout; regenerate the bundle") from exc
-    receipt_matches = (
-        receipt_ledger is not None
-        and _repo_ledger_is_own_receipt(receipt_ledger, maw)
+    receipt_matches = receipt_ledger is not None and _repo_ledger_is_own_receipt(
+        receipt_ledger, maw
     )
     same_worktree = worktree == context.get("worktree")
     if receipt_ledger is not None and baseline_without_receipt is not None:
@@ -197,6 +194,7 @@ def serve_many(
 
             before_publication = recheck_with_receipt
         else:
+
             def recheck_without_receipt() -> None:
                 _require_current_receiving(menu, maw)
 
