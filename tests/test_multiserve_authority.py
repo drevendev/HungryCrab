@@ -11,7 +11,7 @@ from fixture_builder import git
 from test_multifeed import fake_acquisition_scope, fake_eat
 from test_serve import FakeIssues
 
-from hungry_crab.analysis_context import fingerprint
+from hungry_crab.analysis_context import fingerprint, ledger_identity
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.errors import CrabError
 from hungry_crab.feeder import EatOptions, EatResult
@@ -85,7 +85,7 @@ def test_routing_ids_do_not_authorize_automatic_publication(
     )
     # This test isolates selection authority; live receiving freshness has its
     # own committed-repository regressions below.
-    monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_: None)
+    monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_, **__: None)
     config = MawConfig.load(maw)
     config.hunger["ci"] = "ideas-only" if mode == "issue" else "auto"
     config.serve.prs = "ask"
@@ -331,7 +331,7 @@ def _current_receiving_bundle(
     maw.mkdir()
     git(maw, "init", "-b", "main")
     git(maw, "remote", "add", "origin", "https://github.com/example/maw.git")
-    (maw / ".gitignore").write_text(".crab.yml\n", encoding="utf-8")
+    (maw / ".gitignore").write_text(".crab.yml\n.crab/\n", encoding="utf-8")
     (maw / "app.py").write_text("print('before')\n", encoding="utf-8")
     git(maw, "add", ".gitignore", "app.py")
     git(maw, "commit", "-m", "initial receiving snapshot")
@@ -360,6 +360,10 @@ def _current_receiving_bundle(
         data["candidates"] = [card.to_dict()]
         data["maw"]["sha"] = head
         data["analysis_inputs"]["policy"] = policy
+        # A real compare consumes the complete ledger, not the legacy fake_eat stub.
+        ledger_input = Ledger.load(None, maw="maw").to_dict(now=datetime(2020, 1, 1))
+        data["analysis_inputs"]["ledger"] = ledger_input
+        data["receiving_context"]["ledger"] = ledger_identity(ledger_input)
         data["receiving_context"].update(
             {
                 "sha": head,
@@ -456,6 +460,45 @@ def test_multi_issue_unchanged_receiving_context_can_publish(
         client=client,
     )
     assert len(report.served) == len(client.created) == 2
+
+
+
+@pytest.mark.parametrize("concurrent_after_load", [False, True])
+def test_multi_issue_rejects_stale_ignored_ledger_votes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, concurrent_after_load: bool
+) -> None:
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
+    ledger = _repo_receipt_ledger(maw)
+    external = _repo_receipt_ledger(maw) if concurrent_after_load else ledger
+    vote = Candidate(
+        "ci",
+        "external-vote",
+        "External vote",
+        "An independent receiving decision",
+        license_mode="COPY",
+        serve_as="issue",
+        origin="licensed",
+        score=0.6,
+    )
+    external.ensure(vote)
+    external.mark(vote.id, "rejected", reason="new receiving vote")
+    external.save()
+    if not concurrent_after_load:
+        # Reloaded bytes are internally consistent, but the bundle's learning
+        # inputs were captured before this decision existed.
+        ledger = _repo_receipt_ledger(maw)
+    assert not git(maw, "status", "--porcelain").strip()
+    client = FakeIssues()
+    with pytest.raises(CrabError, match="receiving ledger changed"):
+        serve_many(
+            bundle,
+            maw,
+            ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw),
+            ledger=ledger,
+            client=client,
+        )
+    assert not client.created and not client.labels
 
 
 def _repo_receipt_ledger(maw: Path) -> Ledger:
