@@ -33,6 +33,8 @@ def test_eat_exports_complete_bundle_and_preserves_maw_and_ledger(
     after = {p.relative_to(maw): p.read_bytes() for p in maw.rglob("*") if p.is_file()}
     assert before == after
     assert result.manifest["side_effects"] == {"issues_created": 0, "ledger_written": False}
+    menu = json.loads((result.out_dir / "menu.json").read_text(encoding="utf-8"))
+    assert menu["analysis_inputs"]["issue_lookup_status"] == "disabled"
     assert result.manifest["mode"] == "strict"
     assert {
         "menu.md",
