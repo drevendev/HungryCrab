@@ -326,8 +326,9 @@ def _current_receiving_bundle(
     maw = tmp_path / "maw"
     maw.mkdir()
     git(maw, "init", "-b", "main")
-    (maw / ".gitignore").write_text(".crab.yml\\n", encoding="utf-8")
-    (maw / "app.py").write_text("print('before')\\n", encoding="utf-8")
+    git(maw, "remote", "add", "origin", "https://github.com/example/maw.git")
+    (maw / ".gitignore").write_text(".crab.yml\n", encoding="utf-8")
+    (maw / "app.py").write_text("print('before')\n", encoding="utf-8")
     git(maw, "add", ".gitignore", "app.py")
     git(maw, "commit", "-m", "initial receiving snapshot")
     head = git(maw, "rev-parse", "HEAD").strip()
@@ -373,16 +374,16 @@ def test_multi_issue_publication_refuses_stale_live_receiving(
 ) -> None:
     maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
     if change == "worktree":
-        (maw / "app.py").write_text("print('modified')\\n", encoding="utf-8")
+        (maw / "app.py").write_text("print('modified')\n", encoding="utf-8")
     elif change == "head":
-        (maw / "app.py").write_text("print('committed')\\n", encoding="utf-8")
+        (maw / "app.py").write_text("print('committed')\n", encoding="utf-8")
         git(maw, "add", "app.py")
         git(maw, "commit", "-m", "change receiving HEAD")
     elif change == "selected_ref":
         git(maw, "checkout", "-b", "different")
     else:
         # Ignored policy changes do not necessarily affect Git worktree identity.
-        (maw / ".crab.yml").write_text("mode: strict\\n", encoding="utf-8")
+        (maw / ".crab.yml").write_text("mode: strict\n", encoding="utf-8")
     client = FakeIssues()
     ledger = Ledger.load(None, maw="maw")
     with pytest.raises(CrabError, match="receiving checkout or policy changed"):
@@ -404,7 +405,7 @@ def test_multi_issue_rechecks_live_receiving_between_source_effects(
     def change_after_first(*args: object, **kwargs: object) -> str:
         result = original_create(*args, **kwargs)
         if len(client.created) == 1:
-            (maw / "app.py").write_text("print('changed after first issue')\\n", encoding="utf-8")
+            (maw / "app.py").write_text("print('changed after first issue')\n", encoding="utf-8")
         return result
 
     monkeypatch.setattr(client, "create", change_after_first)
