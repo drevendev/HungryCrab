@@ -11,7 +11,7 @@ from fixture_builder import git
 from test_multifeed import fake_acquisition_scope, fake_eat
 from test_serve import FakeIssues
 
-from hungry_crab.analysis_context import fingerprint
+from hungry_crab.analysis_context import fingerprint, ledger_identity
 from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.errors import CrabError
 from hungry_crab.feeder import EatOptions, EatResult
@@ -85,7 +85,7 @@ def test_routing_ids_do_not_authorize_automatic_publication(
     )
     # This test isolates selection authority; live receiving freshness has its
     # own committed-repository regressions below.
-    monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_: None)
+    monkeypatch.setattr("hungry_crab.multiserve._require_current_receiving", lambda *_, **__: None)
     config = MawConfig.load(maw)
     config.hunger["ci"] = "ideas-only" if mode == "issue" else "auto"
     config.serve.prs = "ask"
@@ -331,7 +331,7 @@ def _current_receiving_bundle(
     maw.mkdir()
     git(maw, "init", "-b", "main")
     git(maw, "remote", "add", "origin", "https://github.com/example/maw.git")
-    (maw / ".gitignore").write_text(".crab.yml\n", encoding="utf-8")
+    (maw / ".gitignore").write_text(".crab.yml\n.crab/\n", encoding="utf-8")
     (maw / "app.py").write_text("print('before')\n", encoding="utf-8")
     git(maw, "add", ".gitignore", "app.py")
     git(maw, "commit", "-m", "initial receiving snapshot")
@@ -360,6 +360,10 @@ def _current_receiving_bundle(
         data["candidates"] = [card.to_dict()]
         data["maw"]["sha"] = head
         data["analysis_inputs"]["policy"] = policy
+        # A real compare consumes the complete ledger, not the legacy fake_eat stub.
+        ledger_input = Ledger.load(None, maw="maw").to_dict(now=datetime(2020, 1, 1))
+        data["analysis_inputs"]["ledger"] = ledger_input
+        data["receiving_context"]["ledger"] = ledger_identity(ledger_input)
         data["receiving_context"].update(
             {
                 "sha": head,
@@ -458,12 +462,50 @@ def test_multi_issue_unchanged_receiving_context_can_publish(
     assert len(report.served) == len(client.created) == 2
 
 
+@pytest.mark.parametrize("concurrent_after_load", [False, True])
+def test_multi_issue_rejects_stale_ignored_ledger_votes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, concurrent_after_load: bool
+) -> None:
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch)
+    ledger = _repo_receipt_ledger(maw)
+    external = _repo_receipt_ledger(maw) if concurrent_after_load else ledger
+    vote = Candidate(
+        "ci",
+        "external-vote",
+        "External vote",
+        "An independent receiving decision",
+        license_mode="COPY",
+        serve_as="issue",
+        origin="licensed",
+        score=0.6,
+    )
+    external.ensure(vote)
+    external.mark(vote.id, "rejected", reason="new receiving vote")
+    external.save()
+    if not concurrent_after_load:
+        # Reloaded bytes are internally consistent, but the bundle's learning
+        # inputs were captured before this decision existed.
+        ledger = _repo_receipt_ledger(maw)
+    assert not git(maw, "status", "--porcelain").strip()
+    client = FakeIssues()
+    with pytest.raises(CrabError, match="receiving ledger changed"):
+        serve_many(
+            bundle,
+            maw,
+            ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw),
+            ledger=ledger,
+            client=client,
+        )
+    assert not client.created and not client.labels
+
+
 def _repo_receipt_ledger(maw: Path) -> Ledger:
     # The repo path is the default, and the parent normally exists after crab init.
     path = MawConfig.load(maw).ledger_path()
     assert path is not None
     path.parent.mkdir(exist_ok=True)
-    return Ledger.load(path, maw=str(maw))
+    return Ledger.load(path, maw=maw.name)
 
 
 @pytest.mark.parametrize("tamper", ["none", "receiving_source", "ledger_bytes", "lock_bytes"])
@@ -493,7 +535,12 @@ def test_multi_issue_repo_ledger_receipts_do_not_hide_changes(
 
     monkeypatch.setattr(ledger, "save", save_then_external_change)
     if tamper != "none":
-        with pytest.raises(CrabError, match="receiving checkout or policy changed"):
+        error_pattern = (
+            "receiving ledger changed"
+            if tamper == "ledger_bytes"
+            else "receiving checkout or policy changed"
+        )
+        with pytest.raises(CrabError, match=error_pattern):
             serve_many(
                 bundle,
                 maw,
@@ -588,7 +635,7 @@ def test_multi_pr_repo_ledger_receipt_recheck_between_publications(
 
     monkeypatch.setattr("hungry_crab.multiserve.serve", plan_source)
     if tamper_ledger:
-        with pytest.raises(CrabError, match="receiving checkout or policy changed"):
+        with pytest.raises(CrabError, match="receiving ledger changed"):
             serve_many(
                 bundle,
                 maw,
@@ -607,3 +654,93 @@ def test_multi_pr_repo_ledger_receipt_recheck_between_publications(
         )
         assert len(report.served) == len(published) == saves == 2
     assert ledger.path is not None and ledger.path.is_file()
+
+
+@pytest.mark.parametrize("change", ["worktree", "policy", "ledger"])
+def test_multi_pr_detects_receiver_mutation_between_plan_and_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    """A fully prepared multi-source PR batch cannot publish against a changed maw."""
+    from hungry_crab import multiserve as multiserve_module
+
+    maw, bundle, ids = _current_receiving_bundle(tmp_path, monkeypatch, serve_as="pr")
+    ledger = _repo_receipt_ledger(maw)
+    config = MawConfig.load(maw)
+    config.serve.max_prs_per_run = 2
+    published: list[str] = []
+
+    monkeypatch.setattr("hungry_crab.multiserve.decode_receipt_stream", lambda _: {})
+    monkeypatch.setattr("hungry_crab.multiserve.load_cleanroom_receipts", lambda _: {})
+
+    def prepare_source(
+        _meal: Path,
+        _maw: Path,
+        options: ServeOptions,
+        *,
+        publication_plans: list[PullRequestServePlan],
+        before_publication: Callable[[], None] | None,
+        **_kwargs: object,
+    ) -> ServeReport:
+        assert before_publication is not None
+
+        def publish(
+            card: Candidate, _prepared: PreparedPullRequest, _allow_create: bool
+        ) -> PullRequestPublication:
+            before_publication()
+            published.append(card.id)
+            return PullRequestPublication(
+                "crab/fixture", f"https://github.com/example/maw/pull/{len(published)}", True
+            )
+
+        for card_id in options.ids:
+            card = Candidate(
+                "ci",
+                card_id.split(":")[-1],
+                "Cache CI",
+                "Synthetic cache finding",
+                license_mode="COPY",
+                serve_as="pr",
+                origin="licensed",
+                score=0.7,
+            )
+            assert card.id == card_id
+            publication_plans.append(
+                PullRequestServePlan(
+                    ((card, PreparedPullRequest("title", "body", ()), ()),),
+                    (),
+                    publish,
+                )
+            )
+        return ServeReport("pr-branch", str(maw))
+
+    real_publish = multiserve_module.publish_serve_plans
+
+    def mutate_after_preparation(
+        plans: list[PullRequestServePlan],
+        *,
+        config: MawConfig,
+        ledger: Ledger,
+        log: Callable[[str], None],
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+        assert plans and not published
+        if change == "worktree":
+            (maw / "app.py").write_text("print('changed after preparation')\n", encoding="utf-8")
+        elif change == "policy":
+            (maw / ".crab.yml").write_text("mode: strict\n", encoding="utf-8")
+        else:
+            assert ledger.path is not None
+            ledger.path.write_bytes(b"external ledger bytes")
+        return real_publish(plans, config=config, ledger=ledger, log=log)
+
+    monkeypatch.setattr("hungry_crab.multiserve.serve", prepare_source)
+    monkeypatch.setattr("hungry_crab.multiserve.publish_serve_plans", mutate_after_preparation)
+    with pytest.raises(CrabError, match=r"receiving (checkout or policy|ledger) changed"):
+        serve_many(
+            bundle,
+            maw,
+            ServeOptions(mode="pr-branch", ids=ids),
+            config=config,
+            ledger=ledger,
+        )
+    assert not published
+    assert not ledger.entries
