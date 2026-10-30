@@ -343,17 +343,26 @@ def _current_receiving_bundle(
         path = result.out_dir / "menu.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         card = Candidate(
-            "ci", f"ci.{prey.path.name}.cache", "Cache CI", "Synthetic cache finding",
-            license_mode="COPY", origin="licensed", score=0.7,
+            "ci",
+            f"ci.{prey.path.name}.cache",
+            "Cache CI",
+            "Synthetic cache finding",
+            license_mode="COPY",
+            origin="licensed",
+            score=0.7,
             trace={"prey": prey.label, "sha": "a" * 40},
         )
         data["candidates"] = [card.to_dict()]
         data["maw"]["sha"] = head
         data["analysis_inputs"]["policy"] = policy
-        data["receiving_context"].update({
-            "sha": head, "selected_ref": "main", "worktree": "clean",
-            "policy": fingerprint(policy),
-        })
+        data["receiving_context"].update(
+            {
+                "sha": head,
+                "selected_ref": "main",
+                "worktree": "clean",
+                "policy": fingerprint(policy),
+            }
+        )
         path.write_text(json.dumps(data), encoding="utf-8")
         return result
 
@@ -388,8 +397,12 @@ def test_multi_issue_publication_refuses_stale_live_receiving(
     ledger = Ledger.load(None, maw="maw")
     with pytest.raises(CrabError, match="receiving checkout or policy changed"):
         serve_many(
-            bundle, maw, ServeOptions(mode="issue", ids=ids),
-            config=MawConfig.load(maw), ledger=ledger, client=client,
+            bundle,
+            maw,
+            ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw),
+            ledger=ledger,
+            client=client,
         )
     assert not client.created and not client.labels and not ledger.entries
 
@@ -411,8 +424,12 @@ def test_multi_issue_rechecks_live_receiving_between_source_effects(
     monkeypatch.setattr(client, "create", change_after_first)
     with pytest.raises(CrabError, match="receiving checkout or policy changed"):
         serve_many(
-            bundle, maw, ServeOptions(mode="issue", ids=ids),
-            config=MawConfig.load(maw), ledger=ledger, client=client,
+            bundle,
+            maw,
+            ServeOptions(mode="issue", ids=ids),
+            config=MawConfig.load(maw),
+            ledger=ledger,
+            client=client,
         )
     # Do not invent rollback of an already-created remote issue.
     assert len(client.created) == 1
@@ -426,7 +443,11 @@ def test_multi_issue_unchanged_receiving_context_can_publish(
     client = FakeIssues()
     ledger = Ledger.load(None, maw="maw")
     report = serve_many(
-        bundle, maw, ServeOptions(mode="issue", ids=ids),
-        config=MawConfig.load(maw), ledger=ledger, client=client,
+        bundle,
+        maw,
+        ServeOptions(mode="issue", ids=ids),
+        config=MawConfig.load(maw),
+        ledger=ledger,
+        client=client,
     )
     assert len(report.served) == len(client.created) == 2
