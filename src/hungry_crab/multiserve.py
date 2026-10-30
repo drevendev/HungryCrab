@@ -11,7 +11,7 @@ from typing import Any
 
 from .analysis_context import fingerprint
 from .cache import prey_paths
-from .digest import _has_occupied_gitlink, worktree_fingerprint
+from .digest import worktree_fingerprint, _has_occupied_gitlink
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
@@ -45,7 +45,10 @@ def _receipt_free_worktree(git: GitRunner, maw: Path) -> str:
     if index is None or _has_occupied_gitlink(index, maw):
         return "unknown"
     diff = git.try_run(
-        "diff", "HEAD", "--", ".",
+        "diff",
+        "HEAD",
+        "--",
+        ".",
         f":(exclude){_REPO_LEDGER_RELATIVE}",
         f":(exclude){_REPO_LOCK_RELATIVE}",
     )
@@ -195,7 +198,10 @@ def serve_many(
 
             before_publication = recheck_with_receipt
         else:
-            before_publication = lambda: _require_current_receiving(menu, maw)
+            def recheck_without_receipt() -> None:
+                _require_current_receiving(menu, maw)
+
+            before_publication = recheck_without_receipt
     cards, skipped = select_cards(menu, options, ledger)
     # Bound the whole invocation, not each individual source dispatch.
     cards = list({card.id: card for card in cards}.values())
