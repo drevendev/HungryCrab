@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from .analysis_context import fingerprint
+from .analysis_context import fingerprint, ledger_identity
 from .cache import prey_paths
 from .digest import _has_occupied_gitlink, worktree_fingerprint
 from .errors import CrabError
@@ -89,12 +89,33 @@ def _repo_ledger_is_own_receipt(ledger: Ledger, maw: Path) -> bool:
     return observed == ledger._snapshot
 
 
+def _ledger_matches_loaded_snapshot(ledger: Ledger) -> bool:
+    """Refuse a concurrent disk change, even when its ledger path is ignored by Git."""
+    path = ledger.path
+    if path is None:
+        return True
+    if path.is_symlink() or path.parent.is_symlink():
+        return False
+    try:
+        if path.is_file():
+            observed = hashlib.sha256(path.read_bytes()).digest()
+        elif path.exists():
+            return False
+        else:
+            observed = None
+    except OSError:
+        return False
+    return observed == ledger._snapshot
+
+
 def _require_current_receiving(
     menu: dict[str, Any],
     maw: Path,
     *,
     receipt_ledger: Ledger | None = None,
     baseline_without_receipt: str | None = None,
+    loaded_ledger: Ledger | None = None,
+    allow_in_run_receipts: bool = False,
 ) -> None:
     """Recheck live receiving checkout and policy before a multi-prey publish effect.
 
@@ -105,6 +126,17 @@ def _require_current_receiving(
     context = menu.get("receiving_context")
     if not isinstance(context, dict) or menu.get("receiving_context_status") != "observed":
         raise CrabError("multi-prey receiving context is not verified; regenerate the bundle")
+    if loaded_ledger is not None and (
+        not _ledger_matches_loaded_snapshot(loaded_ledger)
+        or (
+            not allow_in_run_receipts
+            and ledger_identity(loaded_ledger.to_dict()) != context.get("ledger")
+        )
+    ):
+        raise CrabError(
+            "multi-prey receiving ledger changed after comparison; "
+            "regenerate the bundle before publication"
+        )
     git = GitRunner(maw)
     try:
         is_root = git.is_repo_root()
@@ -169,7 +201,7 @@ def serve_many(
         raise CrabError("multi-prey bundle belongs to a different maw")
     before_publication: Callable[[], None] | None = None
     if options.mode in {"issue", "pr-branch"}:
-        _require_current_receiving(menu, maw)
+        _require_current_receiving(menu, maw, loaded_ledger=ledger)
         repo_receipt = (
             config.ledger == "repo"
             and ledger.path is not None
@@ -182,7 +214,7 @@ def serve_many(
             baseline = _receipt_free_worktree(GitRunner(maw), maw)
             if baseline == "unknown":
                 raise CrabError("cannot verify receiving worktree without repo receipts")
-            _require_current_receiving(menu, maw)
+            _require_current_receiving(menu, maw, loaded_ledger=ledger)
 
             def recheck_with_receipt() -> None:
                 _require_current_receiving(
@@ -190,13 +222,17 @@ def serve_many(
                     maw,
                     receipt_ledger=ledger,
                     baseline_without_receipt=baseline,
+                    loaded_ledger=ledger,
+                    allow_in_run_receipts=True,
                 )
 
             before_publication = recheck_with_receipt
         else:
 
             def recheck_without_receipt() -> None:
-                _require_current_receiving(menu, maw)
+                _require_current_receiving(
+                    menu, maw, loaded_ledger=ledger, allow_in_run_receipts=True
+                )
 
             before_publication = recheck_without_receipt
     cards, skipped = select_cards(menu, options, ledger)
