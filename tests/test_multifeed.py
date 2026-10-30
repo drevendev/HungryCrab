@@ -128,7 +128,11 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
     data["maw"]["sha"] = "m" * 40
     policy: dict[str, Any] = {"mode": "normal"}
     ledger: dict[str, Any] = {"entries": []}
-    data["analysis_inputs"] = {"policy": policy, "ledger": ledger}
+    data["analysis_inputs"] = {
+        "policy": policy,
+        "ledger": ledger,
+        "hidden_ids_sha256": fingerprint({}),
+    }
     data["hunger"] = {}
     data["scoring"] = {}
     data["memory"] = {}
@@ -162,6 +166,35 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         json.dumps({"prey": {"root": str(prey_root)}}), encoding="utf-8"
     )
     return EatResult(options.out, {"prey": data["prey"]})
+
+
+def test_merge_requires_equal_effective_hidden_decisions(tmp_path: Path) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    sources: dict[str, dict[str, Any]] = {}
+    for name in ("a", "b"):
+        prey = tmp_path / name
+        prey.mkdir()
+        out = tmp_path / f"out-{name}"
+        fake_eat(Target(path=prey), maw, EatOptions(out=out, wiki=False))
+        sources[name] = json.loads((out / "menu.json").read_text(encoding="utf-8"))
+
+    # Reading the same ledger at different times is not a changed decision.
+    sources["a"]["analysis_inputs"]["ledger"]["updated_at"] = "2026-10-29T00:00:00Z"
+    sources["b"]["analysis_inputs"]["ledger"]["updated_at"] = "2026-10-30T00:00:00Z"
+    assert merge_menus(sources)["receiving_context_status"] == "observed"
+
+    # Issue-derived hidden inputs can change without touching the checkout or ledger.
+    sources["b"]["analysis_inputs"]["hidden_ids_sha256"] = fingerprint(
+        {"crab:ci:ci.cache": "issue #42 (open)"}
+    )
+    with pytest.raises(CrabError, match="same maw snapshot and policy"):
+        merge_menus(sources)
+
+    # Old menus remain inspectable, but never acquire verified provenance.
+    for source in sources.values():
+        source["analysis_inputs"].pop("hidden_ids_sha256")
+    assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
 
 
 def test_matching_nonempty_truncated_digest_identity_is_legacy_unknown(tmp_path: Path) -> None:
