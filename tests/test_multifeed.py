@@ -132,6 +132,7 @@ def fake_eat(prey: Target, maw: Path, options: EatOptions, **_: Any) -> EatResul
         "policy": policy,
         "ledger": ledger,
         "hidden_ids_sha256": fingerprint({}),
+        "issue_lookup_status": "disabled",
     }
     data["hunger"] = {}
     data["scoring"] = {}
@@ -194,6 +195,37 @@ def test_merge_requires_equal_effective_hidden_decisions(tmp_path: Path) -> None
     # Old menus remain inspectable, but never acquire verified provenance.
     for source in sources.values():
         source["analysis_inputs"].pop("hidden_ids_sha256")
+    assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
+
+
+def test_issue_lookup_provenance_is_bound_to_receiving_identity(tmp_path: Path) -> None:
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    sources: dict[str, dict[str, Any]] = {}
+    for name in ("a", "b"):
+        prey = tmp_path / name
+        prey.mkdir()
+        out = tmp_path / f"out-{name}"
+        fake_eat(Target(path=prey), maw, EatOptions(out=out, wiki=False))
+        sources[name] = json.loads((out / "menu.json").read_text(encoding="utf-8"))
+
+    # An intentionally disabled Feeder lookup is distinct from a successful
+    # (possibly empty) Issues query, even when effective hidden IDs match.
+    assert merge_menus(sources)["receiving_context_status"] == "observed"
+    sources["b"]["analysis_inputs"]["issue_lookup_status"] = "complete"
+    with pytest.raises(CrabError, match="same maw snapshot and policy"):
+        merge_menus(sources)
+
+    sources["a"]["analysis_inputs"]["issue_lookup_status"] = "complete"
+    assert merge_menus(sources)["receiving_context_status"] == "observed"
+    for status in ("failed", "unavailable", "unknown"):
+        for source in sources.values():
+            source["analysis_inputs"]["issue_lookup_status"] = status
+        assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
+
+    # Historic menus with no status remain readable but unverified.
+    for source in sources.values():
+        source["analysis_inputs"].pop("issue_lookup_status")
     assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
 
 
