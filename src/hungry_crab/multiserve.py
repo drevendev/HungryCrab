@@ -11,7 +11,7 @@ from typing import Any
 
 from .analysis_context import fingerprint
 from .cache import prey_paths
-from .digest import worktree_fingerprint, _has_occupied_gitlink
+from .digest import _has_occupied_gitlink, worktree_fingerprint
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
@@ -28,7 +28,6 @@ from .serve import (
     select_cards,
     serve,
 )
-
 
 _REPO_LEDGER_RELATIVE = ".crab/ledger.json"
 _REPO_LOCK_RELATIVE = ".crab/ledger.lock"
