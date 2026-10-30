@@ -174,7 +174,7 @@ def serve_many(
                 raise CrabError("cannot verify receiving worktree without repo receipts")
             _require_current_receiving(menu, maw)
 
-            def before_publication() -> None:
+            def recheck_with_receipt() -> None:
                 _require_current_receiving(
                     menu,
                     maw,
@@ -182,6 +182,7 @@ def serve_many(
                     baseline_without_receipt=baseline,
                 )
 
+            before_publication = recheck_with_receipt
         else:
             before_publication = lambda: _require_current_receiving(menu, maw)
     cards, skipped = select_cards(menu, options, ledger)
