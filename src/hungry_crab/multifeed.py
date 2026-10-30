@@ -119,6 +119,7 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
             "worktree": menu.get("post_comparison_worktree"),
             "policy": inputs.get("policy"),
             "ledger": ledger_identity(inputs.get("ledger")),
+            "hidden_ids_sha256": inputs.get("hidden_ids_sha256"),
             "hunger": menu.get("hunger"),
             "scoring": menu.get("scoring"),
             "memory": menu.get("memory"),
@@ -175,9 +176,20 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         "ignore",
         "wiki",
     }
-    if not required.issubset(context) or not {"policy", "ledger"}.issubset(inputs):
+    if not required.issubset(context) or not {
+        "policy",
+        "ledger",
+        "hidden_ids_sha256",
+    }.issubset(inputs):
         return False
     if not isinstance(inputs["policy"], dict) or not isinstance(inputs["ledger"], dict):
+        return False
+    hidden_id = inputs["hidden_ids_sha256"]
+    if not (
+        isinstance(hidden_id, str)
+        and len(hidden_id) == 64
+        and all(char in "0123456789abcdef" for char in hidden_id)
+    ):
         return False
     if any(
         not isinstance(context.get(field), str) or not context[field].strip()
