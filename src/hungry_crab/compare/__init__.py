@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ..analysis_context import receiving_context
+from ..analysis_context import fingerprint, receiving_context
 from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, run_digest
 from ..digest_integrity import digest_integrity_errors
@@ -412,7 +412,12 @@ def compare_for_maw(
     )
     if result.verdict["relationship"] != Relationship.FOREIGN.value:
         log(f"license relationship: {result.verdict['relationship']} (from .crab.yml trust)")
-    result.menu["analysis_inputs"] = {"ledger": ledger_input, "policy": config.raw}
+    # Bind effective hidden decisions without exporting the owner issue inventory.
+    result.menu["analysis_inputs"] = {
+        "ledger": ledger_input,
+        "policy": config.raw,
+        "hidden_ids_sha256": fingerprint(hidden),
+    }
     assert result.maw_dir is not None
     result.menu["receiving_context"] = receiving_context(
         maw_root, result.maw.manifest, config.raw, ledger_input
