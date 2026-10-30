@@ -506,7 +506,7 @@ def _repo_receipt_ledger(maw: Path) -> Ledger:
     path = MawConfig.load(maw).ledger_path()
     assert path is not None
     path.parent.mkdir(exist_ok=True)
-    return Ledger.load(path, maw=str(maw))
+    return Ledger.load(path, maw=maw.name)
 
 
 @pytest.mark.parametrize("tamper", ["none", "receiving_source", "ledger_bytes", "lock_bytes"])
