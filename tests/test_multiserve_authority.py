@@ -734,7 +734,7 @@ def test_multi_pr_detects_receiver_mutation_between_plan_and_publication(
 
     monkeypatch.setattr("hungry_crab.multiserve.serve", prepare_source)
     monkeypatch.setattr("hungry_crab.multiserve.publish_serve_plans", mutate_after_preparation)
-    with pytest.raises(CrabError, match="receiving (checkout or policy|ledger) changed"):
+    with pytest.raises(CrabError, match=r"receiving (checkout or policy|ledger) changed"):
         serve_many(
             bundle,
             maw,
