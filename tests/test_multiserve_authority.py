@@ -19,9 +19,9 @@ from hungry_crab.ledger import Ledger
 from hungry_crab.maw import MawConfig
 from hungry_crab.multifeed import eat_many, load_multi
 from hungry_crab.multiserve import serve_many
+from hungry_crab.nutrients import Candidate
 from hungry_crab.pr_publication import PreparedPullRequest, PullRequestPublication
 from hungry_crab.pr_serving import PullRequestServePlan
-from hungry_crab.nutrients import Candidate
 from hungry_crab.serve import ServeOptions, ServeReport, commenter_titles
 
 
@@ -282,7 +282,6 @@ def test_serve_many_uses_recorded_slug_path_despite_shadow_local_directory(
             "Cache CI",
             "A source-specific candidate.",
             license_mode="COPY",
-            serve_as=serve_as,
             origin="licensed",
             score=0.7,
         )
@@ -353,6 +352,7 @@ def _current_receiving_bundle(
             "Cache CI",
             "Synthetic cache finding",
             license_mode="COPY",
+            serve_as=serve_as,
             origin="licensed",
             score=0.7,
             trace={"prey": prey.label, "sha": "a" * 40},
