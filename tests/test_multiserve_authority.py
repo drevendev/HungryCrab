@@ -462,7 +462,6 @@ def test_multi_issue_unchanged_receiving_context_can_publish(
     assert len(report.served) == len(client.created) == 2
 
 
-
 @pytest.mark.parametrize("concurrent_after_load", [False, True])
 def test_multi_issue_rejects_stale_ignored_ledger_votes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, concurrent_after_load: bool
