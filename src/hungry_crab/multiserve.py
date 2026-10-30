@@ -31,6 +31,7 @@ from .serve import (
 
 
 _REPO_LEDGER_RELATIVE = ".crab/ledger.json"
+_REPO_LOCK_RELATIVE = ".crab/ledger.lock"
 
 
 def _receipt_free_worktree(git: GitRunner, maw: Path) -> str:
@@ -43,13 +44,20 @@ def _receipt_free_worktree(git: GitRunner, maw: Path) -> str:
     index = git.try_run("ls-files", "--stage", "-z")
     if index is None or _has_occupied_gitlink(index, maw):
         return "unknown"
-    diff = git.try_run("diff", "HEAD", "--", ".", f":(exclude){_REPO_LEDGER_RELATIVE}")
+    diff = git.try_run(
+        "diff", "HEAD", "--", ".",
+        f":(exclude){_REPO_LEDGER_RELATIVE}",
+        f":(exclude){_REPO_LOCK_RELATIVE}",
+    )
     untracked = git.try_run("ls-files", "--others", "--exclude-standard", "-z")
     if diff is None or untracked is None:
         return "unknown"
-    if any(
-        name and name != _REPO_LEDGER_RELATIVE
-        for name in untracked.split("\0")
+    names = {name for name in untracked.split("\0") if name}
+    if names - {_REPO_LEDGER_RELATIVE, _REPO_LOCK_RELATIVE}:
+        return "unknown"
+    lock = maw / _REPO_LOCK_RELATIVE
+    if lock.exists() and (
+        lock.is_symlink() or not lock.is_file() or lock.read_bytes() != b"0"
     ):
         return "unknown"
     return "clean" if not diff else hashlib.sha1(diff.encode("utf-8", "replace")).hexdigest()[:12]
