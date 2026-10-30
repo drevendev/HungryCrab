@@ -120,7 +120,7 @@ def _require_current_receiving(
         not is_root
         or not isinstance(worktree, str)
         or not worktree
-        or worktree == "unknown"
+        or (worktree == "unknown" and receipt_ledger is None)
         or context.get("root") != str(maw.resolve())
         or head != context.get("sha")
         or head != menu["maw"].get("sha")
