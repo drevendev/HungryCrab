@@ -120,6 +120,7 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
             "policy": inputs.get("policy"),
             "ledger": ledger_identity(inputs.get("ledger")),
             "hidden_ids_sha256": inputs.get("hidden_ids_sha256"),
+            "issue_lookup_status": inputs.get("issue_lookup_status"),
             "hunger": menu.get("hunger"),
             "scoring": menu.get("scoring"),
             "memory": menu.get("memory"),
@@ -180,9 +181,14 @@ def _verified_receiving_evidence(menu: dict[str, Any]) -> bool:
         "policy",
         "ledger",
         "hidden_ids_sha256",
+        "issue_lookup_status",
     }.issubset(inputs):
         return False
     if not isinstance(inputs["policy"], dict) or not isinstance(inputs["ledger"], dict):
+        return False
+    # A failed/unavailable lookup is not verified evidence, even if its
+    # effective hidden-ID hash happens to match an earlier ledger-only run.
+    if inputs["issue_lookup_status"] not in ("disabled", "complete"):
         return False
     hidden_id = inputs["hidden_ids_sha256"]
     if not (
