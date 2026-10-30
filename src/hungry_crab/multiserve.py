@@ -29,7 +29,6 @@ from .serve import (
 )
 
 
-
 def _require_current_receiving(menu: dict[str, Any], maw: Path) -> None:
     """Recheck live receiving checkout and policy before a multi-prey publish effect.
 
