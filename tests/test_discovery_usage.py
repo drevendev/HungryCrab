@@ -124,3 +124,24 @@ def test_invalid_usage_does_not_change_state(tmp_path: Path, tokens: object) -> 
     with pytest.raises(CrabError, match="actual nonnegative"):
         sessions.record_usage(directory, payload)
     assert (directory / "session.json").read_bytes() == raw
+
+
+def test_public_reserve_stop_keeps_unused_budget_and_late_costs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    sessions.record_usage(directory, usage(action, 71), now=now)
+    assert main(["discover", "stop", str(directory), "--reason", "model-budget-reserve"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["finished"] and result["stop_reason"] == "model-budget-reserve"
+    assert result["actual_model_tokens"] == 71 and result["budget_within_limits"]
+    assert not result["scope_complete"] and result["needs"][0]["phase"] == "search"
+    raw = (directory / "session.json").read_bytes()
+    assert sessions.stop(directory, "model-budget-reserve")["actual_model_tokens"] == 71
+    assert (directory / "session.json").read_bytes() == raw
+    late = sessions.record_usage(directory, usage(action, 29, "actual-late-receipt"))
+    assert late["actual_model_tokens"] == 100 and late["stop_reason"] == "model-budget-reserve"
+    assert late["finished_at"] == result["finished_at"]
+    effects = []
+    sessions.drive(directory, {"search": lambda value: effects.append(value)})
+    assert effects == [] and sessions._load(directory)["lease"]["attempt"] == action["attempt"]
