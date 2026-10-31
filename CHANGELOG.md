@@ -7,6 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Discover existing GitHub nutrient markers before issue publication when `serve()`
+  creates its own issue client, preventing duplicate issues (#537).
+
 ## [0.6.8] - 2026-10-28
 
 ### Added
