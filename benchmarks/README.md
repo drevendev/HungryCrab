@@ -33,13 +33,14 @@ maintainer has actually judged belongs here.
 uv run python benchmarks/ranking_benchmark.py
 ```
 
-`ranking/pressure.json` freezes a separate synthetic pair producing 56 competing candidates
-and reports where prior human-accepted generic priorities rank. It is a ranking report, not a
-new human usefulness corpus, and not a gate yet: with the default scoring, four of those
-priorities rank 31-35 of 56. Raising the shipped weights of exactly those keys would pass it by
-construction, so it becomes a gate only when a scoring change earns it. Its negative control
-disables category weights and must miss them. The original B1 labels and thresholds remain unchanged; larger human
-labeling is [#200](https://github.com/drevendev/HungryCrab/issues/200).
+`ranking/pressure.json` freezes a separate synthetic pair and reports where prior
+human-accepted generic priorities rank. The 0.6.9 general uptake rule for unknown
+agent-host adoption yields 54 candidates: release 26, schedule 27, coverage 10,
+issue templates 29 and PR template 30. This restores the existing pressure gate
+without key-specific weights or changes to the original B1 labels/thresholds.
+The negative control disables category weights and must miss the priorities.
+This synthetic control is not a new human usefulness corpus; larger human
+labeling remains [#200](https://github.com/drevendev/HungryCrab/issues/200).
 
 ## Additional diagnostics and paired reporting
 

@@ -708,10 +708,13 @@ def summarize(
 
     attributes = ""
     if any(f.path == ".gitattributes" for f in files):
-        attributes = (read_head(str(root / ".gitattributes"), 64 * 1024) or b"").decode(
-            "utf-8", "replace"
-        )
+        raw_attributes = read_head(str(root / ".gitattributes"), 64 * 1024 + 1) or b""
+        if len(raw_attributes) > 64 * 1024:
+            raw_attributes = raw_attributes[: 64 * 1024].rsplit(b"\n", 1)[0]
+        attributes = raw_attributes.decode("utf-8", "replace")
     attribute_omissions = classify_attributes(attributes, files)
+    if any(f.path == ".gitattributes" and f.size > 64 * 1024 for f in files):
+        attribute_omissions.append({"reason": "attribute-byte-limit"})
     counted = [f for f in files if f.counted]
     loc_total = sum(f.loc for f in counted)
     bytes_total = sum(f.size for f in files)
@@ -766,10 +769,16 @@ def summarize(
         "files_counted": len(counted),
         "attribute_omissions": attribute_omissions,
         "classification_declarations": [
-            {"path": f.path, "origin": f.classification_origin}
+            {
+                "path": f.path,
+                "origin": f.classification_origin,
+                "declared": f.classification_declared,
+                "applied": {"generated": f.generated, "vendored": f.vendored},
+            }
             for f in files
             if f.classification_origin
         ][:500],
+        "classification_coverage": "partial" if attribute_omissions else "supported-root-subset",
         "dirs": stats["dirs"],
         "bytes": bytes_total,
         "loc": loc_total,

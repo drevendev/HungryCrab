@@ -32,6 +32,7 @@ from ..typeutil import as_dict, as_list
 from .candidates import Side, build_candidates
 from .license_policy import covered_exceptions, review_reasons
 from .render import gap_doc, menu_doc
+from .rules import TRAIT_RULES
 from .scoring import Scoring
 
 MENU_SCHEMA = "hungry-crab.menu/1"
@@ -49,6 +50,7 @@ class CompareOptions:
     scoring: dict[str, Any] | None = None
     memory: dict[str, Any] = field(default_factory=dict)
     ignore: list[str] = field(default_factory=list)
+    dependency_scope_exclusions: list[dict[str, str]] = field(default_factory=list)
     top: int = 30
     maw_license: str | None = None
     hidden_ids: dict[str, str] = field(default_factory=dict)  # id -> reason (ledger, issues)
@@ -167,9 +169,22 @@ def compare_digests(
         )
     verdict["review_reasons"] = review
     scoring = Scoring.default().merged(opts.scoring)
-    candidates, facts = build_candidates(prey, maw)
+    from ..dependency_scope import partition
+
+    eligible, scope_hidden = partition(
+        [as_dict(row) for row in as_list(prey.deps.get("packages"))],
+        opts.dependency_scope_exclusions,
+    )
+    original_candidates, facts = build_candidates(prey, maw)
+    if scope_hidden:
+        projected = replace(prey, deps={**prey.deps, "packages": eligible})
+        candidates, facts = build_candidates(projected, maw)
+    else:
+        candidates = original_candidates
+    facts["dependency_scope_exclusions"] = scope_hidden
     now = opts.now or datetime.now(UTC)
-    for candidate in candidates:
+    inspected = candidates + [c for c in original_candidates if not any(c is p for p in candidates)]
+    for candidate in inspected:
         candidate.license_mode = str(verdict["mode"])
         exceptions = covered_exceptions(prey.license, [e.path for e in candidate.evidence])
         if (
@@ -186,6 +201,10 @@ def compare_digests(
         )
         if candidate.category in {"history-lesson", "issue-lesson", "architecture"} and not (
             prey.ecosystems & maw.ecosystems
+        ):
+            candidate.uptake_kind = "transferable"
+        if candidate.category == "ai-config" and not any(
+            maw.trait(rule.trait) for rule in TRAIT_RULES if rule.category == "ai-config"
         ):
             candidate.uptake_kind = "transferable"
         candidate.uptake = round(scoring.uptake_for(candidate.uptake_kind), 2)
@@ -208,8 +227,17 @@ def compare_digests(
             "license_review_reasons": review,
             "evidence_license_exceptions": exceptions,
         }
-    initial_candidates = [candidate.to_dict() for candidate in candidates]
+    initial_candidates = [candidate.to_dict() for candidate in original_candidates]
     candidates, hidden = apply_hunger(candidates, opts.hunger)
+    visible_ids = {c.id for c in candidates}
+    for candidate in original_candidates:
+        if candidate.category == "deps" and candidate.id not in visible_ids and scope_hidden:
+            hidden.append(
+                {
+                    "id": candidate.id,
+                    "reason": "owner dependency scope exclusion; see scope records",
+                }
+            )
     still: list[Candidate] = []
     for candidate in candidates:
         reason = opts.hidden_ids.get(candidate.id)
@@ -267,6 +295,7 @@ def compare_digests(
         },
         "candidates": [c.to_dict() for c in candidates],
         "initial_candidates": initial_candidates,
+        "recommendation_scope_exclusions": scope_hidden,
         "hidden": hidden,
     }
     return CompareResult(
@@ -399,6 +428,7 @@ def compare_for_maw(
         scoring=learned.to_dict(),
         memory=memory.to_dict(),
         ignore=config.ignore,
+        dependency_scope_exclusions=config.dependency_scope_exclusions,
         top=top,
         maw_license=config.license or d_opts.maw_license,
         hidden_ids=hidden,

@@ -245,6 +245,8 @@ with a suggested spelling where available; `scoring` retains its own flexible ne
 - `memory`: bounded learning from confirmed owner decisions, with an explicit off switch.
 - `hunt`: bounded GitHub discovery queries, size/stars/license filters and revisiting policy.
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
+- `dependency_scope_exclusions`: exact ecosystem/scope/reason exclusions for recommendations;
+  original dependency facts and structural seeds remain available for review.
 - `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
   `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
@@ -291,6 +293,7 @@ hunger:                    # per nutrient category: true | false | issues-only |
   issue-lesson: true
   architecture: issues-only
   code: ideas-only         # source-linked behavior findings from crab explore register
+dependency_scope_exclusions: []  # exact ecosystem/scope/reason recommendation filters; keep facts
 ignore: []                 # globs excluded from this repository's own digest, so that test
                            # fixtures and vendored trees are not mistaken for your code, e.g.
                            # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on

@@ -747,7 +747,7 @@ def _serve_pull_requests(
         for proof in proofs:
             if not isinstance(proof, dict) or not isinstance(proof.get("path"), str):
                 raise CrabError("invalid applicable path grant proof")
-            actual = resolver.resolve(proof["path"])
+            actual = resolver.resolve(proof["path"], selected_branch=declared)
             if (
                 actual.expression is None
                 or actual.expression != declared

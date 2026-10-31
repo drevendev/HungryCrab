@@ -21,6 +21,7 @@ def classify_attributes(text: str, files: list[FileInfo]) -> list[dict[str, Any]
             any(char in pattern for char in ('"', "\\", "[", "]", "!"))
             or pattern.endswith("/")
             or len(pattern) > 200
+            or ("**" in pattern and (not pattern.endswith("/**") or "**" in pattern[:-3]))
         ):
             omitted.append({"line": number, "reason": "unsupported-pattern"})
             continue
@@ -41,8 +42,21 @@ def classify_attributes(text: str, files: list[FileInfo]) -> list[dict[str, Any]
                 continue
             assignments[name] = value
         for info in files:
-            subject = info.path if "/" in pattern else info.name
-            if not fnmatchcase(subject, pattern.lstrip("/")):
+            subject = info.path.split("/")
+            components = pattern.lstrip("/").split("/")
+            if "/" not in pattern:
+                matched = fnmatchcase(info.name, pattern)
+            elif components[-1] == "**":
+                matched = len(subject) >= len(components) and all(
+                    fnmatchcase(value, token)
+                    for value, token in zip(subject, components[:-1], strict=False)
+                )
+            else:
+                matched = len(subject) == len(components) and all(
+                    fnmatchcase(value, token)
+                    for value, token in zip(subject, components, strict=True)
+                )
+            if not matched:
                 continue
             for name, value in assignments.items():
                 attribute = "generated" if name == "linguist-generated" else "vendored"
@@ -51,6 +65,7 @@ def classify_attributes(text: str, files: list[FileInfo]) -> list[dict[str, Any]
                 # vendored/generated safety exclusions.
                 setattr(info, attribute, original or bool(value))
                 info.classification_origin[attribute] = f".gitattributes:{number}"
+                info.classification_declared[attribute] = value
     if len(text.splitlines()) > 2000:
         omitted.append({"reason": "attribute-line-limit"})
     return omitted[:100]

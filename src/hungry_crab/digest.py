@@ -78,6 +78,7 @@ class DigestResult:
     out_dir: Path
     manifest: dict[str, Any]
     cached: bool
+    reuse: dict[str, Any] | None = None
 
     @property
     def manifest_path(self) -> Path:
@@ -160,6 +161,8 @@ def worktree_fingerprint(git: GitRunner | None, root: Path) -> str:
 
 
 def _analysis_identity(ctx: MineContext) -> dict[str, object]:
+    from .analysis_context import installed_source_identity
+
     encoded = json.dumps(ctx.api, sort_keys=True, separators=(",", ":"))
     return {
         "api_sha256": hashlib.sha256(encoded.encode()).hexdigest(),
@@ -176,6 +179,7 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         "instruction_matching": "unicode-matching-v2",
         "classification_attributes": "bounded-root-v1",
         "shallow_boundary": _shallow_boundary(ctx),
+        "implementation_source": installed_source_identity()["source_sha256"],
     }
 
 
@@ -897,39 +901,51 @@ def _is_reusable(
     explicit selective requests are routed to non-canonical scratch output instead. Finally, a
     healthy producer's declared artifacts must still match the manifest that vouched for them.
     """
-    prey = cached.get("prey")
-    budget = cached.get("budget")
+    return not reuse_diagnostics(cached, ctx, options, out_dir)
+
+
+def reuse_diagnostics(
+    cached: dict[str, Any], ctx: MineContext, options: DigestOptions, out_dir: Path
+) -> list[str]:
+    """Static bounded reason codes only: never emit source paths, secrets or policy text."""
+    prey, budget = cached.get("prey"), cached.get("budget")
     if not isinstance(prey, dict) or not isinstance(budget, dict):
-        return False
-    cached_worktree = prey.get("worktree", "")
-    if (
-        ctx.worktree == "unknown"
-        or cached_worktree == "unknown"
-        or ctx.wiki_info.get("worktree") == "unknown"
-    ):
-        return False
-    return (
-        cached.get("schema") == SCHEMA
-        and cached.get("crab_version") == __version__
-        and cached.get("analysis_identity") == _analysis_identity(ctx)
-        and prey.get("sha") == ctx.sha
-        and prey.get("shallow") is ctx.shallow
-        and (not ctx.shallow or _shallow_boundary(ctx) != "unknown")
-        and cached_worktree == ctx.worktree
-        and cached.get("depth") == options.depth
-        and list(as_list(cached.get("ignore"))) == list(ctx.ignore)
-        and cached.get("maw_license") == options.maw_license
-        and cached.get("wiki") == ctx.wiki_info
-        and budget.get("per_markdown_file") == ctx.md_budget
-        and budget.get("markdown_total") == options.total_budget
-        and budget.get("policy") == options.budget_policy
-        and _covers_every_miner(cached)
-        # A digest from before coverage was recorded carries the same development version
-        # string; without the block a visibility gate would read it as clean.
-        and isinstance(cached.get("coverage"), dict)
-        and not incomplete_miners(cached)
-        and not digest_integrity_errors(out_dir, cached)
-    )
+        return ["manifest-shape-invalid"]
+    worktree = prey.get("worktree", "")
+    identity = _analysis_identity(ctx)
+    checks = [
+        (
+            ctx.worktree != "unknown"
+            and worktree != "unknown"
+            and ctx.wiki_info.get("worktree") != "unknown",
+            "worktree-identity-unknown",
+        ),
+        (cached.get("schema") == SCHEMA, "schema-changed"),
+        (cached.get("crab_version") == __version__, "tool-version-changed"),
+        (cached.get("analysis_identity") == identity, "analysis-source-or-channel-changed"),
+        (prey.get("sha") == ctx.sha, "source-commit-changed"),
+        (prey.get("shallow") is ctx.shallow, "history-coverage-changed"),
+        (
+            not ctx.shallow or identity.get("shallow_boundary") != "unknown",
+            "history-boundary-unknown",
+        ),
+        (worktree == ctx.worktree, "worktree-content-changed"),
+        (cached.get("depth") == options.depth, "analysis-depth-changed"),
+        (list(as_list(cached.get("ignore"))) == list(ctx.ignore), "selection-policy-changed"),
+        (cached.get("maw_license") == options.maw_license, "maw-license-changed"),
+        (cached.get("wiki") == ctx.wiki_info, "wiki-channel-changed"),
+        (
+            budget.get("per_markdown_file") == ctx.md_budget
+            and budget.get("markdown_total") == options.total_budget,
+            "render-budget-changed",
+        ),
+        (budget.get("policy") == options.budget_policy, "budget-policy-changed"),
+        (_covers_every_miner(cached), "producer-set-incomplete"),
+        (isinstance(cached.get("coverage"), dict), "coverage-unknown"),
+        (not incomplete_miners(cached), "producer-failed"),
+        (not digest_integrity_errors(out_dir, cached), "artifact-integrity-failed"),
+    ]
+    return [reason for passed, reason in checks if not passed]
 
 
 def _covers_every_miner(manifest: dict[str, Any]) -> bool:
@@ -972,15 +988,26 @@ def run_digest(
         assert digests_dir is not None
         check_digest_ref_publishable(digests_dir, ctx.sha)
 
+    reuse_reasons = ["forced"] if opts.force else ["no-readable-manifest"]
     if not opts.force:
         cache_dir = requested_out_dir
         if canonical:
             assert digests_dir is not None
             cache_dir = resolve_canonical_digest(digests_dir, ctx.sha).path
         cached = _load_json(cache_dir / MANIFEST_NAME)
-        if cached is not None and not opts.miners and _is_reusable(cached, ctx, opts, cache_dir):
+        if cached is not None:
+            reuse_reasons = (
+                ["selective-producer-request"]
+                if opts.miners
+                else reuse_diagnostics(cached, ctx, opts, cache_dir)
+            )
+        if cached is not None and not reuse_reasons:
             log(f"digest for {ctx.label}@{ctx.short_sha} is cached at {cache_dir}")
-            return DigestResult(cache_dir, cached, cached=True)
+            return DigestResult(
+                cache_dir, cached, cached=True, reuse={"reused": True, "reasons": []}
+            )
+
+    log("digest reuse: " + json.dumps({"reused": False, "reasons": reuse_reasons}))
 
     try:
         miners = select_miners(opts.miners)
@@ -1022,7 +1049,9 @@ def run_digest(
         else:
             published_out = out_dir
 
-        return DigestResult(published_out, manifest, cached=False)
+        return DigestResult(
+            published_out, manifest, cached=False, reuse={"reused": False, "reasons": reuse_reasons}
+        )
     finally:
         if explicit_stage is not None:
             shutil.rmtree(explicit_stage, ignore_errors=True)

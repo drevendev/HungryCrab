@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -14,8 +15,34 @@ from .attribution import GitSourceReader
 from .compare.candidates import _evidence_path
 from .errors import CrabError
 from .licensing.path_grants import GrantResolver
+from .miners.ai_config import INSTRUCTION_FILES
 
 PACKET_SCHEMA = "hungry-crab.source-packet/1"
+
+
+def body_excluded(path: str) -> bool:
+    lowered = path.casefold()
+    name = Path(path).name.casefold()
+    return (
+        name.startswith("readme")
+        or name == "skill.md"
+        or name in {Path(item).name.casefold() for item in INSTRUCTION_FILES}
+        or lowered.startswith((".cursor/rules/", ".github/instructions/", ".github/prompts/"))
+        or (
+            Path(path).suffix.casefold() in {".md", ".mdc"}
+            and lowered.startswith(
+                (
+                    "agents/",
+                    "commands/",
+                    "skills/",
+                    ".claude/agents/",
+                    ".claude/commands/",
+                    ".codex/agents/",
+                    ".agents/skills/",
+                )
+            )
+        )
+    )
 
 
 def syntax_query(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
@@ -69,7 +96,8 @@ def source_packet(
         raise CrabError("source packet byte budget must be in 1024..524288")
     if any(not _evidence_path(path) for path in paths):
         raise CrabError("source packet contains an unsafe path")
-    reader = GitSourceReader(repo)
+    deadline = time.monotonic() + 30
+    reader = GitSourceReader(repo, byte_limit=65_536, deadline=deadline)
     resolver = GrantResolver(reader, sha, source_url)
     records: list[dict[str, Any]] = []
     omissions: list[dict[str, str]] = []
@@ -79,13 +107,10 @@ def source_packet(
         omissions.extend(listing_omissions)
     used = 0
     for path in dict.fromkeys(paths):
-        if Path(path).name.casefold() in {
-            "readme",
-            "readme.md",
-            "agents.md",
-            "claude.md",
-            "skill.md",
-        }:
+        if reader.expired():
+            omissions.append({"path": path, "reason": "whole-packet-time-limit"})
+            continue
+        if body_excluded(path):
             omissions.append({"path": path, "reason": "instruction/readme-body-excluded"})
             continue
         parent, _, name = path.rpartition("/")
@@ -129,7 +154,8 @@ def source_packet(
             {
                 "path": path,
                 "sha": sha,
-                "file_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                "decoded_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
+                "encoding": "utf-8-with-replacement",
                 "line_count": len(lines),
                 "analysis": result["status"],
                 "ranges": windows,
@@ -141,6 +167,7 @@ def source_packet(
         )
     return {
         "schema": PACKET_SCHEMA,
+        "untrusted_data": True,
         "need": need,
         "sha": sha,
         "source_url": source_url,
@@ -148,6 +175,7 @@ def source_packet(
         "omissions": omissions,
         "bytes": used,
         "byte_budget": byte_budget,
+        "time_limit_seconds": 30,
         "reviewed": False,
         "semantic_coverage": "not-established",
         "donor_executed": False,

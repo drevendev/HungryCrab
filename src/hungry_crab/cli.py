@@ -91,6 +91,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_loop_parser(sub)
     add_exploration_parser(sub)
     add_discovery_parser(sub)
+    launcher = sub.add_parser(
+        "launcher", help="write an owned .py launcher independent of console shims"
+    )
+    launcher.add_argument("path", type=Path, help="destination .py file in an existing directory")
 
     p_sniff = sub.add_parser("sniff", help="API reconnaissance: license, size, languages, verdict")
     p_sniff.add_argument("repo", help="owner/repo or a GitHub URL")
@@ -388,7 +392,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="turn approved nutrients into issues or clean-room pull requests (dry-run by default)",
     )
     p_serve.add_argument("prey", nargs="?", help="owner/repo, a GitHub URL, or a local directory")
-    p_serve.add_argument("--meal-dir", type=Path, help="verified multi-prey bundle from eat")
+    p_serve.add_argument(
+        "--meal-dir", type=Path, help="existing single meal or verified multi-prey bundle"
+    )
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
     p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
@@ -970,37 +976,31 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         else:
             print_serve_report(report)
         return 0
-    if meal_directory:
-        from .artifact_read import read_object
-
-        saved = read_object(meal_directory / "menu.json")
-        source = saved.get("prey", {})
-        target = source.get("url") or source.get("root")
-        if not isinstance(target, str):
-            raise CrabError("single meal has no verified source location")
-        prey = resolve_target(target, log=log)
-    else:
-        prey = resolve_target(args.prey, log=log)
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     from .meal_lookup import existing_meal
 
-    meal_dir = meal_directory or existing_meal(prey, maw, args.cache_dir)
+    prey_repo: Path | None = None
+    if meal_directory:
+        meal_dir = meal_directory
+    else:
+        prey = resolve_target(args.prey, log=log)
+        meal_dir = existing_meal(prey, maw, args.cache_dir)
+        if prey.path is not None:
+            prey_repo = prey.path
+        else:
+            assert prey.slug is not None
+            prey_repo = prey_paths(prey.slug, args.cache_dir).repo
     ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
     options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
     client = (
         GhIssueClient(token_env=config.serve.token_env)
-        if (args.mode == "issue" or shutil.which("gh"))
+        if args.mode in {"issue", "pr-branch"}
         else None
     )
-    # A COPY nutrient's receipt names prey paths; they are checked against the prey's own
-    # history, which lives in the cached clone (or the local directory being eaten).
-    if prey.path is not None:
-        prey_repo = prey.path
-    else:
-        assert prey.slug is not None
-        prey_repo = prey_paths(prey.slug, args.cache_dir).repo
+    # A portable meal can be previewed without following source paths from its
+    # untrusted metadata. Transfer effects still require independent source authority.
     report = serve(
         meal_dir,
         maw,
@@ -1257,6 +1257,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_explore(args)
         if args.command == "discover":
             return cmd_discover(args)
+        if args.command == "launcher":
+            from .launcher import install_launcher
+
+            print(install_launcher(args.path))
+            return 0
         if args.command == "sniff":
             return cmd_sniff(args, log)
         if args.command == "catch":

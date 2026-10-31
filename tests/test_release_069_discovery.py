@@ -20,6 +20,181 @@ from hungry_crab.receiving_probe import run_probe, verify_receipt
 from hungry_crab.source_inspection import source_packet, syntax_query
 
 
+@pytest.mark.parametrize("receiving_name", ["reader-one", "reader-two", "reader-three"])
+def test_invoked_host_executes_replacements_and_an_original_probe(
+    tmp_path: Path, receiving_name: str
+) -> None:
+    """Controlled host judgments test execution, not independent discovery precision."""
+    from hungry_crab.attribution import GitSourceReader
+    from hungry_crab.cache import Target
+    from hungry_crab.compare import compare_for_maw
+    from hungry_crab.digest import DigestOptions
+    from hungry_crab.exploration import initialize as explore_init
+    from hungry_crab.exploration import record as explore_record
+    from hungry_crab.licensing.path_grants import GrantResolver
+
+    maw = repository(
+        tmp_path / receiving_name,
+        {
+            "app.py": "def consume(stream):\n    return stream.read()\n"
+            "def safe(stream):\n    return stream.read(4)\n",
+            ".crab.yml": "ledger: none\n",
+        },
+    )
+    donors = {
+        name: repository(
+            tmp_path / name,
+            {
+                "reader.py": "def consume(stream):\n    return stream.read(4)\n",
+                **({"LICENSE": "Internal use only.\n"} if name == "held" else {}),
+            },
+        )
+        for name in ("present", "duplicate", "held", "gap")
+    }
+    directory = tmp_path / "session"
+    sessions.initialize(directory, maw, plan(maw))
+    children: dict[str, Path] = {}
+    menus: dict[str, dict[str, Any]] = {}
+    outcomes = {"present": "already-present", "duplicate": "duplicate", "gap": "verified-gap"}
+    executed: list[str] = []
+
+    def search_handler(action: dict[str, Any]) -> dict[str, Any]:
+        return receipt(action, {"candidates": [{"repository": name} for name in donors]})
+
+    def acquire(action: dict[str, Any]) -> dict[str, Any]:
+        name = action["lead"]["repository"]
+        executed.append(name)
+        if name == "held":
+            sha = git(donors[name], "rev-parse", "HEAD").strip()
+            assert (
+                GrantResolver(GitSourceReader(donors[name]), sha).resolve("reader.py").expression
+                is None
+            )
+            return receipt(
+                action, {"status": "license-held", "reason": "actual restrictive source grant"}
+            )
+        comparison, _, _, _ = compare_for_maw(
+            Target(path=donors[name]),
+            maw,
+            digest_options=DigestOptions(cache_root=tmp_path / "cache"),
+            record_ledger=False,
+        )
+        assert comparison.meal_dir is not None
+        menus[name] = comparison.menu
+        return receipt(action, {"meal_dir": str(comparison.meal_dir)})
+
+    def inspect(action: dict[str, Any]) -> dict[str, Any]:
+        name = action["lead"]["repository"]
+        data = json.loads((directory / "session.json").read_text())
+        meal = Path(data["needs"][0]["meal_dir"])
+        child = explore_init(
+            meal,
+            {
+                "scope": "controlled receiving flow",
+                "goals": "bounded reads",
+                "flows": "consume user input",
+                "constraints": "stdlib and inert donor",
+                "facets": ["performance-streaming"],
+                "author": "fixture host",
+                "attempt": name,
+            },
+            maw=maw,
+        )
+        children[name] = child
+        menu = menus[name]
+        explore_record(
+            child,
+            {
+                "kind": "decision",
+                "hypothesis": "bounded input",
+                "disposition": outcomes[name],
+                "reviewed": True,
+                "author": "fixture host",
+                "tool": "controlled host fixture",
+                "attempt": name,
+                "reason": "controlled source/receiving comparison; host-supplied judgment",
+                "source_evidence": [
+                    {"sha": menu["prey"]["sha"], "path": "reader.py", "start": 1, "end": 2}
+                ],
+                "maw_evidence": [
+                    {"sha": menu["maw"]["sha"], "path": "app.py", "start": 1, "end": 4}
+                ],
+            },
+        )
+        return receipt(action, {"exploration": str(child)})
+
+    def verify(action: dict[str, Any]) -> dict[str, Any]:
+        if action["lead"]["repository"] != "gap":
+            return receipt(action, {"evidence_level": "source-supported"})
+        source = (
+            "import os, sys\nsys.path.insert(0, os.getcwd())\nfrom app import consume, safe\n"
+            "class Bounded:\n    def read(self, size=-1):\n"
+            '        if size < 0: raise ValueError("unbounded")\n        return b"data"\n'
+            'assert safe(Bounded()) == b"data"\n'
+            "try: consume(Bounded())\n"
+            'except ValueError: print("unbounded receiver; bounded control passes")\n'
+            'else: raise AssertionError("expected original receiving defect")\n'
+        )
+        path = run_probe(
+            tmp_path / "original-probe",
+            maw,
+            source,
+            author="fixture host",
+            expected="bounded control succeeds and the original receiving defect is observed",
+            controls=["already-correct safe function", "unbounded target rejects bounded input"],
+            original_receiving_owned=True,
+        )
+        assert read_json(path)["exit_code"] == 0
+        return receipt(
+            action,
+            {
+                "evidence_level": "behavior-verified",
+                "expected": "bounded reads",
+                "observed": "unbounded target; bounded control passes",
+                "probe_owner": "receiving",
+                "probe_sha256": hashlib.sha256(source.encode()).hexdigest(),
+                "receiving_sha": action["context"]["sha"],
+                "execution_receipt": str(path),
+            },
+        )
+
+    def decide(action: dict[str, Any]) -> dict[str, Any]:
+        name = action["lead"]["repository"]
+        return receipt(
+            action,
+            {
+                "disposition": outcomes[name],
+                "hypothesis": "bounded input",
+                "reason": "controlled reviewed outcome",
+                "adaptation": "change only the receiving input flow",
+                "maintenance": "stdlib helper and original regression probe",
+                "novelty": "controlled fixture's seeded gap",
+            },
+        )
+
+    result = sessions.drive(
+        directory,
+        {
+            "search": search_handler,
+            "acquire": acquire,
+            "inspect": inspect,
+            "verify": verify,
+            "decide": decide,
+        },
+    )
+    assert executed == ["present", "duplicate", "held", "gap"]
+    assert result["stop_reason"] == "scoped-goals-met" and result["scope_complete"]
+    assert result["spent"] == {"requests": 1, "donors": 4, "model_tokens": 0}
+    assert (
+        result["needs"][0]["outcomes"][-1]["verification"]["evidence_level"] == "behavior-verified"
+    )
+    assert not result["published"] and not result["acceptance_learning_written"]
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def test_syntax_is_not_string_matching_or_execution() -> None:
     source = '# open("fake")\nx = "open(fake)"\nopen("real")\nraise RuntimeError("x")\n'
     result = syntax_query(source, [{"kind": "call", "name": "open"}])
@@ -232,3 +407,65 @@ def test_cli_packet_and_explicit_budget_stop(
     assert main(["discover", "packet", "--input", str(input_file)]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["files"][0]["ranges"][0]["start"] == 2
+
+
+def test_cross_channel_requests_are_precharged_and_uncertain_replay_is_refused(
+    tmp_path: Path,
+) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return 1\n"})
+    data = plan(maw)
+    data["limits"] = {"requests": 2}
+    directory = tmp_path / "session"
+    sessions.initialize(directory, maw, data)
+    action = sessions.next_action(directory)
+    sessions.authorize_request(directory, action["attempt"], "provider-search")
+    with pytest.raises(CrabError, match="reconcile"):
+        sessions.authorize_request(directory, action["attempt"], "provider-search")
+    sessions.record(directory, receipt(action, {"candidates": [{"repository": "one/tool"}]}))
+    action = sessions.next_action(directory)
+    sessions.authorize_request(directory, action["attempt"], "targeted-issue")
+    with pytest.raises(CrabError, match="global discovery request budget"):
+        sessions.authorize_request(directory, action["attempt"], "frontier-identity")
+    assert sessions.report(directory)["spent"]["requests"] == 2
+
+
+def test_actual_overspend_and_unavailable_usage_are_honest_stops(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return 1\n"})
+    for label in ("overrun", "unknown"):
+        directory = tmp_path / label
+        sessions.initialize(directory, maw, plan(maw))
+        action = sessions.next_action(directory)
+        if label == "overrun":
+            entry = receipt(action, {"candidates": []})
+            entry["model_tokens"] = 30_001
+            result = sessions.record(directory, entry)
+            assert result["actual_model_tokens"] == 30_001
+            assert result["stop_reason"] == "model-token-budget"
+        else:
+            result = sessions.stop(directory, "usage-unavailable")
+            assert result["actual_model_tokens"] is None
+            assert sessions.next_action(directory)["stop_reason"] == "usage-unavailable"
+        assert not result["budget_within_limits"]
+        assert not result["scope_complete"]
+
+
+def test_design_acceptance_requires_a_real_receiving_bound_artifact(tmp_path: Path) -> None:
+    from hungry_crab.receiving_probe import verify_design_artifact
+
+    context = {"sha": "a" * 40}
+    with pytest.raises(CrabError, match="actual acceptance artifact"):
+        verify_design_artifact(None, context)
+    document = tmp_path / "design.md"
+    document.write_text("Original receiving design: bound each read and retain explicit omissions.")
+    artifact = {
+        "path": str(document),
+        "sha256": hashlib.sha256(document.read_bytes()).hexdigest(),
+        "receiving_context": context,
+        "original_receiving_owned": True,
+        "criteria": ["Receiving flow has a finite memory bound and visible omitted evidence."],
+        "assessment": "Reviewed against the receiving flow as a design proposal.",
+    }
+    verify_design_artifact(artifact, context)
+    document.write_text("PASS")
+    with pytest.raises(CrabError, match="changed"):
+        verify_design_artifact(artifact, context)
