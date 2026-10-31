@@ -56,13 +56,20 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
             command.add_argument(
                 "--input", type=Path, required=True, help="actual tool and usage receipt JSON"
             )
-    halt = commands.add_parser("stop", help="retain unfinished work and explicit external blockers")
+    halt = commands.add_parser(
+        "stop", help="retain unfinished work and actual bounded stop reasons"
+    )
     halt.add_argument("directory", type=Path, help="existing discovery session")
     halt.add_argument(
         "--reason",
         required=True,
-        choices=("usage-unavailable", "external-dependency", "policy-or-legal-dependency"),
-        help="actual unresolved dependency; unknown usage cannot become zero",
+        choices=(
+            "usage-unavailable",
+            "external-dependency",
+            "policy-or-legal-dependency",
+            "model-budget-reserve",
+        ),
+        help="actual dependency or next-call reserve; unknown usage cannot become zero",
     )
     for name in ("index", "view", "packet", "search", "rank", "frontier", "history", "issues"):
         command = commands.add_parser(

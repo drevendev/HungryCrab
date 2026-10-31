@@ -652,7 +652,12 @@ def report(directory: Path) -> dict[str, Any]:
 
 def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[str, Any]:
     """Stop without losing an uncertain lease or inventing missing model usage."""
-    if reason not in {"usage-unavailable", "external-dependency", "policy-or-legal-dependency"}:
+    if reason not in {
+        "usage-unavailable",
+        "external-dependency",
+        "policy-or-legal-dependency",
+        "model-budget-reserve",
+    }:
         raise CrabError("unsupported explicit discovery stop reason")
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)

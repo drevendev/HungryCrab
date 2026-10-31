@@ -61,6 +61,12 @@ extends the finished investigation. Active and legacy terminal durations remain
 explicitly unknown; the aggregate budget check includes known wall-time failures
 alongside request, donor and model counters.
 
+An invoking host that cannot safely fit its next model call may explicitly stop
+with `--reason model-budget-reserve`. Retain its bounded input/output admission
+estimate with the host artifacts. This leaves unused tokens unspent, needs
+unfinished and actual receipts available; it does not claim hard-cap exhaustion
+or an external outage and grants no further work.
+
 ```json
 {
   "attempt": "COPY_THE_LEASED_ATTEMPT",

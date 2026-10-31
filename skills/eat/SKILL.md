@@ -74,6 +74,9 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    Reconcile an interrupted charged attempt before retrying. Retain actual request charges;
    no hidden provider retries or new budgets on resume. If model usage cannot be measured,
    stop the metered trial as usage-unavailable; never invent zero token/currency values.
+   If the next bounded model call cannot fit, use `discover stop SESSION --reason
+   model-budget-reserve`; retain the admission estimate and unspent budget rather than
+   inventing an external blocker or a completed scope.
 6. **Register non-trait behavior.** Use `crab explore register <exploration> --input finding.json
    --source-repo <inert-repo>`. Give a stable maw-relative `code.<behavior>` key, verified gap,
    before/after behavior, adaptation, maintenance cost and acceptance check. The CLI verifies
