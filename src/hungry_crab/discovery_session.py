@@ -217,6 +217,8 @@ def _save(directory: Path, value: dict[str, Any]) -> None:
 
 
 def _event(value: dict[str, Any], entry: dict[str, Any]) -> None:
+    if len(value["events"]) >= 500:
+        raise CrabError("discovery event budget exhausted; retain the pending attempt")
     previous = value["events"][-1]["sha256"] if value["events"] else None
     row = {"previous": previous, "index": len(value["events"]), "record": entry}
     value["events"].append({**row, "sha256": fingerprint(row)})
@@ -239,6 +241,9 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
             return summary(value)
         if value["lease"]:
             lease = dict(value["lease"])
+            lease["remaining_model_tokens"] = max(
+                0, value["limits"]["model_tokens"] - value["spent"]["model_tokens"]
+            )
             if instant >= datetime.fromisoformat(lease["expires_at"]):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
@@ -304,6 +309,53 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
         _event(value, {"kind": "reserved-action", **lease, "charge": charge})
         _save(directory, value)
         return lease
+
+
+def record_usage(
+    directory: Path, receipt: dict[str, Any], *, now: datetime | None = None
+) -> dict[str, Any]:
+    """Settle actual host use without accepting a semantic result or advancing work.
+
+    A known attempt may be expired, refused, stopped or receiving-stale: its cost
+    still exists. These receipts never grant new actions or refresh a lease.
+    """
+    instant = now or datetime.now(UTC)
+    fields = {"operation", "attempt", "author", "tool", "model_tokens"}
+    if set(receipt) != fields or len(json.dumps(receipt).encode()) > 16_000:
+        raise CrabError("model usage requires only bounded operation/attempt/author/tool/tokens")
+    operation = _text(receipt["operation"], "usage.operation", 200)
+    attempt = _text(receipt["attempt"], "usage.attempt", 200)
+    _text(receipt["author"], "usage.author", 200)
+    _text(receipt["tool"], "usage.tool", 200)
+    tokens = receipt["model_tokens"]
+    if tokens is not None and (type(tokens) is not int or tokens < 0):
+        raise CrabError("usage needs actual nonnegative model_tokens or null for unknown use")
+    with state_lock(directory / "session.json"):
+        value = _load(directory, require_current=False)
+        for event in value["events"]:
+            row = event["record"]
+            if row.get("kind") == "model-usage" and row["receipt"]["operation"] == operation:
+                if row["receipt"] != receipt:
+                    raise CrabError("model usage operation already exists with a different receipt")
+                return summary(value)
+        if not any(
+            event["record"].get("kind") == "reserved-action"
+            and event["record"].get("attempt") == attempt
+            for event in value["events"]
+        ):
+            raise CrabError("model usage does not belong to a known discovery attempt")
+        if tokens is None:
+            value.update(finished=True, stop_reason="usage-unavailable", model_usage_complete=False)
+        else:
+            value["spent"]["model_tokens"] += tokens
+            reason = _exhausted(value, instant)
+            if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
+                value.update(finished=True, stop_reason="model-token-budget")
+            elif not value["finished"] and reason:
+                value.update(finished=True, stop_reason=reason)
+        _event(value, {"kind": "model-usage", "receipt": receipt, "at": instant.isoformat()})
+        _save(directory, value)
+        return summary(value)
 
 
 def record(

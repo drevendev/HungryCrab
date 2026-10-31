@@ -27,6 +27,9 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    For a full invocation, freeze `crab discover context --maw .` in an external session plan,
    then `crab discover init SESSION --maw . --plan PLAN.json`. Needs include receiving ranges,
    backlog/default/pending-work coverage and real limits. Do not forecast useful-change quotas.
+   Settle each completed model stage with `discover usage SESSION --input USAGE.json`:
+   owned attempt, unique host operation, author/tool and actual tokens (null if unknown).
+   This records cost even when semantics fail; subsequent deterministic records charge zero.
    An open request is not implementation: a new evidenced mechanism may address that issue.
    Exclude equivalent existing/pending implementations; link existing requests without filing duplicates.
 2. **Qualify and acquire.** Run `crab sniff <prey> --maw .`; pin an immutable revision and
@@ -59,7 +62,8 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    Each reviewed decision needs its own hypothesis, donor revision/path/range, receiving
    evidence, reason and author/tool/attempt. Category-only triage stays proposed, not reviewed.
    Keep unexplored, budget-deferred, unsupported, policy-blocked and licence-unresolved
-   findings visible. NO_GAP needs an examined scope and actual receiving behavior; spend any
+   findings visible. Unresolved dispositions use `reviewed: false`; do not mark a held lead
+   reviewed to advance it. NO_GAP needs an examined scope and actual receiving behavior; spend any
    remaining budget on another concrete receiving hypothesis. Platform/stdlib constraints
    need a receiving-evidenced decision, not donor eligibility alone. Optional `selected: true`
    on a reviewed verified-gap decision records a choice; alternatives retain IDs and reasons.
