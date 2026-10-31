@@ -8,7 +8,15 @@ from pathlib import Path
 from typing import Any
 
 from .artifact_read import read_bytes, read_object
-from .discovery_session import initialize, live_context, next_action, record, report, stop
+from .discovery_session import (
+    initialize,
+    live_context,
+    next_action,
+    record,
+    record_usage,
+    report,
+    stop,
+)
 from .errors import CrabError
 
 
@@ -33,17 +41,18 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
     init.add_argument(
         "--plan", type=Path, required=True, help="frozen receiving needs and resource limits"
     )
-    for name in ("next", "record", "report"):
+    for name in ("next", "record", "usage", "report"):
         command = commands.add_parser(
             name,
             help={
                 "next": "lease the next bounded action",
                 "record": "append the owning host's actual action receipt",
+                "usage": "settle actual host model use without advancing a semantic phase",
                 "report": "show scoped outcomes and unfinished needs",
             }[name],
         )
         command.add_argument("directory", type=Path, help="existing discovery session")
-        if name == "record":
+        if name in {"record", "usage"}:
             command.add_argument(
                 "--input", type=Path, required=True, help="actual tool and usage receipt JSON"
             )
@@ -100,6 +109,8 @@ def _run_discover(args: argparse.Namespace) -> int:
         result = next_action(args.directory)
     elif action == "record":
         result = record(args.directory, read_object(args.input))
+    elif action == "usage":
+        result = record_usage(args.directory, read_object(args.input))
     elif action == "report":
         result = report(args.directory)
     elif action == "stop":

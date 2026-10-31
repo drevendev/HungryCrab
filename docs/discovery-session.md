@@ -85,6 +85,11 @@ accepts `source` (the original probe file), `author`, `expected`, `controls` and
 `original_receiving_owned: true`; inspect the original code before execution.
 Never use donor source/tests as a probe. The CLI checks real process results,
 context stability and artifact hashes; a PASS string is insufficient.
+The interpreter uses `-I -B`: cwd alone does not put the receiving tree on the
+import path. Original probes importing receiving `tools/` modules explicitly add
+`str(Path.cwd())` to `sys.path`; `src` layouts add `str(Path.cwd() / "src")`.
+These are trusted receiving paths, never donor/cache paths. An import failure is
+an unverified probe, not evidence of an application defect.
 
 A design proposal instead requires `acceptance_artifact`: actual `path`,
 `sha256`, full `receiving_context`, `original_receiving_owned: true`, a nonempty
@@ -164,3 +169,26 @@ and each meal's original structural seed denominator. Publication, CI, human
 acceptance and later default-branch retention remain separate outcomes. Legal
 adoption uses actual selected path grants and obligations; replacing a held donor
 does not change its policy or license status.
+
+## Model-use settlement when semantic work is refused
+
+After reserving an action, the invoked host may settle a completed model stage
+with `crab discover usage SESSION --input USAGE.json` before recording its semantic
+result. Supply `attempt`, a unique host `operation`, `author`, `tool` and actual
+`model_tokens` (input including cached input plus output). Use `null` when actual
+use is unknown: this stops the session with unknown usage. An exact retry is
+idempotent; changing a receipt under the same operation identity is refused.
+
+This records cost only. It does not advance a phase, refresh a lease, accept a
+finding or write acceptance learning. Late settlement of a known attempt is
+allowed after expiry, a rejected semantic result, a receiving change or a stop;
+it cannot grant more work. Actual overrun is retained and stops further work.
+The remaining-token value on an existing lease reflects the settled total.
+
+After separately settling a model stage, subsequent deterministic action records
+carry `model_tokens: 0`; do not charge the same stage again. Existing action-only
+receipts remain supported. Keep `reviewed: false` for unresolved exploration
+dispositions (`unsupported`, `budget-deferred`, `policy-blocked`,
+`license-unresolved`, `not-investigated`). Such observations can support a bounded
+replacement without being reviewed gaps. A decision still needs a matching
+actual child observation; never weaken that check to settle a model bill.
