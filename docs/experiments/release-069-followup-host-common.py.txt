@@ -1,0 +1,145 @@
+import argparse,hashlib,json,os,re,subprocess,sys,time
+from pathlib import Path
+root=Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'src'));sys.path.insert(0,str(root/'benchmarks'))
+from qualification_native import run_worker
+from hungry_crab.attribution import GitSourceReader
+from hungry_crab.fetch.git import GitRunner
+from hungry_crab.source_inspection import body_excluded
+Q=root/'.venv/qualification'
+
+def write(path,data):path.write_text(json.dumps(data,indent=2,ensure_ascii=False),encoding='utf8')
+
+class Trial:
+ def __init__(self,name,freeze):
+  self.name=name;batch,self.arm,repeat=name.split('-');self.maw={'crab':'HungryCrab','devostasis':'Devostasis','beautifulrepo':'BeautifulRepo'}[batch];self.repeat=repeat
+  self.freeze=freeze;self.definition=freeze['maws'][self.maw];self.context=self.definition['context'];self.mawroot=Path(self.context['root']);self.pool={r['id']:r for r in freeze['pool'] if r['batch']==batch};self.output=Q/'epoch-3'/'trials'/name;self.output.mkdir(parents=True,exist_ok=False)
+  self.python=Q/self.arm/'.venv/Scripts/python.exe';self.env=os.environ.copy();self.env['CRAB_CACHE_DIR']=str(self.output/'cache');self.meals={};self.reads=[];self.commands=0;self.started=time.monotonic();self.session=None;self.lease=None;self.usage_unsettled=True
+  self.state={'name':name,'acquired':[],'requests':0,'hypotheses':[],'read_ranges':[],'effects':[],'model_currency':None};self.save()
+ def save(self):write(self.output/'host-state.json',self.state)
+ def cli(self,args,data=None):
+  self.commands+=1
+  if data is not None:
+   p=self.output/f'input-{self.commands}.json';write(p,data);args=[*args,'--input',str(p)]
+  p=subprocess.run([str(self.python),'-m','hungry_crab',*map(str,args)],cwd=root,env=self.env,capture_output=True,timeout=180)
+  (self.output/f'command-{self.commands}.stdout').write_bytes(p.stdout);(self.output/f'command-{self.commands}.stderr').write_bytes(p.stderr)
+  if p.returncode:raise RuntimeError(p.stderr.decode('utf8','replace')[-1600:])
+  return p.stdout.decode('utf8','replace')
+ def jsoncli(self,args,data=None):return json.loads(self.cli(args,data))
+ def session_record(self,result,tokens=0):
+  assert self.lease is not None
+  self.jsoncli(['discover','record',self.session],{'attempt':self.lease['attempt'],'author':'independent invoked Codex host','tool':'codex-0.146.1/gpt-5.6-sol/low','model_tokens':tokens,'result':result,'host_meter_allocation':'actual native total is settled at completed verification; intermediate deterministic CLI actions call no model'})
+  self.lease=self.jsoncli(['discover','next',self.session])
+ def acquire(self,identity,need):
+  if identity in self.meals:return self.meals[identity]
+  if identity not in self.pool:raise ValueError('donor is outside the sealed pool')
+  if len(self.state['acquired'])>=6:raise ValueError('donor budget exhausted')
+  r=self.pool[identity];self.state['acquired'].append(identity);self.save()
+  if self.arm=='candidate' and not self.meals:
+   plan=dict(self.definition['plan']);plan['needs']=sorted(plan['needs'],key=lambda n:n['id']!=need)
+   self.session=self.output/'session';p=self.output/'session-plan.json';write(p,plan);self.jsoncli(['discover','init',self.session,'--maw',self.mawroot,'--plan',p]);self.lease=self.jsoncli(['discover','next',self.session]);self.session_record({'requests':0,'candidates':[{'repository':r['repository'],'pin':r['sha'],'source':'sealed shared acquisition pool; no provider request'}]})
+  text=self.cli(['compare',r['repository'],'--maw',self.mawroot,'--prey-digest',Path(r['facts'])/(self.arm+'-digest'),'--prey-objects',r['view'],'--no-ledger','--no-issues'])
+  matches=re.findall(r'^meal written to (.+)$',text,re.M)
+  if not matches:raise RuntimeError('fresh compare produced no meal path')
+  meal=Path(matches[-1].strip());menu=json.loads((meal/'menu.json').read_text(encoding='utf8'))
+  plan={'scope':'Independent useful receiving changes under fixed release qualification caps','goals':'Find distinct useful source-backed changes; retain correct/pending/held controls','flows':'; '.join(n['flow'] for n in self.definition['needs']),'constraints':'No donor execution, no publication, no policy change; actual pinned default and pending-work checks required.','facets':['behavior','algorithms','testing','architecture','packaging-operations'],'author':'independent native Codex worker','attempt':self.name,'receiving_context':self.context}
+  p=self.output/f'explore-{identity}.json';write(p,plan);explore=self.jsoncli(['explore','init','--meal-dir',meal,'--maw',self.mawroot,'--plan',p])['directory']
+  info={'meal':str(meal),'exploration':explore,'menu':menu};self.meals[identity]=info
+  if self.session is not None and len(self.meals)==1:
+   self.session_record({'meal_dir':str(meal)});self.session_record({'exploration':explore})
+  return info
+ def read(self,row,need):
+  side=row.get('side','receiving');path=row['path'];start=row.get('start',1);end=row.get('end',start+45)
+  if not isinstance(path,str) or not path or any(p in ('','.','..','.git') for p in path.split('/')) or '\\' in path or ':' in path:raise ValueError('unsafe evidence path')
+  if body_excluded(path):return {'path':path,'omitted':'instruction/README body excluded'}
+  if type(start)!=int or type(end)!=int or not 1<=start<=end<=start+119:raise ValueError('range must contain at most 120 lines')
+  if side=='receiving':repo=self.mawroot;sha=self.context['sha']
+  else:
+   self.acquire(side,need);r=self.pool[side];repo=Path(r['view']);sha=r['sha']
+  reader=GitSourceReader(repo,byte_limit=131072);parent,_,leaf=path.rpartition('/')
+  if (reader.entries(sha,parent) or {}).get(leaf) not in ('100644','100755'):return {'path':path,'omitted':'not a regular pinned source path'}
+  content=reader.read(sha,path)
+  if content is None:return {'path':path,'omitted':'unavailable or 128 KiB file limit'}
+  lines=content.splitlines();end=min(end,len(lines));ref={'side':side,'sha':sha,'path':path,'start':start,'end':end};self.state['read_ranges'].append(ref);self.save()
+  return {**ref,'content':'\n'.join(f'{i+1}: {lines[i]}' for i in range(start-1,end)),'untrusted_data':True}
+ def dispatch(self,name,args):
+  if name!='investigate':raise ValueError('unsupported tool')
+  operations=args.get('operations',[])
+  if not isinstance(operations,list) or not 1<=len(operations)<=12:raise ValueError('1..12 operations required')
+  need=args.get('need',self.definition['needs'][0]['id']);out=[]
+  for op in operations:
+   kind=op['op']
+   if kind=='read':value=self.read(op,need)
+   elif kind=='tree':
+    identity=op['donor'];self.acquire(identity,need);r=self.pool[identity];g=GitRunner(Path(r['view']),lazy_fetch=False);paths=g.run('ls-tree','-r','--name-only',r['sha']).splitlines();prefix=op.get('prefix','');selected=[p for p in paths if p.startswith(prefix) and not body_excluded(p)];value={'donor':identity,'paths':selected[:80],'omitted':max(0,len(selected)-80)}
+   elif kind=='find':
+    identity=op.get('side','receiving');needle=op['needle'];prefix=op.get('prefix','');hits=[]
+    if not isinstance(needle,str) or not 2<=len(needle)<=100:raise ValueError('bounded literal needle required')
+    if identity=='receiving':repo=self.mawroot;sha=self.context['sha']
+    else:self.acquire(identity,need);r=self.pool[identity];repo=Path(r['view']);sha=r['sha']
+    g=GitRunner(repo,lazy_fetch=False);paths=[p for p in g.run('ls-tree','-r','--name-only',sha).splitlines() if p.startswith(prefix) and not body_excluded(p) and Path(p).suffix in ('.py','.rs','.js','.ts','.yml','.yaml','.json','.toml')]
+    reader=GitSourceReader(repo,byte_limit=65536)
+    for path in paths[:32]:
+     content=reader.read(sha,path)
+     if content:
+      for i,line in enumerate(content.splitlines()):
+       if needle in line:
+        hits.append(self.read({'side':identity,'path':path,'start':max(1,i-3),'end':i+7},need));break
+     if len(hits)>=4:break
+    value={'matches':hits,'path_candidates':len(paths),'paths_examined':min(32,len(paths)),'remaining_paths':'not examined' if len(paths)>32 else 'none'}
+   elif kind=='backlog':
+    data=json.loads((Q/'provider-context.json').read_text(encoding='utf8'))['receiving'][self.maw];needle=op.get('needle','').casefold();matches=[r for r in data['issues']['items'] if needle in (r['title']+' '+r.get('body','')).casefold()];value={'items':[{'number':r['number'],'title':r['title'],'body':r.get('body','')[:1800]} for r in matches[:5]],'bounded_matches':len(matches),'coverage':data['issues'].get('truncated'),'origin':'commenter prose IDEAS_ONLY; issue existence is not implementation'}
+   elif kind=='pending':
+    patches=json.loads((Q/'pending-source-v2.json').read_text(encoding='utf8'));needle=op.get('needle','');rows=[r for r in patches if r['repo_full_name']=='drevendev/'+self.maw];selected=[]
+    for r in rows:
+     for p in r['patches']:
+      if needle in p['filename'] or needle in p['patch']:selected.append({'pr':r['pr_number'],**p})
+    value={'patches':selected[:2],'omitted':max(0,len(selected)-2),'coverage':'selected frozen pending patches; truncation explicit; other files not acquired'}
+   elif kind=='packet':
+    if self.arm!='candidate':value={'unsupported':'0.6.8 has no discover packet; use inert read/find operations'}
+    else:
+     identity=op['donor'];self.acquire(identity,need);r=self.pool[identity];value=self.jsoncli(['discover','packet'],{'repo':r['view'],'sha':r['sha'],'paths':op['paths'],'queries':op.get('queries',[]),'need':need,'related':op.get('related',False),'byte_budget':8192,'source_url':'https://github.com/'+r['repository']})
+   else:raise ValueError('unsupported bounded operation')
+   rendered=json.dumps(value,ensure_ascii=False)
+   if len(rendered)>8000:value={'omitted':'result exceeds remaining transport; refine paths/ranges; no content supplied','bytes':len(rendered)}
+   out.append(value)
+   if sum(len(json.dumps(v,ensure_ascii=False)) for v in out)>9000:
+    out.pop();out.append({'omitted':'whole tool response byte cap; remaining operations not executed'});break
+  write(self.output/f'tool-{len(list(self.output.glob("tool-*.json")))}.json',{'input':args,'output':out});return {'untrusted_repository_data':True,'results':out,'acquired':self.state['acquired'],'provider_requests':0,'instruction':'Use only actual ranges. Finish promptly within total-input-plus-output cap; retain unrun/unknown and untouched needs.'}
+ def prompt(self):
+  skill=(Q/self.arm/'skills/eat/SKILL.md').read_text(encoding='utf8')
+  needs=[{'id':n['id'],'flow':n['flow'],'observed':n['observed'],'ranges':[{k:v for k,v in r.items() if k!='sha'} for r in n['maw_evidence']]} for n in self.definition['needs']]
+  pool=[{k:r[k] for k in ['id','repository']} for r in self.pool.values()]
+  return 'Independent release trial. Follow this arm\'s installed eat skill:\n'+skill+'\nTASK: Find useful novel receiving changes, never maximize findings. The sealed pool and frozen receiving context below are shared facts, not judgments. No other trial is accessible. Read actual donor and receiving source/test ranges and check relevant pending patches/backlog. A runtime hypothesis stays source-supported unless actually probed; do not invent execution. No publication or copied source. Use investigate with batched operations to reduce model input cost. Include actual donor and receiving ranges in the first batch; a tree-only/receiving-only first pass may leave no budget for evidence. Every operation MUST have op, e.g. {\"op\":\"read\",\"side\":\"receiving\",\"path\":\"actual.py\",\"start\":1,\"end\":45}. At most 120 lines/read. Choose a need id exactly as listed. The trusted host performs actual installed compare/explore before donor reads. Source packet is available only if this arm supports it. The existing default plus pending work must be excluded from novelty. Finish with a JSON object (no fence): {"decisions":[{"donor":"pool id","need":"need id","hypothesis":"concrete behavior","disposition":"verified-gap|already-present|duplicate|not-useful|budget-deferred|unsupported|license-unresolved","reason":"receiving-specific","source_evidence":[{"sha":"actual","path":"actual","start":1,"end":10}],"maw_evidence":[{"sha":"actual","path":"actual","start":1,"end":10}],"adaptation":"concrete proposed change","maintenance":"cost","acceptance":"check","novelty":"actual default/pending check or unknown","evidence_level":"source-supported","legal_status":"verified mode/obligations or unknown"}],"stop_reason":"honest reason","unfinished_needs":[]}. At most 12 hypotheses. A source-supported verified-gap disposition is only a proposal, not a runtime proof or independent acceptance. Actual total input (including cached input) plus output must stay <=30000. Prioritize one well-evidenced finding over speculative lists; if remaining work cannot be bounded stop. Do not claim complete exploration.\n'+json.dumps({'receiving':{'name':self.maw,'sha':self.context['sha'],'target':'selected clean default; pinned context/policy/ledger and pending source facts sealed externally'},'needs':needs,'pool':pool,'limits':self.freeze['limits'],'pending':'Query backlog/pending tools for relevant work. Partial coverage remains unknown. All #535/#539 contents are already pending, never novel.','prior_exposure':'no prior shared-30 donors; no shared judgments; pretraining unknown'},ensure_ascii=False)
+ def run(self):
+  spec={'type':'function','name':'investigate','description':'Execute bounded inert source operations and installed arm compare/explore. operations: read(side=receiving or donor id,path,start,end); tree(donor,prefix); find(side,prefix,needle literal, first32 files/max4 hits); backlog(needle); pending(needle path or literal); packet(donor,paths,queries=[{kind:function|call|class|import,name:exact}],related). Candidate packet is unsupported in baseline. 12 ops/call, 9k response chars, no donor execution.','inputSchema':{'type':'object','properties':{'need':{'type':'string','enum':[n['id'] for n in self.definition['needs']]},'operations':{'type':'array','minItems':1,'maxItems':12,'items':{'type':'object','properties':{'op':{'type':'string','enum':['read','tree','find','backlog','pending','packet']},'side':{'type':'string'},'donor':{'type':'string'},'path':{'type':'string'},'start':{'type':'integer','minimum':1},'end':{'type':'integer','minimum':1},'prefix':{'type':'string'},'needle':{'type':'string'},'paths':{'type':'array','items':{'type':'string'}},'queries':{'type':'array','items':{'type':'object','additionalProperties':True}},'related':{'type':'boolean'}},'required':['op'],'additionalProperties':False}}},'required':['operations'],'additionalProperties':False}}
+  result=run_worker(self.output/'native',self.prompt(),[spec],self.dispatch,cwd=Path(json.loads((Q/'native-cwd.json').read_text())),model='gpt-5.6-sol',effort='low')
+  self.state['actual_usage']=result['usage'];self.state['model_status']=result['status'];self.state['model_budget_valid']=result['budget_valid'];self.state['seconds']=round(time.monotonic()-self.started,3)
+  try:
+   text=result['messages'][-1].strip();text=re.sub(r'^```(?:json)?\s*|\s*```$','',text);proposal=json.loads(text)
+  except (IndexError,ValueError):proposal={'decisions':[],'stop_reason':'no-valid-structured-final','unfinished_needs':[n['id'] for n in self.definition['needs']]}
+  write(self.output/'proposal.json',proposal)
+  validated=[]
+  for i,d in enumerate(proposal.get('decisions',[])[:12]):
+   try:
+    info=self.meals[d['donor']];record={**d,'kind':'decision','reviewed':d['disposition'] not in ('budget-deferred','unsupported','license-unresolved'),'author':'independent native model','tool':'codex0.146.1/gpt-5.6-sol/low','attempt':self.name+'-'+str(i)}
+    if record['disposition']=='already-present':record['disposition']='already-present'
+    self.jsoncli(['explore','record',info['exploration']],record);validated.append(i)
+   except Exception as exc:self.state.setdefault('record_errors',[]).append({'index':i,'error':str(exc)[:800]})
+  self.state['validated_decisions']=validated
+  if self.session is not None:
+   try:
+    if result['usage_complete']:
+     self.session_record({'evidence_level':'source-supported','result':'source-supported proposals only; no original runtime probe executed; native actual total settled here'},result['usage']['totalTokens'])
+     if self.lease.get('action')=='decide':
+      for i in validated:
+       d=proposal['decisions'][i]
+       if self.meals[d['donor']]['exploration']==next(iter(self.meals.values()))['exploration']:
+        resultrow={k:d[k] for k in ['hypothesis','disposition','reason']};resultrow.update({k:d.get(k,'unknown; not independently confirmed') or 'unknown; not independently confirmed' for k in ['adaptation','maintenance','novelty']});self.session_record(resultrow);break
+    else:self.jsoncli(['discover','stop',self.session,'--reason','usage-unavailable'])
+    self.jsoncli(['discover','stop',self.session,'--reason','external-dependency'])
+    self.state['session_report']=self.jsoncli(['discover','report',self.session])
+   except Exception as exc:self.state['session_settlement_error']=str(exc)[:1000]
+  self.save();print(json.dumps({'trial':self.name,'usage':result['usage'],'budget_valid':result['budget_valid'],'decisions':len(proposal.get('decisions',[])),'validated':len(validated),'acquired':self.state['acquired'],'record_errors':self.state.get('record_errors'),'session_error':self.state.get('session_settlement_error')},ensure_ascii=False),flush=True)
+
+if __name__=='__main__':
+ p=argparse.ArgumentParser();p.add_argument('trial');a=p.parse_args();f=json.loads((Q/'sealed.json').read_text(encoding='utf8'));Trial(a.trial,f).run()
