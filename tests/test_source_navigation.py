@@ -11,7 +11,7 @@ from test_discovery_inputs import repository
 
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
-from hungry_crab.source_inspection import _source_paths, source_index, syntax_query
+from hungry_crab.source_inspection import _source_paths, source_index, source_packet, syntax_query
 
 
 def test_index_returns_actual_declarations_without_instruction_or_comment_bodies(
@@ -169,3 +169,51 @@ def test_navigation_rejects_tree_objects_and_noncanonical_hash_lengths(tmp_path:
     assert not result["available"] and not result["files"]
     with pytest.raises(CrabError, match="immutable"):
         source_index(repo, "a" * 41, need="full hash", terms=[])
+
+
+def test_packets_prioritize_requested_queries_and_preserve_deferred_matches(tmp_path: Path) -> None:
+    source = "".join(f"def helper{i}(): return {i}\n" for i in range(12))
+    source += "class Cache:\n    def validate(self):\n        return True\n"
+    repo = repository(tmp_path / "donor", {"module.py": source})
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    packet = source_packet(
+        repo,
+        sha,
+        ["module.py"],
+        [
+            {"kind": "function", "name": "Cache.validate"},
+            {"kind": "function"},
+        ],
+        need="cache validation",
+        related=False,
+    )
+    row = packet["files"][0]
+    assert row["ranges"][0]["qualified_name"] == "Cache.validate"
+    assert row["ranges"][0]["query_index"] == 0
+    assert len(row["ranges"]) == 8
+    assert len(row["structural_result"]["matches"]) == 14
+    assert row["duplicate_structural_ranges"] == 1
+    assert row["structural_ranges_deferred"] == 5
+    assert packet["semantic_coverage"] == "not-established" and not packet["reviewed"]
+
+
+def test_packets_preserve_worker_limits_and_actual_byte_omissions(tmp_path: Path) -> None:
+    source = "".join(f"def helper{i}():\n    return {('x' * 200)!r}\n" for i in range(101))
+    repo = repository(tmp_path / "donor", {"module.py": source})
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    packet = source_packet(
+        repo,
+        sha,
+        ["module.py"],
+        [{"kind": "function"}],
+        need="bounded source",
+        byte_budget=1024,
+        related=False,
+    )
+    row = packet["files"][0]
+    assert row["structural_result"]["status"] == "budget-deferred"
+    assert row["structural_result"]["reason"] == "match-limit"
+    assert len(row["structural_result"]["matches"]) == 100
+    assert row["structural_ranges_deferred"] == 92
+    assert len(row["ranges"]) < 8 and packet["bytes"] <= 1024
+    assert any(item["reason"] == "whole-packet-byte-limit" for item in packet["omissions"])

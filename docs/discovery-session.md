@@ -86,10 +86,13 @@ accepts `source` (the original probe file), `author`, `expected`, `controls` and
 Never use donor source/tests as a probe. The CLI checks real process results,
 context stability and artifact hashes; a PASS string is insufficient.
 The interpreter uses `-I -B`: cwd alone does not put the receiving tree on the
-import path. Original probes importing receiving `tools/` modules explicitly add
-`str(Path.cwd())` to `sys.path`; `src` layouts add `str(Path.cwd() / "src")`.
-These are trusted receiving paths, never donor/cache paths. An import failure is
-an unverified probe, not evidence of an application defect.
+import path. An optional exact boolean `import_receiving: true` prepends only
+the declared receiving root and its `src` directory, leaving the original probe
+source unchanged. The receipt records the mode and command. The default retains
+isolated imports; inherited `PYTHONPATH` is never forwarded. Use this mode only
+for trusted receiving code, never donor/cache paths. This is not an untrusted
+code sandbox. An import failure leaves the probe unverified; it does not establish
+an application defect.
 
 A design proposal instead requires `acceptance_artifact`: actual `path`,
 `sha256`, full `receiving_context`, `original_receiving_owned: true`, a nonempty
@@ -144,6 +147,11 @@ before making a semantic decision. An index cannot close an inspection phase.
 
 Python declarations retain lexical qualified names and actual end lines.
 Bounded literal `contains` queries select declaration names without evaluation.
+Packets retain the complete bounded `structural_result`, including worker limit
+reasons and unselected matches. Up to eight distinct source ranges are selected
+by caller query order, then source order; duplicate and deferred counts remain
+explicit. Priority applies to returned worker matches, not to nodes beyond an
+exhausted worker limit. Packet byte omissions remain separate from that limit.
 A clipped window retains `node_end` and `range_truncated`; continue with explicit
 `ranges` instead of treating sixty lines as the whole function. An out-of-file
 range remains an omission. `view` requires the full raw JSON as authoritative

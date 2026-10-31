@@ -71,7 +71,7 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
         scoped_name = (
             (scope + "." if scope else "") + name if kind in {"function", "class"} else name
         )
-        for query in queries:
+        for query_index, query in enumerate(queries):
             requested = query.get("name", "")
             contains = query.get("contains", "").casefold()
             if (
@@ -86,6 +86,7 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
                 start = int(getattr(node, "lineno", 1))
                 node_end = max(start, getattr(node, "end_lineno", start) or start)
                 record = {
+                    "query_index": query_index,
                     "kind": kind,
                     "name": name[:100],
                     "name_truncated": len(name) > 100,

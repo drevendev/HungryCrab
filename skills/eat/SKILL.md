@@ -85,8 +85,11 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    authorized them. Implement in the receiving repository and verify its behavior. Never run
    donor code. For issue lessons, write notes in your own words; commenter prose stays out.
    Write an original receiving probe with meaningful controls, execute it through `discover probe`
-   or the trusted host, and retain actual expected/observed receipts. Source-supported proposals,
-   executed behavior and design acceptance artifacts are separate evidence levels. A source
+   or the trusted host, and retain actual expected/observed receipts.
+   Use `import_receiving: true` in the probe plan when importing trusted receiving root/src
+   modules; isolated cwd alone does not enable these imports. Donor paths remain forbidden.
+   Source-supported proposals, executed behavior and design acceptance artifacts are separate
+   evidence levels. A source
    packet or a plain PASS attestation is not execution. Use `discover rank` for marginal need
    coverage, prior exposure, proposed equivalents and costs; retain all source IDs and holds.
 8. **Serve through the guards.** `crab serve <prey> --maw . --ids ... --notes notes.json

@@ -248,6 +248,7 @@ def _run_discover(args: argparse.Namespace) -> int:
             controls=plan.get("controls", []),
             original_receiving_owned=plan.get("original_receiving_owned") is True,
             timeout=plan.get("timeout", 30),
+            import_receiving=plan.get("import_receiving", False),
         )
         result = {"receipt": str(path), "result": read_object(path)}
     elif action == "frontier":
