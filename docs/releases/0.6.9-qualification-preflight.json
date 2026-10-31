@@ -120,7 +120,7 @@
       "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
     },
     "BeautifulRepo": {
-      "sha": "2d17a6906618e1741d029a31d84f68a584d8fe84",
+      "sha": "3bc8e3d70c15aca6392c9397e28a97ce8fef4904",
       "pending": [],
       "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
     }
