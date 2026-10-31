@@ -8,6 +8,7 @@ from pathlib import PurePosixPath
 from typing import Any, Protocol
 from urllib.parse import urlsplit
 
+from ..errors import CrabError
 from .detect import (
     _copyright_metadata,
     combined_root_grant,
@@ -50,6 +51,34 @@ class PathGrant:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def verify_path_proofs(
+    reader: GrantReader,
+    sha: str,
+    source_url: str | None,
+    declared: object,
+    proofs: object,
+    paths: list[str],
+) -> str:
+    """A subset or an empty proof list cannot authorise a complete source-backed card."""
+    if (
+        not isinstance(declared, str)
+        or not declared
+        or not isinstance(proofs, list)
+        or not 1 <= len(proofs) <= 20
+        or not paths
+        or any(not isinstance(p, dict) or not isinstance(p.get("path"), str) for p in proofs)
+    ):
+        raise CrabError("invalid or missing applicable path grant proof")
+    if {p["path"] for p in proofs} != set(paths):
+        raise CrabError("applicable path proofs do not cover every source evidence path")
+    resolver = GrantResolver(reader, sha, source_url)
+    for proof in proofs:
+        actual = resolver.resolve(proof["path"], selected_branch=declared)
+        if actual.expression != declared or actual.to_dict() != proof:
+            raise CrabError("applicable source grant changed or cannot be verified")
+    return declared
 
 
 class GrantResolver:
