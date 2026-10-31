@@ -392,6 +392,58 @@ def test_issue_mode_refuses_to_file_when_the_marker_listing_fails(
     assert broken.created == []
 
 
+
+def test_default_issue_client_checks_existing_markers_before_effects(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    meal = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
+    nutrient_id = "crab:ci:ci.cache"
+    fake = FakeIssues(
+        {
+            nutrient_id: {
+                "number": 7,
+                "url": "https://github.com/example/maw/issues/7",
+                "state": "open",
+            }
+        }
+    )
+    monkeypatch.setattr("hungry_crab.serve.GhIssueClient", lambda **_kwargs: fake)
+    ledger = Ledger(tmp_path / "ledger.json")
+    report = serve(
+        meal,
+        pyproject_cli,
+        ServeOptions(ids=[nutrient_id], mode="issue"),
+        config=MawConfig.load(pyproject_cli),
+        ledger=ledger,
+        slug_lookup=lambda _: MAW_SLUG,
+    )
+    assert report.served == []
+    assert report.skipped == [{"id": nutrient_id, "reason": "issue #7 exists (open)"}]
+    assert ledger.entries[nutrient_id].status == "served"
+    assert fake.created == [] and fake.labels == []
+
+
+def test_default_issue_client_fails_closed_when_marker_listing_fails(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    meal = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
+    fake = FakeIssues()
+    fake.fail_list = True
+    monkeypatch.setattr("hungry_crab.serve.GhIssueClient", lambda **_kwargs: fake)
+    ledger = Ledger(tmp_path / "ledger.json")
+    with pytest.raises(CrabError, match="refusing to file"):
+        serve(
+            meal,
+            pyproject_cli,
+            ServeOptions(ids=["crab:ci:ci.cache"], mode="issue"),
+            config=MawConfig.load(pyproject_cli),
+            ledger=ledger,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+    assert not fake.created and not fake.labels
+    assert not ledger.entries and not (tmp_path / "ledger.json").exists()
+
+
 def test_receipt_stream_is_decoded_as_utf8_whatever_the_console_says() -> None:
     """Windows decodes stdin with the console code page; the receipt is UTF-8 regardless."""
     text = '{"summary": "implemented from a specification — café"}'
