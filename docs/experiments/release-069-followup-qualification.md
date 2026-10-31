@@ -136,5 +136,14 @@ and oversized review attempts retain unknown final usage with observed lower bou
 they are excluded from comparative trial totals, never reported as free. The second
 pool's incomplete calibration is not a completed paired study.
 
+The same exact-byte attribute repairs Git's earlier line-ending normalization of
+the first study's three host archives: their working bytes match the unchanged
+first report's recorded hashes. Its historical native adapter is additionally
+preserved in [release-069-host-native.py.txt](release-069-host-native.py.txt),
+recovered from C9 with SHA-256
+`85b3e95b57c61eea371ee3836914d4c1cf60f85dc8fb45a5eab0aa437ea8a0f8`,
+matching the original record. The current maintained native adapter has evolved;
+use these frozen snapshots when auditing the original runs.
+
 Donor programs, builds, tests, hooks and installers were never executed. No scheduler,
 merge, release, human-acceptance vote or nutrient implementation PR was performed.
