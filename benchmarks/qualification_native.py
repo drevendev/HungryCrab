@@ -144,6 +144,8 @@ def run_worker(
                 send({"id": i, "method": method, "params": params})
                 while True:
                     event = receive()
+                    if event.get("method") in {"host/eof", "host/invalid-json"}:
+                        raise RuntimeError("native host exited or failed before RPC response")
                     if event.get("id") == i:
                         if "error" in event:
                             raise RuntimeError(str(event["error"]))
