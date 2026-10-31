@@ -47,3 +47,26 @@ def test_partial_or_unsafe_target_never_starts_git(
         selected_pin(
             tmp_path / "not-opened", {"sha": "b", "target_ref": ref, "target_sha": pin}, "b"
         )
+
+
+def test_canonical_receiving_pull_ref_requires_its_exact_declared_head(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "owned", {"app.py": "raise RuntimeError('never execute')\n"})
+    head = git(repo, "rev-parse", "HEAD").strip()
+    git(repo, "update-ref", "refs/crab/qualification/pr-75", head)
+    definition = {"sha": head, "target_pull_request": 75, "target_sha": head}
+    assert selected_pin(repo, definition, head) == (head, "refs/pull/75/head")
+    (repo / "next.txt").write_text("new pending head\n", encoding="utf-8")
+    git(repo, "add", "next.txt")
+    git(repo, "commit", "-m", "fixture: advance pull ref")
+    changed = git(repo, "rev-parse", "HEAD").strip()
+    git(repo, "update-ref", "refs/crab/qualification/pr-75", changed)
+    with pytest.raises(ValueError, match="PR head changed"):
+        selected_pin(repo, definition, head)
+
+
+@pytest.mark.parametrize("value", [True, 0, "75", -1])
+def test_invalid_pr_target_never_starts_git(tmp_path: Path, value: object) -> None:
+    with pytest.raises(ValueError, match="explicit owned branch or PR"):
+        selected_pin(
+            tmp_path, {"sha": "b", "target_pull_request": value, "target_sha": "a" * 40}, "b"
+        )
