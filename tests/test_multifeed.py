@@ -229,6 +229,45 @@ def test_issue_lookup_provenance_is_bound_to_receiving_identity(tmp_path: Path) 
     assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
 
 
+
+@pytest.mark.parametrize("drift", ["scoring", "memory", "ledger-decisions"])
+def test_merge_refuses_different_effective_learning_state(
+    tmp_path: Path, drift: str
+) -> None:
+    """Equivalent checkouts cannot merge different effective learning inputs."""
+    maw = tmp_path / "maw"
+    maw.mkdir()
+    sources: dict[str, dict[str, Any]] = {}
+    for name in ("a", "b"):
+        prey = tmp_path / name
+        prey.mkdir()
+        result = fake_eat(
+            Target(path=prey), maw, EatOptions(out=tmp_path / f"out-{name}", wiki=False)
+        )
+        sources[name] = json.loads((result.out_dir / "menu.json").read_text(encoding="utf-8"))
+        sources[name]["scoring"] = {"categories": {"ci": 0.5}}
+        sources[name]["memory"] = {
+            "schema": "hungry-crab.memory/1",
+            "decisions": 0,
+            "fingerprint": fingerprint([]),
+        }
+
+    assert merge_menus(sources)["receiving_context_status"] == "observed"
+    changed = sources["b"]
+    if drift == "scoring":
+        changed["scoring"]["categories"]["ci"] = 0.4
+    elif drift == "memory":
+        changed["memory"]["fingerprint"] = fingerprint([["crab:ci:ci.cache", "accepted"]])
+        changed["memory"]["decisions"] = 1
+    else:
+        ledger = {"entries": [{"id": "crab:ci:ci.cache", "feedback": "accepted"}]}
+        changed["analysis_inputs"]["ledger"] = ledger
+        changed["receiving_context"]["ledger"] = ledger_identity(ledger)
+
+    with pytest.raises(CrabError, match="same maw snapshot and policy"):
+        merge_menus(sources)
+
+
 def test_matching_nonempty_truncated_digest_identity_is_legacy_unknown(tmp_path: Path) -> None:
     maw = tmp_path / "maw"
     maw.mkdir()
