@@ -392,7 +392,6 @@ def test_issue_mode_refuses_to_file_when_the_marker_listing_fails(
     assert broken.created == []
 
 
-
 def test_default_issue_client_checks_existing_markers_before_effects(
     npm_app: Path, pyproject_cli: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
