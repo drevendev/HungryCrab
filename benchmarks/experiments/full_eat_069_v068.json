@@ -1,0 +1,894 @@
+{
+  "schema": "hungry-crab.feast-comparison-plan/1",
+  "created_at": "2026-10-31T11:15:00Z",
+  "scope": "Full supervised eat protocol: 30 fixed donor pairs, all 90 original behavior hypotheses, 0.6.9.dev0 versus 0.6.8. No PRs or implementation.",
+  "arms": {
+    "v0.6.9.dev0": "7782d169738d26ccb21bf8a8b26e9c3f579af9a2",
+    "v0.6.8": "915779769747908a14b1a0f7fdecdd79d16dce43"
+  },
+  "arm_order": [
+    "v0.6.9.dev0",
+    "v0.6.8",
+    "v0.6.8",
+    "v0.6.9.dev0"
+  ],
+  "repeats": 2,
+  "forecast": {
+    "hypotheses": 90,
+    "useful_low": 52,
+    "useful_high": 64,
+    "prs_low": 25,
+    "prs_high": 35,
+    "tasks_low": 15,
+    "tasks_high": 25,
+    "basis": "Prior assistant planning estimates, not measured acceptance rates."
+  },
+  "limits": {
+    "disk_bytes": 8589934592,
+    "download_bytes": 1073741824,
+    "depth": "normal",
+    "issues": 0,
+    "wiki": false,
+    "history": "shallow",
+    "source_file_bytes": 98304,
+    "source_files_per_donor": 16,
+    "source_lines_per_window": 60,
+    "source_windows_per_file": 3
+  },
+  "coverage": {
+    "history": "shallow",
+    "issues": "not-acquired",
+    "reviews": "not-acquired",
+    "wiki": "not-acquired",
+    "ci_runs": "not-acquired",
+    "hypothesis_review": "All 90 hypotheses require paired analyst source/receiving evidence decisions and actual explore records. Shared source reading is disclosed; independent blind model trials are not claimed."
+  },
+  "maws": {
+    "crab": {
+      "repo": "drevendev/HungryCrab",
+      "expected_sha": "76435c6d912ef2f2a92a0a0cac784c44d8ad892f",
+      "source_hints": [
+        "src/hungry_crab/licensing/detect.py",
+        "src/hungry_crab/licensing/policy.py",
+        "src/hungry_crab/miners/inventory.py",
+        "src/hungry_crab/miners/deps.py",
+        "src/hungry_crab/miners/project_deps.py",
+        "src/hungry_crab/compare/candidates.py",
+        "src/hungry_crab/compare/side*.py",
+        "src/hungry_crab/cache.py",
+        "src/hungry_crab/cli.py",
+        "src/hungry_crab/publication_safety.py",
+        "src/hungry_crab/digest_integrity.py",
+        "src/hungry_crab/exploration.py",
+        "src/hungry_crab/hunt_plan.py",
+        "src/hungry_crab/loop.py",
+        "src/hungry_crab/digest.py"
+      ]
+    },
+    "devostasis": {
+      "repo": "drevendev/Devostasis",
+      "expected_sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+      "candidate_review_ref": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "source_hints": [
+        "src/devostasis/adapters/github.py",
+        "src/devostasis/adapters/github_ci.py",
+        "src/devostasis/adapters/cache.py",
+        "src/devostasis/observations.py",
+        "src/devostasis/normalize.py",
+        "src/devostasis/history.py",
+        "src/devostasis/bundle.py",
+        "src/devostasis/canonical.py",
+        "src/devostasis/runner.py",
+        "src/devostasis/timeutil.py",
+        "src/devostasis/delta.py",
+        "src/devostasis/vitals/integrity.py",
+        "src/devostasis/contracts.py",
+        "src/devostasis/fleet.py"
+      ]
+    },
+    "beautifulrepo": {
+      "repo": "drevendev/BeautifulRepo",
+      "expected_sha": "33728fae840eef9560dc975fa3f4db985a0889ab",
+      "source_hints": [
+        "tools/repo_audit.py",
+        "tools/docs_links.py",
+        "tools/html_navigation.py",
+        "tools/catalog.py",
+        "scripts/release_inventory.py",
+        "guides/maintenance-workflow.md",
+        "guides/readme.md",
+        "guides/cli-repositories.md",
+        "guides/library-repositories.md",
+        "guides/research-data-repositories.md",
+        "guides/issue-triage.md",
+        "checklists/visual-accessibility-acceptance.md",
+        "templates/README.template.md",
+        "docs/decisions/0001-standard-library-only.md",
+        "examples/cli-starter/rowcount.py",
+        "tests/test_cli_starter.py",
+        "guides/agent-safety.md",
+        "guides/application-repositories.md"
+      ]
+    }
+  },
+  "pairs": [
+    {
+      "id": "crab-01",
+      "batch": "crab",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "hypotheses": [
+        {
+          "id": "crab-01-1",
+          "text": "Exact license match ranges"
+        },
+        {
+          "id": "crab-01-2",
+          "text": "Separate copyright, grant and origin"
+        },
+        {
+          "id": "crab-01-3",
+          "text": "Additional package metadata formats"
+        }
+      ],
+      "source_hints": [
+        "src/licensedcode/detection.py",
+        "src/licensedcode/match*.py",
+        "src/packagedcode/models.py",
+        "tests/licensedcode/test_detection*.py"
+      ],
+      "expected_sha": "05a98f66b4b07290fd34325b694aa59069bc3e71"
+    },
+    {
+      "id": "crab-02",
+      "batch": "crab",
+      "prey": "oss-review-toolkit/ort",
+      "hypotheses": [
+        {
+          "id": "crab-02-1",
+          "text": "Auditable metadata corrections"
+        },
+        {
+          "id": "crab-02-2",
+          "text": "Dependency-scope exclusions"
+        },
+        {
+          "id": "crab-02-3",
+          "text": "Report-only resolutions preserving raw findings"
+        }
+      ],
+      "source_hints": [
+        "website/docs/configuration/package-curations.md",
+        "website/docs/configuration/ort-yml.md",
+        "website/docs/configuration/resolutions.md",
+        "model/src/main/kotlin/*Curation*.kt"
+      ],
+      "expected_sha": "4106d0802b2c61a1d1747f9baabcee083d636abf"
+    },
+    {
+      "id": "crab-03",
+      "batch": "crab",
+      "prey": "anchore/syft",
+      "hypotheses": [
+        {
+          "id": "crab-03-1",
+          "text": "All discovery locations per package"
+        },
+        {
+          "id": "crab-03-2",
+          "text": "Merge cataloger evidence without losing origin"
+        },
+        {
+          "id": "crab-03-3",
+          "text": "Package identity across versions and ecosystems"
+        }
+      ],
+      "source_hints": [
+        "syft/pkg/package.go",
+        "syft/pkg/collection.go",
+        "syft/artifact/relationship.go",
+        "syft/cataloging/pkgcataloging/*.go"
+      ],
+      "expected_sha": "e6813ba7b6253eb52fdd3c613765b209c86e9dbe"
+    },
+    {
+      "id": "crab-04",
+      "batch": "crab",
+      "prey": "aquasecurity/trivy",
+      "hypotheses": [
+        {
+          "id": "crab-04-1",
+          "text": "Secret detector and false-positive corpus"
+        },
+        {
+          "id": "crab-04-2",
+          "text": "Scoped expiring exceptions with reasons"
+        },
+        {
+          "id": "crab-04-3",
+          "text": "Security configuration findings"
+        }
+      ],
+      "source_hints": [
+        "docs/guide/scanner/secret.md",
+        "docs/guide/configuration/filtering.md",
+        "pkg/secret/*.go",
+        "pkg/report/filter.go"
+      ],
+      "expected_sha": "e2c05f7ae66bedacd4a51594a71cbe95566cc838"
+    },
+    {
+      "id": "crab-05",
+      "batch": "crab",
+      "prey": "github-linguist/linguist",
+      "hypotheses": [
+        {
+          "id": "crab-05-1",
+          "text": "Shebang and content language detection"
+        },
+        {
+          "id": "crab-05-2",
+          "text": "Generated and vendored classification"
+        },
+        {
+          "id": "crab-05-3",
+          "text": "Declared gitattributes overrides"
+        }
+      ],
+      "source_hints": [
+        "docs/how-linguist-works.md",
+        "docs/overrides.md",
+        "lib/linguist/shebang.rb",
+        "lib/linguist/generated.rb"
+      ],
+      "expected_sha": "73ee9a3b277f398c37ca4ab0dea0193849de6460"
+    },
+    {
+      "id": "crab-06",
+      "batch": "crab",
+      "prey": "ast-grep/ast-grep",
+      "hypotheses": [
+        {
+          "id": "crab-06-1",
+          "text": "Structural search patterns"
+        },
+        {
+          "id": "crab-06-2",
+          "text": "Relational code conditions"
+        },
+        {
+          "id": "crab-06-3",
+          "text": "Multiple labelled evidence ranges"
+        }
+      ],
+      "source_hints": [
+        "crates/config/src/rule_config.rs",
+        "crates/config/src/rule/relational_rule.rs",
+        "crates/config/src/label.rs",
+        "crates/config/src/rule_collection.rs"
+      ],
+      "expected_sha": "72f150994f2f5ffe52fd6d1e72f18a93c3998e0e"
+    },
+    {
+      "id": "crab-07",
+      "batch": "crab",
+      "prey": "semgrep/semgrep",
+      "hypotheses": [
+        {
+          "id": "crab-07-1",
+          "text": "Line-move resistant finding identities"
+        },
+        {
+          "id": "crab-07-2",
+          "text": "Explicit partial analysis and timeouts"
+        },
+        {
+          "id": "crab-07-3",
+          "text": "Positive and negative rule examples"
+        }
+      ],
+      "source_hints": [
+        "cli/src/semgrep/rule_match.py",
+        "cli/src/semgrep/error.py",
+        "cli/src/semgrep/test.py",
+        "cli/src/semgrep/scan_report.py"
+      ],
+      "expected_sha": "f472beb2b5dee3b8803e07d56eefae01f0ee28b8"
+    },
+    {
+      "id": "crab-08",
+      "batch": "crab",
+      "prey": "yamadashy/repomix",
+      "hypotheses": [
+        {
+          "id": "crab-08-1",
+          "text": "Budgeted file prioritization"
+        },
+        {
+          "id": "crab-08-2",
+          "text": "Per-file and section token costs"
+        },
+        {
+          "id": "crab-08-3",
+          "text": "Diff and history context packets"
+        }
+      ],
+      "source_hints": [
+        "src/core/packager.ts",
+        "src/core/output/outputSort.ts",
+        "src/core/metrics/calculateMetrics.ts",
+        "src/core/git/gitDiffHandle.ts"
+      ],
+      "expected_sha": "7d7b28bf3e651e2f34a284ca9c91074edfe1b88d"
+    },
+    {
+      "id": "crab-09",
+      "batch": "crab",
+      "prey": "treeverse/dvc",
+      "hypotheses": [
+        {
+          "id": "crab-09-1",
+          "text": "Output dependency graph for invalidation"
+        },
+        {
+          "id": "crab-09-2",
+          "text": "Explain recomputation causes"
+        },
+        {
+          "id": "crab-09-3",
+          "text": "Compare experiments across code, data and parameters"
+        }
+      ],
+      "source_hints": [
+        "dvc/stage/__init__.py",
+        "dvc/stage/params.py",
+        "dvc/repo/status.py",
+        "dvc/repo/experiments/show.py"
+      ],
+      "expected_sha": "56e59829512ff134aa269099a2099587b810b4dd"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "prey": "restic/restic",
+      "hypotheses": [
+        {
+          "id": "crab-10-1",
+          "text": "Reachability-based cache collection"
+        },
+        {
+          "id": "crab-10-2",
+          "text": "Retention and deletion previews"
+        },
+        {
+          "id": "crab-10-3",
+          "text": "Post-maintenance verification and reader exclusion"
+        }
+      ],
+      "source_hints": [
+        "doc/060_forget.rst",
+        "doc/cache.rst",
+        "internal/repository/lock.go",
+        "cmd/restic/cmd_check.go"
+      ],
+      "expected_sha": "dd09b6bd01af220b1d5d95c0d4d7d472e05e05c4"
+    },
+    {
+      "id": "devostasis-01",
+      "batch": "devostasis",
+      "prey": "aveloxis/aveloxis",
+      "hypotheses": [
+        {
+          "id": "devostasis-01-1",
+          "text": "Separate acquisition and processing"
+        },
+        {
+          "id": "devostasis-01-2",
+          "text": "Isolate expensive analysis workers"
+        },
+        {
+          "id": "devostasis-01-3",
+          "text": "Bound concurrent work per repository"
+        }
+      ],
+      "source_hints": [
+        "docs/architecture/staged-pipeline.md",
+        "docs/architecture/scancode.md",
+        "internal/collector/scancode.go",
+        "docs/architecture/overview.md"
+      ],
+      "expected_sha": "3d70f4d64b7ffb82912f50bba64b6ca58b4084e9"
+    },
+    {
+      "id": "devostasis-02",
+      "batch": "devostasis",
+      "prey": "chaoss/grimoirelab-perceval",
+      "hypotheses": [
+        {
+          "id": "devostasis-02-1",
+          "text": "Common provider event provenance"
+        },
+        {
+          "id": "devostasis-02-2",
+          "text": "Stable repeat-collection event identities"
+        },
+        {
+          "id": "devostasis-02-3",
+          "text": "Resume checkpoints and coverage summaries"
+        }
+      ],
+      "source_hints": [
+        "perceval/backend.py",
+        "perceval/client.py",
+        "perceval/backends/core/github.py",
+        "perceval/backends/core/gitlab.py"
+      ],
+      "expected_sha": "d60867ab3a36abaa275a37d53170784714672e24"
+    },
+    {
+      "id": "devostasis-03",
+      "batch": "devostasis",
+      "prey": "apache/devlake",
+      "hypotheses": [
+        {
+          "id": "devostasis-03-1",
+          "text": "Choose incremental versus full collection"
+        },
+        {
+          "id": "devostasis-03-2",
+          "text": "Reproducible collection intervals"
+        },
+        {
+          "id": "devostasis-03-3",
+          "text": "Raw, extracted and normalized evidence layers"
+        }
+      ],
+      "source_hints": [
+        "backend/helpers/pluginhelper/api/collector_state_manager.go",
+        "backend/helpers/pluginhelper/api/api_collector_stateful.go",
+        "backend/helpers/pluginhelper/api/api_rawdata.go",
+        "backend/helpers/pluginhelper/api/data_convertor.go"
+      ],
+      "expected_sha": "a69a954f799d0795e610984a647cd1bef1672cc1"
+    },
+    {
+      "id": "devostasis-04",
+      "batch": "devostasis",
+      "prey": "ossf/scorecard",
+      "hypotheses": [
+        {
+          "id": "devostasis-04-1",
+          "text": "Localized finding evidence"
+        },
+        {
+          "id": "devostasis-04-2",
+          "text": "Per-check explanations and remediation"
+        },
+        {
+          "id": "devostasis-04-3",
+          "text": "Failed versus unavailable checks"
+        }
+      ],
+      "source_hints": [
+        "finding/finding.go",
+        "checker/checker.go",
+        "errors/errors.go",
+        "finding/probe.go"
+      ],
+      "expected_sha": "2ef237f4e967d18e600e71aa36ab3be640314650"
+    },
+    {
+      "id": "devostasis-05",
+      "batch": "devostasis",
+      "prey": "theupdateframework/python-tuf",
+      "hypotheses": [
+        {
+          "id": "devostasis-05-1",
+          "text": "Rollback attack controls"
+        },
+        {
+          "id": "devostasis-05-2",
+          "text": "Mixed artifact-version rejection"
+        },
+        {
+          "id": "devostasis-05-3",
+          "text": "Evidence expiry versus historical replay"
+        }
+      ],
+      "source_hints": [
+        "tuf/ngclient/_internal/trusted_metadata_set.py",
+        "tuf/ngclient/updater.py",
+        "tests/test_updater.py",
+        "tests/test_trusted_metadata_set.py"
+      ],
+      "expected_sha": "2c771a035620b29c6e5f90030f501ae92d64cf83"
+    },
+    {
+      "id": "devostasis-06",
+      "batch": "devostasis",
+      "prey": "open-telemetry/opentelemetry-collector",
+      "hypotheses": [
+        {
+          "id": "devostasis-06-1",
+          "text": "Temporary, permanent and partial failures"
+        },
+        {
+          "id": "devostasis-06-2",
+          "text": "Bounded queues and overflow handling"
+        },
+        {
+          "id": "devostasis-06-3",
+          "text": "End-to-end wait and retry budgets"
+        }
+      ],
+      "source_hints": [
+        "exporter/exporterhelper/README.md",
+        "consumer/consumererror/permanent.go",
+        "consumer/consumererror/partial.go",
+        "exporter/exporterhelper/internal/retry_sender.go"
+      ],
+      "expected_sha": "302c933caa8c66f7ebf35ea42238b261bc3e5fc6"
+    },
+    {
+      "id": "devostasis-07",
+      "batch": "devostasis",
+      "prey": "dagster-io/dagster",
+      "hypotheses": [
+        {
+          "id": "devostasis-07-1",
+          "text": "Separate code and data versions"
+        },
+        {
+          "id": "devostasis-07-2",
+          "text": "Explain staleness through dependencies"
+        },
+        {
+          "id": "devostasis-07-3",
+          "text": "Recompute affected analysis components"
+        }
+      ],
+      "source_hints": [
+        "docs/docs/guides/build/assets/asset-versioning-and-caching.md",
+        "python_modules/dagster/dagster/_core/definitions/data_version.py",
+        "python_modules/dagster/dagster/_core/definitions/data_version*.py"
+      ],
+      "expected_sha": "ef5c227a91576661f7c4b8619b855cd95e68ccd5"
+    },
+    {
+      "id": "devostasis-08",
+      "batch": "devostasis",
+      "prey": "microsoft/pyright",
+      "hypotheses": [
+        {
+          "id": "devostasis-08-1",
+          "text": "Relative and namespace import resolution"
+        },
+        {
+          "id": "devostasis-08-2",
+          "text": "Source versus stub versus external imports"
+        },
+        {
+          "id": "devostasis-08-3",
+          "text": "Ambiguity diagnostics for graph edges"
+        }
+      ],
+      "source_hints": [
+        "docs/import-resolution.md",
+        "packages/pyright-internal/src/analyzer/importResolver.ts",
+        "packages/pyright-internal/src/tests/importResolver.test.ts"
+      ],
+      "expected_sha": "74743ab17950a6bd205935e21808102a610d40a1"
+    },
+    {
+      "id": "devostasis-09",
+      "batch": "devostasis",
+      "prey": "microsoft/sarif-sdk",
+      "hypotheses": [
+        {
+          "id": "devostasis-09-1",
+          "text": "Stable result fingerprints"
+        },
+        {
+          "id": "devostasis-09-2",
+          "text": "New, unchanged and absent findings"
+        },
+        {
+          "id": "devostasis-09-3",
+          "text": "Portable URIs, ranges and rule references"
+        }
+      ],
+      "source_hints": [
+        "docs/Producing effective SARIF.md",
+        "docs/how-to.md",
+        "src/Sarif/Baseline*.cs",
+        "src/Sarif/Visitors/*Uri*.cs"
+      ],
+      "expected_sha": "986c3f9425d8b4df4b56febcf85dd9d43d6d6cd8"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "prey": "meltano/meltano",
+      "hypotheses": [
+        {
+          "id": "devostasis-10-1",
+          "text": "Partial versus completed checkpoints"
+        },
+        {
+          "id": "devostasis-10-2",
+          "text": "Per-state identity locking"
+        },
+        {
+          "id": "devostasis-10-3",
+          "text": "Project and invocation checkpoint isolation"
+        }
+      ],
+      "source_hints": [
+        "src/meltano/core/state_store/base.py",
+        "src/meltano/core/state_store/filesystem.py",
+        "src/meltano/core/job_state.py",
+        "src/meltano/core/state_service.py"
+      ],
+      "expected_sha": "5f8f35283275cdf95ad9a960dd130b355c1997e2"
+    },
+    {
+      "id": "beautifulrepo-01",
+      "batch": "beautifulrepo",
+      "prey": "cli/cli",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-01-1",
+          "text": "First success by required permissions"
+        },
+        {
+          "id": "beautifulrepo-01-2",
+          "text": "Install, update and platform support matrix"
+        },
+        {
+          "id": "beautifulrepo-01-3",
+          "text": "Contribution acceptance criteria"
+        }
+      ],
+      "source_hints": [
+        ".github/CONTRIBUTING.md",
+        "docs/install_windows.md",
+        "docs/install_linux.md",
+        "pkg/cmd/auth/login/login.go"
+      ],
+      "expected_sha": "9490d204a2ba95434153dedce99898ce9f281426"
+    },
+    {
+      "id": "beautifulrepo-02",
+      "batch": "beautifulrepo",
+      "prey": "astral-sh/ruff",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-02-1",
+          "text": "Stable rule catalog with examples"
+        },
+        {
+          "id": "beautifulrepo-02-2",
+          "text": "Stable versus preview capabilities"
+        },
+        {
+          "id": "beautifulrepo-02-3",
+          "text": "Public versus internal interface compatibility"
+        }
+      ],
+      "source_hints": [
+        "docs/preview.md",
+        "docs/versioning.md",
+        "docs/rules.md",
+        "scripts/generate_mkdocs.py"
+      ],
+      "expected_sha": "23a16fa018cf3b219c2edc7a2b739881e023a874"
+    },
+    {
+      "id": "beautifulrepo-03",
+      "batch": "beautifulrepo",
+      "prey": "fastapi/fastapi",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-03-1",
+          "text": "Documentation includes from source files"
+        },
+        {
+          "id": "beautifulrepo-03-2",
+          "text": "Tested tutorial examples"
+        },
+        {
+          "id": "beautifulrepo-03-3",
+          "text": "Progressive first-success tutorials"
+        }
+      ],
+      "source_hints": [
+        "docs/en/docs/tutorial/first-steps.md",
+        "docs/en/docs/contributing.md",
+        "tests/test_tutorial/test_first_steps.py",
+        "docs_src/first_steps/tutorial001*.py"
+      ],
+      "expected_sha": "79cab5bed28b24d92c185d236feb33f5783dfeb3"
+    },
+    {
+      "id": "beautifulrepo-04",
+      "batch": "beautifulrepo",
+      "prey": "pydantic/pydantic",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-04-1",
+          "text": "Before-and-after migration guides"
+        },
+        {
+          "id": "beautifulrepo-04-2",
+          "text": "Error inputs, locations and remedies"
+        },
+        {
+          "id": "beautifulrepo-04-3",
+          "text": "Distinct user and integrator routes"
+        }
+      ],
+      "source_hints": [
+        "docs/migration.md",
+        "docs/errors/errors.md",
+        "docs/concepts/models.md",
+        "docs/internals/architecture.md"
+      ],
+      "expected_sha": "91c44cd1bfc8c7cb909cefa8395e0a720957f1d1"
+    },
+    {
+      "id": "beautifulrepo-05",
+      "batch": "beautifulrepo",
+      "prey": "storybookjs/storybook",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-05-1",
+          "text": "Example state catalogs"
+        },
+        {
+          "id": "beautifulrepo-05-2",
+          "text": "Interaction acceptance per state"
+        },
+        {
+          "id": "beautifulrepo-05-3",
+          "text": "Deterministic visual test environments"
+        }
+      ],
+      "source_hints": [
+        "docs/writing-tests/interaction-testing.mdx",
+        "docs/writing-stories/index.mdx",
+        "docs/writing-tests/visual-testing.mdx",
+        "docs/writing-tests/mocking-data-and-modules/mocking-providers.mdx"
+      ],
+      "expected_sha": "43a13889a499ee209a52dc5f874c0ad84b3eeec3"
+    },
+    {
+      "id": "beautifulrepo-06",
+      "batch": "beautifulrepo",
+      "prey": "mermaid-js/mermaid",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-06-1",
+          "text": "Accessible diagram titles and descriptions"
+        },
+        {
+          "id": "beautifulrepo-06-2",
+          "text": "Diagram source and textual explanation"
+        },
+        {
+          "id": "beautifulrepo-06-3",
+          "text": "Renderer-specific compatibility checks"
+        }
+      ],
+      "source_hints": [
+        "docs/config/accessibility.md",
+        "packages/mermaid/src/docs/config/accessibility.md",
+        "docs/config/usage.md",
+        "docs/intro/syntax-reference.md"
+      ],
+      "expected_sha": "370c4af57f43cb0bda05f4a9fe2d99c912ba16dd"
+    },
+    {
+      "id": "beautifulrepo-07",
+      "batch": "beautifulrepo",
+      "prey": "jupyter-book/jupyter-book",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-07-1",
+          "text": "Saved versus recomputed results"
+        },
+        {
+          "id": "beautifulrepo-07-2",
+          "text": "Reuse computed documentation outputs"
+        },
+        {
+          "id": "beautifulrepo-07-3",
+          "text": "Execution prerequisites and environment records"
+        }
+      ],
+      "source_hints": [
+        "docs/execution/index.md",
+        "docs/execution/execution.md",
+        "docs/execution/generate-myst.md",
+        "docs/authoring/cross-references.md"
+      ],
+      "expected_sha": "11acb1bbdd51c23ae14663daf0b7d4a0fd1c9d0e"
+    },
+    {
+      "id": "beautifulrepo-08",
+      "batch": "beautifulrepo",
+      "prey": "github/docs",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-08-1",
+          "text": "Single-source reusable instructions"
+        },
+        {
+          "id": "beautifulrepo-08-2",
+          "text": "Version and product-specific documentation"
+        },
+        {
+          "id": "beautifulrepo-08-3",
+          "text": "Distinct content-type acceptance rules"
+        }
+      ],
+      "source_hints": [
+        "content/contributing/writing-for-github-docs/creating-reusable-content.md",
+        "content/contributing/writing-for-github-docs/versioning-documentation.md",
+        "content/contributing/style-guide-and-content-model/about-the-content-model.md",
+        "content/contributing/writing-for-github-docs/configuring-redirects.md"
+      ],
+      "expected_sha": "33b1f4a6fec2d9b6fd3d374afa56bcd9f0875b57"
+    },
+    {
+      "id": "beautifulrepo-09",
+      "batch": "beautifulrepo",
+      "prey": "withastro/starlight",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-09-1",
+          "text": "Navigation from structured metadata"
+        },
+        {
+          "id": "beautifulrepo-09-2",
+          "text": "Page grouping and reading order"
+        },
+        {
+          "id": "beautifulrepo-09-3",
+          "text": "Code blocks with explicit publication formats"
+        }
+      ],
+      "source_hints": [
+        "docs/src/content/docs/guides/sidebar.mdx",
+        "docs/src/content/docs/guides/authoring-content.mdx",
+        "docs/src/content/docs/guides/components.mdx",
+        "packages/starlight/components/Sidebar.astro"
+      ],
+      "expected_sha": "6c9ca431629bbd37d969876f5f4281b5f5a34d38"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "prey": "the-turing-way/the-turing-way",
+      "hypotheses": [
+        {
+          "id": "beautifulrepo-10-1",
+          "text": "Reproducible research compendia"
+        },
+        {
+          "id": "beautifulrepo-10-2",
+          "text": "Non-code contribution routes"
+        },
+        {
+          "id": "beautifulrepo-10-3",
+          "text": "Missing-data and inference limitations"
+        }
+      ],
+      "source_hints": [
+        "book/website/reproducible-research/compendia.md",
+        "book/website/community-handbook/contributing.md",
+        "book/website/project-design/missing-data.md",
+        "book/website/reproducible-research/code-documentation.md"
+      ],
+      "expected_sha": "bcd8050eed319acc55f8ce0fe0410db157a17f04"
+    }
+  ]
+}
