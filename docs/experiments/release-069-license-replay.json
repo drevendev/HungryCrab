@@ -1,10 +1,10 @@
 {
   "schema": "hungry-crab.historical-licence-replay/1",
-  "recorded_at": "2026-10-31T16:35:16.261064+00:00",
-  "implementation_commit": "5f919b9bbfc46d4f579884635681546f43b7c1c6",
+  "recorded_at": "2026-10-31T20:55:21.325699+00:00",
+  "implementation_commit": "c9d5c6a40cea286c1bc5bac923f17acf55bb248e",
   "tool": {
     "version": "0.6.9.dev0",
-    "source_sha256": "1da8c6dff5eabbc476976b6a4948fb8dd4d63a25f6342ef5c8377d4e78a54a80"
+    "source_sha256": "d390b0aa550e21e5b1e80fb39df141a38a19446f3d4bafe5f141d69cc7e1334b"
   },
   "dataset_role": "historical licence regression; not independent discovery",
   "method": "Read original immutable Git entries. Missing licence blobs were supplied only when their Git blob hash matched the pinned source tree; no source objects or historical reports were changed.",
