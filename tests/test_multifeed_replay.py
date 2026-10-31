@@ -34,9 +34,7 @@ def test_real_offline_multifeed_replays_two_distinct_sources(
 ) -> None:
     maw = copy_repo(pyproject_cli, tmp_path / "maw", with_git=True)
     before = GitRunner(maw).try_run("status", "--porcelain")
-    result = eat_many(
-        [Target(path=npm_app), Target(path=dotnet_lib)], maw, _options(tmp_path)
-    )
+    result = eat_many([Target(path=npm_app), Target(path=dotnet_lib)], maw, _options(tmp_path))
     aggregate, paths, targets = load_multi(result.out_dir)
     assert result.manifest["side_effects"] == {"issues_created": 0, "ledger_written": False}
     assert aggregate["receiving_context_status"] == "observed"
