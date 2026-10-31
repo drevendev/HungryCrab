@@ -35,6 +35,19 @@ work in the base install. MCP uses the official Python SDK as an optional extra,
 A base-only `crab mcp --check` reports the
 missing extra with exit code 2; it does not install anything itself.
 
+If Windows App Control blocks an unsigned console shim, invoke the **installed
+environment's** interpreter: `PATH/TO/python -m hungry_crab --version`. For a uv
+tool installation this is under `uv tool dir` → `hungry-crab/Scripts/python.exe`
+(Unix: `hungry-crab/bin/python`). Keep the virtual environment's interpreter
+path; resolving its symlink to the base Python loses the installed package.
+`PATH/TO/python -m hungry_crab launcher "PATH/TO/crab route.py"` creates an owned
+script route. Invoke that script with Python; it preserves arguments and the
+selected installed interpreter, including spaces and non-ASCII paths. Re-running
+the command updates only an unchanged owned launcher with a valid ownership
+receipt. Edited/unowned destinations are refused. No App Control or PATH policy
+is changed. `scripts/install_smoke.py --module-only --skills` exercises this route,
+including reinstall, when console shims cannot run.
+
 Build/install your own reviewed checkout without Git-based installation:
 
 ```sh
