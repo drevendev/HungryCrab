@@ -208,7 +208,12 @@ def menu_doc(
         details.line(f"- **Prey:** {safe_name(candidate.what)}")
         details.line(f"- **Maw:** {safe_name(candidate.maw_state)}")
         if candidate.evidence:
-            cited = ", ".join(safe_link(e.path, e.url) for e in candidate.evidence[:3])
+            cited = ", ".join(
+                safe_link(e.path, e.url)
+                + (f" ({safe_name(e.role)})" if e.role else "")
+                + (f": {safe_name(e.message)}" if e.message else "")
+                for e in candidate.evidence[:3]
+            )
             details.line(f"- **Evidence:** {cited}")
         if explain and candidate.id in explain:
             details.line(f"- **Score:** {candidate.score} = {explain[candidate.id]}")

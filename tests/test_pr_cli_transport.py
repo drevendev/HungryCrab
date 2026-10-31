@@ -74,7 +74,9 @@ def test_pr_branch_cli_threads_configured_provider_identity(monkeypatch, tmp_pat
     )
     monkeypatch.setattr(cli.MawConfig, "load", lambda _maw: config)
     monkeypatch.setattr(cli.Ledger, "load", lambda *_args, **_kwargs: ledger)
-    monkeypatch.setattr(cli, "meal_for", lambda *_args, **_kwargs: tmp_path / "meal")
+    monkeypatch.setattr(
+        "hungry_crab.meal_lookup.existing_meal", lambda *_args, **_kwargs: tmp_path / "meal"
+    )
     monkeypatch.setattr(cli.shutil, "which", lambda name: "/usr/bin/gh" if name == "gh" else None)
 
     class RecordingClient:

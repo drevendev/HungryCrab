@@ -21,15 +21,44 @@ class SearchClient(Protocol):
 class SearchBudget:
     maximum: int = 16
     used: int = 0
+    authorize: Callable[[int], None] | None = None
 
     def charge(self) -> None:
         if (
             type(self.maximum) is not int
             or not 1 <= self.maximum <= 16
+            or type(self.used) is not int
+            or self.used < 0
             or self.used >= self.maximum
         ):
             raise CrabError("provider search request budget exhausted")
+        if self.authorize is not None:
+            self.authorize(self.used)
         self.used += 1
+
+
+def budget_for_plan(plan: dict[str, Any]) -> SearchBudget:
+    """Join optional public provider tools to the same persisted invoked session."""
+    session = plan.get("session")
+    callback: Callable[[int], None] | None = None
+    if session is not None:
+        from pathlib import Path
+
+        from .discovery_session import authorize_request
+
+        attempt, operation = plan.get("attempt"), plan.get("operation")
+        if (
+            not isinstance(session, str)
+            or not isinstance(attempt, str)
+            or not isinstance(operation, str)
+        ):
+            raise CrabError("session provider plan needs session, attempt and operation identities")
+
+        def authorize(index: int) -> None:
+            authorize_request(Path(session), attempt, f"{operation}:{index}")
+
+        callback = authorize
+    return SearchBudget(maximum=plan.get("request_budget", 16), authorize=callback)
 
 
 def search(
@@ -214,6 +243,15 @@ def rank_cohort(
     remaining = list(enumerate(rows))
     covered: set[str] = set()
     lineage: set[str] = set()
+    equivalence: dict[str, list[int]] = {}
+    for index, row in enumerate(rows):
+        key = row.get("proposed_equivalence")
+        if key is not None:
+            if not isinstance(key, str) or not 0 < len(key) <= 200:
+                raise CrabError(
+                    "proposed equivalence requires a bounded receiving behavior identity"
+                )
+            equivalence.setdefault(key, []).append(index)
     selected: list[dict[str, Any]] = []
     prior = {value.casefold() for value in (seen or set())}
     while remaining and len(selected) < limit:
@@ -228,10 +266,16 @@ def rank_cohort(
             family = row.get("verified_lineage")
             if family is not None and not isinstance(family, str):
                 raise CrabError("verified lineage must be an evidence-backed string identity")
+            if not row.get("lineage_evidence"):
+                family = None
+            cost = row.get("adaptation_cost")
+            if cost is not None and (type(cost) not in {int, float} or not 0 <= cost <= 1):
+                raise CrabError("assessed adaptation cost must be finite and in 0..1")
+            cost_penalty = 0.1 if cost is None else 0.2 * float(cost)
             penalty = (0.2 if repo.casefold() in prior else 0.0) + (
                 0.3 if family and family in lineage else 0.0
             )
-            score = float(relevance) + min(len(marginal), 8) * 0.15 - penalty
+            score = float(relevance) + min(len(marginal), 8) * 0.15 - penalty - cost_penalty
             scored.append((score, repo, index, row, marginal))
         if not scored:
             break
@@ -243,10 +287,16 @@ def rank_cohort(
                 "cohort_score": round(score, 4),
                 "previously_seen": str(row.get("repository", "")).casefold() in prior,
                 "equivalence_status": "proposed-unless-evidenced",
+                "adaptation_cost_status": "unassessed"
+                if row.get("adaptation_cost") is None
+                else "host-assessed",
+                "lineage_status": "host-evidence-supplied"
+                if row.get("lineage_evidence")
+                else "not-established",
             }
         )
         covered.update(marginal)
-        if isinstance(row.get("verified_lineage"), str):
+        if isinstance(row.get("verified_lineage"), str) and row.get("lineage_evidence"):
             lineage.add(row["verified_lineage"])
         remaining = [(i, r) for i, r in remaining if i != index]
     return {
@@ -255,4 +305,13 @@ def rank_cohort(
         "covered_needs": sorted(covered),
         "raw_occurrences": len(rows),
         "votes_migrated": False,
+        "proposed_equivalence_groups": [
+            {
+                "key": key,
+                "occurrences": indices,
+                "status": "proposed; separate receiving review required",
+            }
+            for key, indices in equivalence.items()
+        ],
+        "confirmed_unique_changes": None,
     }

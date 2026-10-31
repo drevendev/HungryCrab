@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
@@ -32,7 +33,7 @@ from .licensing.detect import (
     LICENSE_DIRS,
     combined_root_grant,
     detect_from_text,
-    find_spdx_identifier,
+    find_source_header,
     is_license_file_name,
     manifest_license,
 )
@@ -873,11 +874,17 @@ class SourceReader(Protocol):
 class GitSourceReader:
     """The prey's cached clone, read through git plumbing only."""
 
-    def __init__(self, repo: Path) -> None:
+    def __init__(
+        self, repo: Path, *, byte_limit: int = 2 * 1024 * 1024, deadline: float | None = None
+    ) -> None:
         self.repo = repo
-        self.git = GitRunner(repo)
+        self.byte_limit = byte_limit
+        self.deadline = deadline
+        self.git = GitRunner(repo, timeout=5 if deadline is not None else 120, lazy_fetch=False)
         self._path_prefix = (
-            "" if self.git.try_run("rev-parse", "--is-bare-repository") == "true" else "./"
+            ""
+            if (self.git.try_run("rev-parse", "--is-bare-repository") or "").strip() == "true"
+            else "./"
         )
 
         self._trees: dict[tuple[str, str], dict[str, str] | None] = {}
@@ -887,23 +894,35 @@ class GitSourceReader:
         """Pinned immediate tree entries, including directory modes for bounded walks."""
         return self._tree(sha, directory)
 
+    def expired(self) -> bool:
+        return self.deadline is not None and time.monotonic() >= self.deadline
+
     # A path after `<sha>:` resolves from the top of the repository; `./` resolves it from the
     # directory the reader was opened at, which is the prey when the prey is a subdirectory.
     def exists(self, sha: str, path: str) -> bool:
+        if self.expired():
+            return False
         return self.git.ok(
             "--no-replace-objects", "cat-file", "-e", f"{sha}:{self._path_prefix}{path}"
         )
 
     def read(self, sha: str, path: str) -> str | None:
+        if self.expired():
+            return None
         key = (sha, path)
         if key in self._texts:
             return self._texts[key]
         size = self.git.try_run(
             "--no-replace-objects", "cat-file", "-s", f"{sha}:{self._path_prefix}{path}"
         )
-        if size is None or not size.strip().isdigit() or int(size.strip()) > 2 * 1024 * 1024:
+        if size is None or not size.strip().isdigit() or int(size.strip()) > self.byte_limit:
             return None
-        text = self.git.try_run("--no-replace-objects", "show", f"{sha}:{self._path_prefix}{path}")
+        text = self.git.try_run(
+            "--no-replace-objects",
+            "show",
+            f"{sha}:{self._path_prefix}{path}",
+            stdout_limit=self.byte_limit,
+        )
         self._texts[key] = text
         return text
 
@@ -919,6 +938,8 @@ class GitSourceReader:
         return [name for name, mode in (self._tree(sha, "") or {}).items() if mode == "040000"]
 
     def _tree(self, sha: str, directory: str) -> dict[str, str] | None:
+        if self.expired():
+            return None
         key = (sha, directory)
         if key in self._trees:
             return self._trees[key]
@@ -931,6 +952,7 @@ class GitSourceReader:
             "--full-tree",
             "-z",
             f"{sha}:{self._path_prefix}{directory}",
+            stdout_limit=1024 * 1024,
         )
         if listing is None:
             return None
@@ -970,13 +992,17 @@ def carried_texts(
         )
     names = dict(names)
     scoped_names: set[str] = set()
+    scoped_grants: set[str] = set()
     resolver = GrantResolver(reader, sha, source_url)
     for path in paths:
-        scoped = resolver.resolve(path)
+        scoped = resolver.resolve(path, selected_branch=spdx)
         if scoped.expression is None:
             raise publication_error(
-                "no licence file to carry or applicable licence is unresolved", hint=scoped.reason
+                "no licence file to carry; root grant is unreadable "
+                "or applicable licence is unresolved",
+                hint=scoped.reason,
             )
+        scoped_grants.update(scoped.evidence)
         for ref in [*scoped.evidence, *scoped.notices]:
             parent, _, name = ref.rpartition("/")
             mode = (reader.entries(sha, parent) or {}).get(name)
@@ -1004,6 +1030,14 @@ def carried_texts(
             if normalize(Path(name).stem) in terms:
                 names[f"{directory}/{name}"] = mode
     for name in sorted(names):
+        if (
+            terms
+            and name in scoped_grants
+            and "/" in name
+            and name.split("/", 1)[0].casefold() in {"licenses", "licences"}
+            and normalize(Path(name).stem) not in terms
+        ):
+            continue
         reuse = "/" in name and normalize(Path(name).stem) in terms
         if not (
             is_license_file_name(name)
@@ -1109,7 +1143,9 @@ def verify_root_grant(
                 if declared:
                     declarations.append(declared)
         headers = [
-            find_spdx_identifier((reader.read(receipt.source.sha, item.prey_path) or "")[:4000])
+            find_source_header(
+                (reader.read(receipt.source.sha, item.prey_path) or "")[:8000], path=item.prey_path
+            )
             for item in receipt.taken
         ]
         if all(headers):
@@ -1120,7 +1156,10 @@ def verify_root_grant(
         ):
             established = declarations[0]
     if canonical_expression(established) != canonical_expression(receipt.source.license):
-        proofs = [resolver.resolve(item.prey_path) for item in receipt.taken]
+        proofs = [
+            resolver.resolve(item.prey_path, selected_branch=receipt.source.license)
+            for item in receipt.taken
+        ]
         if not proofs or not all(
             proof.expression
             and canonical_expression(proof.expression)
@@ -1179,13 +1218,20 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
                     if declared and canonical_expression(declared) != canonical_expression(
                         receipt.source.license
                     ):
+                        proof = resolver.resolve(
+                            item.prey_path, selected_branch=receipt.source.license
+                        )
+                        if proof.expression and canonical_expression(
+                            proof.expression
+                        ) == canonical_expression(receipt.source.license):
+                            continue
                         raise publication_error(
                             "taken file is under a differing package-manifest grant",
                             hint=f"{directory}/{name}",
                         )
             own = next((name for name in sorted(names) if is_license_file_name(name)), None)
             if own is not None:
-                proof = resolver.resolve(item.prey_path)
+                proof = resolver.resolve(item.prey_path, selected_branch=receipt.source.license)
                 if proof.expression and canonical_expression(
                     proof.expression
                 ) == canonical_expression(receipt.source.license):
@@ -1203,7 +1249,9 @@ def check_taken_licences(receipt: MaterializationReceipt, reader: SourceReader) 
                 "a taken prey path is not a regular file at that commit",
                 hint=f"{item.prey_path} is a directory, a link or a submodule; take a file",
             )
-        declared = find_spdx_identifier((reader.read(sha, item.prey_path) or "")[:4000])
+        declared = find_source_header(
+            (reader.read(sha, item.prey_path) or "")[:8000], path=item.prey_path
+        )
         if declared and canonical_expression(declared) != canonical_expression(
             receipt.source.license
         ):

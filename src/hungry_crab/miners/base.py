@@ -44,6 +44,7 @@ class FileInfo:
     # corpus and an example tree are both marked ``vendored``, and build output ``generated``.
     exclusion: str | None = None
     classification_origin: dict[str, str] = field(default_factory=dict)
+    classification_declared: dict[str, bool | None] = field(default_factory=dict)
 
     @property
     def counted(self) -> bool:

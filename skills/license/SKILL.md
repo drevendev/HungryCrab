@@ -7,6 +7,12 @@ description: Decide what may be carried over from a prey repository under its li
 
 The verdict is produced by a deterministic engine (`crab sniff`, `license.json` in a digest).
 Your job is to apply the mode, explain it, and stop when the engine says `HUMAN`.
+The repository overview and an established selected-path verdict have separate scope.
+`discover packet` exposes immutable path grants; `explore register` and `serve` share the resolver.
+An equivalent nested grant, a notice-only COPYRIGHT or a separate licence specimen need not
+relicense unrelated implementation files. The CLI retains actual grants and all applicable notices.
+Use its established result, never a hand-edited mode. Unknown components, missing notices,
+conflicting grants and unsupported references stay held; MIT-only applies to the selected material.
 
 ## Modes
 
