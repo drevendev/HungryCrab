@@ -469,3 +469,42 @@ def test_design_acceptance_requires_a_real_receiving_bound_artifact(tmp_path: Pa
     document.write_text("PASS")
     with pytest.raises(CrabError, match="changed"):
         verify_design_artifact(artifact, context)
+
+
+def test_frontier_qualifies_actual_reference_and_independent_provider_pin(tmp_path: Path) -> None:
+    from hungry_crab.discovery_frontier import frontier
+
+    source = repository(tmp_path / "source", {"links.txt": "https://github.com/owner/tool\n"})
+    sha = git(source, "rev-parse", "HEAD").strip()
+    root = {
+        "from": "owner/source",
+        "from_sha": sha,
+        "source_repo": str(source),
+        "path": "links.txt",
+        "start": 1,
+        "end": 1,
+        "target": "owner/tool",
+        "relationship": "adjacent-tool",
+    }
+
+    class Client:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        def get(self, path: str, *, allow_missing: bool = False) -> Any:
+            self.calls.append(path)
+            if "/commits/" in path:
+                return {"sha": "b" * 40}
+            return {"full_name": "owner/tool", "private": False, "default_branch": "main"}
+
+    client = Client()
+    result = frontier([root], budget=SearchBudget(maximum=2), clients={"github": client})
+    assert result["requests"] == 2 and len(client.calls) == 2
+    assert result["edges"][0]["sha"] == "b" * 40
+    assert result["edges"][0]["depth"] == 1
+    missing = frontier(
+        [{**root, "target": "owner/tool-suffix"}],
+        budget=SearchBudget(maximum=2),
+        clients={"github": client},
+    )
+    assert not missing["edges"] and len(client.calls) == 2

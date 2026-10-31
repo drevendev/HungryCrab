@@ -208,7 +208,10 @@ or `--shallow` (default branch, tree only).
 For broader goals, use [supervised discovery](docs/discovery.md): `crab explore` freezes
 comparison inputs, records source/maw hypotheses and registers non-trait behavior nutrients
 under existing licence, origin and hunger guards. A structural menu is an index; zero cards
-does not establish NO_GAP. [Bounded local acquisition](docs/acquisition.md) covers Linux
+does not establish NO_GAP. The invoked eat skill can drive a persisted
+[receiving-need session](docs/discovery-session.md) through `crab discover`: actual
+search/source/probe receipts, shared budgets, distinct replacements and explicit stops.
+[Bounded local acquisition](docs/acquisition.md) covers Linux
 volumes and native Windows VHD/Job Object prerequisites.
 
 Run `crab eat <local-repo> --deterministic --maw . --no-wiki` to export a complete meal

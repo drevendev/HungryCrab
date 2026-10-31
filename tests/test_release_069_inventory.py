@@ -52,6 +52,28 @@ def test_attribute_precedence_and_unsupported_patterns(tmp_path: Path) -> None:
     assert omissions == [{"line": 3, "reason": "unsupported-pattern"}]
 
 
+def test_attribute_globs_reset_and_declarations_never_waive_safety_floors(tmp_path: Path) -> None:
+    facts = []
+    for relative, vendored in (
+        ("src/a.py", False),
+        ("src/nested/b.py", False),
+        ("vendor/c.py", True),
+    ):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# inert", encoding="utf-8")
+        facts.append(
+            describe_file(
+                str(path), relative, path.name, 0, 7, vendored=vendored, build_output=False
+            )
+        )
+    classify_attributes("src/*.py linguist-generated\nvendor/** -linguist-vendored\n", facts)
+    assert facts[0].generated and not facts[1].generated
+    assert facts[2].vendored and facts[2].classification_declared["vendored"] is False
+    classify_attributes("*.py linguist-generated\nsrc/** !linguist-generated\n", facts[1:2])
+    assert not facts[1].generated and facts[1].classification_declared["generated"] is None
+
+
 def test_literal_lock_versions_directness_and_unsupported_sources() -> None:
     rows, meta = ruby_lock(
         "GEM\n  remote: https://rubygems.org/\n  specs:\n    direct (1.2.3)\n"
