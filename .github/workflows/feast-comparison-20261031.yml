@@ -21,7 +21,7 @@ jobs:
     env:
       PYTHONIOENCODING: utf-8
       PYTHONDONTWRITEBYTECODE: '1'
-      FEAST_OUTPUT: ${{ runner.temp }}/feast-results
+      FEAST_OUTPUT: ${{ github.workspace }}/feast-results
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
