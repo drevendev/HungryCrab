@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from fixture_builder import git
 from helpers import copy_repo
 
 from hungry_crab.cache import Target
@@ -58,6 +59,13 @@ def test_real_offline_multifeed_rejects_receiving_drift_between_sources(
     change: str,
 ) -> None:
     maw = copy_repo(pyproject_cli, tmp_path / "maw", with_git=True)
+    if change == "policy":
+        # Keep the scoring policy tracked so the dirty-worktree identity stays observable.
+        (maw / ".crab.yml").write_text(
+            "scoring:\n  categories:\n    deps: 0.45\n", encoding="utf-8"
+        )
+        git(maw, "add", ".crab.yml")
+        git(maw, "commit", "-q", "-m", "Track receiving scoring baseline")
     calls = 0
 
     def eat_then_change(
