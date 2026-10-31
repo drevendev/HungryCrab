@@ -172,12 +172,15 @@ def source_packet(
                 else {"status": "unsupported-structural-language", "matches": []}
             )
         )
-        matches = (
-            manual
-            if manual is not None
-            else result["matches"][:8]
-            or [{"start": 1, "end": min(60, len(lines)), "relationship": "selected-context"}]
-        )
+        unique: dict[tuple[int, int], dict[str, Any]] = {}
+        for match in sorted(
+            result["matches"],
+            key=lambda match: (match["query_index"], match["start"], match["end"]),
+        ):
+            unique.setdefault((match["start"], match["end"]), match)
+        matches = manual if manual is not None else list(unique.values())[:8]
+        if manual is None and not matches:
+            matches = [{"start": 1, "end": min(60, len(lines)), "relationship": "selected-context"}]
         # Related test/source paths are a heuristic. A static association never
         # claims runtime coverage or marks a finding reviewed.
         windows: list[dict[str, Any]] = []
@@ -209,6 +212,9 @@ def source_packet(
                 "encoding": "utf-8-with-replacement",
                 "line_count": len(lines),
                 "analysis": result["status"],
+                "structural_result": result,
+                "duplicate_structural_ranges": len(result["matches"]) - len(unique),
+                "structural_ranges_deferred": max(0, len(unique) - 8),
                 "ranges": windows,
                 "path_grant": resolver.resolve(path).to_dict(),
                 "test_association": "selected-test-path"

@@ -24,6 +24,12 @@ from .fetch.bounded import ResponseTooLargeError, run_bounded
 from .publication_safety import scan_publication
 
 SCHEMA = "hungry-crab.receiving-probe/1"
+_RECEIVING_IMPORT_BOOTSTRAP = (
+    "import runpy\nimport sys\nfrom pathlib import Path\n"
+    "_receiving = Path(sys.argv[1])\n_script = sys.argv[2]\n"
+    'sys.path[:0] = [str(_receiving), str(_receiving / "src")]\n'
+    'sys.argv = [_script]\nrunpy.run_path(_script, run_name="__main__")\n'
+)
 
 
 def run_probe(
@@ -36,18 +42,21 @@ def run_probe(
     controls: list[str],
     original_receiving_owned: bool,
     timeout: int = 30,
+    import_receiving: bool = False,
 ) -> Path:
     """Run only a new agent-authored probe, with explicit host provenance.
 
     The API accepts original text, never a path into a donor tree. It runs the
     installed interpreter in isolation with the receiving root as cwd. A probe
-    may deliberately import trusted receiving code using that root. This is an
+    may opt into imports from that root and its src layout. This is an
     invoked host action, not a miner or a sandbox for untrusted programs.
     """
     from .discovery_session import live_context
 
     if original_receiving_owned is not True:
         raise CrabError("probe requires explicit original receiving-owned provenance")
+    if type(import_receiving) is not bool:
+        raise CrabError("receiving import mode must be an explicit boolean")
     if not isinstance(source, str) or not 0 < len(source.encode()) <= 65_536:
         raise CrabError("original probe source exceeds its byte bounds")
     if not author or len(author) > 200 or not expected or len(expected) > 2000:
@@ -63,6 +72,16 @@ def run_probe(
     script = directory / "original-probe.py"
     atomic_text(script, source)
     command = [sys.executable, "-I", "-B", str(script.resolve())]
+    if import_receiving:
+        command = [
+            sys.executable,
+            "-I",
+            "-B",
+            "-c",
+            _RECEIVING_IMPORT_BOOTSTRAP,
+            str(maw.resolve()),
+            str(script.resolve()),
+        ]
     env = {
         k: v
         for k, v in os.environ.items()
@@ -99,6 +118,7 @@ def run_probe(
         "after_context": after,
         "author": author,
         "original_receiving_owned": True,
+        "import_receiving": import_receiving,
         "probe_sha256": hashlib.sha256(script.read_bytes()).hexdigest(),
         "expected": expected,
         "controls": controls,
@@ -136,6 +156,7 @@ def verify_receipt(path: Path, context: dict[str, Any], probe_sha256: str) -> di
         or receipt.get("status") != "executed"
         or type(receipt.get("exit_code")) is not int
         or receipt.get("original_receiving_owned") is not True
+        or type(receipt.get("import_receiving", False)) is not bool
         or not receipt.get("controls")
         or receipt.get("donor_executed") is not False
     ):
