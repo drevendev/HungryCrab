@@ -100,6 +100,11 @@ and record the existing attempt instead of blindly repeating a provider request.
 trusted action handlers and records their actual receipts. It never supplies
 fabricated semantic judgments or a second acceptance ledger.
 
+`spent` is the conservative precharged request/acquisition budget. Unused or
+uncertain reservations are retained; individual action receipts record actual
+requests and outcomes. Do not report a reservation as a confirmed completed
+network request or donor acquisition. Model-token receipts record actual use.
+
 ## Source and provider tools
 
 All tools below take `--input PLAN.json`. Source is inert untrusted data;

@@ -147,6 +147,7 @@ def test_native_powershell_git_uses_exact_read_model(tmp_path: Path) -> None:
         command + " --output=/tmp/out", root=cache, cwd=tmp_path, shell="powershell"
     )
     assert guard_reason(command.replace("'", '"'), root=cache, cwd=tmp_path, shell="powershell")
+    assert guard_reason(command.replace("'", "“"), root=cache, cwd=tmp_path, shell="powershell")
 
 
 def test_ambiguous_ruby_versions_are_not_invented_and_remote_secrets_are_removed() -> None:
