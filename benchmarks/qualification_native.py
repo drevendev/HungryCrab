@@ -56,7 +56,9 @@ def native_command(limit: int) -> list[str]:
         {
             "features.rollout_budget.enabled": True,
             "features.rollout_budget.limit_tokens": limit,
-            "features.rollout_budget.reminder_at_remaining_tokens": [20000, 10000, 5000, 2000],
+            "features.rollout_budget.reminder_at_remaining_tokens": [
+                value for value in (20000, 10000, 5000, 2000) if value < limit
+            ],
             "features.rollout_budget.sampling_token_weight": 1.0,
             "features.rollout_budget.prefill_token_weight": 1.0,
         }

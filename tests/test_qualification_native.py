@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,14 @@ def test_native_settings_are_temporary_and_disable_other_tools(
     assert "features.shell_tool=false" in command
     assert "features.multi_agent=false" in command
     assert config.read_text(encoding="utf-8") == original
+    for remaining in (1, 2000, 8000, 12000):
+        scoped = native_command(remaining)
+        reminder = next(
+            value.split("=", 1)[1]
+            for value in scoped
+            if value.startswith("features.rollout_budget.reminder_at_remaining_tokens=")
+        )
+        assert all(0 < value < remaining for value in json.loads(reminder))
 
 
 def test_unsupported_mcp_key_cannot_inject_scoped_settings(
