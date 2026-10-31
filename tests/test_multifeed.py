@@ -229,11 +229,8 @@ def test_issue_lookup_provenance_is_bound_to_receiving_identity(tmp_path: Path) 
     assert merge_menus(sources)["receiving_context_status"] == "legacy-unknown"
 
 
-
 @pytest.mark.parametrize("drift", ["scoring", "memory", "ledger-decisions"])
-def test_merge_refuses_different_effective_learning_state(
-    tmp_path: Path, drift: str
-) -> None:
+def test_merge_refuses_different_effective_learning_state(tmp_path: Path, drift: str) -> None:
     """Equivalent checkouts cannot merge different effective learning inputs."""
     maw = tmp_path / "maw"
     maw.mkdir()
