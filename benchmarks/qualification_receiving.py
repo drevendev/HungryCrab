@@ -11,34 +11,56 @@ from typing import Any
 from qualification_acquire import VOLUME_BYTES, export_objects, write_json
 
 from hungry_crab.cache import Slug
+from hungry_crab.fetch.acquisition import AcquisitionBudget
 from hungry_crab.fetch.catch import CatchOptions, catch
 from hungry_crab.fetch.git import GitRunner
 from hungry_crab.fetch.github import GitHubClient
+
+
+def target_plan(plan: dict[str, Any]) -> tuple[str | None, int | None, str | None]:
+    branch, pull, pin = (
+        plan.get("target_ref"),
+        plan.get("target_pull_request"),
+        plan.get("target_sha"),
+    )
+    if branch is None and pull is None and pin is None:
+        return None, None, None
+    valid_branch = (
+        isinstance(branch, str)
+        and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,199}", branch) is not None
+        and pull is None
+    )
+    valid_pull = type(pull) is int and 1 <= pull <= 10_000_000 and branch is None
+    if (
+        not (valid_branch or valid_pull)
+        or not isinstance(pin, str)
+        or re.fullmatch(r"(?:[a-f0-9]{40}|[a-f0-9]{64})", pin) is None
+    ):
+        raise ValueError(
+            "receiving target requires an explicit owned branch or PR and full commit SHA"
+        )
+    return branch, pull, pin
 
 
 def selected_pin(repo: Path, plan: dict[str, Any], default_sha: str) -> tuple[str, str | None]:
     """Qualify a declared owned branch target without checking it out or running it."""
     if default_sha != plan.get("sha"):
         raise ValueError("receiving default changed before sealing; refresh its context")
-    branch, pin = plan.get("target_ref"), plan.get("target_sha")
-    if branch is None and pin is None:
+    branch, pull, pin = target_plan(plan)
+    if pin is None:
         return default_sha, None
-    if (
-        not isinstance(branch, str)
-        or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,199}", branch) is None
-        or not isinstance(pin, str)
-        or re.fullmatch(r"(?:[a-f0-9]{40}|[a-f0-9]{64})", pin) is None
-    ):
-        raise ValueError("receiving target requires an explicit owned branch and full commit SHA")
     git = GitRunner(repo, lazy_fetch=False)
-    git.run("check-ref-format", "--branch", branch)
-    reference = f"refs/remotes/origin/{branch}"
+    if branch is not None:
+        git.run("check-ref-format", "--branch", branch)
+    reference = f"refs/remotes/origin/{branch}" if branch else f"refs/crab/qualification/pr-{pull}"
     head = git.run("--no-replace-objects", "rev-parse", "--verify", reference + "^{commit}").strip()
     actual = git.run("--no-replace-objects", "rev-parse", "--verify", pin + "^{commit}").strip()
     if actual != pin:
         raise ValueError("receiving target is not a canonical available commit")
+    if pull is not None and head != pin:
+        raise ValueError("receiving PR head changed before sealing; refresh its context")
     git.run("--no-replace-objects", "merge-base", "--is-ancestor", pin, head)
-    return pin, branch
+    return pin, branch if branch else f"refs/pull/{pull}/head"
 
 
 def main() -> None:
@@ -53,6 +75,7 @@ def main() -> None:
     receipts = []
     for name in ("HungryCrab", "Devostasis", "BeautifulRepo"):
         planned = plan["receiving"][name]
+        target_branch, target_pull, _ = target_plan(planned)
         slug = Slug("drevendev", name)
         metadata = GitHubClient(retries=0).repo(slug)
         if metadata.get("private") is not False:
@@ -60,7 +83,7 @@ def main() -> None:
         result = catch(
             slug,
             CatchOptions(
-                shallow=planned.get("target_ref") is None,
+                shallow=target_branch is None,
                 wiki=False,
                 issues=0,
                 acquisition_volume=args.volume,
@@ -69,6 +92,17 @@ def main() -> None:
             ),
             cache_root=cache,
         )
+        if target_pull is not None:
+            # Canonical receiving pull refs include confirmed fork contributions.
+            # Fetch only data under the same hard volume and transport bounds.
+            with AcquisitionBudget(args.volume, cache, 314_572_800, VOLUME_BYTES).scope():
+                GitRunner(Path(result.repo_dir), lazy_fetch=False).run(
+                    "fetch",
+                    "--depth=1",
+                    "--no-tags",
+                    slug.url,
+                    f"refs/pull/{target_pull}/head:refs/crab/qualification/pr-{target_pull}",
+                )
         pin, branch = selected_pin(Path(result.repo_dir), planned, result.sha)
         output = args.output / name
         output.mkdir()
