@@ -9,17 +9,34 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from .errors import CrabError
+from .fs import is_link_stat
+
+
+def require_real_state_path(path: Path) -> None:
+    """Callers anchor their owner-selected root before adding managed children."""
+    for candidate in (*reversed(path.parents), path):
+        try:
+            metadata = candidate.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise CrabError("state path cannot be inspected safely") from exc
+        if is_link_stat(metadata):
+            raise CrabError(f"state must not traverse a symlink or junction: {candidate}")
 
 
 @contextlib.contextmanager
 def state_lock(path: Path) -> Iterator[None]:
     """Serialize writers; readers still verify the snapshot they intend to replace."""
     lock = path.with_suffix(".lock")
-    for candidate in (path, lock, *path.parents):
-        if candidate.is_symlink():
-            raise CrabError(f"state must not traverse a symlink: {candidate}")
+    require_real_state_path(path)
+    require_real_state_path(lock)
     path.parent.mkdir(parents=True, exist_ok=True)
     with lock.open("a+b") as stream:
+        require_real_state_path(path)
+        require_real_state_path(lock)
+        if os.fstat(stream.fileno()).st_nlink > 1:
+            raise CrabError("state lock must not be hardlinked")
         stream.seek(0, os.SEEK_END)
         if stream.tell() == 0:
             stream.write(b"0")

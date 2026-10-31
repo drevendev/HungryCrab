@@ -40,6 +40,7 @@ def validate(data: dict[str, Any]) -> None:
             "hunt",
             "hunger",
             "ignore",
+            "dependency_scope_exclusions",
             "budget",
             "serve",
             "trust",

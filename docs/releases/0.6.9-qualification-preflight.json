@@ -1,0 +1,539 @@
+{
+  "schema": "hungry-crab.qualification-preflight/1",
+  "status": "study2 preparation, NOT SEALED; first study failed and is preserved separately",
+  "as_of": "2026-10-31T20:41:09.624026+00:00",
+  "specification": "https://github.com/drevendev/HungryCrab/issues/535",
+  "baseline": {
+    "version": "0.6.8",
+    "sha": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "skills": "matching source commit",
+    "installed_source_sha256": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be"
+  },
+  "candidate": {
+    "version": "0.6.9.dev0",
+    "sha": null,
+    "skills": "matching frozen candidate source commit",
+    "installed_source_sha256": null,
+    "status": "source navigation fix under verification before freeze"
+  },
+  "receiving": {
+    "HungryCrab": {
+      "sha": "9a0fe4010999059b1a872533d072ad62b3c44873",
+      "pending": [
+        {
+          "number": 539,
+          "title": "feat: implement 0.6.9 discovery, selection and applicable grants",
+          "head": "68bda16c805b6f302d105d8d464c597d50c07ca5",
+          "base": "9f8540b14e0059592bdf916526fdc2160390bbae"
+        }
+      ],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    },
+    "Devostasis": {
+      "sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+      "pending": [
+        {
+          "number": 95,
+          "title": "fix: enforce current cache limits when restoring entries",
+          "head": "611b21ee19ad46b4ae6f9ad2dcf872da6dbf7156",
+          "base": "6d935ee111e2efab7a5f7d7c8f8d050af8d35567"
+        },
+        {
+          "number": 90,
+          "title": "fix(history): preserve parent-kind conflicts through reconciliation (#83)",
+          "head": "51e58b8a4f1504f8f953fbc47db6157d157051e6",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 89,
+          "title": "fix(history): preserve malformed legacy carrier values (partial #83)",
+          "head": "1a735f451f9fe6dae7948a014b660249501a1ffc",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 88,
+          "title": "fix(history): reject malformed carried arrays (partial #83)",
+          "head": "9cf0c0cf678aeef620b5f6d6a1662533894c10b2",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 81,
+          "title": "0.6: independently verified Git history and executable assurance",
+          "head": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 75,
+          "title": "Release 0.6.0: offline repository analysis and executable assurance",
+          "head": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 69,
+          "title": "Release 0.5.0: bound consumer operations and portable private history",
+          "head": "aa5e0e12aea6ee0514cbd2c9dd9aa29ff5dfe75c",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 64,
+          "title": "Release 0.4.0: reproducible consumer handoff and exact contract compatibility",
+          "head": "c98e7ed4fe53f1809f9a5ec0b7651da49aa0ab3a",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 59,
+          "title": "Release 0.3.0: Evidence to Action with verified work scopes and bounded handoff",
+          "head": "a41fac6353030f684b2e77b12079503b7b8a1e96",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 57,
+          "title": "Finish 0.2.0: preserve verified Integrity history and reconcile pending branches",
+          "head": "b849923511ffef24b3b53d0ed01937ae706f60f8",
+          "base": "96d10fc844732d196628e3a8f39737eab69fe871"
+        },
+        {
+          "number": 53,
+          "title": "Release 0.2.0: adopt the accepted Direction, Horizon, Debt and T9 repairs, and carry Integrity history across bundles (B3)",
+          "head": "96d10fc844732d196628e3a8f39737eab69fe871",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 50,
+          "title": "Keep the Hungry Crab configuration and ledger in the repository",
+          "head": "4c7f0a1a93cd3231feea89fb879c0fafe5fdf1fb",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        },
+        {
+          "number": 37,
+          "title": "Cancel superseded CI runs with concurrency groups",
+          "head": "aae7b21df35f96ba074331482ff37f70f509d222",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        },
+        {
+          "number": 36,
+          "title": "Enable Dependabot updates",
+          "head": "2a575750d511a47d69a5c97c41ec121deff920ef",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        }
+      ],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    },
+    "BeautifulRepo": {
+      "sha": "3bc8e3d70c15aca6392c9397e28a97ce8fef4904",
+      "pending": [],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    }
+  },
+  "pool": [
+    {
+      "batch": "crab",
+      "repository": "wolph/portalocker",
+      "url": "https://github.com/wolph/portalocker",
+      "default_ref": "develop",
+      "sha": "2fb4ce92a16718039472879f6b43612806281650",
+      "provider_id": "1401974",
+      "size_kib": 1610,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "pre-commit/identify",
+      "url": "https://github.com/pre-commit/identify",
+      "default_ref": "main",
+      "sha": "54b4d44eb08000f39a01d88e0ed3f00f502fc973",
+      "provider_id": "81786752",
+      "size_kib": 773,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/virtualenv",
+      "url": "https://github.com/pypa/virtualenv",
+      "default_ref": "main",
+      "sha": "53c21ee86895b320d99b6260c2610ecefc8b78b7",
+      "provider_id": "1446474",
+      "size_kib": 189338,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/installer",
+      "url": "https://github.com/pypa/installer",
+      "default_ref": "main",
+      "sha": "9b7fd286b85c5091390d4368709c46b35693b28c",
+      "provider_id": "254940622",
+      "size_kib": 983,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "psf/black",
+      "url": "https://github.com/psf/black",
+      "default_ref": "main",
+      "sha": "93e221bb4cd84d691fcb53f193d8b2a4348ef568",
+      "provider_id": "125266328",
+      "size_kib": 8783,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "PyCQA/isort",
+      "url": "https://github.com/PyCQA/isort",
+      "default_ref": "main",
+      "sha": "5d9c96196def28a1819b6a755a669ec0a3add6aa",
+      "provider_id": "12550138",
+      "size_kib": 26443,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "PyCQA/flake8",
+      "url": "https://github.com/PyCQA/flake8",
+      "default_ref": "main",
+      "sha": "1c7fec1973ed3a7c192dbe1e96906fbbd1dbe49e",
+      "provider_id": "24000265",
+      "size_kib": 3699,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "PyCQA/autoflake",
+      "url": "https://github.com/PyCQA/autoflake",
+      "default_ref": "main",
+      "sha": "8b019503c6fdb4e59df8293ec7d3115b4ebaec0b",
+      "provider_id": "7335450",
+      "size_kib": 658,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/hatch",
+      "url": "https://github.com/pypa/hatch",
+      "default_ref": "master",
+      "sha": "740565ac2929597cb9def8d46338cbef6493fc8d",
+      "provider_id": "92997800",
+      "size_kib": 50398,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/twine",
+      "url": "https://github.com/pypa/twine",
+      "default_ref": "main",
+      "sha": "f536ac5d0c77a24a997854328e64644f576b4992",
+      "provider_id": "12085555",
+      "size_kib": 1913,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "rubik/xenon",
+      "url": "https://github.com/rubik/xenon",
+      "default_ref": "master",
+      "sha": "c7364e23bb55ca515322eb9a260b5ebf4bf18c3b",
+      "provider_id": "16839110",
+      "size_kib": 86,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "terryyin/lizard",
+      "url": "https://github.com/terryyin/lizard",
+      "default_ref": "master",
+      "sha": "ecffb160c5e7ecb1b10400d8b65c283ff4c37262",
+      "provider_id": "4738329",
+      "size_kib": 6478,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "PyCQA/pyflakes",
+      "url": "https://github.com/PyCQA/pyflakes",
+      "default_ref": "main",
+      "sha": "5324946c5d8602697f5df6d98ad162920b3e5d61",
+      "provider_id": "18508013",
+      "size_kib": 1201,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "PyCQA/pycodestyle",
+      "url": "https://github.com/PyCQA/pycodestyle",
+      "default_ref": "main",
+      "sha": "3cee4cc3b28f1fd166947e2c1fbe357c77e1ecaf",
+      "provider_id": "324077",
+      "size_kib": 1859,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "jrfonseca/gprof2dot",
+      "url": "https://github.com/jrfonseca/gprof2dot",
+      "default_ref": "main",
+      "sha": "5cbab290f056ee05b98f401d346c10f7914e357c",
+      "provider_id": "32138266",
+      "size_kib": 4603,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "python-lsp/python-lsp-server",
+      "url": "https://github.com/python-lsp/python-lsp-server",
+      "default_ref": "develop",
+      "sha": "a3620069a607a63ed52569fde188e9301feae93a",
+      "provider_id": "341006790",
+      "size_kib": 1476,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "davidhalter/jedi",
+      "url": "https://github.com/davidhalter/jedi",
+      "default_ref": "master",
+      "sha": "c7ceec72f1876b9f69482fe9427f8fea4c1e5220",
+      "provider_id": "3489194",
+      "size_kib": 13562,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "jd/tenacity",
+      "url": "https://github.com/jd/tenacity",
+      "default_ref": "main",
+      "sha": "32ac68f0941319c0d2f4fb927f96e4ee29bb46c6",
+      "provider_id": "65468547",
+      "size_kib": 790,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "mahmoud/boltons",
+      "url": "https://github.com/mahmoud/boltons",
+      "default_ref": "master",
+      "sha": "d31d821d56c8f7756af9c30a864077f2e5855321",
+      "provider_id": "8307391",
+      "size_kib": 1771,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "urllib3/urllib3",
+      "url": "https://github.com/urllib3/urllib3",
+      "default_ref": "main",
+      "sha": "2aa7e9c35234a90a1ce09b84dc7b706a6d604674",
+      "provider_id": "2410676",
+      "size_kib": 9255,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "markdown-it/markdown-it",
+      "url": "https://github.com/markdown-it/markdown-it",
+      "default_ref": "master",
+      "sha": "a8c00d474ec9b304fad9b71c16d6fa8b4909279e",
+      "provider_id": "28249537",
+      "size_kib": 4426,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "executablebooks/markdown-it-py",
+      "url": "https://github.com/executablebooks/markdown-it-py",
+      "default_ref": "master",
+      "sha": "6f586542653a56d2ee8549a0dccfaa6ba5ebe14a",
+      "provider_id": "249956697",
+      "size_kib": 1667,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "Python-Markdown/markdown",
+      "url": "https://github.com/Python-Markdown/markdown",
+      "default_ref": "master",
+      "sha": "0bfd8c3efb728fd47e910a7564d80503f6dac9b8",
+      "provider_id": "692146",
+      "size_kib": 4080,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "facelessuser/pymdown-extensions",
+      "url": "https://github.com/facelessuser/pymdown-extensions",
+      "default_ref": "main",
+      "sha": "28aec62990c8cae3abe9f56ce13d91a613f2bebe",
+      "provider_id": "26947860",
+      "size_kib": 51790,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "lepture/mistune",
+      "url": "https://github.com/lepture/mistune",
+      "default_ref": "main",
+      "sha": "f7ec702edfc1ad5579a76f881238841af266d93c",
+      "provider_id": "16944764",
+      "size_kib": 1800,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "remarkjs/remark",
+      "url": "https://github.com/remarkjs/remark",
+      "default_ref": "main",
+      "sha": "1146b3a274fc1f4607111e5d6607a3a769a0e89a",
+      "provider_id": "22355214",
+      "size_kib": 14552,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "mkdocstrings/mkdocstrings",
+      "url": "https://github.com/mkdocstrings/mkdocstrings",
+      "default_ref": "main",
+      "sha": "69856bd28c4e020167618152a220d03a78ca5ac1",
+      "provider_id": "226936416",
+      "size_kib": 8271,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "oprypin/mkdocs-literate-nav",
+      "url": "https://github.com/oprypin/mkdocs-literate-nav",
+      "default_ref": "master",
+      "sha": "b15147038b68f56bf7894549062d6bb4985223a1",
+      "provider_id": "259093773",
+      "size_kib": 208,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "linkchecker/linkchecker",
+      "url": "https://github.com/linkchecker/linkchecker",
+      "default_ref": "master",
+      "sha": "9b178bdafba75334626c0c8c32a5f544cdbe7ffd",
+      "provider_id": "80534589",
+      "size_kib": 22712,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "vale-cli/vale",
+      "url": "https://github.com/vale-cli/vale",
+      "default_ref": "v3",
+      "sha": "0d9e80234ba63323fefa027b5698467cf477c46d",
+      "provider_id": "81020247",
+      "size_kib": 76549,
+      "prior_exposure": "excluded historical 30 and first-study pool; no new donor judgments shared",
+      "source_coverage": "not-yet-acquired",
+      "license_status": "not-yet-acquired"
+    }
+  ],
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "per_trial_limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_acquisitions": 6,
+    "active_hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "host": {
+    "binary_version": "0.146.1",
+    "model": "gpt-5.6-sol",
+    "reasoning": "low, identical explicit setting both arms",
+    "model_turns_started": 0,
+    "actual_model_tokens": null,
+    "actual_model_currency": null,
+    "metric": "actual input including cached input plus output across completed stages; missing usage remains null",
+    "status": "improved evidence transport and receiving verification adapter not sealed"
+  },
+  "blockers": [
+    "Seal exact installed candidate and improved host before either arm.",
+    "Acquire new public source facts on existing hosted fixed 2 GiB volumes and verify pins/artifacts.",
+    "Refresh receiving source, confirmed relevant pending implementation, needs and original verification protocol."
+  ],
+  "prior_study": "../experiments/release-069-discovery-qualification.json",
+  "resources": {
+    "authorisation": "user requested all checks; bounded existing Codex ChatGPT quota, no purchase/API key required",
+    "acquisition": "explicit hosted preparation on fixed 2 GiB volumes; donor programs never execute",
+    "pending_API_facts": {
+      "head_count": 14,
+      "unique_blobs": 110,
+      "verified_bytes": 1549095,
+      "scope": "changed Python paths plus selected canonical/time/config helpers across 13 distinct Devostasis heads; unavailable bindings stay explicit"
+    }
+  },
+  "prior_exposure": "Historical shared-30 and first-study30 excluded. filelock excluded after operator saw changelog. pypa/build excluded because a previous clone exists. Known first-study held wikilinks proposal excluded from new novelty. Pretraining exposure unknown."
+}

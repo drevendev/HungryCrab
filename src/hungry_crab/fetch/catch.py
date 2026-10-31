@@ -184,6 +184,10 @@ def rmtree_force(path: Path, *, cache_root: Path) -> None:
     A failed deletion can leave cache debris. It is safer to report that state than
     to chmod symlink/junction targets or hide a partially removed checkout.
     """
+    selected = cache_root.absolute()
+    cache_root = selected.resolve()
+    if path.absolute().is_relative_to(selected):
+        path = cache_root.joinpath(*path.absolute().relative_to(selected).parts)
     if not stat.S_ISDIR(_require_real_entries(path, cache_root=cache_root).st_mode):
         raise CrabError(f"refusing cache deletion of {path}: not a directory")
     _require_crab_owned(path, cache_root=cache_root)

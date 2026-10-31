@@ -55,6 +55,10 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 The [0.6.5 execution report](docs/experiments/discovery-453-report.md) records the bounded
 public replay and its remaining unexplored facets.
 
+The planned [0.6.9 scope](docs/releases/0.6.9-scope.md) brings together the full
+supervised discovery cycle, selection quality and MIT/path-licence corrections.
+Implementation and independent qualification are pending; 0.6.8 remains released.
+
 ## The metaphor, in five words
 
 | Term | Meaning |
@@ -204,7 +208,10 @@ or `--shallow` (default branch, tree only).
 For broader goals, use [supervised discovery](docs/discovery.md): `crab explore` freezes
 comparison inputs, records source/maw hypotheses and registers non-trait behavior nutrients
 under existing licence, origin and hunger guards. A structural menu is an index; zero cards
-does not establish NO_GAP. [Bounded local acquisition](docs/acquisition.md) covers Linux
+does not establish NO_GAP. The invoked eat skill can drive a persisted
+[receiving-need session](docs/discovery-session.md) through `crab discover`: actual
+search/source/probe receipts, shared budgets, distinct replacements and explicit stops.
+[Bounded local acquisition](docs/acquisition.md) covers Linux
 volumes and native Windows VHD/Job Object prerequisites.
 
 Run `crab eat <local-repo> --deterministic --maw . --no-wiki` to export a complete meal
@@ -241,6 +248,8 @@ with a suggested spelling where available; `scoring` retains its own flexible ne
 - `memory`: bounded learning from confirmed owner decisions, with an explicit off switch.
 - `hunt`: bounded GitHub discovery queries, size/stars/license filters and revisiting policy.
 - `hunger`: enable, disable, or cap each nutrient category with `issues-only` / `ideas-only`.
+- `dependency_scope_exclusions`: exact ecosystem/scope/reason exclusions for recommendations;
+  original dependency facts and structural seeds remain available for review.
 - `ignore`: maw-side git-style paths excluded from its own digest, in `crab compare` and in
   `crab digest <maw> --maw <maw>`; a prey's own `.crab.yml` is data and is never read.
 - `budget`: whole-digest Markdown budget policy: `warn` (default), `enforce`, or `off`.
@@ -287,6 +296,7 @@ hunger:                    # per nutrient category: true | false | issues-only |
   issue-lesson: true
   architecture: issues-only
   code: ideas-only         # source-linked behavior findings from crab explore register
+dependency_scope_exclusions: []  # exact ecosystem/scope/reason recommendation filters; keep facts
 ignore: []                 # globs excluded from this repository's own digest, so that test
                            # fixtures and vendored trees are not mistaken for your code, e.g.
                            # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on

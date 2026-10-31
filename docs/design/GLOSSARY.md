@@ -95,6 +95,8 @@ lets the next maw overwrite it.
 `hunt` discover prey from the maw's gaps and taste memory · `mcp` serve scoped analysis over stdio ·
 `profiles` list reviewed hunger profiles · `report` render a digest or meal as offline HTML ·
 `explore` record scoped source investigation and source-linked behavior nutrients ·
+`discover` execute bounded receiving-need discovery through the invoked agent runtime ·
+`launcher` write an owned interpreter script independent of a console shim ·
 `version` show the CLI version ·
 `sniff` look before eating · `catch` clone into the cache · `digest` run the miners ·
 `compare` digest both sides and rank · `eat --deterministic` export a Feeder meal bundle ·

@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,6 @@ from .attribution import (
 )
 from .compare import apply_hunger, load_menu, menu_candidates
 from .compare.candidates import Side, _evidence_path
-from .compare.license_policy import covered_exceptions
 from .compare.render import menu_doc
 from .compare.scoring import Scoring
 from .config_edit import atomic_text
@@ -34,6 +34,7 @@ from .fetch.git import GitRunner
 from .file_lock import state_lock
 from .fs import is_link_stat
 from .licensing.matrix import decide
+from .licensing.path_grants import GrantResolver
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
 from .nutrients import Candidate, require_nutrient_id
@@ -283,6 +284,14 @@ def _references(
         return False
     for reference in value:
         if not isinstance(reference, dict):
+            return False
+        role, message = reference.get("role"), reference.get("message")
+        if role is not None and (
+            not isinstance(role, str)
+            or role not in {"primary", "supporting", "secondary", "context"}
+        ):
+            return False
+        if message is not None and (not isinstance(message, str) or len(message) > 500):
             return False
         path, start, end = reference.get("path"), reference.get("start"), reference.get("end")
         if (
@@ -577,9 +586,25 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             raise CrabError("registration requires valid immutable donor and receiving file ranges")
         assert isinstance(source, list) and isinstance(receiving, list)
         prey_ref = SourceRef.from_dict(menu["prey"])
-        if data["plan"].get("donor_policy") == "MIT-only" and prey_ref.license != "MIT":
-            raise CrabError("exploration donor policy excludes this grant; retain a policy hold")
         reader = GitSourceReader(source_repo)
+        resolver = GrantResolver(reader, prey_ref.sha, prey_ref.url)
+        branch = finding.get("license_branch")
+        if branch is not None and (not isinstance(branch, str) or not 0 < len(branch) <= 100):
+            raise CrabError("license_branch must be a bounded explicit licence option")
+        path_grants = [resolver.resolve(ref["path"], selected_branch=branch) for ref in source]
+        if branch and any(grant.expression != branch for grant in path_grants):
+            raise CrabError("selected licence branch is not established for every source path")
+        expressions = {grant.expression for grant in path_grants}
+        if None in expressions or len(expressions) != 1:
+            raise CrabError(
+                "source paths have differing or unresolved applicable licences",
+                hint="; ".join(grant.reason for grant in path_grants if grant.expression is None),
+            )
+        path_license = path_grants[0].expression
+        assert path_license is not None
+        if data["plan"].get("donor_policy") == "MIT-only" and path_license != "MIT":
+            raise CrabError("exploration donor policy excludes this grant; retain a policy hold")
+        prey_ref = replace(prey_ref, license=path_license)
         source_side = Side(label=prey_ref.label, sha=prey_ref.sha, url=prey_ref.url, root=None)
         # Pin every range to the actual immutable file; never trust a recorded runner root.
         for ref in source:
@@ -596,16 +621,25 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         require_nutrient_id(receipt.nutrient_id)
         # Registration never grants COPY from a label or a menu. Reuse the exact
         # immutable grant/path checks that later publication also applies.
-        verify_root_grant(receipt, reader, carried_texts(prey_ref.sha, reader, prey_ref.license))
+        verify_root_grant(
+            receipt,
+            reader,
+            carried_texts(
+                prey_ref.sha,
+                reader,
+                prey_ref.license,
+                paths=tuple(ref["path"] for ref in source),
+                source_url=prey_ref.url,
+            ),
+        )
         check_taken_licences(receipt, reader)
         maw = Path(data["maw_root"])
         config = MawConfig.load(maw)
         _require_current_policy(data, config)
         legal = decide(prey_ref.license, config.license or menu["maw"].get("license"))
         mode, reason = apply_maw_policy(legal.mode.value, policy=config.mode, material="code")
-        paths = [ref["path"] for ref in source]
-        if covered_exceptions(as_dict(data["manifests"]["prey"]).get("license", {}), paths):
-            mode = "HUMAN"
+        # The immutable path resolver has checked intervening grants and headers.
+        # Keep the conservative root overview without overriding that exact proof.
         card = Candidate(
             category="code",
             key=finding["key"],
@@ -638,8 +672,13 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
                 "license_relationship": "foreign",
                 "license_review_required": legal.human_review,
                 "exploration_snapshot": directory.name,
+                "path_license": path_license,
+                "source_path_grants": [grant.to_dict() for grant in path_grants],
             },
         )
+        for evidence, reference in zip(card.evidence, source, strict=True):
+            evidence.role = reference.get("role")
+            evidence.message = reference.get("message")
         kept, hidden = apply_hunger([card], config.hunger)
         card.score = Scoring.default().merged(config.scoring).score(card)
         history = events(directory)

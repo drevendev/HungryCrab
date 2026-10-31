@@ -12,6 +12,7 @@ from typing import Any
 from ..typeutil import as_dict
 from .base import FileInfo, MineContext, MinerResult
 from .inventory import LOCKFILES
+from .ruby_lock import ruby_lock
 
 _NPM_EXACT_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][\w.]+)?$")
 # Possessive whitespace and a specifier that ends on a non-space: `\s*(\[...\])?\s*(.*?)\s*$`
@@ -522,6 +523,9 @@ def parse_composer(text: str, manifest: str) -> tuple[list[Package], dict[str, A
 def parse_manifest(info: FileInfo, text: str) -> tuple[list[Package], dict[str, Any]] | None:
     name = info.name
     lowered = name.lower()
+    if lowered == "gemfile.lock":
+        rows, meta = ruby_lock(text, info.path)
+        return [Package(**row) for row in rows], meta
     if lowered == "package.json":
         return parse_package_json(text, info.path)
     if lowered == "pyproject.toml":
@@ -585,7 +589,7 @@ class DepsMiner:
                 f
                 for f in files
                 if f.manifest_kind
-                in {"npm", "python", "dotnet", "rust", "go", "maven", "gradle", "php"}
+                in {"npm", "python", "dotnet", "rust", "go", "maven", "gradle", "php", "ruby"}
                 and not f.vendored
                 and not f.generated
                 and f.ext not in {".sln", ".slnx"}
