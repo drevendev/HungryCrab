@@ -19,6 +19,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Python AST queries and targeted history/issue evidence (#484–#492, #534).
 - Capture actual bounded original receiving probes and receiving-bound design
   acceptance artifacts; plain PASS declarations cannot establish execution (#488).
+- Navigate real pinned paths and qualified Python declarations before source
+  selection; continue exact ranges and page source/notice evidence with hash-bound
+  cursors instead of discarding large results. Retain explicit omissions (#540).
 - Parse literal Gemfile.lock dependencies, bounded extensionless shebangs and root
   classification attributes without executing donor tools. Preserve raw evidence,
   primary/supporting roles and exact owner-selected dependency scope exclusions

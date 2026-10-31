@@ -112,8 +112,10 @@ instruction/README bodies are excluded. None imports or executes donor code.
 
 | Command | Important plan fields and bounds |
 | --- | --- |
+| `discover index` | `repo`, immutable `sha`, `need`, optional literal path `terms`, directory `prefix`, `limit` (1..64), `symbol_files` (0..16). Lists real source/test filenames and bounded Python declaration ranges before selecting windows; no README/instruction bodies, imports or execution. Path matches, declarations and test filenames establish navigation, not usefulness, coverage or transfer permission. |
 | `discover search` | `queries`: provider (`github`/`gitlab`), surface (`repository`/`code`), query; GitLab global code is explicitly unsupported. One request per query, no hidden retries. Code blob SHAs are never commit pins. |
-| `discover packet` | `repo`, immutable `sha`, `paths`, `need`, optional Python AST `queries`, `related`, `source_url`, `byte_budget`; 32 paths, 64 KiB/file, bounded isolated syntax worker and related import/test associations. Associations are not coverage. |
+| `discover packet` | `repo`, immutable `sha`, `need`; explicit `paths` with optional Python AST `queries`, automatic `terms`, or explicit `ranges` of `path`/`start`/`end` (at most 60 lines each). 32 paths, 64 KiB/file, bounded syntax worker and related import/test associations. Associations are not coverage. |
+| `discover view` | Existing `artifact`, estimated-token `budget` (512..3500), optional `cursor`. Source windows first; remaining fields, including notices, retain continuation. Cursor binds canonical payload hash and budget. No acquisition, model call or permission decision. |
 | `discover history` | `repo`, `sha`, `paths`, `hypothesis`, `reason`, optional `commits`; bounded pinned path log/diffs, shallow history and omitted bytes remain explicit. |
 | `discover issues` | `repository`, selected `numbers`, `hypothesis`, `reason`; bounded issue evidence, commenter origin remains IDEAS_ONLY. |
 | `discover frontier` | `roots` containing actual source-supported relationship edges; verifies canonical public target identity and an immutable pin, at most one hop. Each verification request consumes budget. |
@@ -125,6 +127,29 @@ one query. Additional issue/frontier requests charge the same global budget
 before effects. Distinct operation identities cannot replay a charged uncertain
 operation. Standalone tools have their own explicit per-invocation budget and
 must not be used to evade an invoked session's total limits.
+
+Use the index before guessing paths or reading arbitrary first lines. Its source
+declarations include actual pinned start/end ranges; a declaration may itself be
+longer than the returned 60-line window. The JSON retains observed/unreturned
+file counts, deferred symbol work and tree omissions. Tree navigation is bounded
+to 128 directories, 10,000 entries and 5,000 regular paths; the index never follows
+links/submodules or obtains missing blobs. Other structural languages and oversized
+Python files remain explicit. Read selected source/test windows through `packet`
+before making a semantic decision. An index cannot close an inspection phase.
+
+Python declarations retain lexical qualified names and actual end lines.
+Bounded literal `contains` queries select declaration names without evaluation.
+A clipped window retains `node_end` and `range_truncated`; continue with explicit
+`ranges` instead of treating sixty lines as the whole function. An out-of-file
+range remains an omission. `view` requires the full raw JSON as authoritative
+evidence. Its token estimate is not a model-usage receipt. Navigation and pages
+never establish semantic usefulness, test coverage or transfer permission.
+
+An open request is not an implemented improvement. A concrete new mechanism
+for an unimplemented receiving need may be useful: link the existing issue and
+identify the added implementation detail. Already implemented and equivalent
+confirmed pending implementations are excluded from novelty. Unknown pending
+access stays unknown and cannot establish a verified gap.
 
 The host must meter actual model usage across its entire invoked investigation,
 including planning/review, and stop before starting work it cannot bound. A

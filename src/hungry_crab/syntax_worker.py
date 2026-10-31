@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import json
 import sys
+from collections import deque
 from typing import Any
 
 
@@ -24,16 +25,30 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
     if len(source.encode("utf-8")) > 65_536 or len(queries) > 8:
         return {"status": "budget-deferred", "matches": [], "reason": "input-limit"}
     supported = {"call", "function", "class", "import", "raise", "except", "with", "compare"}
-    if any(q.get("kind") not in supported or len(q.get("name", "")) > 100 for q in queries):
+    if any(
+        q.get("kind") not in supported
+        or len(q.get("name", "")) > 100
+        or len(q.get("contains", "")) > 100
+        for q in queries
+    ):
         return {"status": "unsupported", "matches": []}
     try:
-        tree = ast.parse(source)
+        tree = ast.parse(source.removeprefix("\ufeff"))
     except (SyntaxError, RecursionError, MemoryError, ValueError):
         return {"status": "unsupported-syntax", "matches": []}
     matches: list[dict[str, Any]] = []
-    for count, node in enumerate(ast.walk(tree)):
+    pending: deque[tuple[ast.AST, str]] = deque([(tree, "")])
+    count = 0
+    output_bytes = 0
+    while pending:
         if count >= 30_000:
             return {"status": "budget-deferred", "matches": matches, "reason": "node-limit"}
+        count += 1
+        node, scope = pending.popleft()
+        child_scope = scope
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            child_scope = (scope + "." if scope else "") + node.name
+        pending.extend((child, child_scope) for child in ast.iter_child_nodes(node))
         kind, name = "", ""
         if isinstance(node, ast.Call):
             kind, name = "call", qualified(node.func)
@@ -53,24 +68,47 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
             kind = "with"
         elif isinstance(node, ast.Compare):
             kind = "compare"
+        scoped_name = (
+            (scope + "." if scope else "") + name if kind in {"function", "class"} else name
+        )
         for query in queries:
             requested = query.get("name", "")
-            if kind == query["kind"] and (
-                not requested or requested == name or requested in name.split(",")
+            contains = query.get("contains", "").casefold()
+            if (
+                kind == query["kind"]
+                and (
+                    not requested
+                    or requested in {name, scoped_name}
+                    or requested in name.split(",")
+                )
+                and (not contains or contains in scoped_name.casefold())
             ):
                 start = int(getattr(node, "lineno", 1))
-                matches.append(
-                    {
-                        "kind": kind,
-                        "name": name[:100],
-                        "start": start,
-                        "end": min(
-                            getattr(node, "end_lineno", start) or start,
-                            start + 59,
-                        ),
-                        "relationship": "syntax-only",
+                node_end = max(start, getattr(node, "end_lineno", start) or start)
+                record = {
+                    "kind": kind,
+                    "name": name[:100],
+                    "name_truncated": len(name) > 100,
+                    "qualified_name": scoped_name[:200],
+                    "qualified_name_truncated": len(scoped_name) > 200,
+                    "start": start,
+                    "end": min(
+                        node_end,
+                        start + 59,
+                    ),
+                    "node_end": node_end,
+                    "range_truncated": node_end > start + 59,
+                    "relationship": "syntax-only",
+                }
+                size = len(json.dumps(record))
+                if output_bytes + size > 48000:
+                    return {
+                        "status": "budget-deferred",
+                        "matches": matches,
+                        "reason": "output-byte-limit",
                     }
-                )
+                output_bytes += size
+                matches.append(record)
                 if len(matches) >= 100:
                     return {
                         "status": "budget-deferred",
