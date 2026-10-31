@@ -38,6 +38,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Enforce the whole-session deadline before cached discovery leases; bound lease
+  expiry and retain terminal wall time independently from late accounting (#545).
 - Resolve applicable immutable path grants across equivalent nested texts,
   supported pinned references, software/data roles and composite project/component
   notices. Retain obligations, unknown scopes, source restrictions and explicit OR

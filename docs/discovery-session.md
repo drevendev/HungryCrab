@@ -52,6 +52,15 @@ crab discover next SESSION
 `attempt`, remaining model budget, receiving need and current lead. Execute that
 action and append its actual receipt:
 
+Each lease also exposes `remaining_seconds` and an `expires_at` bounded by the
+whole-session deadline. `next` checks that deadline before returning even a cached
+lease. A stopped attempt remains available for actual-result/cost reconciliation;
+it grants no further host effects. Terminal reports retain `finished_at`,
+`wall_time_seconds` and `wall_time_within_limits`. Late cost-only settlement never
+extends the finished investigation. Active and legacy terminal durations remain
+explicitly unknown; the aggregate budget check includes known wall-time failures
+alongside request, donor and model counters.
+
 ```json
 {
   "attempt": "COPY_THE_LEASED_ATTEMPT",

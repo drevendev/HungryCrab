@@ -173,6 +173,8 @@ def initialize(
         "lease": None,
         "events": [],
         "finished": False,
+        "finished_at": None,
+        "wall_time_seconds": None,
         "stop_reason": None,
     }
     directory.mkdir(parents=True, exist_ok=False)
@@ -233,28 +235,43 @@ def _exhausted(value: dict[str, Any], now: datetime) -> str | None:
     return None
 
 
+def _finish(value: dict[str, Any], reason: str, instant: datetime) -> None:
+    # Late accounting can change the cost verdict, never the duration of a
+    # finished investigation. Legacy terminal sessions retain unknown duration.
+    if not value["finished"]:
+        value["finished_at"] = instant.isoformat()
+        value["wall_time_seconds"] = (
+            instant - datetime.fromisoformat(value["created_at"])
+        ).total_seconds()
+    value.update(finished=True, stop_reason=reason)
+
+
 def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
         value = _load(directory)
         if value["finished"]:
             return summary(value)
+        reason = _exhausted(value, instant)
+        if reason:
+            _finish(value, reason, instant)
+            _save(directory, value)
+            return summary(value)
+        deadline = datetime.fromisoformat(value["created_at"]) + timedelta(
+            seconds=value["limits"]["seconds"]
+        )
         if value["lease"]:
             lease = dict(value["lease"])
             lease["remaining_model_tokens"] = max(
                 0, value["limits"]["model_tokens"] - value["spent"]["model_tokens"]
             )
+            lease["remaining_seconds"] = (deadline - instant).total_seconds()
             if instant >= datetime.fromisoformat(lease["expires_at"]):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
                     "previous attempt may have consumed provider effects; do not repeat blindly"
                 )
             return lease
-        reason = _exhausted(value, instant)
-        if reason:
-            value.update(finished=True, stop_reason=reason)
-            _save(directory, value)
-            return summary(value)
         need = next((row for row in value["needs"] if row["status"] == "pending"), None)
         if need is None:
             reason = (
@@ -262,14 +279,14 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                 if all(row["status"] == "found" for row in value["needs"])
                 else "supported-frontier-exhausted"
             )
-            value.update(finished=True, stop_reason=reason)
+            _finish(value, reason, instant)
             _save(directory, value)
             return summary(value)
         phase = need["phase"]
         charge = "requests" if phase == "search" else "donors" if phase == "acquire" else None
         if charge:
             if value["spent"][charge] >= value["limits"][charge]:
-                value.update(finished=True, stop_reason=charge + "-budget")
+                _finish(value, charge + "-budget", instant)
                 _save(directory, value)
                 return summary(value)
             value["spent"][charge] += 1
@@ -285,7 +302,8 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
             "attempt": identity,
             "need": need["id"],
             "action": phase,
-            "expires_at": (instant + timedelta(minutes=10)).isoformat(),
+            "expires_at": min(instant + timedelta(minutes=10), deadline).isoformat(),
+            "remaining_seconds": (deadline - instant).total_seconds(),
             "remaining_model_tokens": value["limits"]["model_tokens"]
             - value["spent"]["model_tokens"],
             "query": need["queries"][need["query_index"] % len(need["queries"])],
@@ -345,14 +363,15 @@ def record_usage(
         ):
             raise CrabError("model usage does not belong to a known discovery attempt")
         if tokens is None:
-            value.update(finished=True, stop_reason="usage-unavailable", model_usage_complete=False)
+            _finish(value, "usage-unavailable", instant)
+            value["model_usage_complete"] = False
         else:
             value["spent"]["model_tokens"] += tokens
             reason = _exhausted(value, instant)
             if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
-                value.update(finished=True, stop_reason="model-token-budget")
+                _finish(value, "model-token-budget", instant)
             elif not value["finished"] and reason:
-                value.update(finished=True, stop_reason=reason)
+                _finish(value, reason, instant)
         _event(value, {"kind": "model-usage", "receipt": receipt, "at": instant.isoformat()})
         _save(directory, value)
         return summary(value)
@@ -521,9 +540,12 @@ def _finish_record(
     directory: Path, value: dict[str, Any], receipt: dict[str, Any], tokens: int, instant: datetime
 ) -> dict[str, Any]:
     value["spent"]["model_tokens"] += tokens
-    reason = _exhausted(value, instant)
-    if reason:
-        value.update(finished=True, stop_reason=reason)
+    if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
+        _finish(value, "model-token-budget", instant)
+    elif not value["finished"]:
+        reason = _exhausted(value, instant)
+        if reason:
+            _finish(value, reason, instant)
     value["lease"] = None
     _event(value, {"kind": "action-result", "receipt": receipt, "at": instant.isoformat()})
     _save(directory, value)
@@ -546,6 +568,12 @@ def _replace(need: dict[str, Any], value: dict[str, Any]) -> None:
 
 
 def summary(value: dict[str, Any]) -> dict[str, Any]:
+    elapsed = value.get("wall_time_seconds")
+    wall_compliant: bool | None = None
+    if isinstance(elapsed, int | float) and not isinstance(elapsed, bool):
+        wall_compliant = 0 <= elapsed <= value["limits"]["seconds"]
+    elif value["stop_reason"] == "wall-time-budget-or-clock-invalid":
+        wall_compliant = False
     return {
         "schema": SCHEMA,
         "context": value["context"],
@@ -558,6 +586,9 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         ),
         "finished": value["finished"],
         "stop_reason": value["stop_reason"],
+        "finished_at": value.get("finished_at"),
+        "wall_time_seconds": elapsed,
+        "wall_time_within_limits": wall_compliant,
         "needs": [
             {
                 "id": row["id"],
@@ -575,7 +606,8 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         "published": False,
         "publication_scope": "controller-has-no-publication-effect; consult-per-meal-phase-records",
         "acceptance_learning_written": False,
-        "budget_within_limits": value.get("model_usage_complete", True)
+        "budget_within_limits": wall_compliant is not False
+        and value.get("model_usage_complete", True)
         and all(
             value["spent"][name] <= value["limits"][name]
             for name in ("requests", "donors", "model_tokens")
@@ -618,14 +650,14 @@ def report(directory: Path) -> dict[str, Any]:
     return result
 
 
-def stop(directory: Path, reason: str) -> dict[str, Any]:
+def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[str, Any]:
     """Stop without losing an uncertain lease or inventing missing model usage."""
     if reason not in {"usage-unavailable", "external-dependency", "policy-or-legal-dependency"}:
         raise CrabError("unsupported explicit discovery stop reason")
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
         if not value["finished"]:
-            value.update(finished=True, stop_reason=reason)
+            _finish(value, reason, now or datetime.now(UTC))
             if reason == "usage-unavailable":
                 value["model_usage_complete"] = False
             _event(value, {"kind": "explicit-stop", "reason": reason})
