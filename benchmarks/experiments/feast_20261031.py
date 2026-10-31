@@ -160,6 +160,11 @@ def child_acquire(args):
     from hungry_crab.fetch.catch import CatchOptions, catch
     from hungry_crab.analysis_context import installed_source_identity
     owner, name = args.repo.split("/")
+    from hungry_crab.sniff import sniff
+    sniff(Slug(owner, name), cache_root=Path(args.cache), log=lambda s: print(s, flush=True))
+    provider = read_marker(Path(args.cache)/"github"/owner/name/"api"/"repo.json")
+    if provider.get("private") is not False:
+        raise ValueError("refusing an unconfirmed public input before Git acquisition")
     result = catch(Slug(owner, name), CatchOptions(shallow=True, wiki=False, issues=0,
                    acquisition_volume=Path(args.volume), max_download_bytes=1073741824,
                    max_disk_bytes=8589934592), cache_root=Path(args.cache),
@@ -286,7 +291,7 @@ def orchestrate(args):
         dump(out/"result.json", {"schema": SCHEMA, "state": "FAIL", "reason": "maw acquisition failed",
                                 "batch": batch, "acquisitions": acquisitions, "results": [],
                                 "hypotheses": 30, "hypotheses_reviewed": 0})
-        return
+        raise SystemExit(2)
     maw_root = Path(acquisitions[maw["repo"]]["catch"]["repo_dir"])
     observed_maw_sha = git(maw_root, "rev-parse", "HEAD")
     if observed_maw_sha != maw["expected_sha"]:
