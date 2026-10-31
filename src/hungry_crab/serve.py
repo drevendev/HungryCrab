@@ -924,6 +924,17 @@ def serve(
         report.skipped.extend(pr_skipped)
         return report
 
+    # Issue publication must discover existing nutrient markers even when a caller does
+    # not inject a client. Otherwise an independent ledger can file duplicates.
+    if options.mode == "issue":
+        if slug is None:
+            raise CrabError(
+                "the maw has no GitHub origin remote, cannot create issues",
+                hint="add a remote or use --as dry-run",
+            )
+        if client is None:
+            client = GhIssueClient(token_env=config.serve.token_env)
+
     existing: dict[str, dict[str, Any]] = {}
     label = config.serve.label
     if client is not None and slug is not None:
@@ -939,13 +950,7 @@ def serve(
                 ) from exc
             log(f"warning: could not list existing issues: {exc.message}")
     if options.mode == "issue":
-        if slug is None:
-            raise CrabError(
-                "the maw has no GitHub origin remote, cannot create issues",
-                hint="add a remote or use --as dry-run",
-            )
-        if client is None:
-            client = GhIssueClient(token_env=config.serve.token_env)
+        assert client is not None
         who = client.identity()
         log(f"serving into {slug} as {who}" if who else f"serving into {slug}")
     label_ready = False
