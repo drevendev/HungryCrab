@@ -1,0 +1,22 @@
+{
+  "schema": "hungry-crab.receiving-qualification-preflight/1",
+  "status": "Owned receiving setup only; no donor investigation/model trial started",
+  "receiving": {
+    "HungryCrab": {
+      "sha": "1b764cfc6987f9b692c2ecab7615c99282ffd0ec",
+      "target_ref": "codex/release-0.6.9",
+      "target_sha": "110c7e3552c9ecb98b49b4bfea7556fdd349eb9f",
+      "target": "Frozen integration #539; current discovery and licensing implementations included"
+    },
+    "Devostasis": {
+      "sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+      "target_ref": "zendreven/release-0.6.0",
+      "target_sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "target": "Confirmed intended 0.6.0 implementation shared by open #75/#81; other pending heads checked separately"
+    },
+    "BeautifulRepo": {
+      "sha": "3388e45b45961cf13b16c2fd5dea82b52c64cc8c",
+      "target": "Current default includes former #222; open #224 source spans are known pending work, not a new gap"
+    }
+  }
+}
