@@ -729,31 +729,26 @@ def _serve_pull_requests(
     before_publication: Callable[[], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def recheck_path_grants(card: Candidate) -> None:
-        if not card.trace.get("source_path_grants"):
+        if card.category != "code" and not any(
+            key in card.trace for key in ("path_license", "source_path_grants")
+        ):
             return
         from .licensing.matrix import decide
-        from .licensing.path_grants import GrantResolver
+        from .licensing.path_grants import verify_path_proofs
 
         reader = source_reader
         if reader is None and prey_repo is not None:
             reader = GitSourceReader(prey_repo)
         if reader is None:
             raise CrabError("path-specific publication requires immutable source objects")
-        resolver = GrantResolver(reader, str(menu["prey"]["sha"]), menu["prey"].get("url"))
-        declared = card.trace.get("path_license")
-        proofs = card.trace["source_path_grants"]
-        if not isinstance(proofs, list) or not proofs or len(proofs) > 20:
-            raise CrabError("invalid applicable path grant proof")
-        for proof in proofs:
-            if not isinstance(proof, dict) or not isinstance(proof.get("path"), str):
-                raise CrabError("invalid applicable path grant proof")
-            actual = resolver.resolve(proof["path"], selected_branch=declared)
-            if (
-                actual.expression is None
-                or actual.expression != declared
-                or actual.to_dict() != proof
-            ):
-                raise CrabError("applicable source grant changed or cannot be verified")
+        declared = verify_path_proofs(
+            reader,
+            str(menu["prey"]["sha"]),
+            menu["prey"].get("url"),
+            card.trace.get("path_license"),
+            card.trace.get("source_path_grants"),
+            [e.path for e in card.evidence],
+        )
         legal = decide(declared, config.license or menu["maw"].get("license"))
         allowed = {
             "COPY": {"COPY", "REIMPLEMENT"},

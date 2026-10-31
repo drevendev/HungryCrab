@@ -7,9 +7,10 @@ from pathlib import Path
 import pytest
 from test_licensing import APACHE_TEXT, BSD3_TEXT
 
+from hungry_crab.errors import CrabError
 from hungry_crab.licensing.detect import detect_from_text, detect_in_repo, find_source_header
 from hungry_crab.licensing.matrix import allows_alternative
-from hungry_crab.licensing.path_grants import GrantResolver
+from hungry_crab.licensing.path_grants import GrantResolver, verify_path_proofs
 from hungry_crab.licensing.sections import composite_sections
 
 MIT = (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8")
@@ -69,6 +70,19 @@ class Reader:
             for path in self.files
             if path.startswith(prefix) and "/" not in path.removeprefix(prefix)
         }
+
+
+def test_publication_requires_proofs_for_all_source_paths_and_rechecks_them() -> None:
+    reader = Reader({"LICENSE": MIT, "a.py": "VALUE = 1", "b.py": "VALUE = 2"})
+    sha = "a" * 40
+    proofs = [GrantResolver(reader, sha).resolve(path).to_dict() for path in ("a.py", "b.py")]
+    assert verify_path_proofs(reader, sha, None, "MIT", proofs, ["a.py", "b.py"]) == "MIT"
+    for incomplete in (None, [], proofs[:1]):
+        with pytest.raises(CrabError, match=r"path.*proof"):
+            verify_path_proofs(reader, sha, None, "MIT", incomplete, ["a.py", "b.py"])
+    reader.files["b.py"] = "# SPDX-License-Identifier: GPL-3.0-only\nVALUE = 2"
+    with pytest.raises(CrabError, match="changed or cannot be verified"):
+        verify_path_proofs(reader, sha, None, "MIT", proofs, ["a.py", "b.py"])
 
 
 def test_notice_reference_preserves_grant_and_original_region(tmp_path: Path) -> None:
