@@ -23,6 +23,7 @@ from .matrix import (
     restricts_copying,
     selected_terms,
 )
+from .sections import attribution_reference, composite_sections
 
 _SPDX_ID_RE = re.compile(
     r"^[ \t]*(?:(?://|\#|/\*|\*|<!--)[ \t]*)?SPDX-License-Identifier:[ \t]*(.+?)[ \t]*$",
@@ -407,6 +408,11 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
     """Return (spdx, confidence) for the text of a license file."""
     if not text.strip():
         return None, 0.0
+    if len(text.encode("utf-8")) > 200_000:
+        return None, 0.0
+    sections = composite_sections(text)
+    if sections is not None:
+        return detect_from_text(sections[0].text)
     ident = find_spdx_identifier(text)
     body = _SPDX_ID_RE.sub("", text) if ident else text
     normalized = _norm(body)
@@ -683,6 +689,7 @@ def _copyright_metadata(line: str) -> bool:
         "foundation",
         "association",
         "institute",
+        "university",
         "corporation",
         "authors",
         "contributors",
@@ -720,12 +727,25 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     if start is None or start.start() > 1500:
         return None, 0.0
     body = _norm(text[start.start() :])
+    # Two exact typographical representations of the same quoted expressions.
+    # Never remove arbitrary punctuation, suffixes or operative words.
+    body = body.replace('""software""', '"software"').replace("*as is*", '"as is"')
     title = re.compile(
         r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|expat license)[.:]?"
     )
-    for raw in text[: start.start()].splitlines():
+    prefix = text[: start.start()].splitlines()
+    for index, raw in enumerate(prefix):
         line = _norm(raw.strip("#/* \t"))
         if not line or title.fullmatch(line) or line == "all rights reserved.":
+            continue
+        if (
+            index == 0
+            and re.fullmatch(r"[A-Za-z][A-Za-z0-9 ._-]{0,100} ver\. \d+(?:\.\d+){1,3}", raw)
+            and any(_copyright_metadata(value) for value in prefix[1:])
+            and any(title.fullmatch(_norm(value)) for value in prefix[1:])
+        ):
+            # A structured document title is accepted only before explicit MIT
+            # attribution and the fully validated operative grant below.
             continue
         if not _copyright_metadata(raw.strip("#/* \t")):
             return None, 0.0
@@ -736,6 +756,20 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     if body == mit0:
         return "MIT-0", 0.99
     return None, 0.0
+
+
+def _grant_region(text: str, spdx: str | None) -> tuple[int | None, int | None]:
+    """Original line coordinates, only for a grant actually established above."""
+    if spdx is None:
+        return None, None
+    sections = composite_sections(text)
+    if sections is not None:
+        return sections[0].start, sections[0].end
+    if spdx in {"MIT", "MIT-0"}:
+        match = re.search(r"permission\s+is\s+hereby\s+granted,\s*free\s+of\s+charge", text, re.I)
+        if match is not None:
+            return text[: match.start()].count("\n") + 1, len(text.splitlines())
+    return None, None
 
 
 def manifest_license(name: str, text: str) -> tuple[str | None, str]:
@@ -819,6 +853,9 @@ class Evidence:
     spdx: str | None
     confidence: float
     note: str = ""
+    start: int | None = None
+    end: int | None = None
+    matcher: str | None = None
 
 
 @dataclass
@@ -1048,6 +1085,21 @@ def detect_in_repo(
         text = read_text(path, limit=200_000)
         spdx, confidence = detect_from_text(text)
         note = ""
+        reference = attribution_reference(text)
+        reference_lines = [line for line in text.splitlines() if line.strip()]
+        if reference and all(_copyright_metadata(line) for line in reference_lines[:-1]):
+            parts = PurePosixPath(reference).parts
+            if (
+                parts
+                and len(parts) == 1
+                and reference != rel
+                and _own_entry(root / reference, stat.S_ISREG)
+            ):
+                referenced, _ = detect_from_text(read_text(root / reference, limit=200_000))
+                if referenced:
+                    findings.notice_files.append(rel)
+                    findings.notes.append(f"{rel}: attribution-only reference to {reference}")
+                    continue
         if spdx is None and "permission is hereby granted, free of charge" in _norm(text):
             note = "MIT-like text has unsupported metadata or operative terms; inspect the "
             note += "copyright prefix and full grant, or obtain a supported upstream notice"
@@ -1078,7 +1130,19 @@ def detect_in_repo(
                     spdx, confidence = detect_from_text(read_text(root / target, limit=200_000))
                     note = "readable referenced grant" if spdx else "unreadable referenced grant"
         findings.license_files.append(rel)
-        findings.evidence.append(Evidence("file", rel, spdx, confidence, note))
+        start, end = _grant_region(text, spdx)
+        findings.evidence.append(
+            Evidence(
+                "file",
+                rel,
+                spdx,
+                confidence,
+                note,
+                start,
+                end,
+                "operative-text-v1" if start is not None else None,
+            )
+        )
         if spdx and declared:
             named.append((rel, spdx))
             alternatives = alternatives and bool(_NAMED_LICENSE_RE.match(PurePosixPath(rel).name))

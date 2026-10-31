@@ -73,9 +73,27 @@ class Evidence:
     path: str
     url: str | None = None
     note: str = ""
+    role: str | None = None
+    message: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.role is not None and (
+            not isinstance(self.role, str)
+            or self.role not in {"primary", "supporting", "secondary", "context"}
+        ):
+            raise CrabError("invalid evidence role")
+        if self.message is not None and (
+            not isinstance(self.message, str) or len(self.message) > 500
+        ):
+            raise CrabError("evidence message must be at most 500 characters")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"path": self.path, "url": self.url, "note": self.note}
+        result: dict[str, Any] = {"path": self.path, "url": self.url, "note": self.note}
+        if self.role is not None:
+            result["role"] = self.role
+        if self.message is not None:
+            result["message"] = self.message
+        return result
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Evidence:
@@ -84,6 +102,8 @@ class Evidence:
             path=str(data.get("path", "")),
             url=url if isinstance(url, str) else None,
             note=str(data.get("note", "")),
+            role=data.get("role"),
+            message=data.get("message"),
         )
 
 

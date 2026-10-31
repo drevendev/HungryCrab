@@ -40,8 +40,8 @@ def cache_root() -> Path:
     """Return the cache directory, honouring ``CRAB_CACHE_DIR``."""
     override = os.environ.get(ENV_CACHE_DIR)
     if override:
-        return Path(override).expanduser()
-    return Path.home() / ".cache" / "hungry-crab"
+        return Path(override).expanduser().resolve()
+    return (Path.home() / ".cache" / "hungry-crab").resolve()
 
 
 @dataclass(frozen=True)
@@ -165,14 +165,14 @@ class MawPaths:
 
 def prey_paths(slug: Slug, root: Path | None = None) -> PreyPaths:
     provider = "gitlab" if slug.host == "gitlab.com" else "github"
-    return PreyPaths((root or cache_root()) / provider / slug.owner / slug.repo)
+    return PreyPaths((root or cache_root()).resolve() / provider / slug.owner / slug.repo)
 
 
 def maw_paths(path: Path, root: Path | None = None) -> MawPaths:
     resolved = path.resolve()
     digest = hashlib.sha1(str(resolved).lower().encode("utf-8")).hexdigest()[:10]
     name = re.sub(r"[^A-Za-z0-9_.-]+", "-", resolved.name) or "root"
-    return MawPaths((root or cache_root()) / "maws" / f"{name}-{digest}")
+    return MawPaths((root or cache_root()).resolve() / "maws" / f"{name}-{digest}")
 
 
 @dataclass(frozen=True)

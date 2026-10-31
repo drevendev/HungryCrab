@@ -166,15 +166,31 @@ def _analysis_identity(ctx: MineContext) -> dict[str, object]:
         # Invalidate digests produced before ignored/personal files were excluded (#195).
         "file_selection": "git-visible-v1",
         # Re-mine same-version caches after the #436/#437 grant-establishment corrections.
-        "license_provenance": 6,
+        "license_provenance": 7,
         "markdown_structure": "html-blocks-v2",
         "license_summary": "representative-maws-v1",
         # Same-version caches may predate recognition of stdlib unittest CI commands.
         "ci_tool_detection": "shared-scripts-v3",
-        "runtime_detection": "first-party-v2",
+        "runtime_detection": "first-party-v3",
         "evidence_inventory": "portable-v1",
         "instruction_matching": "unicode-matching-v2",
+        "classification_attributes": "bounded-root-v1",
+        "shallow_boundary": _shallow_boundary(ctx),
     }
+
+
+def _shallow_boundary(ctx: MineContext) -> str | None:
+    """Bounded ancestry fingerprint for scratch reuse, never full-history coverage."""
+    if not ctx.shallow:
+        return None
+    if ctx.git is None:
+        return "unknown"
+    ancestry = ctx.git.try_run(
+        "--no-replace-objects", "rev-list", "--boundary", "--max-count=10001", ctx.sha
+    )
+    if ancestry is None or len(ancestry.splitlines()) > 10_000:
+        return "unknown"
+    return hashlib.sha256(ancestry.encode()).hexdigest()
 
 
 def _scratch_output_dir(digests_dir: Path, ctx: MineContext, options: DigestOptions) -> Path:
@@ -897,8 +913,8 @@ def _is_reusable(
         and cached.get("crab_version") == __version__
         and cached.get("analysis_identity") == _analysis_identity(ctx)
         and prey.get("sha") == ctx.sha
-        and not ctx.shallow
-        and prey.get("shallow") is False
+        and prey.get("shallow") is ctx.shallow
+        and (not ctx.shallow or _shallow_boundary(ctx) != "unknown")
         and cached_worktree == ctx.worktree
         and cached.get("depth") == options.depth
         and list(as_list(cached.get("ignore"))) == list(ctx.ignore)

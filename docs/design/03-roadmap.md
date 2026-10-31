@@ -34,6 +34,14 @@ The 0.2.1-0.5 implementations are included in it; that does not close their unfu
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
 
+Planned next release: **0.6.9**, the owner-expanded verified discovery, selection
+and MIT-quality scope. The complete agent search/verification/replanning cycle,
+all open PRs at the planning snapshot and eight additional backlog issues are
+specified in [the implementation scope](../releases/0.6.9-scope.md), tracked by
+[#535](https://github.com/drevendev/HungryCrab/issues/535). This supersedes the
+earlier separate 0.7.0 discovery target; implementation and independent usefulness
+qualification are still pending. It is not a release announcement.
+
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
 the tag and publication follow the normal CI gates. See the
