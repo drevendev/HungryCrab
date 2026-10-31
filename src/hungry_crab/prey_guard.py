@@ -4727,8 +4727,8 @@ def _powershell_allowlist_reason(command: str, *, root: Path, cwd: Path) -> str 
     if (
         tokens
         and _program(tokens[0]) == "git"
-        and not any(c in command for c in ('"', "`", "$", "\n", "\r", ","))
-        and not re.search(r"\\(?:\s|'|$)", command)
+        and not any(c in normalized for c in ('"', "`", "$", "\n", "\r", ","))
+        and not re.search(r"\\(?:\s|'|$)", normalized)
         and not any("'" in token for token in tokens)
         and not any(_is_punctuation(t) for t in tokens)
         and _simple_read_only(tokens, root=root, cwd=cwd)
