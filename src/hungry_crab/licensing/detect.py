@@ -733,8 +733,11 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     # Two exact typographical representations of the same quoted expressions.
     # Never remove arbitrary punctuation, suffixes or operative words.
     body = body.replace('""software""', '"software"').replace("*as is*", '"as is"')
+    # A complete title may be parenthesized; arbitrary parenthesized prose is
+    # still operative/unknown. The full grant, condition and disclaimer follow.
     title = re.compile(
-        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|expat license)[.:]?"
+        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|"
+        r"expat license|\((?:the )?mit license\))[.:]?"
     )
     prefix = text[: start.start()].splitlines()
     for index, raw in enumerate(prefix):

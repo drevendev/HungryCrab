@@ -129,6 +129,44 @@ def test_original_byte_regions_include_bom_crlf_and_never_accept_a_truncated_gra
     assert detect_in_repo(tmp_path, []).spdx == "NOASSERTION"
 
 
+@pytest.mark.parametrize("title", ["(The MIT License)", "(MIT License)"])
+def test_parenthesized_title_requires_the_complete_grant_and_keeps_provenance(
+    tmp_path: Path, title: str
+) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    text = title + "\n\nCopyright (c) Fixture Owner\n\n" + body
+    raw = b"\xef\xbb\xbf" + text.replace("\n", "\r\n").encode()
+    (tmp_path / "license").write_bytes(raw)
+    assert detect_from_text(text)[0] == "MIT"
+    result = detect_in_repo(tmp_path, [])
+    assert result.spdx == "MIT"
+    reader = Reader({"license": text, "doc/example.md": "Synthetic behavior description.\n"})
+    grant = GrantResolver(reader, "a" * 40).resolve("doc/example.md")
+    assert grant.expression == "MIT" and "license" in grant.evidence
+    evidence = result.evidence[0]
+    assert evidence.byte_start is not None and evidence.byte_end == len(raw)
+    assert raw[evidence.byte_start :].startswith(b"Permission is hereby")
+    for changed in (
+        text.rsplit("THE SOFTWARE", 1)[0],
+        text.replace("without restriction", "for personal research"),
+        text + "\nNon-commercial use only.",
+        "Redistribution prohibited.\n" + text,
+        text.replace("Fixture Owner", "Fixture Owner No Sublicensing"),
+    ):
+        assert detect_from_text(changed)[0] is None
+        reader.files["license"] = changed
+        assert GrantResolver(reader, "a" * 40).resolve("doc/example.md").expression is None
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["(The MIT License", "The MIT License)", "(MIT License - Noncommercial)", "(MIT) use only"],
+)
+def test_parenthesized_mit_policy_or_unmatched_title_stays_held(title: str) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    assert detect_from_text(title + "\nCopyright (c) Fixture Owner\n\n" + body)[0] is None
+
+
 def test_composite_boundaries_do_not_discard_unconsumed_text() -> None:
     text = (
         MIT + "\nend of terms and conditions\n\nThe externally maintained libraries from which "
