@@ -18,6 +18,7 @@ MIT = (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8")
 
 def test_source_headers_ignore_strings_and_conflicting_comments() -> None:
     assert find_source_header("# SPDX-License-Identifier: MIT\nVALUE = 1", path="a.py") == "MIT"
+    assert find_source_header("\ufeff# SPDX-License-Identifier: MIT\nVALUE = 1", path="a.py") == "MIT"
     assert (
         find_source_header(
             '"""\n# SPDX-License-Identifier: GPL-3.0-only\n"""\nVALUE = 1', path="a.py"

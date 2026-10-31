@@ -786,7 +786,9 @@ def find_source_header(text: str, *, path: str = "") -> str | None:
     if path.endswith((".py", ".pyi")):
         try:
             comments = []
-            for count, token in enumerate(tokenize.generate_tokens(io.StringIO(text).readline)):
+            for count, token in enumerate(
+                tokenize.generate_tokens(io.StringIO(text.removeprefix("\ufeff")).readline)
+            ):
                 if count >= 10_000:
                     return "NOASSERTION"
                 if token.start[0] > 80:
