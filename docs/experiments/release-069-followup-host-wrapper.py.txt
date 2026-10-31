@@ -1,0 +1,6 @@
+import argparse,json,runpy
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];Q=ROOT/'.venv/qualification-study3'
+m=runpy.run_path(str(ROOT/'.venv/run-study2.py'));T=m['Trial'];T.__init__.__globals__['Q']=Q;m['Old'].__init__.__globals__['Q']=Q
+if __name__=='__main__':
+ p=argparse.ArgumentParser();p.add_argument('phase',choices=['prepare','finish']);p.add_argument('trial');p.add_argument('--plan',type=Path,default=Q/'sealed.json');a=p.parse_args();f=json.loads(a.plan.read_text(encoding='utf8'));t=T(a.trial,f,resume=a.phase=='finish');getattr(t,a.phase)()

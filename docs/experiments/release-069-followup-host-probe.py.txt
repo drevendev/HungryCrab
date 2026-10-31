@@ -1,0 +1,9 @@
+import hashlib,json,sys
+from pathlib import Path
+root=Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'src'))
+from hungry_crab.receiving_probe import run_probe
+q=root/'.venv/qualification-study3';name=sys.argv[1];folder=q/'epoch-3/trials'/name;f=json.loads((q/'sealed.json').read_text(encoding='utf8'));mid=json.loads((folder/'intermediate.json').read_text(encoding='utf8'));maw={'crab':'HungryCrab','devostasis':'Devostasis','beautifulrepo':'BeautifulRepo'}[name.split('-')[0]]
+code=(folder/'original-proposed-probe.py.txt').read_text(encoding='utf8');assert code==mid['probe_source']
+receipt=run_probe(folder/'receiving-probe',Path(f['maws'][maw]['context']['root']),code,author='independent native trial worker; provenance/safety inspected by integration agent',expected=mid['probe_expected'],controls=mid['probe_controls'],original_receiving_owned=True,timeout=30)
+result={'status':'executed original proposal after source/provenance safety review; behavior assessment remains independent','execution_receipt':str(receipt),'execution_sha256':hashlib.sha256(receipt.read_bytes()).hexdigest(),'receipt':json.loads(receipt.read_text(encoding='utf8')),'stdout':(receipt.parent/'stdout.txt').read_text(encoding='utf8'),'stderr':(receipt.parent/'stderr.txt').read_text(encoding='utf8'),'author_source_modified':False}
+(folder/'probe-result.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf8');print(json.dumps(result,ensure_ascii=False))
