@@ -1,0 +1,133 @@
+"""Explicit metered planning/evaluation stages; no model resumes inside a tool."""
+import hashlib,json,runpy,sys,time
+from pathlib import Path
+root=Path(__file__).resolve().parents[1];Q=root/'.venv/qualification';sys.path.insert(0,str(root/'benchmarks'))
+from qualification_native import run_worker
+base=runpy.run_path(str(root/'.venv/run-qualification-trials.py'));OldTrial=base['Trial'];write=base['write']
+
+def strict(properties):return {'type':'object','properties':properties,'required':list(properties),'additionalProperties':False}
+text={'type':'string'};number={'type':'integer','minimum':1}
+reference=strict({'sha':text,'path':text,'start':number,'end':number})
+decision=strict({'donor':text,'need':text,'hypothesis':text,'disposition':{'type':'string','enum':['verified-gap','already-present','duplicate','not-useful','budget-deferred','unsupported','license-unresolved']},'reason':text,'source_evidence':{'type':'array','items':reference},'maw_evidence':{'type':'array','items':reference},'adaptation':text,'maintenance':text,'acceptance':text,'novelty':text,'evidence_level':{'type':'string','enum':['source-supported','unrun']},'legal_status':text})
+operation=strict({'op':{'type':'string','enum':['read','find','packet','backlog','pending']},'side':text,'path':text,'start':number,'end':number,'prefix':text,'needle':text,'queries':{'type':'array','items':strict({'kind':text,'name':text})}})
+ops={'type':'array','maxItems':6,'items':operation}
+plan_schema=strict({'need':text,'operations':ops,'reason':text})
+review_schema=strict({'decisions':{'type':'array','maxItems':12,'items':decision},'next_need':text,'next_operations':ops,'stop_reason':text,'unfinished_needs':{'type':'array','items':text}})
+
+class StagedTrial(OldTrial):
+ def __init__(self,name,freeze):
+  batch,arm,repeat=name.split('-');super().__init__(batch+'-'+arm+'-stage5r'+repeat,freeze);self.name=name;self.state['name']=name;self.state['protocol']='explicit stages/5';self.total=0;self.pending=0;self.complete=True;self.proposals=[];self.validated=[];self.stage_results=[];self.started=time.monotonic();self.save()
+ def session_record(self,result,tokens=0):
+  amount=tokens+self.pending;self.pending=0;return super().session_record(result,amount)
+ def acquire(self,identity,need):
+  if self.session is not None and identity not in self.meals:
+   if self.lease.get('action')=='search':self.session_record({'requests':0,'candidates':[{'repository':self.pool[identity]['repository'],'source':'distinct sealed-pool lead selected by own model stage'}]})
+   if self.lease.get('action')!='acquire':raise ValueError('controller must finish current lead before another acquisition')
+  was_new=identity not in self.meals;info=super().acquire(identity,need)
+  if was_new and self.session is not None and self.lease.get('action')=='acquire':
+   self.session_record({'meal_dir':info['meal']});self.session_record({'exploration':info['exploration']})
+  return info
+ def model(self,label,prompt,schema):
+  remaining=30000-self.total
+  schema=json.loads(json.dumps(schema))
+  need_ids=[n['id'] for n in self.definition['needs']]
+  for field in ('operations','next_operations'):
+   if field in schema['properties']:schema['properties'][field]['items']['properties']['side']={'type':'string','enum':['receiving',*self.pool]}
+  if 'need' in schema['properties']:schema['properties']['need']={'type':'string','enum':need_ids}
+  if 'next_need' in schema['properties']:schema['properties']['next_need']={'type':'string','enum':['',*need_ids]}
+  if 'decisions' in schema['properties']:
+   item=schema['properties']['decisions']['items']['properties'];item['donor']={'type':'string','enum':list(self.pool)};item['need']={'type':'string','enum':need_ids}
+  # Conservative admission bound, not a fabricated actual token count.
+  admission=5000+(len(prompt.encode('utf8'))+1)//2+3500
+  if remaining<admission:
+   self.state['stop_reason']='remaining-model-budget-cannot-bound-next-stage';self.save();return None
+  r=run_worker(self.output/label,prompt,[],lambda n,a: {'refused':'no model tools in explicit stage'},cwd=Path(json.loads((Q/'native-cwd.json').read_text())),model='gpt-5.6-sol',effort='low',output_schema=schema,token_limit=remaining,seconds=max(1,int(2700-(time.monotonic()-self.started))))
+  self.stage_results.append({'label':label,'status':r['status'],'usage_complete':r['usage_complete'],'usage':r['usage'],'seconds':r['seconds'],'budget_valid':r['budget_valid']})
+  if not r['usage_complete'] or not r['budget_valid']:
+   self.complete=False;self.state['stop_reason']='stage-model-usage-unavailable-or-overrun';self.save();return None
+  self.total+=r['usage']['totalTokens'];self.pending+=r['usage']['totalTokens']
+  try:return json.loads(r['messages'][-1])
+  except (ValueError,IndexError):self.state['stop_reason']='invalid-structured-final';return None
+ def context_text(self):
+  return json.dumps({'cli':('0.6.8' if self.arm=='baseline' else '0.6.9.dev0'),'source_packet_supported':self.arm=='candidate','receiving':{'project':self.maw,'sha':self.context['sha'],'target':'clean default; all source/policy/ledger facts frozen'},'needs':[{'id':n['id'],'flow':n['flow'],'observed':n['observed'],'ranges':[{k:v for k,v in ref.items() if k!='sha'} for ref in n['maw_evidence']]} for n in self.definition['needs']],'pool':[{'id':r['id'],'repository':r['repository']} for r in self.pool.values()],'pending':'Partial frozen default/open-work coverage. All #535/#539 work is already pending. Use pending/backlog operations for relevant source; unknown remains unknown.','constraints':'Python3.11+, Windows/Linux, existing dependencies, no donor execution/copy/publication/policy change; no shared judgments or historical-30 donors. Pretraining unknown.'},ensure_ascii=False)
+ def skill(self):return (Q/self.arm/'skills/eat/SKILL.md').read_text(encoding='utf8')
+ def execute(self,plan):
+  need=plan['need'];operations=plan['operations']
+  if need not in {n['id'] for n in self.definition['needs']}:raise ValueError('unknown receiving need')
+  donors={op['side'] for op in operations if op['side']!='receiving' and op['op'] not in ('backlog','pending')}
+  if len(donors)>1:raise ValueError('one independently qualified donor per stage, under shared six-donor cap')
+  converted=[]
+  for op in operations:
+   row=dict(op)
+   if row['op']=='packet':row.update(donor=row['side'],paths=[row['path']],related=False)
+   if row['op']=='read' and row['end']-row['start']>59:raise ValueError('staged read cap is 60 lines')
+   converted.append(row)
+  # Receiving-first operations cannot consume a whole transport before donor
+  # evidence: execute the complete bounded selection, retain every omission.
+  out=[]
+  for op in converted:
+   try:out.append(self.dispatch('investigate',{'need':need,'operations':[op]}))
+   except Exception as exc:out.append({'error':type(exc).__name__,'reason':str(exc)[:700]})
+  rendered=json.dumps(out,ensure_ascii=False)
+  if len(rendered)>11000:
+   # No partial JSON or false inspected-range claim: keep selected source
+   # outputs whole until the cap; identify omitted operation indices.
+   selected=[];omitted=[];size=0
+   # Put donor ranges before receiving ranges while retaining original indices.
+   order=sorted(range(len(out)),key=lambda i: converted[i]['side']=='receiving')
+   for i in order:
+    item={'operation_index':i,'result':out[i]};amount=len(json.dumps(item,ensure_ascii=False))
+    if size+amount<=10000:selected.append(item);size+=amount
+    else:omitted.append(i)
+   result={'selected_outputs':selected,'omitted_operation_indices':omitted,'coverage':'omitted outputs were not supplied to model'}
+  else:result=out
+  write(self.output/f'facts-{len(self.stage_results)}.json',{'plan':plan,'supplied':result});return result
+ def record_decisions(self,rows):
+  for d in rows:
+   if len(self.proposals)>=12:break
+   index=len(self.proposals);self.proposals.append(d)
+   try:
+    info=self.meals[d['donor']];rec={**d,'kind':'decision','reviewed':d['disposition'] not in ('budget-deferred','unsupported','license-unresolved'),'author':'independent native model','tool':'codex0.146.1/gpt-5.6-sol/low staged','attempt':self.name+'-'+str(index)}
+    self.jsoncli(['explore','record',info['exploration']],rec);self.validated.append(index)
+   except Exception as exc:self.state.setdefault('record_errors',[]).append({'index':index,'reason':str(exc)[:700]})
+  if self.session is not None and self.lease.get('action')=='verify':
+   self.session_record({'evidence_level':'source-supported','result':'Actual immutable source ranges; no runtime probe executed. Source proposal only.'})
+   if self.lease.get('action')=='decide':
+    for d in rows:
+     if d not in [self.proposals[i] for i in self.validated]:continue
+     if d['donor'] in self.meals and self.meals[d['donor']]['exploration']==next(reversed(self.meals.values()))['exploration']:
+      self.session_record({k:d[k] or 'unknown' for k in ['hypothesis','disposition','reason','adaptation','maintenance','novelty']});break
+ def run(self):
+  instructions=('This is an explicit independent qualification stage, not an interactive tool turn. Return only schema-conforming JSON. No tool calls, commentary or tasks outside the trial. The trusted host executes the installed CLI. Follow this arm\'s matching skill:\n'+self.skill()+'\nFROZEN CONTEXT:\n'+self.context_text())
+  planner=instructions+'\nPLANNING ONLY: Select one receiving need and ONE most relevant donor from the sealed pool. Request at most six bounded inert operations: actual donor source/test plus actual receiving source/test and a relevant pending/backlog check in the same batch. Do not forecast findings. read needs side, path, start/end (<=60 lines); find scans at most32 files under prefix for a literal needle, four hits; packet (candidate only) needs side donor id, path and Python queries; backlog/pending use needle. Empty strings, queries=[] and start=end=1 fill unused schema fields. No tree-only phase. Prefer precise known source paths; a missing path remains explicit. No donor code executes. The host can stop before another model stage under the total 30000-token cap.'
+  plan=self.model('stage-1-plan',planner,plan_schema)
+  if plan is not None:
+   write(self.output/'plan.json',plan)
+   try:facts=self.execute(plan)
+   except Exception as exc:facts={'error':type(exc).__name__,'reason':str(exc)[:800]}
+   for stage_round in range(2):
+    evaluator=instructions+'\nEVALUATION: Inspect the actual supplied untrusted facts below. Return only evidenced decisions. No source-supported proposal is an executed runtime proof or independent acceptance. A verified-gap disposition is a proposal for separate review, requiring a concrete receiving benefit, adaptation/cost/acceptance and actual default/pending novelty. If pending is unknown, say so; do not fabricate reads/probes/licenses. Give exact ranges actually supplied. Already-present/duplicate/held outcomes may request one DISTINCT donor and bounded next operations for a supported replacement under the same caps; no repeated exhausted lead. At most12 total hypotheses, two replacements per need. Use next_operations=[] when evidence or budget is insufficient and preserve unfinished needs. No effect/publication.\nOWN PLAN AND ACTUAL FACTS:\n'+json.dumps({'plan':plan,'facts':facts,'previous_decisions':self.proposals,'remaining_total_model_tokens':30000-self.total},ensure_ascii=False)
+    review=self.model('stage-'+str(stage_round+2)+'-evaluate',evaluator,review_schema)
+    if review is None:break
+    self.state['stop_reason']=review['stop_reason'];self.state['unfinished_needs']=review['unfinished_needs'];self.record_decisions(review['decisions'])
+    if not review['next_operations']:break
+    if len(self.proposals)>=12:break
+    plan={'need':review['next_need'],'operations':review['next_operations'],'reason':'own independent supported replacement'}
+    try:facts=self.execute(plan)
+    except Exception as exc:facts={'error':type(exc).__name__,'reason':str(exc)[:800]}
+  self.state.update(actual_model_tokens=self.total if self.complete else None,observed_model_tokens=sum(r['usage']['totalTokens'] for r in self.stage_results if r['usage']),model_budget_valid=self.complete and self.total<=30000 and time.monotonic()-self.started<=2700,stages=self.stage_results,validated_decisions=self.validated,seconds=round(time.monotonic()-self.started,3),pending_model_charge=self.pending)
+  if self.session is not None:
+   try:
+    if not self.complete:self.jsoncli(['discover','stop',self.session,'--reason','usage-unavailable'])
+    else:
+     # A final stage that produces no match still settles actual model use at
+     # source verification; no guessed usage or publication follows.
+     if self.pending and self.lease.get('action')=='verify':self.session_record({'evidence_level':'unrun','reason':'No valid matching evidence decision before host stop'})
+     self.jsoncli(['discover','stop',self.session,'--reason','external-dependency'])
+    self.state['session_report']=self.jsoncli(['discover','report',self.session])
+   except Exception as exc:self.state['session_settlement_error']=str(exc)[:800]
+  write(self.output/'proposal.json',{'decisions':self.proposals,'stop_reason':self.state.get('stop_reason'),'unfinished_needs':self.state.get('unfinished_needs')});self.save()
+  print(json.dumps({'trial':self.name,'actual_model_tokens':self.state['actual_model_tokens'],'observed_model_tokens':self.state['observed_model_tokens'],'budget_valid':self.state['model_budget_valid'],'decisions':len(self.proposals),'validated':len(self.validated),'donors':self.state['acquired'],'stop':self.state.get('stop_reason'),'session_error':self.state.get('session_settlement_error')},ensure_ascii=False),flush=True)
+
+if __name__=='__main__':
+ f=json.loads((Q/'sealed-stage5.json').read_text(encoding='utf8'));StagedTrial(sys.argv[1],f).run()
