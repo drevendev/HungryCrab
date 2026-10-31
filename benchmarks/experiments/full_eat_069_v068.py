@@ -165,10 +165,26 @@ def child_acquire(args):
     provider = read_marker(Path(args.cache)/"github"/owner/name/"api"/"repo.json")
     if provider.get("private") is not False:
         raise ValueError("refusing an unconfirmed public input before Git acquisition")
-    result = catch(Slug(owner, name), CatchOptions(shallow=True, wiki=False, issues=0,
-                   acquisition_volume=Path(args.volume), max_download_bytes=1073741824,
-                   max_disk_bytes=8589934592), cache_root=Path(args.cache),
-                   log=lambda s: print(s, flush=True))
+    from hungry_crab.fetch.acquisition import AcquisitionBudget
+    from hungry_crab.fetch.git import GitRunner
+    from hungry_crab.fetch.cache_identity import atomic_cache_text
+    boundary = AcquisitionBudget(Path(args.volume), Path(args.cache), 1073741824, 8589934592)
+    with boundary.scope():
+        result = catch(Slug(owner, name), CatchOptions(shallow=True, wiki=False, issues=0,
+                       max_download_bytes=1073741824, max_disk_bytes=8589934592),
+                       cache_root=Path(args.cache), log=lambda s: print(s, flush=True))
+        if result.sha != args.expected:
+            runner = GitRunner(Path(result.repo_dir), github_token=os.environ.get("GITHUB_TOKEN"))
+            boundary.require_url(result.url)
+            runner.run("fetch", "--no-tags", "--depth=1", "origin", args.expected)
+            runner.run("-c", "core.hooksPath=/dev/null", "reset", "--hard", "--quiet", args.expected)
+            if runner.head_sha() != args.expected:
+                raise ValueError("frozen revision could not be established")
+            result.sha = args.expected
+            atomic_cache_text(Path(result.repo_dir).parent/"catch.json",
+                              json.dumps(result.to_dict(), indent=2)+"\n",
+                              cache_root=Path(args.cache))
+        boundary.check()
     dump(args.result, {"catch": result.to_dict(), "tool": installed_source_identity(), "completed_at": utc()})
     print("ACQUISITION_RESULT "+json.dumps({"repo": args.repo, "sha": result.sha}), flush=True)
 
@@ -266,7 +282,8 @@ def orchestrate(args):
         try:
             status = run_child(Path(__file__), ["--mode", "acquire", "--repo", repo,
                           "--arm", str(sources["v0.6.9.dev0"]), "--volume", str(volume),
-                          "--cache", str(cache), "--result", str(record)], log, timeout=900)
+                          "--cache", str(cache), "--result", str(record), "--expected",
+                          maw["expected_sha"] if repo == maw["repo"] else next(p["expected_sha"] for p in plan["pairs"] if p["prey"] == repo)], log, timeout=900)
             if status["exit_code"] == 0 and record.exists():
                 data = read_marker(record)
                 if data["catch"]["slug"].casefold() != repo.casefold():
@@ -369,7 +386,7 @@ def orchestrate(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["orchestrate","acquire","compare"], default="orchestrate")
-    for flag in ("plan","batch","output","volume","arm","repo","cache","result","maw","snapshot"):
+    for flag in ("plan","batch","output","volume","arm","repo","cache","result","maw","snapshot","expected"):
         parser.add_argument("--"+flag)
     args = parser.parse_args()
     if args.mode == "acquire":
