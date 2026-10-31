@@ -18,25 +18,13 @@
   },
   "receiving": {
     "HungryCrab": {
-      "sha": "9f8540b14e0059592bdf916526fdc2160390bbae",
+      "sha": "9a0fe4010999059b1a872533d072ad62b3c44873",
       "pending": [
         {
           "number": 539,
           "title": "feat: implement 0.6.9 discovery, selection and applicable grants",
           "head": "68bda16c805b6f302d105d8d464c597d50c07ca5",
           "base": "9f8540b14e0059592bdf916526fdc2160390bbae"
-        },
-        {
-          "number": 538,
-          "title": "fix(serve): deduplicate when issue client is implicit",
-          "head": "c29a1721016dc4f7a93887e53e087dc57d780d4c",
-          "base": "9f8540b14e0059592bdf916526fdc2160390bbae"
-        },
-        {
-          "number": 515,
-          "title": "chore(deps-dev): bump the python group with 2 updates",
-          "head": "a6c81847887fb6fb6ecfe863558008bc13baaa80",
-          "base": "e8941f4a3e285161634ac290c50f67b45f228dca"
         }
       ],
       "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
