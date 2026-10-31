@@ -786,13 +786,20 @@ def find_source_header(text: str, *, path: str = "") -> str | None:
     if path.endswith((".py", ".pyi")):
         try:
             comments = []
-            for count, token in enumerate(
-                tokenize.generate_tokens(io.StringIO("\n".join(lines)).readline)
-            ):
+            for count, token in enumerate(tokenize.generate_tokens(io.StringIO(text).readline)):
                 if count >= 10_000:
                     return "NOASSERTION"
+                if token.start[0] > 80:
+                    break
                 if token.type == tokenize.COMMENT:
                     comments.append(token.string)
+                elif token.type not in {
+                    tokenize.NL,
+                    tokenize.NEWLINE,
+                    tokenize.ENCODING,
+                    tokenize.ENDMARKER,
+                }:
+                    break  # only the leading comment region is a source header
             lines = comments
         except (tokenize.TokenError, IndentationError, SyntaxError):
             return "NOASSERTION" if "SPDX-License-Identifier:" in text[:8000] else None

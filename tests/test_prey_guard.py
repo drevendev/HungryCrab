@@ -2480,10 +2480,10 @@ def test_a_clone_with_the_config_catch_writes_stays_readable(home: Path) -> None
         f"git -C {spelled} log > {spelled}/x",
     ):
         assert guard_reason(command, root=root, cwd=cwd) is not None, command
-    # PowerShell keeps 0.6.1's read cmdlets: Windows PowerShell 5.1 splits a quoted argument
+    assert _powershell(f"git -C {spelled} log --oneline -5", home) is None
+    # Windows PowerShell 5.1 splits a quoted argument
     # with `\"` in it into two native arguments, so a `--output` reaches git unseen.
     for command in (
-        f"git -C {spelled} log --oneline -5",
         f"git -C {spelled} log -1 '--format=%B \\' ' --output=Makefile'",
         f"git -C {spelled} grep -l 'x \\' ' -Osh' prey",
         f"git -C {spelled} log '--format=%B','--output=Makefile'",

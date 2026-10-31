@@ -32,6 +32,10 @@ def test_source_headers_ignore_strings_and_conflicting_comments() -> None:
     assert not allows_alternative("MIT AND Apache-2.0", "MIT")
     assert not allows_alternative("(MIT AND Apache-2.0) OR BSD-3-Clause", "MIT")
     assert allows_alternative("MIT OR Apache-2.0", "MIT")
+    # Truncating tokenization at line 80 must not invalidate a real leading grant.
+    long_source = "# SPDX-License-Identifier: MIT\n" + "x = 1\n" * 77 + "x = (\n1\n)\n"
+    assert find_source_header(long_source, path="a.py") == "MIT"
+    assert find_source_header("VALUE = 1\n# SPDX-License-Identifier: MIT\n", path="a.py") is None
 
 
 def test_explicit_reuse_or_branch_preserves_declared_scope_and_notices() -> None:

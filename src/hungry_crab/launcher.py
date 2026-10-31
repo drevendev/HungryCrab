@@ -17,7 +17,11 @@ MARKER = "# HungryCrab owned interpreter launcher v1\n"
 
 def install_launcher(path: Path) -> Path:
     """Write our exact launcher; no PATH edits, shell quoting or App Control changes."""
-    interpreter = Path(sys.executable).resolve(strict=True)
+    # Resolving a venv's Python symlink selects the base interpreter on Unix,
+    # losing the installed package. Preserve the trusted running interpreter route.
+    interpreter = Path(sys.executable).absolute()
+    if not interpreter.is_file():
+        raise CrabError("running interpreter is unavailable for the owned launcher")
     # repr produces a Python string literal, never shell command text.
     literal = repr(str(interpreter))
     content = (
