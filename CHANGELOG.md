@@ -19,6 +19,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Python AST queries and targeted history/issue evidence (#484–#492, #534).
 - Capture actual bounded original receiving probes and receiving-bound design
   acceptance artifacts; plain PASS declarations cannot establish execution (#488).
+- Settle idempotent owned model-use receipts independently from semantic action
+  success. Preserve late/unknown/overrun costs without advancing a phase or
+  granting work; refresh remaining-budget advice and bound event writes (#541).
 - Navigate real pinned paths and qualified Python declarations before source
   selection; continue exact ranges and page source/notice evidence with hash-bound
   cursors instead of discarding large results. Retain explicit omissions (#540).
