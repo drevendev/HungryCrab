@@ -11,9 +11,9 @@
   },
   "candidate": {
     "version": "0.6.9.dev0",
-    "sha": "60228cb7ca88e54823650e82b3b437413bd6902b",
+    "sha": "5f919b9bbfc46d4f579884635681546f43b7c1c6",
     "skills": "matching source commit",
-    "installed_source_sha256": "20f01b11518d4ad173039f0627a47200fc96cef6a26a4513adc5f126ab483d10"
+    "installed_source_sha256": "1da8c6dff5eabbc476976b6a4948fb8dd4d63a25f6342ef5c8377d4e78a54a80"
   },
   "receiving": {
     "HungryCrab": {
