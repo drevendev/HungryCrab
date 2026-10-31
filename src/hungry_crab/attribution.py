@@ -897,13 +897,26 @@ class GitSourceReader:
     def expired(self) -> bool:
         return self.deadline is not None and time.monotonic() >= self.deadline
 
+    def _bounded_read(self, *args: str, stdout_limit: int | None = None) -> str | None:
+        if self.expired():
+            return None
+        timeout = None
+        if self.deadline is not None:
+            timeout = max(0.001, min(5, self.deadline - time.monotonic()))
+        if stdout_limit is None and timeout is None:
+            return self.git.try_run(*args)
+        return self.git.try_run(*args, timeout=timeout, stdout_limit=stdout_limit)
+
     # A path after `<sha>:` resolves from the top of the repository; `./` resolves it from the
     # directory the reader was opened at, which is the prey when the prey is a subdirectory.
     def exists(self, sha: str, path: str) -> bool:
         if self.expired():
             return False
-        return self.git.ok(
-            "--no-replace-objects", "cat-file", "-e", f"{sha}:{self._path_prefix}{path}"
+        return (
+            self._bounded_read(
+                "--no-replace-objects", "cat-file", "-e", f"{sha}:{self._path_prefix}{path}"
+            )
+            is not None
         )
 
     def read(self, sha: str, path: str) -> str | None:
@@ -912,12 +925,12 @@ class GitSourceReader:
         key = (sha, path)
         if key in self._texts:
             return self._texts[key]
-        size = self.git.try_run(
+        size = self._bounded_read(
             "--no-replace-objects", "cat-file", "-s", f"{sha}:{self._path_prefix}{path}"
         )
         if size is None or not size.strip().isdigit() or int(size.strip()) > self.byte_limit:
             return None
-        text = self.git.try_run(
+        text = self._bounded_read(
             "--no-replace-objects",
             "show",
             f"{sha}:{self._path_prefix}{path}",
@@ -946,7 +959,7 @@ class GitSourceReader:
         # `<sha>:./` is the tree of the directory the clone was opened at, which is the prey's
         # root when the prey is a subdirectory of a larger repository; `--full-tree` keeps
         # ls-tree from filtering that tree's entries by the same directory a second time.
-        listing = self.git.try_run(
+        listing = self._bounded_read(
             "--no-replace-objects",
             "ls-tree",
             "--full-tree",

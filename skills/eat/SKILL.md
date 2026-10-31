@@ -27,6 +27,8 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    For a full invocation, freeze `crab discover context --maw .` in an external session plan,
    then `crab discover init SESSION --maw . --plan PLAN.json`. Needs include receiving ranges,
    backlog/default/pending-work coverage and real limits. Do not forecast useful-change quotas.
+   An open request is not implementation: a new evidenced mechanism may address that issue.
+   Exclude equivalent existing/pending implementations; link existing requests without filing duplicates.
 2. **Qualify and acquire.** Run `crab sniff <prey> --maw .`; pin an immutable revision and
    establish its operative grant. Honor any narrower donor policy, including MIT-only.
    HUMAN needs a human licence decision before transfer; IDEAS_ONLY carries ideas only.
@@ -46,7 +48,12 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    channels remain not-acquired. An architecture/historical question may be delegated to
    `crab-architect`/`crab-historian` with the same scope and evidence requirements.
    Use `crab discover search --input SEARCH.json` for optional GitHub code or GitLab repository
-   queries, `packet` for pinned source/import/test windows and Python AST queries, and `history`
+   queries. Use `discover index --input INDEX.json` with the actual `repo`, `sha`, `need` and
+   literal path `terms` before selecting real filenames/declaration ranges; guessed paths and
+   arbitrary first lines are not source investigation. Use `packet` for pinned source/import/test
+   windows and Python AST queries. Continue clipped declarations using explicit `ranges`;
+   page an existing packet with `discover view` and its hash-bound cursor instead of dropping
+   an oversized result. Pages are evidence views, not permission or model-usage receipts. Use `history`
    or `issues` only when a concrete hypothesis needs deeper evidence. Inspect actual ranges.
 5. **Record actual coverage.** Use `crab explore record <exploration> --input record.json`.
    Each reviewed decision needs its own hypothesis, donor revision/path/range, receiving

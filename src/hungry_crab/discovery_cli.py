@@ -55,10 +55,12 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
         choices=("usage-unavailable", "external-dependency", "policy-or-legal-dependency"),
         help="actual unresolved dependency; unknown usage cannot become zero",
     )
-    for name in ("packet", "search", "rank", "frontier", "history", "issues"):
+    for name in ("index", "view", "packet", "search", "rank", "frontier", "history", "issues"):
         command = commands.add_parser(
             name,
             help={
+                "index": "list real pinned source/test paths and declaration ranges",
+                "view": "page an existing inert source artifact without discarding large fields",
                 "packet": "read bounded immutable source/test ranges",
                 "search": "execute a bounded provider query batch",
                 "rank": "rank marginal need coverage while keeping occurrences",
@@ -102,21 +104,84 @@ def _run_discover(args: argparse.Namespace) -> int:
         result = report(args.directory)
     elif action == "stop":
         result = stop(args.directory, args.reason)
+    elif action == "view":
+        from .source_view import evidence_page
+
+        plan = read_object(args.input)
+        result = evidence_page(
+            read_object(Path(plan["artifact"])),
+            budget=plan.get("budget", 1800),
+            cursor=plan.get("cursor"),
+        )
+    elif action == "index":
+        from .source_inspection import source_index
+
+        plan = read_object(args.input)
+        result = source_index(
+            Path(plan["repo"]),
+            plan["sha"],
+            need=plan["need"],
+            terms=plan.get("terms", []),
+            prefix=plan.get("prefix", ""),
+            limit=plan.get("limit", 24),
+            symbol_files=plan.get("symbol_files", 8),
+        )
     elif action == "packet":
-        from .source_inspection import source_packet
+        from .source_inspection import source_index, source_packet
 
         plan = read_object(args.input)
         try:
+            navigation = None
+            paths = plan.get("paths")
+            queries = plan.get("queries", [])
+            ranges = plan.get("ranges")
+            if paths is None and isinstance(ranges, list):
+                paths = list(dict.fromkeys(row["path"] for row in ranges))
+            if paths is None:
+                terms = plan.get("terms")
+                if not terms:
+                    raise CrabError(
+                        "automatic source selection requires bounded literal path terms"
+                    )
+                navigation = source_index(
+                    Path(plan["repo"]),
+                    plan["sha"],
+                    need=plan["need"],
+                    terms=terms,
+                    prefix=plan.get("prefix", ""),
+                    limit=4,
+                    symbol_files=4,
+                )
+                paths = [row["path"] for row in navigation["files"]]
+                if not queries:
+                    queries = [
+                        {
+                            "kind": symbol["kind"],
+                            "name": symbol.get("qualified_name", symbol["name"])
+                            if len(symbol.get("qualified_name", symbol["name"])) <= 100
+                            else symbol["name"],
+                        }
+                        for row in navigation["files"]
+                        for symbol in row["symbols"]
+                        if any(
+                            term.casefold()
+                            in symbol.get("qualified_name", symbol["name"]).casefold()
+                            for term in terms
+                        )
+                    ][:8] or [{"kind": "function"}, {"kind": "class"}]
             result = source_packet(
                 Path(plan["repo"]),
                 plan["sha"],
-                plan["paths"],
-                plan.get("queries", []),
+                paths,
+                queries,
                 need=plan["need"],
                 source_url=plan.get("source_url"),
                 byte_budget=plan.get("byte_budget", 131_072),
                 related=plan.get("related", True),
+                ranges=ranges,
             )
+            if navigation is not None:
+                result["navigation"] = navigation
         except (KeyError, TypeError, ValueError) as exc:
             raise CrabError("invalid bounded source packet plan") from exc
     elif action == "search":
