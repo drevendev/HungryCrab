@@ -1,0 +1,69 @@
+name: Full eat 0.6.9.dev0 versus 0.6.8
+on:
+  push:
+    branches: [codex/full-eat-069-v068-2026-10-31]
+    paths: [.github/workflows/full-eat-069-v068-20261031.yml]
+permissions:
+  contents: read
+concurrency:
+  group: full-eat-069-v068-20261031-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  compare:
+    name: Paired public cohort (${{ matrix.batch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        batch: [crab, devostasis, beautifulrepo]
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+      FEAST_OUTPUT: ${{ github.workspace }}/feast-results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: '3.11'
+      - name: Prepare trusted comparison runtime
+        run: |
+          uv venv "$RUNNER_TEMP/feast-runtime" --python 3.11
+          uv pip install --python "$RUNNER_TEMP/feast-runtime/bin/python" PyYAML==6.0.3
+      - name: Provision the fixed 8 GiB acquisition filesystem
+        id: volume
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          "$RUNNER_TEMP/feast-runtime/bin/python" scripts/acquisition_volume.py prepare 8589934592
+      - name: Acquire public snapshots and execute both exact releases twice
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          "$RUNNER_TEMP/feast-runtime/bin/python" -B benchmarks/experiments/full_eat_069_v068.py \
+            --plan benchmarks/experiments/full_eat_069_v068.json \
+            --batch "${{ matrix.batch }}" \
+            --volume "${{ steps.volume.outputs.volume }}" \
+            --output "$FEAST_OUTPUT"
+      - name: Upload raw receipts, complete digests and bounded inert evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: full-eat-069-v068-${{ matrix.batch }}
+          path: ${{ env.FEAST_OUTPUT }}
+          retention-days: 14
+          include-hidden-files: true
+          compression-level: 6
+          if-no-files-found: warn
+      - name: Detach and clean the owned acquisition filesystem
+        if: always() && steps.volume.outputs.root != ''
+        env:
+          CRAB_QUOTA_ROOT: ${{ steps.volume.outputs.root }}
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          "$RUNNER_TEMP/feast-runtime/bin/python" scripts/acquisition_volume.py cleanup "$CRAB_QUOTA_ROOT"
