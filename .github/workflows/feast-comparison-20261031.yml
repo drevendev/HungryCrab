@@ -1,4 +1,5 @@
 name: Public feast comparison 2026-10-31
+# Shared acquisition includes public metadata reconnaissance before Git catch.
 on:
   push:
     branches: [codex/feast-comparison-2026-10-31]
