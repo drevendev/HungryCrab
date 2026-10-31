@@ -128,8 +128,10 @@ new qualification before complete-discovery release readiness can be claimed.
 
 The JSON lists exact inert `.py.txt` execution-source snapshots, original artifact
 hashes, independent reviews/arbitrations and all later calibration/prototype result
-records. The archived common host is byte-identical to the earlier common snapshot.
-The governing native adapter is hash-bound in the seal. Failed dynamic-tool pilots
+records. The common/native hosts also have exact-byte follow-up snapshots. A narrow
+Git attribute preserves their original line endings and pre-trial hashes on every
+platform; ordinary source files retain the repository's LF policy. The governing
+native adapter is hash-bound in the seal. Failed dynamic-tool pilots
 and oversized review attempts retain unknown final usage with observed lower bounds;
 they are excluded from comparative trial totals, never reported as free. The second
 pool's incomplete calibration is not a completed paired study.
