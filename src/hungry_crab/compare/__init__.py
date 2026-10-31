@@ -243,6 +243,7 @@ def compare_digests(
             "runtime_ecosystems": sorted(prey.compatible_ecosystems - prey.ecosystems),
             "evidence_capability": prey.evidence_capability,
             "objects": str(prey_objects.resolve()) if prey_objects is not None else None,
+            "root": str(prey_root.resolve()) if prey_root is not None else None,
         },
         "maw": {
             "label": maw.label,

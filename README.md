@@ -55,6 +55,10 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 The [0.6.5 execution report](docs/experiments/discovery-453-report.md) records the bounded
 public replay and its remaining unexplored facets.
 
+The planned [0.6.9 scope](docs/releases/0.6.9-scope.md) brings together the full
+supervised discovery cycle, selection quality and MIT/path-licence corrections.
+Implementation and independent qualification are pending; 0.6.8 remains released.
+
 ## The metaphor, in five words
 
 | Term | Meaning |

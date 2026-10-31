@@ -43,6 +43,7 @@ class FileInfo:
     # Why the file is left out of the analysis when the flags alone cannot say: a sample
     # corpus and an example tree are both marked ``vendored``, and build output ``generated``.
     exclusion: str | None = None
+    classification_origin: dict[str, str] = field(default_factory=dict)
 
     @property
     def counted(self) -> bool:

@@ -4715,13 +4715,23 @@ def _powershell_read_only(command: str, tokens: list[str]) -> bool:
     return True
 
 
-def _powershell_allowlist_reason(command: str) -> str | None:
+def _powershell_allowlist_reason(command: str, *, root: Path, cwd: Path) -> str | None:
     if _LINE_BREAK.search(command):
         return "cache-touching multi-line command is not established read-only (AGENTS.md rule 3)"
     normalized = _powershell_normalize(command)
     tokens = None if normalized is None else _powershell_tokens(normalized)
     if normalized is None or tokens is None:
         return "cache-touching command could not be parsed safely (AGENTS.md rule 3)"
+    # Native argv on PS 5.1 has additional quote reparsing. Admit only the
+    # literal, single-quoted/unquoted subset and reuse the exact Git read model.
+    if (
+        tokens
+        and _program(tokens[0]) == "git"
+        and not any(c in command for c in ('"', "`", "$", "\n", "\r"))
+        and not any(_is_punctuation(t) for t in tokens)
+        and _simple_read_only(tokens, root=root, cwd=cwd)
+    ):
+        return None
     if not _powershell_read_only(normalized, tokens):
         return (
             "cache-touching PowerShell command is not a read cmdlet with literal arguments "
@@ -5070,7 +5080,29 @@ def _rg_is_read_only(args: list[str]) -> bool:
 # Filters a read may be piped into: they read their input and print, and run nothing.
 # None of their options writes a file or starts a program; `sort` and `uniq` have both
 # (`sort --compress-program`, `sort -o`, `uniq IN OUT`), and GNU sort takes abbreviations.
-_PIPE_FILTERS = frozenset({"head", "tail", "grep", "egrep", "fgrep", "wc", "cut"})
+_PIPE_FILTERS = frozenset({"head", "tail", "grep", "egrep", "fgrep", "wc", "cut", "sort", "uniq"})
+
+
+def _inert_sort_filter(stage: list[str]) -> bool:
+    allowed = (
+        {
+            "-n",
+            "-r",
+            "-u",
+            "-f",
+            "-s",
+            "--numeric-sort",
+            "--reverse",
+            "--unique",
+            "--ignore-case",
+            "--stable",
+        }
+        if _program(stage[0]) == "sort"
+        else {"-c", "-d", "-u", "--count", "--repeated", "--unique"}
+    )
+    # No operands, output destinations, abbreviations, option clusters,
+    # temporary paths or executable/compression options.
+    return all(arg in allowed for arg in stage[1:])
 
 
 def _read_pipeline(tokens: list[str], *, root: Path, cwd: Path) -> bool:
@@ -5090,6 +5122,8 @@ def _read_pipeline(tokens: list[str], *, root: Path, cwd: Path) -> bool:
         if _ASSIGNMENT.match(head) or _ASSEMBLY.search(head) or "/" in head or "\\" in head:
             return False
         if _program(head) not in _PIPE_FILTERS:
+            return False
+        if _program(head) in {"sort", "uniq"} and not _inert_sort_filter(stage):
             return False
     return True
 
@@ -5180,7 +5214,7 @@ def _decide(command: str, *, root: Path, cwd: Path, shell: Shell, deadline: floa
     if not verdict.reaches:
         return None
     if shell == "powershell":
-        return _powershell_allowlist_reason(command)
+        return _powershell_allowlist_reason(command, root=cache, cwd=here)
     return _bash_allowlist_reason(command, root=cache, cwd=here)
 
 

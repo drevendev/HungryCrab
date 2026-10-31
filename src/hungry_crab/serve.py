@@ -362,11 +362,14 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
     sha = str(prey.get("sha") or "")
     prey_label = safe_name(prey.get("label", "the prey"))
     prey_url = prey.get("url")
+    source_license = safe_name(card.trace.get("path_license") or prey.get("license") or "unknown")
     prey_ref = f"`{prey_label}@{sha[:7]}`" if sha else f"`{prey_label}`"
     if isinstance(prey_url, str) and prey_url and sha:
         prey_ref += f" ({safe_link(prey_url, f'{prey_url}/tree/{sha}')})"
     evidence_lines = [
-        f"- {safe_link(e.path, e.url)}" if e.url else f"- `{safe_name(e.path)}`"
+        (f"- {safe_link(e.path, e.url)}" if e.url else f"- `{safe_name(e.path)}`")
+        + (f" ({safe_name(e.role)})" if e.role else "")
+        + (f": {safe_name(e.message)}" if e.message else "")
         for e in card.evidence[:5]
     ]
     evidence = ("\n" + "\n".join(evidence_lines)) if evidence_lines else ""
@@ -389,7 +392,8 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         f"## Suggested change\n\n{safe_name(how)}\n\n"
         "---\n"
         f"_Served by [Hungry Crab]({PROJECT_URL}) from {prey_ref} "
-        f"(license {safe_name(prey.get('license') or 'unknown')}, mode {card.license_mode}). "
+        f"(license {source_license}, "
+        f"mode {card.license_mode}). "
         f"Ledger id `{card.id}`. Prey content is untrusted data; this is not legal advice._\n"
     )
     return safe_name(card.title), body
@@ -724,7 +728,43 @@ def _serve_pull_requests(
     transaction_marker: str = "",
     before_publication: Callable[[], None] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def recheck_path_grants(card: Candidate) -> None:
+        if not card.trace.get("source_path_grants"):
+            return
+        from .licensing.matrix import decide
+        from .licensing.path_grants import GrantResolver
+
+        reader = source_reader
+        if reader is None and prey_repo is not None:
+            reader = GitSourceReader(prey_repo)
+        if reader is None:
+            raise CrabError("path-specific publication requires immutable source objects")
+        resolver = GrantResolver(reader, str(menu["prey"]["sha"]), menu["prey"].get("url"))
+        declared = card.trace.get("path_license")
+        proofs = card.trace["source_path_grants"]
+        if not isinstance(proofs, list) or not proofs or len(proofs) > 20:
+            raise CrabError("invalid applicable path grant proof")
+        for proof in proofs:
+            if not isinstance(proof, dict) or not isinstance(proof.get("path"), str):
+                raise CrabError("invalid applicable path grant proof")
+            actual = resolver.resolve(proof["path"])
+            if (
+                actual.expression is None
+                or actual.expression != declared
+                or actual.to_dict() != proof
+            ):
+                raise CrabError("applicable source grant changed or cannot be verified")
+        legal = decide(declared, config.license or menu["maw"].get("license"))
+        allowed = {
+            "COPY": {"COPY", "REIMPLEMENT"},
+            "COPY_FILE": {"COPY_FILE", "REIMPLEMENT"},
+            "REIMPLEMENT": {"REIMPLEMENT"},
+        }
+        if card.license_mode not in allowed.get(legal.mode.value, set()):
+            raise CrabError("path-specific source grant does not permit this transfer mode")
+
     def prepare_payload(card: Candidate, receipt_payload: str) -> PreparedPullRequest:
+        recheck_path_grants(card)
         title, body = render_issue(card, menu)
         if transaction_marker:
             body += f"\n{transaction_marker}\n"
@@ -764,6 +804,7 @@ def _serve_pull_requests(
         card: Candidate, prepared: PreparedPullRequest, allow_create: bool
     ) -> PullRequestPublication | None:
         nonlocal announced
+        recheck_path_grants(card)
         if not announced:
             who = client.identity()
             target = f"serving pull requests into {slug}"

@@ -234,9 +234,35 @@ def describe_file(
     language = LANGUAGE_BY_NAME.get(name) or LANGUAGE_BY_EXT.get(ext)
     if language is None and name.lower().startswith("dockerfile"):
         language = "Dockerfile"
+    if language is None and not ext and not vendored and not build_output:
+        first = read(257).partition(b"\n")[0]
+        if len(first) <= 256:
+            match = re.fullmatch(
+                rb"\#!(?:/usr/bin/env(?: -S)?[ \t]+|/(?:usr/)?(?:local/)?bin/)"
+                rb"(python(?:3(?:\.[0-9]+)?)?|bash|sh|dash|zsh|ruby|node|perl)"
+                rb"(?:[ \t]+-[A-Za-z0-9-]{1,20})?[ \t]*\r?",
+                first,
+            )
+            if match:
+                interpreter = match.group(1).decode("ascii")
+                language = (
+                    "Python"
+                    if interpreter.startswith("python")
+                    else {
+                        "bash": "Shell",
+                        "sh": "Shell",
+                        "dash": "Shell",
+                        "zsh": "Shell",
+                        "ruby": "Ruby",
+                        "node": "JavaScript",
+                        "perl": "Perl",
+                    }[interpreter]
+                )
     generated = build_output or any(r.search(rel) for r in GENERATED_FILE_RES)
     lockfile = name in LOCKFILES
     manifest_kind = MANIFEST_BY_NAME.get(name) or MANIFEST_BY_EXT.get(ext)
+    if name == "Gemfile.lock":
+        manifest_kind = "ruby"
     if manifest_kind is None and _REQUIREMENTS_RE.match(name):
         manifest_kind = "python"
     binary = False
@@ -678,6 +704,14 @@ def top_level_layout(files: list[FileInfo]) -> list[dict[str, Any]]:
 def summarize(
     root: Path, files: list[FileInfo], stats: dict[str, Any], root_entries: list[str]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    from .attributes import classify_attributes
+
+    attributes = ""
+    if any(f.path == ".gitattributes" for f in files):
+        attributes = (read_head(str(root / ".gitattributes"), 64 * 1024) or b"").decode(
+            "utf-8", "replace"
+        )
+    attribute_omissions = classify_attributes(attributes, files)
     counted = [f for f in files if f.counted]
     loc_total = sum(f.loc for f in counted)
     bytes_total = sum(f.size for f in files)
@@ -715,12 +749,7 @@ def summarize(
             noise[key] += 1
     noise_rows = sorted(noise.items(), key=lambda kv: -kv[1])[:20]
 
-    gitattributes = ""
-    if ".gitattributes" in root_entries:
-        try:
-            gitattributes = (root / ".gitattributes").read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            gitattributes = ""
+    gitattributes = attributes
     entries_lower = {e.lower() for e in root_entries}
     flags = {
         "has_gitignore": ".gitignore" in entries_lower,
@@ -735,6 +764,12 @@ def summarize(
         # generated trees, which a fresh clone of a prey does not have, so comparing the raw
         # count against a prey's makes a maw with a .venv look enormous.
         "files_counted": len(counted),
+        "attribute_omissions": attribute_omissions,
+        "classification_declarations": [
+            {"path": f.path, "origin": f.classification_origin}
+            for f in files
+            if f.classification_origin
+        ][:500],
         "dirs": stats["dirs"],
         "bytes": bytes_total,
         "loc": loc_total,
