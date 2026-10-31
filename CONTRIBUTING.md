@@ -37,7 +37,7 @@ version from `uv.lock` rather than independent version pins.
   measures this trait in the repositories it eats and must pass its own check.
 - The CLI is deterministic and makes no LLM calls, but it is not blanket-offline. Online and permission boundaries:
   - `sniff` queries GitHub; `catch` fetches or refreshes remote Git repositories. Some modes use authenticated `gh`, while other reads use Git/HTTPS.
-  - `compare` can query GitHub Issues for duplicate nutrients unless `--no-issues` is passed; it can also fetch uncached remote prey. `menu` and `serve` may fetch uncached prey even when their later processing is local.
+  - `compare` can query GitHub Issues for duplicate nutrients unless `--no-issues` is passed; it can also fetch uncached remote prey. `menu` and `serve` resolve existing meals locally and never catch a donor for review. Effectful serving still rechecks authority.
   - `update` checks for remote CLI/plugin changes.
   - `serve` defaults to `--as dry-run`, which previews without publishing. Explicit `--as issue` and `--as pr-branch` can create GitHub Issues/branches/PRs; run them only with deliberate approval and suitable write permissions/authentication. Never exercise publishing modes during local unit tests.
   - For offline development, run the local checks above against local fixtures, and avoid remote-prey inputs, GitHub issue lookups, updates and publishing modes. See #229 for the wider documentation audit.

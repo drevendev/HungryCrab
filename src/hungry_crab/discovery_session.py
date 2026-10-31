@@ -13,7 +13,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from .analysis_context import fingerprint, receiving_context
+from .analysis_context import fingerprint, installed_source_identity, receiving_context
 from .artifact_read import read_object
 from .attribution import GitSourceReader
 from .config_edit import atomic_text
@@ -98,6 +98,8 @@ def initialize(
     directory: Path, maw: Path, plan: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
+    if len(json.dumps(plan, ensure_ascii=False).encode()) > 256_000:
+        raise CrabError("discovery plan exceeds its byte budget")
     context = live_context(maw)
     if directory.resolve().is_relative_to(maw.resolve()):
         raise CrabError("discovery state must be outside the receiving worktree")
@@ -161,6 +163,7 @@ def initialize(
         )
     value: dict[str, Any] = {
         "schema": SCHEMA,
+        "tool": installed_source_identity(),
         "created_at": instant.isoformat(),
         "context": context,
         "plan": plan,
@@ -177,7 +180,7 @@ def initialize(
     return summary(value)
 
 
-def _load(directory: Path) -> dict[str, Any]:
+def _load(directory: Path, *, require_current: bool = True) -> dict[str, Any]:
     value = read_object(directory / "session.json")
     if value.get("schema") != SCHEMA or not isinstance(value.get("events"), list):
         raise CrabError("invalid discovery session")
@@ -197,7 +200,9 @@ def _load(directory: Path) -> dict[str, Any]:
             raise CrabError("discovery event chain is inconsistent")
         previous = event["sha256"]
     # The immutable receiving context is rechecked before leasing any new action.
-    if live_context(Path(value["context"]["root"])) != value["context"]:
+    if require_current and value.get("tool") != installed_source_identity():
+        raise CrabError("discovery tool changed; replan this session")
+    if require_current and live_context(Path(value["context"]["root"])) != value["context"]:
         raise CrabError("receiving context changed; replan this discovery session")
     return value
 
@@ -205,7 +210,10 @@ def _load(directory: Path) -> dict[str, Any]:
 def _save(directory: Path, value: dict[str, Any]) -> None:
     value.pop("state_sha256", None)
     value["state_sha256"] = fingerprint(value)
-    atomic_text(directory / "session.json", json.dumps(value, indent=2, ensure_ascii=False) + "\n")
+    encoded = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+    if len(encoded.encode()) > 7 * 1024 * 1024:
+        raise CrabError("discovery state byte budget exhausted; retain the pending attempt")
+    atomic_text(directory / "session.json", encoded)
 
 
 def _event(value: dict[str, Any], entry: dict[str, Any]) -> None:
@@ -227,6 +235,8 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
     instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
         value = _load(directory)
+        if value["finished"]:
+            return summary(value)
         if value["lease"]:
             lease = dict(value["lease"])
             if instant >= datetime.fromisoformat(lease["expires_at"]):
@@ -300,6 +310,8 @@ def record(
     directory: Path, receipt: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
+    if len(json.dumps(receipt, ensure_ascii=False).encode()) > 256_000:
+        raise CrabError("discovery receipt exceeds its byte budget")
     with state_lock(directory / "session.json"):
         value = _load(directory)
         lease = value["lease"]
@@ -317,16 +329,17 @@ def record(
         tokens = receipt.get("model_tokens")
         if type(tokens) is not int or tokens < 0:
             raise CrabError("actual nonnegative model_tokens are required for budget enforcement")
-        if tokens > lease["remaining_model_tokens"]:
-            raise CrabError("receipt exceeds the reserved remaining model token budget")
         need = next(row for row in value["needs"] if row["id"] == lease["need"])
         action = lease["action"]
         result = receipt.get("result")
         if not isinstance(result, dict):
             raise CrabError("discovery result must be an object")
         if action == "search":
-            if result.get("requests", 1) != 1:
-                raise CrabError("one leased search may consume exactly one provider request")
+            if type(result.get("requests", 1)) is not int or result.get("requests", 1) not in {
+                0,
+                1,
+            }:
+                raise CrabError("one leased search may consume at most one provider request")
             candidates = result.get("candidates", [])
             if not isinstance(candidates, list) or len(candidates) > 100:
                 raise CrabError("search result candidate limit exceeded")
@@ -368,6 +381,8 @@ def record(
             need["phase"] = "inspect"
         elif action == "inspect":
             exploration = Path(_text(result.get("exploration"), "exploration", 2000))
+            if exploration.resolve().parent.parent != Path(need["meal_dir"]).resolve():
+                raise CrabError("inspection exploration does not belong to the acquired meal")
             child = exploration_report(exploration)
             if not _same_context(child.get("receiving_context"), value["context"]):
                 raise CrabError("inspection exploration belongs to a different receiving context")
@@ -400,6 +415,10 @@ def record(
                 verify_receipt(
                     Path(result["execution_receipt"]), value["context"], result["probe_sha256"]
                 )
+            elif tier == "design-proposal":
+                from .receiving_probe import verify_design_artifact
+
+                verify_design_artifact(result.get("acceptance_artifact"), value["context"])
             need["verification"] = result
             need["phase"] = "decide"
         elif action == "decide":
@@ -450,6 +469,9 @@ def _finish_record(
     directory: Path, value: dict[str, Any], receipt: dict[str, Any], tokens: int, instant: datetime
 ) -> dict[str, Any]:
     value["spent"]["model_tokens"] += tokens
+    reason = _exhausted(value, instant)
+    if reason:
+        value.update(finished=True, stop_reason=reason)
     value["lease"] = None
     _event(value, {"kind": "action-result", "receipt": receipt, "at": instant.isoformat()})
     _save(directory, value)
@@ -475,8 +497,13 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
         "context": value["context"],
+        "tool": value.get("tool"),
         "limits": value["limits"],
         "spent": value["spent"],
+        "model_usage_complete": value.get("model_usage_complete", True),
+        "actual_model_tokens": (
+            value["spent"]["model_tokens"] if value.get("model_usage_complete", True) else None
+        ),
         "finished": value["finished"],
         "stop_reason": value["stop_reason"],
         "needs": [
@@ -486,18 +513,113 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
                 "phase": row["phase"],
                 "rounds": row["round"],
                 "outcomes": row["outcomes"],
+                "novelty_coverage": row["backlog"]["status"],
+                "receiving_flow": row["flow"],
             }
             for row in value["needs"]
         ],
         "scope_complete": all(row["status"] == "found" for row in value["needs"]),
         "structural_seed_completion": "see-individual-explore-reports",
         "published": False,
+        "publication_scope": "controller-has-no-publication-effect; consult-per-meal-phase-records",
         "acceptance_learning_written": False,
+        "budget_within_limits": value.get("model_usage_complete", True)
+        and all(
+            value["spent"][name] <= value["limits"][name]
+            for name in ("requests", "donors", "model_tokens")
+        ),
     }
 
 
 def report(directory: Path) -> dict[str, Any]:
-    return summary(_load(directory))
+    value = _load(directory, require_current=False)
+    result = summary(value)
+    result["tool_status"] = (
+        "current" if value.get("tool") == installed_source_identity() else "stale"
+    )
+    try:
+        result["context_status"] = (
+            "current"
+            if live_context(Path(value["context"]["root"])) == value["context"]
+            else "stale"
+        )
+    except CrabError:
+        result["context_status"] = "unavailable"
+    outcomes = [outcome for need in value["needs"] for outcome in need["outcomes"]]
+    gaps = [row for row in outcomes if row.get("disposition") == "verified-gap"]
+    result["evidence_counts"] = {
+        "reviewed_gap_proposals": len(gaps),
+        "behavior_verified": sum(
+            row.get("verification", {}).get("evidence_level") == "behavior-verified" for row in gaps
+        ),
+        "source_supported": sum(
+            row.get("verification", {}).get("evidence_level") == "source-supported" for row in gaps
+        ),
+        "design_proposals": sum(
+            row.get("verification", {}).get("evidence_level") == "design-proposal" for row in gaps
+        ),
+        "novelty_check_unknown_needs": sum(
+            row["backlog"]["status"] != "checked" for row in value["needs"]
+        ),
+        "independent_acceptance": None,
+    }
+    return result
+
+
+def stop(directory: Path, reason: str) -> dict[str, Any]:
+    """Stop without losing an uncertain lease or inventing missing model usage."""
+    if reason not in {"usage-unavailable", "external-dependency", "policy-or-legal-dependency"}:
+        raise CrabError("unsupported explicit discovery stop reason")
+    with state_lock(directory / "session.json"):
+        value = _load(directory, require_current=False)
+        if not value["finished"]:
+            value.update(finished=True, stop_reason=reason)
+            if reason == "usage-unavailable":
+                value["model_usage_complete"] = False
+            _event(value, {"kind": "explicit-stop", "reason": reason})
+            _save(directory, value)
+        return summary(value)
+
+
+def authorize_request(directory: Path, attempt: str, operation: str) -> None:
+    """Charge before a provider call; replay of an uncertain operation must reconcile."""
+    if not operation or len(operation) > 200:
+        raise CrabError("provider operation identity must be bounded")
+    with state_lock(directory / "session.json"):
+        value = _load(directory)
+        lease = value.get("lease")
+        if not isinstance(lease, dict) or lease["attempt"] != attempt:
+            raise CrabError("provider request does not own the active discovery attempt")
+        calls = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "provider-request-authorized"
+            and event["record"].get("attempt") == attempt
+        ]
+        if any(row["operation"] == operation for row in calls):
+            raise CrabError("provider operation already charged; reconcile before retrying")
+        if lease["action"] == "search" and calls:
+            raise CrabError("one leased search permits only one provider request")
+        if _exhausted(value, datetime.now(UTC)) or datetime.now(UTC) >= datetime.fromisoformat(
+            lease["expires_at"]
+        ):
+            raise CrabError("discovery attempt expired before the provider effect")
+        prepaid = lease["action"] == "search" and not calls
+        if not prepaid:
+            if value["spent"]["requests"] >= value["limits"]["requests"]:
+                raise CrabError("global discovery request budget exhausted")
+            value["spent"]["requests"] += 1
+        _event(
+            value,
+            {
+                "kind": "provider-request-authorized",
+                "attempt": attempt,
+                "operation": operation,
+                "prepaid": prepaid,
+                "at": datetime.now(UTC).isoformat(),
+            },
+        )
+        _save(directory, value)
 
 
 def drive(

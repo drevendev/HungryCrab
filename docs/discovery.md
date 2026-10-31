@@ -1,5 +1,8 @@
 # Supervised discovery beyond traits
 
+For the persisted invoked host cycle, provider budgets, replacements and actual
+verification receipts, see [Invoked discovery sessions](discovery-session.md).
+
 `compare` remains a quick deterministic structural pass. A trait menu does not determine
 the full useful surface of a repository. `crab explore` records bounded, goal-led inspection
 and validates agent-discovered behavior nutrients without making model calls.

@@ -139,7 +139,11 @@ def test_shallow_current_context_never_reuses_full_history_cache(
     assert shallow.manifest["prey"]["shallow"] is True
 
     shallow_again = run_digest(Target(path=work), DigestOptions(**options.__dict__))
-    assert not shallow_again.cached, "shallow history may grow without changing HEAD"
+    assert shallow_again.cached, "a matching bounded shallow ancestry is reusable"
+    assert shallow_again.manifest["prey"]["shallow"] is True
+    monkeypatch.setattr(digest_module, "_shallow_boundary", lambda _ctx: "changed-boundary")
+    changed = run_digest(Target(path=work), DigestOptions(**options.__dict__))
+    assert not changed.cached, "changed shallow ancestry invalidates reuse at the same HEAD"
 
 
 def test_unknown_worktree_fingerprint_never_becomes_identity(

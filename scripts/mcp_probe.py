@@ -10,16 +10,17 @@ from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 
 
-async def probe(command: str, workspace: Path, cache: Path) -> None:
+async def probe(command: str | list[str], workspace: Path, cache: Path) -> None:
     env = {
         key: value
         for key, value in os.environ.items()
         if key not in {"GH_TOKEN", "GITHUB_TOKEN", "PYTHONPATH"}
     }
     env["PYTHONIOENCODING"] = "utf-8"
+    invocation = [command] if isinstance(command, str) else command
     parameters = StdioServerParameters(
-        command=command,
-        args=["--cache-dir", str(cache), "mcp", "--root", str(workspace)],
+        command=invocation[0],
+        args=[*invocation[1:], "--cache-dir", str(cache), "mcp", "--root", str(workspace)],
         env=env,
         cwd=workspace,
     )

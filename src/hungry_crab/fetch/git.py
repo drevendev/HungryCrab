@@ -26,7 +26,7 @@ from pathlib import Path
 from ..effect_guard import check_effect
 from ..errors import ExternalCommandError, ToolMissingError
 from .acquisition import CURRENT, AcquisitionLimitError
-from .bounded import ResponseTooLargeError
+from .bounded import ResponseTooLargeError, run_bounded
 
 SAFE_CONFIG: tuple[str, ...] = (
     "-c", "core.quotepath=off",
@@ -171,9 +171,11 @@ class GitRunner:
         timeout: float = 600.0,
         github_token: str | None = None,
         auth_host: str = "github.com",
+        lazy_fetch: bool = True,
     ) -> None:
         self.cwd = cwd
         self.timeout = timeout
+        self.lazy_fetch = lazy_fetch
         self._exe: str | None = None
         self._filters: dict[str, list[str]] = {}
         self._github_token = github_token
@@ -240,6 +242,7 @@ class GitRunner:
         check: bool = True,
         timeout: float | None = None,
         cwd: Path | None = None,
+        stdout_limit: int | None = None,
     ) -> str:
         """Run ``git <args>`` and return stdout as text."""
         args = guarded_arguments(args)
@@ -247,6 +250,8 @@ class GitRunner:
         limit = timeout or self.timeout
         where = cwd or self.cwd
         env = git_env()
+        if not self.lazy_fetch:
+            env["GIT_NO_LAZY_FETCH"] = "1"
         if self._github_token:
             # Process-local credentials never appear in argv, clone URLs or .git/config.
             count = int(env.get("GIT_CONFIG_COUNT", "0") or "0")
@@ -276,6 +281,16 @@ class GitRunner:
                 check_effect()
             if budget is not None:
                 proc = budget.run_git(command, where, env, limit)
+            elif stdout_limit is not None:
+                proc = run_bounded(
+                    command,
+                    cwd=str(where),
+                    env=env,
+                    timeout=limit,
+                    stdout_limit=stdout_limit,
+                    stderr_limit=65_536,
+                    process_group=True,
+                )
             else:
                 proc = subprocess.run(
                     command,
@@ -321,10 +336,14 @@ class GitRunner:
             )
         return stdout
 
-    def try_run(self, *args: str, timeout: float | None = None) -> str | None:
+    def try_run(
+        self, *args: str, timeout: float | None = None, stdout_limit: int | None = None
+    ) -> str | None:
         """Like ``run`` but return ``None`` instead of raising on a non-zero exit."""
         try:
-            return self.run(*args, check=True, timeout=timeout)
+            if stdout_limit is None:
+                return self.run(*args, check=True, timeout=timeout)
+            return self.run(*args, check=True, timeout=timeout, stdout_limit=stdout_limit)
         except ExternalCommandError:
             return None
 

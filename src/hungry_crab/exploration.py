@@ -588,7 +588,12 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         prey_ref = SourceRef.from_dict(menu["prey"])
         reader = GitSourceReader(source_repo)
         resolver = GrantResolver(reader, prey_ref.sha, prey_ref.url)
-        path_grants = [resolver.resolve(ref["path"]) for ref in source]
+        branch = finding.get("license_branch")
+        if branch is not None and (not isinstance(branch, str) or not 0 < len(branch) <= 100):
+            raise CrabError("license_branch must be a bounded explicit licence option")
+        path_grants = [resolver.resolve(ref["path"], selected_branch=branch) for ref in source]
+        if branch and any(grant.expression != branch for grant in path_grants):
+            raise CrabError("selected licence branch is not established for every source path")
         expressions = {grant.expression for grant in path_grants}
         if None in expressions or len(expressions) != 1:
             raise CrabError(

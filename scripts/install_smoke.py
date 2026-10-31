@@ -122,6 +122,11 @@ def main() -> int:
     parser.add_argument(
         "--offline", action="store_true", help="use cached build/install dependencies"
     )
+    parser.add_argument(
+        "--module-only",
+        action="store_true",
+        help="exercise interpreter routes when shims are blocked",
+    )
     args = parser.parse_args()
     version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
         "version"
@@ -156,15 +161,44 @@ def main() -> int:
                 env=tool_env,
             )
             command = str(bin_dir / ("crab.exe" if os.name == "nt" else "crab"))
+            interpreter = (
+                home
+                / "tools"
+                / "hungry-crab"
+                / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            )
+            module = [str(interpreter), "-m", "hungry_crab"]
+            if not args.module_only:
+                assert (
+                    run([command, "--version"], cwd=directory, env=tool_env).strip()
+                    == f"crab {version}"
+                )
             assert (
-                run([command, "--version"], cwd=directory, env=tool_env).strip()
+                run([*module, "--version"], cwd=directory, env=tool_env).strip()
                 == f"crab {version}"
             )
-            assert "report" in run([command, "--help"], cwd=directory, env=tool_env)
+            assert "discover" in run([*module, "--help"], cwd=directory, env=tool_env)
+            launcher = directory / f"{extra} краб route.py"
+            run([*module, "launcher", str(launcher)], cwd=directory, env=tool_env)
+            invocation = [str(interpreter), str(launcher)]
+            assert (
+                run([*invocation, "--version"], cwd=directory, env=tool_env).strip()
+                == f"crab {version}"
+            )
+            run(
+                [uv, "tool", "install", "--force", "--python", sys.executable, requirement],
+                cwd=directory,
+                env=tool_env,
+            )
+            run([*module, "launcher", str(launcher)], cwd=directory, env=tool_env)
+            assert (
+                run([*invocation, "--version"], cwd=directory, env=tool_env).strip()
+                == f"crab {version}"
+            )
             digest = directory / f"{extra}-digest"
             run(
                 [
-                    command,
+                    *invocation,
                     "digest",
                     str(workspace / "prey"),
                     "--out",
@@ -178,18 +212,22 @@ def main() -> int:
                 env=tool_env,
             )
             report = directory / f"{extra}-report.html"
-            run([command, "report", str(digest), "--out", str(report)], cwd=directory, env=tool_env)
+            run(
+                [*invocation, "report", str(digest), "--out", str(report)],
+                cwd=directory,
+                env=tool_env,
+            )
             assert "Miner health" in report.read_text(encoding="utf-8")
             check = run(
-                [command, "mcp", "--check"],
+                [*invocation, "mcp", "--check"],
                 cwd=directory,
                 env=tool_env,
                 code=0 if extra == "mcp" else 2,
             )
             if extra == "mcp":
                 assert json.loads(check)["tools"] == ["crab_digest", "crab_menu"]
-                anyio.run(probe, command, workspace, directory / "mcp-cache")
-            print(f"PASS: {extra} ({package.suffix}), installed CLI, digest and HTML")
+                anyio.run(probe, invocation, workspace, directory / "mcp-cache")
+            print(f"PASS: {extra} ({package.suffix}), module/launcher, reinstall, digest and HTML")
         if args.skills:
             npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
             node = shutil.which("node")
@@ -223,7 +261,9 @@ def main() -> int:
                 cwd=project,
                 env=installer_env,
             )
-            assert (project / ".agents" / "skills" / "eat" / "SKILL.md").is_file()
+            assert (project / ".agents" / "skills" / "eat" / "SKILL.md").read_bytes() == (
+                ROOT / "skills" / "eat" / "SKILL.md"
+            ).read_bytes()
             print(
                 "PASS: locked skills installer copies our portable eat skill in an isolated project"
             )

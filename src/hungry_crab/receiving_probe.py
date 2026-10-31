@@ -151,3 +151,24 @@ def verify_receipt(path: Path, context: dict[str, Any], probe_sha256: str) -> di
         if hashlib.sha256(read_bytes(path.parent / name, 65_536)).hexdigest() != digest:
             raise CrabError("executed probe artifact changed")
     return receipt
+
+
+def verify_design_artifact(artifact: object, context: dict[str, Any]) -> None:
+    """Validate an original acceptance document; usefulness still needs semantic review."""
+    if not isinstance(artifact, dict):
+        raise CrabError("design verification needs an actual acceptance artifact")
+    criteria = artifact.get("criteria")
+    if (
+        artifact.get("receiving_context") != context
+        or artifact.get("original_receiving_owned") is not True
+        or not isinstance(criteria, list)
+        or not 1 <= len(criteria) <= 20
+        or any(not isinstance(row, str) or not 1 <= len(row.strip()) <= 2000 for row in criteria)
+        or not isinstance(artifact.get("assessment"), str)
+        or not 1 <= len(artifact["assessment"].strip()) <= 4000
+        or not isinstance(artifact.get("path"), str)
+    ):
+        raise CrabError("design artifact needs receiving identity, criteria and assessment")
+    body = read_bytes(Path(artifact["path"]), 65_536)
+    if not body.strip() or hashlib.sha256(body).hexdigest() != artifact.get("sha256"):
+        raise CrabError("design acceptance artifact is empty or changed")

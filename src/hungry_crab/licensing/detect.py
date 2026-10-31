@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import stat
+import tokenize
 import tomllib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
@@ -410,6 +412,7 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
         return None, 0.0
     if len(text.encode("utf-8")) > 200_000:
         return None, 0.0
+    text = text.removeprefix("\ufeff")
     sections = composite_sections(text)
     if sections is not None:
         return detect_from_text(sections[0].text)
@@ -743,6 +746,10 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
             and re.fullmatch(r"[A-Za-z][A-Za-z0-9 ._-]{0,100} ver\. \d+(?:\.\d+){1,3}", raw)
             and any(_copyright_metadata(value) for value in prefix[1:])
             and any(title.fullmatch(_norm(value)) for value in prefix[1:])
+            and all(
+                word == ".NET" or _attribution_identifier(word)
+                for word in raw.split(" ver.", 1)[0].split()
+            )
         ):
             # A structured document title is accepted only before explicit MIT
             # attribution and the fully validated operative grant below.
@@ -770,6 +777,32 @@ def _grant_region(text: str, spdx: str | None) -> tuple[int | None, int | None]:
         if match is not None:
             return text[: match.start()].count("\n") + 1, len(text.splitlines())
     return None, None
+
+
+def find_source_header(text: str, *, path: str = "") -> str | None:
+    """Supported comment headers, never SPDX-looking strings in program/data bodies."""
+    identifiers: list[str] = []
+    lines = text.removeprefix("\ufeff").splitlines()[:80]
+    if path.endswith((".py", ".pyi")):
+        try:
+            comments = []
+            for count, token in enumerate(
+                tokenize.generate_tokens(io.StringIO("\n".join(lines)).readline)
+            ):
+                if count >= 10_000:
+                    return "NOASSERTION"
+                if token.type == tokenize.COMMENT:
+                    comments.append(token.string)
+            lines = comments
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            return "NOASSERTION" if "SPDX-License-Identifier:" in text[:8000] else None
+    for line in lines:
+        if re.match(r"\s*(?:\#|//|/\*|\*|<!--)\s*SPDX-License-Identifier:", line, re.I):
+            found = find_spdx_identifier(line)
+            identifiers.append(found or "NOASSERTION")
+    if identifiers and len({canonical_expression(i) for i in identifiers}) == 1:
+        return identifiers[0]
+    return "NOASSERTION" if identifiers else None
 
 
 def manifest_license(name: str, text: str) -> tuple[str | None, str]:
@@ -856,6 +889,8 @@ class Evidence:
     start: int | None = None
     end: int | None = None
     matcher: str | None = None
+    byte_start: int | None = None
+    byte_end: int | None = None
 
 
 @dataclass
@@ -881,6 +916,7 @@ class LicenseFindings:
     #   absent      no license file, no manifest declaration, no API license
     resolution: str = "absent"
     candidates: list[str] = field(default_factory=list)
+    scopes: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -1056,6 +1092,16 @@ def _resolve_unclear(
         )
 
 
+def _read_license_text(path: Path) -> str:
+    """A grant must fit completely; a valid prefix cannot hide a distant rider."""
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(200_001)
+        return raw.decode("utf-8", "replace") if len(raw) <= 200_000 else ""
+    except OSError:
+        return ""
+
+
 def detect_in_repo(
     root: Path,
     code_files: Sequence[str],
@@ -1082,7 +1128,7 @@ def detect_in_repo(
             directory_grants.append((rel, declared))
             continue
         path = root / rel
-        text = read_text(path, limit=200_000)
+        text = _read_license_text(path)
         spdx, confidence = detect_from_text(text)
         note = ""
         reference = attribution_reference(text)
@@ -1095,7 +1141,7 @@ def detect_in_repo(
                 and reference != rel
                 and _own_entry(root / reference, stat.S_ISREG)
             ):
-                referenced, _ = detect_from_text(read_text(root / reference, limit=200_000))
+                referenced, _ = detect_from_text(_read_license_text(root / reference))
                 if referenced:
                     findings.notice_files.append(rel)
                     findings.notes.append(f"{rel}: attribution-only reference to {reference}")
@@ -1127,10 +1173,15 @@ def detect_in_repo(
                     and (allowed_files is None or target in allowed_files)
                     and _own_entry(root / target, stat.S_ISREG)
                 ):
-                    spdx, confidence = detect_from_text(read_text(root / target, limit=200_000))
+                    spdx, confidence = detect_from_text(_read_license_text(root / target))
                     note = "readable referenced grant" if spdx else "unreadable referenced grant"
         findings.license_files.append(rel)
         start, end = _grant_region(text, spdx)
+        original_lines = text.splitlines(keepends=True)
+        byte_start = len("".join(original_lines[: start - 1]).encode("utf-8")) if start else None
+        byte_end = len("".join(original_lines[:end]).encode("utf-8")) if end else None
+        if "\ufffd" in text:
+            byte_start = byte_end = None
         findings.evidence.append(
             Evidence(
                 "file",
@@ -1141,12 +1192,31 @@ def detect_in_repo(
                 start,
                 end,
                 "operative-text-v1" if start is not None else None,
+                byte_start,
+                byte_end,
             )
         )
         if spdx and declared:
             named.append((rel, spdx))
             alternatives = alternatives and bool(_NAMED_LICENSE_RE.match(PurePosixPath(rel).name))
-        if is_split_license_text(text):
+        sections = composite_sections(text)
+        if sections is not None:
+            findings.scopes.extend(
+                {
+                    "path": rel,
+                    "role": section.role,
+                    "label": section.label,
+                    "start": section.start,
+                    "end": section.end,
+                    "expression": detect_from_text(section.text)[0],
+                    "applicability": "project"
+                    if section.role == "project-grant"
+                    else "unmapped-component",
+                    "obligation": "retain-complete-original-notice",
+                }
+                for section in sections
+            )
+        if sections is None and is_split_license_text(text):
             root_declares_split = True
             for mention in licenses_mentioned(text):
                 if mention not in split_mentions:
@@ -1175,7 +1245,7 @@ def detect_in_repo(
         if all(headers):
             declarations = {term for header in headers for term in license_terms(header)}
     for rel, declared in directory_grants:
-        spdx, confidence = detect_from_text(read_text(root / rel, limit=200_000))
+        spdx, confidence = detect_from_text(_read_license_text(root / rel))
         if declared in declarations and canonical_expression(spdx) == canonical_expression(
             declared
         ):
@@ -1319,7 +1389,7 @@ def detect_in_repo(
             path = root / rel
             if not path.is_file():
                 continue
-            spdx, confidence = detect_from_text(read_text(path, limit=200_000))
+            spdx, confidence = detect_from_text(_read_license_text(path))
             # A licence file the crab cannot read is still a licence file. Dropping it is how a
             # restricted subtree used to inherit the root's verdict without anyone being told.
             spdx = spdx or "NOASSERTION"

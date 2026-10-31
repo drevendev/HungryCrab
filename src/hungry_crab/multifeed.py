@@ -132,11 +132,12 @@ def _receiving_identity(menu: dict[str, Any]) -> str:
 # New/changed producer markers must be reviewed before certifying old menus.
 _DIGEST_IDENTITY_MARKERS: dict[str, str | int] = {
     "file_selection": "git-visible-v1",
-    "license_provenance": 6,
+    "license_provenance": 7,
     "markdown_structure": "html-blocks-v2",
     "license_summary": "representative-maws-v1",
     "ci_tool_detection": "shared-scripts-v3",
-    "runtime_detection": "first-party-v2",
+    "runtime_detection": "first-party-v3",
+    "classification_attributes": "bounded-root-v1",
     "evidence_inventory": "portable-v1",
     "instruction_matching": "unicode-matching-v2",
 }

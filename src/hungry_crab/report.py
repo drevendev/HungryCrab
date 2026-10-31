@@ -217,7 +217,9 @@ def _card(card: dict[str, Any], index: int, review: dict[str, Any] | None = None
         label = str(item.get("path") or item.get("url") or "Evidence")
         if item.get("line"):
             label += f":{item['line']}"
-        parts.append(f"<li>{link(label, item.get('url'))}</li>")
+        role = f" ({text(item['role'])})" if item.get("role") else ""
+        message = f": {text(item['message'])}" if item.get("message") else ""
+        parts.append(f"<li>{link(label, item.get('url'))}{role}{message}</li>")
     parts.append(
         f"<li>Origin: {text(card.get('origin'))}."
         f" Source: {text(trace.get('prey'))}@{text(trace.get('sha'))}</li>"
