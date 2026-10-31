@@ -38,6 +38,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   supported pinned references, software/data roles and composite project/component
   notices. Retain obligations, unknown scopes, source restrictions and explicit OR
   choices without flattening AND duties (#361 bounded, #529–#531).
+- Recognize complete parenthesized MIT titles while preserving full operative
+  terms, original evidence offsets and restrictive/truncated counterparts (#542).
 - Recognize ordinary attribution-only COPYRIGHT references and supported complete
   MIT holder/format variants. Retain original line/byte regions and reject hidden
   riders, conflicting headers, truncated grants and unknown component rights
