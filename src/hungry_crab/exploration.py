@@ -133,6 +133,8 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
         raise CrabError("exploration requires a readable fresh meal")
     for key in ("scope", "goals", "flows", "constraints", "author", "attempt"):
         _text(plan, key)
+    if type(plan.get("require_inspection_receipts", False)) is not bool:
+        raise CrabError("require_inspection_receipts must be an explicit boolean")
     facets = plan.get("facets")
     if (
         not isinstance(facets, list)
@@ -394,6 +396,8 @@ def _validate_record(
                 raise CrabError("CI observations require actually executed steps")
     elif kind == "registration":
         raise CrabError("use explore register for validated nutrient registration")
+    elif kind == "inspection":
+        raise CrabError("use discover inspect for actual inspected evidence")
     else:
         raise CrabError("unsupported exploration event kind")
 
@@ -407,6 +411,12 @@ def record(directory: Path, payload: dict[str, Any]) -> dict[str, Any]:
             if entry["record"]["kind"] == "registration"
         }
         _validate_record(snapshot, payload, registered_ids)
+        if snapshot["plan"].get("require_inspection_receipts") and (
+            payload.get("reviewed") is True or payload.get("state") in {"examined", "inapplicable"}
+        ):
+            from .inspection import require_inspected
+
+            require_inspected(directory, payload)
         return _append(directory, payload)
 
 
@@ -481,6 +491,9 @@ def report(directory: Path) -> dict[str, Any]:
         "examined_hypotheses": sorted(examined),
         "registrations": [
             event["record"] for event in history if event["record"]["kind"] == "registration"
+        ],
+        "inspections": [
+            event["record"] for event in history if event["record"]["kind"] == "inspection"
         ],
         "facets": facets,
         "pending_facets": pending,
@@ -585,6 +598,10 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         ) or not _references(receiving, menu["maw"], data["file_evidence"]["maw"]):
             raise CrabError("registration requires valid immutable donor and receiving file ranges")
         assert isinstance(source, list) and isinstance(receiving, list)
+        if data["plan"].get("require_inspection_receipts"):
+            from .inspection import require_inspected
+
+            require_inspected(directory, finding)
         prey_ref = SourceRef.from_dict(menu["prey"])
         reader = GitSourceReader(source_repo)
         resolver = GrantResolver(reader, prey_ref.sha, prey_ref.url)

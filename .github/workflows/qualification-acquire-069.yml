@@ -2,12 +2,18 @@ name: Qualification acquisition (no model)
 
 on:
   workflow_dispatch:
+    inputs:
+      plan:
+        description: Shared public donor metadata preflight path
+        default: docs/releases/0.6.9-resumed-qualification-preflight.json
+        required: true
   push:
     branches: [codex/release-0.6.9]
     paths:
       - .github/workflows/qualification-acquire-069.yml
       - benchmarks/qualification_acquire.py
       - docs/releases/0.6.9-qualification-preflight.json
+      - docs/releases/0.6.9-resumed-qualification-preflight.json
 
 permissions:
   contents: read
@@ -46,9 +52,10 @@ jobs:
       - name: Acquire shared facts without executing donor content or models
         env:
           GH_TOKEN: ${{ github.token }}
+          CRAB_QUALIFICATION_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-resumed-qualification-preflight.json' }}
         run: >-
           uv run python benchmarks/qualification_acquire.py
-          --plan docs/releases/0.6.9-qualification-preflight.json
+          --plan "$CRAB_QUALIFICATION_PLAN"
           --batch "${{ matrix.batch }}"
           --volume "${{ steps.volume.outputs.volume }}"
           --baseline "$RUNNER_TEMP/crab-baseline"

@@ -143,6 +143,75 @@ publication. Successful comparisons or CI cannot advance the other phases. The r
 unreviewed original candidates, unresolved hypotheses and remaining facets. Records are
 content-bound and append-only; corrections are later observations, never rewritten history.
 
+## Cumulative inspection and receiving execution (0.6.9)
+
+For a supervised exploration, set `require_inspection_receipts: true` in its
+plan. `crab discover contract EXPLORATION --input contract.json` exposes bounded
+actual donor/receiving filenames, supported operations and role-specific citation
+schemas. For example, `contract.json` can be `{"terms": ["read", "parse"]}`.
+An empty witness set grants no citation capability.
+
+`discover find --input find.json` locates literals in pinned source using explicit
+`repo`, `sha` and `terms`, with bounded files, total bytes and time. Locations
+include actual file line counts. Strings/comments can match; this is navigation,
+not an AST or semantic coverage claim. Instructions and README bodies stay excluded.
+
+Read selected windows with `discover inspect EXPLORATION --input inspection.json`:
+
+```json
+{
+  "operation": "reader-body-1",
+  "side": "donor",
+  "paths": ["reader.py"],
+  "ranges": [{"path": "reader.py", "start": 10, "end": 45}],
+  "queries": [],
+  "related": false
+}
+```
+
+The existing append-only exploration chain records hash-bound actual packets.
+Reusing an operation is idempotent only with identical inputs. `discover witnesses`
+returns cumulative reads, so a later licence or test read retains the earlier
+implementation window. `discover citations` expands selected `source_evidence`
+and `maw_evidence` witness IDs into immutable ranges, refusing unknown IDs and role
+swaps. In supervised mode a reviewed decision cannot cite an unread range.
+These receipts prove bounded reads, not the analyst's semantic conclusion.
+
+`discover novelty --maw MAW --input scope.json` reads selected/default/confirmed
+pending implementations from explicitly acquired local Git objects. The input
+names `prefixes`, `default_sha`, optional `default_ref`, `pending` entries with
+`sha` and canonical local `ref: refs/crab/qualification/pr-N`, and
+`pending_collection: {"complete": true, "as_of": "..."}`. Bodies are deduplicated
+while every role/SHA/path binding survives. Missing objects, byte/count limits and
+incomplete collection remain explicit. Scoped implementation comparison does
+not require proving absence across all historical issues; an open request alone
+does not establish an implementation. No fetch or branch switch occurs.
+
+`discover probe` checks the actual interpreter against supported declared
+`requires-python` constraints before running. It refuses incompatible or
+unsupported requirements instead of silently substituting a runtime or installing
+dependencies. Choose an already trusted receiving interpreter before invocation.
+Optional `required_receiving_calls: [{"path": "app.py", "qualified_name": "consume"}]`
+requires actual calls to those pinned receiving declarations. AST parsing and
+printing PASS cannot satisfy it; trace bytes and identity survive in the receipt.
+
+`discover cases OUTPUT --maw MAW --input cases.json` provides a fixed original
+receiving-only runner. The plan declares `original_receiving_owned: true`,
+`target: {"path": "app.py", "qualified_name": "consume"}` and 2..8 `cases` with
+`label`, `role`, JSON `args`/`kwargs`, optional relative text `files`, and `checks`.
+At least one target and positive control are required. Each check has a JSON
+`pointer` into the actual `value` or `exception` and exactly one `equals`,
+`contains` or `not_contains` predicate. Supported data factories are `$fixture`
+(relative path in a fresh temporary fixture), `$bytes` (base64), `$stream`
+(text stream rejecting unbounded reads), `$io` (ordinary text BytesIO), and
+`$helper` (an explicitly declared pinned zero-argument receiving function).
+Agent content is JSON data, never executable Python. Cases record actual values,
+exceptions, predicate outcomes and function calls; a failed predicate is not
+automatically a valid defect or independent acceptance. Donor code never runs.
+Returned bytes encode as `{"base64": "..."}`; dataclasses become objects and
+iterators become bounded `{"items": [...], "truncated": false}` results. Factories
+apply to arguments, not expected predicate values.
+
 ## Register a non-trait behavior nutrient
 
 ```text

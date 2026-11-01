@@ -71,11 +71,22 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
         ),
         help="actual dependency or next-call reserve; unknown usage cannot become zero",
     )
-    for name in ("index", "view", "packet", "search", "rank", "frontier", "history", "issues"):
+    for name in (
+        "index",
+        "find",
+        "view",
+        "packet",
+        "search",
+        "rank",
+        "frontier",
+        "history",
+        "issues",
+    ):
         command = commands.add_parser(
             name,
             help={
                 "index": "list real pinned source/test paths and declaration ranges",
+                "find": "find bounded literal source locations before selecting exact windows",
                 "view": "page an existing inert source artifact without discarding large fields",
                 "packet": "read bounded immutable source/test ranges",
                 "search": "execute a bounded provider query batch",
@@ -88,6 +99,18 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
         command.add_argument(
             "--input", type=Path, required=True, help="bounded operation plan JSON"
         )
+    for name in ("inspect", "witnesses", "contract", "citations"):
+        command = commands.add_parser(
+            name, help="cumulative actual source witnesses and typed host contracts"
+        )
+        command.add_argument("directory", type=Path, help="existing receiving-bound exploration")
+        if name != "witnesses":
+            command.add_argument(
+                "--input",
+                type=Path,
+                required=True,
+                help="typed bounded inspection or citation plan",
+            )
     probe = commands.add_parser("probe", help="execute an original receiving-owned Python probe")
     probe.add_argument("directory", type=Path, help="new owned output directory outside the maw")
     probe.add_argument(
@@ -96,6 +119,17 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
     probe.add_argument(
         "--input", type=Path, required=True, help="original source, provenance and controls"
     )
+    cases = commands.add_parser(
+        "cases", help="execute original JSON receiving cases and positive controls"
+    )
+    cases.add_argument("directory", type=Path, help="new owned output directory outside the maw")
+    cases.add_argument("--maw", type=Path, default=Path())
+    cases.add_argument("--input", type=Path, required=True)
+    novelty = commands.add_parser(
+        "novelty", help="read selected/default/confirmed pending implementation scope"
+    )
+    novelty.add_argument("--maw", type=Path, default=Path())
+    novelty.add_argument("--input", type=Path, required=True)
 
 
 def cmd_discover(args: argparse.Namespace) -> int:
@@ -130,6 +164,32 @@ def _run_discover(args: argparse.Namespace) -> int:
             read_object(Path(plan["artifact"])),
             budget=plan.get("budget", 1800),
             cursor=plan.get("cursor"),
+        )
+    elif action in {"inspect", "witnesses", "contract", "citations"}:
+        from .inspection import contract, inspect, resolve, witnesses
+
+        if action == "witnesses":
+            result = witnesses(args.directory)
+        else:
+            plan = read_object(args.input)
+            if action == "inspect":
+                result = inspect(args.directory, plan)
+            elif action == "contract":
+                result = contract(args.directory, terms=plan.get("terms"))
+            else:
+                result = resolve(args.directory, plan)
+    elif action == "find":
+        from .source_find import find_source
+
+        plan = read_object(args.input)
+        result = find_source(
+            Path(plan["repo"]),
+            plan["sha"],
+            plan["terms"],
+            prefix=plan.get("prefix", ""),
+            max_files=plan.get("max_files", 64),
+            max_bytes=plan.get("max_bytes", 524288),
+            limit=plan.get("limit", 12),
         )
     elif action == "index":
         from .source_inspection import source_index
@@ -241,6 +301,15 @@ def _run_discover(args: argparse.Namespace) -> int:
             limit=plan.get("limit", 10),
             seen=set(plan.get("prior_exposure", [])),
         )
+    elif action == "novelty":
+        from .novelty import implementation_scope
+
+        result = implementation_scope(args.maw.resolve(), read_object(args.input))
+    elif action == "cases":
+        from .receiving_cases import run_cases
+
+        path = run_cases(args.directory, args.maw.resolve(), read_object(args.input))
+        result = {"receipt": str(path), "result": read_object(path)}
     elif action == "probe":
         from .receiving_probe import run_probe
 
@@ -256,6 +325,7 @@ def _run_discover(args: argparse.Namespace) -> int:
             original_receiving_owned=plan.get("original_receiving_owned") is True,
             timeout=plan.get("timeout", 30),
             import_receiving=plan.get("import_receiving", False),
+            required_receiving_calls=plan.get("required_receiving_calls"),
         )
         result = {"receipt": str(path), "result": read_object(path)}
     elif action == "frontier":

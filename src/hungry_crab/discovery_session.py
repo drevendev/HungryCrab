@@ -253,7 +253,8 @@ def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
     later need is investigated. The reservation/result event chain is the
     scheduler cursor: no second mutable progress counter is required.
     """
-    pending = [row for row in value["needs"] if row["status"] == "pending"]
+    needs: list[dict[str, Any]] = value["needs"]
+    pending = [row for row in needs if row["status"] == "pending"]
     if not pending:
         return None
     previous = next(
@@ -290,11 +291,9 @@ def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
     )
     if not donor_boundary:
         return active or pending[0]
-    previous_index = next(
-        index for index, row in enumerate(value["needs"]) if row["id"] == previous["need"]
-    )
-    for advance in range(1, len(value["needs"]) + 1):
-        row = value["needs"][(previous_index + advance) % len(value["needs"])]
+    previous_index = next(index for index, row in enumerate(needs) if row["id"] == previous["need"])
+    for advance in range(1, len(needs) + 1):
+        row = needs[(previous_index + advance) % len(needs)]
         if row["status"] == "pending":
             return row
     return None
