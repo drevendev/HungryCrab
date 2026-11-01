@@ -15,9 +15,10 @@ from qualification_review import packet, project_case, share_exact_evidence
 from research_host import write
 
 
-def test_shared_evidence_roundtrips_exact_values_and_refuses_ambiguous_input() -> None:
-    repeated = {"code": "def f():\n    return 1\n" * 6, "sha": "a" * 64}
-    original = {"runs": [repeated, repeated, repeated], "plain": None}
+@pytest.mark.parametrize("copies", [2, 3])
+def test_shared_evidence_roundtrips_exact_values_and_refuses_ambiguous_input(copies: int) -> None:
+    repeated = {"code": "def f():\n    return 1\n" * 60, "sha": "a" * 64}
+    original = {"runs": [repeated] * copies, "plain": None}
     encoded = share_exact_evidence(original)
 
     def expand(value: Any) -> Any:

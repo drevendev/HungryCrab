@@ -322,3 +322,20 @@ source characters do not invent lines or move parser citations. A bounded chunk
 whose end exceeds EOF returns only existing lines with `requested_end` and
 `range_clipped_to_eof`. A start beyond EOF remains an explicit omission; range,
 file, byte and time caps are unchanged.
+
+Set `include_differences: true` in a novelty plan to expose bounded actual
+selected-versus-default/pending code changes before the semantic decision.
+Identical source pairs share every role/ref binding. Ordered unique-line anchors
+are a linear text comparison, not syntax or runtime equivalence; their changed
+ranges include one context line. The projection retains at most 16 comparisons,
+16 hunks per comparison, 320 lines and 16,000 content bytes. Omitted comparisons,
+ranges and hunk counts remain explicit; unread or policy-excluded source is never
+reported as established absence. Complete raw files and line endings remain in
+the parent artifact.
+
+Behavior registration accepts a separate `source_behavior`: an observed,
+code-free claim grounded in the cited donor ranges. `behavior` and `adaptation`
+describe the proposed receiving change and cannot establish that the donor
+already implements it. Missing source claims, including legacy exploratory
+cards, render an explicit unknown in issue previews. Nutrient and ledger IDs
+remain unchanged.

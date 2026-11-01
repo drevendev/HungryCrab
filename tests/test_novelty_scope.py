@@ -41,6 +41,14 @@ def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_pa
     assert "never runtime equivalence" in result["declaration_scope"]
     assert result["semantic_novelty"] == "requires-agent-comparison"
     assert len(result["sources"]) == 2
+    projected = implementation_scope(maw, {**plan, "include_differences": True})
+    delta = projected["implementation_differences"]
+    assert delta["complete"]
+    comparison = delta["comparisons"][0]
+    assert "return None" in comparison["hunks"][0]["selected"]["content"]
+    assert "return fn" in comparison["hunks"][0]["other"]["content"]
+    assert comparison["bindings"][0]["role"] == "receiving-default"
+    assert "Not syntax or runtime equivalence" in delta["interpretation"]
     (maw / "app.py").write_text(
         "@other\ndef flow():\n    return 1\n", encoding="utf-8", newline="\n"
     )
@@ -50,6 +58,28 @@ def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_pa
     assert (
         changed["targets"][0]["declarations"][0]["content_sha256"] != declaration["content_sha256"]
     )
+
+
+def test_change_projection_bounds_large_gaps_and_does_not_infer_missing_source(
+    tmp_path: Path,
+) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "VALUE = 1\n", "README.md": "excluded body\n"})
+    before = git(maw, "rev-parse", "HEAD").strip()
+    (maw / "app.py").write_text("VALUE = 2\n" * 1000, encoding="utf8")
+    git(maw, "add", ".")
+    git(maw, "commit", "-m", "test: large non-unique changed region")
+    plan = {"prefixes": ["app.py"], "default_sha": before, "include_differences": True}
+    projected = implementation_scope(maw, plan)["implementation_differences"]
+    assert not projected["complete"]
+    assert projected["comparisons"][0]["omitted_hunks"] == 1
+    assert projected["comparisons"][0]["hunks"] == []
+    with pytest.raises(CrabError, match="boolean"):
+        implementation_scope(maw, {**plan, "include_differences": "yes"})
+    excluded = implementation_scope(maw, {**plan, "prefixes": ["README.md"]})
+    assert not excluded["implementation_differences"]["complete"]
+    assert "incomplete" in excluded["implementation_differences"]["reason"]
+    absent = implementation_scope(maw, {**plan, "prefixes": ["absent.py"]})
+    assert absent["implementation_differences"]["complete"]
 
 
 def test_declaration_absence_ambiguity_and_scope_are_explicit(tmp_path: Path) -> None:

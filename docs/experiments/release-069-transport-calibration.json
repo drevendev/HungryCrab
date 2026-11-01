@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "role": "Exposed retained owned synthetic controls only; no fresh release findings",
+  "source": "af772d1b7c99731a46976734d4733fa9a564f2477d88b62c3d2c6efb4a8c5a73",
+  "host_transport": "host-validated-json/v1",
+  "actual_model_tokens": 23363,
+  "usage_complete": true,
+  "native_stages": [
+    {
+      "name": "plan",
+      "signature": "ae878aa48fcab1e0c757bbcb75b19b17a008136f98db3ae7d0f3a319a229fb60",
+      "admission_estimate": 11324,
+      "attempt": "7ed5c585fdcbed30ef2c41e61773feb1a547bdd112e490184f91318f692669e5",
+      "state": "settled",
+      "actual_tokens": 8701,
+      "native_seconds": 17.141
+    },
+    {
+      "name": "assess-0",
+      "signature": "38dbb75d81ddecc156cec838ffd41ad1386a638092ac6319e6c6b49683c28c93",
+      "admission_estimate": 9558,
+      "attempt": "f1a8b930cbac338563d9619e0a709de0033c7f5d23b06f21b1e2f75d3b5a6c52",
+      "state": "settled",
+      "actual_tokens": 7345,
+      "native_seconds": 10.61
+    },
+    {
+      "name": "assess-1",
+      "signature": "268c3941f5ef278d6d37c4f9fddd94a9438c7869df2e11355b000dc535ed71af",
+      "admission_estimate": 9388,
+      "attempt": "4782a0cf87a5b91521059c92cd2f08e95dec4cd029a43f3268a906454eae5eed",
+      "state": "settled",
+      "actual_tokens": 7317,
+      "native_seconds": 10.219
+    }
+  ],
+  "seconds": 130.8828432559967,
+  "budget_valid": true,
+  "stop_reason": "supported-frontier-exhausted",
+  "outcomes": [
+    {
+      "need": "unbounded",
+      "disposition": "verified-gap",
+      "level": "behavior-verified",
+      "source_relation": "mechanism",
+      "source_behavior": "In reader.py, donor consume repeatedly calls stream.read(4), yields each nonempty returned chunk, and ends when the read returns an empty value.",
+      "registration_policy_blocked": false,
+      "registration_status": null
+    },
+    {
+      "need": "already-safe",
+      "disposition": "already-present",
+      "level": "source-supported",
+      "source_relation": "none",
+      "source_behavior": "Donor reader.py repeatedly calls stream.read(4) and yields each nonempty chunk until EOF, thereby consuming the entire stream in bounded-size chunks rather than stopping after the first four bytes.",
+      "registration_policy_blocked": null,
+      "registration_status": null
+    }
+  ],
+  "host_state_sha256": "6807921ed229e4fd762b6273663411feb65db41790e4123d3c6b25f601d29e19",
+  "new_release_findings": 0,
+  "currency": null,
+  "whole_project_cost": null
+}
