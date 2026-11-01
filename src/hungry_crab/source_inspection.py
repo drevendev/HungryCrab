@@ -266,6 +266,19 @@ _INDEX_SUFFIXES = frozenset(
 )
 
 
+def _test_path_heuristic(path: str) -> bool:
+    """Test-like path naming is a navigation hint, never a coverage certificate."""
+    parts = path.split("/")
+    if any(part in {"test", "tests", "spec"} for part in parts[:-1]):
+        return True
+    basename = parts[-1]
+    if not basename.endswith((".py", ".pyi")):
+        return False
+    return basename.startswith(("test_", "spec_")) or basename.endswith(
+        ("_test.py", "_test.pyi", "_spec.py", "_spec.pyi")
+    )
+
+
 def source_index(
     repo: Path,
     sha: str,
@@ -328,9 +341,7 @@ def source_index(
             "path": path,
             "sha": sha,
             "path_term_matches": [term for term in terms if term.casefold() in path.casefold()],
-            "test_path_heuristic": any(
-                part in {"test", "tests", "spec"} for part in path.split("/")
-            ),
+            "test_path_heuristic": _test_path_heuristic(path),
             "symbols": [],
             "symbol_status": "unsupported-structural-language",
         }

@@ -43,6 +43,38 @@ def test_index_returns_actual_declarations_without_instruction_or_comment_bodies
     assert result["license_permission"] == "not-established" and not result["donor_executed"]
 
 
+
+def test_index_classifies_root_level_test_files_without_coverage_claim(tmp_path: Path) -> None:
+    expectations = {
+        "test_cache.py": True,
+        "cache_test.py": True,
+        "spec_cache.py": True,
+        "cache_spec.py": True,
+        "tests/test_cache.py": True,
+        "spec/cache.py": True,
+        "src/contest.py": False,
+        "src/testament.py": False,
+        "src/test_cache.json": False,
+    }
+    repo = repository(
+        tmp_path / "donor",
+        {
+            name: "{}\n" if name.endswith(".json") else "def example(): pass\n"
+            for name in expectations
+        },
+    )
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    result = source_index(
+        repo, sha, need="test evidence navigation", terms=[], limit=24, symbol_files=0
+    )
+    flags = {row["path"]: row["test_path_heuristic"] for row in result["files"]}
+    assert result["available"] and result["tree_complete"]
+    assert flags == expectations
+    assert result["test_coverage"] == "not-established"
+    assert result["license_permission"] == "not-established"
+    assert not result["donor_executed"]
+
+
 def test_navigation_limits_retain_unreturned_and_uninspected_counts(tmp_path: Path) -> None:
     repo = repository(
         tmp_path / "donor",
