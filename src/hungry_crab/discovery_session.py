@@ -128,6 +128,8 @@ def initialize(
         seen.add(identity)
         for key in ("flow", "expected", "observed", "impact", "constraints"):
             _text(need.get(key), "need." + key)
+        if need.get("verification_mode", "runtime") not in {"runtime", "design"}:
+            raise CrabError("need.verification_mode must be runtime or design")
         _references(need.get("maw_evidence"), context)
         backlog = need.get("backlog")
         if not isinstance(backlog, dict) or backlog.get("status") not in {
@@ -363,17 +365,20 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
             "lead": need.get("lead"),
             "context": value["context"],
             "need_record": {
-                key: need[key]
-                for key in (
-                    "id",
-                    "flow",
-                    "expected",
-                    "observed",
-                    "impact",
-                    "constraints",
-                    "maw_evidence",
-                    "backlog",
-                )
+                "verification_mode": need.get("verification_mode", "runtime"),
+                **{
+                    key: need[key]
+                    for key in (
+                        "id",
+                        "flow",
+                        "expected",
+                        "observed",
+                        "impact",
+                        "constraints",
+                        "maw_evidence",
+                        "backlog",
+                    )
+                },
             },
         }
         value["lease"] = lease

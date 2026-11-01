@@ -11,7 +11,58 @@ from test_discovery_inputs import repository
 
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
+from hungry_crab.source_find import find_source
 from hungry_crab.source_inspection import _source_paths, source_index, source_packet, syntax_query
+from hungry_crab.source_lines import physical_lines
+
+
+def test_unicode_source_characters_do_not_move_parser_or_literal_ranges(tmp_path: Path) -> None:
+    source = "value = 'a\u0085\u2028\u2029\v\fb'\ndef target():\n    return value\n"
+    repo = repository(tmp_path / "donor", {"app.py": source})
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    packet = source_packet(
+        repo,
+        sha,
+        ["app.py"],
+        [{"kind": "function", "name": "target"}],
+        need="physical source coordinates",
+        related=False,
+    )
+    row = packet["files"][0]
+    assert row["line_count"] == 3
+    assert row["ranges"][0]["start"] == 2 and row["ranges"][0]["end"] == 3
+    assert row["ranges"][0]["content"] == "def target():\n    return value"
+    assert find_source(repo, sha, ["return"])["matches"][0]["line"] == 3
+    assert physical_lines("a\u2028b\r\nc\rd\n", keepends=True) == ["a\u2028b\r\n", "c\r", "d\n"]
+
+
+def test_explicit_chunk_ends_at_actual_eof_and_retains_requested_bound(tmp_path: Path) -> None:
+    repo = repository(tmp_path / "donor", {"app.py": "def target():\n    return True\n"})
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    packet = source_packet(
+        repo,
+        sha,
+        ["app.py"],
+        [],
+        need="bounded first chunk",
+        related=False,
+        ranges=[{"path": "app.py", "start": 1, "end": 60}],
+    )
+    row = packet["files"][0]["ranges"][0]
+    assert row["end"] == 2 and row["requested_end"] == 60 and row["range_clipped_to_eof"]
+    assert row["content"] == "def target():\n    return True"
+    assert not packet["omissions"]
+    absent = source_packet(
+        repo,
+        sha,
+        ["app.py"],
+        [],
+        need="outside actual EOF",
+        related=False,
+        ranges=[{"path": "app.py", "start": 3, "end": 4}],
+    )
+    assert not absent["files"][0]["ranges"]
+    assert absent["omissions"][0]["reason"] == "requested-range-outside-file"
 
 
 def test_index_returns_actual_declarations_without_instruction_or_comment_bodies(

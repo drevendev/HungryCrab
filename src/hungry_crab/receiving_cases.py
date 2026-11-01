@@ -2,13 +2,126 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .analysis_context import fingerprint
+from .artifact_read import parse_object, read_bytes, read_object
 from .compare.candidates import _evidence_path
 from .errors import CrabError
-from .receiving_probe import run_probe
+from .receiving_probe import run_probe, verify_receipt
+
+
+def project_results(receipt_path: Path, maw: Path, *, value_bytes: int = 512) -> dict[str, Any]:
+    """Project verified calls/checks; retain full result identities and explicit omissions.
+
+    This is evidence transport, not a semantic verdict. Full returned objects are
+    deliberately kept in the original hash-verified stdout rather than repeated
+    for every model stage. A failed assertion still needs usefulness review.
+    """
+    from .discovery_session import live_context
+
+    if type(value_bytes) is not int or not 64 <= value_bytes <= 8192:
+        raise CrabError("case projection value limit must be 64..8192 bytes")
+    context = live_context(maw)
+    raw = read_object(receipt_path)
+    receipt = verify_receipt(receipt_path, context, str(raw.get("probe_sha256", "")))
+    if receipt.get("import_receiving") is not True or not receipt.get("required_receiving_calls"):
+        raise CrabError("case projection requires actual pinned receiving target calls")
+    stdout = read_bytes(receipt_path.parent / "stdout.txt", 65536)
+    if hashlib.sha256(stdout).hexdigest() != receipt["artifacts"]["stdout.txt"]:
+        raise CrabError("executed probe artifact changed before projection")
+    data = parse_object(stdout, name="stdout.txt")
+    cases = data.get("cases")
+    if not isinstance(cases, list) or not 2 <= len(cases) <= 8:
+        raise CrabError("receiving result needs 2..8 original cases")
+    remaining = 32000
+    omissions: list[dict[str, Any]] = []
+
+    def value(item: Any, location: str) -> Any:
+        nonlocal remaining
+        encoded = json.dumps(item, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if len(encoded) > value_bytes or len(encoded) > remaining:
+            omitted = {
+                "omitted": True,
+                "bytes": len(encoded),
+                "sha256": hashlib.sha256(encoded).hexdigest(),
+            }
+            omissions.append({"field": location, **omitted})
+            return omitted
+        remaining -= len(encoded)
+        return item
+
+    projected = []
+    roles = set()
+    for index, case in enumerate(cases):
+        if (
+            not isinstance(case, dict)
+            or not isinstance(case.get("label"), str)
+            or not 0 < len(case["label"]) <= 200
+            or case.get("role") not in {"target", "positive-control", "negative-control"}
+            or type(case.get("passed")) is not bool
+            or not isinstance(case.get("actual"), dict)
+            or not isinstance(case.get("checks"), list)
+            or not 1 <= len(case["checks"]) <= 12
+        ):
+            raise CrabError("invalid receiving case result")
+        roles.add(case["role"])
+        checks = []
+        for number, check in enumerate(case["checks"]):
+            if (
+                not isinstance(check, dict)
+                or set(check) != {"pointer", "expected", "observed", "passed", "check_error"}
+                or not isinstance(check["pointer"], str)
+                or not check["pointer"].startswith("/")
+                or len(check["pointer"]) > 500
+                or type(check["passed"]) is not bool
+                or (check["check_error"] is not None and not isinstance(check["check_error"], str))
+            ):
+                raise CrabError("invalid receiving check result")
+            checks.append(
+                {
+                    **{k: check[k] for k in ("pointer", "passed", "check_error")},
+                    **{
+                        k: value(check[k], f"cases/{index}/checks/{number}/{k}")
+                        for k in ("expected", "observed")
+                    },
+                }
+            )
+        projected.append(
+            {
+                **{k: case[k] for k in ("label", "role", "passed")},
+                "checks": checks,
+                "actual_exception": value(
+                    case["actual"].get("exception"), f"cases/{index}/exception"
+                ),
+                "actual_result_sha256": fingerprint(case["actual"]),
+            }
+        )
+    if not {"target", "positive-control"} <= roles:
+        raise CrabError("receiving result lacks target or positive control")
+    result = {
+        "schema": "hungry-crab.receiving-case-projection/1",
+        "status": receipt["status"],
+        "context": context,
+        "probe_sha256": receipt["probe_sha256"],
+        "receipt_sha256": hashlib.sha256(read_bytes(receipt_path, 65536)).hexdigest(),
+        "artifacts": receipt["artifacts"],
+        "actual_receiving_calls": receipt["observed_receiving_calls"],
+        "cases": projected,
+        "omissions": omissions,
+        "value_byte_limit": value_bytes,
+        "value_bytes_retained": 32000 - remaining,
+        "interpretation": (
+            "Verified executed calls/checks only; semantic usefulness review required. "
+            "Unshown values stay in hash-verified stdout; omissions are not passing values."
+        ),
+    }
+    if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > 65536:
+        raise CrabError("case projection exceeds 64 KiB; use a smaller value limit")
+    return result
 
 
 def _data(value: Any, *, depth: int = 0) -> None:

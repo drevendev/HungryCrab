@@ -11,6 +11,7 @@ from .attribution import GitSourceReader
 from .compare.candidates import _evidence_path
 from .errors import CrabError
 from .source_inspection import _commit_pin, _source_paths, body_excluded
+from .source_lines import physical_lines
 
 _CODE_SUFFIXES = frozenset(
     {
@@ -101,7 +102,7 @@ def find_source(
             omissions.append({"path": path, "reason": "file-unavailable-or-byte-limit"})
             continue
         used += size
-        lines = text.splitlines()
+        lines = physical_lines(text)
         for number, line in enumerate(lines, 1):
             hit = [t for t in needles if t in line.casefold()]
             if not hit:

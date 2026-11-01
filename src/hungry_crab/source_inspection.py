@@ -16,6 +16,7 @@ from .compare.candidates import _evidence_path
 from .errors import CrabError
 from .licensing.path_grants import GrantResolver
 from .miners.ai_config import INSTRUCTION_FILES
+from .source_lines import physical_lines
 
 PACKET_SCHEMA = "hungry-crab.source-packet/1"
 
@@ -161,7 +162,7 @@ def source_packet(
         if text is None or len(text.encode("utf-8")) > 65_536:
             omissions.append({"path": path, "reason": "unavailable-or-file-byte-limit"})
             continue
-        lines = text.splitlines()
+        lines = physical_lines(text)
         manual = explicit.get(path)
         result: dict[str, Any] = (
             {"status": "not-run-explicit-source-ranges", "matches": []}
@@ -186,9 +187,13 @@ def source_packet(
         windows: list[dict[str, Any]] = []
         for match in matches:
             start, end = match["start"], match["end"]
-            if manual is not None and end > len(lines):
+            if start > len(lines):
                 omissions.append({"path": path, "reason": "requested-range-outside-file"})
                 continue
+            actual = dict(match)
+            if end > len(lines):
+                actual.update(end=len(lines), requested_end=end, range_clipped_to_eof=True)
+                end = len(lines)
             content = "\n".join(lines[start - 1 : end])
             size = len(content.encode("utf-8"))
             if used + size > byte_budget:
@@ -197,7 +202,7 @@ def source_packet(
             used += size
             windows.append(
                 {
-                    **match,
+                    **actual,
                     "sha": sha,
                     "path": path,
                     "content": content,
@@ -398,7 +403,7 @@ def source_index(
                         symbols=matches[:12],
                         symbol_status=result["status"],
                         returned_matches_omitted=max(0, len(matches) - 12),
-                        line_count=len(text.splitlines()),
+                        line_count=len(physical_lines(text)),
                         decoded_text_sha256=hashlib.sha256(text.encode()).hexdigest(),
                     )
         records.append(record)

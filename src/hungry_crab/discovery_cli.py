@@ -125,6 +125,14 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
     cases.add_argument("directory", type=Path, help="new owned output directory outside the maw")
     cases.add_argument("--maw", type=Path, default=Path(), help="trusted receiving repository")
     cases.add_argument("--input", type=Path, required=True, help="original JSON cases and controls")
+    results = commands.add_parser(
+        "case-results", help="project verified receiving calls and actual check observations"
+    )
+    results.add_argument("receipt", type=Path, help="existing executed receiving-case receipt")
+    results.add_argument("--maw", type=Path, default=Path(), help="current receiving repository")
+    results.add_argument(
+        "--value-bytes", type=int, default=512, help="maximum displayed JSON bytes per value"
+    )
     novelty = commands.add_parser(
         "novelty", help="read selected/default/confirmed pending implementation scope"
     )
@@ -305,6 +313,10 @@ def _run_discover(args: argparse.Namespace) -> int:
             limit=plan.get("limit", 10),
             seen=set(plan.get("prior_exposure", [])),
         )
+    elif action == "case-results":
+        from .receiving_cases import project_results
+
+        result = project_results(args.receipt, args.maw.resolve(), value_bytes=args.value_bytes)
     elif action == "novelty":
         from .novelty import implementation_scope
 

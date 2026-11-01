@@ -38,6 +38,7 @@ from .licensing.path_grants import GrantResolver
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
 from .nutrients import Candidate, require_nutrient_id
+from .source_lines import physical_lines
 from .typeutil import as_dict, as_list
 
 SCHEMA = "hungry-crab.exploration/1"
@@ -307,7 +308,7 @@ def _references(
         lines = files.get(path)
         if lines is None and objects is not None:
             text = GitSourceReader(Path(objects)).read(str(side.get("sha", "")), path)
-            lines = len(text.splitlines()) if text is not None else None
+            lines = len(physical_lines(text)) if text is not None else None
         if type(lines) is not int or end > lines:
             return False
     return True
@@ -626,7 +627,7 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         # Pin every range to the actual immutable file; never trust a recorded runner root.
         for ref in source:
             text = reader.read(prey_ref.sha, ref["path"])
-            if text is None or ref["end"] > len(text.splitlines()):
+            if text is None or ref["end"] > len(physical_lines(text)):
                 raise CrabError("registered donor range is unavailable at the pinned commit")
         receipt = MaterializationReceipt(
             nutrient_id=f"crab:code:{finding['key']}",
