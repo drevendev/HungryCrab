@@ -155,6 +155,8 @@ An empty witness set grants no citation capability.
 `repo`, `sha` and `terms`, with bounded files, total bytes and time. Locations
 include actual file line counts. Strings/comments can match; this is navigation,
 not an AST or semantic coverage claim. Instructions and README bodies stay excluded.
+Implementation/test suffixes consume the read allowance before ancillary files;
+other files remain eligible, with uninspected counts retained.
 
 Read selected windows with `discover inspect EXPLORATION --input inspection.json`:
 
@@ -205,6 +207,9 @@ At least one target and positive control are required. Each check has a JSON
 (relative path in a fresh temporary fixture), `$bytes` (base64), `$stream`
 (text stream rejecting unbounded reads), `$io` (ordinary text BytesIO), and
 `$helper` (an explicitly declared pinned zero-argument receiving function).
+`$base64` encodes original UTF-8 text and `$git_blob_sha1` computes its exact Git
+blob identity, allowing consistent original analyzer inputs without executing
+those inputs or inventing object hashes. Factory values must be text.
 Agent content is JSON data, never executable Python. Cases record actual values,
 exceptions, predicate outcomes and function calls; a failed predicate is not
 automatically a valid defect or independent acceptance. Donor code never runs.

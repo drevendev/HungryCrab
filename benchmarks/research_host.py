@@ -146,7 +146,10 @@ class Meter:
 
     def admission(self, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
         request = {"prompt": prompt, "schema": schema, "model": self.model, "effort": self.effort}
-        estimate = 8500 + (len(json.dumps(request, ensure_ascii=False).encode()) + 2) // 3
+        # Known-control receipts observed about 4.6k native-prefix tokens.
+        # Reserve 6.5k for prefix/reply plus conservative request bytes/3.
+        # This remains admission only; actual overshoots invalidate the trial.
+        estimate = 6500 + (len(json.dumps(request, ensure_ascii=False).encode()) + 2) // 3
         left = self.seconds - (time.time() - self.data["started"])
         return {
             "estimate": estimate,
