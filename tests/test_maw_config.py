@@ -158,6 +158,45 @@ def test_yaml_merge_does_not_hide_repeated_explicit_key(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
+    ("config_text", "repeated_key"),
+    [
+        ("trust:\n  <<: {same_owner: true, same_owner: false}\n", "same_owner"),
+        (
+            "trust:\n  <<: [{bypass_license: false, bypass_license: true}]\n",
+            "bypass_license",
+        ),
+        ("trust:\n  <<: &policy {same_owner: true, same_owner: false}\n", "same_owner"),
+        (
+            "trust:\n  <<: {owners: [SYNTHETIC_PRIVATE_VALUE_M7Q4], owners: []}\n",
+            "owners",
+        ),
+    ],
+)
+def test_inline_yaml_merge_sources_reject_duplicate_explicit_keys(
+    tmp_path: Path, config_text: str, repeated_key: str
+) -> None:
+    # PyYAML flattens inline merge sources before constructing their mappings.
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    error = caught.value
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    diagnostic = error.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert repeated_key not in diagnostic
+    assert "SYNTHETIC_PRIVATE_VALUE_M7Q4" not in str(error)
+    assert error.__cause__ is None
+
+
+def test_yaml_merge_sources_allow_normal_cross_source_overrides(tmp_path: Path) -> None:
+    write_tree(
+        tmp_path,
+        {CONFIG_FILE: "trust:\n  <<: [{same_owner: false}, {same_owner: true}]\n"},
+    )
+    assert MawConfig.load(tmp_path).trust.same_owner is False
+
+
+@pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
         ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
