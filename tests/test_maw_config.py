@@ -119,6 +119,46 @@ def test_repeated_yaml_mapping_keys_are_rejected(
     assert error.__suppress_context__ is True
 
 
+
+def test_yaml_merge_override_keeps_pyyaml_safe_semantics(tmp_path: Path) -> None:
+    # A merge supplies defaults; one explicit override is not a duplicate.
+    write_tree(
+        tmp_path,
+        {
+            CONFIG_FILE: (
+                "scoring:\n"
+                "  categories: &defaults {ci: 0.5, docs: 0.1}\n"
+                "  traits:\n"
+                "    <<: *defaults\n"
+                "    ci: 0.9\n"
+            )
+        },
+    )
+    config = MawConfig.load(tmp_path)
+    assert config.scoring["categories"] == {"ci": 0.5, "docs": 0.1}
+    assert config.scoring["traits"] == {"ci": 0.9, "docs": 0.1}
+
+
+def test_yaml_merge_does_not_hide_repeated_explicit_key(tmp_path: Path) -> None:
+    write_tree(
+        tmp_path,
+        {
+            CONFIG_FILE: (
+                "scoring:\n"
+                "  categories: &defaults {ci: 0.5}\n"
+                "  traits: {<<: *defaults, ci: 0.9, ci: 0.8}\n"
+            )
+        },
+    )
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert "duplicate YAML mapping key" in caught.value.message
+    assert "ci" not in caught.value.message
+    assert caught.value.__cause__ is None
+
+
+
+
 @pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
