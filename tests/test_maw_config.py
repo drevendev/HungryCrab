@@ -95,8 +95,8 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
 @pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
-        ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
-        ("serve: [SYNTHETIC_PRIVATE_VALUE_C3D4,\\n", "SYNTHETIC_PRIVATE_VALUE_C3D4"),
+        ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
+        ("serve: [SYNTHETIC_PRIVATE_VALUE_C3D4,\n", "SYNTHETIC_PRIVATE_VALUE_C3D4"),
     ],
 )
 def test_malformed_yaml_diagnostic_never_echoes_source(
@@ -121,7 +121,7 @@ def test_yaml_error_without_mark_never_falls_back_to_exception_text(
 ) -> None:
     import yaml
 
-    write_tree(tmp_path, {CONFIG_FILE: "mode: normal\\n"})
+    write_tree(tmp_path, {CONFIG_FILE: "mode: normal\n"})
 
     def error_without_mark(_text: str) -> None:
         raise yaml.YAMLError("SYNTHETIC_PRIVATE_VALUE_E5F6")
