@@ -223,6 +223,35 @@ class TrustSettings:
         return owner.lower() in {name.lower() for name in self.owners}
 
 
+class _DuplicateYamlMappingKey(yaml.YAMLError):
+    """A repeated YAML mapping key; diagnostic never includes source values."""
+
+    def __init__(self, mark: Any) -> None:
+        self.problem_mark = mark
+        super().__init__("duplicate mapping key")
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """Use only safe YAML constructors and reject explicit duplicate keys at any depth."""
+
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
+        if isinstance(node, yaml.MappingNode):
+            seen: set[Any] = set()
+            for key_node, _ in node.value:
+                # Standard YAML merge overrides are not repeated explicit keys.
+                if key_node.tag == "tag:yaml.org,2002:merge":
+                    continue
+                key = self.construct_object(key_node, deep=deep)
+                try:
+                    if key in seen:
+                        raise _DuplicateYamlMappingKey(key_node.start_mark)
+                    seen.add(key)
+                except TypeError:
+                    # Keep SafeLoader's existing error for unsupported mapping keys.
+                    return super().construct_mapping(node, deep=deep)
+        return super().construct_mapping(node, deep=deep)
+
+
 @dataclass
 class MawConfig:
     root: Path
@@ -255,7 +284,7 @@ class MawConfig:
             return config
         source_text = path.read_text(encoding="utf-8")
         try:
-            loaded = yaml.safe_load(source_text)
+            loaded = yaml.load(source_text, Loader=_UniqueKeySafeLoader)
         except yaml.YAMLError as exc:
             # Parser messages contain the original YAML source, including secrets.
             # Only the numeric location from PyYAML's marks is safe to expose.
@@ -268,7 +297,12 @@ class MawConfig:
                 column = getattr(mark, "column", None)
                 if type(line) is int and line >= 0 and type(column) is int and column >= 0:
                     location = f" at line {line + 1}, column {column + 1}"
-            raise UsageError(f"{path}: invalid YAML syntax{location}") from None
+            category = (
+                "duplicate YAML mapping key"
+                if isinstance(exc, _DuplicateYamlMappingKey)
+                else "invalid YAML syntax"
+            )
+            raise UsageError(f"{path}: {category}{location}") from None
         if loaded is None and all(
             not line.strip() or line.lstrip().startswith("#") for line in source_text.splitlines()
         ):
