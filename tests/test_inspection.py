@@ -125,6 +125,22 @@ def test_literal_find_prioritizes_specific_later_locations_and_discloses_limits(
         find_source(repo, "HEAD", ["error"])
 
 
+def test_literal_find_prefers_declaration_text_over_same_term_imports(tmp_path: Path) -> None:
+    repo = repository(
+        tmp_path / "source",
+        {
+            "a_usage.py": "from z_parser import BlockParser\n",
+            "z_parser.py": "class BlockParser:\n    pass\n",
+            "README.md": "BlockParser must not expose README prose\n",
+        },
+    )
+    result = find_source(repo, git(repo, "rev-parse", "HEAD").strip(), ["BlockParser"], limit=1)
+    assert result["matches"][0]["path"] == "z_parser.py"
+    assert result["matches"][0]["declaration_like"]
+    assert result["matching_lines_not_returned"] == 1
+    assert "text heuristic" in result["match_order"]
+
+
 def test_public_contract_exposes_actual_paths_and_preserves_empty_citation_roles(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

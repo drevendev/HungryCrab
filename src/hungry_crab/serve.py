@@ -380,13 +380,19 @@ def render_issue(card: Candidate, menu: dict[str, Any]) -> tuple[str, str]:
         "_Not judged yet: the score is a deterministic pre-ranking, the value for this "
         "repository still needs a decision._"
     )
+    source_behavior = card.what
+    if card.trace.get("exploration_snapshot") and not card.trace.get("source_behavior_recorded"):
+        source_behavior = (
+            "Observed donor behavior was not separately recorded. The proposed receiving "
+            "change is not evidence that the donor implements it; review the cited source."
+        )
     body = (
         f"<!-- {card.id} -->\n"
         f"**Nutrient** `{card.category}` | license mode `{safe_name(card.license_mode)}` | "
         f"effort {safe_name(card.effort)} | risk {safe_name(card.risk)} | "
         f"score {safe_name(card.score)}\n\n"
         f"## License trace\n\n{_license_trace(card)}\n\n"
-        f"## What the prey does\n\n{safe_name(card.what)}\n{evidence}\n\n"
+        f"## What the prey does\n\n{safe_name(source_behavior)}\n{evidence}\n\n"
         f"## What this repository has\n\n{_maw_state(card)}\n\n"
         f"## Why it matters here\n\n{safe_name(why)}\n\n"
         f"## Suggested change\n\n{safe_name(how)}\n\n"
