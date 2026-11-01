@@ -36,6 +36,14 @@ def array(items: dict[str, Any], maximum: int = 4, minimum: int = 0) -> dict[str
     return {"type": "array", "items": items, "minItems": minimum, "maxItems": maximum}
 
 
+def bind_action_need(
+    action: dict[str, Any], needs: list[dict[str, Any]], plan: dict[str, Any]
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Bind the receiving need and leads to the CURRENT controller action."""
+    need = next(row for row in needs if row["id"] == action["need"])
+    return need, plan[need["id"]]["leads"]
+
+
 def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
     names = (
         GitRunner(repo, lazy_fetch=False)
@@ -1022,6 +1030,9 @@ class Trial:
                 action = self.next()
                 if not action or action.get("finished") or action["action"] == "search":
                     continue
+                # A completed empty search may rotate to another need already
+                # in acquire. Never use the previous search's leads for it.
+                need, leads = bind_action_need(action, self.needs, self.state["plan"])
             if self.session:
                 assert self.action
                 lead = next(
