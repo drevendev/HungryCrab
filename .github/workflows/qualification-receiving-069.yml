@@ -4,7 +4,7 @@ on:
     inputs:
       plan:
         description: Owned receiving preflight path
-        default: docs/releases/0.6.9-receiving-preflight.json
+        default: docs/releases/0.6.9-resumed-receiving-preflight.json
         required: true
   push:
     branches: [codex/release-0.6.9]
@@ -31,10 +31,11 @@ jobs:
       - name: Acquire current receiving pins without running receiving programs
         env:
           GH_TOKEN: ${{ github.token }}
-          CRAB_RECEIVING_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-receiving-preflight.json' }}
+          CRAB_RECEIVING_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-resumed-receiving-preflight.json' }}
         run: >-
           uv run python benchmarks/qualification_receiving.py
           --plan "$CRAB_RECEIVING_PLAN"
+          --integration-head "${{ github.sha }}"
           --volume "${{ steps.volume.outputs.volume }}"
           --output "$RUNNER_TEMP/qualification-receiving"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
