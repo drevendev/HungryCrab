@@ -123,13 +123,17 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
         "cases", help="execute original JSON receiving cases and positive controls"
     )
     cases.add_argument("directory", type=Path, help="new owned output directory outside the maw")
-    cases.add_argument("--maw", type=Path, default=Path())
-    cases.add_argument("--input", type=Path, required=True)
+    cases.add_argument("--maw", type=Path, default=Path(), help="trusted receiving repository")
+    cases.add_argument("--input", type=Path, required=True, help="original JSON cases and controls")
     novelty = commands.add_parser(
         "novelty", help="read selected/default/confirmed pending implementation scope"
     )
-    novelty.add_argument("--maw", type=Path, default=Path())
-    novelty.add_argument("--input", type=Path, required=True)
+    novelty.add_argument(
+        "--maw", type=Path, default=Path(), help="receiving repository and objects"
+    )
+    novelty.add_argument(
+        "--input", type=Path, required=True, help="explicit implementation scope and pins"
+    )
 
 
 def cmd_discover(args: argparse.Namespace) -> int:
