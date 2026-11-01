@@ -1,0 +1,40 @@
+"""Correct setup through actual public-target digests, never manifest editing."""
+import concurrent.futures
+import datetime
+import hashlib
+import json
+import os
+import subprocess
+from pathlib import Path
+from hungry_crab.cache import Slug,prey_paths
+from hungry_crab.digest_integrity import digest_integrity_errors
+from hungry_crab.fetch.git import GitRunner
+R=Path(__file__).resolve().parents[1];Q=R/'.venv/qualification-study4'
+def load(p):return json.loads(p.read_text())
+def write(p,v):p.write_text(json.dumps(v,indent=2)+'\n')
+old=Q/'sealed.json';f=load(old)
+def prepare(row):
+ folder=Q/'public-facts'/row['id'];folder.mkdir(parents=True,exist_ok=False)
+ cache=folder/'cache';target=prey_paths(Slug.parse(row['repository']),cache).repo
+ target.parent.mkdir(parents=True,exist_ok=True)
+ GitRunner(R,lazy_fetch=False).run('-c','core.hooksPath='+os.devnull,'clone','--no-checkout','--shared',row['view'],str(target))
+ (target/'.git/config').write_text('[core]\nrepositoryformatversion = 0\nbare = false\nsymlinks = false\nautocrlffalse = false\nautocrlf = false\nfilemode = false\nhooksPath = '+os.devnull+'\nfsmonitor = false\n[remote "origin"]\nurl = https://github.com/'+row['repository']+'\n')
+ git=GitRunner(target,lazy_fetch=False);git.run('-c','core.hooksPath='+os.devnull,'reset','--hard',row['sha'])
+ assert git.head_sha()==row['sha'] and not git.run('status','--porcelain')
+ digests={}
+ for arm,interpreter in f['arm_python'].items():
+  out=folder/(arm+'-digest');env=dict(os.environ);env.pop('PYTHONPATH',None);env.pop('PYTHONHOME',None);env['CRAB_CACHE_DIR']=str(cache);env['PYTHONIOENCODING']='utf-8'
+  with (folder/(arm+'.log')).open('wb') as stream:
+   p=subprocess.run([interpreter,'-B','-m','hungry_crab','digest',row['repository'],'--out',str(out),'--depth','normal','--maw-license','MIT','--fail-on-miner-error'],cwd=R,env=env,stdout=stream,stderr=subprocess.STDOUT,timeout=240)
+  assert p.returncode==0,(row['id'],arm)
+  manifest=load(out/'manifest.json');prey=manifest['prey']
+  assert prey['sha']==row['sha'] and prey['label'].casefold()==row['repository'].casefold() and prey['url']=='https://github.com/'+row['repository']
+  assert not digest_integrity_errors(out,manifest)
+  digests[arm]=str(out)
+ result={**row,'view':str(target),'arm_digests':digests,'prior_invalid_local_identity_digests_preserved':True}
+ write(folder/'receipt.json',result);print(json.dumps({'public_identity_verified':row['id']}),flush=True)
+ return result
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as e:f['pool']=list(e.map(prepare,f['pool']))
+f['operational_amendment']={'parent_sha256':hashlib.sha256(old.read_bytes()).hexdigest(),'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'reason':'Both first-arm planning calls completed but compare refused setup digests with local labels and null URLs. No donor source reached either model. Rebuild all same30 immutable pins through actual public-target CLI; do not edit manifests. Keep both planning costs, failed admissions and wall clocks; resume same trials without restarting model or changing needs/pool/host/caps.','source_judgments_before_amendment':0,'changed_donor_pins':0,'original_seal_retained':True}
+write(Q/'sealed-public-identity-amendment.json',f)
+print(json.dumps({'amended_seal_sha256':hashlib.sha256((Q/'sealed-public-identity-amendment.json').read_bytes()).hexdigest(),'model_costs_preserved':True}))
