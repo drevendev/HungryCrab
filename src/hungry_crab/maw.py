@@ -223,6 +223,49 @@ class TrustSettings:
         return owner.lower() in {name.lower() for name in self.owners}
 
 
+class _DuplicateYamlMappingKey(yaml.YAMLError):
+    """A repeated YAML mapping key; diagnostic never includes source values."""
+
+    def __init__(self, mark: Any) -> None:
+        self.problem_mark = mark
+        super().__init__("duplicate mapping key")
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):
+    """Use only safe YAML constructors and reject explicit duplicate keys at any depth."""
+
+    def flatten_mapping(self, node: yaml.MappingNode) -> None:
+        # SafeLoader recursively flattens inline YAML merge sources without calling
+        # construct_mapping on them. Check each original mapping before flattening.
+        checked: set[int] | None = getattr(self, "_checked_duplicate_nodes", None)
+        if checked is None:
+            checked = set()
+            self._checked_duplicate_nodes = checked
+        if id(node) not in checked:
+            checked.add(id(node))
+            seen: set[Any] = set()
+            seen_merge = False
+            for key_node, _ in node.value:
+                # A merge can supply many defaults through a sequence, but multiple
+                # explicit << directives in one mapping silently overwrite policy.
+                if key_node.tag == "tag:yaml.org,2002:merge":
+                    if seen_merge:
+                        raise _DuplicateYamlMappingKey(key_node.start_mark)
+                    seen_merge = True
+                    continue
+                if key_node.tag == "tag:yaml.org,2002:value":
+                    key_node.tag = "tag:yaml.org,2002:str"
+                key = self.construct_object(key_node, deep=True)
+                try:
+                    if key in seen:
+                        raise _DuplicateYamlMappingKey(key_node.start_mark)
+                    seen.add(key)
+                except TypeError:
+                    # SafeLoader will raise its usual unhashable-key error.
+                    break
+        super().flatten_mapping(node)
+
+
 @dataclass
 class MawConfig:
     root: Path
@@ -255,7 +298,7 @@ class MawConfig:
             return config
         source_text = path.read_text(encoding="utf-8")
         try:
-            loaded = yaml.safe_load(source_text)
+            loaded = yaml.load(source_text, Loader=_UniqueKeySafeLoader)
         except yaml.YAMLError as exc:
             # Parser messages contain the original YAML source, including secrets.
             # Only the numeric location from PyYAML's marks is safe to expose.
@@ -268,7 +311,12 @@ class MawConfig:
                 column = getattr(mark, "column", None)
                 if type(line) is int and line >= 0 and type(column) is int and column >= 0:
                     location = f" at line {line + 1}, column {column + 1}"
-            raise UsageError(f"{path}: invalid YAML syntax{location}") from None
+            category = (
+                "duplicate YAML mapping key"
+                if isinstance(exc, _DuplicateYamlMappingKey)
+                else "invalid YAML syntax"
+            )
+            raise UsageError(f"{path}: {category}{location}") from None
         if loaded is None and all(
             not line.strip() or line.lstrip().startswith("#") for line in source_text.splitlines()
         ):

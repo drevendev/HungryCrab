@@ -93,6 +93,131 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("config_text", "repeated_key"),
+    [
+        ("mode: normal\nmode: strict\n", "mode"),
+        ("license: MIT\nlicense: SYNTHETIC_PRIVATE_VALUE_K2Q9\n", "license"),
+        ("serve:\n  issues: ask\n  issues: auto\n", "issues"),
+        ("serve: {issues: ask, issues: auto}\n", "issues"),
+        ('mode: normal\n"mode": strict\n', "mode"),
+    ],
+)
+def test_repeated_yaml_mapping_keys_are_rejected(
+    tmp_path: Path, config_text: str, repeated_key: str
+) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+
+    error = caught.value
+    assert str(tmp_path / CONFIG_FILE) in error.message
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    assert repeated_key not in error.message
+    assert "SYNTHETIC_PRIVATE_VALUE_K2Q9" not in str(error)
+    assert error.__cause__ is None
+    assert error.__suppress_context__ is True
+
+
+def test_yaml_merge_override_keeps_pyyaml_safe_semantics(tmp_path: Path) -> None:
+    # A merge supplies defaults; one explicit override is not a duplicate.
+    write_tree(
+        tmp_path,
+        {
+            CONFIG_FILE: (
+                "scoring:\n"
+                "  categories: &defaults {ci: 0.5, docs: 0.1}\n"
+                "  traits:\n"
+                "    <<: *defaults\n"
+                "    ci: 0.9\n"
+            )
+        },
+    )
+    config = MawConfig.load(tmp_path)
+    assert config.scoring["categories"] == {"ci": 0.5, "docs": 0.1}
+    assert config.scoring["traits"] == {"ci": 0.9, "docs": 0.1}
+
+
+def test_yaml_merge_does_not_hide_repeated_explicit_key(tmp_path: Path) -> None:
+    write_tree(
+        tmp_path,
+        {
+            CONFIG_FILE: (
+                "scoring:\n"
+                "  categories: &defaults {ci: 0.5}\n"
+                "  traits: {<<: *defaults, ci: 0.9, ci: 0.8}\n"
+            )
+        },
+    )
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert "duplicate YAML mapping key" in caught.value.message
+    diagnostic = caught.value.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert "ci" not in diagnostic
+    assert caught.value.__cause__ is None
+
+
+@pytest.mark.parametrize(
+    ("config_text", "repeated_key"),
+    [
+        ("trust:\n  <<: {same_owner: true, same_owner: false}\n", "same_owner"),
+        (
+            "trust:\n  <<: [{bypass_license: false, bypass_license: true}]\n",
+            "bypass_license",
+        ),
+        ("trust:\n  <<: &policy {same_owner: true, same_owner: false}\n", "same_owner"),
+        (
+            "trust:\n  <<: {owners: [SYNTHETIC_PRIVATE_VALUE_M7Q4], owners: []}\n",
+            "owners",
+        ),
+    ],
+)
+def test_inline_yaml_merge_sources_reject_duplicate_explicit_keys(
+    tmp_path: Path, config_text: str, repeated_key: str
+) -> None:
+    # PyYAML flattens inline merge sources before constructing their mappings.
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    error = caught.value
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    diagnostic = error.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert repeated_key not in diagnostic
+    assert "SYNTHETIC_PRIVATE_VALUE_M7Q4" not in str(error)
+    assert error.__cause__ is None
+
+
+def test_yaml_merge_sources_allow_normal_cross_source_overrides(tmp_path: Path) -> None:
+    write_tree(
+        tmp_path,
+        {CONFIG_FILE: "trust:\n  <<: [{same_owner: false}, {same_owner: true}]\n"},
+    )
+    assert MawConfig.load(tmp_path).trust.same_owner is False
+
+
+@pytest.mark.parametrize(
+    "config_text",
+    [
+        "trust:\n  <<: {same_owner: false}\n  <<: {same_owner: true}\n",
+        "trust:\n  <<: {bypass_license: false}\n  <<: {bypass_license: true}\n",
+    ],
+)
+def test_repeated_yaml_merge_directives_are_rejected(tmp_path: Path, config_text: str) -> None:
+    # Multiple << directives silently replace policy; a single list merge is valid.
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    error = caught.value
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    diagnostic = error.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert "same_owner" not in diagnostic
+    assert "bypass_license" not in diagnostic
+    assert error.__cause__ is None
+
+
+@pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
         ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
@@ -123,10 +248,10 @@ def test_yaml_error_without_mark_never_falls_back_to_exception_text(
 
     write_tree(tmp_path, {CONFIG_FILE: "mode: normal\n"})
 
-    def error_without_mark(_text: str) -> None:
+    def error_without_mark(*_args: object, **_kwargs: object) -> None:
         raise yaml.YAMLError("SYNTHETIC_PRIVATE_VALUE_E5F6")
 
-    monkeypatch.setattr("hungry_crab.maw.yaml.safe_load", error_without_mark)
+    monkeypatch.setattr("hungry_crab.maw.yaml.load", error_without_mark)
     with pytest.raises(UsageError) as caught:
         MawConfig.load(tmp_path)
     assert caught.value.message == f"{tmp_path / CONFIG_FILE}: invalid YAML syntax"
