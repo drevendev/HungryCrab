@@ -181,6 +181,13 @@ only trusted receiving code; actual function calls and target/correct controls
 remain in the receipt. Runtime claims, design artifacts, legal registration,
 publication and human acceptance stay separate. A registration hold retains the
 semantic proposal and tries an alternative under the same budget.
+When source inspection raises another runtime question, a fresh receiving-only
+writer receives the code-free question and owned receiving source, creates
+original JSON cases and executes them within the same trial cap. Preserve the
+analyst's original conditional tier and the actual execution result separately.
+Typed pending/backlog reads retain previous donor/receiving windows; identical
+pending content is deduplicated while every role/ref binding survives. Separate
+need-owned meals prevent a repeated donor from erasing an earlier registration.
 
 `research_host.py` owns operational command/native receipts, not a second
 acceptance ledger. The installed CLI owns the discovery/exploration state. The
