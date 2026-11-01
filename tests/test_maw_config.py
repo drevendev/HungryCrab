@@ -153,11 +153,9 @@ def test_yaml_merge_does_not_hide_repeated_explicit_key(tmp_path: Path) -> None:
     with pytest.raises(UsageError) as caught:
         MawConfig.load(tmp_path)
     assert "duplicate YAML mapping key" in caught.value.message
-    assert "ci" not in caught.value.message
+    diagnostic = caught.value.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert "ci" not in diagnostic
     assert caught.value.__cause__ is None
-
-
-
 
 @pytest.mark.parametrize(
     ("yaml_text", "secret"),
