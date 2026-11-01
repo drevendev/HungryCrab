@@ -282,10 +282,11 @@ def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
     result = completed["receipt"]["result"]
     donor_boundary = (
         action == "decide"
-        or action == "acquire"
-        and result.get("status") in {"unavailable", "license-held", "unsupported"}
-        or action == "search"
-        and (active is None or active["phase"] == "search")
+        or (
+            action == "acquire"
+            and result.get("status") in {"unavailable", "license-held", "unsupported"}
+        )
+        or (action == "search" and (active is None or active["phase"] == "search"))
     )
     if not donor_boundary:
         return active or pending[0]
