@@ -1319,13 +1319,15 @@
     }
   },
   "gates": {
-    "all_actual_trial_caps": true,
+    "all_actual_trial_caps": null,
     "precision_at_least_80_percent": false,
     "candidate_more_confirmed_overall": false,
     "candidate_more_in_at_least_two_maws": false,
     "complete_discovery_readiness": false,
     "publication_or_merge_is_acceptance": false,
-    "qualifies_for_release": false
+    "qualifies_for_release": false,
+    "captured_native_trial_caps": true,
+    "all_investigation_model_costs_known": false
   },
   "trials": [
     {
@@ -1591,7 +1593,8 @@
           "next_command_sequence_after": 3,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "crab-candidate-1",
@@ -1955,7 +1958,8 @@
           "next_command_sequence_after": 17,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "devostasis-candidate-1",
@@ -2407,7 +2411,8 @@
           "next_command_sequence_after": 16,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "devostasis-baseline-1",
@@ -2772,7 +2777,8 @@
           "next_command_sequence_after": 2,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "beautifulrepo-baseline-1",
@@ -3066,7 +3072,8 @@
       "scope_complete": false,
       "controller_report": null,
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "beautifulrepo-candidate-1",
@@ -3423,7 +3430,8 @@
         }
       },
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "crab-candidate-2",
@@ -3829,7 +3837,8 @@
           "next_command_sequence_after": 16,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "crab-baseline-2",
@@ -4138,7 +4147,8 @@
           "next_command_sequence_after": 2,
           "clock_and_cost_preserved": true
         }
-      ]
+      ],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "devostasis-baseline-2",
@@ -4410,7 +4420,8 @@
       "scope_complete": false,
       "controller_report": null,
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "devostasis-candidate-2",
@@ -4781,7 +4792,8 @@
         }
       },
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "beautifulrepo-candidate-2",
@@ -5136,7 +5148,8 @@
         }
       },
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     },
     {
       "trial": "beautifulrepo-baseline-2",
@@ -5404,7 +5417,8 @@
       "scope_complete": false,
       "controller_report": null,
       "semantic_refusals": [],
-      "resumes": []
+      "resumes": [],
+      "budget_scope": "Captured native worker calls only; complete investigation model cost remains unknown."
     }
   ],
   "reviews": [
@@ -6163,6 +6177,7 @@
     "prior_report_modified": false
   },
   "interpretation": [
+    "Native worker caps are verified; whole-investigation cost is not. Primary-agent coordination, repairs and provenance/context review were additional unmetered model-assisted work. Aggregate budget compliance remains unknown, not a passed end-to-end cost gate.",
     "These are attempts of the frozen cycle, not completed receiving goals. All twelve final native observations request more evidence; none became a reviewed new change.",
     "Independent reviewers classify the concrete proposals as proposed-novel despite request-more labels. The conservative denominator is six per arm, accepted zero: precision0%, not undefined or100%.",
     "Two BeautifulRepo reviewers find the evidence adequate to assess the bounded proposals; all Crab and Devostasis reviewers find discovery/review evidence inadequate. None confirms novelty. Preserve those different adequacy judgments.",
@@ -6181,5 +6196,14 @@
   },
   "human_acceptance": null,
   "merge_performed": false,
-  "release_or_tag_created": false
+  "release_or_tag_created": false,
+  "accounting_scope": {
+    "captured": "Every native planning/assessment/review call: input including cached plus output, actual usage settled before semantic parsing. Native trial limits and controller reconciliation are verified.",
+    "unmetered": "Primary-agent coordination, host repair reasoning and originality/safety/context review of proposed probes were not separately metered. Those are additional model-assisted work, not zero-cost deterministic operations.",
+    "aggregate_investigation_tokens": null,
+    "aggregate_budget_compliance": null,
+    "financial_cost": null,
+    "efficiency_claim_supported": false,
+    "comparability": "Both arms used the same root safety/context policy, but unknown supervisory model cost prevents strict whole-investigation cost qualification. No gain is inferred."
+  }
 }
