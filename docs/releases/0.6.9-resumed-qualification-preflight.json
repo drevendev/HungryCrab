@@ -380,5 +380,6 @@
   },
   "models_started": 0,
   "donor_execution": false,
-  "candidate_source_identity": "d33dd8041bb3a31ae5ab06557d9ee41d7b3cac4498981505228d47355998dbf7"
+  "candidate_source_identity": "d7b6b5a014d9d13dac6bc0765c7e0b835209e181fe57027dcac5732d6e9072b9",
+  "host_protocol": "Source-first bounded inspection, cumulative witnesses, pre-donor original JSON cases and receiving-only repair, exact prepared-input admission, independently metered stages; no supervisor semantic callback"
 }

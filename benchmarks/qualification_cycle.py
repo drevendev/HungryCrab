@@ -20,6 +20,7 @@ from research_host import Commands, Meter, identity, read, strict, write
 
 from hungry_crab.analysis_context import installed_source_identity
 from hungry_crab.attribution import GitSourceReader
+from hungry_crab.errors import CrabError
 from hungry_crab.fetch.git import GitRunner
 from hungry_crab.source_inspection import body_excluded
 
@@ -48,7 +49,24 @@ def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
         )
         .splitlines()
     )
-    allowed = {".py", ".pyi", ".js", ".ts", ".rs", ".go", ".rb", ".toml", ".yaml", ".yml", ".json"}
+    allowed = {
+        ".py",
+        ".pyi",
+        ".js",
+        ".ts",
+        ".rs",
+        ".go",
+        ".rb",
+        ".toml",
+        ".yaml",
+        ".yml",
+        ".json",
+        ".c",
+        ".h",
+        ".cpp",
+        ".java",
+        ".hs",
+    }
     source = [p for p in names if not body_excluded(p) and Path(p).suffix.lower() in allowed]
     return sorted(source, key=lambda p: (-sum(t.casefold() in p.casefold() for t in terms), p))
 
@@ -86,6 +104,9 @@ def raw_window(repo: Path, pin: str, path: str, start: int, end: int, side: str)
 class Trial:
     def __init__(self, name: str, frozen: dict[str, Any]) -> None:
         self.frozen, self.name = frozen, name
+        for filename, expected in frozen.get("artifact_hashes", {}).items():
+            if hashlib.sha256(Path(filename).read_bytes()).hexdigest() != expected:
+                raise RuntimeError("a frozen host, skill or evidence input changed")
         batch, self.arm, repeat = name.split("-")
         self.definition = frozen["maws"][batch]
         self.context = self.definition["context"]
@@ -229,6 +250,7 @@ class Trial:
             "kwargs, files, checks. "
             "JSON data factories: {$fixture: relative path} points into a fresh "
             "temporary fixture; empty string is its root. "
+            "{$base64: text} encodes original UTF-8; {$git_blob_sha1: text} gives its Git blob id. "
             "{$bytes: base64}, {$stream: text} rejects unbounded reads, {$io: text} is "
             "ordinary BytesIO. "
             "{$helper: name} invokes a declared helpers[name] zero-argument function in "
@@ -248,7 +270,7 @@ class Trial:
             + "\nPOOL METADATA ONLY:\n"
             + json.dumps(
                 [
-                    {"id": r["id"], "repository": r["repository"], "paths": r["catalog"][:12]}
+                    {"id": r["id"], "repository": r["repository"], "paths": r["catalog"][:4]}
                     for r in self.pool.values()
                 ],
                 ensure_ascii=False,
@@ -267,7 +289,7 @@ class Trial:
         self.save()
         return True
 
-    def cases(self) -> None:
+    def execute_cases(self, need: dict[str, Any], source: str, label: str) -> dict[str, Any]:
         # The same predeclared receiving executor serves both arms, never the
         # donor. This is verification infrastructure, not a baseline CLI feature.
         executor = Commands(
@@ -276,42 +298,92 @@ class Trial:
             Path(self.frozen["tool_cwd"]["candidate"]),
             module_root=Path(self.frozen["tool_cwd"]["candidate"]) / "src",
         )
+        if not source or not need.get("target"):
+            return {"status": "unrun", "reason": "no original callable case plan"}
+        try:
+            plan = json.loads(source)
+            if set(plan) - {"cases", "helpers"}:
+                raise ValueError("only original cases/helpers are accepted")
+            plan.update(
+                target=need["target"],
+                original_receiving_owned=True,
+                author="captured native pre-donor planning stage",
+                expected=need["expected"],
+            )
+            output = self.root / ("receiving-" + label)
+            planpath = self.root / (label + ".original-cases.json")
+            if planpath.exists() and read(planpath) != plan:
+                raise RuntimeError("a started receiving case operation changed its plan")
+            write(planpath, plan)
+            if not output.exists():
+                executor.json(["discover", "cases", output, "--maw", self.maw], plan)
+            elif not (output / "receipt.json").exists():
+                raise RuntimeError("uncertain receiving execution requires reconciliation")
+            receipt = read(output / "receipt.json")
+            from hungry_crab.receiving_probe import verify_receipt
+
+            verify_receipt(output / "receipt.json", self.context, receipt["probe_sha256"])
+            raw = (output / "stdout.txt").read_text(encoding="utf-8")
+            observed = json.loads(raw)
+            return {
+                "status": receipt["status"],
+                "receipt": str(output / "receipt.json"),
+                "receipt_sha256": identity(receipt),
+                "probe_sha256": receipt["probe_sha256"],
+                "cases": observed["cases"],
+                "runtime": receipt.get("runtime"),
+                "actual_receiving_calls": receipt.get("observed_receiving_calls"),
+            }
+        except (ValueError, RuntimeError, KeyError, CrabError) as error:
+            return {"status": "unavailable", "reason": str(error)[-900:]}
+
+    def cases(self) -> None:
+        assert not self.state["admissions"], "original case generation/repair precedes donor source"
         for need in self.needs:
             key = need["id"]
             if key in self.state["case_results"]:
                 continue
             source = self.state["plan"][key]["cases_json"]
-            if not source or not need.get("target"):
-                result = {"status": "unrun", "reason": "no original callable case plan"}
-            else:
-                try:
-                    plan = json.loads(source)
-                    if set(plan) - {"cases", "helpers"}:
-                        raise ValueError("only original cases/helpers are accepted")
-                    plan.update(
-                        target=need["target"],
-                        original_receiving_owned=True,
-                        author="captured native pre-donor planning stage",
-                        expected=need["expected"],
+            result = self.execute_cases(need, source, key)
+            controls = [r for r in result.get("cases", []) if r["role"] == "positive-control"]
+            if source and (
+                result["status"] == "unavailable"
+                or (controls and not all(c["passed"] for c in controls))
+            ):
+                self.state.setdefault("original_case_failures", {})[key] = result
+                self.save()
+                receiving = [
+                    raw_window(
+                        self.maw, self.context["sha"], r["path"], r["start"], r["end"], "receiving"
                     )
-                    output = self.root / ("receiving-" + key)
-                    if output.exists():
-                        raise RuntimeError("uncertain receiving execution requires reconciliation")
-                    executor.json(["discover", "cases", output, "--maw", self.maw], plan)
-                    receipt = read(output / "receipt.json")
-                    raw = (output / "stdout.txt").read_text(encoding="utf-8")
-                    observed = json.loads(raw)
-                    result = {
-                        "status": receipt["status"],
-                        "receipt": str(output / "receipt.json"),
-                        "receipt_sha256": identity(receipt),
-                        "probe_sha256": receipt["probe_sha256"],
-                        "cases": observed["cases"],
-                        "runtime": receipt.get("runtime"),
-                        "actual_receiving_calls": receipt.get("observed_receiving_calls"),
-                    }
-                except (ValueError, RuntimeError, KeyError) as error:
-                    result = {"status": "unavailable", "reason": str(error)[-900:]}
+                    for r in need["maw_evidence"]
+                ]
+                prompt = (
+                    "Repair your ORIGINAL receiving JSON case data before ANY donor has been seen. "
+                    "No tools or Python program. Keep the fixed target and intended property; "
+                    "correct invalid arguments/encoding. Use a meaningful already-correct control. "
+                    "Do not turn a target failure into a control or weaken its intended predicate. "
+                    "Output cases_json with cases/helpers only. Bytes return {base64:text}. "
+                    "Iterators return {items:[...],truncated:bool}. Input factories "
+                    "$fixture/$bytes/$stream/$io/$helper "
+                    "factories follow the original contract. JSON only.\n"
+                    + json.dumps(
+                        {
+                            "need": {k: need[k] for k in ("id", "flow", "expected", "target")},
+                            "own_original_cases": source,
+                            "actual_result": result,
+                            "receiving_source": receiving,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+                answer = self.model(
+                    "repair-cases-" + key, prompt, strict({"cases_json": text(), "reason": text()})
+                )
+                if answer is not None:
+                    self.state.setdefault("case_repairs", {})[key] = answer
+                    self.save()
+                    result = self.execute_cases(need, answer["cases_json"], key + "-repaired")
             self.state["case_results"][key] = result
             self.save()
         self.state["phase"] = "research"
@@ -443,6 +515,42 @@ class Trial:
                 },
             )
             for hit in located["matches"][:3]:
+                if hit["path"].endswith((".py", ".pyi")):
+                    parent, _, filename = hit["path"].rpartition("/")
+                    index = self.commands.json(
+                        ["discover", "index"],
+                        {
+                            "repo": donor["view"],
+                            "sha": donor["sha"],
+                            "need": need["id"],
+                            "prefix": parent,
+                            "terms": [filename],
+                            "limit": 1,
+                            "symbol_files": 1,
+                        },
+                    )
+                    declarations = [
+                        symbol
+                        for row in index["files"]
+                        if row["path"] == hit["path"]
+                        for symbol in row["symbols"]
+                        if symbol["start"] <= hit["line"] <= symbol["end"]
+                    ]
+                    if declarations:
+                        declaration = min(declarations, key=lambda s: s["end"] - s["start"])
+                        first, last = declaration["start"], declaration["end"]
+                        if last - first < 60:
+                            ranges.append({"path": hit["path"], "start": first, "end": last})
+                            continue
+                        ranges.append({"path": hit["path"], "start": first, "end": first + 7})
+                        ranges.append(
+                            {
+                                "path": hit["path"],
+                                "start": max(first, hit["line"] - 8),
+                                "end": min(last, hit["line"] + 30),
+                            }
+                        )
+                        continue
                 ranges.append(
                     {
                         "path": hit["path"],
@@ -573,6 +681,15 @@ class Trial:
             "available_paths": donor["catalog"][:100],
             "legal": "Resolve actual path grants before transfer; assess utility separately.",
             "omissions": "Only supplied ranges were read; unread paths/history remain unknown.",
+            "own_prior_need_outcomes": [
+                {
+                    "disposition": r["decision"]["disposition"],
+                    "hypothesis": r["decision"]["hypothesis"],
+                    "adoption_held": r.get("adoption_held", False),
+                }
+                for r in self.state["outcomes"]
+                if r["need"] == need["id"]
+            ],
         }
         write(self.root / (stage + ".facts.json"), facts)
         prompt = (
@@ -755,6 +872,24 @@ class Trial:
                 # proposal or authorize transfer. Independent review keeps it
                 # in the utility denominator and assesses legal yield separately.
                 registration = {"status": "held", "reason": str(error)[-1200:]}
+        controller_observation = observation
+        adoption_held = bool(
+            registration
+            and (
+                registration.get("status") == "held"
+                or registration.get("record", {}).get("policy_blocked") is True
+            )
+        )
+        if adoption_held:
+            controller_observation = {
+                **observation,
+                "disposition": "unsupported",
+                "reviewed": False,
+                "attempt": observation["attempt"] + ":adoption",
+                "reason": "Actual adoption remains held; retain the separate semantic proposal. "
+                + str(registration.get("reason", "current hunger/policy hold"))[-1000:],
+            }
+            self.commands.json(["explore", "record", info["exploration"]], controller_observation)
         if self.session:
             assert self.action
             if self.action["action"] == "verify":
@@ -762,7 +897,7 @@ class Trial:
                 self.next()
             self.record(
                 {
-                    k: observation[k]
+                    k: controller_observation[k]
                     for k in (
                         "hypothesis",
                         "disposition",
@@ -784,6 +919,7 @@ class Trial:
                 "exploration": info["exploration"],
                 "independent_acceptance": None,
                 "registration": registration,
+                "adoption_held": adoption_held,
             }
         )
         self.state.pop("active", None)
@@ -807,6 +943,11 @@ class Trial:
             and self.meter.data["tokens"] <= 30000
             and elapsed <= 2700,
         )
+        if (
+            installed_source_identity()["source_sha256"]
+            != self.frozen["candidate"]["source_identity"]
+        ):
+            self.state.update(model_budget_valid=False, source_changed_during_trial=True)
         self.save()
         print(
             json.dumps(
@@ -849,7 +990,9 @@ class Trial:
                     n
                     for n in self.needs
                     if not any(
-                        o["need"] == n["id"] and o["decision"]["disposition"] == "verified-gap"
+                        o["need"] == n["id"]
+                        and o["decision"]["disposition"] == "verified-gap"
+                        and not o.get("adoption_held", False)
                         for o in self.state["outcomes"]
                     )
                     and sum(o["need"] == n["id"] for o in self.state["outcomes"])

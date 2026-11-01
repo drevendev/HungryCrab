@@ -12,6 +12,29 @@ from .compare.candidates import _evidence_path
 from .errors import CrabError
 from .source_inspection import _commit_pin, _source_paths, body_excluded
 
+_CODE_SUFFIXES = frozenset(
+    {
+        ".py",
+        ".pyi",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".rs",
+        ".go",
+        ".rb",
+        ".java",
+        ".c",
+        ".h",
+        ".cpp",
+        ".hpp",
+        ".cs",
+        ".hs",
+        ".sh",
+    }
+)
+
 
 def find_source(
     repo: Path,
@@ -46,7 +69,16 @@ def find_source(
     paths, omissions, available = _source_paths(reader, sha, prefix)
     needles = list(dict.fromkeys(t.casefold().strip() for t in terms))
     eligible = [p for p, _ in paths if not body_excluded(p)]
-    eligible.sort(key=lambda p: (-sum(t in p.casefold() for t in needles), p))
+    # A source search's finite read allowance should reach implementation/test
+    # files before ancillary metadata. Keep every other path eligible and report
+    # uninspected counts; this ordering is not a semantic or licence decision.
+    eligible.sort(
+        key=lambda p: (
+            Path(p).suffix.casefold() not in _CODE_SUFFIXES,
+            -sum(t in p.casefold() for t in needles),
+            p,
+        )
+    )
     matches: list[dict[str, Any]] = []
     inspected = used = matching_lines = 0
     for path in eligible:
@@ -118,6 +150,7 @@ def find_source(
         "omissions_not_returned": max(0, len(omissions) - 80),
         "read_limits": {"files": max_files, "bytes": max_bytes, "seconds": 30},
         "coverage": "bounded-literal-search; strings/comments may match; not semantic coverage",
+        "file_order": "source-code-first; literal-path-then-name; other-files-retained",
         "donor_executed": False,
         "license_permission": "not-established",
     }

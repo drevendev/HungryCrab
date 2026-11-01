@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import dataclasses
+import hashlib
 import importlib
 import io
 import json
@@ -70,6 +71,14 @@ def execute(plan: dict[str, Any], root: Path) -> None:
                         return fixture / value["$fixture"]
                     if set(value) == {"$bytes"}:
                         return base64.b64decode(value["$bytes"], validate=True)
+                    if set(value) == {"$base64"}:
+                        return base64.b64encode(value["$base64"].encode()).decode()
+                    if set(value) == {"$git_blob_sha1"}:
+                        data = value["$git_blob_sha1"].encode()
+                        return hashlib.sha1(
+                            b"blob " + str(len(data)).encode() + b"\0" + data,
+                            usedforsecurity=False,
+                        ).hexdigest()
                     if set(value) == {"$stream"}:
                         return BoundedStream(value["$stream"].encode())
                     if set(value) == {"$io"}:

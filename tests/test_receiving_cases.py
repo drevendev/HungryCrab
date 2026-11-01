@@ -35,6 +35,31 @@ def definition() -> dict[str, Any]:
     }
 
 
+def test_original_encoded_sources_keep_exact_git_blob_identity(tmp_path: Path) -> None:
+    maw = repository(
+        tmp_path / "receiving",
+        {
+            "app.py": "import base64, hashlib\n"
+            "def consume(data):\n"
+            "    value = base64.b64decode(data['source'])\n"
+            "    expected = hashlib.sha1(b'blob ' + str(len(value)).encode() "
+            "+ b'\\0' + value).hexdigest()\n"
+            "    return expected == data['object_id']\n"
+        },
+    )
+    plan = definition()
+    for case, source in zip(plan["cases"], ("name = '☃'\n", ""), strict=True):
+        case["args"] = [{"source": {"$base64": source}, "object_id": {"$git_blob_sha1": source}}]
+        case["checks"] = [{"pointer": "/value", "equals": True}]
+    path = run_cases(tmp_path / "cases", maw, plan)
+    result = json.loads((path.parent / "stdout.txt").read_text())
+    assert all(c["passed"] for c in result["cases"])
+    plan["cases"][0]["args"] = [{"$base64": []}]
+    with pytest.raises(CrabError, match="text values"):
+        run_cases(tmp_path / "invalid", maw, plan)
+    assert not (tmp_path / "invalid").exists()
+
+
 @pytest.mark.parametrize("fixed", [False, True])
 def test_original_cases_distinguish_already_correct_and_remaining_gap(
     tmp_path: Path, fixed: bool

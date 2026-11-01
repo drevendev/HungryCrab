@@ -11,6 +11,8 @@ on:
     paths:
       - .github/workflows/qualification-receiving-069.yml
       - benchmarks/qualification_receiving.py
+      - docs/releases/0.6.9-receiving-preflight.json
+      - docs/releases/0.6.9-resumed-receiving-preflight.json
 permissions:
   contents: read
 jobs:

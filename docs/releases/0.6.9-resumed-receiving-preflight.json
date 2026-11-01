@@ -85,5 +85,6 @@
       "target": "Current default including the merged earlier source-span proposal",
       "pending": []
     }
-  }
+  },
+  "candidate_source_identity": "d7b6b5a014d9d13dac6bc0765c7e0b835209e181fe57027dcac5732d6e9072b9"
 }
