@@ -15,6 +15,7 @@ from typing import Any
 from .artifact_read import MAX_JSON_BYTES
 from .errors import CrabError
 from .source_inspection import body_excluded
+from .source_lines import physical_lines
 from .tokens import estimate_tokens
 
 SCHEMA = "hungry-crab.source-evidence-page/1"
@@ -132,7 +133,7 @@ def _source_records(payload: dict[str, Any], maximum: int) -> tuple[list[dict[st
                     {"kind": "omission", "pointer": pointer, "reason": "invalid-source-range"}
                 )
                 continue
-            lines = content.splitlines(keepends=True)
+            lines = physical_lines(content, keepends=True)
             if not lines and content == "" and start == stop:
                 lines = [""]
             expected = stop - start + 1

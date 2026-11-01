@@ -10,7 +10,47 @@ import pytest
 from test_discovery_inputs import repository
 
 from hungry_crab.errors import CrabError
-from hungry_crab.receiving_cases import run_cases
+from hungry_crab.receiving_cases import project_results, run_cases
+
+
+def test_projection_preserves_actual_checks_without_whole_return_objects(tmp_path: Path) -> None:
+    maw = repository(
+        tmp_path / "receiving",
+        {"app.py": "def consume():\n    return {'count': 2, 'large': 'x' * 4096}\n"},
+    )
+    plan = definition()
+    for index, case in enumerate(plan["cases"]):
+        case.update(args=[], checks=[{"pointer": "/value/count", "equals": 3 if index == 0 else 2}])
+    receipt = run_cases(tmp_path / "cases", maw, plan)
+    projected = project_results(receipt, maw)
+    assert projected["cases"][0]["passed"] is False
+    assert projected["cases"][1]["passed"] is True
+    assert projected["cases"][0]["checks"][0]["observed"] == 2
+    assert projected["actual_receiving_calls"] == [plan["target"]]
+    assert "x" * 100 not in json.dumps(projected)
+    assert "x" * 4096 in (receipt.parent / "stdout.txt").read_text(encoding="utf-8")
+    assert not projected["omissions"]
+    # The returned values are projected from the exact verified stdout bytes.
+    (receipt.parent / "stdout.txt").write_text('{"cases": []}', encoding="utf-8")
+    with pytest.raises(CrabError, match="artifact changed"):
+        project_results(receipt, maw)
+
+
+def test_large_check_values_are_hashed_omissions_not_silent_success(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "receiving", {"app.py": "def consume():\n    return 'a' * 1024\n"})
+    plan = definition()
+    for case in plan["cases"]:
+        case.update(args=[], checks=[{"pointer": "/value", "equals": "a" * 1024}])
+    receipt = run_cases(tmp_path / "cases", maw, plan)
+    projected = project_results(receipt, maw, value_bytes=64)
+    check = projected["cases"][0]["checks"][0]
+    assert check["passed"] is True  # The original assertion actually passed.
+    assert check["observed"]["omitted"] is True
+    assert check["observed"]["bytes"] == 1026
+    assert len(check["observed"]["sha256"]) == 64
+    assert projected["omissions"] and projected["value_bytes_retained"] < 1024
+    with pytest.raises(CrabError, match=r"64\.\.8192"):
+        project_results(receipt, maw, value_bytes=True)
 
 
 def definition() -> dict[str, Any]:

@@ -23,6 +23,7 @@ from hungry_crab.attribution import GitSourceReader
 from hungry_crab.errors import CrabError
 from hungry_crab.fetch.git import GitRunner
 from hungry_crab.source_inspection import body_excluded
+from hungry_crab.source_lines import physical_lines
 
 CASE_CONTRACT = (
     "Exact receiving JSON data contract (not executable code): top object has cases array "
@@ -40,6 +41,9 @@ CASE_CONTRACT = (
     "is {value: result} or {exception:{type,message}}. Bytes encode as {base64: text}; iterators "
     "as {items:[...],truncated:bool}; tuple items become arrays. Include a genuine already-correct "
     "positive-control. Do not invent runtime PASS or execute input source strings.\n"
+    "Target checks assert the DESIRED correct property. Passing an assertion that the current "
+    "undesired failure occurs is only a reproduction check; it is not a failed desired-behavior "
+    "target. Preserve that failure as observed evidence and check the desired behavior directly.\n"
 )
 
 
@@ -108,7 +112,7 @@ def raw_window(repo: Path, pin: str, path: str, start: int, end: int, side: str)
     source = reader.read(pin, path)
     if source is None:
         return {"omission": "file unavailable or larger than 64 KiB", "path": path}
-    lines = source.splitlines()
+    lines = physical_lines(source)
     if not 1 <= start <= end or start > len(lines):
         return {"omission": "range unavailable", "path": path, "line_count": len(lines)}
     last = min(end, start + 59, len(lines))
@@ -242,11 +246,16 @@ class Trial:
                         3,
                         1,
                     ),
-                    "cases_json": text(5500),
+                    "cases_json": (
+                        {"type": "string", "const": ""}
+                        if need.get("verification_mode") == "design"
+                        else text(5500)
+                    ),
                     "probe_reason": text(240),
                 }
             )
         facts = []
+        source_bank = {}
         for need in self.needs:
             windows = [
                 raw_window(
@@ -254,14 +263,20 @@ class Trial:
                 )
                 for r in need["maw_evidence"]
             ]
+            source_bank.update({w["id"]: w for w in windows})
             facts.append(
                 {
                     "need": {
                         k: need[k]
                         for k in ("id", "flow", "expected", "observed", "constraints", "target")
                     },
-                    "receiving_source": windows,
-                    "receiving_input_contract": need.get("runtime_inputs"),
+                    "receiving_source_ids": [w["id"] for w in windows],
+                    "verification_mode": need.get("verification_mode", "runtime"),
+                    "receiving_input_contract": (
+                        None
+                        if need.get("verification_mode") == "design"
+                        else need.get("runtime_inputs")
+                    ),
                 }
             )
         prompt = (
@@ -272,7 +287,10 @@ class Trial:
             "inspection, not prose. "
             "Before seeing donor source, author original JSON cases for the exact "
             "declared receiving target. "
-            "cases_json is a JSON object with cases (2..6) and optional helpers; no Python code. "
+            "Design-mode needs require empty cases_json; do not invent runtime bugs or giant "
+            "stress literals for an additive API. Runtime-mode cases_json has EXACTLY TWO small "
+            "cases (one meaningful target, one already-correct positive control) and optional "
+            "helpers; no Python code. All fixture text combined must be <=4096 UTF-8 bytes. "
             "Each case has label, role target/positive-control/negative-control, args, "
             "kwargs, files, checks. "
             "JSON data factories: {$fixture: relative path} points into a fresh "
@@ -294,11 +312,32 @@ class Trial:
             + Path(self.frozen["matching_skills"][self.arm]).read_text(encoding="utf-8")
             + "\nACTUAL RECEIVING INPUT:\n"
             + CASE_CONTRACT
-            + json.dumps(facts, ensure_ascii=False)
+            + json.dumps(
+                {"needs": facts, "receiving_source_by_id": source_bank}, ensure_ascii=False
+            )
             + "\nPOOL METADATA ONLY:\n"
             + json.dumps(
                 [
-                    {"id": r["id"], "repository": r["repository"], "paths": r["catalog"][:4]}
+                    {
+                        "id": r["id"],
+                        "repository": r["repository"],
+                        "description": r.get("description", "")[:240],
+                        "actual_paths": paths(
+                            Path(r["view"]),
+                            r["sha"],
+                            list(
+                                dict.fromkeys(
+                                    re.findall(
+                                        r"[a-z]{3,}",
+                                        " ".join(
+                                            q for n in self.needs for q in n["queries"]
+                                        ).lower(),
+                                    )
+                                )
+                            ),
+                        )[:8],
+                        "path_selection": "bounded filename association only; no source body read",
+                    }
                     for r in self.pool.values()
                 ],
                 ensure_ascii=False,
@@ -353,6 +392,9 @@ class Trial:
             verify_receipt(output / "receipt.json", self.context, receipt["probe_sha256"])
             raw = (output / "stdout.txt").read_text(encoding="utf-8")
             observed = json.loads(raw)
+            projection = executor.json(
+                ["discover", "case-results", output / "receipt.json", "--maw", self.maw]
+            )
             return {
                 "status": receipt["status"],
                 "receipt": str(output / "receipt.json"),
@@ -361,6 +403,7 @@ class Trial:
                 "cases": observed["cases"],
                 "runtime": receipt.get("runtime"),
                 "actual_receiving_calls": receipt.get("observed_receiving_calls"),
+                "assessment_projection": projection,
             }
         except (ValueError, RuntimeError, KeyError, CrabError) as error:
             return {"status": "unavailable", "reason": str(error)[-900:]}
@@ -370,6 +413,13 @@ class Trial:
         for need in self.needs:
             key = need["id"]
             if key in self.state["case_results"]:
+                continue
+            if need.get("verification_mode") == "design":
+                self.state["case_results"][key] = {
+                    "status": "design-proposal",
+                    "reason": "Additive design: no initial runtime failure claim planned",
+                }
+                self.save()
                 continue
             source = self.state["plan"][key]["cases_json"]
             result = self.execute_cases(need, source, key)
@@ -400,7 +450,7 @@ class Trial:
                         {
                             "need": {k: need[k] for k in ("id", "flow", "expected", "target")},
                             "own_original_cases": source,
-                            "actual_result": result,
+                            "actual_result": result.get("assessment_projection", result),
                             "receiving_source": receiving,
                         },
                         ensure_ascii=False,
@@ -590,6 +640,26 @@ class Trial:
                         "end": min(hit["line_count"], hit["line"] + 45),
                     }
                 )
+            if not ranges:
+                index = self.commands.json(
+                    ["discover", "index"],
+                    {
+                        "repo": donor["view"],
+                        "sha": donor["sha"],
+                        "need": need["id"],
+                        "terms": lead["terms"],
+                        "limit": 2,
+                        "symbol_files": 2,
+                    },
+                )
+                for file in index["files"]:
+                    count = file.get("line_count")
+                    if not isinstance(count, int) or count < 1:
+                        continue
+                    first = file.get("symbols", [])[:1]
+                    start = first[0]["start"] if first else 1
+                    end = min(count, first[0]["end"] if first else 60, start + 59)
+                    ranges.append({"path": file["path"], "start": start, "end": end})
         else:
             # Native raw git/file reading available to the published baseline.
             # No candidate AST/ranked-source finder is silently backported.
@@ -598,7 +668,7 @@ class Trial:
                 source = reader.read(donor["sha"], path)
                 if source is None:
                     continue
-                lines = source.splitlines()
+                lines = physical_lines(source)
                 hits = [
                     i
                     for i, line in enumerate(lines)
@@ -612,6 +682,13 @@ class Trial:
                 )
                 if len(ranges) >= 3:
                     break
+            if not ranges:
+                for path in paths(Path(donor["view"]), donor["sha"], lead["terms"])[:2]:
+                    source = reader.read(donor["sha"], path)
+                    if source and physical_lines(source):
+                        ranges.append(
+                            {"path": path, "start": 1, "end": min(60, len(physical_lines(source)))}
+                        )
         receiving = []
         for ref in need["maw_evidence"]:
             for start in range(ref["start"], ref["end"] + 1, 60):
@@ -713,9 +790,17 @@ class Trial:
             "need": {k: need[k] for k in ("id", "flow", "observed", "expected", "constraints")},
             "donor": {"repository": donor["repository"], "sha": donor["sha"]},
             "actual_windows": windows,
-            "original_receiving_cases": self.state["case_results"][need["id"]],
+            "original_receiving_cases": self.state["case_results"][need["id"]].get(
+                "assessment_projection", self.state["case_results"][need["id"]]
+            ),
             "novelty": need["novelty"],
-            "available_paths": donor["catalog"][:100],
+            "available_paths": paths(Path(donor["view"]), donor["sha"], lead["terms"])[:24],
+            "path_catalog_scope": {
+                "full_path_count": len(donor["catalog"]),
+                "full_catalog_sha256": identity(donor["catalog"]),
+                "projection": "24 real allowed source paths ranked by literal filename association",
+                "unshown_paths": "not inspected; source-finder coverage limits remain explicit",
+            },
             "legal": "Resolve actual path grants before transfer; assess utility separately.",
             "omissions": "Only supplied ranges were read; unread paths/history remain unknown.",
             "additional_novelty_reads": self.state.get("novelty_reads", {}).get(need["id"], []),
@@ -784,7 +869,7 @@ class Trial:
                 for file in target["files"]:
                     if file["path"] != operation["path"]:
                         continue
-                    source = scope["sources"][file["content_sha256"]]["content"].splitlines()
+                    source = physical_lines(scope["sources"][file["content_sha256"]]["content"])
                     if start > len(source):
                         continue
                     content = "\n".join(source[start - 1 : end])

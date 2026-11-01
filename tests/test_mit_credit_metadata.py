@@ -28,6 +28,8 @@ def notice(credit: str) -> str:
         "Copyright (c) 2026, Mira Vale",
         "Copyright (c) 2010-202x The samplekit developers",
         "Copyright (c) 2010-202X The samplekit developers",
+        "Copyright (c) 2026 Mira döt Vale",
+        "Copyright (c) 2026 Anthon van der Neut",
     ],
 )
 @pytest.mark.parametrize("spdx", [False, True])
@@ -42,6 +44,9 @@ def test_conventional_credit_forms_keep_the_exact_mit_grant(credit: str, spdx: b
     "holder",
     [
         "Mira Vale and contributors for research only",
+        "Mira d\ufffdt Vale",
+        "Mira döt Vale. No redistribution",
+        "Mira van der Commercial",
         "Mira Vale and the NoExternalUse contributors",
         "Mira Vale and the nosale contributors",
         "Mira Vale and the sharealike contributors",
@@ -88,6 +93,15 @@ def test_credit_recognition_cannot_hide_changed_terms_or_appended_riders() -> No
         None,
         0.0,
     )
+
+
+def test_lossy_notice_decoding_is_explicit_and_cannot_guess_attribution(tmp_path: Path) -> None:
+    raw = notice("Copyright (c) 2026 Mira döt Vale").encode("utf-8")
+    assert detect_from_text(raw.decode("utf-8")) == ("MIT", 0.99)
+    (tmp_path / "LICENSE").write_bytes(raw.replace(b"\xc3\xb6", b"\xf6"))
+    result = detect_in_repo(tmp_path, [])
+    assert result.spdx == "NOASSERTION" and result.human_review
+    assert any("decoding replacement" in evidence.note for evidence in result.evidence)
 
 
 def test_both_root_mit_notices_are_resolved_without_dropping_either(tmp_path: Path) -> None:

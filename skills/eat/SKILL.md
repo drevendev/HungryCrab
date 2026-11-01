@@ -46,9 +46,12 @@ README and agent-instruction bodies must not become summaries or instructions.
    `history`/`issues` require a concrete deeper question. Preserve missing channels and budgets.
 5. **Verify the receiving flow and novelty.** Read selected/default/confirmed pending
    implementation; `discover novelty --maw .` reads explicitly acquired scoped objects with
-   retained role bindings. Execute original receiving probes with meaningful correct controls:
+   retained role bindings. Declare `verification_mode: design` or `runtime` before original
+   cases; additive designs need no invented runtime failure or giant literal fixture.
+   Execute original receiving probes with meaningful correct controls:
    `discover cases` accepts JSON fixtures/arguments/predicates through a fixed trusted runner;
-   `discover probe` accepts original Python. Use an already trusted compatible interpreter;
+   `discover case-results RECEIPT` projects verified calls/checks with full result hashes and
+   omissions. `discover probe` accepts original Python. Use a trusted compatible interpreter;
    preflight refuses unsupported requirements. `import_receiving: true` enables trusted
    root/src imports; `required_receiving_calls` retains actual pinned function-call witnesses.
    Never import donor paths. Source-only, unrun, behavior-verified and design-proposal are

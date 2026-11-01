@@ -98,6 +98,9 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
                         start + 59,
                     ),
                     "node_end": node_end,
+                    "declaration_start": min(
+                        [start] + [d.lineno for d in getattr(node, "decorator_list", [])]
+                    ),
                     "range_truncated": node_end > start + 59,
                     "relationship": "syntax-only",
                 }
