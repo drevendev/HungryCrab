@@ -363,6 +363,38 @@ def test_non_trait_gap_registers_with_immutable_source_and_default_hunger(tmp_pa
     assert not report(directory)["exploration_complete"]
 
 
+@pytest.mark.parametrize("explicit", [False, True])
+def test_registration_keeps_observed_source_separate_from_receiving_proposal(
+    tmp_path: Path, explicit: bool
+) -> None:
+    from hungry_crab.nutrients import Candidate
+    from hungry_crab.serve import render_issue
+
+    directory, donor, _, finding = pair(tmp_path)
+    finding["behavior"] = "Proposed receiving behavior, not implemented by this donor"
+    if explicit:
+        finding["source_behavior"] = "The donor currently uses a bounded read"
+    event = register(directory, finding, source_repo=donor)
+    raw = event["record"]["card"]
+    assert raw["what"] == raw["prey_state"]
+    assert finding["behavior"] not in raw["what"]
+    assert raw["trace"]["source_behavior_recorded"] is explicit
+    menu = load_menu(directory.parent.parent)
+    assert menu is not None
+    card = Candidate.from_dict(raw)
+    _, body = render_issue(card, menu)
+    source_section = body.split("## What the prey does\n\n", 1)[1].split("## What this", 1)[0]
+    assert finding["behavior"] not in source_section
+    assert (
+        ("bounded read" in source_section)
+        if explicit
+        else ("not separately recorded" in source_section)
+    )
+    card.trace.pop("source_behavior_recorded")
+    card.what = finding["behavior"]
+    assert "not separately recorded" in render_issue(card, menu)[1]
+
+
 @pytest.mark.parametrize("when", ["before", "during"])
 def test_registration_rejects_changed_receiving_without_writes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, when: str
