@@ -6,11 +6,17 @@ import json
 from pathlib import Path
 
 import pytest
-from qualification_native import budget_stop, native_command
+from qualification_native import budget_stop, native_command, output_stop
 
 
 def test_missing_meter_refuses_additional_work() -> None:
     assert budget_stop(None, limit=30000)
+
+
+def test_degenerate_or_oversized_answer_stops_without_inventing_token_use() -> None:
+    assert output_stop('{"unfinished": "x"' + "\n " * 2049)
+    assert output_stop("x" * 24001)
+    assert not output_stop('{"ordinary": "a bounded complete answer"}')
 
 
 def test_cached_tokens_still_exhaust_the_actual_read_budget() -> None:

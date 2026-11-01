@@ -373,7 +373,6 @@ def test_session_charges_once_reconciles_and_replaces_held_leads(tmp_path: Path)
         sessions.next_action(directory, now=instant)
 
 
-
 def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search(
     tmp_path: Path,
 ) -> None:
@@ -435,13 +434,19 @@ def test_pending_need_rotates_after_reviewed_decision_not_mid_inspection() -> No
             "result": {"disposition": "duplicate"},
         },
     }
-    assert sessions._pending_need(
-        {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
-    )["id"] == "second"
+    assert (
+        sessions._pending_need(
+            {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
+        )["id"]
+        == "second"
+    )
     reserve["action"] = "inspect"
-    assert sessions._pending_need(
-        {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
-    )["id"] == "first"
+    assert (
+        sessions._pending_need(
+            {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
+        )["id"]
+        == "first"
+    )
 
 
 def test_cli_packet_and_explicit_budget_stop(

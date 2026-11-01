@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from fixture_builder import git
-from qualification_receiving import selected_pin
+from qualification_receiving import pending_pins, selected_pin
 from test_discovery_inputs import repository
 
 from hungry_crab.errors import ExternalCommandError
@@ -70,3 +70,24 @@ def test_invalid_pr_target_never_starts_git(tmp_path: Path, value: object) -> No
         selected_pin(
             tmp_path, {"sha": "b", "target_pull_request": value, "target_sha": "a" * 40}, "b"
         )
+
+
+@pytest.mark.parametrize(
+    "pending",
+    [
+        None,
+        "75",
+        [{"number": True, "sha": "a" * 40}],
+        [{"number": 75, "sha": "HEAD"}],
+        [{"number": 75, "sha": "a" * 40}] * 2,
+    ],
+)
+def test_invalid_pending_collection_fails_before_acquisition(pending: object) -> None:
+    with pytest.raises(ValueError, match="pending"):
+        pending_pins({"pending": pending})
+
+
+def test_pending_collection_retains_exact_canonical_bindings() -> None:
+    rows = [{"number": 75, "sha": "a" * 40}, {"number": 81, "sha": "a" * 40}]
+    assert pending_pins({"pending": rows}) == rows
+    assert pending_pins({}) == []

@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Add cumulative actual inspection witnesses and typed donor/receiving citations,
+  bounded literal source locations, scoped selected/default/pending implementation
+  facts, receiving runtime preflight, actual function-call traces and original
+  JSON receiving cases. Keep read, usefulness, execution and adoption claims
+  separate (#540).
 - Persist bounded receiving-need discovery sessions with owned attempts, shared
   provider charges, actual host receipts, replacement work and explicit stops.
   Keep scoped needs, original structural seeds, verification tiers and independent

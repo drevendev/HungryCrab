@@ -43,6 +43,7 @@ def run_probe(
     original_receiving_owned: bool,
     timeout: int = 30,
     import_receiving: bool = False,
+    required_receiving_calls: list[dict[str, str]] | None = None,
 ) -> Path:
     """Run only a new agent-authored probe, with explicit host provenance.
 
@@ -66,6 +67,37 @@ def run_probe(
     if type(timeout) is not int or not 1 <= timeout <= 120:
         raise CrabError("probe timeout must be in 1..120 seconds")
     context = live_context(maw)
+    from .receiving_runtime import runtime_preflight
+
+    runtime = runtime_preflight(maw)
+    required = [] if required_receiving_calls is None else required_receiving_calls
+    if not isinstance(required, list) or len(required) > 8:
+        raise CrabError("probe requires at most eight explicit receiving call targets")
+    from .attribution import GitSourceReader
+    from .compare.candidates import _evidence_path
+    from .source_inspection import syntax_query
+
+    reader = GitSourceReader(maw)
+    for row in required:
+        if (
+            not isinstance(row, dict)
+            or set(row) != {"path", "qualified_name"}
+            or not isinstance(row["path"], str)
+            or not _evidence_path(row["path"])
+            or not isinstance(row["qualified_name"], str)
+        ):
+            raise CrabError("invalid receiving call target")
+        text = reader.read(context["sha"], row["path"])
+        query = (
+            syntax_query(text, [{"kind": "function", "name": row["qualified_name"]}])
+            if text is not None
+            else {}
+        )
+        if not any(
+            r.get("qualified_name", r.get("name")) == row["qualified_name"]
+            for r in query.get("matches", [])
+        ):
+            raise CrabError("required receiving call is not a pinned function")
     if directory.resolve().is_relative_to(maw.resolve()):
         raise CrabError("probe output must be outside the receiving worktree")
     directory.mkdir(parents=True, exist_ok=False)
@@ -81,6 +113,18 @@ def run_probe(
             _RECEIVING_IMPORT_BOOTSTRAP,
             str(maw.resolve()),
             str(script.resolve()),
+        ]
+    if required:
+        command = [
+            sys.executable,
+            "-I",
+            "-B",
+            str(Path(__file__).with_name("probe_worker.py")),
+            str(maw.resolve()),
+            str(script.resolve()),
+            str((directory / "receiving-calls.json").resolve()),
+            json.dumps(required),
+            "1" if import_receiving else "0",
         ]
     env = {
         k: v
@@ -108,6 +152,20 @@ def run_probe(
         after = {"worktree": "unknown"}
     if after != context:
         status = "receiving-context-changed"
+    observed_calls = []
+    artifact_names = ["original-probe.py", "stdout.txt", "stderr.txt"]
+    if required:
+        calls_path = directory / "receiving-calls.json"
+        if calls_path.exists():
+            try:
+                observed_calls = json.loads(read_bytes(calls_path, 16384))
+            except (ValueError, UnicodeError):
+                observed_calls = []
+        else:
+            atomic_text(calls_path, "[]")
+        artifact_names.append("receiving-calls.json")
+        if observed_calls != required and status == "executed":
+            status = "required-receiving-flow-not-observed"
     # Local outputs can contain private receiving evidence. Never publish them
     # automatically; mark secret findings without putting secret text in reports.
     for name, data in (("stdout.txt", stdout), ("stderr.txt", stderr)):
@@ -119,6 +177,9 @@ def run_probe(
         "author": author,
         "original_receiving_owned": True,
         "import_receiving": import_receiving,
+        "runtime": runtime,
+        "required_receiving_calls": required,
+        "observed_receiving_calls": observed_calls,
         "probe_sha256": hashlib.sha256(script.read_bytes()).hexdigest(),
         "expected": expected,
         "controls": controls,
@@ -129,7 +190,7 @@ def run_probe(
         "exit_code": code,
         "artifacts": {
             name: hashlib.sha256((directory / name).read_bytes()).hexdigest()
-            for name in ("original-probe.py", "stdout.txt", "stderr.txt")
+            for name in artifact_names
         },
         "publication_requires_review": bool(
             scan_publication("stdout.txt", stdout.decode("utf-8", "replace"))
@@ -162,15 +223,20 @@ def verify_receipt(path: Path, context: dict[str, Any], probe_sha256: str) -> di
     ):
         raise CrabError("verification needs an actual receiving-bound executed probe receipt")
     artifacts = receipt.get("artifacts")
-    if not isinstance(artifacts, dict) or set(artifacts) != {
-        "original-probe.py",
-        "stdout.txt",
-        "stderr.txt",
-    }:
+    expected_artifacts = {"original-probe.py", "stdout.txt", "stderr.txt"}
+    if receipt.get("required_receiving_calls"):
+        expected_artifacts.add("receiving-calls.json")
+        if receipt["required_receiving_calls"] != receipt.get("observed_receiving_calls"):
+            raise CrabError("probe did not invoke the required receiving flow")
+    if not isinstance(artifacts, dict) or set(artifacts) != expected_artifacts:
         raise CrabError("executed probe artifact set is incomplete")
     for name, digest in artifacts.items():
         if hashlib.sha256(read_bytes(path.parent / name, 65_536)).hexdigest() != digest:
             raise CrabError("executed probe artifact changed")
+    if receipt.get("required_receiving_calls") and json.loads(
+        read_bytes(path.parent / "receiving-calls.json", 16384)
+    ) != receipt.get("observed_receiving_calls"):
+        raise CrabError("receiving call trace differs from its receipt")
     return receipt
 
 
