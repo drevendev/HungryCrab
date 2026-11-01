@@ -95,11 +95,11 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
 @pytest.mark.parametrize(
     ("config_text", "repeated_key"),
     [
-        ("mode: normal\\nmode: strict\\n", "mode"),
-        ("license: MIT\\nlicense: SYNTHETIC_PRIVATE_VALUE_K2Q9\\n", "license"),
-        ("serve:\\n  issues: ask\\n  issues: auto\\n", "issues"),
-        ("serve: {issues: ask, issues: auto}\\n", "issues"),
-        ('mode: normal\\n"mode": strict\\n', "mode"),
+        ("mode: normal\nmode: strict\n", "mode"),
+        ("license: MIT\nlicense: SYNTHETIC_PRIVATE_VALUE_K2Q9\n", "license"),
+        ("serve:\n  issues: ask\n  issues: auto\n", "issues"),
+        ("serve: {issues: ask, issues: auto}\n", "issues"),
+        ('mode: normal\n"mode": strict\n', "mode"),
     ],
 )
 def test_repeated_yaml_mapping_keys_are_rejected(
