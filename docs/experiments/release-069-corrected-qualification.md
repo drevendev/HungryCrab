@@ -16,7 +16,9 @@ Frozen candidate: `df9b4f4b8fab27ea33b5715f55d1cc2cbb0ebfc3`; installed source `
 | Proposals surviving independent review | 0 | 0 |
 | Confirmed unique actionable changes | 0 | 0 |
 
-All 12 trials stayed below 30,000 actual tokens and 45 minutes. Every candidate controller settles exactly the observed native total. Six independent arm-masked reviews used 109515 additional actual tokens. Currency cost is unknown; no financial-efficiency claim is made.
+All 12 trials stayed below 30,000 captured native-worker tokens and 45 minutes. Every candidate controller settles exactly the observed native total. Six independent arm-masked reviews used 109515 additional actual tokens. Currency cost is unknown; no financial-efficiency claim is made.
+
+Primary-agent coordination, host repairs and probe originality/safety/context review were additional model-assisted work without a separate meter. The native totals do not include that work. **Whole-investigation model cost and aggregate budget compliance remain unknown.** The same root review policy was used for both arms, but this does not qualify an end-to-end efficiency comparison.
 
 All 12 final native observations are `request-more`; all remain unreviewed in exploration. Reviewers still count their substantive proposals in the proposed-novel denominator: **0/6=0% per arm**. Unknown novelty and duplicates are preserved. There is no candidate gain overall or in any maw.
 
