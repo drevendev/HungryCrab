@@ -244,9 +244,14 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         if id(node) not in checked:
             checked.add(id(node))
             seen: set[Any] = set()
+            seen_merge = False
             for key_node, _ in node.value:
-                # Merge-provided keys may be overridden by one explicit key.
+                # A merge can supply many defaults through a sequence, but multiple
+                # explicit << directives in one mapping silently overwrite policy.
                 if key_node.tag == "tag:yaml.org,2002:merge":
+                    if seen_merge:
+                        raise _DuplicateYamlMappingKey(key_node.start_mark)
+                    seen_merge = True
                     continue
                 if key_node.tag == "tag:yaml.org,2002:value":
                     key_node.tag = "tag:yaml.org,2002:str"
