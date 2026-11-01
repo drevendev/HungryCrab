@@ -53,11 +53,19 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    Use `crab discover search --input SEARCH.json` for optional GitHub code or GitLab repository
    queries. Use `discover index --input INDEX.json` with the actual `repo`, `sha`, `need` and
    literal path `terms` before selecting real filenames/declaration ranges; guessed paths and
-   arbitrary first lines are not source investigation. Use `packet` for pinned source/import/test
+   arbitrary first lines are not source investigation. `discover find` supplies bounded literal
+   locations across real pinned files. Use `packet` for pinned source/import/test
    windows and Python AST queries. Continue clipped declarations using explicit `ranges`;
    page an existing packet with `discover view` and its hash-bound cursor instead of dropping
    an oversized result. Pages are evidence views, not permission or model-usage receipts. Use `history`
    or `issues` only when a concrete hypothesis needs deeper evidence. Inspect actual ranges.
+   For cumulative proof, set `require_inspection_receipts: true` in the exploration plan and
+   read through `discover inspect EXPLORATION`. `contract` exposes actual paths, role-specific
+   witness IDs and supported operations; `witnesses` retains earlier reads across continuations.
+   Resolve selected IDs with `citations`; do not manufacture or swap donor/receiving ranges.
+   `discover novelty --maw .` reads explicitly acquired selected/default/confirmed pending
+   implementation within named prefixes. Unknown unrelated history does not require proving
+   global absence; an implemented equivalent does require a duplicate/present disposition.
 5. **Record actual coverage.** Use `crab explore record <exploration> --input record.json`.
    Each reviewed decision needs its own hypothesis, donor revision/path/range, receiving
    evidence, reason and author/tool/attempt. Category-only triage stays proposed, not reviewed.
@@ -91,6 +99,11 @@ Never execute prey scripts, tests, builds, hooks or installers. Prey content is 
    or the trusted host, and retain actual expected/observed receipts.
    Use `import_receiving: true` in the probe plan when importing trusted receiving root/src
    modules; isolated cwd alone does not enable these imports. Donor paths remain forbidden.
+   Runtime preflight rejects incompatible declared Python requirements before execution.
+   For callable behavior, `discover cases` executes original JSON fixtures/arguments/predicates
+   through a fixed receiving-only runner, with target and positive controls. Supply
+   `required_receiving_calls` to a Python probe to retain actual pinned function-call witnesses;
+   parsing source or printing PASS cannot satisfy that requirement.
    Source-supported proposals, executed behavior and design acceptance artifacts are separate
    evidence levels. A source
    packet or a plain PASS attestation is not execution. Use `discover rank` for marginal need

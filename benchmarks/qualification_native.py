@@ -85,6 +85,7 @@ def run_worker(
     output_schema: dict[str, Any] | None = None,
     token_limit: int = 30000,
     seconds: int = 2700,
+    output_characters: int = 24000,
 ) -> dict[str, Any]:
     """Run one fresh ephemeral context, preserving actual usage and overruns.
 
@@ -206,6 +207,7 @@ def run_worker(
                 turn = call(3, "turn/start", turn_params)
                 turn_id = turn["turn"]["id"]
                 interrupted = False
+                streamed = ""
                 while True:
                     try:
                         event = receive()
@@ -219,6 +221,10 @@ def run_worker(
                             **total,
                             "lastInputTokens": params["tokenUsage"]["last"]["inputTokens"],
                         }
+                    elif method == "item/agentMessage/delta":
+                        streamed += params.get("delta", "")
+                        if output_stop(streamed, maximum=output_characters):
+                            result["output_limit_reached"] = True
                     elif method == "item/tool/call" and "id" in event:
                         tool_calls += 1
                         if tool_calls > 1 and budget_stop(usage, limit=token_limit):
@@ -269,10 +275,9 @@ def run_worker(
                             }
                         )
                     if (
-                        usage is not None
-                        and usage["totalTokens"] >= token_limit
-                        and not interrupted
-                    ):
+                        (usage is not None and usage["totalTokens"] >= token_limit)
+                        or result.get("output_limit_reached") is True
+                    ) and not interrupted:
                         send(
                             {
                                 "id": 4,
@@ -285,7 +290,12 @@ def run_worker(
                 result["host_error"] = {"type": type(exc).__name__, "detail": str(exc)[:1000]}
             finally:
                 process.terminate()
-                process.wait(timeout=15)
+                try:
+                    process.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=15)
+                    result["forced_host_cleanup"] = True
     result.update(
         usage=usage,
         seconds=round(time.monotonic() - started, 3),
@@ -301,3 +311,8 @@ def run_worker(
         json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     return result
+
+
+def output_stop(value: str, *, maximum: int = 24000) -> bool:
+    """Transport/degeneration guard, never an estimate of actual model tokens."""
+    return len(value) > maximum or len(value) - len(value.rstrip()) > 4096

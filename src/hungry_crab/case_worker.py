@@ -1,0 +1,147 @@
+"""Fixed original receiving-case runner: JSON fixtures/predicates, never donor code."""
+
+from __future__ import annotations
+
+import base64
+import dataclasses
+import importlib
+import io
+import json
+import sys
+import tempfile
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+
+class BoundedStream(io.BytesIO):
+    def read(self, size: int | None = -1) -> bytes:
+        if size is None or size < 0:
+            raise ValueError("original control: unbounded read")
+        return super().read(size)
+
+
+def encode(value: Any) -> Any:
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return encode(dataclasses.asdict(value))
+    if isinstance(value, dict):
+        return {str(k): encode(v) for k, v in value.items()}
+    if isinstance(value, list | tuple | set):
+        return [encode(v) for v in value]
+    if isinstance(value, Iterator):
+        import itertools
+
+        items = list(itertools.islice(value, 129))
+        return {"items": [encode(v) for v in items[:128]], "truncated": len(items) > 128}
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, bytes):
+        return {"base64": base64.b64encode(value).decode()}
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    return {"type": type(value).__name__}
+
+
+def execute(plan: dict[str, Any], root: Path) -> None:
+    target = plan["target"]
+    path = Path(target["path"])
+    parts = list(path.with_suffix("").parts)
+    if parts[0] == "src":
+        parts.pop(0)
+    if parts[-1] == "__init__":
+        parts.pop()
+    sys.path[:0] = [str(root), str(root / "src"), str(root / path.parent)]
+    module = importlib.import_module(".".join(parts))
+    function: Any = module
+    for part in target["qualified_name"].split("."):
+        function = getattr(function, part)
+    results = []
+    for case in plan["cases"]:
+        with tempfile.TemporaryDirectory(prefix="crab-original-case-") as temporary:
+            fixture = Path(temporary)
+            for name, text in case.get("files", {}).items():
+                destination = fixture / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(text, encoding="utf-8", newline="\n")
+
+            def decode(value: Any, fixture: Path = fixture) -> Any:
+                if isinstance(value, dict):
+                    if set(value) == {"$fixture"}:
+                        return fixture / value["$fixture"]
+                    if set(value) == {"$bytes"}:
+                        return base64.b64decode(value["$bytes"], validate=True)
+                    if set(value) == {"$stream"}:
+                        return BoundedStream(value["$stream"].encode())
+                    if set(value) == {"$io"}:
+                        return io.BytesIO(value["$io"].encode())
+                    if set(value) == {"$helper"}:
+                        helper: Any = module
+                        for part in plan["helpers"][value["$helper"]].split("."):
+                            helper = getattr(helper, part)
+                        return helper()
+                    return {k: decode(v) for k, v in value.items()}
+                if isinstance(value, list):
+                    return [decode(v) for v in value]
+                return value
+
+            try:
+                value = function(*decode(case.get("args", [])), **decode(case.get("kwargs", {})))
+                actual = {"value": encode(value)}
+            except Exception as exc:
+                actual = {"exception": {"type": type(exc).__name__, "message": str(exc)[:1000]}}
+            checks = []
+            for check in case["checks"]:
+                observed: Any = actual
+                try:
+                    for part in check["pointer"].split("/")[1:]:
+                        key = part.replace("~1", "/").replace("~0", "~")
+                        observed = (
+                            observed[int(key)] if isinstance(observed, list) else observed[key]
+                        )
+                    if "equals" in check:
+                        expected = check["equals"]
+                        passed = observed == expected
+                    else:
+                        key = "contains" if "contains" in check else "not_contains"
+                        expected = check[key]
+                        passed = (
+                            expected in observed if key == "contains" else expected not in observed
+                        )
+                    error = None
+                except (KeyError, IndexError, TypeError, ValueError):
+                    observed, passed = None, False
+                    expected = check.get("equals", check.get("contains", check.get("not_contains")))
+                    error = "missing-pointer-or-incompatible-predicate"
+                checks.append(
+                    {
+                        "pointer": check["pointer"],
+                        "expected": expected,
+                        "observed": observed,
+                        "passed": passed,
+                        "check_error": error,
+                    }
+                )
+            results.append(
+                {
+                    "label": case["label"],
+                    "role": case["role"],
+                    "actual": actual,
+                    "checks": checks,
+                    "passed": all(c["passed"] for c in checks),
+                }
+            )
+    print(
+        json.dumps(
+            {
+                "schema": "hungry-crab.receiving-cases-result/1",
+                "cases": results,
+                "human_acceptance": None,
+                "donor_executed": False,
+            },
+            ensure_ascii=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    execute(globals()["CASE_PLAN"], Path.cwd())
