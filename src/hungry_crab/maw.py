@@ -266,7 +266,12 @@ class MawConfig:
             if mark is not None:
                 line = getattr(mark, "line", None)
                 column = getattr(mark, "column", None)
-                if type(line) is int and line >= 0 and type(column) is int and column >= 0:
+                if (
+                    type(line) is int
+                    and line >= 0
+                    and type(column) is int
+                    and column >= 0
+                ):
                     location = f" at line {line + 1}, column {column + 1}"
             raise UsageError(f"{path}: invalid YAML syntax{location}") from None
         if loaded is None and all(
