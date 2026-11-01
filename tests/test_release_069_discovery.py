@@ -378,7 +378,7 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
     tmp_path: Path,
 ) -> None:
     """A first need must not exhaust the shared pool before the next is even searched."""
-    maw = repository(tmp_path / "maw", {"app.py": "def read():\\n    return True\\n"})
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
     definition = plan(maw)
     definition["needs"].append(
         {
