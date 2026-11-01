@@ -416,6 +416,37 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
     }
 
 
+def test_invoked_host_rebinds_after_empty_search_to_existing_acquire_need() -> None:
+    """The controller may switch need IDs after a search without returning search."""
+    from qualification_cycle import bind_action_need
+
+    needs = [
+        {"id": "earlier", "status": "pending", "phase": "acquire"},
+        {"id": "searching", "status": "pending", "phase": "search"},
+    ]
+    reserve = {
+        "kind": "reserved-action",
+        "need": "searching",
+        "action": "search",
+        "attempt": "original-search",
+    }
+    complete = {
+        "kind": "action-result",
+        "receipt": {"attempt": "original-search", "result": {"candidates": []}},
+    }
+    selected = sessions._pending_need(
+        {"needs": needs, "events": [{"record": reserve}, {"record": complete}]}
+    )
+    assert selected is not None and selected["id"] == "earlier"
+    plan = {
+        "earlier": {"leads": [{"donor": "already-prepared"}]},
+        "searching": {"leads": []},
+    }
+    need, leads = bind_action_need({"need": selected["id"], "action": "acquire"}, needs, plan)
+    assert need["id"] == "earlier"
+    assert leads == [{"donor": "already-prepared"}]
+
+
 def test_pending_need_rotates_after_reviewed_decision_not_mid_inspection() -> None:
     needs = [
         {"id": "first", "status": "pending", "phase": "acquire"},
