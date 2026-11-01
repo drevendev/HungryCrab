@@ -278,3 +278,41 @@ IDs, authorizes publication or trains learning. Counts distinguish initial/visib
 receiving-scoped unique IDs, hidden records, registrations, examined hypotheses and explicit
 selections. Unknown selections/costs remain null. Completion links the actual explore report
 and preserves earlier deferred hypotheses when a facet later investigates something else.
+
+## Bounded receiving verification transport
+
+A discovery need may declare `verification_mode: runtime` (the legacy default)
+or `design`. The latter identifies an additive API/architecture question: write
+receiving-specific acceptance criteria without inventing a runtime failure or a
+large literal stress fixture. This intent is retained in the controller handoff;
+it never supplies verification or semantic acceptance by itself.
+
+`crab discover case-results RECEIPT --maw .` verifies the original execution
+receipt, current receiving context, artifact bytes and required function-call
+witnesses before projecting every original case/check. Actual pass/fail flags,
+observed values, exception evidence and original result hashes survive. Full
+returned objects stay in the hash-verified stdout. Values over the default
+512-byte display limit become explicit byte-count/SHA256 omissions; use
+`--value-bytes 64..8192` for another bounded projection. Retained value bytes are
+bounded at 32,000 and the complete result at 64 KiB. An omission is not a passing
+value, and an actual failed assertion is not automatically a useful defect.
+
+`discover novelty` also accepts up to eight scoped Python declarations:
+
+```json
+{"symbols": [{"path": "src/package/config.py", "qualified_name": "Config.load"}]}
+```
+
+Supply this alongside the existing explicit prefixes/default/pending plan. Each
+acquired role/ref records declaration availability, exact decorator-inclusive
+ranges and a source-content hash. Absence, duplicate definitions, unsupported
+syntax and resource exhaustion stay explicit. Shared bodies are parsed once
+within the existing scope limits. Equality of declaration bytes does not prove
+runtime equivalence: imports, globals, helpers and other changed code need their
+own comparison. Full file bodies and immutable bindings remain in the artifact.
+
+Source windows use physical LF/CRLF/CR coordinates; Unicode separators inside
+source characters do not invent lines or move parser citations. A bounded chunk
+whose end exceeds EOF returns only existing lines with `requested_end` and
+`range_clipped_to_eof`. A start beyond EOF remains an explicit omission; range,
+file, byte and time caps are unchanged.

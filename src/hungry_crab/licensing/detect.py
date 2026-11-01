@@ -538,6 +538,9 @@ def _copyright_metadata(line: str) -> bool:
     if match is None:
         return False
     holder = match.group(1)
+    if "\ufffd" in holder:
+        # Lost attribution bytes are not a supported holder spelling variation.
+        return False
     if re.search(
         r"\b(?:use|licen[cs]e|permission|grant|paid|commercial|prohibit\w*|restrict\w*|redistribut\w*|requir\w*)\b",
         holder,
@@ -676,7 +679,7 @@ def _copyright_metadata(line: str) -> bool:
         return False
     # Longer unstructured phrases are not a holder-name field. In particular, capitalization
     # cannot turn a sentence after the owner into metadata. Recognize explicit name forms.
-    connectors = {"and", "of", "the", "de", "van", "von"}
+    connectors = {"and", "of", "the", "de", "der", "van", "von", "döt"}
     groups = re.split(r" and |,\s+", holder)
     name_form = all(
         0 < sum(word.casefold() not in connectors for word in group.split()) <= 2
@@ -1159,8 +1162,12 @@ def detect_in_repo(
                     findings.notes.append(f"{rel}: attribution-only reference to {reference}")
                     continue
         if spdx is None and "permission is hereby granted, free of charge" in _norm(text):
-            note = "MIT-like text has unsupported metadata or operative terms; inspect the "
-            note += "copyright prefix and full grant, or obtain a supported upstream notice"
+            if "\ufffd" in text:
+                note = "Source notice has decoding replacement characters; preserve the original "
+                note += "attribution before transfer instead of guessing missing copyright bytes"
+            else:
+                note = "MIT-like text has unsupported metadata or operative terms; inspect the "
+                note += "copyright prefix and full grant, or obtain a supported upstream notice"
         if spdx is None:
             # A short root pointer may designate a readable grant inside this tree. Its name,
             # a manifest classifier or the API can never replace unreadable operative terms.

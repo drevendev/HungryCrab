@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Project verified receiving-case checks/calls within explicit value/packet bounds,
+  retain original artifact hashes and omissions, and declare runtime/design intent
+  before probe generation. Compare decorator-inclusive pending declaration facts
+  without treating equal source bytes as runtime equivalence (#540).
+- Preserve physical source coordinates across Unicode characters and retain actual
+  EOF-clipped windows for bounded reads; no-hit literal searches can navigate
+  real declarations before selecting another bounded source window (#540).
 - Add cumulative actual inspection witnesses and typed donor/receiving citations,
   bounded literal source locations, scoped selected/default/pending implementation
   facts, receiving runtime preflight, actual function-call traces and original
