@@ -197,6 +197,27 @@ def test_yaml_merge_sources_allow_normal_cross_source_overrides(tmp_path: Path) 
 
 
 @pytest.mark.parametrize(
+    "config_text",
+    [
+        "trust:\n  <<: {same_owner: false}\n  <<: {same_owner: true}\n",
+        "trust:\n  <<: {bypass_license: false}\n  <<: {bypass_license: true}\n",
+    ],
+)
+def test_repeated_yaml_merge_directives_are_rejected(tmp_path: Path, config_text: str) -> None:
+    # Multiple << directives silently replace policy; a single list merge is valid.
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    error = caught.value
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    diagnostic = error.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
+    assert "same_owner" not in diagnostic
+    assert "bypass_license" not in diagnostic
+    assert error.__cause__ is None
+
+
+@pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
         ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
