@@ -1,0 +1,19 @@
+"""Run only a root-reviewed original receiving probe with the pinned runtime."""
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+R=Path(__file__).resolve().parents[1];sys.path.insert(0,str(R/'src'))
+from hungry_crab.receiving_probe import run_probe
+p=argparse.ArgumentParser();p.add_argument('trial',type=Path);p.add_argument('--reviewed-sha256',required=True);a=p.parse_args()
+s=json.loads((a.trial/'host-state.json').read_text());pending=s['pending_probe'];d=pending['decision']
+source=(a.trial/'original-proposed-probe.py.txt').read_text(encoding='utf-8')
+assert hashlib.sha256(source.encode()).hexdigest()==a.reviewed_sha256 and source==d['probe_source']
+f=json.loads((R/'.venv/qualification-study4/sealed.json').read_text())
+maw={'crab':'HungryCrab','devostasis':'Devostasis','beautifulrepo':'BeautifulRepo'}[s['name'].split('-')[0]]
+assert Path(sys.executable).resolve()==Path(f['maws'][maw]['runtime']).resolve()
+receipt=run_probe(a.trial/'original-probe-execution',Path(f['maws'][maw]['context']['root']),source,
+ author='root investigator after manual originality and safety review',expected=d['probe_expected'],controls=d['probe_controls'],
+ original_receiving_owned=True,import_receiving=True,timeout=30)
+print(receipt)

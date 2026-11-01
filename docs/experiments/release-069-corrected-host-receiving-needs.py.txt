@@ -1,0 +1,94 @@
+"""Freeze receiving facts and source-unseen nominations before any new model call."""
+import datetime
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+from hungry_crab.analysis_context import installed_source_identity
+from hungry_crab.attribution import GitSourceReader
+
+R=Path(__file__).resolve().parents[1]
+Q=R/'.venv/qualification-study4'
+def load(p): return json.loads(Path(p).read_text(encoding='utf-8'))
+def write(p,v): Path(p).write_text(json.dumps(v,indent=2)+'\n',encoding='utf-8')
+contexts=load(Q/'maws/contexts.json')
+created=datetime.datetime.now(datetime.timezone.utc).isoformat()
+constraints='Preserve existing correct behavior, immutable proof/byte/time/symlink/privacy guards and original stable identities. No new mandatory dependencies or donor execution/copy. Distinguish observed behavior, source-supported designs and human acceptance. Prior 17-finding register and known implemented/pending equivalents are controls, not new discoveries.'
+def need(name, identity, flow, expected, observed, impact, terms, refs):
+ c=contexts[name]['context']; reader=GitSourceReader(Path(c['root']))
+ out=[]
+ for path,start,end in refs:
+  value=reader.read(c['sha'],path)
+  assert value is not None and 1<=start<=end<=len(value.splitlines())
+  out.append({'sha':c['sha'],'path':path,'start':start,'end':end})
+ return {'id':identity,'flow':flow,'expected':expected,'observed':observed,'impact':impact,
+         'constraints':constraints,'queries':terms,'maw_evidence':out,
+         'backlog':{'status':'partial','as_of':created,'default_sha':contexts[name]['default_sha'],
+                    'method':'Current selected target/default/confirmed PR heads plus retained exact pending blobs and bounded all-state typed keyword search; historical absence is not proven'}}
+needs={
+ 'HungryCrab':[
+  need('HungryCrab','private-config-diagnostics','A user loads a malformed private .crab.yml',
+       'Actionable parse location/type without echoing private configuration body; valid configuration behavior stays intact.',
+       'MawConfig.load includes the full PyYAML exception in its user-visible UsageError. That exception can render source-context snippets. No receiving-owned private diagnostic projection is present in this loader.',
+       'Avoid copying private configuration text into shared troubleshooting output while keeping errors useful.',
+       ['private configuration diagnostics','safe parser error location'],
+       [('src/hungry_crab/maw.py',253,269)]),
+  need('HungryCrab','receiving-runtime-preflight','An installed Crab runs an original probe against a receiving project requiring another Python version',
+       'Identify and retain a supported existing receiving runtime or an explicit unavailable result before interpreting the probe; no implicit dependency installs or execution of paths supplied by donor content.',
+       'run_probe always launches its own sys.executable. Our real intended Devostasis target declares Python >=3.12 while the Crab tool environment is 3.11, requiring a manually prepared 3.14 receiving-only executor. Root/src import mode alone does not choose the runtime.',
+       'Avoid spurious receiving verification failures and ad hoc interpreter handling across projects.',
+       ['Python interpreter discovery version compatibility','receiving runtime availability'],
+       [('src/hungry_crab/receiving_probe.py',27,53),('src/hungry_crab/receiving_probe.py',70,93)])],
+ 'Devostasis':[
+  need('Devostasis','syntax-diagnostic-location','A user opens a Python syntax finding from an analysis bundle',
+       'Report a trustworthy available parser location with a documented fallback for failures without location; preserve unsupported/encoding distinctions.',
+       'engine.evaluate catches SyntaxError/ValueError/RecursionError together and emits DS-PY-SYNTAX at line 1 through the complete file. Available SyntaxError line/offset data is not projected by this path.',
+       'Make findings navigate to the offending construct instead of forcing a whole-file search.',
+       ['Python syntax diagnostics position offset','source error reporting'],
+       [('src/devostasis/codeanalysis/engine.py',140,154),('tests/test_code_analysis.py',118,128)]),
+  need('Devostasis','import-edge-context','A user prioritizes static import-cycle findings in a typing-heavy Python repository',
+       'Preserve raw static edges while explaining runtime/typing/deferred or unknown context where established; do not silently claim a static cycle is a runtime failure.',
+       'The import loop walks all AST imports and reports resolution status/path/line, but does not project TYPE_CHECKING/guard/deferred context. cycles then consumes those static edges uniformly. Existing output explicitly remains STATIC_SOURCE_EVIDENCE.',
+       'Help maintainers distinguish actionable runtime coupling from typing-only or deferred relationships without deleting evidence.',
+       ['TYPE_CHECKING import context','Python deferred import resolution'],
+       [('src/devostasis/codeanalysis/engine.py',174,204),('src/devostasis/codeanalysis/engine.py',218,227)])],
+ 'BeautifulRepo':[
+  need('BeautifulRepo','bounded-link-scan','A user runs offline Markdown/link/navigation checks against a large repository',
+       'Finite source/file/inventory work with explicit omitted/partial results; preserve complete results for ordinary supported documents.',
+       'docs_links.iter_markdown_destinations and html_navigation.parse_document read complete files, while iter_markdown_files builds directory/source lists. The separate repo_audit scanner has a 500 KiB cap; that is not a bound on these link/navigation paths.',
+       'Make scan resource use predictable without treating unexamined documents as clean.',
+       ['bounded Markdown source scan','file byte inventory budget'],
+       [('tools/docs_links.py',848,858),('tools/html_navigation.py',314,334)]),
+  need('BeautifulRepo','unreadable-scan-coverage','An offline documentation scan encounters an unreadable directory or an entry that cannot be inspected',
+       'Disclose the unexamined source scope or fail explicitly; preserve correct normal scans and symlink containment.',
+       'iter_markdown_files catches OSError from directory listing and lstat and continues without returning coverage/error metadata. check_repo consumes only the resulting paths, so it cannot report those skipped scopes. repo_audit already raises for its own entry-point inventory and is an existing control.',
+       'Prevent an apparently successful link check from concealing inaccessible documentation.',
+       ['filesystem traversal error coverage','unreadable directory diagnostics'],
+       [('tools/docs_links.py',1088,1124),('tools/docs_links.py',1141,1154)])]
+}
+summaries={
+ 'HungryCrab':'Selected #539 target 110c7e3 includes all original #535 implementations. Current pending reserve-stop change #546 concerns explicit stop reasons, not these needs. Historical #213/#372 cache GC/reader coordination is a known retained proposal, not new. YAML-related all-state searches include #228/#498 and prior config repairs; source/pending ranges still govern equivalence.',
+ 'Devostasis':'Selected canonical PR #75 head a4761daa equals #81. Other confirmed pending heads are retained in the verified 110-blob/14-PR manifest: #95 cache restore bounds; #88/#89/#90 history carriers; older release/CI/config work. Known #98-#114 HTTP/pagination/checkpoint/lineage/baseline proposals are excluded as new. Relevant selected engine code is present at the target; keyword search does not prove historical absence.',
+ 'BeautifulRepo':'Selected default 3388e45 includes former #222. Open #224 implements previously found audit spans (#223), not a new finding. Markdown/.markdown fragments, GitHub slugs/setext, entities and source containment already have implementation/tests and are controls. Prior #215/#216/#218 Mermaid/research-output/rule catalogue proposals are excluded. Scope here is link/navigation work bounds and unreadable inventory disclosure.'
+}
+f={'schema':'hungry-crab.independent-qualification/1','status':'RECEIVING NEEDS AND UNUSED NOMINATIONS FROZEN; host calibration not sealed; no source-unseen model research started',
+   'created_at':created,'baseline':{'version':'0.6.8','sha':'915779769747908a14b1a0f7fdecdd79d16dce43','source_identity':'6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be'},
+   'candidate':{'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'source_identity':installed_source_identity()['source_sha256']},
+   'arm_python':{'baseline':str(R/'.venv/qualification/baseline/.venv/Scripts/python.exe'),'candidate':str(R/'.venv/Scripts/python.exe')},
+   'matching_skills':{'baseline':str(R/'.venv/qualification/baseline/skills/eat/SKILL.md'),'candidate':str(R/'skills/eat/SKILL.md')},
+   'host':{'model':'gpt-5.6-sol','effort':'low','version':'Codex 0.146.1','currency':None,'actual_token_metric':'input including cached plus output','model_calls':'fresh stateless stages, no native tools; actual cost settles before semantic parsing','protocol':'Plan once; completely assess each admitted source before replacement. No mandatory final summary call. Original probes require root provenance/safety review and real receipts; designs require actual acceptance artifacts. Unresolved observations remain unreviewed; raw native proposals retained for precision even when engine refuses evidence.','repeat_order':'Same frozen two-need set. Preregistered cyclic first-need order in repeat two, identical for both arms; no cross-trial judgments.'},
+   'limits':{'model_tokens':30000,'seconds':2700,'provider_search_requests':16,'donor_acquisitions':6,'active_hypotheses':12,'replacement_rounds_per_need':2},
+   'pool':load(Q/'pool-shared.json'),'maws':{},
+   'schedule':['crab-baseline-1','crab-candidate-1','devostasis-candidate-1','devostasis-baseline-1','beautifulrepo-baseline-1','beautifulrepo-candidate-1','crab-candidate-2','crab-baseline-2','devostasis-baseline-2','devostasis-candidate-2','beautifulrepo-candidate-2','beautifulrepo-baseline-2'],
+   'exposure':'29 unused source-unseen nominations from the abandoned second setup pool, plus uninspected distlib. All historical/study-one sources, exposed Black and eight inspected study-three donors excluded. Prior shared acquisition/naming is disclosed; no source judgments or failed-model proposals are passed to this pool.',
+   'receiving_programs_executed_during_setup':False,'donor_programs_executed':False}
+for name,rows in needs.items():
+ c=contexts[name]['context']
+ f['maws'][name]={'context':c,'needs':rows,'novelty_summary':summaries[name],
+                  'plan':{'goal':'Find useful source-backed receiving changes under actual equal caps','receiving_context':c,'needs':rows},
+                  'runtime':str(Q/'receiving-python/Scripts/python.exe') if name=='Devostasis' else str(R/'.venv/Scripts/python.exe')}
+write(Q/'prepared.json',f)
+write(Q/'receiving-needs-frozen.json',{'created_at':created,'maws':f['maws'],'source_unseen_model_trials_started':0,
+                                    'sha256':hashlib.sha256(json.dumps(f['maws'],sort_keys=True).encode()).hexdigest()})
+print(json.dumps({'receiving_need_count':sum(len(x) for x in needs.values()),'pool':len(f['pool']),'candidate':f['candidate'],'model_trials_started':0}))
