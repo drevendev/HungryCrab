@@ -39,8 +39,12 @@ and MIT-quality scope. The complete agent search/verification/replanning cycle,
 all open PRs at the planning snapshot and eight additional backlog issues are
 specified in [the implementation scope](../releases/0.6.9-scope.md), tracked by
 [#535](https://github.com/drevendev/HungryCrab/issues/535). This supersedes the
-earlier separate 0.7.0 discovery target; implementation and independent usefulness
-qualification are still pending. It is not a release announcement.
+earlier separate 0.7.0 discovery target. The CLI implementation is in draft
+[#539](https://github.com/drevendev/HungryCrab/pull/539); independent usefulness
+qualification still fails and complete-cycle readiness remains open in
+[#540](https://github.com/drevendev/HungryCrab/issues/540). See the
+[corrected-host evidence](../experiments/release-069-corrected-qualification.md).
+It is not a release announcement.
 
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
