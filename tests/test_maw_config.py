@@ -93,6 +93,33 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("config_text", "repeated_key"),
+    [
+        ("mode: normal\\nmode: strict\\n", "mode"),
+        ("license: MIT\\nlicense: SYNTHETIC_PRIVATE_VALUE_K2Q9\\n", "license"),
+        ("serve:\\n  issues: ask\\n  issues: auto\\n", "issues"),
+        ("serve: {issues: ask, issues: auto}\\n", "issues"),
+        ('mode: normal\\n"mode": strict\\n', "mode"),
+    ],
+)
+def test_repeated_yaml_mapping_keys_are_rejected(
+    tmp_path: Path, config_text: str, repeated_key: str
+) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: config_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+
+    error = caught.value
+    assert str(tmp_path / CONFIG_FILE) in error.message
+    assert "duplicate YAML mapping key" in error.message
+    assert "line " in error.message and "column " in error.message
+    assert repeated_key not in error.message
+    assert "SYNTHETIC_PRIVATE_VALUE_K2Q9" not in str(error)
+    assert error.__cause__ is None
+    assert error.__suppress_context__ is True
+
+
+@pytest.mark.parametrize(
     ("yaml_text", "secret"),
     [
         ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
@@ -123,10 +150,10 @@ def test_yaml_error_without_mark_never_falls_back_to_exception_text(
 
     write_tree(tmp_path, {CONFIG_FILE: "mode: normal\n"})
 
-    def error_without_mark(_text: str) -> None:
+    def error_without_mark(*_args: object, **_kwargs: object) -> None:
         raise yaml.YAMLError("SYNTHETIC_PRIVATE_VALUE_E5F6")
 
-    monkeypatch.setattr("hungry_crab.maw.yaml.safe_load", error_without_mark)
+    monkeypatch.setattr("hungry_crab.maw.yaml.load", error_without_mark)
     with pytest.raises(UsageError) as caught:
         MawConfig.load(tmp_path)
     assert caught.value.message == f"{tmp_path / CONFIG_FILE}: invalid YAML syntax"
