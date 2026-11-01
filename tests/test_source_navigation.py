@@ -43,7 +43,6 @@ def test_index_returns_actual_declarations_without_instruction_or_comment_bodies
     assert result["license_permission"] == "not-established" and not result["donor_executed"]
 
 
-
 def test_index_classifies_root_level_test_files_without_coverage_claim(tmp_path: Path) -> None:
     expectations = {
         "test_cache.py": True,
