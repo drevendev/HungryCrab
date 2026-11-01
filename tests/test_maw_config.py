@@ -93,6 +93,47 @@ def test_invalid_values_are_usage_errors(tmp_path: Path, text: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("yaml_text", "secret"),
+    [
+        ('license: "SYNTHETIC_PRIVATE_VALUE_A1B2\\n', "SYNTHETIC_PRIVATE_VALUE_A1B2"),
+        ("serve: [SYNTHETIC_PRIVATE_VALUE_C3D4,\\n", "SYNTHETIC_PRIVATE_VALUE_C3D4"),
+    ],
+)
+def test_malformed_yaml_diagnostic_never_echoes_source(
+    tmp_path: Path, yaml_text: str, secret: str
+) -> None:
+    write_tree(tmp_path, {CONFIG_FILE: yaml_text})
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+
+    error = caught.value
+    assert str(tmp_path / CONFIG_FILE) in error.message
+    assert "invalid YAML syntax" in error.message
+    assert "line " in error.message and "column " in error.message
+    assert secret not in error.message
+    assert secret not in (error.hint or "")
+    assert error.__cause__ is None
+    assert error.__suppress_context__ is True
+
+
+def test_yaml_error_without_mark_never_falls_back_to_exception_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import yaml
+
+    write_tree(tmp_path, {CONFIG_FILE: "mode: normal\\n"})
+
+    def error_without_mark(_text: str) -> None:
+        raise yaml.YAMLError("SYNTHETIC_PRIVATE_VALUE_E5F6")
+
+    monkeypatch.setattr("hungry_crab.maw.yaml.safe_load", error_without_mark)
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert caught.value.message == f"{tmp_path / CONFIG_FILE}: invalid YAML syntax"
+    assert "SYNTHETIC_PRIVATE_VALUE_E5F6" not in str(caught.value)
+
+
+@pytest.mark.parametrize(
     ("text", "unknown", "suggested"),
     [
         ("hunger: {ai_config: false}\n", "ai_config", "ai-config"),
