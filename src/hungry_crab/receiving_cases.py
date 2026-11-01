@@ -28,8 +28,14 @@ def _data(value: Any, *, depth: int = 0) -> None:
             {"$stream"},
             {"$io"},
             {"$helper"},
+            {"$base64"},
+            {"$git_blob_sha1"},
         ):
             raise CrabError("unsupported original case data factory")
+        elif any(str(k).startswith("$") for k in value) and not isinstance(
+            next(iter(value.values())), str
+        ):
+            raise CrabError("original case data factories require text values")
         for child in value.values():
             _data(child, depth=depth + 1)
     elif isinstance(value, list):

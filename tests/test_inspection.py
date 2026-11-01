@@ -28,6 +28,26 @@ def read_plan(side: str, path: str, operation: str) -> dict[str, object]:
     }
 
 
+def test_literal_source_budget_reaches_implementation_before_ancillary_metadata(
+    tmp_path: Path,
+) -> None:
+    repo = repository(
+        tmp_path / "donor",
+        {
+            **{f"metadata/{i:02}.json": '{"consume": "metadata only"}\n' for i in range(20)},
+            "src/z_reader.py": "def consume(stream):\n    return stream.read(4)\n",
+        },
+    )
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    found = find_source(repo, pin, ["consume"], max_files=1)
+    assert found["files_inspected"] == 1
+    assert found["matches"][0]["path"] == "src/z_reader.py"
+    assert found["files_not_inspected"] == 21  # Twenty metadata files and LICENSE remain eligible.
+    other = repository(tmp_path / "configuration-only", {"flow.yml": "consume: bounded\n"})
+    config = find_source(other, git(other, "rev-parse", "HEAD").strip(), ["consume"])
+    assert config["matches"][0]["path"] == "flow.yml"
+
+
 def test_actual_implementation_witness_survives_receiving_continuation(tmp_path: Path) -> None:
     directory, _, maw, _ = pair(tmp_path)
     first = inspect(directory, read_plan("donor", "reader.py", "first"))
