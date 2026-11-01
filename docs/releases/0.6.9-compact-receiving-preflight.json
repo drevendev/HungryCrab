@@ -86,5 +86,9 @@
       "pending": []
     }
   },
-  "candidate_source_identity": "6bbe7888bae38122c666927f3f6ae38b8a10a2843601732f0a3df68525bd1d55"
+  "candidate_source_identity": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "9f5660b9195736b31239998fb04f793a6f8b516ecea3949b7574c4192a8d50f6"
+  },
+  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged."
 }

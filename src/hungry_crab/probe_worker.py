@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib  # noqa: F401 -- preload stdlib before explicit receiving import paths
 import json
 import runpy
 import sys

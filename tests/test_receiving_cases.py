@@ -9,8 +9,80 @@ from typing import Any
 import pytest
 from test_discovery_inputs import repository
 
+import hungry_crab.receiving_cases as receiving_cases
 from hungry_crab.errors import CrabError
 from hungry_crab.receiving_cases import project_results, run_cases
+
+
+def test_serializer_failure_is_not_a_receiving_exception(tmp_path: Path) -> None:
+    maw = repository(
+        tmp_path / "receiving",
+        {
+            "app.py": (
+                "from dataclasses import dataclass\n@dataclass\nclass Node:\n"
+                "    child: object = None\n"
+                "def consume(cyclic):\n    node = Node()\n    if cyclic: node.child = node\n"
+                "    return node\n"
+            )
+        },
+    )
+    plan = definition()
+    for case, cyclic in zip(plan["cases"], (True, False), strict=True):
+        case.update(args=[cyclic], checks=[{"pointer": "/value/child", "equals": None}])
+    receipt = run_cases(tmp_path / "cases", maw, plan)
+    view = project_results(receipt, maw)
+    assert view["target_calls_complete"]  # The target really returned the cyclic object.
+    assert not view["case_results_usable"]
+    assert view["cases"][0]["actual_exception"]["type"] == "RecursionError"
+    assert view["cases"][0]["exception_origin"] in {
+        "verification-harness",
+        "unknown-traceback-bound",
+    }
+    assert view["cases"][1]["passed"] is True
+
+
+def test_control_or_helper_call_cannot_mask_a_targets_arity_failure(tmp_path: Path) -> None:
+    maw = repository(
+        tmp_path / "receiving", {"app.py": "def consume(value=1):\n    return value\n"}
+    )
+    plan = definition()
+    plan["helpers"] = {"same": "consume"}
+    plan["cases"][0].update(
+        args=[{"$helper": "same"}, "extra"], checks=[{"pointer": "/value", "equals": 1}]
+    )
+    plan["cases"][1].update(args=[], checks=[{"pointer": "/value", "equals": 1}])
+    receipt = run_cases(tmp_path / "cases", maw, plan)
+    raw = json.loads(receipt.read_text(encoding="utf-8"))
+    assert raw["observed_receiving_calls"] == [plan["target"]]
+    projection = project_results(receipt, maw)
+    assert projection["cases"][0]["target_called"] is False
+    assert projection["cases"][1]["target_called"] is True
+    assert not projection["target_calls_complete"]
+
+
+def test_executed_case_template_pins_its_trusted_runner_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    maw = repository(tmp_path / "receiving", {"app.py": "def consume(value):\n    return value\n"})
+    worker = tmp_path / "trusted-copy" / "case_worker.py"
+    worker.parent.mkdir()
+    worker.write_bytes(Path(receiving_cases.__file__).with_name("case_worker.py").read_bytes())
+    monkeypatch.setattr(receiving_cases, "__file__", str(worker.with_name("receiving_cases.py")))
+    real_probe = receiving_cases.run_probe
+
+    def replace_worker(*args: Any, **kwargs: Any) -> Path:
+        worker.write_text(
+            "raise AssertionError('changed runner must not execute')\n", encoding="utf-8"
+        )
+        return real_probe(*args, **kwargs)
+
+    monkeypatch.setattr(receiving_cases, "run_probe", replace_worker)
+    receipt = run_cases(tmp_path / "cases", maw, definition())
+    raw = json.loads(receipt.read_text(encoding="utf-8"))
+    assert raw["status"] != "executed" and not raw["observed_receiving_calls"]
+    assert "trusted receiving case runner changed" in (receipt.parent / "stderr.txt").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_projection_preserves_actual_checks_without_whole_return_objects(tmp_path: Path) -> None:
@@ -27,6 +99,7 @@ def test_projection_preserves_actual_checks_without_whole_return_objects(tmp_pat
     assert projected["cases"][1]["passed"] is True
     assert projected["cases"][0]["checks"][0]["observed"] == 2
     assert projected["actual_receiving_calls"] == [plan["target"]]
+    assert projected["target_calls_complete"]
     assert "x" * 100 not in json.dumps(projected)
     assert "x" * 4096 in (receipt.parent / "stdout.txt").read_text(encoding="utf-8")
     assert not projected["omissions"]

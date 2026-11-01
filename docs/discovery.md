@@ -297,6 +297,12 @@ returned objects stay in the hash-verified stdout. Values over the default
 bounded at 32,000 and the complete result at 64 KiB. An omission is not a passing
 value, and an actual failed assertion is not automatically a useful defect.
 
+Each target/positive case records `target_called` during its main invocation
+(including generator consumption), outside argument-factory/helper execution.
+`target_calls_complete: false` marks an unavailable fixture even if another
+control called the target. Legacy missing per-case evidence stays unknown. The
+original probe also pins the trusted runner's bytes before execution.
+
 `discover novelty` also accepts up to eight scoped Python declarations:
 
 ```json

@@ -64,6 +64,7 @@ def project_results(receipt_path: Path, maw: Path, *, value_bytes: int = 512) ->
             or case.get("role") not in {"target", "positive-control", "negative-control"}
             or type(case.get("passed")) is not bool
             or not isinstance(case.get("actual"), dict)
+            or (case.get("target_called") is not None and type(case["target_called"]) is not bool)
             or not isinstance(case.get("checks"), list)
             or not 1 <= len(case["checks"]) <= 12
         ):
@@ -93,10 +94,12 @@ def project_results(receipt_path: Path, maw: Path, *, value_bytes: int = 512) ->
         projected.append(
             {
                 **{k: case[k] for k in ("label", "role", "passed")},
+                "target_called": case.get("target_called"),
                 "checks": checks,
                 "actual_exception": value(
                     case["actual"].get("exception"), f"cases/{index}/exception"
                 ),
+                "exception_origin": case["actual"].get("exception_origin"),
                 "actual_result_sha256": fingerprint(case["actual"]),
             }
         )
@@ -110,6 +113,18 @@ def project_results(receipt_path: Path, maw: Path, *, value_bytes: int = 512) ->
         "receipt_sha256": hashlib.sha256(read_bytes(receipt_path, 65536)).hexdigest(),
         "artifacts": receipt["artifacts"],
         "actual_receiving_calls": receipt["observed_receiving_calls"],
+        "target_calls_complete": all(
+            case.get("target_called") is True
+            for case in cases
+            if case["role"] in {"target", "positive-control"}
+        ),
+        "case_results_usable": all(
+            case.get("target_called") is True
+            and case["actual"].get("exception_origin")
+            not in {"verification-harness", "unknown-traceback-bound"}
+            for case in cases
+            if case["role"] in {"target", "positive-control"}
+        ),
         "cases": projected,
         "omissions": omissions,
         "value_byte_limit": value_bytes,
@@ -263,7 +278,13 @@ def run_cases(directory: Path, maw: Path, plan: dict[str, Any]) -> Path:
     # Only this fixed trusted template is executable; agent-provided content is
     # JSON data, never Python text or a donor program/test path.
     source = (
-        "import json, runpy\nrunpy.run_path("
+        "import hashlib, json, runpy\nfrom pathlib import Path\n"
+        "if hashlib.sha256(Path("
+        + repr(str(worker))
+        + ").read_bytes()).hexdigest() != "
+        + repr(hashlib.sha256(worker.read_bytes()).hexdigest())
+        + ":\n    raise RuntimeError('trusted receiving case runner changed')\n"
+        "runpy.run_path("
         + repr(str(worker))
         + ", init_globals={'CASE_PLAN': json.loads("
         + repr(json.dumps({"target": target, "cases": cases, "helpers": helpers}))
