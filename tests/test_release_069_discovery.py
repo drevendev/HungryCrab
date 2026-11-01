@@ -373,6 +373,77 @@ def test_session_charges_once_reconciles_and_replaces_held_leads(tmp_path: Path)
         sessions.next_action(directory, now=instant)
 
 
+
+def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search(
+    tmp_path: Path,
+) -> None:
+    """A first need must not exhaust the shared pool before the next is even searched."""
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\\n    return True\\n"})
+    definition = plan(maw)
+    definition["needs"].append(
+        {
+            **definition["needs"][0],
+            "id": "second-receiving-need",
+            "queries": ["different evidence"],
+        }
+    )
+    directory = tmp_path / "session"
+    instant = datetime.now(UTC)
+    sessions.initialize(directory, maw, definition, now=instant)
+
+    first = sessions.next_action(directory, now=instant)
+    assert first["need"] == "bounded-input" and first["action"] == "search"
+    sessions.record(
+        directory, receipt(first, {"candidates": [{"repository": "one/tool"}]}), now=instant
+    )
+    acquire = sessions.next_action(directory, now=instant)
+    assert acquire["need"] == first["need"] and acquire["action"] == "acquire"
+    sessions.record(
+        directory,
+        receipt(acquire, {"status": "license-held", "reason": "no path grant"}),
+        now=instant,
+    )
+
+    second = sessions.next_action(directory, now=instant)
+    assert second["need"] == "second-receiving-need" and second["action"] == "search"
+    sessions.record(directory, receipt(second, {"candidates": []}), now=instant)
+
+    resumed = sessions.next_action(directory, now=instant)
+    assert resumed["need"] == "bounded-input" and resumed["action"] == "search"
+    assert sessions.report(directory)["spent"] == {
+        "requests": 3,
+        "donors": 1,
+        "model_tokens": 0,
+    }
+
+
+def test_pending_need_rotates_after_reviewed_decision_not_mid_inspection() -> None:
+    needs = [
+        {"id": "first", "status": "pending", "phase": "acquire"},
+        {"id": "second", "status": "pending", "phase": "search"},
+    ]
+    reserve = {
+        "kind": "reserved-action",
+        "need": "first",
+        "action": "decide",
+        "attempt": "original-attempt",
+    }
+    completed = {
+        "kind": "action-result",
+        "receipt": {
+            "attempt": "original-attempt",
+            "result": {"disposition": "duplicate"},
+        },
+    }
+    assert sessions._pending_need(
+        {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
+    )["id"] == "second"
+    reserve["action"] = "inspect"
+    assert sessions._pending_need(
+        {"needs": needs, "events": [{"record": reserve}, {"record": completed}]}
+    )["id"] == "first"
+
+
 def test_cli_packet_and_explicit_budget_stop(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
