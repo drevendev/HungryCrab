@@ -49,13 +49,18 @@ def _acquisition_env() -> dict[str, str]:
 
 
 def _real_path(path: Path, root: Path) -> None:
+    selected = root.absolute()
+    anchor = selected.resolve()
     try:
-        parts = path.absolute().relative_to(root.absolute()).parts
+        try:
+            parts = path.absolute().relative_to(selected).parts
+        except ValueError:
+            parts = path.absolute().relative_to(anchor).parts
     except ValueError as exc:
         raise CrabError("cache mutation path is outside its cache") from exc
     if not parts or ".." in parts:
         raise CrabError("cache mutation path is not below its cache")
-    current = root
+    current = anchor
     for part in parts:
         current /= part
         try:

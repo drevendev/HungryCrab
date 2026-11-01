@@ -1,0 +1,31 @@
+"""Resume original clock/cost after setup refusal or reviewed probe checkpoint."""
+import argparse
+import json
+import re
+import runpy
+from pathlib import Path
+R=Path(__file__).resolve().parents[1];Q=R/'.venv/qualification-study4'
+p=argparse.ArgumentParser();p.add_argument('trial');a=p.parse_args()
+plan=json.loads((Q/'sealed-contract-amendment.json').read_text())
+module=runpy.run_path(str(R/'.venv/cycle4b.py'))
+c=module['Cycle'](a.trial,plan,resume=True)
+# Failed CLI calls already have audit files even before the next state save.
+# Preserve their monotonic sequence rather than overwriting them on resume.
+c.commands=max([c.commands,*[int(m[1]) for x in c.output.glob('command-*.stderr') if (m:=re.fullmatch(r'command-(\d+)\.stderr',x.name))]])
+c.state.setdefault('resumes',[]).append({'reason':'setup-identity repair or reviewed original probe','prior_commands':c.state['commands'],'next_command_sequence_after':c.commands,'clock_and_cost_preserved':True})
+c.save()
+if c.state['phase']=='research' and len(c.state['stages'])==2 and not c.state['outcomes']:
+ d=json.loads(json.loads((c.output/'assess-1/result.json').read_text(encoding='utf-8'))['messages'][-1])
+ assert d['disposition']=='request-more' and any(x['side'] not in ['receiving','donor','pending','backlog'] for x in d['operations'])
+ donor=c.state['admissions'][-1]['donor'];need=next(n for n in c.needs if n['id']==c.state['admissions'][-1]['need'])
+ lead=next(x for x in c.state['plan']['leads'] if x['donor']==donor and x['need']==need['id'])
+ if c.session:c.next()
+ more=c.assessment(lead,need,d['operations'])
+ if more is not None:d=more
+ if d['probe_source']:
+  (c.output/'original-proposed-probe.py.txt').write_text(d['probe_source'],encoding='utf-8')
+  c.state.update(phase='awaiting-probe-review',pending_probe={'decision':d,'lead':lead,'need':need});c.save()
+  print(json.dumps({'trial':c.name,'phase':c.state['phase'],'tokens':c.state['actual_model_tokens']}));sys_exit=True
+ else:c.finish_decision(d,lead,need);sys_exit=False
+ if sys_exit:raise SystemExit(0)
+c.run()

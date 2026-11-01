@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "sealed_at": "2026-11-01T12:25:15.810103+00:00",
+  "protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals; confirm only changes accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs require concrete source/novelty/acceptance; runtime requires actual receiving call/positive controls. Utility and legal transfer separate. No root semantic arbitration to boost yield.",
+    "gates": "At least80% novel precision; strictly more independently confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "input_projection": "Deduplicated common implementation context and all actual cited windows. Probe projection retains actual per-check observations, exceptions, original JSON inputs, actual call witnesses and raw result/receipt/stdout hashes; full return objects stay in retained raw files. No source-level supervisor review. All observations retained. Maximum63000 promptUTF8bytes before inference; same bound botharms.",
+  "model_calls_before_review_seal": 0,
+  "hashes": {
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "7757faa0f8d62cf78a144059833cea35e2693793b4e916db01b6263eba81c7c1",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "cdf8c0b92760980d3fd6206fe256b1ffa115b1584cb8a21275fe9a2eea68eb84",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\sealed.json": "d0b65deeafbb19e9084b99afbf0722892e3b13bc93536ecc9162557564d6b5ee",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-1\\input.json": "c7dc75e320f69dd3d06002f6f3e3e0025d06fe80bbdf328cbab085b1fb0e436b",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-1\\private-mapping.json": "8aac0d475ab552f372859cc79aca1260fa69e52b3a33728d88604be47a504502",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-2\\input.json": "57776214499721ae8bdec5b17761ef0ebe48269f6911c37a33fbfd0e812f4e95",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-2\\private-mapping.json": "d521b338303c3bda17420bee053ce8c65c45a5a9e82de0116c8d69bcbd002c4d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-1\\input.json": "32a1fee77e707f0eed8e9d4bf9e867e0e2cfc633c0ae889a30301aeba0e1248d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-1\\private-mapping.json": "619bc3c6959cc3a3af746779cfe09ced68cebd62543870314b80a63164af420e",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-2\\input.json": "5e0b8d697d2123e3898423244768fa4ce7123b620b2f193dd22cb974c50662f2",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-2\\private-mapping.json": "90758ddac38b7015001f0b919a0e6bdfd89c9d7072255d497be043b53b7b2820",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-1\\input.json": "831f8a5a821c46969f0eff30661deb7f3bf1e89bee60887ddf9dffa3ea393365",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-1\\private-mapping.json": "660a7104fc9847e63020ca8d06f7d7887bb541e0ffb400a2f79bfffe56980775",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-2\\input.json": "3136678f92b9b87ea00792e08826268bed76b4b164dc79cd345fb3fa043ee7ab",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-2\\private-mapping.json": "6dd681721fbeb20fabd1a5ba263ddeed6e6786a7a5b2fbd75dceed142f799b5a"
+  }
+}

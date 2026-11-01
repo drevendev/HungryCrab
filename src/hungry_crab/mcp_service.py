@@ -296,7 +296,7 @@ class AnalysisService:
             raise UsageError("depth must be normal or deep")
         return DigestOptions(
             depth=depth,
-            force=True,
+            force=False,
             cache_root=self.cache,
             catch_options=CatchOptions(shallow=True, since="90d", issues=0, wiki=False),
         )

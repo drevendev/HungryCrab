@@ -76,6 +76,7 @@ hunger:                    # per nutrient category: true | false | issues-only |
   issue-lesson: true
   architecture: issues-only
   code: ideas-only         # source-linked behavior findings from crab explore register
+dependency_scope_exclusions: []  # exact ecosystem/scope/reason recommendation filters; keep facts
 ignore: []                 # globs excluded from this repository's own digest, so that test
                            # fixtures and vendored trees are not mistaken for your code, e.g.
                            # [tests/fixtures/**, examples/**]. Patterns are case-sensitive on
@@ -234,6 +235,7 @@ class MawConfig:
     hunt: HuntSettings = field(default_factory=HuntSettings)
     hunger: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_HUNGER))
     ignore: list[str] = field(default_factory=list)
+    dependency_scope_exclusions: list[dict[str, str]] = field(default_factory=list)
     budget: BudgetSettings = field(default_factory=BudgetSettings)
     serve: ServeSettings = field(default_factory=ServeSettings)
     trust: TrustSettings = field(default_factory=TrustSettings)
@@ -257,7 +259,18 @@ class MawConfig:
         try:
             loaded = yaml.safe_load(source_text)
         except yaml.YAMLError as exc:
-            raise UsageError(f"{path} is not valid YAML: {exc}") from exc
+            # Parser messages contain the original YAML source, including secrets.
+            # Only the numeric location from PyYAML's marks is safe to expose.
+            mark = getattr(exc, "problem_mark", None)
+            if mark is None:
+                mark = getattr(exc, "context_mark", None)
+            location = ""
+            if mark is not None:
+                line = getattr(mark, "line", None)
+                column = getattr(mark, "column", None)
+                if type(line) is int and line >= 0 and type(column) is int and column >= 0:
+                    location = f" at line {line + 1}, column {column + 1}"
+            raise UsageError(f"{path}: invalid YAML syntax{location}") from None
         if loaded is None and all(
             not line.strip() or line.lstrip().startswith("#") for line in source_text.splitlines()
         ):
@@ -292,6 +305,9 @@ class MawConfig:
             hunger[str(key)] = _hunger_value(value)
         config.hunger = hunger
         config.ignore = [str(pattern) for pattern in as_list(data.get("ignore"))]
+        from .dependency_scope import exclusions
+
+        config.dependency_scope_exclusions = exclusions(data.get("dependency_scope_exclusions", []))
         budget = _required_mapping_section(data, "budget", path)
         _reject_unknown_keys(budget, {"policy"}, path, "budget")
         config.budget = BudgetSettings(

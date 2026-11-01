@@ -24,9 +24,10 @@ from .attribution import (
     render_notices,
 )
 from .cache import Slug, Target, cache_root, prey_paths, resolve_target
-from .compare import compare_for_maw, load_menu, meal_for, menu_candidates
+from .compare import compare_for_maw, load_menu, menu_candidates
 from .compare.scoring import Scoring
 from .digest import DigestOptions, DigestResult, failed_miners, run_digest
+from .discovery_cli import add_discovery_parser, cmd_discover
 from .errors import CrabError, UsageError
 from .exploration_cli import add_exploration_parser, cmd_explore
 from .feeder import EatOptions, eat
@@ -89,6 +90,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", metavar="<command>")
     add_loop_parser(sub)
     add_exploration_parser(sub)
+    add_discovery_parser(sub)
+    launcher = sub.add_parser(
+        "launcher", help="write an owned .py launcher independent of console shims"
+    )
+    launcher.add_argument("path", type=Path, help="destination .py file in an existing directory")
 
     p_sniff = sub.add_parser("sniff", help="API reconnaissance: license, size, languages, verdict")
     p_sniff.add_argument("repo", help="owner/repo or a GitHub URL")
@@ -386,7 +392,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="turn approved nutrients into issues or clean-room pull requests (dry-run by default)",
     )
     p_serve.add_argument("prey", nargs="?", help="owner/repo, a GitHub URL, or a local directory")
-    p_serve.add_argument("--meal-dir", type=Path, help="verified multi-prey bundle from eat")
+    p_serve.add_argument(
+        "--meal-dir", type=Path, help="existing single meal or verified multi-prey bundle"
+    )
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
     p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
@@ -451,7 +459,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_menu = sub.add_parser("menu", help="print the ranked menu from the last compare")
     p_menu.add_argument("prey", nargs="?", help="owner/repo, a GitHub URL, or a local directory")
-    p_menu.add_argument("--meal-dir", type=Path, help="verified multi-prey bundle from eat")
+    p_menu.add_argument(
+        "--meal-dir", type=Path, help="existing single meal or verified multi-prey bundle"
+    )
     p_menu.add_argument(
         "--maw", type=Path, default=Path(), help="maw repository whose meal to read (default: .)"
     )
@@ -944,7 +954,7 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     meal_directory = getattr(args, "meal_dir", None)
     if bool(args.prey) == bool(meal_directory):
         raise UsageError("serve needs exactly one prey or --meal-dir")
-    if meal_directory:
+    if meal_directory and (meal_directory / "feeder.json").exists():
         maw = _maw_dir(args.maw)
         config = MawConfig.load(maw)
         ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
@@ -966,25 +976,31 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         else:
             print_serve_report(report)
         return 0
-    prey = resolve_target(args.prey, log=log)
     maw = _maw_dir(args.maw)
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
-    meal_dir = meal_for(prey, maw, DigestOptions(cache_root=args.cache_dir))
+    from .meal_lookup import existing_meal
+
+    prey_repo: Path | None = None
+    if meal_directory:
+        meal_dir = meal_directory
+    else:
+        prey = resolve_target(args.prey, log=log)
+        meal_dir = existing_meal(prey, maw, args.cache_dir)
+        if prey.path is not None:
+            prey_repo = prey.path
+        else:
+            assert prey.slug is not None
+            prey_repo = prey_paths(prey.slug, args.cache_dir).repo
     ids = [item.strip() for item in args.ids.split(",") if item.strip()] if args.ids else []
     options = ServeOptions(ids=ids, top=args.top, mode=args.mode, notes=args.notes)
     client = (
         GhIssueClient(token_env=config.serve.token_env)
-        if (args.mode == "issue" or shutil.which("gh"))
+        if args.mode in {"issue", "pr-branch"}
         else None
     )
-    # A COPY nutrient's receipt names prey paths; they are checked against the prey's own
-    # history, which lives in the cached clone (or the local directory being eaten).
-    if prey.path is not None:
-        prey_repo = prey.path
-    else:
-        assert prey.slug is not None
-        prey_repo = prey_paths(prey.slug, args.cache_dir).repo
+    # A portable meal can be previewed without following source paths from its
+    # untrusted metadata. Transfer effects still require independent source authority.
     report = serve(
         meal_dir,
         maw,
@@ -1090,10 +1106,15 @@ def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
         raise UsageError("menu needs exactly one prey or --meal-dir")
     if args.meal_dir:
         meal_dir = args.meal_dir
-        menu, _, _ = load_multi(meal_dir)
+        if (meal_dir / "feeder.json").exists():
+            menu, _, _ = load_multi(meal_dir)
+        else:
+            menu = load_menu(meal_dir)
     else:
         prey = resolve_target(args.prey, log=log)
-        meal_dir = meal_for(prey, _maw_dir(args.maw), DigestOptions(cache_root=args.cache_dir))
+        from .meal_lookup import existing_meal
+
+        meal_dir = existing_meal(prey, _maw_dir(args.maw), args.cache_dir)
         menu = load_menu(meal_dir)
     if menu is None:
         raise CrabError(
@@ -1234,6 +1255,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             return cmd_loop(args)
         if args.command == "explore":
             return cmd_explore(args)
+        if args.command == "discover":
+            return cmd_discover(args)
+        if args.command == "launcher":
+            from .launcher import install_launcher
+
+            print(install_launcher(args.path))
+            return 0
         if args.command == "sniff":
             return cmd_sniff(args, log)
         if args.command == "catch":

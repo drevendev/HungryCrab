@@ -1,5 +1,8 @@
 # Supervised discovery beyond traits
 
+For the persisted invoked host cycle, provider budgets, replacements and actual
+verification receipts, see [Invoked discovery sessions](discovery-session.md).
+
 `compare` remains a quick deterministic structural pass. A trait menu does not determine
 the full useful surface of a repository. `crab explore` records bounded, goal-led inspection
 and validates agent-discovered behavior nutrients without making model calls.
@@ -140,6 +143,80 @@ publication. Successful comparisons or CI cannot advance the other phases. The r
 unreviewed original candidates, unresolved hypotheses and remaining facets. Records are
 content-bound and append-only; corrections are later observations, never rewritten history.
 
+## Cumulative inspection and receiving execution (0.6.9)
+
+For a supervised exploration, set `require_inspection_receipts: true` in its
+plan. `crab discover contract EXPLORATION --input contract.json` exposes bounded
+actual donor/receiving filenames, supported operations and role-specific citation
+schemas. For example, `contract.json` can be `{"terms": ["read", "parse"]}`.
+An empty witness set grants no citation capability.
+
+`discover find --input find.json` locates literals in pinned source using explicit
+`repo`, `sha` and `terms`, with bounded files, total bytes and time. Locations
+include actual file line counts. Strings/comments can match; this is navigation,
+not an AST or semantic coverage claim. Instructions and README bodies stay excluded.
+Implementation/test suffixes consume the read allowance before ancillary files;
+other files remain eligible, with uninspected counts retained.
+
+Read selected windows with `discover inspect EXPLORATION --input inspection.json`:
+
+```json
+{
+  "operation": "reader-body-1",
+  "side": "donor",
+  "paths": ["reader.py"],
+  "ranges": [{"path": "reader.py", "start": 10, "end": 45}],
+  "queries": [],
+  "related": false
+}
+```
+
+The existing append-only exploration chain records hash-bound actual packets.
+Reusing an operation is idempotent only with identical inputs. `discover witnesses`
+returns cumulative reads, so a later licence or test read retains the earlier
+implementation window. `discover citations` expands selected `source_evidence`
+and `maw_evidence` witness IDs into immutable ranges, refusing unknown IDs and role
+swaps. In supervised mode a reviewed decision cannot cite an unread range.
+These receipts prove bounded reads, not the analyst's semantic conclusion.
+
+`discover novelty --maw MAW --input scope.json` reads selected/default/confirmed
+pending implementations from explicitly acquired local Git objects. The input
+names `prefixes`, `default_sha`, optional `default_ref`, `pending` entries with
+`sha` and canonical local `ref: refs/crab/qualification/pr-N`, and
+`pending_collection: {"complete": true, "as_of": "..."}`. Bodies are deduplicated
+while every role/SHA/path binding survives. Missing objects, byte/count limits and
+incomplete collection remain explicit. Scoped implementation comparison does
+not require proving absence across all historical issues; an open request alone
+does not establish an implementation. No fetch or branch switch occurs.
+
+`discover probe` checks the actual interpreter against supported declared
+`requires-python` constraints before running. It refuses incompatible or
+unsupported requirements instead of silently substituting a runtime or installing
+dependencies. Choose an already trusted receiving interpreter before invocation.
+Optional `required_receiving_calls: [{"path": "app.py", "qualified_name": "consume"}]`
+requires actual calls to those pinned receiving declarations. AST parsing and
+printing PASS cannot satisfy it; trace bytes and identity survive in the receipt.
+
+`discover cases OUTPUT --maw MAW --input cases.json` provides a fixed original
+receiving-only runner. The plan declares `original_receiving_owned: true`,
+`target: {"path": "app.py", "qualified_name": "consume"}` and 2..8 `cases` with
+`label`, `role`, JSON `args`/`kwargs`, optional relative text `files`, and `checks`.
+At least one target and positive control are required. Each check has a JSON
+`pointer` into the actual `value` or `exception` and exactly one `equals`,
+`contains` or `not_contains` predicate. Supported data factories are `$fixture`
+(relative path in a fresh temporary fixture), `$bytes` (base64), `$stream`
+(text stream rejecting unbounded reads), `$io` (ordinary text BytesIO), and
+`$helper` (an explicitly declared pinned zero-argument receiving function).
+`$base64` encodes original UTF-8 text and `$git_blob_sha1` computes its exact Git
+blob identity, allowing consistent original analyzer inputs without executing
+those inputs or inventing object hashes. Factory values must be text.
+Agent content is JSON data, never executable Python. Cases record actual values,
+exceptions, predicate outcomes and function calls; a failed predicate is not
+automatically a valid defect or independent acceptance. Donor code never runs.
+Returned bytes encode as `{"base64": "..."}`; dataclasses become objects and
+iterators become bounded `{"items": [...], "truncated": false}` results. Factories
+apply to arguments, not expected predicate values.
+
 ## Register a non-trait behavior nutrient
 
 ```text
@@ -201,3 +278,64 @@ IDs, authorizes publication or trains learning. Counts distinguish initial/visib
 receiving-scoped unique IDs, hidden records, registrations, examined hypotheses and explicit
 selections. Unknown selections/costs remain null. Completion links the actual explore report
 and preserves earlier deferred hypotheses when a facet later investigates something else.
+
+## Bounded receiving verification transport
+
+A discovery need may declare `verification_mode: runtime` (the legacy default)
+or `design`. The latter identifies an additive API/architecture question: write
+receiving-specific acceptance criteria without inventing a runtime failure or a
+large literal stress fixture. This intent is retained in the controller handoff;
+it never supplies verification or semantic acceptance by itself.
+
+`crab discover case-results RECEIPT --maw .` verifies the original execution
+receipt, current receiving context, artifact bytes and required function-call
+witnesses before projecting every original case/check. Actual pass/fail flags,
+observed values, exception evidence and original result hashes survive. Full
+returned objects stay in the hash-verified stdout. Values over the default
+512-byte display limit become explicit byte-count/SHA256 omissions; use
+`--value-bytes 64..8192` for another bounded projection. Retained value bytes are
+bounded at 32,000 and the complete result at 64 KiB. An omission is not a passing
+value, and an actual failed assertion is not automatically a useful defect.
+
+Each target/positive case records `target_called` during its main invocation
+(including generator consumption), outside argument-factory/helper execution.
+`target_calls_complete: false` marks an unavailable fixture even if another
+control called the target. Legacy missing per-case evidence stays unknown. The
+original probe also pins the trusted runner's bytes before execution.
+
+`discover novelty` also accepts up to eight scoped Python declarations:
+
+```json
+{"symbols": [{"path": "src/package/config.py", "qualified_name": "Config.load"}]}
+```
+
+Supply this alongside the existing explicit prefixes/default/pending plan. Each
+acquired role/ref records declaration availability, exact decorator-inclusive
+ranges and a source-content hash. Absence, duplicate definitions, unsupported
+syntax and resource exhaustion stay explicit. Shared bodies are parsed once
+within the existing scope limits. Equality of declaration bytes does not prove
+runtime equivalence: imports, globals, helpers and other changed code need their
+own comparison. Full file bodies and immutable bindings remain in the artifact.
+
+Source windows use physical LF/CRLF/CR coordinates; Unicode separators inside
+source characters do not invent lines or move parser citations. A bounded chunk
+whose end exceeds EOF returns only existing lines with `requested_end` and
+`range_clipped_to_eof`. A start beyond EOF remains an explicit omission; range,
+file, byte and time caps are unchanged.
+
+Set `include_differences: true` in a novelty plan to expose bounded actual
+selected-versus-default/pending code changes before the semantic decision.
+Identical source pairs share every role/ref binding. Ordered unique-line anchors
+are a linear text comparison, not syntax or runtime equivalence; their changed
+ranges include one context line. The projection retains at most 16 comparisons,
+16 hunks per comparison, 320 lines and 16,000 content bytes. Omitted comparisons,
+ranges and hunk counts remain explicit; unread or policy-excluded source is never
+reported as established absence. Complete raw files and line endings remain in
+the parent artifact.
+
+Behavior registration accepts a separate `source_behavior`: an observed,
+code-free claim grounded in the cited donor ranges. `behavior` and `adaptation`
+describe the proposed receiving change and cannot establish that the donor
+already implements it. Missing source claims, including legacy exploratory
+cards, render an explicit unknown in issue previews. Nutrient and ledger IDs
+remain unchanged.

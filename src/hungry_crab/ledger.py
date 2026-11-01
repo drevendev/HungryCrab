@@ -19,7 +19,7 @@ from typing import Any
 from .config_edit import atomic_text
 from .effect_guard import check_effect
 from .errors import CrabError
-from .file_lock import state_lock
+from .file_lock import require_real_state_path, state_lock
 from .nutrients import ACCEPTED_STATUSES, STATUSES, Candidate
 from .typeutil import as_dict, as_list
 
@@ -185,6 +185,8 @@ class Ledger:
     @classmethod
     def load(cls, path: Path | None, *, maw: str = "") -> Ledger:
         ledger = cls(path, maw=maw)
+        if path is not None:
+            require_real_state_path(path)
         if path is None or not path.is_file():
             return ledger
         try:

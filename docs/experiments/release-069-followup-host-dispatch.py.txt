@@ -1,0 +1,13 @@
+import concurrent.futures,json,runpy,sys
+from pathlib import Path
+r=Path(__file__).resolve().parents[1];q=r/'.venv/qualification-study3';m=runpy.run_path(str(r/'.venv/run-staged-study3.py'));T=m['T'];f=json.loads((q/'sealed.json').read_text(encoding='utf8'))
+def trial(name):
+ t=T(name,f);t.prepare();p=t.output
+ if (p/'intermediate.json').exists() and not (p/'proposal.json').exists():
+  mid=json.loads((p/'intermediate.json').read_text(encoding='utf8'))
+  if mid['probe_source']:print(json.dumps({'trial':name,'awaits':'original probe provenance/safety review','file':str(p/'original-proposed-probe.py.txt')}),flush=True)
+  else:T(name,f,resume=True).finish()
+ return name
+names=sys.argv[1:]
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+ for name in executor.map(trial,names):print(json.dumps({'dispatch_complete':name}),flush=True)

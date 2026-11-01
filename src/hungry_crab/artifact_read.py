@@ -52,6 +52,12 @@ def read_bytes(path: Path, limit: int) -> bytes:
 
 
 def read_object(path: Path) -> dict[str, Any]:
+    return parse_object(read_bytes(path, MAX_JSON_BYTES), name=path.name)
+
+
+def parse_object(content: bytes, *, name: str = "JSON") -> dict[str, Any]:
+    """Parse the same bounded duplicate-free object from already verified bytes."""
+
     def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
         for key, value in pairs:
@@ -61,13 +67,15 @@ def read_object(path: Path) -> dict[str, Any]:
         return result
 
     try:
-        text = read_bytes(path, MAX_JSON_BYTES).decode("utf-8-sig")
+        if len(content) > MAX_JSON_BYTES:
+            raise ValueError("JSON artifact exceeds its byte limit")
+        text = content.decode("utf-8-sig")
         _check_json_depth(text)
         data = json.loads(text, object_pairs_hook=unique)
     except (ValueError, UnicodeError, RecursionError) as exc:
-        raise CrabError(f"invalid JSON artifact: {path.name}") from exc
+        raise CrabError(f"invalid JSON artifact: {name}") from exc
     if not isinstance(data, dict):
-        raise CrabError(f"artifact must contain a JSON object: {path.name}")
+        raise CrabError(f"artifact must contain a JSON object: {name}")
     return data
 
 

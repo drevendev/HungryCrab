@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,6 @@ from .attribution import (
 )
 from .compare import apply_hunger, load_menu, menu_candidates
 from .compare.candidates import Side, _evidence_path
-from .compare.license_policy import covered_exceptions
 from .compare.render import menu_doc
 from .compare.scoring import Scoring
 from .config_edit import atomic_text
@@ -34,9 +34,11 @@ from .fetch.git import GitRunner
 from .file_lock import state_lock
 from .fs import is_link_stat
 from .licensing.matrix import decide
+from .licensing.path_grants import GrantResolver
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
 from .nutrients import Candidate, require_nutrient_id
+from .source_lines import physical_lines
 from .typeutil import as_dict, as_list
 
 SCHEMA = "hungry-crab.exploration/1"
@@ -132,6 +134,8 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
         raise CrabError("exploration requires a readable fresh meal")
     for key in ("scope", "goals", "flows", "constraints", "author", "attempt"):
         _text(plan, key)
+    if type(plan.get("require_inspection_receipts", False)) is not bool:
+        raise CrabError("require_inspection_receipts must be an explicit boolean")
     facets = plan.get("facets")
     if (
         not isinstance(facets, list)
@@ -284,6 +288,14 @@ def _references(
     for reference in value:
         if not isinstance(reference, dict):
             return False
+        role, message = reference.get("role"), reference.get("message")
+        if role is not None and (
+            not isinstance(role, str)
+            or role not in {"primary", "supporting", "secondary", "context"}
+        ):
+            return False
+        if message is not None and (not isinstance(message, str) or len(message) > 500):
+            return False
         path, start, end = reference.get("path"), reference.get("start"), reference.get("end")
         if (
             not isinstance(path, str)
@@ -296,7 +308,7 @@ def _references(
         lines = files.get(path)
         if lines is None and objects is not None:
             text = GitSourceReader(Path(objects)).read(str(side.get("sha", "")), path)
-            lines = len(text.splitlines()) if text is not None else None
+            lines = len(physical_lines(text)) if text is not None else None
         if type(lines) is not int or end > lines:
             return False
     return True
@@ -385,6 +397,8 @@ def _validate_record(
                 raise CrabError("CI observations require actually executed steps")
     elif kind == "registration":
         raise CrabError("use explore register for validated nutrient registration")
+    elif kind == "inspection":
+        raise CrabError("use discover inspect for actual inspected evidence")
     else:
         raise CrabError("unsupported exploration event kind")
 
@@ -398,6 +412,12 @@ def record(directory: Path, payload: dict[str, Any]) -> dict[str, Any]:
             if entry["record"]["kind"] == "registration"
         }
         _validate_record(snapshot, payload, registered_ids)
+        if snapshot["plan"].get("require_inspection_receipts") and (
+            payload.get("reviewed") is True or payload.get("state") in {"examined", "inapplicable"}
+        ):
+            from .inspection import require_inspected
+
+            require_inspected(directory, payload)
         return _append(directory, payload)
 
 
@@ -472,6 +492,9 @@ def report(directory: Path) -> dict[str, Any]:
         "examined_hypotheses": sorted(examined),
         "registrations": [
             event["record"] for event in history if event["record"]["kind"] == "registration"
+        ],
+        "inspections": [
+            event["record"] for event in history if event["record"]["kind"] == "inspection"
         ],
         "facets": facets,
         "pending_facets": pending,
@@ -567,6 +590,13 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             "reason",
         ):
             _text(finding, key)
+        if "source_behavior" in finding:
+            _text(finding, "source_behavior")
+        source_behavior = finding.get(
+            "source_behavior",
+            "Observed donor behavior was not separately recorded. The proposed receiving "
+            "change is not evidence that the donor implements it; review the cited source.",
+        )
         if re.fullmatch(r"code\.[a-z0-9][a-z0-9._-]{0,100}", finding["key"]) is None:
             raise CrabError("behavior key must be stable and maw-relative: code.<behavior>")
         source, receiving = finding.get("source_evidence"), finding.get("maw_evidence")
@@ -576,15 +606,35 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         ) or not _references(receiving, menu["maw"], data["file_evidence"]["maw"]):
             raise CrabError("registration requires valid immutable donor and receiving file ranges")
         assert isinstance(source, list) and isinstance(receiving, list)
+        if data["plan"].get("require_inspection_receipts"):
+            from .inspection import require_inspected
+
+            require_inspected(directory, finding)
         prey_ref = SourceRef.from_dict(menu["prey"])
-        if data["plan"].get("donor_policy") == "MIT-only" and prey_ref.license != "MIT":
-            raise CrabError("exploration donor policy excludes this grant; retain a policy hold")
         reader = GitSourceReader(source_repo)
+        resolver = GrantResolver(reader, prey_ref.sha, prey_ref.url)
+        branch = finding.get("license_branch")
+        if branch is not None and (not isinstance(branch, str) or not 0 < len(branch) <= 100):
+            raise CrabError("license_branch must be a bounded explicit licence option")
+        path_grants = [resolver.resolve(ref["path"], selected_branch=branch) for ref in source]
+        if branch and any(grant.expression != branch for grant in path_grants):
+            raise CrabError("selected licence branch is not established for every source path")
+        expressions = {grant.expression for grant in path_grants}
+        if None in expressions or len(expressions) != 1:
+            raise CrabError(
+                "source paths have differing or unresolved applicable licences",
+                hint="; ".join(grant.reason for grant in path_grants if grant.expression is None),
+            )
+        path_license = path_grants[0].expression
+        assert path_license is not None
+        if data["plan"].get("donor_policy") == "MIT-only" and path_license != "MIT":
+            raise CrabError("exploration donor policy excludes this grant; retain a policy hold")
+        prey_ref = replace(prey_ref, license=path_license)
         source_side = Side(label=prey_ref.label, sha=prey_ref.sha, url=prey_ref.url, root=None)
         # Pin every range to the actual immutable file; never trust a recorded runner root.
         for ref in source:
             text = reader.read(prey_ref.sha, ref["path"])
-            if text is None or ref["end"] > len(text.splitlines()):
+            if text is None or ref["end"] > len(physical_lines(text)):
                 raise CrabError("registered donor range is unavailable at the pinned commit")
         receipt = MaterializationReceipt(
             nutrient_id=f"crab:code:{finding['key']}",
@@ -596,25 +646,34 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
         require_nutrient_id(receipt.nutrient_id)
         # Registration never grants COPY from a label or a menu. Reuse the exact
         # immutable grant/path checks that later publication also applies.
-        verify_root_grant(receipt, reader, carried_texts(prey_ref.sha, reader, prey_ref.license))
+        verify_root_grant(
+            receipt,
+            reader,
+            carried_texts(
+                prey_ref.sha,
+                reader,
+                prey_ref.license,
+                paths=tuple(ref["path"] for ref in source),
+                source_url=prey_ref.url,
+            ),
+        )
         check_taken_licences(receipt, reader)
         maw = Path(data["maw_root"])
         config = MawConfig.load(maw)
         _require_current_policy(data, config)
         legal = decide(prey_ref.license, config.license or menu["maw"].get("license"))
         mode, reason = apply_maw_policy(legal.mode.value, policy=config.mode, material="code")
-        paths = [ref["path"] for ref in source]
-        if covered_exceptions(as_dict(data["manifests"]["prey"]).get("license", {}), paths):
-            mode = "HUMAN"
+        # The immutable path resolver has checked intervening grants and headers.
+        # Keep the conservative root overview without overriding that exact proof.
         card = Candidate(
             category="code",
             key=finding["key"],
             title=finding["title"],
-            what=finding["behavior"],
+            what=source_behavior,
             origin="licensed",
             license_mode=mode,
             license_policy_reason=reason,
-            prey_state=finding["behavior"],
+            prey_state=source_behavior,
             maw_state=finding["gap"],
             why=finding["gap"],
             how=(
@@ -638,8 +697,14 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
                 "license_relationship": "foreign",
                 "license_review_required": legal.human_review,
                 "exploration_snapshot": directory.name,
+                "source_behavior_recorded": "source_behavior" in finding,
+                "path_license": path_license,
+                "source_path_grants": [grant.to_dict() for grant in path_grants],
             },
         )
+        for evidence, reference in zip(card.evidence, source, strict=True):
+            evidence.role = reference.get("role")
+            evidence.message = reference.get("message")
         kept, hidden = apply_hunger([card], config.hunger)
         card.score = Scoring.default().merged(config.scoring).score(card)
         history = events(directory)

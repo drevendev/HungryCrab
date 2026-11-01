@@ -34,6 +34,18 @@ The 0.2.1-0.5 implementations are included in it; that does not close their unfu
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
 
+Planned next release: **0.6.9**, the owner-expanded verified discovery, selection
+and MIT-quality scope. The complete agent search/verification/replanning cycle,
+all open PRs at the planning snapshot and eight additional backlog issues are
+specified in [the implementation scope](../releases/0.6.9-scope.md), tracked by
+[#535](https://github.com/drevendev/HungryCrab/issues/535). This supersedes the
+earlier separate 0.7.0 discovery target. The CLI implementation is in draft
+[#539](https://github.com/drevendev/HungryCrab/pull/539); independent usefulness
+qualification still fails and complete-cycle readiness remains open in
+[#540](https://github.com/drevendev/HungryCrab/issues/540). See the
+[corrected-host evidence](../experiments/release-069-corrected-qualification.md).
+It is not a release announcement.
+
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
 the tag and publication follow the normal CI gates. See the
@@ -135,9 +147,9 @@ GUI host ran a meal, a PyPI upload, or a waiver of #224/#236/#242/#243/#250/#256
 
 The bottleneck is now integration and demonstrated recommendation quality, rather than a
 missing miner. The original human B1 corpus still reports recall 10/10 and noise 19/29;
-its labels and thresholds must remain frozen. The separate 56-candidate ranking-pressure
-fixture reports ranking under load (report only: four accepted priorities rank 31-35 with the
-default scoring) but does not replace broader human labels (#200), real
+its labels and thresholds must remain frozen. The separate ranking-pressure
+fixture is gated again in 0.6.9 after a general uptake rule; its five priorities
+rank within the top 30 of 54 candidates. It does not replace broader human labels (#200), real
 B2 results (#250), or held-out Taste Memory uptake (#256). Evolving Crab E0 remains a later
 track until those foundations and operational costs are established.
 

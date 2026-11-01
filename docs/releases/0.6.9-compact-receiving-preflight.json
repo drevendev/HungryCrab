@@ -1,0 +1,96 @@
+{
+  "schema": "hungry-crab.receiving-qualification-preflight/1",
+  "status": "Owned receiving snapshot for compact protocol before new measured arms",
+  "pending_observed_as_of": "2026-11-01T14:28:04.556Z",
+  "receiving": {
+    "HungryCrab": {
+      "sha": "1b764cfc6987f9b692c2ecab7615c99282ffd0ec",
+      "target_sha": "workflow-head",
+      "target": "Exact explicitly supplied owned workflow head, independently verified against canonical #539 before export",
+      "pending": [
+        {
+          "number": 550,
+          "sha": "6d6ae0d0c0a06ba2eb8aff65b9c8c405cceee4a5"
+        },
+        {
+          "number": 539,
+          "sha": "workflow-head"
+        }
+      ],
+      "target_pull_request": 539,
+      "integration_head": true
+    },
+    "Devostasis": {
+      "sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+      "target_pull_request": 75,
+      "target_sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "target": "Confirmed intended 0.6.0 source and all 14 confirmed canonical pending PR heads",
+      "pending": [
+        {
+          "number": 95,
+          "sha": "611b21ee19ad46b4ae6f9ad2dcf872da6dbf7156"
+        },
+        {
+          "number": 90,
+          "sha": "51e58b8a4f1504f8f953fbc47db6157d157051e6"
+        },
+        {
+          "number": 89,
+          "sha": "1a735f451f9fe6dae7948a014b660249501a1ffc"
+        },
+        {
+          "number": 88,
+          "sha": "9cf0c0cf678aeef620b5f6d6a1662533894c10b2"
+        },
+        {
+          "number": 81,
+          "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b"
+        },
+        {
+          "number": 75,
+          "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b"
+        },
+        {
+          "number": 69,
+          "sha": "aa5e0e12aea6ee0514cbd2c9dd9aa29ff5dfe75c"
+        },
+        {
+          "number": 64,
+          "sha": "c98e7ed4fe53f1809f9a5ec0b7651da49aa0ab3a"
+        },
+        {
+          "number": 59,
+          "sha": "a41fac6353030f684b2e77b12079503b7b8a1e96"
+        },
+        {
+          "number": 57,
+          "sha": "b849923511ffef24b3b53d0ed01937ae706f60f8"
+        },
+        {
+          "number": 53,
+          "sha": "96d10fc844732d196628e3a8f39737eab69fe871"
+        },
+        {
+          "number": 50,
+          "sha": "4c7f0a1a93cd3231feea89fb879c0fafe5fdf1fb"
+        },
+        {
+          "number": 37,
+          "sha": "aae7b21df35f96ba074331482ff37f70f509d222"
+        },
+        {
+          "number": 36,
+          "sha": "2a575750d511a47d69a5c97c41ec121deff920ef"
+        }
+      ]
+    },
+    "BeautifulRepo": {
+      "sha": "600fbae1986909efa915ce4b2b9f66d13cf5aac7",
+      "target": "Current default at captured metadata time; previously proposed work remains known",
+      "pending": []
+    }
+  },
+  "candidate_source_identity": "4ba04effe7a9b839f76f1d448f68eed39e2497d59153416cf450e13fc77e17ec",
+  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged.",
+  "pre_inference_refresh": "First acquisition 41315975901 refused changed BeautifulRepo default before any model. Partial receipts retained. All current pending metadata refreshed, including newly opened550, whose full two-file diff was reviewed and integrated preserving author. Acquire again before sealing."
+}

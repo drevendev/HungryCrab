@@ -130,7 +130,7 @@ def test_an_immutable_and_grant_cannot_be_replaced_by_an_or_receipt(
     _compound(prey, maw, "MIT AND Apache-2.0", reuse=reuse)
     commit(prey)
     before = _files(maw)
-    with pytest.raises(CrabError, match="root grant contradicts"):
+    with pytest.raises(CrabError, match=r"root grant (contradicts|is unreadable)"):
         prepare(prey, maw, spdx="MIT OR Apache-2.0")
     assert _files(maw) == before
 

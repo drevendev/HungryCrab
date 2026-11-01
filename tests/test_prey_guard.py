@@ -2457,13 +2457,13 @@ def test_a_clone_with_the_config_catch_writes_stays_readable(home: Path) -> None
         f"git -C {spelled} log --oneline -5",
         f"git -C {spelled} log --oneline | head -20",
         f"git -C {spelled} log --format='%h %s' | grep fix | cut -c1-40 | tail -n 5 | wc -l",
-    ):
-        assert guard_reason(command, root=root, cwd=cwd) is None, command
-    # `sort` and `uniq` write files and start programs, and GNU sort reads abbreviations and
-    # clusters; neither is a filter a read may be piped into.
-    for command in (
         f"git -C {spelled} log | sort",
         f"git -C {spelled} log | uniq -c",
+    ):
+        assert guard_reason(command, root=root, cwd=cwd) is None, command
+    # Only the exact inert filter options are accepted; file operands, writes,
+    # executable/temp options, abbreviations and clusters remain refused.
+    for command in (
         f"git -C {spelled} log | sort -S1K --co=sh",
         f"git -C {spelled} log | sort -S1K --compress-prog=sh",
         f"git -C {spelled} log | sort -S1K --compress-program=sh",
@@ -2480,10 +2480,10 @@ def test_a_clone_with_the_config_catch_writes_stays_readable(home: Path) -> None
         f"git -C {spelled} log > {spelled}/x",
     ):
         assert guard_reason(command, root=root, cwd=cwd) is not None, command
-    # PowerShell keeps 0.6.1's read cmdlets: Windows PowerShell 5.1 splits a quoted argument
+    assert _powershell(f"git -C {spelled} log --oneline -5", home) is None
+    # Windows PowerShell 5.1 splits a quoted argument
     # with `\"` in it into two native arguments, so a `--output` reaches git unseen.
     for command in (
-        f"git -C {spelled} log --oneline -5",
         f"git -C {spelled} log -1 '--format=%B \\' ' --output=Makefile'",
         f"git -C {spelled} grep -l 'x \\' ' -Osh' prey",
         f"git -C {spelled} log '--format=%B','--output=Makefile'",

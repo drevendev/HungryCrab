@@ -1,0 +1,3158 @@
+{
+  "schema": "hungry-crab.resumed-qualification/1",
+  "recorded_at": "2026-11-01T12:37:42.799749+00:00",
+  "status": "FAILED acceptance; no merge/tag/release; previous failed studies retained",
+  "candidate": {
+    "commit": "db8877c5f3055026aa16c698d3f9c9c606cfb1d5",
+    "source_identity": "d7b6b5a014d9d13dac6bc0765c7e0b835209e181fe57027dcac5732d6e9072b9",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+  "seal_sha256": "d0b65deeafbb19e9084b99afbf0722892e3b13bc93536ecc9162557564d6b5ee",
+  "review_seal": {
+    "schema": 1,
+    "sealed_at": "2026-11-01T12:25:15.810103+00:00",
+    "protocol": {
+      "reviewers": 6,
+      "model": "gpt-5.6-sol",
+      "effort": "medium",
+      "model_tokens": 30000,
+      "seconds": 2700,
+      "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals; confirm only changes accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs require concrete source/novelty/acceptance; runtime requires actual receiving call/positive controls. Utility and legal transfer separate. No root semantic arbitration to boost yield.",
+      "gates": "At least80% novel precision; strictly more independently confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+    },
+    "input_projection": "Deduplicated common implementation context and all actual cited windows. Probe projection retains actual per-check observations, exceptions, original JSON inputs, actual call witnesses and raw result/receipt/stdout hashes; full return objects stay in retained raw files. No source-level supervisor review. All observations retained. Maximum63000 promptUTF8bytes before inference; same bound botharms.",
+    "model_calls_before_review_seal": 0,
+    "hashes": {
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "7757faa0f8d62cf78a144059833cea35e2693793b4e916db01b6263eba81c7c1",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "cdf8c0b92760980d3fd6206fe256b1ffa115b1584cb8a21275fe9a2eea68eb84",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\sealed.json": "d0b65deeafbb19e9084b99afbf0722892e3b13bc93536ecc9162557564d6b5ee",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-1\\input.json": "c7dc75e320f69dd3d06002f6f3e3e0025d06fe80bbdf328cbab085b1fb0e436b",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-1\\private-mapping.json": "8aac0d475ab552f372859cc79aca1260fa69e52b3a33728d88604be47a504502",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-2\\input.json": "57776214499721ae8bdec5b17761ef0ebe48269f6911c37a33fbfd0e812f4e95",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\crab-2\\private-mapping.json": "d521b338303c3bda17420bee053ce8c65c45a5a9e82de0116c8d69bcbd002c4d",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-1\\input.json": "32a1fee77e707f0eed8e9d4bf9e867e0e2cfc633c0ae889a30301aeba0e1248d",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-1\\private-mapping.json": "619bc3c6959cc3a3af746779cfe09ced68cebd62543870314b80a63164af420e",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-2\\input.json": "5e0b8d697d2123e3898423244768fa4ce7123b620b2f193dd22cb974c50662f2",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\devostasis-2\\private-mapping.json": "90758ddac38b7015001f0b919a0e6bdfd89c9d7072255d497be043b53b7b2820",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-1\\input.json": "831f8a5a821c46969f0eff30661deb7f3bf1e89bee60887ddf9dffa3ea393365",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-1\\private-mapping.json": "660a7104fc9847e63020ca8d06f7d7887bb541e0ffb400a2f79bfffe56980775",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-2\\input.json": "3136678f92b9b87ea00792e08826268bed76b4b164dc79cd345fb3fa043ee7ab",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\independent-review-v2\\beautifulrepo-2\\private-mapping.json": "6dd681721fbeb20fabd1a5ba263ddeed6e6786a7a5b2fbd75dceed142f799b5a"
+    }
+  },
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "dynaconf/dynaconf",
+      "sha": "455ee38569d76cd3707c73209b660cf60bd97b29"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "hynek/environ-config",
+      "sha": "dfbfdc910e0b80bb22752571619b7ad0e18379b9"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "theskumar/python-dotenv",
+      "sha": "bad5771ce54fd643538f177aab1465e4375e2039"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "pydantic/pydantic-settings",
+      "sha": "02ea717e203893f9abdabfd6eeb00bd6e5fefe9e"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "tox-dev/pyproject-api",
+      "sha": "406c67cd8c8b1695d4cdf1faf32cbbc8cf906047"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "hukkin/tomli",
+      "sha": "43a86ade8b795c6ef9b4ec53372a607cd1ed426f"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "python-attrs/cattrs",
+      "sha": "d043dbdf0de697ca129e0fde9112113446f4fa47"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "yaml/pyyaml",
+      "sha": "f5e4504a92f169f65350a1047dccb23bc97028be"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "hydra-ecosystem/omegaconf",
+      "sha": "bfbfa5259ac98d006afdec3d9b86c418d718e9e3"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "HBNetwork/python-decouple",
+      "sha": "0573e6f96637f08fb4cb85e0552f0622d36827d4"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "pylint-dev/astroid",
+      "sha": "3d0bc5800477403f0bf903769f67e421777ef84e"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "python-grimp/grimp",
+      "sha": "d7c94dc108dbe977377ef4c294611b3c39fdeb85"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "seddonym/import-linter",
+      "sha": "2173911f76c7b550eedd83a1b8eb86c840ca7827"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "asottile/astpretty",
+      "sha": "1fb4135054e6ef00173f556908c17e6807d26c52"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "simonpercivall/astunparse",
+      "sha": "2acce01fcdda2ea32eea835c30ccca21aaff7297"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "berkerpeksag/astor",
+      "sha": "708038844745b2a2c37c206ec422547ea6ddc367"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "coveragepy/coveragepy",
+      "sha": "a0e922a946120d7d65373994f647bf08e0f89af4"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "asottile/reorder-python-imports",
+      "sha": "48d613c407813ee467d5cef9b735fd065addfed9"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "hadialqattan/pycln",
+      "sha": "b98a425329c272424ffd19d74b982eb6d2637264"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "thebjorn/pydeps",
+      "sha": "9f086edb4edc1ad5cafc56d26f36d16c116baafa"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "frostming/marko",
+      "sha": "ad3d50771d5d62b580cc4c222e98871d1295d6ee"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "hukkin/mdformat",
+      "sha": "56b24ef0c6cfdab501844925971204f858185547"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "jackdewinter/pymarkdown",
+      "sha": "fa3ace1d8ab48949d78ae6a6833cc02904060f49"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "pulldown-cmark/pulldown-cmark",
+      "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "yuin/goldmark",
+      "sha": "3f129ed3309403d4a8bc0baadc1f6c49eb791634"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "gomarkdown/markdown",
+      "sha": "acfab5edc1ce4d62faaca6cd981e5e921e4ef896"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "jgm/commonmark-hs",
+      "sha": "89b2686bbc77aba333a79790e39cb08b90c1d75d"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "russross/blackfriday",
+      "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "mity/md4c",
+      "sha": "f9e5eb232b95b737373ae706648cb75bd259ed1a"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "markdownlint/markdownlint",
+      "sha": "cf7e1fc7f63c802a92f1d2f0400aeedb33f21688"
+    }
+  ],
+  "trials": [
+    {
+      "trial": "crab-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24355,
+      "usage_complete": true,
+      "seconds": 84.61186099052429,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "private-config-diagnostics",
+          "donor": "crab-8"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "private-config-diagnostics",
+          "donor": "crab-8",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load should preserve a useful malformed-YAML category and 1-based location while preventing PyYAML source snippets—and therefore private .crab.yml values—from entering UsageError diagnostics.",
+            "reason": "The actual MawConfig.load call failed meaningfully: its UsageError included the unique private scalar. The same receipt confirms that a valid configuration still loads and that non-mapping YAML retains its established diagnostic. Mechanistically, PyYAML marks retain the input buffer and Mark.__str__ appends a source snippet; the receiving code interpolates the entire YAMLError, exposing that snippet. This is not an unavailable type/import/fixture probe.",
+            "adaptation": "In the receiving error boundary, construct an original safe diagnostic from non-content metadata: the configuration path, a stable YAML error category derived from the exception subtype, and available 1-based line/column coordinates. Do not stringify the exception or its marks and do not include parser context, problem text, buffers, source lines, or snippets unless independently proven content-free. Preserve exception chaining, existing validation behavior, and dependencies.",
+            "maintenance": "Centralize safe YAML diagnostic formatting at the receiving boundary, with no new dependency. Regression cases should use sentinel values across representative malformed YAML forms and assert that no source-derived text appears. Treat PyYAML exception attributes as version-sensitive: absent marks must degrade to a category-only diagnostic rather than falling back to str(exc).",
+            "acceptance": "Independent acceptance requires: (1) malformed private YAML raises UsageError containing the .crab.yml path, a stable parse category, and correct 1-based location when available; (2) the diagnostic contains neither a sentinel private value nor any source line/snippet; (3) malformed errors without marks remain useful and non-leaking; (4) the supplied valid-file control remains unchanged; (5) the supplied non-mapping control retains its established mapping diagnostic; and (6) review confirms no error branch stringifies a YAMLError or Mark.",
+            "novelty": "The scoped selected implementation and confirmed pending head are identical. The complete supplied default-head projection differs only in unrelated dependency-scope configuration, not MawConfig.load. Thus this leak remains a scoped implementation gap across the actual selected/default/confirmed pending code; unrelated global history remains unknown and is not needed for this conclusion.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "D6b805c048d40fabbb12a2ff8"
+            ],
+            "maw_evidence": [
+              "R01a1452a2d1402af81bbbd07",
+              "R0be3ca812473e332767b49c3"
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/error.py",
+                "start": 1,
+                "end": 47,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 272,
+                "end": 288,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load should preserve a useful malformed-YAML category and 1-based location while preventing PyYAML source snippets—and therefore private .crab.yml values—from entering UsageError diagnostics.",
+            "reason": "The actual MawConfig.load call failed meaningfully: its UsageError included the unique private scalar. The same receipt confirms that a valid configuration still loads and that non-mapping YAML retains its established diagnostic. Mechanistically, PyYAML marks retain the input buffer and Mark.__str__ appends a source snippet; the receiving code interpolates the entire YAMLError, exposing that snippet. This is not an unavailable type/import/fixture probe.",
+            "adaptation": "In the receiving error boundary, construct an original safe diagnostic from non-content metadata: the configuration path, a stable YAML error category derived from the exception subtype, and available 1-based line/column coordinates. Do not stringify the exception or its marks and do not include parser context, problem text, buffers, source lines, or snippets unless independently proven content-free. Preserve exception chaining, existing validation behavior, and dependencies.",
+            "maintenance": "Centralize safe YAML diagnostic formatting at the receiving boundary, with no new dependency. Regression cases should use sentinel values across representative malformed YAML forms and assert that no source-derived text appears. Treat PyYAML exception attributes as version-sensitive: absent marks must degrade to a category-only diagnostic rather than falling back to str(exc).",
+            "acceptance": "Independent acceptance requires: (1) malformed private YAML raises UsageError containing the .crab.yml path, a stable parse category, and correct 1-based location when available; (2) the diagnostic contains neither a sentinel private value nor any source line/snippet; (3) malformed errors without marks remain useful and non-leaking; (4) the supplied valid-file control remains unchanged; (5) the supplied non-mapping control retains its established mapping diagnostic; and (6) review confirms no error branch stringifies a YAMLError or Mark.",
+            "novelty": "The scoped selected implementation and confirmed pending head are identical. The complete supplied default-head projection differs only in unrelated dependency-scope configuration, not MawConfig.load. Thus this leak remains a scoped implementation gap across the actual selected/default/confirmed pending code; unrelated global history remains unknown and is not needed for this conclusion.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+                "path": "lib/yaml/error.py",
+                "start": 1,
+                "end": 47
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269
+              },
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 272,
+                "end": 288
+              }
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/error.py",
+                "start": 1,
+                "end": 47,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 272,
+                "end": 288,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: registered donor range is unavailable at the pinned commit\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "behavior-verified",
+            "expected": "Useful parse location/type without disclosing private configuration values in diagnostics; valid files remain correct.",
+            "probe_owner": "receiving",
+            "receiving_sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+            "probe_sha256": "f1fd3f583c7c1231926c85fdce3aad3abe6dcbae5344f86db2b10d15fa067a06",
+            "execution_receipt": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\trials\\crab-baseline-1\\receiving-private-config-diagnostics\\receipt.json"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D6b805c048d40fabbb12a2ff8",
+              "side": "donor",
+              "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+              "path": "lib/yaml/error.py",
+              "start": 1,
+              "end": 47,
+              "content_sha256": "a49f294da34fd31e77372d75772cbb96ddb6dd17b58c43fd6a6185bd082ef5d8"
+            },
+            {
+              "id": "R01a1452a2d1402af81bbbd07",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 253,
+              "end": 269,
+              "content_sha256": "384d2fbc7b89baf4bc692dd7b77028200d1b2f2ca447970472e103333a6bbba6"
+            },
+            {
+              "id": "R0be3ca812473e332767b49c3",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 272,
+              "end": 288,
+              "content_sha256": "e3bd5f360944375cfa430c5a1ebba4bf5c0ba8341803bd14b8b911e23ace754d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "6a0896348e0527653c2fae96816e21000d627674628ad9b59725a64b76f4a9c2",
+      "native_meter": {
+        "started": 1793534510.5404494,
+        "tokens": 24355,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "1e5f9a5974bb5e527021db764710d99f69c39af2299aee65788a4ddcb961e067",
+            "admission_estimate": 13202,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11641,
+            "native_seconds": 35.063
+          },
+          {
+            "name": "assess-0",
+            "signature": "8b299376bc9d29321384da5f043d13063b6bc239e7b69eb3e9f91f77ffe7eb61",
+            "admission_estimate": 15182,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12714,
+            "native_seconds": 25.781
+          }
+        ]
+      },
+      "probe_summaries": {
+        "private-config-diagnostics": {
+          "status": "executed",
+          "receipt_sha256": "181d3438a646047723f19c64d168f9ad09020d23757ffcc45c40d7ee20844b3e",
+          "probe_sha256": "f1fd3f583c7c1231926c85fdce3aad3abe6dcbae5344f86db2b10d15fa067a06",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "malformed private scalar reports location without its value",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "valid private configuration remains loadable",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "non-mapping YAML retains the established type diagnostic",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "unambiguous-yaml-configuration": {
+          "status": "executed",
+          "receipt_sha256": "5601e4c0ee442a5b6cfc379be37c684aac1a4826c44172eb0e62bd815775796e",
+          "probe_sha256": "4bd61e87dcc4f8d7510b7d43779d10e022fac0f2576d88a5516480ed5e19b8ab",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "conflicting repeated mode keys are rejected",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "conflicting repeated licence keys are rejected",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "valid distinct policy keys remain supported",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "unsupported mode still follows ordinary validation",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24896,
+      "usage_complete": true,
+      "seconds": 154.04972577095032,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "private-config-diagnostics",
+          "donor": "crab-8"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "private-config-diagnostics",
+          "donor": "crab-8",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load should translate malformed-YAML failures into a value-safe UsageError that retains the configuration path, parser error type, and useful line/column location without embedding YAML source lines or private values.",
+            "reason": "The actual MawConfig.load call failed meaningfully: it stringifies yaml.YAMLError, and PyYAML's marked-error renderer includes the offending source line, exposing PRIVATE_SENTINEL_7f2c. The valid mapping and non-mapping controls both passed, so this is a receiving diagnostic defect rather than an unavailable probe. The donor mechanism explains the leak but is not itself a suitable repair.",
+            "adaptation": "Replace direct inclusion of the rendered exception with an original receiving-specific diagnostic assembled only from allowlisted, non-content metadata. Preserve UsageError, exception chaining, the .crab.yml path, parser category, and available line/column information; preserve existing handling of missing, empty, valid, and non-mapping configurations.",
+            "maintenance": "Add receiving-owned regression coverage using fresh private-value markers and multiple malformed shapes, asserting useful location/type information and absence of every marker or source excerpt. Retain the existing valid-file and non-mapping controls. Human acceptance should inspect the final diagnostic for actionable location information without configuration content.",
+            "acceptance": "Calling MawConfig.load on malformed .crab.yml content raises UsageError identifying invalid YAML and providing the configuration path plus useful parser type and line/column when available, while revealing no private value or source line. A normal mapping still loads unchanged, and a valid non-mapping root still produces the existing mapping error.",
+            "novelty": "Within the declared complete scope, selected and confirmed-pending use the same unsafe MawConfig.load implementation. The complete selected/default projection reports only unrelated dependency-scope changes, so no equivalent sanitization is shown in the default binding. Unknown history outside this scope is not treated as absence proof.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "Db5d172103a76a8dd9b066a75",
+              "D5c1a8801b9861ed11ffc4d7d"
+            ],
+            "maw_evidence": [
+              "R42b8ea02a3c41c3250ff2f8a",
+              "R1adb890059ffe99976b79015"
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/error.py",
+                "start": 58,
+                "end": 74,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "lib/yaml/composer.py",
+                "start": 1,
+                "end": 49,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load should translate malformed-YAML failures into a value-safe UsageError that retains the configuration path, parser error type, and useful line/column location without embedding YAML source lines or private values.",
+            "reason": "The actual MawConfig.load call failed meaningfully: it stringifies yaml.YAMLError, and PyYAML's marked-error renderer includes the offending source line, exposing PRIVATE_SENTINEL_7f2c. The valid mapping and non-mapping controls both passed, so this is a receiving diagnostic defect rather than an unavailable probe. The donor mechanism explains the leak but is not itself a suitable repair.",
+            "adaptation": "Replace direct inclusion of the rendered exception with an original receiving-specific diagnostic assembled only from allowlisted, non-content metadata. Preserve UsageError, exception chaining, the .crab.yml path, parser category, and available line/column information; preserve existing handling of missing, empty, valid, and non-mapping configurations.",
+            "maintenance": "Add receiving-owned regression coverage using fresh private-value markers and multiple malformed shapes, asserting useful location/type information and absence of every marker or source excerpt. Retain the existing valid-file and non-mapping controls. Human acceptance should inspect the final diagnostic for actionable location information without configuration content.",
+            "acceptance": "Calling MawConfig.load on malformed .crab.yml content raises UsageError identifying invalid YAML and providing the configuration path plus useful parser type and line/column when available, while revealing no private value or source line. A normal mapping still loads unchanged, and a valid non-mapping root still produces the existing mapping error.",
+            "novelty": "Within the declared complete scope, selected and confirmed-pending use the same unsafe MawConfig.load implementation. The complete selected/default projection reports only unrelated dependency-scope changes, so no equivalent sanitization is shown in the default binding. Unknown history outside this scope is not treated as absence proof.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+                "path": "lib/yaml/error.py",
+                "start": 58,
+                "end": 74
+              },
+              {
+                "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+                "path": "lib/yaml/composer.py",
+                "start": 1,
+                "end": 49
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269
+              },
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 272,
+                "end": 288
+              }
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/error.py",
+                "start": 58,
+                "end": 74,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "lib/yaml/composer.py",
+                "start": 1,
+                "end": 49,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: source paths have differing or unresolved applicable licences\ncrab: hint: unresolved operative root grant; unresolved operative root grant\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "behavior-verified",
+            "expected": "Useful parse location/type without disclosing private configuration values in diagnostics; valid files remain correct.",
+            "probe_owner": "receiving",
+            "receiving_sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+            "probe_sha256": "51c850acfcf5e8a72a3f59cde072c78783c88d2d4e756d7b35b1bbd2cf00acf4",
+            "execution_receipt": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\trials\\crab-candidate-1\\receiving-private-config-diagnostics\\receipt.json"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "Db5d172103a76a8dd9b066a75",
+              "side": "donor",
+              "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+              "path": "lib/yaml/error.py",
+              "start": 58,
+              "end": 74,
+              "content_sha256": "04ce1781e83b4d88fc65fd9e0928dd3cc7fb6602edbf7cc149b20b608e8f8e24"
+            },
+            {
+              "id": "D5c1a8801b9861ed11ffc4d7d",
+              "side": "donor",
+              "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+              "path": "lib/yaml/composer.py",
+              "start": 1,
+              "end": 49,
+              "content_sha256": "591f41ac46b6ccdcd4a192eedebec33aabb5d301015d8fd5999e9c9348a5bc94"
+            },
+            {
+              "id": "R42b8ea02a3c41c3250ff2f8a",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 253,
+              "end": 269,
+              "content_sha256": "384d2fbc7b89baf4bc692dd7b77028200d1b2f2ca447970472e103333a6bbba6"
+            },
+            {
+              "id": "R1adb890059ffe99976b79015",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 272,
+              "end": 288,
+              "content_sha256": "e3bd5f360944375cfa430c5a1ebba4bf5c0ba8341803bd14b8b911e23ace754d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "ce04a85ff74f6c0e76dcf6ade355dca187fa5c3d1398dba7df0ab48bff7d655d",
+      "native_meter": {
+        "started": 1793534597.552921,
+        "tokens": 24896,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "87b8a79877e14cdbf2374032bbc39852c5810b23d398be8dd1e43204307ebdad",
+            "admission_estimate": 13316,
+            "attempt": "981b09310aae88c0b12ec8688fadb3f8474dbfa65b534266deeac200e4c895e8",
+            "state": "settled",
+            "actual_tokens": 12815,
+            "native_seconds": 49.406
+          },
+          {
+            "name": "assess-0",
+            "signature": "ae67f3ad43f5c0842047ce3bea1dc8abfc24e1be2e1e531b7da56636e48f2ae7",
+            "admission_estimate": 14459,
+            "attempt": "01d8b17a3555b62f51a16ae089979fe632672ced8d755c046ef67c93b32c9be1",
+            "state": "settled",
+            "actual_tokens": 12081,
+            "native_seconds": 23.047
+          }
+        ]
+      },
+      "probe_summaries": {
+        "private-config-diagnostics": {
+          "status": "executed",
+          "receipt_sha256": "ace3714dd5b9299810e1c7f060d9484d3c31b52e7d327175860981ef65210c59",
+          "probe_sha256": "51c850acfcf5e8a72a3f59cde072c78783c88d2d4e756d7b35b1bbd2cf00acf4",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "malformed private value has useful but redacted diagnostic",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "ordinary valid configuration remains loadable",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "valid YAML with a non-mapping root remains rejected",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "unambiguous-yaml-configuration": {
+          "status": "executed",
+          "receipt_sha256": "2f39b886384fcd92f3b1fe0138ec237f07eb10d294bb27f5bf4c2120cf45a2e9",
+          "probe_sha256": "10d33fb1a13559126684e5ab5bd4c2799a865ce0faae713b7194d7da5278bb63",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "repeated mode cannot silently select the later policy",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "repeated licence cannot silently select the later grant",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "distinct supported settings remain loadable",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "non-mapping YAML remains invalid configuration",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 18033,
+      "usage_complete": true,
+      "seconds": 137.30930638313293,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "6fe6f3a6f0ef6585dca20c15cdddb2c2af1c375abd646f997b302ee29804d64c",
+      "native_meter": {
+        "started": 1793534752.1844435,
+        "tokens": 18033,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "5bb9f12a4f389500d4f35793bbb5349198f72d3c11eed1bffa99fa2674916ebb",
+            "admission_estimate": 16487,
+            "attempt": "29bf816fdb56366f8603bd32afa6593410159bfe08e4461d3fe80539b04fc884",
+            "state": "settled",
+            "actual_tokens": 18033,
+            "native_seconds": 79.938
+          }
+        ]
+      },
+      "probe_summaries": {
+        "python-source-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "2998a978242b15bf4729c7deb5b76680ab932905d96f4034e8cf1df73699a3d0",
+          "probe_sha256": "666f47dc5d540b8686d9dfc5650e3386693fb2d4c46a06e2e8367e30508f0933",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "Unicode line separator inside a string is not a Python physical newline",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "Ordinary LF source retains two physical lines",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "Ordinary CRLF source retains two physical lines",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "Malformed source remains a bounded syntax finding",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "import-edge-context": {
+          "status": "executed",
+          "receipt_sha256": "52c99ee13014543fbe0548dad18dc93f34cbfce3610778e27064de732c4c18cb",
+          "probe_sha256": "6dbffb5c6d77cf2f71f56a3805174e37f2ec4cb887acba0decffb21faaa662c2",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "TYPE_CHECKING import remains a raw resolved edge without contextual evidence",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "Ordinary reciprocal imports retain resolved raw facts",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "External import remains unresolved and does not invent a local cycle",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 16989,
+      "usage_complete": true,
+      "seconds": 77.4983925819397,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "c8d6724ded5e5493ba365d002230fed8f110e2152112a37491c788e37ba81e89",
+      "native_meter": {
+        "started": 1793534888.4158525,
+        "tokens": 16989,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "cf2db0b3c3a6b4ff21a83bf64bcd928b679be01c0081d09a812d35f88187521a",
+            "admission_estimate": 16373,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 16989,
+            "native_seconds": 60.063
+          }
+        ]
+      },
+      "probe_summaries": {
+        "python-source-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "4ce8ca4b758958831209019dc65f47132f9c0d022ff646d5be899a0a3f0d0930",
+          "probe_sha256": "c3bad85dc6362de2fd56d2d4f54074d15c169a4c5d414d53f8e9befc9be54f26",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "unicode-line-separator-inside-one-physical-comment",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "ordinary-lf-function-locations",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "ordinary-crlf-function-locations",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "two-physical-line-syntax-error-range",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "import-edge-context": {
+          "status": "executed",
+          "receipt_sha256": "6c983f538d5df8c41af34c3f30bcbd63bc39e7f654d6bea4d6869c595e0640fb",
+          "probe_sha256": "69ea31767e3a7201e4db8c13458798376d598447e6ea5cf65ccb1e20e03e26cb",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "bare-type-checking-guard-retains-resolved-edge",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "qualified-type-checking-relative-edge",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "unconditional-resolved-import-preserves-current-fact",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "comment-token-does-not-create-type-checking-context",
+              "role": "negative-control",
+              "passed": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24163,
+      "usage_complete": true,
+      "seconds": 88.62537932395935,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-markdown-scan",
+          "donor": "beautifulrepo-4"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-markdown-scan",
+          "donor": "beautifulrepo-4",
+          "native_decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor’s parser benchmarking and CPU-timing mechanisms could supply bounded Markdown scanning for docs_links.",
+            "reason": "The hypothesis is unsupported. The donor witnesses repeatedly parse or fully consume input and measure performance; they neither enforce an input/work ceiling nor report that results are incomplete. The receiving witness reads the complete file and constructs whole-input masks and separator lists, so a separate receiving gap is evidenced, but the supplied receipt exercises only ordinary small inputs and contains no meaningful over-budget failure. The donor therefore offers no mechanism to transfer for the required policy.",
+            "adaptation": "Do not copy or adapt the donor implementation. Pursue a receiving-native design that adds configurable byte/work budgets around docs_links input and parsing, returns an explicit incomplete/truncated outcome when a limit is reached, preserves existing destination and line-number behavior for ordinary files, and retains current source, identity, policy, and resource guards.",
+            "maintenance": "Centralize defaults and accounting semantics, document which limits apply before and during parsing, keep incomplete distinct from a clean scan, and add regression coverage whenever Markdown parsing stages change. Avoid timing-based limits as the primary contract because they are environment-dependent.",
+            "acceptance": "Independent acceptance should confirm that ordinary small files retain identical destinations and line numbers; oversized or excessive-work input stops at the documented limit; the result explicitly reports incompleteness rather than claiming a clean scan; existing code masking and security/resource guards remain effective; and configured limits are deterministic and documented. The supplied receipt establishes only the first and masking controls, not the limit behavior.",
+            "novelty": "Within the declared complete scope, selected and default revision 653a0ee45ba94c5ca44eef6993407a322fc1e9e3 and confirmed pending revision ef2298e235d528db6aa98d3a1ee397aa848b9375 are identical for tools/docs_links.py and tools/repo_audit.py, with no different implementation projection. The supplied docs_links witness still performs a full read and in-memory processing, and no docs_links budget/result contract is evidenced. Existing repo_audit bounds are known context rather than a duplicate docs_links mechanism. No claim is made about unrelated history outside this scope.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "D2fb2d3858891c27ffc9c4907",
+              "D09924585dfc4a68eb047c476",
+              "Df0765fd12af72a0b11f60116"
+            ],
+            "maw_evidence": [
+              "R2b734faeb68e1b9e4a6e554b",
+              "R734e3e1d3cec7bc4fdc7dc4e"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "bench/benches/html_rendering.rs",
+                "start": 12,
+                "end": 66,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "bench/benches/lib.rs",
+                "start": 91,
+                "end": 114,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "dos-fuzzer/src/main.rs",
+                "start": 493,
+                "end": 507,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": "With a configured Markdown byte or work budget, does docs_links stop at the limit, explicitly report an incomplete scan, and preserve existing results for ordinary small files?"
+          },
+          "decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor’s parser benchmarking and CPU-timing mechanisms could supply bounded Markdown scanning for docs_links.",
+            "reason": "The hypothesis is unsupported. The donor witnesses repeatedly parse or fully consume input and measure performance; they neither enforce an input/work ceiling nor report that results are incomplete. The receiving witness reads the complete file and constructs whole-input masks and separator lists, so a separate receiving gap is evidenced, but the supplied receipt exercises only ordinary small inputs and contains no meaningful over-budget failure. The donor therefore offers no mechanism to transfer for the required policy.",
+            "adaptation": "Do not copy or adapt the donor implementation. Pursue a receiving-native design that adds configurable byte/work budgets around docs_links input and parsing, returns an explicit incomplete/truncated outcome when a limit is reached, preserves existing destination and line-number behavior for ordinary files, and retains current source, identity, policy, and resource guards.",
+            "maintenance": "Centralize defaults and accounting semantics, document which limits apply before and during parsing, keep incomplete distinct from a clean scan, and add regression coverage whenever Markdown parsing stages change. Avoid timing-based limits as the primary contract because they are environment-dependent.",
+            "acceptance": "Independent acceptance should confirm that ordinary small files retain identical destinations and line numbers; oversized or excessive-work input stops at the documented limit; the result explicitly reports incompleteness rather than claiming a clean scan; existing code masking and security/resource guards remain effective; and configured limits are deterministic and documented. The supplied receipt establishes only the first and masking controls, not the limit behavior.",
+            "novelty": "Within the declared complete scope, selected and default revision 653a0ee45ba94c5ca44eef6993407a322fc1e9e3 and confirmed pending revision ef2298e235d528db6aa98d3a1ee397aa848b9375 are identical for tools/docs_links.py and tools/repo_audit.py, with no different implementation projection. The supplied docs_links witness still performs a full read and in-memory processing, and no docs_links budget/result contract is evidenced. Existing repo_audit bounds are known context rather than a duplicate docs_links mechanism. No claim is made about unrelated history outside this scope.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "bench/benches/html_rendering.rs",
+                "start": 12,
+                "end": 66
+              },
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "bench/benches/lib.rs",
+                "start": 91,
+                "end": 114
+              },
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "dos-fuzzer/src/main.rs",
+                "start": 493,
+                "end": 507
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 848,
+                "end": 872
+              },
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 746,
+                "end": 752
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "bench/benches/html_rendering.rs",
+                "start": 12,
+                "end": 66,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "bench/benches/lib.rs",
+                "start": 91,
+                "end": 114,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "dos-fuzzer/src/main.rs",
+                "start": 493,
+                "end": 507,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": "With a configured Markdown byte or work budget, does docs_links stop at the limit, explicitly report an incomplete scan, and preserve existing results for ordinary small files?"
+          },
+          "reviewed": true,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D2fb2d3858891c27ffc9c4907",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "bench/benches/html_rendering.rs",
+              "start": 12,
+              "end": 66,
+              "content_sha256": "236e623b8adfe09ddfc7f43ac833f2f21a90b58b203686e610a6c753b6642945"
+            },
+            {
+              "id": "D09924585dfc4a68eb047c476",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "bench/benches/lib.rs",
+              "start": 91,
+              "end": 114,
+              "content_sha256": "fb74dea9fb3e90f310b5ae384180d87277866d486a1dbdf8d34843f1e8763dc1"
+            },
+            {
+              "id": "Df0765fd12af72a0b11f60116",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "dos-fuzzer/src/main.rs",
+              "start": 493,
+              "end": 507,
+              "content_sha256": "a408aa4fdf0cc4ef30e76efd8ab6d34f15a49296731ff27b01300786f8966ef7"
+            },
+            {
+              "id": "R2b734faeb68e1b9e4a6e554b",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 848,
+              "end": 872,
+              "content_sha256": "7373f75a21622679c4ffe172d56855e62fb718bd3ecd389d2887bf401ed83c14"
+            },
+            {
+              "id": "R734e3e1d3cec7bc4fdc7dc4e",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 746,
+              "end": 752,
+              "content_sha256": "fc53b9e1eb32865e4cb393e39af761df2f07a48f006f3dc5deaf3fb46c539b4d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "7d321df740a1f209063be61c855e7bd39b0010f99c9571b5acf1f2f3767b57ad",
+      "native_meter": {
+        "started": 1793534966.6095583,
+        "tokens": 24163,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "381fa2f7351789ad06fd3560edab7e636bc51bb0406d3ec8f161d31298cbe25d",
+            "admission_estimate": 13226,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12149,
+            "native_seconds": 39.25
+          },
+          {
+            "name": "assess-0",
+            "signature": "6f1bd9097b8323785745df611dabeba120f9d0f3af09988558f15dc1db79fb7f",
+            "admission_estimate": 13193,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12014,
+            "native_seconds": 28.735
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-markdown-scan": {
+          "status": "executed",
+          "receipt_sha256": "488175131c2fa0f36d024f9190f46687279544578b1fca17a46699725be384af",
+          "probe_sha256": "715aac013f4d1eaee56659da2877dfbaf89f064a3c53e17d102813672bd2c960",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "small-multiblock-scan-characterization",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "ordinary-small-inline-link",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "fenced-link-is-not-a-destination",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "markdown-code-and-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "d209d4208e12adcc761b4dc25b9bfc6b1f18c144243b5b2ef3cec40fb1dbc6ae",
+          "probe_sha256": "e6f3a295c91f3434a5ab6bd9977445b01f6f8dbcafa96779d37fdff29d39017d",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "unicode-with-mixed-gfm-line-endings",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "unicode-reference-use-and-definition",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "ordinary-inline-link",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "inline-and-fenced-code-are-excluded",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24661,
+      "usage_complete": true,
+      "seconds": 131.68777585029602,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-markdown-scan",
+          "donor": "beautifulrepo-8"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-markdown-scan",
+          "donor": "beautifulrepo-8",
+          "native_decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor does not provide a bounded-input or bounded-work mechanism transferable to docs_links. A separate receiving-only design gap remains: iter_markdown_destinations reads and transforms the complete file without an explicit budget or incomplete-scan report.",
+            "reason": "The donor entry points accept an already-materialized byte slice and render it as a whole; its test helper checks output and catches panics, but neither witness defines limits, early termination, or completeness reporting. In receiving, iter_markdown_destinations performs an unrestricted read_text, constructs a fully masked copy, materializes all blank-line matches, and continues through reference uses. The masking pipeline also performs several whole-text transformations. The supplied receipt exercises only ordinary small inputs, and its target and controls all pass, so it verifies existing correctness but supplies no meaningful over-budget failure. Therefore the donor is superficially related Markdown parsing, not a useful implementation source; the receiving concern is instead an original design proposal.",
+            "adaptation": "Define a receiving-owned budget contract for docs_links covering maximum decoded input and bounded parsing work. Enforcement must occur before or during reading rather than after complete materialization. Results must explicitly distinguish complete scans from budget-limited scans and report the applicable limit/reason; destinations outside examined input must never be represented as evidence of a clean complete scan. Preserve current destination ordering, line numbering, masking semantics, source/identity/policy/resource guards, and exact behavior for files within the default budget.",
+            "maintenance": "Keep defaults and limit semantics in one documented receiving API, with deterministic accounting independent of platform. Add receiving-owned tests for boundary values, multibyte UTF-8 boundaries, work-budget exhaustion, explicit incompleteness reporting, and unchanged small-file behavior. Document how callers must propagate an incomplete result rather than treating it as clean. No donor dependency or copied parser implementation is warranted.",
+            "acceptance": "Accept when fresh receiving-only cases show that an oversized or excessive-work Markdown file stops within the configured budget, returns an explicit non-complete status with the governing limit/reason, and does not claim examination of later content; exact-boundary and ordinary small files must retain existing destinations, ordering, and line numbers. Existing policy, identity, traversal, and resource guards must remain effective. Independent review should confirm the accounting cannot first allocate or transform the entire over-budget input. The supplied receipt is only a passing small-input baseline and does not satisfy these proposal criteria.",
+            "novelty": "Within the declared complete scope, tools/docs_links.py and tools/repo_audit.py are identical across selected, default, and confirmed pending heads, with no different implementation projection. The witnessed docs_links implementation has no exposed budget/completeness contract. This supports scoped novelty for a receiving-only proposal; it does not assert absence in unrelated history. Closed backlog titles alone do not implement this contract.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "D3a6d24e4c83e967ac9dd52c8",
+              "D336af763cd9fd5e8541ed267"
+            ],
+            "maw_evidence": [
+              "Rc7354f7a7a66f3475cc4a4fc",
+              "Rfa37f6ec8e76bf122789b913"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "inline_test.go",
+                "start": 22,
+                "end": 75,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "markdown.go",
+                "start": 300,
+                "end": 353,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "tools/docs_links.py",
+                "start": 746,
+                "end": 752,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": "With a configured input/work budget, does an over-budget Markdown scan terminate within that budget and explicitly report an incomplete result without reporting destinations beyond examined content, while exact-boundary and ordinary small scans retain their current destinations, order, and line numbers?"
+          },
+          "decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor does not provide a bounded-input or bounded-work mechanism transferable to docs_links. A separate receiving-only design gap remains: iter_markdown_destinations reads and transforms the complete file without an explicit budget or incomplete-scan report.",
+            "reason": "The donor entry points accept an already-materialized byte slice and render it as a whole; its test helper checks output and catches panics, but neither witness defines limits, early termination, or completeness reporting. In receiving, iter_markdown_destinations performs an unrestricted read_text, constructs a fully masked copy, materializes all blank-line matches, and continues through reference uses. The masking pipeline also performs several whole-text transformations. The supplied receipt exercises only ordinary small inputs, and its target and controls all pass, so it verifies existing correctness but supplies no meaningful over-budget failure. Therefore the donor is superficially related Markdown parsing, not a useful implementation source; the receiving concern is instead an original design proposal.",
+            "adaptation": "Define a receiving-owned budget contract for docs_links covering maximum decoded input and bounded parsing work. Enforcement must occur before or during reading rather than after complete materialization. Results must explicitly distinguish complete scans from budget-limited scans and report the applicable limit/reason; destinations outside examined input must never be represented as evidence of a clean complete scan. Preserve current destination ordering, line numbering, masking semantics, source/identity/policy/resource guards, and exact behavior for files within the default budget.",
+            "maintenance": "Keep defaults and limit semantics in one documented receiving API, with deterministic accounting independent of platform. Add receiving-owned tests for boundary values, multibyte UTF-8 boundaries, work-budget exhaustion, explicit incompleteness reporting, and unchanged small-file behavior. Document how callers must propagate an incomplete result rather than treating it as clean. No donor dependency or copied parser implementation is warranted.",
+            "acceptance": "Accept when fresh receiving-only cases show that an oversized or excessive-work Markdown file stops within the configured budget, returns an explicit non-complete status with the governing limit/reason, and does not claim examination of later content; exact-boundary and ordinary small files must retain existing destinations, ordering, and line numbers. Existing policy, identity, traversal, and resource guards must remain effective. Independent review should confirm the accounting cannot first allocate or transform the entire over-budget input. The supplied receipt is only a passing small-input baseline and does not satisfy these proposal criteria.",
+            "novelty": "Within the declared complete scope, tools/docs_links.py and tools/repo_audit.py are identical across selected, default, and confirmed pending heads, with no different implementation projection. The witnessed docs_links implementation has no exposed budget/completeness contract. This supports scoped novelty for a receiving-only proposal; it does not assert absence in unrelated history. Closed backlog titles alone do not implement this contract.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a",
+                "path": "inline_test.go",
+                "start": 22,
+                "end": 75
+              },
+              {
+                "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a",
+                "path": "markdown.go",
+                "start": 300,
+                "end": 353
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 848,
+                "end": 872
+              },
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 746,
+                "end": 752
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "inline_test.go",
+                "start": 22,
+                "end": 75,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "markdown.go",
+                "start": 300,
+                "end": 353,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "tools/docs_links.py",
+                "start": 746,
+                "end": 752,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": "With a configured input/work budget, does an over-budget Markdown scan terminate within that budget and explicitly report an incomplete result without reporting destinations beyond examined content, while exact-boundary and ordinary small scans retain their current destinations, order, and line numbers?"
+          },
+          "reviewed": true,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D3a6d24e4c83e967ac9dd52c8",
+              "side": "donor",
+              "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a",
+              "path": "inline_test.go",
+              "start": 22,
+              "end": 75,
+              "content_sha256": "75ffd3ca68443300fd11d1bb6ca852477facbf42a2f1844df16f827219e19841"
+            },
+            {
+              "id": "D336af763cd9fd5e8541ed267",
+              "side": "donor",
+              "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a",
+              "path": "markdown.go",
+              "start": 300,
+              "end": 353,
+              "content_sha256": "d5c607447fbe7ac05749eb8b6fd9143bab184b7f73bb407b074627a529d92813"
+            },
+            {
+              "id": "Rc7354f7a7a66f3475cc4a4fc",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 848,
+              "end": 872,
+              "content_sha256": "7373f75a21622679c4ffe172d56855e62fb718bd3ecd389d2887bf401ed83c14"
+            },
+            {
+              "id": "Rfa37f6ec8e76bf122789b913",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 746,
+              "end": 752,
+              "content_sha256": "fc53b9e1eb32865e4cb393e39af761df2f07a48f006f3dc5deaf3fb46c539b4d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "ba7f1140144ceaa4a6cd98466727ec1964fa8d0a776b3c9e7fa7cde80eb1cfb7",
+      "native_meter": {
+        "started": 1793535057.4738934,
+        "tokens": 24661,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "19e4865b6209e0f2375335a53f48bf2bb99055b7877a7bde444ae30ace8f1861",
+            "admission_estimate": 13339,
+            "attempt": "da54e26d9f9ea517c1c92d983974350cd674475660365da8c6949c89d9d74d4c",
+            "state": "settled",
+            "actual_tokens": 13433,
+            "native_seconds": 50.234
+          },
+          {
+            "name": "assess-0",
+            "signature": "60f6acf7251f13d261ae44a4adc2e20cbb6dd03b276d7afa27b10b83b4720629",
+            "admission_estimate": 13116,
+            "attempt": "326c9b9e7914bca831e6159fe52d57624ff1d7de90e25e554f5d970f8dfd2e62",
+            "state": "settled",
+            "actual_tokens": 11228,
+            "native_seconds": 21.422
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-markdown-scan": {
+          "status": "executed",
+          "receipt_sha256": "cf643dec0fcbe5494df9831b85a76e1a568d796cfc45d48e01fda4dc773dd450",
+          "probe_sha256": "572709744faed79ff77805b2be44b092bb158a8f3c334c3549b93a0569bd9e88",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "small multi-block scan baseline",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "ordinary inline link remains correct",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "fenced link is excluded while later link remains visible",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "markdown-code-and-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "3c8816a7c5e332ef392326e59c61f0d6575adc07ca9e9e39f553e91220d17956",
+          "probe_sha256": "43c15e1a02051fc7e47f65a5af3fc23d5854f644ccca74fe00094fd94a4c770f",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "lone carriage return advances source line",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "unicode text with CRLF preserves later link line",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "ordinary LF line numbering remains correct",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "inline code destination is ignored",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 13532,
+      "usage_complete": true,
+      "seconds": 110.47819137573242,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "27594a33bd106f1f659a2eadfc505669a304a73cb586577d493cc238137f8c40",
+      "native_meter": {
+        "started": 1793535189.8636916,
+        "tokens": 13532,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "b7b80ecf847687b85a0dbc01e122f2c620d3dfe85cee6a3738bf7df8818f5b2e",
+            "admission_estimate": 13316,
+            "attempt": "214271f7b477180a24e1addd32f0c0adabea507cb244f1a7fb3611cd618107ab",
+            "state": "settled",
+            "actual_tokens": 13532,
+            "native_seconds": 52.312
+          }
+        ]
+      },
+      "probe_summaries": {
+        "unambiguous-yaml-configuration": {
+          "status": "executed",
+          "receipt_sha256": "a9adf38d86d984d2c57a008658a520024b6ce7f375783778742ff49dafc3fd5a",
+          "probe_sha256": "e2822089112c9fd0522f919b232dd0f8401ef4190865a0bcced7112f8e38d086",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "conflicting repeated licence key is rejected rather than resolved by key order",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "distinct supported configuration keys still load",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "non-mapping YAML remains rejected by existing validation",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "private-config-diagnostics": {
+          "status": "executed",
+          "receipt_sha256": "32248467a5af9c0760456842ec9650916d816e96546a6144931acebfcc12747e",
+          "probe_sha256": "5082776255ff850fe77641ad8cbf699d00b918de9e4777104409425edd8e5c8d",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "malformed private value reports location without reproducing the value",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "valid private configuration preserves supported fields",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "ordinary malformed YAML remains a caller-facing usage error",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "crab-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24973,
+      "usage_complete": true,
+      "seconds": 77.7235095500946,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "unambiguous-yaml-configuration",
+          "donor": "crab-8"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "unambiguous-yaml-configuration",
+          "donor": "crab-8",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load silently accepts conflicting repeated top-level policy keys because yaml.safe_load resolves the YAML into a dictionary before receiving validation; the later occurrence can therefore change mode or licence policy without any ambiguity error.",
+            "reason": "The actual MawConfig.load call accepted repeated mode and license keys and selected the later values. Both meaningful target checks failed, while valid distinct policy keys loaded correctly and a non-mapping document still raised UsageError. The donor's safe_load only selects SafeLoader, and its composer retains every mapping pair while duplicate-key rejection is disabled; safe tag construction is therefore not a uniqueness policy.",
+            "adaptation": "Add a receiving-owned strict mapping-key check at the YAML-loading boundary, before duplicate information is lost, and translate a conflicting repeated configuration key into the existing path-qualified UsageError contract. Continue using the existing safe YAML path and normal from_data validation; do not weaken source, identity, licence, trust, policy, or resource guards and do not add another dependency.",
+            "maintenance": "Keep the strictness localized to MawConfig.load and covered by receiving tests so PyYAML upgrades cannot silently restore last-value-wins behavior. Preserve ordinary comments, empty configuration handling, distinct keys, existing mapping validation, and existing error wrapping.",
+            "acceptance": "Through MawConfig.load, conflicting repeated top-level mode and license keys each raise UsageError rather than selecting either value; a configuration containing distinct mode and license keys still returns their requested values; a non-mapping YAML document still raises UsageError. Independent review confirms the loader remains safe and all downstream validation and policy guards are unchanged.",
+            "novelty": "Within the complete declared implementation scope, the selected and confirmed-pending src/hungry_crab/maw.py are identical and contain no pre-construction duplicate-key check. The default projection differs only for unrelated dependency-scope configuration. Thus no equivalent scoped implementation is present, while history outside the supplied scope remains unknown and is not needed for this conclusion.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "Df7378997ff3950231b771a3d",
+              "D551f794f75425b10ff43186c"
+            ],
+            "maw_evidence": [
+              "R01a1452a2d1402af81bbbd07",
+              "R0be3ca812473e332767b49c3"
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/__init__.py",
+                "start": 116,
+                "end": 126,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "lib/yaml/composer.py",
+                "start": 116,
+                "end": 137,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load silently accepts conflicting repeated top-level policy keys because yaml.safe_load resolves the YAML into a dictionary before receiving validation; the later occurrence can therefore change mode or licence policy without any ambiguity error.",
+            "reason": "The actual MawConfig.load call accepted repeated mode and license keys and selected the later values. Both meaningful target checks failed, while valid distinct policy keys loaded correctly and a non-mapping document still raised UsageError. The donor's safe_load only selects SafeLoader, and its composer retains every mapping pair while duplicate-key rejection is disabled; safe tag construction is therefore not a uniqueness policy.",
+            "adaptation": "Add a receiving-owned strict mapping-key check at the YAML-loading boundary, before duplicate information is lost, and translate a conflicting repeated configuration key into the existing path-qualified UsageError contract. Continue using the existing safe YAML path and normal from_data validation; do not weaken source, identity, licence, trust, policy, or resource guards and do not add another dependency.",
+            "maintenance": "Keep the strictness localized to MawConfig.load and covered by receiving tests so PyYAML upgrades cannot silently restore last-value-wins behavior. Preserve ordinary comments, empty configuration handling, distinct keys, existing mapping validation, and existing error wrapping.",
+            "acceptance": "Through MawConfig.load, conflicting repeated top-level mode and license keys each raise UsageError rather than selecting either value; a configuration containing distinct mode and license keys still returns their requested values; a non-mapping YAML document still raises UsageError. Independent review confirms the loader remains safe and all downstream validation and policy guards are unchanged.",
+            "novelty": "Within the complete declared implementation scope, the selected and confirmed-pending src/hungry_crab/maw.py are identical and contain no pre-construction duplicate-key check. The default projection differs only for unrelated dependency-scope configuration. Thus no equivalent scoped implementation is present, while history outside the supplied scope remains unknown and is not needed for this conclusion.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+                "path": "lib/yaml/__init__.py",
+                "start": 116,
+                "end": 170
+              },
+              {
+                "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+                "path": "lib/yaml/composer.py",
+                "start": 112,
+                "end": 139
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269
+              },
+              {
+                "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+                "path": "src/hungry_crab/maw.py",
+                "start": 272,
+                "end": 288
+              }
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "lib/yaml/__init__.py",
+                "start": 116,
+                "end": 126,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "lib/yaml/composer.py",
+                "start": 116,
+                "end": 137,
+                "revision": ""
+              },
+              {
+                "side": "receiving",
+                "path": "src/hungry_crab/maw.py",
+                "start": 253,
+                "end": 269,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: registered donor range is unavailable at the pinned commit\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "behavior-verified",
+            "expected": "Conflicting repeated mapping keys must not silently choose a different policy; valid distinct keys and ordinary configuration remain supported.",
+            "probe_owner": "receiving",
+            "receiving_sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+            "probe_sha256": "cfbb4b99edad0afb9d89c107ac68a8baed59787b97adc5584dfd688f1d41b713",
+            "execution_receipt": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-resumed\\trials\\crab-baseline-2\\receiving-unambiguous-yaml-configuration\\receipt.json"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "Df7378997ff3950231b771a3d",
+              "side": "donor",
+              "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+              "path": "lib/yaml/__init__.py",
+              "start": 116,
+              "end": 170,
+              "content_sha256": "d145a4fb39907a70ef267d92e12087748d2f5ef50e2a1190bdb3c4b2f1eacd8a"
+            },
+            {
+              "id": "D551f794f75425b10ff43186c",
+              "side": "donor",
+              "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+              "path": "lib/yaml/composer.py",
+              "start": 112,
+              "end": 139,
+              "content_sha256": "cdff937fe8d329adaf38f2ecd5e67badf610a8d9b89d549148672bb50a64065a"
+            },
+            {
+              "id": "R01a1452a2d1402af81bbbd07",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 253,
+              "end": 269,
+              "content_sha256": "384d2fbc7b89baf4bc692dd7b77028200d1b2f2ca447970472e103333a6bbba6"
+            },
+            {
+              "id": "R0be3ca812473e332767b49c3",
+              "side": "receiving",
+              "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+              "path": "src/hungry_crab/maw.py",
+              "start": 272,
+              "end": 288,
+              "content_sha256": "e3bd5f360944375cfa430c5a1ebba4bf5c0ba8341803bd14b8b911e23ace754d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "3c7dd38a72ead962528944cb4288942f07b79be058553ab80cd045c89975d2b1",
+      "native_meter": {
+        "started": 1793535299.2938123,
+        "tokens": 24973,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "fd253abdacc5e2faf1a80ae026f9e0ae5c196c4cf018233349097b4125a89fbf",
+            "admission_estimate": 13202,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11629,
+            "native_seconds": 31.625
+          },
+          {
+            "name": "assess-0",
+            "signature": "7c985eda2eba6ec3d15baa55a2be6973ac6e311b4f8709a0624e0719bf32f5ba",
+            "admission_estimate": 15759,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 13344,
+            "native_seconds": 23.547
+          }
+        ]
+      },
+      "probe_summaries": {
+        "unambiguous-yaml-configuration": {
+          "status": "executed",
+          "receipt_sha256": "55747543c0aef534189f99e3cea08f5b7f9e5123956b7f35c7c6611465977d02",
+          "probe_sha256": "cfbb4b99edad0afb9d89c107ac68a8baed59787b97adc5584dfd688f1d41b713",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "reject repeated mode policy key",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "reject repeated licence policy key",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "load valid distinct policy keys",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "reject a non-mapping YAML document",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "private-config-diagnostics": {
+          "status": "executed",
+          "receipt_sha256": "dd036b07b32da283b2726ddef099f680ebb888a6f454eda03ddc61104c8f1450",
+          "probe_sha256": "584d5751627d8fceea5ef170aecaf34ea2bd6b354743c272763259ee2f3e53ab",
+          "actual_receiving_calls": [
+            {
+              "path": "src/hungry_crab/maw.py",
+              "qualified_name": "MawConfig.load"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": ">=3.11",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "malformed flow value does not disclose private licence text",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "malformed quoted value does not disclose private licence text",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "valid private configuration remains loadable",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "innocuous malformed YAML retains parse classification and location",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 17074,
+      "usage_complete": true,
+      "seconds": 73.08639430999756,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "6e0bc83a50e421bde84329f65d0d0681db2cd9d1e29f98d4d16f7b2011f955f8",
+      "native_meter": {
+        "started": 1793535377.6497204,
+        "tokens": 17074,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "ab109dccbd40aa4c9163c9ea37544b12ec58f968a461c372e3762fa8e83fabe2",
+            "admission_estimate": 16373,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 17074,
+            "native_seconds": 58.031
+          }
+        ]
+      },
+      "probe_summaries": {
+        "import-edge-context": {
+          "status": "executed",
+          "receipt_sha256": "88a589932460238f1e096cb7cccb8434cf26833acfb6b9eb4d2b1119da3032aa",
+          "probe_sha256": "76617fc74370ff5771f8925da768222428e75000c459513b6196518895faec5a",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "plain local import retains resolved edge facts",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "typing TYPE_CHECKING guard is exposed without losing edge facts",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "ImportError fallback exposes optional guard context",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "unrelated TYPE_CHECKING name is not treated as typing context",
+              "role": "negative-control",
+              "passed": false
+            }
+          ]
+        },
+        "python-source-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "bda826c0359392b1148d9915485bcd9081ed21f6f4d5adadf76324f559a1908d",
+          "probe_sha256": "5fc141e9d75a3961b075732cd34cb56887e00efbc8e3b4b11bac5198e797a600",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "ordinary LF source has parser-aligned physical lines",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "ordinary CRLF source preserves three physical lines",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "Unicode NEL inside a comment is not a Python physical newline",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "Unicode line separator between statements remains invalid syntax",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 16444,
+      "usage_complete": true,
+      "seconds": 104.48050308227539,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "fe0ec6abf4850027810bc7c1d8eb2186eb97752cb959826f56f51d3ba1dc7317",
+      "native_meter": {
+        "started": 1793535453.1306398,
+        "tokens": 16444,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "b78d07f2317ce7bc4ee0107fb3ac56ab9114bc807ea0585842098bde5e051f65",
+            "admission_estimate": 16487,
+            "attempt": "7eca1fefcb9c0d1f1cef759aba2eef0735cb79ca6d6c13488b8a36b455df5108",
+            "state": "settled",
+            "actual_tokens": 16444,
+            "native_seconds": 48.046
+          }
+        ]
+      },
+      "probe_summaries": {
+        "import-edge-context": {
+          "status": "executed",
+          "receipt_sha256": "9e5599e53e6c1289f7657ac90e2190f96b583134beba0b4ae74a16b2e7713fb9",
+          "probe_sha256": "63244c13dd4c04d4fd641aa165861ebc501070c59fb2ac1baff16a8c5c55c864",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "type-checking import retains edge and exposes static context",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "ordinary top-level import remains a resolved raw fact",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "import-like text creates no syntactic edge",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        },
+        "python-source-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "bf648f9c9730b6c884d42a7b00be84f4f0f7fa07c313e2cae690a0cd9bac08ac",
+          "probe_sha256": "a89bff494a6e4cd9731afdd157d08a8fb01c3ee12aaaef8ce3df9363eac657e8",
+          "actual_receiving_calls": [
+            {
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "qualified_name": "evaluate"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-study4\\receiving-python\\Scripts\\python.exe",
+            "version": [
+              3,
+              14,
+              7
+            ],
+            "requires_python": ">=3.12",
+            "status": "compatible",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "NEL inside a comment is not a Python physical newline",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "Unicode line separator in a comment does not shift parser locations",
+              "role": "target",
+              "passed": false
+            },
+            {
+              "label": "ordinary LF source retains two physical lines",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "ordinary CRLF boundaries are not double-counted",
+              "role": "negative-control",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 25013,
+      "usage_complete": true,
+      "seconds": 132.30583095550537,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "markdown-code-and-line-boundaries",
+          "donor": "beautifulrepo-4"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "markdown-code-and-line-boundaries",
+          "donor": "beautifulrepo-4",
+          "native_decision": {
+            "disposition": "already-present",
+            "hypothesis": "The receiving Markdown destination iterator already preserves source lines across bare CR and CRLF Unicode input, extracts ordinary inline and full-reference destinations, and excludes inline and fenced code. Replacing it with the donor’s parser-event/offset mechanism would duplicate the demonstrated claim without a concrete receiving benefit.",
+            "reason": "The receipt invokes tools.docs_links.iter_markdown_destinations directly. Every meaningful target passes, as do the ordinary-link positive control and code-exclusion negative control. The donor offset-event example shows a general parser mechanism, while its wikilink normalization is an unsupported extension and its fuzz normalization does not establish a missing receiving behavior.",
+            "adaptation": "No adaptation is warranted. Retain the receiving implementation and its existing source/identity/policy/resource guards; do not introduce the donor parser or wikilink extension.",
+            "maintenance": "Keeping the current implementation avoids a new parser dependency and preserves established receiving behavior. Maintain regression coverage for CR, CRLF, Unicode-adjacent fences, reference destinations, ordinary links, and code exclusion.",
+            "acceptance": "Already satisfied by the supplied executed receipt: the actual receiving call returned lines 2 and 3 for bare-CR links, lines 1 and 6 around the CRLF fence, line 1 for the full reference destination, retained the ordinary inline link, and excluded code-contained links. Selected, default, and confirmed pending implementations are identical in the declared scope.",
+            "novelty": "Scoped novelty is resolved: tools/docs_links.py and tools/repo_audit.py are identical across selected/default commit 653a0ee45ba94c5ca44eef6993407a322fc1e9e3 and confirmed pending commit ef2298e235d528db6aa98d3a1ee397aa848b9375. The claimed behavior is implemented and behavior-verified; unrelated global history remains unknown but is unnecessary.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              "D0309c940c0a83698433c91fe",
+              "D50f49d85857d53fefec2a2cb",
+              "D92032f56376ce99a7885387f"
+            ],
+            "maw_evidence": [
+              "Rc7354f7a7a66f3475cc4a4fc",
+              "Rfa37f6ec8e76bf122789b913"
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "pulldown-cmark/src/main.rs",
+                "start": 48,
+                "end": 101,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "fuzz/src/lib.rs",
+                "start": 350,
+                "end": 403,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "pulldown-cmark/examples/normalize-wikilink.rs",
+                "start": 8,
+                "end": 61,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "already-present",
+            "hypothesis": "The receiving Markdown destination iterator already preserves source lines across bare CR and CRLF Unicode input, extracts ordinary inline and full-reference destinations, and excludes inline and fenced code. Replacing it with the donor’s parser-event/offset mechanism would duplicate the demonstrated claim without a concrete receiving benefit.",
+            "reason": "The receipt invokes tools.docs_links.iter_markdown_destinations directly. Every meaningful target passes, as do the ordinary-link positive control and code-exclusion negative control. The donor offset-event example shows a general parser mechanism, while its wikilink normalization is an unsupported extension and its fuzz normalization does not establish a missing receiving behavior.",
+            "adaptation": "No adaptation is warranted. Retain the receiving implementation and its existing source/identity/policy/resource guards; do not introduce the donor parser or wikilink extension.",
+            "maintenance": "Keeping the current implementation avoids a new parser dependency and preserves established receiving behavior. Maintain regression coverage for CR, CRLF, Unicode-adjacent fences, reference destinations, ordinary links, and code exclusion.",
+            "acceptance": "Already satisfied by the supplied executed receipt: the actual receiving call returned lines 2 and 3 for bare-CR links, lines 1 and 6 around the CRLF fence, line 1 for the full reference destination, retained the ordinary inline link, and excluded code-contained links. Selected, default, and confirmed pending implementations are identical in the declared scope.",
+            "novelty": "Scoped novelty is resolved: tools/docs_links.py and tools/repo_audit.py are identical across selected/default commit 653a0ee45ba94c5ca44eef6993407a322fc1e9e3 and confirmed pending commit ef2298e235d528db6aa98d3a1ee397aa848b9375. The claimed behavior is implemented and behavior-verified; unrelated global history remains unknown but is unnecessary.",
+            "novelty_resolved": true,
+            "source_evidence": [
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "pulldown-cmark/src/main.rs",
+                "start": 48,
+                "end": 101
+              },
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "fuzz/src/lib.rs",
+                "start": 350,
+                "end": 403
+              },
+              {
+                "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+                "path": "pulldown-cmark/examples/normalize-wikilink.rs",
+                "start": 8,
+                "end": 61
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 848,
+                "end": 872
+              },
+              {
+                "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+                "path": "tools/docs_links.py",
+                "start": 746,
+                "end": 752
+              }
+            ],
+            "evidence_level": "behavior-verified",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "pulldown-cmark/src/main.rs",
+                "start": 48,
+                "end": 101,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "fuzz/src/lib.rs",
+                "start": 350,
+                "end": 403,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "pulldown-cmark/examples/normalize-wikilink.rs",
+                "start": 8,
+                "end": 61,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D50f49d85857d53fefec2a2cb",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "fuzz/src/lib.rs",
+              "start": 350,
+              "end": 403,
+              "content_sha256": "be77545e48b35e0ba55add2776a4a27ea5a05f6f1df41861ecb5026727744325"
+            },
+            {
+              "id": "D92032f56376ce99a7885387f",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "pulldown-cmark/examples/normalize-wikilink.rs",
+              "start": 8,
+              "end": 61,
+              "content_sha256": "659ea175afe7cfc1997c9f1e0a03aa3b5e08cffa85fe7361f740391f286c6b5f"
+            },
+            {
+              "id": "D0309c940c0a83698433c91fe",
+              "side": "donor",
+              "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+              "path": "pulldown-cmark/src/main.rs",
+              "start": 48,
+              "end": 101,
+              "content_sha256": "b19312399dc366f672af494623690a46c59c120d843249c8790052f407770dab"
+            },
+            {
+              "id": "Rc7354f7a7a66f3475cc4a4fc",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 848,
+              "end": 872,
+              "content_sha256": "7373f75a21622679c4ffe172d56855e62fb718bd3ecd389d2887bf401ed83c14"
+            },
+            {
+              "id": "Rfa37f6ec8e76bf122789b913",
+              "side": "receiving",
+              "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+              "path": "tools/docs_links.py",
+              "start": 746,
+              "end": 752,
+              "content_sha256": "fc53b9e1eb32865e4cb393e39af761df2f07a48f006f3dc5deaf3fb46c539b4d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "b5948b4881db9ff7052a412b30f3f2d12f27fb7e79d69407e7d7181a1bfeda12",
+      "native_meter": {
+        "started": 1793535558.148925,
+        "tokens": 25013,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "0e31673ba3bfd3894e853c1c4f4812a98622265c9943ffc78d8b87d8bc5bd077",
+            "admission_estimate": 13339,
+            "attempt": "43a34e77efef0ea834581861ccc796c3b701fa2d08dff044bd98680b052ebaec",
+            "state": "settled",
+            "actual_tokens": 13357,
+            "native_seconds": 48.781
+          },
+          {
+            "name": "assess-0",
+            "signature": "59a0a6b99e96a2efa540e688b047a0029ffe09e831fee82891c38a9b35893b05",
+            "admission_estimate": 14605,
+            "attempt": "5d7fee4a5e4b7a86b5588a4614a79ae161737ce17b568ab6fcbbe0cbbef72333",
+            "state": "settled",
+            "actual_tokens": 11656,
+            "native_seconds": 12.734
+          }
+        ]
+      },
+      "probe_summaries": {
+        "markdown-code-and-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "578ee095fdba4ad3c1d5da41dd89fb167337ed96babc8455c4c0386722cd2dee",
+          "probe_sha256": "ecc57c04028096ff5af077640705d0ec1bb427636b457364b9a03efa0f8e8772",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "ordinary inline link remains supported",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "inline and fenced code remain excluded",
+              "role": "negative-control",
+              "passed": true
+            },
+            {
+              "label": "bare CR line endings after Unicode text",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "Unicode around CRLF code fences preserves visible source lines",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "full reference destination and source line",
+              "role": "target",
+              "passed": true
+            }
+          ]
+        },
+        "bounded-markdown-scan": {
+          "status": "executed",
+          "receipt_sha256": "e8f0663dcc2aaff338a2829c1bf7d3abcfd272a4decca851e1c7ac23c0530bd0",
+          "probe_sha256": "498da385890fbd544276e4a762c264e5e956b0576ff0542a2a77f02787dbe24d",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "ordinary small document remains complete",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "small code-only document remains empty",
+              "role": "negative-control",
+              "passed": true
+            },
+            {
+              "label": "multiple small blocks remain fully scanned",
+              "role": "target",
+              "passed": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 11710,
+      "usage_complete": false,
+      "seconds": 113.38793420791626,
+      "model_budget_valid": false,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "954e975829517720235eaaeaaa5df18e8e5476efd432f0698f8d232b44d1ec05",
+      "native_meter": {
+        "started": 1793535689.531323,
+        "tokens": 11710,
+        "usage_complete": false,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "dfc8e38be6408a85d1b1844f624fefd8f1e483df83ed61814c33245ba25b8e95",
+            "admission_estimate": 13226,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11710,
+            "native_seconds": 34.938
+          },
+          {
+            "name": "repair-cases-bounded-markdown-scan",
+            "signature": "bcdd6f2ae055da2ffd4e02e0ce1aa27b5e0331f45a9c99d260b323e819f10ba1",
+            "admission_estimate": 8122,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": null,
+            "native_seconds": 62.953
+          }
+        ]
+      },
+      "probe_summaries": {
+        "markdown-code-and-line-boundaries": {
+          "status": "executed",
+          "receipt_sha256": "b6ee20f82a130434b21489a4445375d61a6d51cf41f12b73b5830e27c3a8349f",
+          "probe_sha256": "d1d4111fcf825600e7d39857a3ebc1bbb716733fb2daefcb188dcb2294d12c4f",
+          "actual_receiving_calls": [
+            {
+              "path": "tools/docs_links.py",
+              "qualified_name": "iter_markdown_destinations"
+            }
+          ],
+          "runtime": {
+            "interpreter": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Scripts\\python.exe",
+            "version": [
+              3,
+              11,
+              16
+            ],
+            "requires_python": null,
+            "status": "not-declared",
+            "implicit_installation": false,
+            "donor_runtime_used": false
+          },
+          "case_roles_and_outcomes": [
+            {
+              "label": "ordinary inline link retains its source line",
+              "role": "positive-control",
+              "passed": true
+            },
+            {
+              "label": "inline code is excluded while an ordinary link remains visible",
+              "role": "negative-control",
+              "passed": true
+            },
+            {
+              "label": "lone carriage return is a GFM line ending",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "CRLF fenced code link stays masked and following link keeps line four",
+              "role": "target",
+              "passed": true
+            },
+            {
+              "label": "Unicode reference use resolves without shifting its source line",
+              "role": "target",
+              "passed": true
+            }
+          ]
+        },
+        "bounded-markdown-scan": {
+          "status": "unavailable",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "name": "beautifulrepo-1",
+      "private_mapping": {
+        "R1": "beautifulrepo-candidate-1",
+        "R2": "beautifulrepo-candidate-2",
+        "R3": "beautifulrepo-baseline-1",
+        "R4": "beautifulrepo-baseline-2"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "Add bounded Markdown scanning with explicit incomplete-result reporting",
+            "reason": "Receiving source shows a complete UTF-8 read followed by several whole-text transformations and a materialized separator list, with no evidenced input/work budget or incomplete-scan contract. The donor only parses already-materialized input and checks output/panics; it supplies no transferable bounding or completeness mechanism. The additive receiving-owned design nevertheless has a concrete benefit, mechanism, maintenance plan, and acceptance criteria. Small-input probes are valid controls but do not runtime-verify the proposed limit. Selected, default, and confirmed pending files are identical in the declared scope. Issue #107 is closely related but closed; its request is not implementation, so evidence should be attached or a linked follow-up used rather than filing an unlinked duplicate.",
+            "acceptance_criteria": [
+              "Enforce a documented decoded-byte or deterministic work limit before full over-budget materialization or transformation.",
+              "Return an explicit incomplete status with the governing limit and reason, never representing unexamined content as a complete clean scan.",
+              "Preserve destinations, ordering, line numbers, masking behavior, and guards for exact-boundary and ordinary small inputs.",
+              "Test oversized input, work exhaustion, exact boundaries, multibyte UTF-8 boundaries, and caller propagation of incompleteness.",
+              "Review closed issue #107 and attach evidence there or create only a clearly linked follow-up if its closed scope does not cover this API."
+            ],
+            "legal_adoption": "No donor code is needed. A receiving-original implementation avoids donor-transfer obligations. If Blackfriday material is copied, the supplied path grants identify BSD-2-Clause obligations to retain applicable grant text and notices; this is obligation evidence, not a legal-clearance conclusion."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "already-present",
+            "canonical_change": "Preserve Markdown code exclusion and Unicode line boundaries",
+            "reason": "Executed probes called the actual receiving iterator and demonstrated bare-CR and CRLF line accounting, full-reference extraction, ordinary inline links, and exclusion of inline and fenced code with passing controls. The declared selected, default, and pending implementations are identical. The donor offset-event parser offers no additional demonstrated receiving benefit, while wikilinks are outside the stated contract. Replacing the implementation would add dependency and adaptation cost without closing a verified gap.",
+            "acceptance_criteria": [
+              "Retain regression coverage for CR, CRLF, Unicode-adjacent fences, full references, ordinary links, and code exclusion.",
+              "Do not add wikilink behavior unless the receiving contract is separately expanded.",
+              "Preserve existing guards and output ordering."
+            ],
+            "legal_adoption": "No transfer is warranted. MIT was verified only for fuzz/src/lib.rs; grants for pulldown-cmark/src/main.rs and the wikilink example remain unresolved, so copying those paths is not legally cleared by the supplied evidence."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Add bounded Markdown scanning with explicit incomplete-result reporting",
+            "reason": "This independently identifies the same scoped receiving design gap as R1: complete reads and whole-input processing without an explicit budget or incomplete result. Its donor benchmarking and CPU timing only consume complete inputs and measure duration; they do not enforce deterministic limits or report partial coverage. The proposal remains in the novel-proposal denominator, but this record is duplicate of R1 rather than a second change. Its small-file probes are controls, not runtime proof of bounded behavior. Closed issue #107 should receive or be linked to this evidence before any new request is opened.",
+            "acceptance_criteria": [
+              "Use the same acceptance criteria as R1 for deterministic input/work limits and explicit incompleteness.",
+              "Do not use elapsed-time benchmarking as the primary limit contract.",
+              "Preserve current small-file destinations, ordering, line numbers, masking, and guards.",
+              "Attach evidence to issue #107 or create only a linked follow-up after confirming its closed scope does not cover the docs_links API."
+            ],
+            "legal_adoption": "No donor transfer is recommended. The cited donor paths have verified MIT grant evidence with retention obligations, but a receiving-original design has no need to copy them; verified grant metadata alone does not establish final legal clearance."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "R4 produced no observation and was budget-incomplete; it contributes no proposal or verdict.",
+          "Novelty is established only across the declared selected/default/pending implementation scope, not all repository history.",
+          "No over-budget receiving probe was run, so bounded scanning is confirmed only as an additive design, not runtime behavior.",
+          "Backlog evidence consists of issue metadata; the contents and resolution of issue #107 were not supplied.",
+          "No evidence establishes human acceptance, adoption, merge, release, or version advantage."
+        ],
+        "unjustified_claims": [
+          "Any claim that the bounded-scan design is already runtime-verified.",
+          "Any claim that Blackfriday or pulldown-cmark supplies a transferable bounded-input or incomplete-result mechanism.",
+          "Any global historical-absence claim beyond the declared implementation scope.",
+          "Any claim that passing small-file controls demonstrate over-budget termination.",
+          "Any claim that donor license metadata alone provides complete legal-transfer clearance."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 21095,
+        "inputTokens": 19502,
+        "cachedInputTokens": 2944,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1593,
+        "reasoningOutputTokens": 516,
+        "lastInputTokens": 19502
+      },
+      "seconds": 22.562,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "831f8a5a821c46969f0eff30661deb7f3bf1e89bee60887ddf9dffa3ea393365",
+      "native_result_sha256": "e80e698f4f86de6f426f1515d3ffb587dc80cfebfb55339ebbbdc1d8cfb76551"
+    },
+    {
+      "name": "beautifulrepo-2",
+      "private_mapping": {
+        "R1": "beautifulrepo-baseline-2",
+        "R2": "beautifulrepo-baseline-1",
+        "R3": "beautifulrepo-candidate-2",
+        "R4": "beautifulrepo-candidate-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "Add deterministic Markdown scan budgets with explicit incomplete results",
+            "reason": "The cited receiving code fully reads and repeatedly transforms the Markdown input, while selected, default, and confirmed-pending implementations are identical and expose no scan-budget/completeness contract. A bounded scan would prevent unbounded resource use and prevent partial examination from being reported as clean. The donor only benchmarks or fully consumes input; it supplies no ceiling, early-stop, or incompleteness mechanism, so the useful proposal is receiving-original rather than a donor transfer. Direct probes establish ordinary-file and code-masking controls only, not budget enforcement. Implementation entails a new result/API contract, deterministic accounting, caller propagation, documentation, and ongoing boundary tests. Closed issue #107 is relevant prior work and should receive/link this evidence before considering a separate follow-up; its title alone does not show this docs_links contract was implemented.",
+            "acceptance_criteria": [
+              "Enforce configurable decoded-input and parsing-work limits before fully materializing or transforming over-budget input.",
+              "Return an explicit incomplete status with the exhausted limit/reason; never represent unexamined content as a complete clean scan.",
+              "Preserve destinations, ordering, source lines, code exclusion, and existing guards for ordinary and exact-boundary files.",
+              "Add receiving-owned tests for oversized input, work exhaustion, UTF-8 boundaries, exact limits, caller propagation, and unchanged small-file behavior.",
+              "Review and link closed issue #107; do not claim independent acceptance, adoption, merge, or release from these results."
+            ],
+            "legal_adoption": "Implement as an original receiving design; no donor code is needed. The cited donor files have MIT grants, but their mechanisms do not implement the proposal. Any later copying would require retaining applicable grant text and notices and a separate legal review."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "already-present",
+            "canonical_change": "Preserve Markdown destination lines and exclude code across Unicode line endings",
+            "reason": "A valid receiving-owned runtime probe directly called iter_markdown_destinations. Meaningful targets passed for bare CR, CRLF with Unicode and fences, and full-reference destinations; the ordinary-link positive control and code-exclusion negative control also passed. The scoped selected/default/pending implementations are identical. The donor's offset-event parser is concrete, but replacing the current implementation offers no demonstrated receiving benefit, adds a parser dependency and maintenance burden, and its wikilink extension is outside the receiving contract.",
+            "acceptance_criteria": [
+              "Retain regression coverage for bare CR, CRLF, Unicode-adjacent fences, full references, ordinary links, and inline/fenced code exclusion.",
+              "Do not add wikilink support or replace the parser without a separately evidenced receiving need.",
+              "Preserve existing source, identity, policy, and resource guards."
+            ],
+            "legal_adoption": "No donor transfer is warranted. Two cited pulldown-cmark paths have unresolved nested grants, while fuzz/src/lib.rs is identified as MIT; copying from those paths would require resolving the applicable grants and obligations first. Existing receiving behavior does not depend on legal clearance for donor adoption."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Add deterministic Markdown scan budgets with explicit incomplete results",
+            "reason": "This independently identifies the same valid receiving design as R2. The receiving source fully reads and transforms input and has no budget/completeness contract in the identical selected/default/pending scope. Blackfriday accepts and renders a complete byte slice; its panic-catching test helper supplies no ceiling, early termination, or incomplete-result mechanism. The direct probe only confirms small-file behavior and controls, so it is not runtime evidence of bounded scanning. The proposal has receiving benefit but also API, accounting, propagation, documentation, and regression-maintenance costs. It should be consolidated with R2 and linked to closed issue #107 rather than filed as a duplicate change.",
+            "acceptance_criteria": [
+              "Use the consolidated R2 acceptance criteria for deterministic input/work enforcement and explicit incompleteness.",
+              "Demonstrate a meaningful over-budget stop without first allocating or transforming the entire input.",
+              "Preserve exact-boundary and ordinary-file destinations, ordering, lines, masking, and existing guards.",
+              "Link the evidence to issue #107 and the canonical proposal instead of opening a duplicate request."
+            ],
+            "legal_adoption": "Use an original receiving implementation; the BSD-2-Clause donor does not provide the proposed mechanism. If donor material is nevertheless copied, retain the applicable BSD license text and notices and complete a separate legal review."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "R1 produced no observations; its unavailable bounded-scan probe contributes no runtime evidence.",
+          "Bounded-scan probes in R2 and R4 exercised only ordinary small inputs, not a meaningful over-budget failure or correct limit controls.",
+          "Novelty is established only within the declared selected/default/confirmed-pending file scope; global history and unrelated files remain unknown.",
+          "Only backlog summaries were supplied, so issue #107's detailed resolution and suitability for reopening versus a linked follow-up are unknown.",
+          "No evidence establishes human acceptance, adoption, merge, release, or version advantage."
+        ],
+        "unjustified_claims": [
+          "Any claim that bounded scanning already works at runtime is unsupported.",
+          "Any claim of global historical novelty is unsupported.",
+          "The donor benchmark, timing, whole-input parser, and panic-catching mechanisms do not themselves implement deterministic scan limits or completeness reporting.",
+          "Legal path grants do not establish that a transfer is useful, approved, or cleared for adoption."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 21653,
+        "inputTokens": 19502,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 2151,
+        "reasoningOutputTokens": 1004,
+        "lastInputTokens": 19502
+      },
+      "seconds": 28.484,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "3136678f92b9b87ea00792e08826268bed76b4b164dc79cd345fb3fa043ee7ab",
+      "native_result_sha256": "2b457329cd61c108d81d6014e01ff4ff883e2fe3487d05fb9294438be8cc2a7f"
+    },
+    {
+      "name": "crab-1",
+      "private_mapping": {
+        "R1": "crab-baseline-1",
+        "R2": "crab-candidate-1",
+        "R3": "crab-baseline-2",
+        "R4": "crab-candidate-2"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-runtime",
+            "canonical_change": "Sanitize malformed-YAML diagnostics without losing location",
+            "reason": "MawConfig.load was actually called at the selected SHA. Malformed YAML produced UsageError but disclosed the sentinel private value because the receiving boundary interpolates the complete YAMLError. The cited PyYAML Mark mechanism retains the input buffer and renders a source snippet. Valid-mapping and non-mapping controls passed. Selected and confirmed pending are identical, and the supplied default projection has no equivalent change. No summarized backlog item clearly covers this repair, although configuration search coverage was truncated. The repair is additive and low-cost if localized, but it has not been implemented or accepted.",
+            "acceptance_criteria": [
+              "Malformed YAML raises a path-qualified UsageError with a stable category and 1-based line/column when available.",
+              "The diagnostic contains no YAML values, source lines, snippets, parser context, problem text, or rendered Mark.",
+              "Missing mark metadata degrades safely without stringifying YAMLError.",
+              "Valid mappings and the existing non-mapping-root diagnostic remain unchanged.",
+              "Receiving-owned tests cover multiple malformed forms with sentinel values."
+            ],
+            "legal_adoption": "Utility is established, but donor transfer clearance is not: the operative licence grant was unresolved and registration was refused. Implement the receiving-specific formatter originally without copying donor expression, then perform the receiving project's normal legal review."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Sanitize malformed-YAML diagnostics without losing location",
+            "reason": "This independently reproduces the same valid change as R1: an actual MawConfig.load target call disclosed a different sentinel through the rendered PyYAML exception, while valid-mapping and non-mapping controls passed. It supplies useful corroboration and a second malformed shape but is duplicate precision credit, not a distinct receiving change. Scoped selected/default/pending novelty and backlog uncertainty are the same as R1.",
+            "acceptance_criteria": [
+              "Malformed YAML raises a path-qualified UsageError with a stable category and 1-based line/column when available.",
+              "The diagnostic contains no YAML values, source lines, snippets, parser context, problem text, or rendered Mark.",
+              "Missing mark metadata degrades safely without stringifying YAMLError.",
+              "Valid mappings and the existing non-mapping-root diagnostic remain unchanged.",
+              "Receiving-owned tests cover multiple malformed forms with sentinel values."
+            ],
+            "legal_adoption": "Utility is established independently of transfer permission. The donor paths had unresolved applicable licences and registration was refused. Prefer an original receiving implementation and complete legal review before transferring any donor expression."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-runtime",
+            "canonical_change": "Reject duplicate YAML mapping keys before construction",
+            "reason": "Actual MawConfig.load calls accepted configurations containing repeated mode and license keys instead of raising UsageError. Both target cases failed meaningfully, while the distinct-key positive control loaded correctly and the non-mapping negative control retained its established error. The cited donor code concretely shows safe_load selecting SafeLoader and the composer preserving mapping pairs while duplicate rejection is disabled, explaining why receiving validation occurs after ambiguity is lost. No equivalent mechanism appears in the complete scoped selected/default/confirmed-pending implementations. No summarized backlog item clearly requests duplicate-key rejection, though configuration and duplicate searches were truncated. A localized strict-loader or pre-construction check has moderate maintenance cost because it depends on PyYAML loader behavior.",
+            "acceptance_criteria": [
+              "Repeated top-level mode and license keys each raise a path-qualified UsageError before either value is adopted.",
+              "Valid distinct mode and license keys continue to load with their requested values.",
+              "Non-mapping YAML retains the established mapping diagnostic.",
+              "Safe loading and all downstream trust, licence, policy, identity, and resource validation remain intact.",
+              "Receiving-owned tests pin duplicate-key behavior across supported PyYAML upgrades."
+            ],
+            "legal_adoption": "The behavior and usefulness are verified, but donor transfer clearance is unresolved: cited paths lacked a resolved operative grant and registration was refused. Create an original receiving implementation or resolve the donor licence and obligations before copying any expression."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "There are only three proposed observations; R4 emitted none despite executing unassessed probes.",
+          "Novelty is established only for the supplied complete implementation scope across selected, default, and confirmed pending bindings; global history is unknown.",
+          "Configuration and duplicate backlog searches were truncated, so absence of a matching request is not proven.",
+          "No implementation, acceptance artifact, human approval, merge, release, adoption, or version advantage is evidenced.",
+          "Legal registration refusals do not negate utility, but they prevent treating donor transfer as cleared."
+        ],
+        "unjustified_claims": [
+          "R3 states that later duplicate values were selected, but the displayed target assertions only prove absence of the required UsageError; the shown receipt does not expose the returned values.",
+          "No evidence supports inferred human acceptance, adoption, merge, release, or comparative version advantage."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 19995,
+        "inputTokens": 18553,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1442,
+        "reasoningOutputTokens": 416,
+        "lastInputTokens": 18553
+      },
+      "seconds": 20.593,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "c7dc75e320f69dd3d06002f6f3e3e0025d06fe80bbdf328cbab085b1fb0e436b",
+      "native_result_sha256": "6d754200389af376f1a0120011afa7d16e0ea7a001256a1cfea6b98d177aaa8c"
+    },
+    {
+      "name": "crab-2",
+      "private_mapping": {
+        "R1": "crab-candidate-2",
+        "R2": "crab-candidate-1",
+        "R3": "crab-baseline-2",
+        "R4": "crab-baseline-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-runtime",
+            "canonical_change": "Sanitize malformed-YAML diagnostics without source content",
+            "reason": "MawConfig.load was actually called at the selected SHA. Malformed YAML produced UsageError with useful location information but disclosed PRIVATE_SENTINEL_7f2c; valid-mapping and non-mapping controls passed. Receiving code interpolates the complete YAMLError, while cited PyYAML code shows rendered marks include source snippets. Selected and pending are identical, and the complete default projection shows no equivalent change. This is useful but not implemented or accepted. No matching backlog request is shown, although truncated configuration/duplicate searches prevent a definitive backlog-duplication conclusion.",
+            "acceptance_criteria": [
+              "Malformed private YAML raises path-qualified UsageError without any source line, snippet, or private marker.",
+              "The diagnostic retains a stable parse category and available 1-based line and column using non-content exception metadata.",
+              "Valid mappings load unchanged and valid non-mapping roots retain the existing mapping error.",
+              "Regression tests cover multiple fresh markers and malformed forms, including errors lacking marks, without falling back to str(YAMLError)."
+            ],
+            "legal_adoption": "Not cleared for donor transfer: applicable donor grants were unresolved and registration was held. The receiving project may independently implement the described behavior only after its own legal review; no copying, adoption, merge, or release is established."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-runtime",
+            "canonical_change": "Reject repeated top-level YAML configuration keys before construction",
+            "reason": "MawConfig.load was actually called at the selected SHA. Repeated mode and license keys were silently accepted rather than raising UsageError, while distinct-key and non-mapping controls passed. Cited PyYAML code shows safe_load selects SafeLoader and the composer retains mapping pairs with duplicate rejection disabled, so duplicate information must be checked before ordinary dictionary construction. No equivalent mechanism appears in selected, identical pending, or the complete default projection. Maintenance cost is a localized strict-loader/key-check path plus upgrade regression coverage. No matching backlog request is shown, but truncated searches leave backlog duplication uncertain.",
+            "acceptance_criteria": [
+              "MawConfig.load raises path-qualified UsageError for repeated top-level mode and license keys before either value is selected.",
+              "A configuration with distinct mode and license keys loads with the requested values.",
+              "Non-mapping YAML retains its existing UsageError behavior.",
+              "The implementation retains safe YAML handling, downstream validation, policy guards, and existing dependencies."
+            ],
+            "legal_adoption": "Not cleared for donor transfer: the registered donor range was unavailable and applicable grants were unresolved. Use the cited mechanism only as factual guidance pending legal review; no copying, adoption, merge, or release is established."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Sanitize malformed-YAML diagnostics without source content",
+            "reason": "This independently reproduces R2's valid underlying change. MawConfig.load disclosed PRIVATE-TOKEN-9f2c from malformed YAML, while valid-mapping and non-mapping controls passed. The cited Mark implementation concretely explains that retained buffers become rendered snippets, and receiving code interpolates the exception. Scoped novelty is supported across selected/default/pending, but this observation is duplicate evidence rather than another distinct proposal.",
+            "acceptance_criteria": [
+              "Malformed private YAML raises path-qualified UsageError without any source line, snippet, or private marker.",
+              "The diagnostic retains a stable parse category and available 1-based line and column using non-content exception metadata.",
+              "Errors without marks remain useful and do not fall back to stringifying YAMLError or Mark.",
+              "Valid mappings and the established non-mapping diagnostic remain unchanged."
+            ],
+            "legal_adoption": "Not cleared for donor transfer: the registered donor range was unavailable and the donor grant was unresolved. Any original receiving implementation requires separate legal review; no copying, adoption, merge, or release is established."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "There were three observations across the four runs; R1 produced none.",
+          "Novelty is established only within the declared complete file scope and supplied selected/default/confirmed-pending revisions; global history is unknown.",
+          "Backlog configuration and duplicate searches were truncated, so absence of an existing matching request is not proven.",
+          "No acceptance artifact, human approval, implementation, merge, release, or version advantage is evidenced.",
+          "Runtime probes establish current receiving failures and controls, not correctness of any future repair.",
+          "Donor licensing and registration failures leave legal transfer clearance unresolved."
+        ],
+        "unjustified_claims": [
+          "Any claim that independent or human acceptance occurred.",
+          "Any claim that either proposed change is already implemented, adopted, merged, or released.",
+          "Any claim of global historical novelty or definitive absence of a matching backlog request.",
+          "Any claim that donor-source transfer is legally cleared."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 20067,
+        "inputTokens": 18553,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1514,
+        "reasoningOutputTokens": 516,
+        "lastInputTokens": 18553
+      },
+      "seconds": 19.078,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "57776214499721ae8bdec5b17761ef0ebe48269f6911c37a33fbfd0e812f4e95",
+      "native_result_sha256": "c3559ea55684e545e3ef3439259d3d48611464fc82dfc32e384ec5632f8ed619"
+    },
+    {
+      "name": "devostasis-1",
+      "private_mapping": {
+        "R1": "devostasis-candidate-2",
+        "R2": "devostasis-baseline-2",
+        "R3": "devostasis-candidate-1",
+        "R4": "devostasis-baseline-1"
+      },
+      "verdict": {
+        "records": [],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "R1–R4 contain no observations or raw verified-gap proposals, so there are no observation records to classify and no proposed-novel denominator entries.",
+          "All actual_receiving_cases maps and actual_cited_source_windows are empty. Receipt hashes and role-level pass/fail summaries do not establish concrete target calls, fixtures, assertions, donor mechanisms, or meaningful receiving failures.",
+          "The import-edge-context probes are additionally compromised in R2 and R4 by failing negative controls. R3's summarized target pass cannot establish existing support without the missing case details.",
+          "The selected implementation text is not supplied, the default projection has no files, and global historical absence is explicitly unproven. The supplied PR-95 diffs do not evidence either contemplated change.",
+          "No donor provenance, license, transfer terms, adaptation estimate, or maintenance analysis is supplied. Legal transfer clearance is therefore unknown and separate from utility."
+        ],
+        "unjustified_claims": [
+          "Any claim that either need is a confirmed receiving runtime defect, confirmed additive design, useful donor transfer, or scoped-novel proposal.",
+          "Any claim that a probe demonstrates actual support or failure solely from its receipt hash and summarized role outcomes.",
+          "Any claim of human acceptance, adoption, merge, release, version advantage, or legal clearance."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 13552,
+        "inputTokens": 11778,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1774,
+        "reasoningOutputTokens": 1496,
+        "lastInputTokens": 11778
+      },
+      "seconds": 26.61,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "32a1fee77e707f0eed8e9d4bf9e867e0e2cfc633c0ae889a30301aeba0e1248d",
+      "native_result_sha256": "ad879d4124a973377c49227cb4e2a3256d84740d6c3dd9f619b88a2604e9e9bb"
+    },
+    {
+      "name": "devostasis-2",
+      "private_mapping": {
+        "R1": "devostasis-candidate-2",
+        "R2": "devostasis-candidate-1",
+        "R3": "devostasis-baseline-1",
+        "R4": "devostasis-baseline-2"
+      },
+      "verdict": {
+        "records": [],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "R1–R4 contain no observations or proposed receiving changes, so there are no records or proposed-novel denominator entries to assess.",
+          "Probe summaries provide only role/outcome booleans and receipt hashes; they omit fixtures, target calls, assertions, outputs, and source windows, so runtime claims cannot be independently verified.",
+          "Import-edge-context results conflict across runs, and R3/R4 have failing negative controls; those probes cannot establish a meaningful receiving failure.",
+          "Python-source-line-boundaries consistently reports target failures with passing controls, but absent probe details and cited source mechanisms prevent qualification of the defect or a concrete adaptation.",
+          "Selected/default/pending novelty cannot be resolved for either need from hashes and the supplied unrelated pending diff alone.",
+          "No donor mechanism, donor license, provenance, or transfer terms were supplied, so legal adoption is unknown.",
+          "The backlog shows issue #115 is an open related import-cycle request, not implemented code; any future evidence should be attached there rather than creating a duplicate issue when its scope matches.",
+          "No human acceptance, adoption, merge, release, or version advantage is evidenced."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 12351,
+        "inputTokens": 11778,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 573,
+        "reasoningOutputTokens": 321,
+        "lastInputTokens": 11778
+      },
+      "seconds": 10.25,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "5e0b8d697d2123e3898423244768fa4ce7123b620b2f193dd22cb974c50662f2",
+      "native_result_sha256": "963e01e495e64ae8fb48041ba4671a1321f1d4ade7408348af72bebc64a78e68"
+    }
+  ],
+  "metrics": {
+    "native_proposed_novel_occurrences": {
+      "baseline": 2,
+      "candidate": 1
+    },
+    "independently_confirmed_unique_receiving_changes": {
+      "baseline": 2,
+      "candidate": 1
+    },
+    "by_maw": {
+      "crab": {
+        "baseline": 2,
+        "candidate": 1
+      },
+      "devostasis": {
+        "baseline": 0,
+        "candidate": 0
+      },
+      "beautifulrepo": {
+        "baseline": 0,
+        "candidate": 0
+      }
+    },
+    "observed_proposal_precision": {
+      "baseline": "2/2",
+      "candidate": "1/1"
+    },
+    "transfer_cleared_native_changes": {
+      "baseline": 0,
+      "candidate": 0
+    },
+    "shared_nominations": 30,
+    "semantic_admissions": 6,
+    "assessed_occurrences": 6,
+    "distinct_assessed_donors": 3,
+    "known_native_tokens": {
+      "baseline": 119264,
+      "candidate": 122579
+    },
+    "native_cost_incomplete": [
+      "beautifulrepo-baseline-2/repair-cases-bounded-markdown-scan"
+    ],
+    "review_tokens": 108713,
+    "currency": null,
+    "whole_project_cost": null
+  },
+  "interpretation": [
+    "Observed precision does not validate the experiment: one stage has unknown final usage, candidate did not outperform baseline and most needs were unfinished.",
+    "The BeautifulRepo budget idea was generated by reviewers from an explicit donor rejection. Both producing decisions were not-useful; it is not counted as a native Crab proposal or a transferred donor mechanism. Existing issue107 documents earlier related implemented work; a separate remaining budget API would need receiving-owned scope.",
+    "The native actual receiving proposals are privacy-safe YAML diagnostics547 and duplicate-key rejection548. They were filed as independently reproduced receiving defects from original pre-donor cases; PyYAML-based adoption remains held.",
+    "New licence issue549 records a bounded pseudonym/attribution encoding limitation. No HUMAN override or copied donor implementation occurred. Historical seven-proposal/nine-path replay passed independently.",
+    "The first review projection was refused at77922bytes before inference. It remains retained. V2 keeps complete cited windows, original data and actual per-check/call proof for assessed needs, hashes/status for unassessed needs; all six reviews fit unchanged63000byte/30000token bounds.",
+    "All previous studies/calibrations remain failures or exposed controls, not fresh findings. Engineering/setup/root coordination and currency are unknown; no efficiency claim."
+  ],
+  "release_gates": {
+    "independent_precision_observed_at_least_80_percent": true,
+    "all_actual_costs_known_and_within_caps": false,
+    "candidate_strictly_more_overall": false,
+    "candidate_strictly_more_at_least_two_maws": false,
+    "complete_discovery_readiness": false
+  },
+  "next_required_repairs": [
+    "CLI-owned bounded projection of verified receiving-case checks/calls instead of whole returned objects.",
+    "Predeclare design versus runtime verification intent; additive designs must not cause giant literal stress-fixture generation.",
+    "Deduplicate receiving source in planning and project actual pending implementation by relevant declarations/ranges instead of dumping large file diffs.",
+    "Requalify deterministic positive/negative controls before a new source-unseen cohort; keep the same535 thresholds and all failed receipts.",
+    "Resolve supported MIT name/notice evidence without lossy-attribution COPY or weakened policy guards."
+  ]
+}

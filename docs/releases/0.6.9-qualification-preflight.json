@@ -1,0 +1,538 @@
+{
+  "schema": "hungry-crab.qualification-preflight/1",
+  "status": "study3 preparation, not sealed; prior experimental failures retained",
+  "as_of": "2026-10-31T21:09:14.491508+00:00",
+  "specification": "https://github.com/drevendev/HungryCrab/issues/535",
+  "baseline": {
+    "version": "0.6.8",
+    "sha": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "skills": "matching source commit",
+    "installed_source_sha256": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be"
+  },
+  "candidate": {
+    "version": "0.6.9.dev0",
+    "sha": "c9d5c6a40cea286c1bc5bac923f17acf55bb248e",
+    "installed_source_sha256": "d390b0aa550e21e5b1e80fb39df141a38a19446f3d4bafe5f141d69cc7e1334b",
+    "skills": "matching source commit"
+  },
+  "receiving": {
+    "HungryCrab": {
+      "sha": "9a0fe4010999059b1a872533d072ad62b3c44873",
+      "pending": [
+        {
+          "number": 539,
+          "title": "feat: implement 0.6.9 discovery, selection and applicable grants",
+          "head": "68bda16c805b6f302d105d8d464c597d50c07ca5",
+          "base": "9f8540b14e0059592bdf916526fdc2160390bbae"
+        }
+      ],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    },
+    "Devostasis": {
+      "sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+      "pending": [
+        {
+          "number": 95,
+          "title": "fix: enforce current cache limits when restoring entries",
+          "head": "611b21ee19ad46b4ae6f9ad2dcf872da6dbf7156",
+          "base": "6d935ee111e2efab7a5f7d7c8f8d050af8d35567"
+        },
+        {
+          "number": 90,
+          "title": "fix(history): preserve parent-kind conflicts through reconciliation (#83)",
+          "head": "51e58b8a4f1504f8f953fbc47db6157d157051e6",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 89,
+          "title": "fix(history): preserve malformed legacy carrier values (partial #83)",
+          "head": "1a735f451f9fe6dae7948a014b660249501a1ffc",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 88,
+          "title": "fix(history): reject malformed carried arrays (partial #83)",
+          "head": "9cf0c0cf678aeef620b5f6d6a1662533894c10b2",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 81,
+          "title": "0.6: independently verified Git history and executable assurance",
+          "head": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+          "base": "22a2894057d9b1bc003efe4ef932ed4de601e26b"
+        },
+        {
+          "number": 75,
+          "title": "Release 0.6.0: offline repository analysis and executable assurance",
+          "head": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 69,
+          "title": "Release 0.5.0: bound consumer operations and portable private history",
+          "head": "aa5e0e12aea6ee0514cbd2c9dd9aa29ff5dfe75c",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 64,
+          "title": "Release 0.4.0: reproducible consumer handoff and exact contract compatibility",
+          "head": "c98e7ed4fe53f1809f9a5ec0b7651da49aa0ab3a",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 59,
+          "title": "Release 0.3.0: Evidence to Action with verified work scopes and bounded handoff",
+          "head": "a41fac6353030f684b2e77b12079503b7b8a1e96",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 57,
+          "title": "Finish 0.2.0: preserve verified Integrity history and reconcile pending branches",
+          "head": "b849923511ffef24b3b53d0ed01937ae706f60f8",
+          "base": "96d10fc844732d196628e3a8f39737eab69fe871"
+        },
+        {
+          "number": 53,
+          "title": "Release 0.2.0: adopt the accepted Direction, Horizon, Debt and T9 repairs, and carry Integrity history across bundles (B3)",
+          "head": "96d10fc844732d196628e3a8f39737eab69fe871",
+          "base": "3bd60db707c5022f5df6034458cb23b949911dad"
+        },
+        {
+          "number": 50,
+          "title": "Keep the Hungry Crab configuration and ledger in the repository",
+          "head": "4c7f0a1a93cd3231feea89fb879c0fafe5fdf1fb",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        },
+        {
+          "number": 37,
+          "title": "Cancel superseded CI runs with concurrency groups",
+          "head": "aae7b21df35f96ba074331482ff37f70f509d222",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        },
+        {
+          "number": 36,
+          "title": "Enable Dependabot updates",
+          "head": "2a575750d511a47d69a5c97c41ec121deff920ef",
+          "base": "a8726f55a7874bb466b1f44351f9e3c41861c864"
+        }
+      ],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    },
+    "BeautifulRepo": {
+      "sha": "3bc8e3d70c15aca6392c9397e28a97ce8fef4904",
+      "pending": [],
+      "needs_status": "refresh exact default, pending, policy/ledger and owned source ranges before seal"
+    }
+  },
+  "pool": [
+    {
+      "batch": "crab",
+      "repository": "tox-dev/platformdirs",
+      "url": "https://github.com/tox-dev/platformdirs",
+      "default_ref": "main",
+      "sha": "1d34ad1529619a30eff57ed0b319965c4ee6021a",
+      "provider_id": "367032142",
+      "size_kib": 1331,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/distlib",
+      "url": "https://github.com/pypa/distlib",
+      "default_ref": "master",
+      "sha": "94940750b9154e1e4a7762691c7a0b0b1ce5eafe",
+      "provider_id": "436970140",
+      "size_kib": 21397,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "untitaker/python-atomicwrites",
+      "url": "https://github.com/untitaker/python-atomicwrites",
+      "default_ref": "master",
+      "sha": "4183999d9b7e81af85dee070d5311299bdf5164c",
+      "provider_id": "29976873",
+      "size_kib": 93,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "Delgan/loguru",
+      "url": "https://github.com/Delgan/loguru",
+      "default_ref": "master",
+      "sha": "874aa41019f8a9f943647a0c74445fb7844157da",
+      "provider_id": "100401612",
+      "size_kib": 2552,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "pypa/packaging",
+      "url": "https://github.com/pypa/packaging",
+      "default_ref": "main",
+      "sha": "78d8673da4d275bb7aee0126a5edc3cf90976af1",
+      "provider_id": "19837758",
+      "size_kib": 2013,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "python-attrs/attrs",
+      "url": "https://github.com/python-attrs/attrs",
+      "default_ref": "main",
+      "sha": "c8bb9bfaa2843e7844b5bb13bed4370b51feec4f",
+      "provider_id": "29918975",
+      "size_kib": 5301,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "beeware/briefcase",
+      "url": "https://github.com/beeware/briefcase",
+      "default_ref": "main",
+      "sha": "0bdaaf5fd6e6dec36ed54753eee6d14c0e92802a",
+      "provider_id": "39841700",
+      "size_kib": 14886,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "pdm-project/pdm",
+      "url": "https://github.com/pdm-project/pdm",
+      "default_ref": "main",
+      "sha": "9e625f5508ed1569a7faf785d012867830905c9f",
+      "provider_id": "230369286",
+      "size_kib": 14727,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "pytoolz/toolz",
+      "url": "https://github.com/pytoolz/toolz",
+      "default_ref": "master",
+      "sha": "451af60dec590a6010e2babdbf391ea8f815122f",
+      "provider_id": "12799539",
+      "size_kib": 1167,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "crab",
+      "repository": "PyFilesystem/pyfilesystem2",
+      "url": "https://github.com/PyFilesystem/pyfilesystem2",
+      "default_ref": "master",
+      "sha": "77a8562785fc37cb2e30bdcd39c133097ba62dce",
+      "provider_id": "70920962",
+      "size_kib": 1761,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "davidhalter/parso",
+      "url": "https://github.com/davidhalter/parso",
+      "default_ref": "master",
+      "sha": "b26da16316da46e4770d589ed5f8d404531a22af",
+      "provider_id": "90668463",
+      "size_kib": 1465,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "Instagram/LibCST",
+      "url": "https://github.com/Instagram/LibCST",
+      "default_ref": "main",
+      "sha": "d9a255843b5cdbecc6834684d233bce1f2987f9d",
+      "provider_id": "200896124",
+      "size_kib": 4564,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "python/mypy",
+      "url": "https://github.com/python/mypy",
+      "default_ref": "master",
+      "sha": "934e703a861cfa3b0d29f1e87d9cf7d016001618",
+      "provider_id": "7053637",
+      "size_kib": 88288,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "prospector-dev/prospector",
+      "url": "https://github.com/prospector-dev/prospector",
+      "default_ref": "master",
+      "sha": "47c671943d34da4763d2a799b5c3fc0a890ba61b",
+      "provider_id": "11892534",
+      "size_kib": 2618,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "chardet/chardet",
+      "url": "https://github.com/chardet/chardet",
+      "default_ref": "main",
+      "sha": "f881570dbc7b7b842690189019b16040eb9f2a12",
+      "provider_id": "5196969",
+      "size_kib": 30634,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "psf/requests",
+      "url": "https://github.com/psf/requests",
+      "default_ref": "main",
+      "sha": "3c7baaa05ab4aa49cc819ce3a819d260de19c157",
+      "provider_id": "1362490",
+      "size_kib": 13635,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "encode/httpx",
+      "url": "https://github.com/encode/httpx",
+      "default_ref": "master",
+      "sha": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+      "provider_id": "179492861",
+      "size_kib": 8619,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "encode/httpcore",
+      "url": "https://github.com/encode/httpcore",
+      "default_ref": "master",
+      "sha": "10a658221deb38a4c5b16db55ab554b0bf731707",
+      "provider_id": "237210639",
+      "size_kib": 1850,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "python-trio/trio",
+      "url": "https://github.com/python-trio/trio",
+      "default_ref": "main",
+      "sha": "023d1e3d2f8d8db11074797c368f077cb2287d2f",
+      "provider_id": "79083614",
+      "size_kib": 10237,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "devostasis",
+      "repository": "agronholm/anyio",
+      "url": "https://github.com/agronholm/anyio",
+      "default_ref": "master",
+      "sha": "576892e9f1ffd5417dec3bebfe9d8c3cbf5d47dc",
+      "provider_id": "145337588",
+      "size_kib": 3332,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "commonmark/cmark",
+      "url": "https://github.com/commonmark/cmark",
+      "default_ref": "master",
+      "sha": "a2a5e6990d283c1ec227c6f5742c7845bb9512b5",
+      "provider_id": "29804085",
+      "size_kib": 4473,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "commonmark/commonmark.js",
+      "url": "https://github.com/commonmark/commonmark.js",
+      "default_ref": "master",
+      "sha": "898886961b49c1df1175666d03c3ac66c9cc9040",
+      "provider_id": "29788130",
+      "size_kib": 3579,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "rstcheck/rstcheck",
+      "url": "https://github.com/rstcheck/rstcheck",
+      "default_ref": "main",
+      "sha": "d8774e96810795967ed9603f445b4e751e7b313f",
+      "provider_id": "14851887",
+      "size_kib": 981,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "sphinx-contrib/sphinx-lint",
+      "url": "https://github.com/sphinx-contrib/sphinx-lint",
+      "default_ref": "main",
+      "sha": "a3c2554c7c75f869483d297f7e369e4d027aa33c",
+      "provider_id": "451150637",
+      "size_kib": 318,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "pypa/readme_renderer",
+      "url": "https://github.com/pypa/readme_renderer",
+      "default_ref": "main",
+      "sha": "953fe07a26e3c0ccccefeb30f7e185ef0887be43",
+      "provider_id": "17259159",
+      "size_kib": 410,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "miyakogi/m2r",
+      "url": "https://github.com/miyakogi/m2r",
+      "default_ref": "dev",
+      "sha": "b49e3363eaa0a2ea9d2c26a53c30cd06969c7833",
+      "provider_id": "59917466",
+      "size_kib": 464,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "jgm/pandoc",
+      "url": "https://github.com/jgm/pandoc",
+      "default_ref": "main",
+      "sha": "06f84eccd92dbf9cf56c49e08c6af556aece179b",
+      "provider_id": "571770",
+      "size_kib": 74009,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "remarkjs/remark-lint",
+      "url": "https://github.com/remarkjs/remark-lint",
+      "default_ref": "main",
+      "sha": "ce81d46b649884aae040562c670c588dd32d706d",
+      "provider_id": "35120039",
+      "size_kib": 4902,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "retextjs/retext",
+      "url": "https://github.com/retextjs/retext",
+      "default_ref": "main",
+      "sha": "04580e54d857f86405c1b109f5205be58f1285f8",
+      "provider_id": "20461647",
+      "size_kib": 768,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    },
+    {
+      "batch": "beautifulrepo",
+      "repository": "wooorm/markdown-table",
+      "url": "https://github.com/wooorm/markdown-table",
+      "default_ref": "main",
+      "sha": "1db562655146371abfbeb6615ff76e9a59b51be9",
+      "provider_id": "24796159",
+      "size_kib": 130,
+      "source_coverage": "not-acquired",
+      "license_status": "not-acquired",
+      "prior_exposure": "not historical30, study1 or study2; source research has not started; pretraining unknown"
+    }
+  ],
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "per_trial_limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_acquisitions": 6,
+    "active_hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "host": {
+    "binary_version": "0.146.1",
+    "model": "gpt-5.6-sol",
+    "reasoning": "low, identical explicit setting both arms",
+    "model_turns_started": 0,
+    "actual_model_tokens": null,
+    "actual_model_currency": null,
+    "metric": "actual input including cached input plus output across completed stages; missing usage remains null",
+    "status": "three explicit completed stages; compact selected final context under calibration on exposed donors"
+  },
+  "blockers": [
+    "Seal exact installed candidate and improved host before either arm.",
+    "Acquire new public source facts on existing hosted fixed 2 GiB volumes and verify pins/artifacts.",
+    "Refresh receiving source, confirmed relevant pending implementation, needs and original verification protocol."
+  ],
+  "prior_study": "../experiments/release-069-discovery-qualification.json",
+  "resources": {
+    "authorisation": "user requested all checks; bounded existing Codex ChatGPT quota, no purchase/API key required",
+    "acquisition": "explicit hosted preparation on fixed 2 GiB volumes; donor programs never execute",
+    "pending_API_facts": {
+      "head_count": 14,
+      "unique_blobs": 110,
+      "verified_bytes": 1549095,
+      "scope": "changed Python paths plus selected canonical/time/config helpers across 13 distinct Devostasis heads; unavailable bindings stay explicit"
+    }
+  },
+  "prior_exposure": "Historical30, completed first-study30 and second calibration-pool30 excluded; hynek/structlog excluded due prior cache clone. New30 source judgments have not started. Pretraining unknown."
+}

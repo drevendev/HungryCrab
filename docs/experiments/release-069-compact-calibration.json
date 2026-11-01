@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-11-01T13:30:05.659745+00:00",
+  "role": "Exposed original controls only, never new release yield",
+  "all_prior_attempts_retained": true,
+  "results": [
+    {
+      "role": "Held reproduction-only target; no positive-control success claimed",
+      "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\trials\\control-candidate-1\\host-state.json",
+      "sha256": "9e4be4a900c2c11a9fed2f8acfd1b63291e735196e818a06086230df141050cc",
+      "source_identity": "d273ce387caaa77584fd5a9da53d6f3d04a7a9e63819b9ab4cec506bb4fca93e",
+      "model": {
+        "model": "gpt-5.6-sol",
+        "effort": "low",
+        "minimum_assessment_reserve": 6500
+      },
+      "native_tokens": 22444,
+      "budget_valid": true,
+      "source_unseen": false,
+      "release_findings": 0,
+      "outcomes": [
+        {
+          "need": "unbounded",
+          "disposition": "unsupported",
+          "evidence_level": "unrun"
+        },
+        {
+          "need": "already-safe",
+          "disposition": "already-present",
+          "evidence_level": "source-supported"
+        }
+      ]
+    },
+    {
+      "role": "Known positive and already-correct controls passed",
+      "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\trials\\control-baseline-1\\host-state.json",
+      "sha256": "a1d683a88ddbbc74a91113ae8be35a70159c72ba39da4c0a88e39e870f3da90e",
+      "source_identity": "d273ce387caaa77584fd5a9da53d6f3d04a7a9e63819b9ab4cec506bb4fca93e",
+      "model": {
+        "model": "gpt-5.6-sol",
+        "effort": "low",
+        "minimum_assessment_reserve": 6500
+      },
+      "native_tokens": 22698,
+      "budget_valid": true,
+      "source_unseen": false,
+      "release_findings": 0,
+      "outcomes": [
+        {
+          "need": "unbounded",
+          "disposition": "verified-gap",
+          "evidence_level": "behavior-verified"
+        },
+        {
+          "need": "already-safe",
+          "disposition": "already-present",
+          "evidence_level": "source-supported"
+        }
+      ]
+    },
+    {
+      "role": "Held missing-source continuation; no positive-control success claimed",
+      "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\trials-v2\\control-candidate-1\\host-state.json",
+      "sha256": "c5b34990814d89ab3c760d4a380c9cad86241ccb92901663c6766733e562a4f5",
+      "source_identity": "d273ce387caaa77584fd5a9da53d6f3d04a7a9e63819b9ab4cec506bb4fca93e",
+      "model": {
+        "model": "gpt-5.6-sol",
+        "effort": "low",
+        "minimum_assessment_reserve": 6500
+      },
+      "native_tokens": 22452,
+      "budget_valid": true,
+      "source_unseen": false,
+      "release_findings": 0,
+      "outcomes": [
+        {
+          "need": "unbounded",
+          "disposition": "budget-deferred",
+          "evidence_level": "source-supported"
+        }
+      ]
+    },
+    {
+      "role": "Known positive and already-correct controls passed after EOF/navigation fixes",
+      "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\trials-v3\\control-candidate-1\\host-state.json",
+      "sha256": "afa2ecea39deb87ba401fd6d7637cc992a1aa70a09af933c8d68b99d0a26f4d9",
+      "source_identity": "6bbe7888bae38122c666927f3f6ae38b8a10a2843601732f0a3df68525bd1d55",
+      "model": {
+        "model": "gpt-5.6-sol",
+        "effort": "low",
+        "minimum_assessment_reserve": 6500
+      },
+      "native_tokens": 22540,
+      "budget_valid": true,
+      "source_unseen": false,
+      "release_findings": 0,
+      "outcomes": [
+        {
+          "need": "unbounded",
+          "disposition": "verified-gap",
+          "evidence_level": "behavior-verified"
+        },
+        {
+          "need": "already-safe",
+          "disposition": "already-present",
+          "evidence_level": "source-supported"
+        }
+      ]
+    },
+    {
+      "role": "Design planning only; empty original cases, no runtime claim",
+      "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\design-planning\\control-candidate-1\\host-state.json",
+      "sha256": "f87f1249163206396766ff3c321da9140f9ed76aa4b9834066b21b0d68d12e8d",
+      "source_identity": "d273ce387caaa77584fd5a9da53d6f3d04a7a9e63819b9ab4cec506bb4fca93e",
+      "model": {
+        "model": "gpt-5.6-sol",
+        "effort": "low",
+        "minimum_assessment_reserve": 6500
+      },
+      "native_tokens": 7464,
+      "budget_valid": true,
+      "source_unseen": false,
+      "release_findings": 0,
+      "outcomes": []
+    }
+  ]
+}

@@ -33,13 +33,14 @@ maintainer has actually judged belongs here.
 uv run python benchmarks/ranking_benchmark.py
 ```
 
-`ranking/pressure.json` freezes a separate synthetic pair producing 56 competing candidates
-and reports where prior human-accepted generic priorities rank. It is a ranking report, not a
-new human usefulness corpus, and not a gate yet: with the default scoring, four of those
-priorities rank 31-35 of 56. Raising the shipped weights of exactly those keys would pass it by
-construction, so it becomes a gate only when a scoring change earns it. Its negative control
-disables category weights and must miss them. The original B1 labels and thresholds remain unchanged; larger human
-labeling is [#200](https://github.com/drevendev/HungryCrab/issues/200).
+`ranking/pressure.json` freezes a separate synthetic pair and reports where prior
+human-accepted generic priorities rank. The 0.6.9 general uptake rule for unknown
+agent-host adoption yields 54 candidates: release 26, schedule 27, coverage 10,
+issue templates 29 and PR template 30. This restores the existing pressure gate
+without key-specific weights or changes to the original B1 labels/thresholds.
+The negative control disables category weights and must miss the priorities.
+This synthetic control is not a new human usefulness corpus; larger human
+labeling remains [#200](https://github.com/drevendev/HungryCrab/issues/200).
 
 ## Additional diagnostics and paired reporting
 
@@ -153,6 +154,57 @@ limit is exceeded, so the script can gate a release.
 
 Results are per machine; the JSON records OS, Python and the crab version. Keep one file per day
 and commit it when the numbers are worth remembering (a new miner, a big prey, a regression).
+
+## Invoked discovery qualification
+
+`qualification_models.py OUTPUT --cwd EMPTY_OWNED_DIRECTORY` reads the native
+model catalogue without inference. A catalogue entry is not proof of entitlement;
+calibrate a completed inference on known original fixtures before sealing a study.
+The native adapter uses the existing account session, disables unrelated tools,
+captures actual input (including cached input) plus output, and preserves unknown
+usage or overruns. It does not create user-owned chats or start a scheduler.
+
+`qualification_cycle.py MAW-ARM-REPEAT --plan SEALED.json` runs one explicitly
+invoked trial. The plan binds installed arm interpreters/source identities,
+matching skills, receiving contexts/needs, immutable pool objects/digests,
+pre-existing receiving runtimes, native model/effort, limits and artifact hashes.
+The trial reads no other trial's judgments. All thirty common sources may be
+acquired/mined as declared shared setup; semantic admissions remain separately
+bounded at six. Read-only transport preparation checks actual planned input
+before admitting semantic donor work. Candidate citations still require actual
+CLI inspection receipts after admission.
+
+Original JSON receiving cases are generated and, if necessary, repaired in a
+receiving-only fresh context before any donor body is supplied. Every complete
+native stage settles actual use before semantic parsing. A fixed runner executes
+only trusted receiving code; actual function calls and target/correct controls
+remain in the receipt. Runtime claims, design artifacts, legal registration,
+publication and human acceptance stay separate. A registration hold retains the
+semantic proposal and tries an alternative under the same budget.
+When source inspection raises another runtime question, a fresh receiving-only
+writer receives the code-free question and owned receiving source, creates
+original JSON cases and executes them within the same trial cap. Preserve the
+analyst's original conditional tier and the actual execution result separately.
+Typed pending/backlog reads retain previous donor/receiving windows; identical
+pending content is deduplicated while every role/ref binding survives. Separate
+need-owned meals prevent a repeated donor from erasing an earlier registration.
+
+`research_host.py` owns operational command/native receipts, not a second
+acceptance ledger. The installed CLI owns the discovery/exploration state. The
+admission estimate is calibrated on known controls (6,500 prefix/reply reserve
+plus request bytes/3); only native actual usage qualifies the 30,000-token cap.
+Native malformed/oversized/degenerate output and interrupted stages remain failed
+or unknown, never invented zero-cost work. No API maximum-output-token field is
+assumed on the native route. The [native protocol](https://learn.chatgpt.com/docs/app-server)
+describes that transport; installed schemas and captured replies are the run's
+actual interface evidence.
+
+Seal a source-unseen pool and protocol before both arms; preserve failed
+calibration/earlier studies. Run the twelve trials and six separate arm-masked
+reviews required by `docs/releases/0.6.9-scope.md`. Setup/engineering costs outside
+the captured investigator/reviewer stages remain unknown; these receipts do not
+establish whole-project or financial efficiency. Passing known controls alone
+does not pass the held-out gain/precision/safety gates.
 
 ## Reference prey
 

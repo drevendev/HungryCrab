@@ -7,10 +7,78 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Project verified receiving-case checks/calls within explicit value/packet bounds,
+  retain original artifact hashes and omissions, and declare runtime/design intent
+  before probe generation. Compare decorator-inclusive pending declaration facts
+  without treating equal source bytes as runtime equivalence (#540).
+- Preserve physical source coordinates across Unicode characters and retain actual
+  EOF-clipped windows for bounded reads; no-hit literal searches can navigate
+  real declarations before selecting another bounded source window (#540).
+- Add cumulative actual inspection witnesses and typed donor/receiving citations,
+  bounded literal source locations, scoped selected/default/pending implementation
+  facts, receiving runtime preflight, actual function-call traces and original
+  JSON receiving cases. Keep read, usefulness, execution and adoption claims
+  separate (#540).
+- Persist bounded receiving-need discovery sessions with owned attempts, shared
+  provider charges, actual host receipts, replacement work and explicit stops.
+  Keep scoped needs, original structural seeds, verification tiers and independent
+  acceptance separate. The invoked skill/host supplies semantic work; the CLI
+  makes no model calls (#490, #532, #533).
+- Add optional GitHub code/GitLab repository search, one source-supported verified
+  hop, marginal need/cost ranking, pinned source/import/test packets, isolated
+  Python AST queries and targeted history/issue evidence (#484–#492, #534).
+- Capture actual bounded original receiving probes and receiving-bound design
+  acceptance artifacts; plain PASS declarations cannot establish execution (#488).
+- Allow original probes to opt into declared receiving root/src imports while
+  retaining isolated Python, bounded execution and unchanged probe source (#543).
+- Settle idempotent owned model-use receipts independently from semantic action
+  success. Preserve late/unknown/overrun costs without advancing a phase or
+  granting work; refresh remaining-budget advice and bound event writes (#541).
+- Navigate real pinned paths and qualified Python declarations before source
+  selection; continue exact ranges and page source/notice evidence with hash-bound
+  cursors instead of discarding large results. Retain explicit omissions (#540).
+- Preserve bounded structural matches and exhaustion reasons in source packets;
+  select distinct windows in requested query order and disclose deferrals (#544).
+- Parse literal Gemfile.lock dependencies, bounded extensionless shebangs and root
+  classification attributes without executing donor tools. Preserve raw evidence,
+  primary/supporting roles and exact owner-selected dependency scope exclusions
+  (#519, #522, #523, #526, #527).
+- Provide an installed interpreter/module route and an owned Unicode-safe Python
+  launcher; validate installation, reinstall and matching portable skills (#383).
+
 ### Fixed
 
-- Discover existing GitHub nutrient markers before issue publication when `serve()`
-  creates its own issue client, preventing duplicate issues (#537).
+- Enforce the whole-session deadline before cached discovery leases; bound lease
+  expiry and retain terminal wall time independently from late accounting (#545).
+- Record an explicit next-model-call reserve stop, preserving actual costs,
+  unused tokens and unfinished work without inventing an external outage (#546).
+- Resolve applicable immutable path grants across equivalent nested texts,
+  supported pinned references, software/data roles and composite project/component
+  notices. Retain obligations, unknown scopes, source restrictions and explicit OR
+  choices without flattening AND duties (#361 bounded, #529–#531).
+- Recognize complete parenthesized MIT titles while preserving full operative
+  terms, original evidence offsets and restrictive/truncated counterparts (#542).
+- Recognize ordinary attribution-only COPYRIGHT references and supported complete
+  MIT holder/format variants. Retain original line/byte regions and reject hidden
+  riders, conflicting headers, truncated grants and unknown component rights
+  (#517, #518, #525, #528).
+- Review existing portable single/multi meals without reacquiring a missing donor;
+  preserve source-authority checks for effects (#215).
+- Anchor selected persistent roots while refusing managed-child aliases; safely
+  reuse unchanged shallow MCP evidence and explain bounded invalidation reasons
+  (#319, #326, #524).
+- Admit exact inert sort/uniq filters and literal PowerShell native Git reads;
+  refuse write/execution options and ambiguous PS 5.1 quoting (#402).
+- Support expiring committed exact publication exceptions and fail closed when
+  deduplicating with an implicitly constructed issue client (#521, #537, #538).
+- Restore the ranking-pressure gate through general unknown agent-host uptake,
+  retaining B1 labels, thresholds and the negative control (#303).
+
+Independent usefulness/cost qualification for the owner-expanded 0.6.9 scope is
+still required; see the [implementation record](docs/releases/0.6.9-implementation.md).
+These entries do not announce a release or assert measured discovery gains.
 
 ## [0.6.8] - 2026-10-28
 

@@ -1,0 +1,292 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured compact-protocol arm",
+  "sealed_at": "2026-11-01T14:34:01.476773+00:00",
+  "candidate": {
+    "commit": "49f5fec8cd2d1b46084331d9bdf03c56e4b6c211",
+    "source_identity": "4ba04effe7a9b839f76f1d448f68eed39e2497d59153416cf450e13fc77e17ec",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "49f5fec8cd2d1b46084331d9bdf03c56e4b6c211",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+    "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Immutable acquisition/mining and filename catalogues only; no source bodies or investigation judgments supplied to new models before seal. No findings shared between arms; pretraining unknown.",
+    "receiving_context": "Actual complete acquired49f5 snapshot, default/pending metadata timestamp in receiving preflight. First incomplete acquisition explicitly refused default drift; raw partial evidence retained. Scoped current facts, no future/global-history absence.",
+    "known_work": "All prior exposed studies/calibrations remain retained and excluded fresh yield. Crab547/548 already confirmed;550 implementation now included. Beauty repo_audit spans, basic GFMHTML1/2, label casefold/whitespace/first-definition/shortcuts already present; budget design previously reviewer-created is not new. Dev previous cohorts never assessed these needs.",
+    "cost": "Actual completed-stage input including cached plus output and seconds; setup/engineering/root coordination and currency unknown. No whole-project efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "donor_default_drift": [
+      {
+        "repository": "beetbox/confuse",
+        "nominated": "bf42783301ac4e9c640328ec95486952fd599ce6",
+        "acquired": "23bc86a0800caba7bbd848fbee3631346520a828"
+      }
+    ],
+    "receiving_drift": "BeautifulRepo moved before first acquisition; refreshed full context before inference; no outcome-based pool changes.",
+    "open_pr_delta": "Reviewed and integrated all four550 commits preserving authorship before final source freeze; canonical pending550 still included."
+  },
+  "sealed_sha256": "0fa3f26654dd76d7b8e15e6d06cf5151114cb546134c3012c1d4e691014cc31a",
+  "pool": [
+    {
+      "id": "crab-1",
+      "repository": "beetbox/confuse",
+      "sha": "23bc86a0800caba7bbd848fbee3631346520a828",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-2",
+      "repository": "crdoconnor/strictyaml",
+      "sha": "dfd93f9740ebd5e7150029bc3d89ea102bcddf00",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-3",
+      "repository": "asottile/cfgv",
+      "sha": "0e89c0b493e90ae7662a0c4e4dec709df304f553",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-4",
+      "repository": "marin-community/draccus",
+      "sha": "9427315964dabc705ae79690d6e57b8ee7f977c9",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-5",
+      "repository": "lincolnloop/goodconf",
+      "sha": "0287a985c29d257a5569067ea869ab47711c3657",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-6",
+      "repository": "pytroll/donfig",
+      "sha": "48ce51a332d5b82ad289df0238c04e02c2d68324",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-7",
+      "repository": "dribia/driconfig",
+      "sha": "b26e01c522efdf4942f1a2b046d8cacb60d5f203",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-8",
+      "repository": "zerwes/hiyapyco",
+      "sha": "9bf16632d46bf94ebf701bdbeb0b7a3c37680815",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-9",
+      "repository": "zifeo/dataconf",
+      "sha": "c82c6996fa579f5a23302fa1d61adaa67cbc3e12",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-10",
+      "repository": "pycontribs/ruyaml",
+      "sha": "d6a82e8b3e186a979b75774b82936a17bf0125ac",
+      "batch": "crab"
+    },
+    {
+      "id": "devostasis-1",
+      "repository": "snok/flake8-type-checking",
+      "sha": "9a76be3115d26fed4174508026c98a313e258f9a",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-2",
+      "repository": "schettino72/import-deps",
+      "sha": "6ce72fdd9a842b78a60f64c6766254aded98fd8e",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-3",
+      "repository": "ronaldoussoren/modulegraph2",
+      "sha": "a3e3c2e24bcb9d3dc495d1732beb5116fcd5f79f",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-4",
+      "repository": "agronholm/typeguard",
+      "sha": "1e174bf36877635d10e31c451bc4caac2a11ce3b",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-5",
+      "repository": "beartype/beartype",
+      "sha": "c874529c19eff9640307674a2378310b77a05dce",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-6",
+      "repository": "gristlabs/asttokens",
+      "sha": "b45491462881c95f9b0cc7817cf016578dd0acd6",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-7",
+      "repository": "PyCQA/flake8-pyi",
+      "sha": "9a41c03370b04a2bde943c3e0229ca38ee6769b2",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-8",
+      "repository": "ronaldoussoren/modulegraph",
+      "sha": "bdf7f3036ed20bb63e3a181c8beeb44d7e5bb7cf",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-9",
+      "repository": "serge-sans-paille/beniget",
+      "sha": "c0f03c00a4b737916a3dcfe9849fc177d1e1fe88",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-10",
+      "repository": "bwhmather/ssort",
+      "sha": "e13cd1ee686c9ed9a6c582a4a36b047ef5e1622c",
+      "batch": "devostasis"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "repository": "markedjs/marked",
+      "sha": "8babc796802dbf2d27daee51dcb7306935900033",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "repository": "commonmark/commonmark-java",
+      "sha": "3e1f83bde15825f2080999fd8fd353900ffd699b",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "repository": "gjtorikian/commonmarker",
+      "sha": "93a8ed907a721a38520cdcbc25db347b145c2e80",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "repository": "kivikakk/comrak",
+      "sha": "15beb4698aad26dfe353855bf61c8d6b10071cb8",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "repository": "executablebooks/MyST-Parser",
+      "sha": "723cffcf84213f0cb58695b27eec9ad72052b53a",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "repository": "wooorm/markdown-rs",
+      "sha": "1506572f9b406431402928f3a8b3df0b4ae2d8f5",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "repository": "micromark/micromark",
+      "sha": "6577c200155e9c6b85a42b26d298f8affc348f2f",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "repository": "rsc/markdown",
+      "sha": "6bf72452917f47f91b7c12c1d82317d0c85f7cda",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "repository": "jonschlinkert/remarkable",
+      "sha": "7c5e433620c967618eb38cdb57360734274061c4",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "repository": "serkodev/markdown-exit",
+      "sha": "7fc593df2c9c352267b744945abc6f19f61fcce3",
+      "batch": "beautifulrepo"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "49f5fec8cd2d1b46084331d9bdf03c56e4b6c211",
+      "needs": [
+        {
+          "id": "configuration-member-diagnostics",
+          "verification_mode": "runtime"
+        },
+        {
+          "id": "bounded-configuration-ingestion",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "python-source-line-boundaries",
+          "verification_mode": "runtime"
+        },
+        {
+          "id": "import-edge-context",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "600fbae1986909efa915ce4b2b9f66d13cf5aac7",
+      "needs": [
+        {
+          "id": "raw-html-link-context",
+          "verification_mode": "design"
+        },
+        {
+          "id": "bounded-reference-link-interactions",
+          "verification_mode": "runtime"
+        }
+      ]
+    }
+  ]
+}

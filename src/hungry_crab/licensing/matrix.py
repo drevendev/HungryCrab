@@ -328,6 +328,21 @@ def canonical_expression(text: str | None) -> str | None:
     return canonical(expr)
 
 
+def allows_alternative(expression: str | None, chosen: str) -> bool:
+    """An explicit leaf OR option, never a term flattened out of AND obligations."""
+    root = parse_expression(expression or "")
+    selected = parse_expression(chosen)
+    if root is None or selected is None or selected.op or root.op != "OR":
+        return False
+
+    def contains(node: _Expr) -> bool:
+        if node.op == "OR":
+            return any(contains(child) for child in node.operands)
+        return not node.op and canonical_expression(_render(node)) == canonical_expression(chosen)
+
+    return any(contains(child) for child in root.operands)
+
+
 def selected_terms(text: str | None) -> tuple[str, ...]:
     """All duties of a proven AND, or the actual least-restrictive established OR branch."""
     expr = parse_expression(normalize(text) or "")

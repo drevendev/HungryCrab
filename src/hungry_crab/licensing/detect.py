@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import io
 import json
 import re
 import stat
+import tokenize
 import tomllib
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
@@ -23,6 +25,7 @@ from .matrix import (
     restricts_copying,
     selected_terms,
 )
+from .sections import attribution_reference, composite_sections
 
 _SPDX_ID_RE = re.compile(
     r"^[ \t]*(?:(?://|\#|/\*|\*|<!--)[ \t]*)?SPDX-License-Identifier:[ \t]*(.+?)[ \t]*$",
@@ -407,6 +410,12 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
     """Return (spdx, confidence) for the text of a license file."""
     if not text.strip():
         return None, 0.0
+    if len(text.encode("utf-8")) > 200_000:
+        return None, 0.0
+    text = text.removeprefix("\ufeff")
+    sections = composite_sections(text)
+    if sections is not None:
+        return detect_from_text(sections[0].text)
     ident = find_spdx_identifier(text)
     body = _SPDX_ID_RE.sub("", text) if ident else text
     normalized = _norm(body)
@@ -529,6 +538,9 @@ def _copyright_metadata(line: str) -> bool:
     if match is None:
         return False
     holder = match.group(1)
+    if "\ufffd" in holder:
+        # Lost attribution bytes are not a supported holder spelling variation.
+        return False
     if re.search(
         r"\b(?:use|licen[cs]e|permission|grant|paid|commercial|prohibit\w*|restrict\w*|redistribut\w*|requir\w*)\b",
         holder,
@@ -667,7 +679,7 @@ def _copyright_metadata(line: str) -> bool:
         return False
     # Longer unstructured phrases are not a holder-name field. In particular, capitalization
     # cannot turn a sentence after the owner into metadata. Recognize explicit name forms.
-    connectors = {"and", "of", "the", "de", "van", "von"}
+    connectors = {"and", "of", "the", "de", "der", "van", "von", "döt"}
     groups = re.split(r" and |,\s+", holder)
     name_form = all(
         0 < sum(word.casefold() not in connectors for word in group.split()) <= 2
@@ -683,6 +695,7 @@ def _copyright_metadata(line: str) -> bool:
         "foundation",
         "association",
         "institute",
+        "university",
         "corporation",
         "authors",
         "contributors",
@@ -720,12 +733,32 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     if start is None or start.start() > 1500:
         return None, 0.0
     body = _norm(text[start.start() :])
+    # Two exact typographical representations of the same quoted expressions.
+    # Never remove arbitrary punctuation, suffixes or operative words.
+    body = body.replace('""software""', '"software"').replace("*as is*", '"as is"')
+    # A complete title may be parenthesized; arbitrary parenthesized prose is
+    # still operative/unknown. The full grant, condition and disclaimer follow.
     title = re.compile(
-        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|expat license)[.:]?"
+        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|"
+        r"expat license|\((?:the )?mit license\))[.:]?"
     )
-    for raw in text[: start.start()].splitlines():
+    prefix = text[: start.start()].splitlines()
+    for index, raw in enumerate(prefix):
         line = _norm(raw.strip("#/* \t"))
         if not line or title.fullmatch(line) or line == "all rights reserved.":
+            continue
+        if (
+            index == 0
+            and re.fullmatch(r"[A-Za-z][A-Za-z0-9 ._-]{0,100} ver\. \d+(?:\.\d+){1,3}", raw)
+            and any(_copyright_metadata(value) for value in prefix[1:])
+            and any(title.fullmatch(_norm(value)) for value in prefix[1:])
+            and all(
+                word == ".NET" or _attribution_identifier(word)
+                for word in raw.split(" ver.", 1)[0].split()
+            )
+        ):
+            # A structured document title is accepted only before explicit MIT
+            # attribution and the fully validated operative grant below.
             continue
         if not _copyright_metadata(raw.strip("#/* \t")):
             return None, 0.0
@@ -736,6 +769,55 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     if body == mit0:
         return "MIT-0", 0.99
     return None, 0.0
+
+
+def _grant_region(text: str, spdx: str | None) -> tuple[int | None, int | None]:
+    """Original line coordinates, only for a grant actually established above."""
+    if spdx is None:
+        return None, None
+    sections = composite_sections(text)
+    if sections is not None:
+        return sections[0].start, sections[0].end
+    if spdx in {"MIT", "MIT-0"}:
+        match = re.search(r"permission\s+is\s+hereby\s+granted,\s*free\s+of\s+charge", text, re.I)
+        if match is not None:
+            return text[: match.start()].count("\n") + 1, len(text.splitlines())
+    return None, None
+
+
+def find_source_header(text: str, *, path: str = "") -> str | None:
+    """Supported comment headers, never SPDX-looking strings in program/data bodies."""
+    identifiers: list[str] = []
+    lines = text.removeprefix("\ufeff").splitlines()[:80]
+    if path.endswith((".py", ".pyi")):
+        try:
+            comments = []
+            for count, token in enumerate(
+                tokenize.generate_tokens(io.StringIO(text.removeprefix("\ufeff")).readline)
+            ):
+                if count >= 10_000:
+                    return "NOASSERTION"
+                if token.start[0] > 80:
+                    break
+                if token.type == tokenize.COMMENT:
+                    comments.append(token.string)
+                elif token.type not in {
+                    tokenize.NL,
+                    tokenize.NEWLINE,
+                    tokenize.ENCODING,
+                    tokenize.ENDMARKER,
+                }:
+                    break  # only the leading comment region is a source header
+            lines = comments
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            return "NOASSERTION" if "SPDX-License-Identifier:" in text[:8000] else None
+    for line in lines:
+        if re.match(r"\s*(?:\#|//|/\*|\*|<!--)\s*SPDX-License-Identifier:", line, re.I):
+            found = find_spdx_identifier(line)
+            identifiers.append(found or "NOASSERTION")
+    if identifiers and len({canonical_expression(i) for i in identifiers}) == 1:
+        return identifiers[0]
+    return "NOASSERTION" if identifiers else None
 
 
 def manifest_license(name: str, text: str) -> tuple[str | None, str]:
@@ -819,6 +901,11 @@ class Evidence:
     spdx: str | None
     confidence: float
     note: str = ""
+    start: int | None = None
+    end: int | None = None
+    matcher: str | None = None
+    byte_start: int | None = None
+    byte_end: int | None = None
 
 
 @dataclass
@@ -844,6 +931,7 @@ class LicenseFindings:
     #   absent      no license file, no manifest declaration, no API license
     resolution: str = "absent"
     candidates: list[str] = field(default_factory=list)
+    scopes: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -1019,6 +1107,16 @@ def _resolve_unclear(
         )
 
 
+def _read_license_text(path: Path) -> str:
+    """A grant must fit completely; a valid prefix cannot hide a distant rider."""
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(200_001)
+        return raw.decode("utf-8", "replace") if len(raw) <= 200_000 else ""
+    except OSError:
+        return ""
+
+
 def detect_in_repo(
     root: Path,
     code_files: Sequence[str],
@@ -1045,12 +1143,31 @@ def detect_in_repo(
             directory_grants.append((rel, declared))
             continue
         path = root / rel
-        text = read_text(path, limit=200_000)
+        text = _read_license_text(path)
         spdx, confidence = detect_from_text(text)
         note = ""
+        reference = attribution_reference(text)
+        reference_lines = [line for line in text.splitlines() if line.strip()]
+        if reference and all(_copyright_metadata(line) for line in reference_lines[:-1]):
+            parts = PurePosixPath(reference).parts
+            if (
+                parts
+                and len(parts) == 1
+                and reference != rel
+                and _own_entry(root / reference, stat.S_ISREG)
+            ):
+                referenced, _ = detect_from_text(_read_license_text(root / reference))
+                if referenced:
+                    findings.notice_files.append(rel)
+                    findings.notes.append(f"{rel}: attribution-only reference to {reference}")
+                    continue
         if spdx is None and "permission is hereby granted, free of charge" in _norm(text):
-            note = "MIT-like text has unsupported metadata or operative terms; inspect the "
-            note += "copyright prefix and full grant, or obtain a supported upstream notice"
+            if "\ufffd" in text:
+                note = "Source notice has decoding replacement characters; preserve the original "
+                note += "attribution before transfer instead of guessing missing copyright bytes"
+            else:
+                note = "MIT-like text has unsupported metadata or operative terms; inspect the "
+                note += "copyright prefix and full grant, or obtain a supported upstream notice"
         if spdx is None:
             # A short root pointer may designate a readable grant inside this tree. Its name,
             # a manifest classifier or the API can never replace unreadable operative terms.
@@ -1075,14 +1192,50 @@ def detect_in_repo(
                     and (allowed_files is None or target in allowed_files)
                     and _own_entry(root / target, stat.S_ISREG)
                 ):
-                    spdx, confidence = detect_from_text(read_text(root / target, limit=200_000))
+                    spdx, confidence = detect_from_text(_read_license_text(root / target))
                     note = "readable referenced grant" if spdx else "unreadable referenced grant"
         findings.license_files.append(rel)
-        findings.evidence.append(Evidence("file", rel, spdx, confidence, note))
+        start, end = _grant_region(text, spdx)
+        original_lines = text.splitlines(keepends=True)
+        byte_start = len("".join(original_lines[: start - 1]).encode("utf-8")) if start else None
+        byte_end = len("".join(original_lines[:end]).encode("utf-8")) if end else None
+        if "\ufffd" in text:
+            byte_start = byte_end = None
+        findings.evidence.append(
+            Evidence(
+                "file",
+                rel,
+                spdx,
+                confidence,
+                note,
+                start,
+                end,
+                "operative-text-v1" if start is not None else None,
+                byte_start,
+                byte_end,
+            )
+        )
         if spdx and declared:
             named.append((rel, spdx))
             alternatives = alternatives and bool(_NAMED_LICENSE_RE.match(PurePosixPath(rel).name))
-        if is_split_license_text(text):
+        sections = composite_sections(text)
+        if sections is not None:
+            findings.scopes.extend(
+                {
+                    "path": rel,
+                    "role": section.role,
+                    "label": section.label,
+                    "start": section.start,
+                    "end": section.end,
+                    "expression": detect_from_text(section.text)[0],
+                    "applicability": "project"
+                    if section.role == "project-grant"
+                    else "unmapped-component",
+                    "obligation": "retain-complete-original-notice",
+                }
+                for section in sections
+            )
+        if sections is None and is_split_license_text(text):
             root_declares_split = True
             for mention in licenses_mentioned(text):
                 if mention not in split_mentions:
@@ -1111,7 +1264,7 @@ def detect_in_repo(
         if all(headers):
             declarations = {term for header in headers for term in license_terms(header)}
     for rel, declared in directory_grants:
-        spdx, confidence = detect_from_text(read_text(root / rel, limit=200_000))
+        spdx, confidence = detect_from_text(_read_license_text(root / rel))
         if declared in declarations and canonical_expression(spdx) == canonical_expression(
             declared
         ):
@@ -1255,7 +1408,7 @@ def detect_in_repo(
             path = root / rel
             if not path.is_file():
                 continue
-            spdx, confidence = detect_from_text(read_text(path, limit=200_000))
+            spdx, confidence = detect_from_text(_read_license_text(path))
             # A licence file the crab cannot read is still a licence file. Dropping it is how a
             # restricted subtree used to inherit the root's verdict without anyone being told.
             spdx = spdx or "NOASSERTION"

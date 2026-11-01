@@ -1,0 +1,366 @@
+{
+  "schema": "hungry-crab.historical-licence-replay/1",
+  "recorded_at": "2026-10-31T22:00:27.541160+00:00",
+  "implementation_commit": "6ce3b410c4b419e4da7bf3df55398ca312d37d98",
+  "tool": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "dbf3613fcf2972b632b252a0323adfb7749dfd5b905aa33ddde36b2d7921303a"
+  },
+  "dataset_role": "historical licence regression; not independent discovery",
+  "method": "Read original immutable Git entries. Missing licence blobs were supplied only when their Git blob hash matched the pinned source tree; no source objects or historical reports were changed.",
+  "donor_executed": false,
+  "proposal_count": 7,
+  "selected_paths": 9,
+  "legal_adoption_observation": "Five proposals establish Apache-2.0 on selected paths; two establish MIT. Existing MIT-only policy, hunger, content origin, notices, clean-room/materialization and usefulness checks still apply.",
+  "independent_usefulness_review": null,
+  "results": [
+    {
+      "id": "crab-01-1",
+      "pair": "crab-01",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "05a98f66b4b07290fd34325b694aa59069bc3e71",
+      "paths": [
+        "src/licensedcode/detection.py",
+        "src/licensedcode/detection.py"
+      ],
+      "grants": [
+        {
+          "path": "src/licensedcode/detection.py",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "apache-2.0.LICENSE",
+            "cc-by-4.0.LICENSE"
+          ],
+          "notices": [
+            "NOTICE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "file-header-and-software-declaration",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [
+            {
+              "path": "src/licensedcode/dmp.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/licensedcode/frontmatter.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/licensedcode/languages.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/licensedcode/seq.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/licensedcode/spans.py.LICENSE",
+              "role": "other-file-sidecar"
+            }
+          ],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "apache-2.0.LICENSE": "Apache-2.0",
+        "cc-by-4.0.LICENSE": "CC-BY-4.0"
+      }
+    },
+    {
+      "id": "crab-01-2",
+      "pair": "crab-01",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "05a98f66b4b07290fd34325b694aa59069bc3e71",
+      "paths": [
+        "src/packagedcode/models.py"
+      ],
+      "grants": [
+        {
+          "path": "src/packagedcode/models.py",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "apache-2.0.LICENSE",
+            "cc-by-4.0.LICENSE"
+          ],
+          "notices": [
+            "NOTICE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "file-header-and-software-declaration",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [
+            {
+              "path": "src/packagedcode/bsd-simplified.LICENSE",
+              "role": "separate-named-grant"
+            },
+            {
+              "path": "src/packagedcode/nevra.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/packagedcode/pyrpm.py.LICENSE",
+              "role": "other-file-sidecar"
+            }
+          ],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "apache-2.0.LICENSE": "Apache-2.0",
+        "cc-by-4.0.LICENSE": "CC-BY-4.0"
+      }
+    },
+    {
+      "id": "crab-01-3",
+      "pair": "crab-01",
+      "prey": "aboutcode-org/scancode-toolkit",
+      "sha": "05a98f66b4b07290fd34325b694aa59069bc3e71",
+      "paths": [
+        "src/packagedcode/rubygems.py",
+        "src/packagedcode/rubygems.py",
+        "tests/packagedcode/test_rubygems.py"
+      ],
+      "grants": [
+        {
+          "path": "src/packagedcode/rubygems.py",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "apache-2.0.LICENSE",
+            "cc-by-4.0.LICENSE"
+          ],
+          "notices": [
+            "NOTICE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "file-header-and-software-declaration",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [
+            {
+              "path": "src/packagedcode/bsd-simplified.LICENSE",
+              "role": "separate-named-grant"
+            },
+            {
+              "path": "src/packagedcode/nevra.py.LICENSE",
+              "role": "other-file-sidecar"
+            },
+            {
+              "path": "src/packagedcode/pyrpm.py.LICENSE",
+              "role": "other-file-sidecar"
+            }
+          ],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        },
+        {
+          "path": "tests/packagedcode/test_rubygems.py",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "apache-2.0.LICENSE",
+            "cc-by-4.0.LICENSE"
+          ],
+          "notices": [
+            "NOTICE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "file-header-and-software-declaration",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "apache-2.0.LICENSE": "Apache-2.0",
+        "cc-by-4.0.LICENSE": "CC-BY-4.0"
+      }
+    },
+    {
+      "id": "crab-02-2",
+      "pair": "crab-02",
+      "prey": "oss-review-toolkit/ort",
+      "sha": "4106d0802b2c61a1d1747f9baabcee083d636abf",
+      "paths": [
+        "website/docs/configuration/ort-yml.md"
+      ],
+      "grants": [
+        {
+          "path": "website/docs/configuration/ort-yml.md",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "LICENSE",
+            "website/docs/license.md"
+          ],
+          "notices": [
+            "NOTICE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "data-or-documentation",
+          "scope": "inherited-equivalent-grants",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [
+            {
+              "path": "website/docs/configuration/copyright-garbage.md",
+              "role": "documentation-not-grant"
+            },
+            {
+              "path": "website/docs/configuration/license-classifications.md",
+              "role": "documentation-not-grant"
+            },
+            {
+              "path": "website/docs/configuration/license-texts.md",
+              "role": "documentation-not-grant"
+            }
+          ],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "LICENSE": "Apache-2.0"
+      }
+    },
+    {
+      "id": "devostasis-07-2",
+      "pair": "devostasis-07",
+      "prey": "dagster-io/dagster",
+      "sha": "ef5c227a91576661f7c4b8619b855cd95e68ccd5",
+      "paths": [
+        "python_modules/dagster/dagster/_core/definitions/data_version.py",
+        "python_modules/dagster/dagster/_core/definitions/data_version.py"
+      ],
+      "grants": [
+        {
+          "path": "python_modules/dagster/dagster/_core/definitions/data_version.py",
+          "expression": "Apache-2.0",
+          "evidence": [
+            "LICENSE",
+            "python_modules/dagster/COPYING",
+            "python_modules/dagster/LICENSE"
+          ],
+          "notices": [],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "inherited-equivalent-grants",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [],
+          "declared_expression": "Apache-2.0",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "LICENSE": "Apache-2.0"
+      }
+    },
+    {
+      "id": "devostasis-09-2",
+      "pair": "devostasis-09",
+      "prey": "microsoft/sarif-sdk",
+      "sha": "986c3f9425d8b4df4b56febcf85dd9d43d6d6cd8",
+      "paths": [
+        "src/Sarif/Autogenerated/BaselineState.cs",
+        "src/Sarif/Baseline/SarifLogBaseliner.cs"
+      ],
+      "grants": [
+        {
+          "path": "src/Sarif/Autogenerated/BaselineState.cs",
+          "expression": "MIT",
+          "evidence": [
+            "LICENSE"
+          ],
+          "notices": [],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "inherited-equivalent-grants",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [],
+          "declared_expression": "MIT",
+          "chosen_branch": null
+        },
+        {
+          "path": "src/Sarif/Baseline/SarifLogBaseliner.cs",
+          "expression": "MIT",
+          "evidence": [
+            "LICENSE"
+          ],
+          "notices": [],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "inherited-equivalent-grants",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [],
+          "declared_expression": "MIT",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "LICENSE": "MIT"
+      }
+    },
+    {
+      "id": "beautifulrepo-02-1",
+      "pair": "beautifulrepo-02",
+      "prey": "astral-sh/ruff",
+      "sha": "23a16fa018cf3b219c2edc7a2b739881e023a874",
+      "paths": [
+        "scripts/generate_mkdocs.py",
+        "scripts/generate_mkdocs.py"
+      ],
+      "grants": [
+        {
+          "path": "scripts/generate_mkdocs.py",
+          "expression": "MIT",
+          "evidence": [
+            "LICENSE"
+          ],
+          "notices": [
+            "LICENSE"
+          ],
+          "reason": "verified immutable path grant; retain all applicable notices",
+          "material_role": "implementation",
+          "scope": "inherited-equivalent-grants",
+          "obligations": [
+            "retain-applicable-grant-texts",
+            "retain-applicable-notices"
+          ],
+          "references": [],
+          "declared_expression": "MIT",
+          "chosen_branch": null
+        }
+      ],
+      "root_grants": {
+        "LICENSE": "MIT"
+      }
+    }
+  ]
+}

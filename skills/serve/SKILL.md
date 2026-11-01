@@ -37,11 +37,15 @@ Rules for `why` and `how`:
 crab serve <prey> --maw . --ids id1,id2 --notes notes.json --as dry-run   # previews
 crab serve <prey> --maw . --ids id1,id2 --notes notes.json --as issue     # creates issues
 crab serve <prey> --maw . --top 5 --as dry-run                            # top of the menu
+crab serve --meal-dir <existing-meal> --maw . --top 5 --as dry-run        # offline portable preview
 cat receipt.json | crab serve <prey> --maw . --ids id1 --notes notes.json --as pr-branch
 crab spec crab:ci:ci.cache      # the maw-relative path of a nutrient's clean-room specification
 ```
 
-- Dry-run is the default; show the previews and get a confirmation before `--as issue`.
+- Dry-run is the default; show previews. Ask before effects only if the user has not already
+  authorised them. Existing single/multi meals resolve locally without catch. A portable
+  preview never follows donor paths from menu metadata; COPY/PR effects still need independent
+  source authority and all existing receipts/policy checks.
 - `serve.issues: off` in `.crab.yml` blocks issue creation; `auto` allows it in CI without asking.
 - `serve.prs: off` blocks pull-request publication; `ask` requires explicit `--ids`, while `auto`
   permits ranked selection such as `--top`.

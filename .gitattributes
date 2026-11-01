@@ -6,3 +6,8 @@
 *.gif binary
 *.ico binary
 *.lockb binary
+
+# Execution audit snapshots retain the exact bytes hashed before model trials.
+docs/experiments/release-069-followup-host-*.py.txt -text
+docs/experiments/release-069-host-*.py.txt -text
+docs/experiments/release-069-corrected-host-*.py.txt -text
