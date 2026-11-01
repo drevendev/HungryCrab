@@ -396,7 +396,15 @@ class Trial:
                 ["discover", "case-results", output / "receipt.json", "--maw", self.maw]
             )
             return {
-                "status": receipt["status"],
+                "status": (
+                    receipt["status"] if projection["case_results_usable"] else "invalid-fixture"
+                ),
+                "execution_status": receipt["status"],
+                "reason": (
+                    ""
+                    if projection["case_results_usable"]
+                    else "Invalid fixture: target entry or receiving-owned failure proof is missing"
+                ),
                 "receipt": str(output / "receipt.json"),
                 "receipt_sha256": identity(receipt),
                 "probe_sha256": receipt["probe_sha256"],
@@ -425,7 +433,7 @@ class Trial:
             result = self.execute_cases(need, source, key)
             controls = [r for r in result.get("cases", []) if r["role"] == "positive-control"]
             if source and (
-                result["status"] == "unavailable"
+                result["status"] in {"unavailable", "invalid-fixture"}
                 or (controls and not all(c["passed"] for c in controls))
             ):
                 self.state.setdefault("original_case_failures", {})[key] = result
