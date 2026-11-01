@@ -784,6 +784,11 @@ class Trial:
                 "acceptance": text(550),
                 "novelty": text(550),
                 "novelty_resolved": {"type": "boolean"},
+                "source_behavior": text(),
+                "source_relation": {
+                    "type": "string",
+                    "enum": ["mechanism", "anti-pattern", "none"],
+                },
                 "source_evidence": citation(donor_ids),
                 "maw_evidence": citation(receiving_ids),
                 "evidence_level": {
@@ -830,6 +835,11 @@ class Trial:
             "No tools, donor execution, publication or copied implementation. Select "
             "actual typed witness IDs, never invent ranges. "
             "Compare mechanisms, not feature names. A useful change needs a concrete "
+            "source_behavior describing only the actual cited donor, separately from the "
+            "proposed receiving adaptation. source_relation is mechanism for implemented useful "
+            "behavior, anti-pattern for a cited bad behavior exposing the same receiving risk, "
+            "or none. With none, reject as not-useful or request specific missing evidence; "
+            "do not invent a hypothetical positive adaptation from the predeclared need. "
             "receiving benefit, adaptation, maintenance and acceptance. "
             "Use actual selected/default/confirmed pending code for scoped novelty; an "
             "open request is not implementation, "
@@ -1043,7 +1053,9 @@ class Trial:
         if answer["disposition"] == "request-more":
             answer.update(disposition="budget-deferred", evidence_level="unrun")
         if gap and (
-            not answer["novelty_resolved"]
+            answer.get("source_relation", "none") == "none"
+            or not answer.get("source_behavior", "").strip()
+            or not answer["novelty_resolved"]
             or not all(
                 answer[k].strip()
                 for k in ("reason", "adaptation", "maintenance", "acceptance", "novelty")
@@ -1109,6 +1121,7 @@ class Trial:
                 "title": answer["hypothesis"],
                 "behavior": answer["adaptation"],
                 "gap": answer["reason"],
+                "source_behavior": answer["source_behavior"],
             }
             try:
                 registration = self.commands.json(
