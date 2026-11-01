@@ -119,7 +119,6 @@ def test_repeated_yaml_mapping_keys_are_rejected(
     assert error.__suppress_context__ is True
 
 
-
 def test_yaml_merge_override_keeps_pyyaml_safe_semantics(tmp_path: Path) -> None:
     # A merge supplies defaults; one explicit override is not a duplicate.
     write_tree(
@@ -156,6 +155,7 @@ def test_yaml_merge_does_not_hide_repeated_explicit_key(tmp_path: Path) -> None:
     diagnostic = caught.value.message.removeprefix(f"{tmp_path / CONFIG_FILE}: ")
     assert "ci" not in diagnostic
     assert caught.value.__cause__ is None
+
 
 @pytest.mark.parametrize(
     ("yaml_text", "secret"),
