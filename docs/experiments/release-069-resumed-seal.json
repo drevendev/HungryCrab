@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured resumed arm",
+  "sealed_at": "2026-11-01T12:01:33.984970+00:00",
+  "candidate": {
+    "commit": "db8877c5f3055026aa16c698d3f9c9c606cfb1d5",
+    "source_identity": "d7b6b5a014d9d13dac6bc0765c7e0b835209e181fe57027dcac5732d6e9072b9",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals; confirm only changes accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs require concrete source/novelty/acceptance; runtime requires actual receiving call/positive controls. Utility and legal transfer separate. No root semantic arbitration to boost yield.",
+    "gates": "At least80% novel precision; strictly more independently confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Bounded immutable source acquisition/mining and filenames allowed; no investigation findings shared between arms. Prior exposed-pool failures/calibrations retained, never counted as new yield. Pretraining unknown.",
+    "receiving_pending_snapshot": "2026-11-01T11:49:34.601Z; integration head03d0699 acquired explicitly; 14Dev pending heads and BeautifulRepo228 included. No claim of future or global historical absence.",
+    "cost": "Actual stage input including cached/output and seconds retained; shared setup/engineering/root coordination and currency unknown, no whole-project efficiency claim."
+  },
+  "sealed_sha256": "d0b65deeafbb19e9084b99afbf0722892e3b13bc93536ecc9162557564d6b5ee",
+  "pool": [
+    {
+      "id": "crab-1",
+      "repository": "dynaconf/dynaconf",
+      "sha": "455ee38569d76cd3707c73209b660cf60bd97b29",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-2",
+      "repository": "hynek/environ-config",
+      "sha": "dfbfdc910e0b80bb22752571619b7ad0e18379b9",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-3",
+      "repository": "theskumar/python-dotenv",
+      "sha": "bad5771ce54fd643538f177aab1465e4375e2039",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-4",
+      "repository": "pydantic/pydantic-settings",
+      "sha": "02ea717e203893f9abdabfd6eeb00bd6e5fefe9e",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-5",
+      "repository": "tox-dev/pyproject-api",
+      "sha": "406c67cd8c8b1695d4cdf1faf32cbbc8cf906047",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-6",
+      "repository": "hukkin/tomli",
+      "sha": "43a86ade8b795c6ef9b4ec53372a607cd1ed426f",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-7",
+      "repository": "python-attrs/cattrs",
+      "sha": "d043dbdf0de697ca129e0fde9112113446f4fa47",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-8",
+      "repository": "yaml/pyyaml",
+      "sha": "f5e4504a92f169f65350a1047dccb23bc97028be",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-9",
+      "repository": "hydra-ecosystem/omegaconf",
+      "sha": "bfbfa5259ac98d006afdec3d9b86c418d718e9e3",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-10",
+      "repository": "HBNetwork/python-decouple",
+      "sha": "0573e6f96637f08fb4cb85e0552f0622d36827d4",
+      "batch": "crab"
+    },
+    {
+      "id": "devostasis-1",
+      "repository": "pylint-dev/astroid",
+      "sha": "3d0bc5800477403f0bf903769f67e421777ef84e",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-2",
+      "repository": "python-grimp/grimp",
+      "sha": "d7c94dc108dbe977377ef4c294611b3c39fdeb85",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-3",
+      "repository": "seddonym/import-linter",
+      "sha": "2173911f76c7b550eedd83a1b8eb86c840ca7827",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-4",
+      "repository": "asottile/astpretty",
+      "sha": "1fb4135054e6ef00173f556908c17e6807d26c52",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-5",
+      "repository": "simonpercivall/astunparse",
+      "sha": "2acce01fcdda2ea32eea835c30ccca21aaff7297",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-6",
+      "repository": "berkerpeksag/astor",
+      "sha": "708038844745b2a2c37c206ec422547ea6ddc367",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-7",
+      "repository": "coveragepy/coveragepy",
+      "sha": "a0e922a946120d7d65373994f647bf08e0f89af4",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-8",
+      "repository": "asottile/reorder-python-imports",
+      "sha": "48d613c407813ee467d5cef9b735fd065addfed9",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-9",
+      "repository": "hadialqattan/pycln",
+      "sha": "b98a425329c272424ffd19d74b982eb6d2637264",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-10",
+      "repository": "thebjorn/pydeps",
+      "sha": "9f086edb4edc1ad5cafc56d26f36d16c116baafa",
+      "batch": "devostasis"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "repository": "frostming/marko",
+      "sha": "ad3d50771d5d62b580cc4c222e98871d1295d6ee",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "repository": "hukkin/mdformat",
+      "sha": "56b24ef0c6cfdab501844925971204f858185547",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "repository": "jackdewinter/pymarkdown",
+      "sha": "fa3ace1d8ab48949d78ae6a6833cc02904060f49",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "repository": "pulldown-cmark/pulldown-cmark",
+      "sha": "29d6cfa042b6c1fbb5702fc320f130edd2684271",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "repository": "yuin/goldmark",
+      "sha": "3f129ed3309403d4a8bc0baadc1f6c49eb791634",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "repository": "gomarkdown/markdown",
+      "sha": "acfab5edc1ce4d62faaca6cd981e5e921e4ef896",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "repository": "jgm/commonmark-hs",
+      "sha": "89b2686bbc77aba333a79790e39cb08b90c1d75d",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "repository": "russross/blackfriday",
+      "sha": "e96880f42b9343aea6cbfd99693adae0e5fe2b2a",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "repository": "mity/md4c",
+      "sha": "f9e5eb232b95b737373ae706648cb75bd259ed1a",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "repository": "markdownlint/markdownlint",
+      "sha": "cf7e1fc7f63c802a92f1d2f0400aeedb33f21688",
+      "batch": "beautifulrepo"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "03d06996edd87d4823ac5055c8a85c66581b6f8f",
+      "needs": [
+        "private-config-diagnostics",
+        "unambiguous-yaml-configuration"
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        "python-source-line-boundaries",
+        "import-edge-context"
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
+      "needs": [
+        "bounded-markdown-scan",
+        "markdown-code-and-line-boundaries"
+      ]
+    }
+  ]
+}
