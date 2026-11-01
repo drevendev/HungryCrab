@@ -257,7 +257,18 @@ class MawConfig:
         try:
             loaded = yaml.safe_load(source_text)
         except yaml.YAMLError as exc:
-            raise UsageError(f"{path} is not valid YAML: {exc}") from exc
+            # Parser messages contain the original YAML source, including secrets.
+            # Only the numeric location from PyYAML's marks is safe to expose.
+            mark = getattr(exc, "problem_mark", None)
+            if mark is None:
+                mark = getattr(exc, "context_mark", None)
+            location = ""
+            if mark is not None:
+                line = getattr(mark, "line", None)
+                column = getattr(mark, "column", None)
+                if type(line) is int and line >= 0 and type(column) is int and column >= 0:
+                    location = f" at line {line + 1}, column {column + 1}"
+            raise UsageError(f"{path}: invalid YAML syntax{location}") from None
         if loaded is None and all(
             not line.strip() or line.lstrip().startswith("#") for line in source_text.splitlines()
         ):
