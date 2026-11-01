@@ -246,6 +246,59 @@ def _finish(value: dict[str, Any], reason: str, instant: datetime) -> None:
     value.update(finished=True, stop_reason=reason)
 
 
+def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
+    """Finish an admitted donor before rotating to another pending receiving need.
+
+    A serial first-need queue can exhaust the whole shared budget before any
+    later need is investigated. The reservation/result event chain is the
+    scheduler cursor: no second mutable progress counter is required.
+    """
+    pending = [row for row in value["needs"] if row["status"] == "pending"]
+    if not pending:
+        return None
+    previous = next(
+        (
+            event["record"]
+            for event in reversed(value["events"])
+            if event["record"].get("kind") == "reserved-action"
+        ),
+        None,
+    )
+    if previous is None:
+        return pending[0]
+    active = next((row for row in pending if row["id"] == previous["need"]), None)
+    completed = next(
+        (
+            event["record"]
+            for event in reversed(value["events"])
+            if event["record"].get("kind") == "action-result"
+            and event["record"]["receipt"].get("attempt") == previous["attempt"]
+        ),
+        None,
+    )
+    if completed is None:
+        return active or pending[0]
+    action = previous["action"]
+    result = completed["receipt"]["result"]
+    donor_boundary = (
+        action == "decide"
+        or action == "acquire"
+        and result.get("status") in {"unavailable", "license-held", "unsupported"}
+        or action == "search"
+        and (active is None or active["phase"] == "search")
+    )
+    if not donor_boundary:
+        return active or pending[0]
+    previous_index = next(
+        index for index, row in enumerate(value["needs"]) if row["id"] == previous["need"]
+    )
+    for advance in range(1, len(value["needs"]) + 1):
+        row = value["needs"][(previous_index + advance) % len(value["needs"])]
+        if row["status"] == "pending":
+            return row
+    return None
+
+
 def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
@@ -272,7 +325,7 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                     "previous attempt may have consumed provider effects; do not repeat blindly"
                 )
             return lease
-        need = next((row for row in value["needs"] if row["status"] == "pending"), None)
+        need = _pending_need(value)
         if need is None:
             reason = (
                 "scoped-goals-met"
