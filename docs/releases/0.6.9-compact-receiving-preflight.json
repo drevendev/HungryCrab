@@ -1,13 +1,17 @@
 {
   "schema": "hungry-crab.receiving-qualification-preflight/1",
   "status": "Owned receiving snapshot for compact protocol before new measured arms",
-  "pending_observed_as_of": "2026-11-01T13:27:13.063Z",
+  "pending_observed_as_of": "2026-11-01T14:28:04.556Z",
   "receiving": {
     "HungryCrab": {
       "sha": "1b764cfc6987f9b692c2ecab7615c99282ffd0ec",
       "target_sha": "workflow-head",
       "target": "Exact explicitly supplied owned workflow head, independently verified against canonical #539 before export",
       "pending": [
+        {
+          "number": 550,
+          "sha": "6d6ae0d0c0a06ba2eb8aff65b9c8c405cceee4a5"
+        },
         {
           "number": 539,
           "sha": "workflow-head"
@@ -81,14 +85,12 @@
       ]
     },
     "BeautifulRepo": {
-      "sha": "a2f5877993fb841b8c0d08ce709e121d36a530ee",
+      "sha": "600fbae1986909efa915ce4b2b9f66d13cf5aac7",
       "target": "Current default at captured metadata time; previously proposed work remains known",
       "pending": []
     }
   },
-  "candidate_source_identity": {
-    "version": "0.6.9.dev0",
-    "source_sha256": "9f5660b9195736b31239998fb04f793a6f8b516ecea3949b7574c4192a8d50f6"
-  },
-  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged."
+  "candidate_source_identity": "4ba04effe7a9b839f76f1d448f68eed39e2497d59153416cf450e13fc77e17ec",
+  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged.",
+  "pre_inference_refresh": "First acquisition 41315975901 refused changed BeautifulRepo default before any model. Partial receipts retained. All current pending metadata refreshed, including newly opened550, whose full two-file diff was reviewed and integrated preserving author. Acquire again before sealing."
 }

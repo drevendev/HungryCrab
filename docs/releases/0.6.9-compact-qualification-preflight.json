@@ -484,10 +484,7 @@
       "setup_exposure": "Repository/ref metadata only before nomination; no source body supplied to the new investigators. Prior same-pool upstream/wrapper relationships remain explicit."
     }
   ],
-  "candidate_source_identity": {
-    "version": "0.6.9.dev0",
-    "source_sha256": "9f5660b9195736b31239998fb04f793a6f8b516ecea3949b7574c4192a8d50f6"
-  },
+  "candidate_source_identity": "4ba04effe7a9b839f76f1d448f68eed39e2497d59153416cf450e13fc77e17ec",
   "baseline": {
     "version": "0.6.8",
     "commit": "915779769747908a14b1a0f7fdecdd79d16dce43"
@@ -559,5 +556,14 @@
   ],
   "safety": "No donor program/test/build/hook/installer execution. No publication, model scheduler, merge, tag or release from acquisition. Currency and setup/engineering cost unknown.",
   "remaining": "Freeze actual current receiving/default/pending contexts, new needs and full artifacts after deterministic/calibration checks and before either measured arm; unchanged535 precision/gain/safety gates.",
-  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged."
+  "post_nomination_amendment": "Before any new cohort inference: per-case receiving-call witnesses, pinned case runner and explicit harness/serialization error holds; review retains these proof limits. Pool, budgets and acceptance thresholds unchanged.",
+  "open_pr_delta": "PR550, opened after prior snapshot, reviewed and integrated before any new cohort inference; tested full final source.",
+  "pre_inference_pin_reconciliation": [
+    {
+      "repository": "beetbox/confuse",
+      "nominated": "bf42783301ac4e9c640328ec95486952fd599ce6",
+      "acquired": "23bc86a0800caba7bbd848fbee3631346520a828",
+      "reason": "Natural default advance observed in no-model acquisition; explicit reconciliation before either arm; no source judgment supplied."
+    }
+  ]
 }
