@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.receiving-qualification-preflight/1",
   "status": "Fresh owned receiving setup; metadata observed before new measured arms",
-  "pending_observed_as_of": "2026-11-01T10:17:27.354Z",
+  "pending_observed_as_of": "2026-11-01T11:49:34.601Z",
   "receiving": {
     "HungryCrab": {
       "sha": "1b764cfc6987f9b692c2ecab7615c99282ffd0ec",
@@ -83,7 +83,12 @@
     "BeautifulRepo": {
       "sha": "653a0ee45ba94c5ca44eef6993407a322fc1e9e3",
       "target": "Current default including the merged earlier source-span proposal",
-      "pending": []
+      "pending": [
+        {
+          "number": 228,
+          "sha": "ef2298e235d528db6aa98d3a1ee397aa848b9375"
+        }
+      ]
     }
   },
   "candidate_source_identity": "d7b6b5a014d9d13dac6bc0765c7e0b835209e181fe57027dcac5732d6e9072b9"
