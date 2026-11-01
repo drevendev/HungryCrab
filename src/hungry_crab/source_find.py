@@ -81,6 +81,10 @@ def find_source(
         )
     )
     matches: list[dict[str, Any]] = []
+
+    def rank(row: dict[str, Any]) -> tuple[int, int, str, int]:
+        return (-row["score"], -int(row["declaration_like"]), row["path"], row["line"])
+
     inspected = used = matching_lines = 0
     for path in eligible:
         if inspected >= max_files or used >= max_bytes or reader.expired():
@@ -118,12 +122,19 @@ def find_source(
                     "line_count": len(lines),
                     "terms": hit,
                     "score": sum(len(t) for t in hit),
+                    "declaration_like": bool(
+                        re.match(
+                            r"\s*(?:(?:pub|public|private|protected|static|async|export|final)\s+)*"
+                            r"(?:def|class|fn|function|struct|enum|interface|type|trait)\s+",
+                            line,
+                        )
+                    ),
                 }
             )
             if len(matches) >= 256:
-                matches.sort(key=lambda r: (-r["score"], r["path"], r["line"]))
+                matches.sort(key=rank)
                 del matches[128:]
-    matches.sort(key=lambda r: (-r["score"], r["path"], r["line"]))
+    matches.sort(key=rank)
     selected: list[dict[str, Any]] = []
     # Prefer distinct files before additional locations in a single file.
     for distinct in (True, False):
@@ -152,6 +163,10 @@ def find_source(
         "read_limits": {"files": max_files, "bytes": max_bytes, "seconds": 30},
         "coverage": "bounded-literal-search; strings/comments may match; not semantic coverage",
         "file_order": "source-code-first; literal-path-then-name; other-files-retained",
+        "match_order": (
+            "literal-specificity, declaration-like text, path and physical line; "
+            "declaration-like is a text heuristic, not syntax proof"
+        ),
         "donor_executed": False,
         "license_permission": "not-established",
     }

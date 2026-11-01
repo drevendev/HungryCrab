@@ -11,8 +11,28 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
-from qualification_review import packet, project_case
+from qualification_review import packet, project_case, share_exact_evidence
 from research_host import write
+
+
+def test_shared_evidence_roundtrips_exact_values_and_refuses_ambiguous_input() -> None:
+    repeated = {"code": "def f():\n    return 1\n" * 6, "sha": "a" * 64}
+    original = {"runs": [repeated, repeated, repeated], "plain": None}
+    encoded = share_exact_evidence(original)
+
+    def expand(value: Any) -> Any:
+        if isinstance(value, dict):
+            if set(value) == {"$shared_evidence"}:
+                return expand(encoded["shared_evidence"][value["$shared_evidence"]])
+            return {k: expand(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [expand(v) for v in value]
+        return value
+
+    assert expand(encoded["evidence"]) == original
+    assert len(json.dumps(encoded)) < len(json.dumps(original))
+    with pytest.raises(ValueError, match="reserved"):
+        share_exact_evidence({"nested": {"$shared_evidence": "E1"}})
 
 
 def test_case_projection_retains_original_data_actual_calls_and_hashes(tmp_path: Path) -> None:

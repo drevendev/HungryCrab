@@ -86,6 +86,7 @@ def run_worker(
     token_limit: int = 30000,
     seconds: int = 2700,
     output_characters: int = 24000,
+    constrained_output: bool = True,
 ) -> dict[str, Any]:
     """Run one fresh ephemeral context, preserving actual usage and overruns.
 
@@ -93,6 +94,12 @@ def run_worker(
     below additionally counts it and stops before further tools when possible.
     A model response may overshoot: record the actual use and fail qualification.
     """
+    if output_schema is not None and not constrained_output:
+        prompt += (
+            "\nReturn exactly one complete JSON object matching this host-validated contract. "
+            "No Markdown, commentary or trailing material. Schema constraints remain mandatory:\n"
+            + json.dumps(output_schema, ensure_ascii=False, separators=(",", ":"))
+        )
     output.mkdir(parents=True, exist_ok=False)
     env = os.environ.copy()
     for key in ("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
@@ -102,7 +109,12 @@ def run_worker(
     messages: list[str] = []
     tool_calls = 0
     started = time.monotonic()
-    result: dict[str, Any] = {"currency": None, "usage": None, "status": "host-unavailable"}
+    result: dict[str, Any] = {
+        "currency": None,
+        "usage": None,
+        "status": "host-unavailable",
+        "answer_transport": "constrained" if constrained_output else "host-validated-json/v1",
+    }
     with (output / "stderr.log").open("w", encoding="utf-8") as stderr:
         process = subprocess.Popen(
             native_command(token_limit),
@@ -202,7 +214,7 @@ def run_worker(
                 }
                 if effort is not None:
                     turn_params["effort"] = effort
-                if output_schema is not None:
+                if output_schema is not None and constrained_output:
                     turn_params["outputSchema"] = output_schema
                 turn = call(3, "turn/start", turn_params)
                 turn_id = turn["turn"]["id"]

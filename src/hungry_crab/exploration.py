@@ -590,6 +590,13 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             "reason",
         ):
             _text(finding, key)
+        if "source_behavior" in finding:
+            _text(finding, "source_behavior")
+        source_behavior = finding.get(
+            "source_behavior",
+            "Observed donor behavior was not separately recorded. The proposed receiving "
+            "change is not evidence that the donor implements it; review the cited source.",
+        )
         if re.fullmatch(r"code\.[a-z0-9][a-z0-9._-]{0,100}", finding["key"]) is None:
             raise CrabError("behavior key must be stable and maw-relative: code.<behavior>")
         source, receiving = finding.get("source_evidence"), finding.get("maw_evidence")
@@ -662,11 +669,11 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
             category="code",
             key=finding["key"],
             title=finding["title"],
-            what=finding["behavior"],
+            what=source_behavior,
             origin="licensed",
             license_mode=mode,
             license_policy_reason=reason,
-            prey_state=finding["behavior"],
+            prey_state=source_behavior,
             maw_state=finding["gap"],
             why=finding["gap"],
             how=(
@@ -690,6 +697,7 @@ def register(directory: Path, finding: dict[str, Any], *, source_repo: Path) -> 
                 "license_relationship": "foreign",
                 "license_review_required": legal.human_review,
                 "exploration_snapshot": directory.name,
+                "source_behavior_recorded": "source_behavior" in finding,
                 "path_license": path_license,
                 "source_path_grants": [grant.to_dict() for grant in path_grants],
             },

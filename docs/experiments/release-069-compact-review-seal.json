@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "sealed_at": "2026-11-01T15:00:14.683499+00:00",
+  "protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+    "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "input_projection": "Deduplicated common implementation context and all actual cited windows. Probe projection retains actual per-check observations, exceptions, original JSON inputs, actual call witnesses and raw result/receipt/stdout hashes; full return objects stay in retained raw files. No source-level supervisor review. All observations retained. Maximum63000 promptUTF8bytes before inference; same bound botharms.",
+  "model_calls_before_review_seal": 0,
+  "pre_inference_amendment": "Original68,442byte Crab packet was refused before any review inference. Exact repeated JSON values are now losslessly interned, round-trip verified; all original packets/cited windows/observations/proofs retained, same63kbyte/30ktoken caps. Trial host unchanged and failed unknown-usage baseline retained.",
+  "hashes": {
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "4caa719c5839c5b01a901f14da3aacb9f42f938de86130feb6916ecb7c6d5a84",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "cdf8c0b92760980d3fd6206fe256b1ffa115b1584cb8a21275fe9a2eea68eb84",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\sealed.json": "0fa3f26654dd76d7b8e15e6d06cf5151114cb546134c3012c1d4e691014cc31a",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\crab-1\\input.json": "df4bc21cb98925fc88afd513abf6d1012a20f9e76d4d57cac8e346cd361cb225",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\crab-1\\private-mapping.json": "cfecda2319b4be239c5d3c64ad051b25ded48f3a0df46a56dada00a6a97cec93",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\crab-2\\input.json": "3ff57719c48fbe67aea2eae148b617f01a26c98e6476560b6733e6dc1b97bbfa",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\crab-2\\private-mapping.json": "d521b338303c3bda17420bee053ce8c65c45a5a9e82de0116c8d69bcbd002c4d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\devostasis-1\\input.json": "d78d4b62b85128fa83937ac3bfa996248c5e885b47f4f0498a394dc942d2df39",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\devostasis-1\\private-mapping.json": "98461d77b2ff98825b8fc8677c7688f7479898ed99d78752f395494c7f8d7d2a",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\devostasis-2\\input.json": "bb746ed23391e01a8fb56d2f7f9ddc50186d481ccaa556c55b0c95077c17c8d7",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\devostasis-2\\private-mapping.json": "df176a8ae3e4e83d52b6bdb08c08bf4aa0aed499a454e6fcf52a5e2d3ffdef86",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\beautifulrepo-1\\input.json": "0e56fa82c313328ce7abf36f7f667859c9ae6b82294cef0cdbcae15c3a1f9602",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\beautifulrepo-1\\private-mapping.json": "238349783c00e74279602f299d16ac433200b3868033ce0533b52715f4ff022d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\beautifulrepo-2\\input.json": "0e56fa82c313328ce7abf36f7f667859c9ae6b82294cef0cdbcae15c3a1f9602",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact\\independent-review-v3\\beautifulrepo-2\\private-mapping.json": "238349783c00e74279602f299d16ac433200b3868033ce0533b52715f4ff022d"
+  }
+}

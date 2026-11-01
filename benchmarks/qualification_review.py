@@ -16,9 +16,71 @@ from typing import Any
 
 from qualification_native import run_worker
 from research_host import identity, read, strict, write
+from semantic_json import parse_answer
 
 from hungry_crab.attribution import GitSourceReader
 from hungry_crab.licensing.path_grants import GrantResolver
+
+
+def share_exact_evidence(payload: Any) -> dict[str, Any]:
+    """Intern exact repeated JSON values without deleting any evidence."""
+    counts: dict[str, int] = {}
+    values: dict[str, Any] = {}
+
+    def collect(value: Any) -> None:
+        if isinstance(value, dict):
+            if "$shared_evidence" in value:
+                raise ValueError("reserved evidence reference key in original data")
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+        if isinstance(value, dict | list | str):
+            size = len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode())
+            if size >= 40:
+                key = identity(value)
+                counts[key] = counts.get(key, 0) + 1
+                values[key] = value
+
+    collect(payload)
+    selected = {
+        key: "E" + str(index)
+        for index, key in enumerate(
+            sorted(
+                key
+                for key, count in counts.items()
+                if count >= 3
+                or (
+                    count == 2
+                    and len(
+                        json.dumps(values[key], ensure_ascii=False, separators=(",", ":")).encode()
+                    )
+                    >= 128
+                )
+            ),
+            1,
+        )
+    }
+
+    def encode(value: Any, *, root: bool = False) -> Any:
+        key = identity(value)
+        if not root and key in selected:
+            return {"$shared_evidence": selected[key]}
+        if isinstance(value, dict):
+            return {k: encode(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [encode(v) for v in value]
+        return value
+
+    return {
+        "encoding": (
+            "Exact JSON values only; resolve every $shared_evidence reference in the table. "
+            "No evidence is omitted or semantically merged."
+        ),
+        "evidence": encode(payload, root=True),
+        "shared_evidence": {selected[key]: encode(values[key], root=True) for key in selected},
+    }
 
 
 def project_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -249,10 +311,12 @@ def main() -> None:
     parser.add_argument("reviewer", type=int, choices=[1, 2])
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--output-root", type=Path)
     args = parser.parse_args()
     plan = read(args.plan)
     payload, mapping = packet(plan, args.batch, args.reviewer)
-    root = args.plan.parent / "independent-review-v2" / f"{args.batch}-{args.reviewer}"
+    output = args.output_root or args.plan.parent / "independent-review-v2"
+    root = output / f"{args.batch}-{args.reviewer}"
     if args.prepare_only:
         root.mkdir(parents=True, exist_ok=False)
         write(root / "input.json", payload)
@@ -318,7 +382,7 @@ def main() -> None:
         "Use the SAME concise canonical_change phrase for equivalent receiving changes across "
         "runs/donors; mark duplicate records while recognizing their underlying valid change. "
         "Explain uncertainty honestly. No other reviewer judgment is supplied. Strict JSON only.\n"
-        + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        + json.dumps(share_exact_evidence(payload), ensure_ascii=False, separators=(",", ":"))
     )
     size = len(prompt.encode())
     print(
@@ -341,11 +405,18 @@ def main() -> None:
         model=protocol["model"],
         effort=protocol["effort"],
         output_schema=schema,
+        constrained_output=False,
         token_limit=protocol["model_tokens"],
         seconds=protocol["seconds"],
     )
     valid = result["status"] == "completed" and result["usage_complete"] and result["budget_valid"]
-    verdict = json.loads(result["messages"][-1]) if valid else {"review_unavailable": True}
+    try:
+        verdict = (
+            parse_answer(result["messages"][-1], schema) if valid else {"review_unavailable": True}
+        )
+    except (ValueError, IndexError):
+        valid = False
+        verdict = {"review_unavailable": True, "reason": "completed answer failed host contract"}
     write(root / "verdict.json", verdict)
     print(
         json.dumps(

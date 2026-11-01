@@ -145,7 +145,13 @@ class Meter:
         return self.limit - int(self.data["tokens"])
 
     def admission(self, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
-        request = {"prompt": prompt, "schema": schema, "model": self.model, "effort": self.effort}
+        request = {
+            "prompt": prompt,
+            "schema": schema,
+            "model": self.model,
+            "effort": self.effort,
+            "transport": "host-validated-json/v1",
+        }
         # Known-control receipts observed about 4.6k native-prefix tokens.
         # Reserve 6.5k for prefix/reply plus conservative request bytes/3.
         # This remains admission only; actual overshoots invalidate the trial.
@@ -164,7 +170,13 @@ class Meter:
         self, name: str, prompt: str, schema: dict[str, Any], *, attempt: str | None
     ) -> dict[str, Any] | None:
         directory = self.root / name
-        request = {"prompt": prompt, "schema": schema, "model": self.model, "effort": self.effort}
+        request = {
+            "prompt": prompt,
+            "schema": schema,
+            "model": self.model,
+            "effort": self.effort,
+            "transport": "host-validated-json/v1",
+        }
         signature = identity(request)
         existing = next((r for r in self.data["stages"] if r["name"] == name), None)
         if existing and (existing["signature"] != signature or existing["attempt"] != attempt):
@@ -204,6 +216,7 @@ class Meter:
                 model=self.model,
                 effort=self.effort,
                 output_schema=schema,
+                constrained_output=False,
                 token_limit=self.remaining,
                 seconds=max(1, int(left)),
             )
@@ -225,7 +238,15 @@ class Meter:
             write(self.path, self.data)
         if not complete or not result["budget_valid"] or self.data["tokens"] > self.limit:
             return None
-        return dict(json.loads(result["messages"][-1]))
+        from semantic_json import parse_answer
+
+        try:
+            return parse_answer(result["messages"][-1], schema)
+        except (ValueError, IndexError) as error:
+            row["output_validation_error"] = type(error).__name__ + ": " + str(error)[:160]
+            self.data["last_stop_reason"] = "model-output-invalid"
+            write(self.path, self.data)
+            return None
 
     def _settle(self, name: str, attempt: str | None, tokens: int | None) -> None:
         if self.session is not None and self.commands is not None:
