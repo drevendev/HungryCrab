@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from fixture_builder import git
-from qualification_receiving import pending_pins, selected_pin
+from qualification_receiving import bind_integration_head, pending_pins, selected_pin
 from test_discovery_inputs import repository
 
 from hungry_crab.errors import ExternalCommandError
@@ -91,3 +91,19 @@ def test_pending_collection_retains_exact_canonical_bindings() -> None:
     rows = [{"number": 75, "sha": "a" * 40}, {"number": 81, "sha": "a" * 40}]
     assert pending_pins({"pending": rows}) == rows
     assert pending_pins({}) == []
+
+
+def test_self_referencing_integration_requires_explicit_pin_and_keeps_plan() -> None:
+    original = {
+        "integration_head": True,
+        "target_pull_request": 539,
+        "target_sha": "workflow-head",
+        "pending": [{"number": 539, "sha": "workflow-head"}],
+    }
+    bound = bind_integration_head(original, "HungryCrab", "a" * 40)
+    assert bound["target_sha"] == "a" * 40
+    assert pending_pins(bound) == [{"number": 539, "sha": "a" * 40}]
+    assert original["target_sha"] == "workflow-head"
+    for name, head in (("Devostasis", "a" * 40), ("HungryCrab", "HEAD"), ("HungryCrab", None)):
+        with pytest.raises(ValueError, match="explicit owned immutable"):
+            bind_integration_head(original, name, head)

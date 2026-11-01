@@ -379,5 +379,6 @@
     "replacement_rounds": 2
   },
   "models_started": 0,
-  "donor_execution": false
+  "donor_execution": false,
+  "candidate_source_identity": "d33dd8041bb3a31ae5ab06557d9ee41d7b3cac4498981505228d47355998dbf7"
 }

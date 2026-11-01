@@ -86,18 +86,46 @@ def pending_pins(plan: dict[str, Any]) -> list[dict[str, Any]]:
     return pending
 
 
+def bind_integration_head(plan: dict[str, Any], name: str, head: str | None) -> dict[str, Any]:
+    """Bind the self-referencing PR to an explicitly supplied immutable CI head.
+
+    A committed plan cannot contain its own future commit hash. This opt-in is
+    restricted to the owned #539 qualification; canonical fetch/selected_pin
+    still verifies exact equality before exporting or sealing any evidence.
+    """
+    if not plan.get("integration_head"):
+        return plan
+    if (
+        plan["integration_head"] is not True
+        or name != "HungryCrab"
+        or plan.get("target_pull_request") != 539
+        or not isinstance(head, str)
+        or re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", head) is None
+    ):
+        raise ValueError("integration binding requires the explicit owned immutable workflow head")
+    return {
+        **plan,
+        "target_sha": head,
+        "pending": [
+            {**r, "sha": head if r.get("number") == 539 else r.get("sha")}
+            for r in plan.get("pending", [])
+        ],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--volume", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--integration-head", help="explicit owned #539 workflow commit SHA")
     args = parser.parse_args()
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
     args.output.mkdir(parents=True, exist_ok=False)
     cache = args.volume / "receiving-cache"
     receipts = []
     for name in ("HungryCrab", "Devostasis", "BeautifulRepo"):
-        planned = plan["receiving"][name]
+        planned = bind_integration_head(plan["receiving"][name], name, args.integration_head)
         target_branch, target_pull, _ = target_plan(planned)
         pending = pending_pins(planned)
         slug = Slug("drevendev", name)
