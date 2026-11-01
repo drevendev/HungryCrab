@@ -1,0 +1,43 @@
+{
+  "tool": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "9f5660b9195736b31239998fb04f793a6f8b516ecea3949b7574c4192a8d50f6"
+  },
+  "role": "Re-execution of retained original exposed fixtures only; no new inference or release findings",
+  "new_model_tokens": 0,
+  "original_model_cost": "Retained in release-069-compact-calibration.json; not erased or counted again",
+  "results": [
+    {
+      "name": "unbounded",
+      "original_input_sha256": "75e809efabea0b05ab2da8d861f62076fce0bb5dcfa1ff2b58dc0d9cf96d8d2b",
+      "receipt": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\current-runner-fixtures-v3\\unbounded\\receipt.json",
+      "receipt_sha256": "581b2eee0ff22d03cb7027dd0640b0f879181c540879bb87dbd361a4587a6390",
+      "actual_target_called": [
+        true,
+        true
+      ],
+      "target_assertions": [
+        false
+      ],
+      "positive_assertions": [
+        true
+      ]
+    },
+    {
+      "name": "already-safe",
+      "original_input_sha256": "a8f182de53dedd0ce6fc6f2a2691b48d88452c2eceb6e713ca69807d1ae2b58b",
+      "receipt": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-compact-calibration\\current-runner-fixtures-v3\\already-safe\\receipt.json",
+      "receipt_sha256": "ab151464b0d2723f40e323faa17c89dd1c76a7341fd0e488ff043747bc1cd5a6",
+      "actual_target_called": [
+        true,
+        true
+      ],
+      "target_assertions": [
+        true
+      ],
+      "positive_assertions": [
+        true
+      ]
+    }
+  ]
+}

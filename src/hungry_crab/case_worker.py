@@ -12,7 +12,52 @@ import sys
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from types import FrameType
+from typing import Any, Literal
+
+
+class CallWitness:
+    """Observe only this case's main invocation, chaining the outer trusted trace."""
+
+    def __init__(self, path: Path, qualified_name: str) -> None:
+        self.path = str(path.resolve())
+        self.qualified_name = qualified_name
+        self.called = False
+        self.previous = sys.getprofile()
+        self.filenames: dict[str, str] = {}
+
+    def exception_origin(self, error: Exception, root: Path) -> str:
+        """Do not attribute a serializer/factory failure to the receiving code."""
+        trace = error.__traceback__
+        runner = Path(__file__).resolve()
+        for _ in range(128):
+            if trace is None:
+                return "verification-harness"
+            filename = Path(trace.tb_frame.f_code.co_filename)
+            if filename.is_absolute():
+                path = filename.resolve()
+                if path != runner and path.is_relative_to(root):
+                    return "receiving"
+            trace = trace.tb_next
+        return "unknown-traceback-bound"
+
+    def __call__(
+        self,
+        frame: FrameType,
+        event: Literal["call", "return", "c_call", "c_return", "c_exception"],
+        arg: Any,
+    ) -> None:
+        if event == "call":
+            name = frame.f_code.co_filename
+            if name not in self.filenames:
+                self.filenames[name] = str(Path(name).resolve())
+            if (
+                self.filenames[name] == self.path
+                and frame.f_code.co_qualname == self.qualified_name
+            ):
+                self.called = True
+        if self.previous is not None:
+            self.previous(frame, event, arg)
 
 
 class BoundedStream(io.BytesIO):
@@ -93,11 +138,23 @@ def execute(plan: dict[str, Any], root: Path) -> None:
                     return [decode(v) for v in value]
                 return value
 
+            witness = CallWitness(root / path, target["qualified_name"])
+
             try:
-                value = function(*decode(case.get("args", [])), **decode(case.get("kwargs", {})))
-                actual = {"value": encode(value)}
+                # Helpers/argument factories are outside the main-call witness.
+                # A control/helper call must not mask a target's arity failure.
+                args, kwargs = decode(case.get("args", [])), decode(case.get("kwargs", {}))
+                sys.setprofile(witness)
+                try:
+                    value = function(*args, **kwargs)
+                    actual = {"value": encode(value)}
+                finally:
+                    sys.setprofile(witness.previous)
             except Exception as exc:
-                actual = {"exception": {"type": type(exc).__name__, "message": str(exc)[:1000]}}
+                actual = {
+                    "exception": {"type": type(exc).__name__, "message": str(exc)[:1000]},
+                    "exception_origin": witness.exception_origin(exc, root.resolve()),
+                }
             checks = []
             for check in case["checks"]:
                 observed: Any = actual
@@ -135,6 +192,7 @@ def execute(plan: dict[str, Any], root: Path) -> None:
                     "label": case["label"],
                     "role": case["role"],
                     "actual": actual,
+                    "target_called": witness.called,
                     "checks": checks,
                     "passed": all(c["passed"] for c in checks),
                 }
