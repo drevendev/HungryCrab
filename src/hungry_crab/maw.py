@@ -234,22 +234,31 @@ class _DuplicateYamlMappingKey(yaml.YAMLError):
 class _UniqueKeySafeLoader(yaml.SafeLoader):
     """Use only safe YAML constructors and reject explicit duplicate keys at any depth."""
 
-    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Any, Any]:
-        if isinstance(node, yaml.MappingNode):
+    def flatten_mapping(self, node: yaml.MappingNode) -> None:
+        # SafeLoader recursively flattens inline YAML merge sources without calling
+        # construct_mapping on them. Check each original mapping before flattening.
+        checked: set[int] | None = getattr(self, "_checked_duplicate_nodes", None)
+        if checked is None:
+            checked = set()
+            self._checked_duplicate_nodes = checked
+        if id(node) not in checked:
+            checked.add(id(node))
             seen: set[Any] = set()
             for key_node, _ in node.value:
-                # Standard YAML merge overrides are not repeated explicit keys.
+                # Merge-provided keys may be overridden by one explicit key.
                 if key_node.tag == "tag:yaml.org,2002:merge":
                     continue
-                key = self.construct_object(key_node, deep=deep)
+                if key_node.tag == "tag:yaml.org,2002:value":
+                    key_node.tag = "tag:yaml.org,2002:str"
+                key = self.construct_object(key_node, deep=True)
                 try:
                     if key in seen:
                         raise _DuplicateYamlMappingKey(key_node.start_mark)
                     seen.add(key)
                 except TypeError:
-                    # Keep SafeLoader's existing error for unsupported mapping keys.
-                    return super().construct_mapping(node, deep=deep)
-        return super().construct_mapping(node, deep=deep)
+                    # SafeLoader will raise its usual unhashable-key error.
+                    break
+        super().flatten_mapping(node)
 
 
 @dataclass
