@@ -52,6 +52,14 @@ _CODE_SUFFIXES = frozenset(
 )
 
 
+def path_role(path: str) -> str:
+    """Disclosed filename convention, never proof of runtime use or non-use."""
+    parts = {part.casefold() for part in Path(path).parts}
+    if parts & {".idea", ".vscode", ".vs", ".settings", ".phpstorm.meta.php"}:
+        return "editor-metadata"
+    return "source" if Path(path).suffix.casefold() in _CODE_SUFFIXES else "other"
+
+
 def find_source(
     repo: Path,
     sha: str,
@@ -61,6 +69,7 @@ def find_source(
     max_files: int = 64,
     max_bytes: int = 512 * 1024,
     limit: int = 12,
+    focus: str = "implementation",
 ) -> dict[str, Any]:
     """Return ranked actual locations, retaining coverage and truncation facts."""
     if (
@@ -77,6 +86,7 @@ def find_source(
         or not 1 <= limit <= 64
         or not isinstance(prefix, str)
         or (prefix and not _evidence_path(prefix))
+        or focus not in {"implementation", "metadata", "any"}
     ):
         raise CrabError("literal source search requires bounded terms, prefix and limits")
     reader = GitSourceReader(repo, byte_limit=65_536, deadline=time.monotonic() + 30)
@@ -85,11 +95,23 @@ def find_source(
     paths, omissions, available = _source_paths(reader, sha, prefix)
     needles = list(dict.fromkeys(t.casefold().strip() for t in terms))
     eligible = [p for p, _ in paths if not body_excluded(p)]
+
+    def priority(path: str) -> int:
+        role = path_role(path)
+        if focus == "metadata":
+            return int(role != "editor-metadata")
+        return (
+            {"source": 0, "other": 1, "editor-metadata": 2}[role]
+            if focus == "implementation"
+            else 0
+        )
+
     # A source search's finite read allowance should reach implementation/test
     # files before ancillary metadata. Keep every other path eligible and report
     # uninspected counts; this ordering is not a semantic or licence decision.
     eligible.sort(
         key=lambda p: (
+            priority(p),
             Path(p).suffix.casefold() not in _CODE_SUFFIXES,
             -sum(t in p.casefold() for t in needles),
             p,
@@ -97,8 +119,14 @@ def find_source(
     )
     matches: list[dict[str, Any]] = []
 
-    def rank(row: dict[str, Any]) -> tuple[int, int, str, int]:
-        return (-row["score"], -int(row["declaration_like"]), row["path"], row["line"])
+    def rank(row: dict[str, Any]) -> tuple[int, int, int, str, int]:
+        return (
+            priority(row["path"]),
+            -row["score"],
+            -int(row["declaration_like"]),
+            row["path"],
+            row["line"],
+        )
 
     inspected = used = matching_lines = 0
     for path in eligible:
@@ -132,6 +160,7 @@ def find_source(
             matches.append(
                 {
                     "path": path,
+                    "path_role": path_role(path),
                     "sha": sha,
                     "line": number,
                     "line_count": len(lines),
@@ -177,6 +206,7 @@ def find_source(
         "schema": "hungry-crab.source-find/1",
         "sha": sha,
         "terms": terms,
+        "focus": focus,
         "matches": selected,
         "matching_lines_observed": matching_lines,
         "matching_lines_not_returned": matching_lines - len(selected),
@@ -189,9 +219,9 @@ def find_source(
         "omissions_not_returned": max(0, len(omissions) - 80),
         "read_limits": {"files": max_files, "bytes": max_bytes, "seconds": 30},
         "coverage": "bounded-literal-search; strings/comments may match; not semantic coverage",
-        "file_order": "source-code-first; literal-path-then-name; other-files-retained",
+        "file_order": "focus role convention, source-code-first, literal-path/name; all retained",
         "match_order": (
-            "literal-specificity, declaration-like text, path and physical line; "
+            "focus path-role convention, literal-specificity, declaration-like text, path/line; "
             "declaration-like is a text heuristic, not syntax proof"
         ),
         "donor_executed": False,

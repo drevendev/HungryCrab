@@ -48,6 +48,22 @@ crab discover next SESSION
 
 ## Consume the actual leased action
 
+For already acquired candidate metadata, `crab discover seed --input PLAN.json`
+can prepare first leads without a model call. Supply `needs` with `id`/`queries`
+and `candidates` with `repository`, full `sha`, local immutable object `repo`, and
+optional bounded `description`; `limit` defaults to three. The CLI verifies local
+commit availability and reads regular filenames only. Literal association is a
+nomination, not usefulness, novelty, a licence grant or verified provider binding.
+Record the normal leased search/acquisition/inspection receipts afterwards.
+Runtime cases still require original receiving-owned preparation before donor
+source; additive designs require concrete original acceptance at assessment.
+
+`discover find` defaults to implementation navigation: known editor metadata
+paths follow source paths even when they contain more literal names. `focus`
+may be `metadata` or `any` when appropriate. These disclosed filename conventions
+are navigation hints; all eligible paths and omissions remain counted, and no
+runtime authority follows from a path role.
+
 `next` returns `search`, `acquire`, `inspect`, `verify` or `decide`, an owned
 `attempt`, remaining model budget, receiving need and current lead. Execute that
 action and append its actual receipt:

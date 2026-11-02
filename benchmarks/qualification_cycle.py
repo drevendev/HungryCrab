@@ -257,6 +257,50 @@ class Trial:
         return str(self.meter.data.get("last_stop_reason", "model-budget-reserve"))
 
     def planner(self) -> bool:
+        if (
+            self.arm == "candidate"
+            and self.frozen["host"].get("candidate_metadata_seeds") is True
+            and all(n.get("verification_mode") == "design" for n in self.needs)
+        ):
+            # The candidate CLI prepares nominations, not semantic judgments.
+            # Runtime needs still require original pre-donor native case writing.
+            seeds = self.commands.json(
+                ["discover", "seed"],
+                {
+                    "needs": [{"id": n["id"], "queries": n["queries"]} for n in self.needs],
+                    "candidates": [
+                        {
+                            "repository": r["repository"],
+                            "sha": r["sha"],
+                            "repo": r["view"],
+                            "description": r.get("description", "")[:2000],
+                        }
+                        for r in self.pool.values()
+                    ],
+                    "limit": 3,
+                },
+            )
+            write(self.root / "seed-preparation.json", seeds)
+            answer = {}
+            for row in seeds["needs"]:
+                leads = []
+                for seed in row["leads"]:
+                    donor = next(
+                        r
+                        for r in self.pool.values()
+                        if r["repository"] == seed["repository"] and r["sha"] == seed["sha"]
+                    )
+                    leads.append(
+                        {"donor": donor["id"], "terms": seed["terms"], "reason": seed["reason"]}
+                    )
+                answer[row["need"]] = {
+                    "leads": leads,
+                    "cases_json": "",
+                    "probe_reason": "Additive design; original acceptance required at assessment",
+                }
+            self.state.update(plan=answer, phase="cases", seed_preparation="deterministic-cli")
+            self.save()
+            return True
         properties = {}
         for need in self.needs:
             properties[need["id"]] = strict(

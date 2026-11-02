@@ -681,8 +681,36 @@ def _copyright_metadata(line: str) -> bool:
     # cannot turn a sentence after the owner into metadata. Recognize explicit name forms.
     connectors = {"and", "of", "the", "de", "der", "van", "von", "döt"}
     groups = re.split(r" and |,\s+", holder)
+    # Ordinary middle names are attribution too. Bound this extension to three
+    # identifier-shaped name tokens and reject rights/exception-shaped prose;
+    # the complete notice and operative body still pass all other checks.
+    policy_words = {
+        "additional",
+        "applies",
+        "apply",
+        "approval",
+        "attribution",
+        "conditions",
+        "consent",
+        "copyleft",
+        "exception",
+        "exceptions",
+        "obligation",
+        "obligations",
+        "patent",
+        "patents",
+        "retain",
+        "terms",
+    }
     name_form = all(
         0 < sum(word.casefold() not in connectors for word in group.split()) <= 2
+        or (
+            len(group.split()) == 3
+            and all(
+                _attribution_identifier(word) and word.casefold() not in policy_words
+                for word in group.split()
+            )
+        )
         for group in groups
     )
     initials = all(re.fullmatch(r"(?:[A-Z]\.){1,6}", word) for word in words[:-1])

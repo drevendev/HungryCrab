@@ -18,6 +18,33 @@ from qualification_cycle import Trial
 from research_host import Commands
 
 
+def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    donor = repository(tmp_path / "donor", {"stream.py": "VALUE = 7\n"})
+    trial = object.__new__(Trial)
+    trial.arm = "candidate"
+    trial.frozen = {"host": {"candidate_metadata_seeds": True}}
+    trial.needs = [{"id": "intake", "queries": ["stream limit"], "verification_mode": "design"}]
+    trial.pool = {
+        "fixture": {
+            "id": "fixture",
+            "repository": "owned/example",
+            "sha": live_context(donor)["sha"],
+            "view": str(donor),
+        }
+    }
+    trial.root = tmp_path / "trial"
+    trial.root.mkdir()
+    trial.state = {}
+    trial.state_path = trial.root / "state.json"
+    trial.commands = Commands(trial.root / "cli", Path(sys.executable), root)
+    assert trial.planner()
+    assert trial.state["phase"] == "cases"
+    assert trial.state["plan"]["intake"]["cases_json"] == ""
+    assert trial.state["plan"]["intake"]["leads"][0]["donor"] == "fixture"
+    assert json.loads((trial.root / "seed-preparation.json").read_text())["model_calls"] == 0
+
+
 def test_baseline_has_ordinary_literal_lookup_without_candidate_ast_facts(tmp_path: Path) -> None:
     donor = repository(tmp_path / "donor", {"api.py": "# heading\n" * 90 + "VALUE = 7\n"})
     trial = object.__new__(Trial)

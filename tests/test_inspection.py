@@ -142,6 +142,32 @@ def test_literal_find_prefers_declaration_text_over_same_term_imports(tmp_path: 
     assert "text heuristic" in result["match_order"]
 
 
+def test_implementation_focus_keeps_editor_metadata_from_consuming_the_read_budget(
+    tmp_path: Path,
+) -> None:
+    repo = repository(
+        tmp_path / "source",
+        {
+            ".phpstorm.meta.php/types.php": "<?php // HtmlParser HTML_BLOCK TYPE_7\n",
+            "HISTORY.md": "HtmlParser HTML_BLOCK TYPE_7\n",
+            "src/Parser.php": "<?php\nclass HtmlParser {\n public function start() {}\n}\n",
+        },
+    )
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    terms = ["HtmlParser", "HTML_BLOCK", "TYPE_7"]
+    actual = find_source(repo, pin, terms, max_files=1, limit=1)
+    assert actual["matches"][0]["path"] == "src/Parser.php"
+    assert actual["files_not_inspected"] == actual["eligible_files"] - 1
+    assert actual["files_not_inspected"] >= 1
+    metadata = find_source(repo, pin, terms, focus="metadata", max_files=1, limit=1)
+    assert metadata["matches"][0]["path_role"] == "editor-metadata"
+    assert metadata["matches"][0]["path"].startswith(".phpstorm.meta.php/")
+    all_matches = find_source(repo, pin, terms, focus="any", limit=1)
+    assert all_matches["matches"][0]["path_role"] == "editor-metadata"
+    with pytest.raises(CrabError):
+        find_source(repo, pin, terms, focus="runtime-proof")
+
+
 def test_literal_context_hints_are_bounded_and_not_syntax_claims(tmp_path: Path) -> None:
     repo = repository(
         tmp_path / "source",
