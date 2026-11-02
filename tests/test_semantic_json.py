@@ -34,6 +34,7 @@ def test_valid_bounded_answer_is_preserved() -> None:
     )
     assert parse_answer('{"items":[0,2]}', schema) == {"items": [0, 2]}
 
+
 @pytest.mark.parametrize("numeric_kind", ["integer", "number"])
 def test_large_json_integer_is_checked_without_float_conversion(numeric_kind: str) -> None:
     digits = "9" * 400
