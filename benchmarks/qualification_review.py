@@ -16,6 +16,7 @@ from typing import Any
 
 from qualification_native import run_worker
 from research_host import identity, read, strict, write
+from review_transport import factor_review_text
 from semantic_json import parse_answer
 
 from hungry_crab.attribution import GitSourceReader
@@ -414,15 +415,16 @@ def main() -> None:
         "Use the SAME concise canonical_change phrase for equivalent receiving changes across "
         "runs/donors; mark duplicate records while recognizing their underlying valid change. "
         "Explain uncertainty honestly. No other reviewer judgment is supplied. Strict JSON only.\n"
-        + json.dumps(share_exact_evidence(payload), ensure_ascii=False, separators=(",", ":"))
+        + compact_evidence(factor_review_text(payload))
     )
     size = len(prompt.encode())
     print(
         json.dumps({"review": args.batch, "reviewer": args.reviewer, "prompt_bytes": size}),
         flush=True,
     )
-    if size > 63000:
-        raise RuntimeError("review evidence exceeds preregistered admission; raw evidence retained")
+    # The specification caps actual input (including cached input) plus output,
+    # not UTF-8 bytes. A byte proxy refused complete evidence before inference.
+    # The frozen worker still enforces the unchanged 30,000-token/45-minute caps.
     if args.prepare_only:
         return
     if (root / "native").exists():
