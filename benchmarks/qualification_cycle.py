@@ -1524,6 +1524,7 @@ class Trial:
             verification = {"evidence_level": "unrun"}
         if answer["disposition"] == "request-more":
             answer.update(disposition="budget-deferred", evidence_level="unrun")
+            verification = {"evidence_level": "unrun"}
         if gap and (
             answer.get("source_relation", "none") == "none"
             or not answer.get("source_behavior", "").strip()
@@ -1799,6 +1800,33 @@ class Trial:
             prior_stage = label
             for read_round in range(continuation_rounds):
                 if answer["disposition"] != "request-more" or not answer["operations"]:
+                    break
+                if (
+                    self.frozen["host"].get("breadth_before_continuations")
+                    and not any(
+                        answer.get(key, "").strip()
+                        for key in ("adaptation", "maintenance", "acceptance")
+                    )
+                    and any(
+                        other["id"] != need["id"]
+                        and not any(item["need"] == other["id"] for item in self.state["outcomes"])
+                        for other in self.needs
+                    )
+                ):
+                    self.state.setdefault("unassessed_continuations", []).append(
+                        {
+                            "need": need["id"],
+                            "donor": lead["donor"],
+                            "stage": prior_stage,
+                            "operations": answer["operations"],
+                            "original_answer_sha256": identity(answer),
+                            "status": "requested-source; neither read nor reassessed",
+                            "reason": (
+                                "Another frozen receiving need has not reached initial assessment"
+                            ),
+                        }
+                    )
+                    self.save()
                     break
                 next_stage = label + "-continued" + ("-2" if read_round else "")
                 for i, op in enumerate(answer["operations"]):
