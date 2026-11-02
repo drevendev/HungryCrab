@@ -1,0 +1,2512 @@
+{
+  "schema": "hungry-crab.focused-qualification/1",
+  "recorded_at": "2026-11-02T06:41:23.861305+00:00",
+  "status": "Actual receipts; independent agreement and release gates must be evaluated explicitly, not inferred from completion.",
+  "candidate": {
+    "commit": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+    "source_identity": "9325c5739549ba8b17bda15ef953f1a203efab9d6c194181baa5d7a40c543603",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+  "seal_sha256": "9f4b5ebace3e55170c6885ccb87d9c4084df7bde74f937cac2e15e6b7bee56b4",
+  "review_seal": {
+    "schema": 1,
+    "sealed_at": "2026-11-02T06:39:41.612742+00:00",
+    "protocol": {
+      "reviewers": 6,
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "model_tokens": 30000,
+      "seconds": 2700,
+      "transport": "host-validated-json/v1",
+      "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+      "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+    },
+    "input_projection": "Deduplicated common implementation context and all actual cited windows. Probe projection retains actual per-check observations, exceptions, original JSON inputs, actual call witnesses and raw result/receipt/stdout hashes; full return objects stay in retained raw files. No source-level supervisor review. All observations retained. Maximum63000 promptUTF8bytes before inference; same bound botharms.",
+    "model_calls_before_review_seal": 0,
+    "hashes": {
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "5d7c257b2009dfbe90888691434fcad426f9199bb0a113e2d0bda08bc71ae3ee",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "4307cf854a60839a1f433fc8e02b9489fdd5e3d949f6374d3b766935de390319",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\sealed.json": "9f4b5ebace3e55170c6885ccb87d9c4084df7bde74f937cac2e15e6b7bee56b4",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\crab-1\\input.json": "58c5d36dce42c2371299f6f5f5ddad14eed2cb2f72f5786fb030a1f061fbc9c1",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\crab-1\\private-mapping.json": "70ff7e95e22426d826793d0510d533748c3d20ba34dfe9fcb3dced17eed064ee",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\crab-2\\input.json": "bb4db264058ffb5459c8a8caa9a068cb1d54cf16821b8681954c6c6b883c038f",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\crab-2\\private-mapping.json": "d8fcf62f992405c73ef4951faba507ebb4fa1873b1491a84879229157c2ff243",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\devostasis-1\\input.json": "089d65b24ee7f615323cfd8816c1eddbdfcd935c28f46d50e68c19090198054e",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\devostasis-1\\private-mapping.json": "c67437017768625facffcb38f04b5467af78f947c0f57340f1a2d929a4f12a51",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\devostasis-2\\input.json": "f26c05f3249c988eebbe0ad386ee4d938d7fb25adcbe2d9f6a174843e36f931a",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\devostasis-2\\private-mapping.json": "98461d77b2ff98825b8fc8677c7688f7479898ed99d78752f395494c7f8d7d2a",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\beautifulrepo-1\\input.json": "d25a781c40c37648486c24273170bedbff4df455f4c253309a74d73f4b9d18c6",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\beautifulrepo-1\\private-mapping.json": "406834932775655817485a283fed8f72029971bfa46d08073db9ffb18ab6c20f",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\beautifulrepo-2\\input.json": "b7e2f8de7cfc0eb1db8902236440b679d39789153ab28381d31c25658da6a8b9",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\independent-review\\beautifulrepo-2\\private-mapping.json": "92cf4b3f28add3311c2a0ac5c403ecf40b00591504f6c92a40e62fb20f554346"
+    }
+  },
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "stream-utils/raw-body",
+      "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "sindresorhus/get-stream",
+      "sha": "3862b22798bddd61ea3fee18468ab0b7113514d0"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "isaacs/minipass-sized",
+      "sha": "6bfc4bf784d68ae84f61e0ddfb9415d424fc17fd"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "uhop/stream-json",
+      "sha": "0f70a661308d12973b63f1e7ec23c396265a5361"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "json-c/json-c",
+      "sha": "d9b375ff1b4ea0305566527e377ecf6545771e80"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "lloyd/yajl",
+      "sha": "5e3a7856e643b4d6410ddc3f84bc2f38174f2872"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "goccy/go-yaml",
+      "sha": "edee2f91616c6d73112a13e7c0dbde72ce938877"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "yaml/libyaml",
+      "sha": "90a56d4500aa1a1798514c5cb55c3ad4cb095f94"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "mafintosh/length-prefixed-stream",
+      "sha": "47e6f5b6ba62416057d1540930d8f71e29e05e53"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "zserge/jsmn",
+      "sha": "25647e692c7906b96ffd2b05ca54c097948e879c"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "networkx/networkx",
+      "sha": "a325f6a948c0c2959fb48db205fa36534ea9429d"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "dagrejs/graphlib",
+      "sha": "0438a8f5c33d5d5ba1a9028832a0a4313cc7e3e9"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "graphology/graphology",
+      "sha": "65e278f0075de97bee3fce12d10e423752ed395a"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "Qiskit/rustworkx",
+      "sha": "6565c2d1d6573198f067a6a015d1c097011e13bf"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "petgraph/petgraph",
+      "sha": "6b4ee17598daf3237ffe570d526b86f992ef4748"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "anvaka/ngraph.path",
+      "sha": "3dba5d04ace3317b487bee1f6e0e614ae57cd4f5"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "jriecken/dependency-graph",
+      "sha": "a9eb7aa253b857ec7652dddefb48a350af787ef4"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "sverweij/dependency-cruiser",
+      "sha": "5173200de662c89c6ed0fd687e9a62aedaf792a0"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "acrazing/dpdm",
+      "sha": "52ac8b89b90615fc2398c9a95f53cafa33f558dc"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "pahen/madge",
+      "sha": "456057b85c2d063dad9c10147d7686ded4fc5ce5"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "thephpleague/commonmark",
+      "sha": "3164fa3d41d78857384a29e1c606c456cbab9600"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "erusev/parsedown",
+      "sha": "4e433a8d57078645b55d21fd12c887d3ba6ca01e"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "michelf/php-markdown",
+      "sha": "98b12b84b11c3fe488015b11e3b84bd1aaa7d719"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "JetBrains/markdown",
+      "sha": "81ecab69d96be048fd6edb09997392ba4e8c7962"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "JohnSundell/Ink",
+      "sha": "bcc9f219900a62c4210e6db726035d7f03ae757b"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "miyuchina/mistletoe",
+      "sha": "2d404e2c9e3ba41cc2f0409842201f9365960381"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "kivikakk/koino",
+      "sha": "0f10363e02ff575b008f219e54dc30ef8fad55db"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "icyleaf/markd",
+      "sha": "c45af09ff4a8b3afb57f79114ff0eaca0f4a8d03"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "dbuenzli/cmarkit",
+      "sha": "247a041aa63affa6166f0dce6efce6b157c0e803"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "MichaelHatherly/CommonMark.jl",
+      "sha": "a8d69c640da0eaf7fc2538467b8c5f9645785f04"
+    }
+  ],
+  "trials": [
+    {
+      "trial": "crab-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24002,
+      "usage_complete": true,
+      "seconds": 49.49417567253113,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The donor may implement an incremental byte limit with defined overflow and completion semantics that could support the receiving design, but the supplied donor window contains only its option contract.",
+            "reason": "D65f0e156c087d005a34d8213 documents a byte-limit option and decoding controls but does not show where bytes are counted, whether refusal occurs before unbounded accumulation or decoding, or how exact-limit and incomplete input are handled. Read the bounded implementation context before assessing a useful mechanism.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "R5c4baf6e162e809de4526466 confirms that selected receiving code reads the entire UTF-8 file before YAML parsing; the supplied selected/default/confirmed-pending scope shows no byte-intake implementation, but donor-mechanism novelty remains unresolved until its implementation is inspected.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor declares an optional body limit measured in bytes, accepting either a number or a bytes-formatted string, separately from an encoding option that can decode input as UTF-8 or return bytes.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D65f0e156c087d005a34d8213"
+            ],
+            "maw_evidence": [
+              "R5c4baf6e162e809de4526466"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 58,
+                "end": 117,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The donor may implement an incremental byte limit with defined overflow and completion semantics that could support the receiving design, but the supplied donor window contains only its option contract.",
+            "reason": "D65f0e156c087d005a34d8213 documents a byte-limit option and decoding controls but does not show where bytes are counted, whether refusal occurs before unbounded accumulation or decoding, or how exact-limit and incomplete input are handled. Read the bounded implementation context before assessing a useful mechanism.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "R5c4baf6e162e809de4526466 confirms that selected receiving code reads the entire UTF-8 file before YAML parsing; the supplied selected/default/confirmed-pending scope shows no byte-intake implementation, but donor-mechanism novelty remains unresolved until its implementation is inspected.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor declares an optional body limit measured in bytes, accepting either a number or a bytes-formatted string, separately from an encoding option that can decode input as UTF-8 or return bytes.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "src/index.ts",
+                "start": 3,
+                "end": 57
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "path": "src/hungry_crab/maw.py",
+                "start": 296,
+                "end": 328
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 58,
+                "end": 117,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D65f0e156c087d005a34d8213",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "src/index.ts",
+              "start": 3,
+              "end": 57,
+              "content_sha256": "b4bb637e17327ea11f4bc8f7388b934c375ed63eb8af53118bf0ae5c1491d8ac"
+            },
+            {
+              "id": "R5c4baf6e162e809de4526466",
+              "side": "receiving",
+              "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+              "path": "src/hungry_crab/maw.py",
+              "start": 296,
+              "end": 328,
+              "content_sha256": "b9cc2ee98741ec3bf58a078a214a1227137bb83cbcd4856231f5bbd688cf3a83"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "755d8d80afc28def417b191ed05578f9743dc4c1fa6cc06326e598ca643d3552",
+      "native_meter": {
+        "started": 1793600717.8445086,
+        "tokens": 24002,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "1089d3d1e2a1295efa063098f5c735ee2639381214a27758238b5b60ca6f6a0c",
+            "admission_estimate": 13474,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 9722,
+            "native_seconds": 13.625
+          },
+          {
+            "name": "assess-0",
+            "signature": "5bd2333319acdd4ad440b50eaa740e405a984d471ef5a54810ca6eb9f23c98c2",
+            "admission_estimate": 17707,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 14280,
+            "native_seconds": 10.719
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-configuration-byte-intake": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24974,
+      "usage_complete": true,
+      "seconds": 97.41444563865662,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load can enforce a fixed byte-ingestion budget before UTF-8 decoding or YAML parsing, limiting memory intake while preserving ordinary in-budget UTF-8 configuration behavior.",
+            "reason": "The receiving implementation calls Path.read_text before parsing, so the complete file is decoded into text without an intake bound. The donor supplies a concrete transferable mechanism: consume bytes only up to a declared boundary, detect the first excess byte, and refuse immediately rather than buffering the remainder. This is an additive design improvement, not a demonstrated runtime defect. Its receiving benefit is bounded pre-parser allocation and deterministic refusal of oversized maw-owned configuration files.",
+            "adaptation": "Define a receiving-owned maximum configuration size in bytes. Open the configuration as binary and read incrementally until either EOF or one byte beyond that maximum is observed. Accept only after EOF has established that the complete byte sequence is within budget; if any excess byte is observed, close and raise a source-content-free UsageError before UTF-8 decoding and before invoking YAML. Decode an accepted complete sequence strictly as UTF-8, then retain the existing unique-key loader, private YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation path unchanged.",
+            "maintenance": "Keep the byte ceiling as one named receiving policy constant with documentation that the unit is encoded bytes, not characters. Keep the bounded reader local to configuration loading, dependency-free, and ensure the oversized-file diagnostic reports policy and path without file contents. Boundary and UTF-8 regression cases should make later policy changes explicit.",
+            "acceptance": "Original receiving tests establish that: (1) a valid UTF-8 maw configuration whose encoded form is exactly the byte ceiling loads identically to the current path; (2) a valid configuration exceeding the ceiling by one byte is refused with the designated content-free UsageError and a recording YAML loader confirms parsing was not called; (3) a multibyte UTF-8 configuration within the ceiling retains its decoded values, proving the budget counts bytes without changing normal decoding; (4) empty and comment-only in-budget files retain their existing result; and (5) a controlled short-reading binary source is read repeatedly until EOF, while a source that eventually supplies an excess byte is refused, demonstrating that acceptance means a complete EOF-terminated snapshot rather than one short read.",
+            "novelty": "Across the supplied selected, default, and confirmed-pending implementation scope, MawConfig.load still obtains source_text through an unbounded read_text call or equivalent shown declaration, and the complete implementation differences disclose no byte-intake policy. The selected and default load declaration hashes are identical; the other confirmed pending load predates unrelated duplicate-key work and likewise reads the text before parsing. The bounded diagnostic-label and duplicate-key changes address different mechanisms. Thus the scoped byte-ingestion design is not already present or duplicated; unrelated history outside the declared complete scope remains unknown and is unnecessary to this conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor history states that its stream reader fails as soon as emitted bytes exceed a declared length instead of buffering the rest, thereby bounding memory to that length; when both expected length and a separate limit exist, the length overrun is reported first. Its error documentation separately identifies refusal when an entity exceeds a configured limit.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D0f373eba2cff4266c419d1ee",
+              "D0aecc05106a78e9a9c9e67f3"
+            ],
+            "maw_evidence": [
+              "R92505f5e44be7f49bf157db0"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load can enforce a fixed byte-ingestion budget before UTF-8 decoding or YAML parsing, limiting memory intake while preserving ordinary in-budget UTF-8 configuration behavior.",
+            "reason": "The receiving implementation calls Path.read_text before parsing, so the complete file is decoded into text without an intake bound. The donor supplies a concrete transferable mechanism: consume bytes only up to a declared boundary, detect the first excess byte, and refuse immediately rather than buffering the remainder. This is an additive design improvement, not a demonstrated runtime defect. Its receiving benefit is bounded pre-parser allocation and deterministic refusal of oversized maw-owned configuration files.",
+            "adaptation": "Define a receiving-owned maximum configuration size in bytes. Open the configuration as binary and read incrementally until either EOF or one byte beyond that maximum is observed. Accept only after EOF has established that the complete byte sequence is within budget; if any excess byte is observed, close and raise a source-content-free UsageError before UTF-8 decoding and before invoking YAML. Decode an accepted complete sequence strictly as UTF-8, then retain the existing unique-key loader, private YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation path unchanged.",
+            "maintenance": "Keep the byte ceiling as one named receiving policy constant with documentation that the unit is encoded bytes, not characters. Keep the bounded reader local to configuration loading, dependency-free, and ensure the oversized-file diagnostic reports policy and path without file contents. Boundary and UTF-8 regression cases should make later policy changes explicit.",
+            "acceptance": "Original receiving tests establish that: (1) a valid UTF-8 maw configuration whose encoded form is exactly the byte ceiling loads identically to the current path; (2) a valid configuration exceeding the ceiling by one byte is refused with the designated content-free UsageError and a recording YAML loader confirms parsing was not called; (3) a multibyte UTF-8 configuration within the ceiling retains its decoded values, proving the budget counts bytes without changing normal decoding; (4) empty and comment-only in-budget files retain their existing result; and (5) a controlled short-reading binary source is read repeatedly until EOF, while a source that eventually supplies an excess byte is refused, demonstrating that acceptance means a complete EOF-terminated snapshot rather than one short read.",
+            "novelty": "Across the supplied selected, default, and confirmed-pending implementation scope, MawConfig.load still obtains source_text through an unbounded read_text call or equivalent shown declaration, and the complete implementation differences disclose no byte-intake policy. The selected and default load declaration hashes are identical; the other confirmed pending load predates unrelated duplicate-key work and likewise reads the text before parsing. The bounded diagnostic-label and duplicate-key changes address different mechanisms. Thus the scoped byte-ingestion design is not already present or duplicated; unrelated history outside the declared complete scope remains unknown and is unnecessary to this conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor history states that its stream reader fails as soon as emitted bytes exceed a declared length instead of buffering the rest, thereby bounding memory to that length; when both expected length and a separate limit exist, the length overrun is reported first. Its error documentation separately identifies refusal when an entity exceeds a configured limit.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "HISTORY.md",
+                "start": 37,
+                "end": 90
+              },
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "docs/errors.md",
+                "start": 28,
+                "end": 55
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "path": "src/hungry_crab/maw.py",
+                "start": 296,
+                "end": 328
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: source paths have differing or unresolved applicable licences\ncrab: hint: unresolved operative root grant; unresolved operative root grant\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\trials\\crab-candidate-1\\acceptance-0.md",
+              "sha256": "551e9b01b9e4d7446e0528870db9740e1ce69ffb49deb724b673dc6f22deb2a9",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\maws-v2\\HungryCrab",
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "fbbf588996f6c4c1277033c2d86c6077e38c182c57079634bf9bd223f1274892",
+                "ledger": "9ffcf575fac3e0aa69359e1a33802e18170071761400fed4aa14651be0b431a2",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving tests establish that: (1) a valid UTF-8 maw configuration whose encoded form is exactly the byte ceiling loads identically to the current path; (2) a valid configuration exceeding the ceiling by one byte is refused with the designated content-free UsageError and a recording YAML loader confirms parsing was not called; (3) a multibyte UTF-8 configuration within the ceiling retains its decoded values, proving the budget counts bytes without changing normal decoding; (4) empty and comment-only in-budget files retain their existing result; and (5) a controlled short-reading binary source is read repeatedly until EOF, while a source that eventually supplies an excess byte is refused, demonstrating that acceptance means a complete EOF-terminated snapshot rather than one short read."
+              ],
+              "assessment": "Define a receiving-owned maximum configuration size in bytes. Open the configuration as binary and read incrementally until either EOF or one byte beyond that maximum is observed. Accept only after EOF has established that the complete byte sequence is within budget; if any excess byte is observed, close and raise a source-content-free UsageError before UTF-8 decoding and before invoking YAML. Decode an accepted complete sequence strictly as UTF-8, then retain the existing unique-key loader, private YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation path unchanged.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D0f373eba2cff4266c419d1ee",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "HISTORY.md",
+              "start": 37,
+              "end": 90,
+              "content_sha256": "506a4730bd6057eab12808d8e7a038b0532f707fb032192f558a843cb22fddb6"
+            },
+            {
+              "id": "D0aecc05106a78e9a9c9e67f3",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "docs/errors.md",
+              "start": 28,
+              "end": 55,
+              "content_sha256": "0b000ee4ea5267b55aeb4a5213689ccfc302e12715698630a1d5bf45bf704118"
+            },
+            {
+              "id": "R92505f5e44be7f49bf157db0",
+              "side": "receiving",
+              "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+              "path": "src/hungry_crab/maw.py",
+              "start": 296,
+              "end": 328,
+              "content_sha256": "b9cc2ee98741ec3bf58a078a214a1227137bb83cbcd4856231f5bbd688cf3a83"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "1cf47c29259984de2e736c272bacdf4bad8803fbcba623c53c737789511085b0",
+      "native_meter": {
+        "started": 1793600769.9135904,
+        "tokens": 24974,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "fbe32a968477ee4ce8c1770c26ff28f7278cb5aaf4c3b0952b0a5bf22b503239",
+            "admission_estimate": 13672,
+            "attempt": "9421219b162167efd4adcc77ee010459f5863144d68b5dbb6221174d1ed1b12e",
+            "state": "settled",
+            "actual_tokens": 9586,
+            "native_seconds": 9.14
+          },
+          {
+            "name": "assess-0",
+            "signature": "4a04d6e6ac6133d939ffc771e8bf0f201d9a5ca20b9edcbb2346e92c9870153e",
+            "admission_estimate": 18233,
+            "attempt": "873c877377d90ae7d70e112a67c741c53d725da04665b29cdd5b1f4fb4075dfd",
+            "state": "settled",
+            "actual_tokens": 15388,
+            "native_seconds": 26.531
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-configuration-byte-intake": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 10460,
+      "usage_complete": true,
+      "seconds": 59.62507390975952,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "4358a717cf02c926330c6c09e57282546b26b1cbd570fff85bb7e9f05101e2da",
+      "native_meter": {
+        "started": 1793600867.8696496,
+        "tokens": 10460,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "c366985ce8e3b8dc7b99f7207910d7cac30d156b050e5a826872afb2dd8fc3df",
+            "admission_estimate": 14552,
+            "attempt": "3dc5f05f18897c296d187b133c783a7f029e53688d8b855300c6898a9c47a3cf",
+            "state": "settled",
+            "actual_tokens": 10460,
+            "native_seconds": 13.047
+          }
+        ]
+      },
+      "probe_summaries": {
+        "static-cycle-edge-witness": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 10385,
+      "usage_complete": true,
+      "seconds": 19.60739541053772,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "b3674f2901507736e54d8991d8f92171be31efb1772116a089570e1d244e5541",
+      "native_meter": {
+        "started": 1793600926.4467025,
+        "tokens": 10385,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "6968a6810bb90f35c4f73239df08f5b821c4edd297d1f1f4a1ed0c61723c55e2",
+            "admission_estimate": 14354,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 10385,
+            "native_seconds": 10.829
+          }
+        ]
+      },
+      "probe_summaries": {
+        "static-cycle-edge-witness": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 21703,
+      "usage_complete": true,
+      "seconds": 55.93608856201172,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "The receiving scanner can add a bounded top-level GFM type-7 raw-HTML context without treating inline HTML as a block or hiding HTML navigation targets.",
+            "reason": "The selected/default receiving implementation has explicit state and branches for HTML block types 1\u20136 but no type-7 state or start branch. The donor supplies the relevant mechanism: type 7 is admitted only outside paragraph/lazy-continuation context and, like type 6, ends at a blank line. This supports an additive receiving design that masks Markdown destinations inside eligible type-7 blocks while retaining real HTML elements for the separate navigation scan.",
+            "adaptation": "Extend the receiving line-oriented masker with an explicit type-7 state and a receiving-owned, specification-bounded start recognizer. Permit entry only at an eligible top-level block boundary, never as an interruption of a nonblank Markdown paragraph or lazy continuation, and end the context at the first blank line. In the Markdown-destination view, replace type-7 block characters with position-preserving spaces; in the HTML-navigation view, retain actual type-7 markup just as actual type-6 navigation markup is retained, while continuing to mask code and other literal regions.",
+            "maintenance": "Keep recognition and termination in the existing single-pass block masker, reuse its line splitting and position-preserving replacement, and use bounded anchored matching with no new dependency. Document type-7 paragraph and blank-line rules beside the state. Maintain paired Markdown-view and HTML-navigation-view cases so future masking changes cannot silently conflate the channels or alter offsets and line endings.",
+            "acceptance": "Original receiving cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown destinations through, but not including, its terminating blank line; (2) the same type-7-looking line following nonblank paragraph text does not start a block and ordinary inline Markdown remains discoverable; (3) a Markdown link after the terminating blank line remains discoverable; (4) character offsets, CRLF/LF endings, and source line positions are unchanged by masking; (5) actual anchors and navigation-bearing HTML in the type-7 region remain visible to the HTML-navigation channel; and (6) existing type 1\u20136, fenced-code, inline-code, inline-HTML, scan-budget, and safety cases remain unchanged.",
+            "novelty": "Within the complete declared implementation scope, the selected and default heads are the same revision and expose explicit type 1\u20136 masking state and branches but no type-7 state or branch. The existing type-6 restoration path also demonstrates the separate navigation channel that the extension must preserve. Issue 230 concerns types 3\u20135 and is not an equivalent type-7 implementation. Unrelated history outside the supplied scope remains unknown but is not needed for scoped novelty.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor start parser checks HTML block types 1 through 7 with type-specific opening regexes, but accepts type 7 only when the last matched block is not a paragraph and the active block cannot have lazy continuation lines. Its continuation parser stops type-7, as well as type-6, blocks on a blank line.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D8280779235a56af0a7497690",
+              "D647cc9dcd77b55e881d07fec",
+              "D1d0d9c3c41ce5332ac428711"
+            ],
+            "maw_evidence": [
+              "R0ddcffe04d7b27f458df11d2",
+              "Rb89d5788811fe3c53b91f618",
+              "Red85f525f4a8ac915c459438",
+              "R8e6bd64edf6c0fbd5940e592"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "The receiving scanner can add a bounded top-level GFM type-7 raw-HTML context without treating inline HTML as a block or hiding HTML navigation targets.",
+            "reason": "The selected/default receiving implementation has explicit state and branches for HTML block types 1\u20136 but no type-7 state or start branch. The donor supplies the relevant mechanism: type 7 is admitted only outside paragraph/lazy-continuation context and, like type 6, ends at a blank line. This supports an additive receiving design that masks Markdown destinations inside eligible type-7 blocks while retaining real HTML elements for the separate navigation scan.",
+            "adaptation": "Extend the receiving line-oriented masker with an explicit type-7 state and a receiving-owned, specification-bounded start recognizer. Permit entry only at an eligible top-level block boundary, never as an interruption of a nonblank Markdown paragraph or lazy continuation, and end the context at the first blank line. In the Markdown-destination view, replace type-7 block characters with position-preserving spaces; in the HTML-navigation view, retain actual type-7 markup just as actual type-6 navigation markup is retained, while continuing to mask code and other literal regions.",
+            "maintenance": "Keep recognition and termination in the existing single-pass block masker, reuse its line splitting and position-preserving replacement, and use bounded anchored matching with no new dependency. Document type-7 paragraph and blank-line rules beside the state. Maintain paired Markdown-view and HTML-navigation-view cases so future masking changes cannot silently conflate the channels or alter offsets and line endings.",
+            "acceptance": "Original receiving cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown destinations through, but not including, its terminating blank line; (2) the same type-7-looking line following nonblank paragraph text does not start a block and ordinary inline Markdown remains discoverable; (3) a Markdown link after the terminating blank line remains discoverable; (4) character offsets, CRLF/LF endings, and source line positions are unchanged by masking; (5) actual anchors and navigation-bearing HTML in the type-7 region remain visible to the HTML-navigation channel; and (6) existing type 1\u20136, fenced-code, inline-code, inline-HTML, scan-budget, and safety cases remain unchanged.",
+            "novelty": "Within the complete declared implementation scope, the selected and default heads are the same revision and expose explicit type 1\u20136 masking state and branches but no type-7 state or branch. The existing type-6 restoration path also demonstrates the separate navigation channel that the extension must preserve. Issue 230 concerns types 3\u20135 and is not an equivalent type-7 implementation. Unrelated history outside the supplied scope remains unknown but is not needed for scoped novelty.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor start parser checks HTML block types 1 through 7 with type-specific opening regexes, but accepts type 7 only when the last matched block is not a paragraph and the active block cannot have lazy continuation lines. Its continuation parser stops type-7, as well as type-6, blocks on a blank line.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "start": 7,
+                "end": 61
+              },
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "start": 7,
+                "end": 61
+              },
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+                "start": 10,
+                "end": 64
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 705,
+                "end": 719
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 774,
+                "end": 797
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 800,
+                "end": 815
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 913,
+                "end": 922
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: registered donor range is unavailable at the pinned commit\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\trials\\beautifulrepo-baseline-1\\acceptance-0.md",
+              "sha256": "7eb9cea9d2fecc7e5f3f6892e1dd8781a70092f74986ef468b0ee87c8361e486",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\maws-v2\\BeautifulRepo",
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+                "ledger": "57854d00ac3e2b9d1b7a0dfd0abdaa0eb55ba009d968901a6aca5431f29390d4",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown destinations through, but not including, its terminating blank line; (2) the same type-7-looking line following nonblank paragraph text does not start a block and ordinary inline Markdown remains discoverable; (3) a Markdown link after the terminating blank line remains discoverable; (4) character offsets, CRLF/LF endings, and source line positions are unchanged by masking; (5) actual anchors and navigation-bearing HTML in the type-7 region remain visible to the HTML-navigation channel; and (6) existing type 1\u20136, fenced-code, inline-code, inline-HTML, scan-budget, and safety cases remain unchanged."
+              ],
+              "assessment": "Extend the receiving line-oriented masker with an explicit type-7 state and a receiving-owned, specification-bounded start recognizer. Permit entry only at an eligible top-level block boundary, never as an interruption of a nonblank Markdown paragraph or lazy continuation, and end the context at the first blank line. In the Markdown-destination view, replace type-7 block characters with position-preserving spaces; in the HTML-navigation view, retain actual type-7 markup just as actual type-6 navigation markup is retained, while continuing to mask code and other literal regions.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D647cc9dcd77b55e881d07fec",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+              "start": 7,
+              "end": 61,
+              "content_sha256": "635af603debce4aa8b4f2377a72a93ee6c73e24d6bcfc6d1b958e0abc95b80b2"
+            },
+            {
+              "id": "D8280779235a56af0a7497690",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+              "start": 7,
+              "end": 61,
+              "content_sha256": "0e6970d3457537e5022facb6860ddb2531574ebddb56b31ab14b1eb0b6c6d09c"
+            },
+            {
+              "id": "D1d0d9c3c41ce5332ac428711",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+              "start": 10,
+              "end": 64,
+              "content_sha256": "2992cbd9809c92d4f96ee5a20f7bb5022e644bb9ad25ea317a1bfc474d6f9508"
+            },
+            {
+              "id": "R0ddcffe04d7b27f458df11d2",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 705,
+              "end": 719,
+              "content_sha256": "e042645479c609e3977ef4f1748cd7b3a378a866367fd7fbaf82b62d67a9e8fe"
+            },
+            {
+              "id": "Rb89d5788811fe3c53b91f618",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 774,
+              "end": 797,
+              "content_sha256": "78efbb75f5ee6daaf7c612942b6d14c2fef0796d66ca518d1a033016cc24b9da"
+            },
+            {
+              "id": "R8e6bd64edf6c0fbd5940e592",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 913,
+              "end": 922,
+              "content_sha256": "b71f70ff18a7f43483afffedabdb89dccf9f09b06552433f5d81e1dc3c7f2c03"
+            },
+            {
+              "id": "Red85f525f4a8ac915c459438",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 800,
+              "end": 815,
+              "content_sha256": "de9692975d8127f7544560a61f593450bce3c40fcd926580208590c7165ea736"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "9d62fb77d07f10d449fb448aa84944ea8c30e236b93264dca94b898fce9a6a8e",
+      "native_meter": {
+        "started": 1793600946.6969166,
+        "tokens": 21703,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "b344ef0eae3292d4a6d2b361078885d5ca0ebae9e61d042980d5006f1f02ff13",
+            "admission_estimate": 14154,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 10045,
+            "native_seconds": 8.516
+          },
+          {
+            "name": "assess-0",
+            "signature": "6e9640b551a7e92d894fc3c43b19f7396f2394f9686009d61c505de396295b09",
+            "admission_estimate": 14250,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11658,
+            "native_seconds": 19.031
+          }
+        ]
+      },
+      "probe_summaries": {
+        "top-level-type7-html-context": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24331,
+      "usage_complete": true,
+      "seconds": 121.84281325340271,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The scoped receiving masker lacks an explicit top-level GFM type-7 raw-HTML state, but the supplied donor evidence does not establish the donor's runtime recognition, paragraph-interruption, or termination mechanism.",
+            "reason": "The donor witness is IDE metadata, not executable parser behavior. Read the bounded donor parser ranges requested below to establish the actual type-7 start conditions, paragraph interaction, and block termination before judging a useful adaptation.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the complete selected/default scope for tools/docs_links.py, the masker tracks types 1, 2, 3\u20135, and 6 but no type-7 state; selected and default are the same confirmed head. Donor-mechanism utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor metadata includes TYPE_7_MISC_ELEMENT in the allowed HtmlBlock type set and declares that the HTML-block open/close regex helpers accept that type; it does not show how type 7 is recognized or terminated at runtime.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D7452165b9d9d2f6f7fab2f39"
+            ],
+            "maw_evidence": [
+              "R660c898b9da0b609ac387aa5",
+              "R2a96e293a82693bc099ca27b"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 61,
+                "end": 120,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The scoped receiving masker lacks an explicit top-level GFM type-7 raw-HTML state, but the supplied donor evidence does not establish the donor's runtime recognition, paragraph-interruption, or termination mechanism.",
+            "reason": "The donor witness is IDE metadata, not executable parser behavior. Read the bounded donor parser ranges requested below to establish the actual type-7 start conditions, paragraph interaction, and block termination before judging a useful adaptation.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the complete selected/default scope for tools/docs_links.py, the masker tracks types 1, 2, 3\u20135, and 6 but no type-7 state; selected and default are the same confirmed head. Donor-mechanism utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor metadata includes TYPE_7_MISC_ELEMENT in the allowed HtmlBlock type set and declares that the HTML-block open/close regex helpers accept that type; it does not show how type 7 is recognized or terminated at runtime.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": ".phpstorm.meta.php",
+                "start": 11,
+                "end": 64
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 705,
+                "end": 719
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 774,
+                "end": 797
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 61,
+                "end": 120,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D7452165b9d9d2f6f7fab2f39",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": ".phpstorm.meta.php",
+              "start": 11,
+              "end": 64,
+              "content_sha256": "c79877de335a91c5f1974ac0cfaba38592c50b96e061a8e50138d74c183a41a0"
+            },
+            {
+              "id": "R660c898b9da0b609ac387aa5",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 705,
+              "end": 719,
+              "content_sha256": "e042645479c609e3977ef4f1748cd7b3a378a866367fd7fbaf82b62d67a9e8fe"
+            },
+            {
+              "id": "R2a96e293a82693bc099ca27b",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 774,
+              "end": 797,
+              "content_sha256": "78efbb75f5ee6daaf7c612942b6d14c2fef0796d66ca518d1a033016cc24b9da"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "b885e596362f26d61194ec4661a82538969dcad500eb41375fe13c2778740224",
+      "native_meter": {
+        "started": 1793601005.0829453,
+        "tokens": 24331,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "5bc9afb85dd562652adc2157a7d64e060c93758badb31bda4ee804f7530056b0",
+            "admission_estimate": 14352,
+            "attempt": "d44219bb37e2792e99d43f179dbca7d3e93559af69c88bbef9323364e983d85a",
+            "state": "settled",
+            "actual_tokens": 10350,
+            "native_seconds": 10.563
+          },
+          {
+            "name": "assess-0",
+            "signature": "f2135bd932738cbde3b4cb80d711edd01e5b66b236f74223153aaf1321b4bf21",
+            "admission_estimate": 17007,
+            "attempt": "03624fa6e789e5f9bdbb62f4f7cddbe4aa3491efed8ca3d3927f9e712dbe0e69",
+            "state": "settled",
+            "actual_tokens": 13981,
+            "native_seconds": 18.797
+          }
+        ]
+      },
+      "probe_summaries": {
+        "top-level-type7-html-context": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 25946,
+      "usage_complete": true,
+      "seconds": 93.62496590614319,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load can add a fixed byte-ingestion budget by reading the configuration as bounded bytes, requiring EOF within that budget, and only then decoding complete UTF-8 input for the existing YAML path.",
+            "reason": "The selected receiving implementation calls Path.read_text before parsing, so intake is unbounded in the supplied implementation scope. The donor provides a concrete transferable mechanism: byte-oriented intake tracks received length separately from decoding and validates completeness before assembly; its documented use supplies an explicit byte limit while retaining UTF-8 decoding. This supports an additive receiving design without claiming a runtime defect.",
+            "adaptation": "Define a receiving-owned maximum configuration byte count. For an existing maw configuration, open it once in binary mode and read no more than the budget plus one byte. Treat EOF at or before the budget as a complete intake; if the extra byte exists, refuse the file before UTF-8 decoding or YAML parsing. Strictly decode the complete accepted bytes as UTF-8, then pass the resulting text through the unchanged unique-key YAML loader, privacy-preserving YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation. The refusal must identify the configuration path and configured byte budget without including file content.",
+            "maintenance": "Keep the byte budget as one named receiving policy constant with documented byte\u2014not character\u2014semantics. Keep the bounded reader local to maw-owned configuration loading, avoid a new dependency, and preserve the existing parser and diagnostic guards. Tests should guard the boundary, multibyte UTF-8 behavior, and the requirement that oversized input never reaches YAML parsing.",
+            "acceptance": "Original receiving tests establish: a missing configuration retains current defaults; valid UTF-8 configurations of exactly the byte budget and below load identically to current behavior; a configuration of budget plus one byte is refused with a content-free UsageError before YAML parsing; a multibyte UTF-8 document is judged by encoded bytes and decodes normally when complete and within budget; truncation is never parsed as a complete configuration; invalid UTF-8 within budget follows the receiving project's established read/decode error contract; duplicate-key rejection, sanitized YAML locations, empty/comment-only handling, and mapping validation remain unchanged. The implementation performs at most budget plus one bytes of configuration intake before refusal.",
+            "novelty": "Within the supplied selected/default/confirmed-pending implementation scope, MawConfig.load still performs read_text before parsing and no bounded byte-intake mechanism is shown. The selected and default load declarations are byte-identical, and the supplied differing pending load still uses whole-text intake; unrelated pending changes concern duplicate-key handling or diagnostics. This resolves scoped novelty only, not unknown repository history.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor's shared reader contract carries separate expected-length and limit values while reading with an optional decoder. Its finish step checks that received bytes equal a declared length before assembling the result, and its history records immediate refusal when received bytes exceed declared length to bound buffering. Its documented web-stream use supplies content length, a 1 MB limit, and UTF-8 encoding together.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D5a522838436e26ef6ecfd774",
+              "D0f373eba2cff4266c419d1ee",
+              "Ddedccaf06b5f4f8c0f182d9e"
+            ],
+            "maw_evidence": [
+              "R92505f5e44be7f49bf157db0"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "MawConfig.load can add a fixed byte-ingestion budget by reading the configuration as bounded bytes, requiring EOF within that budget, and only then decoding complete UTF-8 input for the existing YAML path.",
+            "reason": "The selected receiving implementation calls Path.read_text before parsing, so intake is unbounded in the supplied implementation scope. The donor provides a concrete transferable mechanism: byte-oriented intake tracks received length separately from decoding and validates completeness before assembly; its documented use supplies an explicit byte limit while retaining UTF-8 decoding. This supports an additive receiving design without claiming a runtime defect.",
+            "adaptation": "Define a receiving-owned maximum configuration byte count. For an existing maw configuration, open it once in binary mode and read no more than the budget plus one byte. Treat EOF at or before the budget as a complete intake; if the extra byte exists, refuse the file before UTF-8 decoding or YAML parsing. Strictly decode the complete accepted bytes as UTF-8, then pass the resulting text through the unchanged unique-key YAML loader, privacy-preserving YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation. The refusal must identify the configuration path and configured byte budget without including file content.",
+            "maintenance": "Keep the byte budget as one named receiving policy constant with documented byte\u2014not character\u2014semantics. Keep the bounded reader local to maw-owned configuration loading, avoid a new dependency, and preserve the existing parser and diagnostic guards. Tests should guard the boundary, multibyte UTF-8 behavior, and the requirement that oversized input never reaches YAML parsing.",
+            "acceptance": "Original receiving tests establish: a missing configuration retains current defaults; valid UTF-8 configurations of exactly the byte budget and below load identically to current behavior; a configuration of budget plus one byte is refused with a content-free UsageError before YAML parsing; a multibyte UTF-8 document is judged by encoded bytes and decodes normally when complete and within budget; truncation is never parsed as a complete configuration; invalid UTF-8 within budget follows the receiving project's established read/decode error contract; duplicate-key rejection, sanitized YAML locations, empty/comment-only handling, and mapping validation remain unchanged. The implementation performs at most budget plus one bytes of configuration intake before refusal.",
+            "novelty": "Within the supplied selected/default/confirmed-pending implementation scope, MawConfig.load still performs read_text before parsing and no bounded byte-intake mechanism is shown. The selected and default load declarations are byte-identical, and the supplied differing pending load still uses whole-text intake; unrelated pending changes concern duplicate-key handling or diagnostics. This resolves scoped novelty only, not unknown repository history.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor's shared reader contract carries separate expected-length and limit values while reading with an optional decoder. Its finish step checks that received bytes equal a declared length before assembling the result, and its history records immediate refusal when received bytes exceed declared length to bound buffering. Its documented web-stream use supplies content length, a 1 MB limit, and UTF-8 encoding together.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "src/index.ts",
+                "start": 235,
+                "end": 294
+              },
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "HISTORY.md",
+                "start": 37,
+                "end": 90
+              },
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "docs/examples.md",
+                "start": 58,
+                "end": 111
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "path": "src/hungry_crab/maw.py",
+                "start": 296,
+                "end": 328
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: source paths have differing or unresolved applicable licences\ncrab: hint: unresolved operative root grant; unresolved operative root grant; unresolved operative root grant\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\trials\\crab-candidate-2\\acceptance-0.md",
+              "sha256": "9a191643367f67ff5daff845d83d97e39f92a08d3cc177c3a4b251228243666c",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\maws-v2\\HungryCrab",
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "fbbf588996f6c4c1277033c2d86c6077e38c182c57079634bf9bd223f1274892",
+                "ledger": "9ffcf575fac3e0aa69359e1a33802e18170071761400fed4aa14651be0b431a2",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving tests establish: a missing configuration retains current defaults; valid UTF-8 configurations of exactly the byte budget and below load identically to current behavior; a configuration of budget plus one byte is refused with a content-free UsageError before YAML parsing; a multibyte UTF-8 document is judged by encoded bytes and decodes normally when complete and within budget; truncation is never parsed as a complete configuration; invalid UTF-8 within budget follows the receiving project's established read/decode error contract; duplicate-key rejection, sanitized YAML locations, empty/comment-only handling, and mapping validation remain unchanged. The implementation performs at most budget plus one bytes of configuration intake before refusal."
+              ],
+              "assessment": "Define a receiving-owned maximum configuration byte count. For an existing maw configuration, open it once in binary mode and read no more than the budget plus one byte. Treat EOF at or before the budget as a complete intake; if the extra byte exists, refuse the file before UTF-8 decoding or YAML parsing. Strictly decode the complete accepted bytes as UTF-8, then pass the resulting text through the unchanged unique-key YAML loader, privacy-preserving YAML diagnostics, empty/comment-only handling, mapping requirement, and from_data validation. The refusal must identify the configuration path and configured byte budget without including file content.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D5a522838436e26ef6ecfd774",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "src/index.ts",
+              "start": 235,
+              "end": 294,
+              "content_sha256": "f2ab548885c1ab6cbaf12b238baea0479e860a2aa1e923808cf296c3da626450"
+            },
+            {
+              "id": "D0f373eba2cff4266c419d1ee",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "HISTORY.md",
+              "start": 37,
+              "end": 90,
+              "content_sha256": "506a4730bd6057eab12808d8e7a038b0532f707fb032192f558a843cb22fddb6"
+            },
+            {
+              "id": "Ddedccaf06b5f4f8c0f182d9e",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "docs/examples.md",
+              "start": 58,
+              "end": 111,
+              "content_sha256": "de2761c596c1835f0327c8d62f73f1ec0929ee350d72d67daf5ec364723ba08c"
+            },
+            {
+              "id": "R92505f5e44be7f49bf157db0",
+              "side": "receiving",
+              "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+              "path": "src/hungry_crab/maw.py",
+              "start": 296,
+              "end": 328,
+              "content_sha256": "b9cc2ee98741ec3bf58a078a214a1227137bb83cbcd4856231f5bbd688cf3a83"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "0d39202e69ad1bbe3fb4d938bcf8e0b60466a737423497a77f996c99696c81e5",
+      "native_meter": {
+        "started": 1793601127.5469308,
+        "tokens": 25946,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "fbe32a968477ee4ce8c1770c26ff28f7278cb5aaf4c3b0952b0a5bf22b503239",
+            "admission_estimate": 13672,
+            "attempt": "9421219b162167efd4adcc77ee010459f5863144d68b5dbb6221174d1ed1b12e",
+            "state": "settled",
+            "actual_tokens": 9792,
+            "native_seconds": 12.671
+          },
+          {
+            "name": "assess-0",
+            "signature": "5e217ea82cf02f5dd6ec9d3279162d36bd5c9d6662bda22b53cf22ed0f792228",
+            "admission_estimate": 19085,
+            "attempt": "873c877377d90ae7d70e112a67c741c53d725da04665b29cdd5b1f4fb4075dfd",
+            "state": "settled",
+            "actual_tokens": 16154,
+            "native_seconds": 18.765
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-configuration-byte-intake": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 23917,
+      "usage_complete": true,
+      "seconds": 44.961591958999634,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "bounded-configuration-byte-intake",
+          "donor": "crab-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The donor may provide a concrete byte-limit and expected-length enforcement mechanism that could inform bounded YAML byte intake, but the supplied donor window shows only option declarations, not enforcement or refusal/completeness semantics.",
+            "reason": "MawConfig.load currently reads the entire UTF-8 file before parsing. The donor declares limit, length, and encoding options, but the cited lines do not show when bytes are counted, whether excess input is rejected before further accumulation, how premature completion is handled, or how decoding interacts with byte limits. Those implementation details are required to distinguish a concrete donor mechanism from the predeclared receiving need.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "The selected, default, and confirmed pending MawConfig.load declarations contain no evidenced byte-ingestion cap, but novelty of a source-supported adaptation remains unresolved until the donor enforcement mechanism is supplied.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor defines an input contract with an optional expected stream length, an optional byte limit accepting numbers or byte-size strings, and optional decoding including UTF-8; the supplied evidence does not show implementation of those options.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D62dbb0d3585965e0487c4619"
+            ],
+            "maw_evidence": [
+              "R5c4baf6e162e809de4526466"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 56,
+                "end": 115,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 116,
+                "end": 175,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The donor may provide a concrete byte-limit and expected-length enforcement mechanism that could inform bounded YAML byte intake, but the supplied donor window shows only option declarations, not enforcement or refusal/completeness semantics.",
+            "reason": "MawConfig.load currently reads the entire UTF-8 file before parsing. The donor declares limit, length, and encoding options, but the cited lines do not show when bytes are counted, whether excess input is rejected before further accumulation, how premature completion is handled, or how decoding interacts with byte limits. Those implementation details are required to distinguish a concrete donor mechanism from the predeclared receiving need.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "The selected, default, and confirmed pending MawConfig.load declarations contain no evidenced byte-ingestion cap, but novelty of a source-supported adaptation remains unresolved until the donor enforcement mechanism is supplied.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor defines an input contract with an optional expected stream length, an optional byte limit accepting numbers or byte-size strings, and optional decoding including UTF-8; the supplied evidence does not show implementation of those options.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+                "path": "src/index.ts",
+                "start": 1,
+                "end": 55
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+                "path": "src/hungry_crab/maw.py",
+                "start": 296,
+                "end": 328
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 56,
+                "end": 115,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/index.ts",
+                "query": "",
+                "start": 116,
+                "end": 175,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D62dbb0d3585965e0487c4619",
+              "side": "donor",
+              "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+              "path": "src/index.ts",
+              "start": 1,
+              "end": 55,
+              "content_sha256": "ed31130e816d6c0b0414d487a9ccd8e80ae42e07cf2d05ea7e6e3bc4e74e4354"
+            },
+            {
+              "id": "R5c4baf6e162e809de4526466",
+              "side": "receiving",
+              "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+              "path": "src/hungry_crab/maw.py",
+              "start": 296,
+              "end": 328,
+              "content_sha256": "b9cc2ee98741ec3bf58a078a214a1227137bb83cbcd4856231f5bbd688cf3a83"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "14761c057b24793c90d5ebaef618ec8cbf332dd627266c2689bbe779bea421d1",
+      "native_meter": {
+        "started": 1793601220.2899034,
+        "tokens": 23917,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "1089d3d1e2a1295efa063098f5c735ee2639381214a27758238b5b60ca6f6a0c",
+            "admission_estimate": 13474,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 9448,
+            "native_seconds": 9.266
+          },
+          {
+            "name": "assess-0",
+            "signature": "76e6f1e0e2aac25450213705daad76754610b438a68b5a4f2729b02aa33ee735",
+            "admission_estimate": 17685,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 14469,
+            "native_seconds": 12.454
+          }
+        ]
+      },
+      "probe_summaries": {
+        "bounded-configuration-byte-intake": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 10478,
+      "usage_complete": true,
+      "seconds": 21.307448148727417,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "2f86aa96e5efa02b29549539db5acb12705c8f242aa31829075df36bc12a16bf",
+      "native_meter": {
+        "started": 1793601265.9334755,
+        "tokens": 10478,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "6968a6810bb90f35c4f73239df08f5b821c4edd297d1f1f4a1ed0c61723c55e2",
+            "admission_estimate": 14354,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 10478,
+            "native_seconds": 13.719
+          }
+        ]
+      },
+      "probe_summaries": {
+        "static-cycle-edge-witness": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 10536,
+      "usage_complete": true,
+      "seconds": 60.565794229507446,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "ce7716d453c40151fa32947a567ac921333a4fa35e1be31accc120dc514d9017",
+      "native_meter": {
+        "started": 1793601289.4110456,
+        "tokens": 10536,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "c366985ce8e3b8dc7b99f7207910d7cac30d156b050e5a826872afb2dd8fc3df",
+            "admission_estimate": 14552,
+            "attempt": "3dc5f05f18897c296d187b133c783a7f029e53688d8b855300c6898a9c47a3cf",
+            "state": "settled",
+            "actual_tokens": 10536,
+            "native_seconds": 13.843
+          }
+        ]
+      },
+      "probe_summaries": {
+        "static-cycle-edge-witness": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 23868,
+      "usage_complete": true,
+      "seconds": 111.03192186355591,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The donor may contain a reusable type-7 block-recognition mechanism, but the admitted donor windows expose only IDE metadata, not its parsing behavior.",
+            "reason": "Missing evidence: the supplied donor windows show that TYPE_7_MISC_ELEMENT is an accepted HTML-block type but do not show its start conditions, paragraph interaction, continuation, or blank-line termination. Inspect the three bounded donor parser windows requested below.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the complete selected/default scope, the receiving masker has explicit state and branches for types 1\u20136 but no type-7 mechanism; this scoped gap is not already implemented. Donor utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor metadata registers TYPE_7_MISC_ELEMENT alongside types 1\u20136 and declares that HtmlBlock construction, type accessors, and HTML-block open/close regex helpers accept that type.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D7452165b9d9d2f6f7fab2f39"
+            ],
+            "maw_evidence": [
+              "R660c898b9da0b609ac387aa5",
+              "R2a96e293a82693bc099ca27b"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The donor may contain a reusable type-7 block-recognition mechanism, but the admitted donor windows expose only IDE metadata, not its parsing behavior.",
+            "reason": "Missing evidence: the supplied donor windows show that TYPE_7_MISC_ELEMENT is an accepted HTML-block type but do not show its start conditions, paragraph interaction, continuation, or blank-line termination. Inspect the three bounded donor parser windows requested below.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the complete selected/default scope, the receiving masker has explicit state and branches for types 1\u20136 but no type-7 mechanism; this scoped gap is not already implemented. Donor utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor metadata registers TYPE_7_MISC_ELEMENT alongside types 1\u20136 and declares that HtmlBlock construction, type accessors, and HTML-block open/close regex helpers accept that type.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": ".phpstorm.meta.php",
+                "start": 11,
+                "end": 64
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 705,
+                "end": 719
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 774,
+                "end": 797
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D7452165b9d9d2f6f7fab2f39",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": ".phpstorm.meta.php",
+              "start": 11,
+              "end": 64,
+              "content_sha256": "c79877de335a91c5f1974ac0cfaba38592c50b96e061a8e50138d74c183a41a0"
+            },
+            {
+              "id": "R660c898b9da0b609ac387aa5",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 705,
+              "end": 719,
+              "content_sha256": "e042645479c609e3977ef4f1748cd7b3a378a866367fd7fbaf82b62d67a9e8fe"
+            },
+            {
+              "id": "R2a96e293a82693bc099ca27b",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 774,
+              "end": 797,
+              "content_sha256": "78efbb75f5ee6daaf7c612942b6d14c2fef0796d66ca518d1a033016cc24b9da"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "ed6bde653988289689402a5afd11e61b56fb1f791fdbc9a5e542e5ad4e90848a",
+      "native_meter": {
+        "started": 1793601350.7646365,
+        "tokens": 23868,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "5bc9afb85dd562652adc2157a7d64e060c93758badb31bda4ee804f7530056b0",
+            "admission_estimate": 14352,
+            "attempt": "d44219bb37e2792e99d43f179dbca7d3e93559af69c88bbef9323364e983d85a",
+            "state": "settled",
+            "actual_tokens": 10321,
+            "native_seconds": 12.188
+          },
+          {
+            "name": "assess-0",
+            "signature": "f864d32da6ae3ada199103f6b0ec8149acc172bf0e6f140f9ac3d60cead839cb",
+            "admission_estimate": 17007,
+            "attempt": "03624fa6e789e5f9bdbb62f4f7cddbe4aa3491efed8ca3d3927f9e712dbe0e69",
+            "state": "settled",
+            "actual_tokens": 13547,
+            "native_seconds": 11.187
+          }
+        ]
+      },
+      "probe_summaries": {
+        "top-level-type7-html-context": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 21637,
+      "usage_complete": true,
+      "seconds": 59.60656762123108,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "top-level-type7-html-context",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "The receiving scanner can add bounded top-level GFM type-7 raw-HTML masking without changing inline Markdown, source offsets, or the separate HTML-navigation view.",
+            "reason": "The scoped receiving implementation tracks and masks HTML block types 1\u20136 but has no type-7 state or start branch. The donor supplies a relevant mechanism: recognize type 7 only in an eligible block context, forbid paragraph interruption including lazy continuation, and terminate the block at a blank line. Adapting those boundaries would prevent documentation-link scanning from treating Markdown-looking content inside eligible type-7 blocks as links while preserving real navigation markup and ordinary inline constructs.",
+            "adaptation": "Extend the receiving line-state masker with an explicit type-7 start predicate constrained to top-level, non-indented HTML-block context. Start it only when no paragraph is being continued, mask through the first blank-line boundary while preserving every character position and line ending, and apply it only to the Markdown-destination view. Keep the HTML-navigation view capable of observing genuine tags and anchors rather than restoring or suppressing type-7 regions indiscriminately.",
+            "maintenance": "Keep the type-7 predicate and state adjacent to the existing raw-HTML block handling, document its paragraph and blank-line boundaries, reuse the existing single-pass line budget and position-preserving masking contract, and avoid new parser dependencies. Maintain separate assertions for Markdown-link visibility and HTML-navigation visibility so future masking changes cannot silently merge those channels.",
+            "acceptance": "Original receiving-specific cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown until, but not including, its terminating blank line; (2) the same opener inside an active paragraph remains ordinary inline content and subsequent Markdown destinations are still found; (3) an indented lookalike does not start this raw-HTML state; (4) offsets, line numbers, CRLF/LF endings, and total text length are unchanged after masking; (5) a destination after the terminating blank line is found; (6) actual HTML navigation elements remain available to the separate navigation scan; and (7) existing type 1\u20136, fenced-code, inline-code, and ordinary inline-HTML behavior remains unchanged within existing resource limits.",
+            "novelty": "Within the complete declared implementation scope, selected and default both resolve to a692491a7a973032d90545bc6f428ba6b77f706f. The supplied receiving declaration explicitly carries state and branches for types 1\u20136 but none for type 7, and no differing confirmed pending implementation is present. This is therefore a scoped additive design rather than a duplicate; unrelated history remains unassessed and is not needed for that conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor start parser considers HTML block types in order only when the line is not indented and its next non-space character is '<'. For type 7 it additionally rejects starts when the last matched block is a paragraph or the active block permits lazy continuation. Once started, the donor continuation parser ends type-7 blocks on a blank line, using the same blank-line termination condition as type 6.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D8280779235a56af0a7497690",
+              "D647cc9dcd77b55e881d07fec",
+              "D1d0d9c3c41ce5332ac428711"
+            ],
+            "maw_evidence": [
+              "R0ddcffe04d7b27f458df11d2",
+              "Rb89d5788811fe3c53b91f618",
+              "Red85f525f4a8ac915c459438",
+              "R8e6bd64edf6c0fbd5940e592"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "The receiving scanner can add bounded top-level GFM type-7 raw-HTML masking without changing inline Markdown, source offsets, or the separate HTML-navigation view.",
+            "reason": "The scoped receiving implementation tracks and masks HTML block types 1\u20136 but has no type-7 state or start branch. The donor supplies a relevant mechanism: recognize type 7 only in an eligible block context, forbid paragraph interruption including lazy continuation, and terminate the block at a blank line. Adapting those boundaries would prevent documentation-link scanning from treating Markdown-looking content inside eligible type-7 blocks as links while preserving real navigation markup and ordinary inline constructs.",
+            "adaptation": "Extend the receiving line-state masker with an explicit type-7 start predicate constrained to top-level, non-indented HTML-block context. Start it only when no paragraph is being continued, mask through the first blank-line boundary while preserving every character position and line ending, and apply it only to the Markdown-destination view. Keep the HTML-navigation view capable of observing genuine tags and anchors rather than restoring or suppressing type-7 regions indiscriminately.",
+            "maintenance": "Keep the type-7 predicate and state adjacent to the existing raw-HTML block handling, document its paragraph and blank-line boundaries, reuse the existing single-pass line budget and position-preserving masking contract, and avoid new parser dependencies. Maintain separate assertions for Markdown-link visibility and HTML-navigation visibility so future masking changes cannot silently merge those channels.",
+            "acceptance": "Original receiving-specific cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown until, but not including, its terminating blank line; (2) the same opener inside an active paragraph remains ordinary inline content and subsequent Markdown destinations are still found; (3) an indented lookalike does not start this raw-HTML state; (4) offsets, line numbers, CRLF/LF endings, and total text length are unchanged after masking; (5) a destination after the terminating blank line is found; (6) actual HTML navigation elements remain available to the separate navigation scan; and (7) existing type 1\u20136, fenced-code, inline-code, and ordinary inline-HTML behavior remains unchanged within existing resource limits.",
+            "novelty": "Within the complete declared implementation scope, selected and default both resolve to a692491a7a973032d90545bc6f428ba6b77f706f. The supplied receiving declaration explicitly carries state and branches for types 1\u20136 but none for type 7, and no differing confirmed pending implementation is present. This is therefore a scoped additive design rather than a duplicate; unrelated history remains unassessed and is not needed for that conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor start parser considers HTML block types in order only when the line is not indented and its next non-space character is '<'. For type 7 it additionally rejects starts when the last matched block is a paragraph or the active block permits lazy continuation. Once started, the donor continuation parser ends type-7 blocks on a blank line, using the same blank-line termination condition as type 6.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+                "start": 7,
+                "end": 61
+              },
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+                "start": 7,
+                "end": 61
+              },
+              {
+                "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+                "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+                "start": 10,
+                "end": 64
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 705,
+                "end": 719
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 774,
+                "end": 797
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 800,
+                "end": 815
+              },
+              {
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "path": "tools/docs_links.py",
+                "start": 913,
+                "end": 922
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: registered donor range is unavailable at the pinned commit\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\trials\\beautifulrepo-baseline-2\\acceptance-0.md",
+              "sha256": "ae9e246628257d698ff8c334ca6a976ae91b52716cdb1cbe31cbd4a870610caf",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-focused\\maws-v2\\BeautifulRepo",
+                "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+                "ledger": "57854d00ac3e2b9d1b7a0dfd0abdaa0eb55ba009d968901a6aca5431f29390d4",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving-specific cases must establish that: (1) an eligible top-level type-7 block masks link-like Markdown until, but not including, its terminating blank line; (2) the same opener inside an active paragraph remains ordinary inline content and subsequent Markdown destinations are still found; (3) an indented lookalike does not start this raw-HTML state; (4) offsets, line numbers, CRLF/LF endings, and total text length are unchanged after masking; (5) a destination after the terminating blank line is found; (6) actual HTML navigation elements remain available to the separate navigation scan; and (7) existing type 1\u20136, fenced-code, inline-code, and ordinary inline-HTML behavior remains unchanged within existing resource limits."
+              ],
+              "assessment": "Extend the receiving line-state masker with an explicit type-7 start predicate constrained to top-level, non-indented HTML-block context. Start it only when no paragraph is being continued, mask through the first blank-line boundary while preserving every character position and line ending, and apply it only to the Markdown-destination view. Keep the HTML-navigation view capable of observing genuine tags and anchors rather than restoring or suppressing type-7 regions indiscriminately.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D647cc9dcd77b55e881d07fec",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockParser.php",
+              "start": 7,
+              "end": 61,
+              "content_sha256": "635af603debce4aa8b4f2377a72a93ee6c73e24d6bcfc6d1b958e0abc95b80b2"
+            },
+            {
+              "id": "D8280779235a56af0a7497690",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Parser/Block/HtmlBlockStartParser.php",
+              "start": 7,
+              "end": 61,
+              "content_sha256": "0e6970d3457537e5022facb6860ddb2531574ebddb56b31ab14b1eb0b6c6d09c"
+            },
+            {
+              "id": "D1d0d9c3c41ce5332ac428711",
+              "side": "donor",
+              "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+              "path": "src/Extension/CommonMark/Node/Block/HtmlBlock.php",
+              "start": 10,
+              "end": 64,
+              "content_sha256": "2992cbd9809c92d4f96ee5a20f7bb5022e644bb9ad25ea317a1bfc474d6f9508"
+            },
+            {
+              "id": "R0ddcffe04d7b27f458df11d2",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 705,
+              "end": 719,
+              "content_sha256": "e042645479c609e3977ef4f1748cd7b3a378a866367fd7fbaf82b62d67a9e8fe"
+            },
+            {
+              "id": "Rb89d5788811fe3c53b91f618",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 774,
+              "end": 797,
+              "content_sha256": "78efbb75f5ee6daaf7c612942b6d14c2fef0796d66ca518d1a033016cc24b9da"
+            },
+            {
+              "id": "R8e6bd64edf6c0fbd5940e592",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 913,
+              "end": 922,
+              "content_sha256": "b71f70ff18a7f43483afffedabdb89dccf9f09b06552433f5d81e1dc3c7f2c03"
+            },
+            {
+              "id": "Red85f525f4a8ac915c459438",
+              "side": "receiving",
+              "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+              "path": "tools/docs_links.py",
+              "start": 800,
+              "end": 815,
+              "content_sha256": "de9692975d8127f7544560a61f593450bce3c40fcd926580208590c7165ea736"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "4b646e1db760989aa6b1d96d08a959525cffcffcf962ede47a53672113100aa6",
+      "native_meter": {
+        "started": 1793601460.9642458,
+        "tokens": 21637,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "b344ef0eae3292d4a6d2b361078885d5ca0ebae9e61d042980d5006f1f02ff13",
+            "admission_estimate": 14154,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 10237,
+            "native_seconds": 11.656
+          },
+          {
+            "name": "assess-0",
+            "signature": "6e9640b551a7e92d894fc3c43b19f7396f2394f9686009d61c505de396295b09",
+            "admission_estimate": 14250,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11400,
+            "native_seconds": 19.766
+          }
+        ]
+      },
+      "probe_summaries": {
+        "top-level-type7-html-context": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "name": "beautifulrepo-1",
+      "private_mapping": {
+        "R1": "beautifulrepo-baseline-2",
+        "R2": "beautifulrepo-candidate-1",
+        "R3": "beautifulrepo-candidate-2",
+        "R4": "beautifulrepo-baseline-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving paragraph behavior, source positions, and HTML navigation",
+            "reason": "The receiving scope at a692491a7a973032d90545bc6f428ba6b77f706f contains explicit handling for HTML block types 1\u20136 but no type-7 state or branch. Donor source at 3164fa3d41d78857384a29e1c606c456cbab9600 concretely shows the useful mechanism: reject indented starts, require a '<' opener, prohibit type 7 from interrupting paragraphs or lazy continuations, and terminate type 7 at a blank line. The receiving-owned acceptance artifact defines an additive, position-preserving adaptation and correctly separates Markdown masking from HTML navigation. Runtime evidence is neither supplied nor required for this explicitly additive design.",
+            "acceptance_criteria": [
+              "An eligible top-level type-7 block masks Markdown-like destinations through, but not including, its terminating blank line.",
+              "A type-7-looking opener in an active paragraph remains inline content and subsequent Markdown destinations remain visible.",
+              "An indented lookalike does not enter type-7 block state.",
+              "Masking preserves offsets, total length, line numbers, and CRLF/LF endings.",
+              "A Markdown destination after the terminating blank line is found.",
+              "Actual navigation-bearing HTML remains visible to the separate HTML-navigation scan.",
+              "Existing type 1\u20136, fenced-code, inline-code, ordinary inline-HTML, resource-limit, and safety behavior remains unchanged."
+            ],
+            "legal_adoption": "Utility is established independently of legal clearance. The supplied grants identify BSD-3-Clause for the cited donor paths with obligations to retain applicable grant texts and notices. No human acceptance, adoption, merge, release, or completed registration is established; donor-range registration was refused as unavailable at the pinned commit."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving paragraph behavior, source positions, and HTML navigation",
+            "reason": "This investigator did not propose an adaptation: its adaptation, maintenance, and acceptance fields are empty, and it explicitly left donor utility unresolved while requesting parser windows. Its cited IDE metadata establishes only that type 7 is an allowed value, not the concrete start, paragraph, or termination mechanism. Although other supplied investigation evidence contains those parser windows, that does not turn this investigator's request into a producing-investigator proposal or a separate finding.",
+            "acceptance_criteria": [],
+            "legal_adoption": "No transfer is proposed by this observation. Its cited metadata path is reported as BSD-3-Clause with retention obligations, but utility, adoption, human acceptance, merge, release, and completed legal-registration clearance are not established."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving paragraph behavior, source positions, and HTML navigation",
+            "reason": "This investigator likewise supplied no adaptation, maintenance plan, or receiving acceptance criteria and expressly treated donor utility as unresolved. The cited IDE metadata cannot establish runtime parser recognition, paragraph interaction, continuation, or blank-line termination. The concrete mechanism found by other runs cannot be counted as a proposal made by this investigator, so no new finding is created from the request-more observation.",
+            "acceptance_criteria": [],
+            "legal_adoption": "No transfer is proposed by this observation. The cited metadata is reported under BSD-3-Clause with applicable text-and-notice retention obligations, but no adoption, human acceptance, merge, release, or completed registration is evidenced."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving paragraph behavior, source positions, and HTML navigation",
+            "reason": "This is a substantively valid additive design supported by the same receiving gap and concrete donor mechanism as R1: type 7 cannot interrupt a paragraph or lazy continuation and ends at a blank line. Its receiving-owned acceptance artifact is concrete and appropriately preserves the separate HTML-navigation channel. It is nevertheless equivalent to R1 in donor, receiving target, mechanism, benefit, novelty scope, and maintenance approach, so it remains in the proposed-novel denominator but is marked duplicate rather than counted as another distinct change.",
+            "acceptance_criteria": [
+              "An eligible top-level type-7 block masks Markdown-like destinations through, but not including, its terminating blank line.",
+              "A type-7-looking line following nonblank paragraph text does not start a block, and ordinary inline Markdown remains discoverable.",
+              "A Markdown destination after the terminating blank line remains discoverable.",
+              "Masking preserves character offsets, source line positions, and CRLF/LF endings.",
+              "Actual anchors and navigation-bearing HTML in the type-7 region remain visible to the HTML-navigation channel.",
+              "Existing type 1\u20136, fenced-code, inline-code, inline-HTML, scan-budget, and safety behavior remains unchanged."
+            ],
+            "legal_adoption": "Utility is established independently of legal clearance. The cited donor files are reported as BSD-3-Clause with obligations to retain applicable grant texts and notices. No human acceptance, adoption, merge, release, or completed registration is shown; donor-range registration was refused as unavailable at the pinned commit."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "Novelty is established only within the complete declared selected/default scope at a692491a7a973032d90545bc6f428ba6b77f706f; global historical absence is not proven.",
+          "No runtime receiving probe or implementation is supplied. The confirmed findings are additive designs, not confirmed-runtime changes.",
+          "R2 and R3 cited only IDE metadata and did not themselves establish or propose an adaptation from the parser mechanism.",
+          "Issue 230 covers types 3\u20135 and is not an implemented type-7 equivalent; no existing open request for this exact type-7 change is shown.",
+          "Legal grant evidence and utility do not establish human acceptance, adoption, merge, publication, release, or version advantage."
+        ],
+        "unjustified_claims": [
+          "Any characterization of R1 or R4 as runtime-verified would be unjustified; their evidence level is design-proposal.",
+          "Treating R2 or R3 as positive adaptation proposals would be unjustified because both left adaptation and acceptance empty and requested additional donor evidence.",
+          "Treating R1 and R4 as two distinct receiving changes would be unjustified; they are equivalent proposals.",
+          "Inferring global historical novelty, human acceptance, adoption, merge, release, or version advantage from the supplied evidence would be unjustified."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 17629,
+        "inputTokens": 15760,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1869,
+        "reasoningOutputTokens": 454,
+        "lastInputTokens": 15760
+      },
+      "seconds": 26.563,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "d25a781c40c37648486c24273170bedbff4df455f4c253309a74d73f4b9d18c6",
+      "native_result_sha256": "ec24ff686009b29a28756fe7321ebbc5251916cec8edfb64683efd5cc1999ac0"
+    },
+    {
+      "name": "beautifulrepo-2",
+      "private_mapping": {
+        "R1": "beautifulrepo-candidate-1",
+        "R2": "beautifulrepo-baseline-2",
+        "R3": "beautifulrepo-candidate-2",
+        "R4": "beautifulrepo-baseline-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "",
+            "reason": "The investigator identifies a scoped absence of type-7 handling but does not propose an adaptation: adaptation, maintenance, and acceptance are empty, source_relation is none, and donor utility is explicitly unresolved. Its cited IDE metadata establishes only that a type-7 constant is admitted, not the concrete start, paragraph-interruption, or termination mechanism. Later supplied parser windows cannot turn this non-proposal into a proposed finding.",
+            "acceptance_criteria": [],
+            "legal_adoption": "No transfer is proposed. The cited metadata is identified as BSD-3-Clause with applicable grant texts and notices to retain, but licensing does not establish mechanism utility or adoption."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "Add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving the separate HTML-navigation view.",
+            "reason": "This is a concrete additive receiving design. Receiving source at a692491a7a973032d90545bc6f428ba6b77f706f has explicit states and branches for types 1\u20136 but none for type 7. Donor parser source at 3164fa3d41d78857384a29e1c606c456cbab9600 concretely requires a non-indented '<' candidate, prevents type 7 from interrupting paragraphs or lazy continuations, and terminates types 6 and 7 at a blank line. The proposal adapts those boundaries into the existing position-preserving single-pass masker and supplies original receiving-owned acceptance. Runtime evidence is unnecessary for this explicitly additive design. The donor-range registration refusal limits registration, not the validity of the cited immutable windows or the design claim.",
+            "acceptance_criteria": [
+              "Mask Markdown-like destinations inside an eligible top-level type-7 block through, but not including, its terminating blank line.",
+              "Do not start type-7 state inside an active paragraph, lazy continuation, or indented lookalike; ordinary inline Markdown must remain discoverable.",
+              "Discover a Markdown destination after the terminating blank line.",
+              "Preserve character offsets, total length, source line positions, and LF/CRLF endings.",
+              "Keep genuine anchors and navigation-bearing HTML visible to the separate HTML-navigation scan.",
+              "Preserve existing type 1\u20136, fenced-code, inline-code, inline-HTML, resource-limit, and safety behavior."
+            ],
+            "legal_adoption": "Utility is established separately from legal clearance. The cited donor parser and node files are identified as BSD-3-Clause under verified immutable path grants; an adaptation must retain all applicable grant texts and notices. No human acceptance, merge, release, or completed legal review is established."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "",
+            "reason": "The investigator reports the scoped type-7 absence but expressly leaves donor utility unresolved and supplies no adaptation, maintenance plan, or acceptance criteria. Its admitted evidence is IDE metadata rather than the executable parser mechanism, so this observation is not a substantive positive adaptation claim and does not enter the proposed-novel denominator. The concrete parser evidence available elsewhere does not retroactively make this investigator's non-proposal a proposal.",
+            "acceptance_criteria": [],
+            "legal_adoption": "No transfer is proposed. BSD-3-Clause provenance and retention obligations are reported for the metadata, but legal availability alone does not demonstrate a useful mechanism."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Add bounded top-level GFM type-7 raw-HTML masking to the Markdown-destination view while preserving the separate HTML-navigation view.",
+            "reason": "The underlying change is a valid scoped additive design supported by the same receiving absence, donor start/paragraph/blank-line mechanism, receiving benefit, maintenance boundaries, and original acceptance as R2. It is therefore a duplicate record rather than a second distinct change. It remains in the proposed-novel precision denominator despite the donor-range registration refusal. No runtime claim is made or required.",
+            "acceptance_criteria": [
+              "Mask Markdown-like destinations inside an eligible top-level type-7 block through, but not including, its terminating blank line.",
+              "Do not start type-7 state after nonblank paragraph text or during lazy continuation; ordinary inline Markdown must remain discoverable.",
+              "Discover a Markdown destination after the terminating blank line.",
+              "Preserve character offsets, source line positions, and LF/CRLF endings.",
+              "Keep genuine anchors and navigation-bearing HTML visible to the separate HTML-navigation scan.",
+              "Preserve existing type 1\u20136, fenced-code, inline-code, inline-HTML, scan-budget, and safety behavior."
+            ],
+            "legal_adoption": "Utility is established separately from legal clearance. The cited donor files are identified as BSD-3-Clause with verified immutable path grants and obligations to retain applicable grant texts and notices. Registration refusal and absence of human adoption evidence preclude claims of completed transfer, acceptance, merge, or release."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "Novelty is established only within the complete selected/default implementation scope for tools/docs_links.py at a692491a7a973032d90545bc6f428ba6b77f706f; unrelated history and out-of-scope implementations remain unknown.",
+          "No runtime implementation or runtime verification exists; the supported positive result is an additive design proposal only.",
+          "The donor-range registration attempt was refused as unavailable at the pinned commit, although the supplied immutable cited source windows contain the concrete mechanism.",
+          "BSD-3-Clause identification and stated retention obligations do not establish completed legal review, human acceptance, adoption, merge, release, or version advantage."
+        ],
+        "unjustified_claims": [
+          "Any claim that R1 or R3 proposed a useful receiving adaptation; both explicitly left donor utility unresolved and provided no adaptation or acceptance.",
+          "Any claim that R2 or R4 is runtime-confirmed or implemented.",
+          "Any claim that R2 and R4 represent two distinct receiving changes.",
+          "Any claim of global historical novelty, completed legal clearance, human acceptance, merge, release, or version advantage."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 17457,
+        "inputTokens": 15760,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1697,
+        "reasoningOutputTokens": 433,
+        "lastInputTokens": 15760
+      },
+      "seconds": 27.484,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "b7e2f8de7cfc0eb1db8902236440b679d39789153ab28381d31c25658da6a8b9",
+      "native_result_sha256": "7e154797d07794f24fe5c086957d8b52865b24ac26f67d76debcaaac2ce58906"
+    },
+    {
+      "name": "crab-1",
+      "private_mapping": {
+        "R1": "crab-candidate-2",
+        "R2": "crab-baseline-2",
+        "R3": "crab-baseline-1",
+        "R4": "crab-candidate-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The selected/default/confirmed-pending scope shows whole-file text intake and no byte budget. Donor evidence supplies a concrete mechanism: byte-counted intake, early excess refusal, completeness checking before assembly, and separate UTF-8 decoding. The receiving-owned additive design specifies budget-plus-one intake, EOF completeness, preserved parsing and diagnostics, and explicit maintenance costs. Runtime evidence is unnecessary for this explicitly additive design.",
+            "acceptance_criteria": [
+              "Read an existing configuration in binary with at most the byte budget plus one byte of intake.",
+              "Accept only a complete EOF-terminated input at or below the budget; refuse an excess byte before decoding or YAML parsing.",
+              "Strictly decode accepted complete bytes as UTF-8 and preserve existing valid, missing, empty, comment-only, duplicate-key, diagnostic, mapping, and validation behavior.",
+              "Test exact-boundary, budget-plus-one, multibyte UTF-8, truncation/completeness, invalid UTF-8, and confirmation that oversized input does not reach YAML."
+            ],
+            "legal_adoption": "Utility is supported, but transfer clearance is unresolved: cited donor paths report an unresolved operative root grant, registration was refused, and no license obligations or permission to copy donor expression were established. An independently implemented receiving design still requires project legal review."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The investigator did not actually propose an adaptation, maintenance plan, or acceptance criteria. Its cited donor window only declares length, limit, and encoding options and does not establish enforcement, early refusal, completeness, or decoding order. The receiving scope supports absence of an existing cap, but absence alone does not turn this request for donor evidence into a proposed finding.",
+            "acceptance_criteria": [],
+            "legal_adoption": "Not assessed for adoption. The only recorded donor grant is an unresolved operative root grant; utility and legal clearance remain separate."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The investigator requested implementation context and supplied no concrete adaptation, maintenance cost, or receiving acceptance. Its option-contract citation establishes only declared byte-limit and decoding controls, not byte counting, overflow timing, completeness, or pre-decoding refusal. Scoped receiving absence is evidenced, but no source-supported change was actually proposed.",
+            "acceptance_criteria": [],
+            "legal_adoption": "Not assessed for adoption. The recorded operative root grant is unresolved, so no transfer clearance or obligations were established."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "This is the same valid receiving change as R1, not an additional finding. Donor history and error documentation substantiate immediate byte-overrun refusal and configured-limit semantics; receiving evidence shows unbounded read_text intake; and the original receiving-owned design defines binary incremental intake, EOF completeness, pre-decode/pre-YAML refusal, preserved behavior, and maintenance costs. Its underlying design is confirmed, but it is duplicate in the combined review.",
+            "acceptance_criteria": [
+              "Accept exact-ceiling valid UTF-8 with unchanged behavior.",
+              "Refuse a one-byte excess with a content-free UsageError before YAML is called.",
+              "Count encoded bytes while preserving multibyte UTF-8 values and existing empty/comment-only behavior.",
+              "Handle repeated short reads until EOF and refuse a later excess byte, proving completeness rather than treating one short read as EOF."
+            ],
+            "legal_adoption": "Utility is supported, but transfer clearance is unresolved: HISTORY.md and docs/errors.md have an unresolved operative root grant, registration was refused, and obligations are unknown. Independent implementation does not establish legal clearance automatically."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "Novelty is established only across the supplied selected, default, and confirmed-pending implementation scope; global historical absence is not proven.",
+          "No implementation or runtime verification was supplied; the confirmed result is an additive design, not a demonstrated runtime defect or completed code change.",
+          "R2 and R3 lacked the requested donor implementation evidence and therefore do not independently support the mechanism.",
+          "No human acceptance, adoption, merge, release, or version advantage is evidenced.",
+          "Donor licensing and transfer obligations remain unresolved."
+        ],
+        "unjustified_claims": [
+          "Any claim that the bounded-intake change is implemented or runtime-verified in crab.",
+          "Any claim of repository-wide or historical novelty beyond the declared implementation scope.",
+          "Any claim that registration refusal negates utility, or that utility establishes legal transfer clearance.",
+          "Any claim of human acceptance, adoption, merge, release, or comparative version advantage.",
+          "Treating R4 as a second distinct novel change rather than a duplicate of R1."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 19827,
+        "inputTokens": 18468,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1359,
+        "reasoningOutputTokens": 316,
+        "lastInputTokens": 18468
+      },
+      "seconds": 23.641,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "58c5d36dce42c2371299f6f5f5ddad14eed2cb2f72f5786fb030a1f061fbc9c1",
+      "native_result_sha256": "0819b51f2f3f17c33de3be56d82d6132e5b18d77a9ad040192bb76884d1cda03"
+    },
+    {
+      "name": "crab-2",
+      "private_mapping": {
+        "R1": "crab-baseline-2",
+        "R2": "crab-candidate-2",
+        "R3": "crab-baseline-1",
+        "R4": "crab-candidate-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The investigator requested more evidence and supplied no adaptation, maintenance plan, or receiving acceptance criteria. Its cited donor window only declares length, limit, and encoding options; it does not establish enforcement, bounded accumulation, overflow refusal, or completeness semantics. The receiving window does establish unbounded read_text intake, but that alone does not turn the predeclared need into a donor-supported proposal.",
+            "acceptance_criteria": [],
+            "legal_adoption": "Not assessed for adoption. The operative grant for cited src/index.ts was unresolved, and no transfer clearance or obligations were established."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "This is a concrete additive design, not a runtime-defect claim. Donor evidence identifies separate byte length/limit handling, a completeness check before result assembly, documented immediate refusal on excess bytes, and UTF-8 use with a limit. The receiving-owned adaptation reads at most budget plus one bytes, requires EOF for completeness, rejects excess before decoding or YAML, and preserves the existing validation path. Selected c88eeb3cebb267ec82f7cf602d994101cc52f102, default c9f432e36d447c437eb967f1b80fcc5a15c7b6b6, and confirmed pending 8cc59124de350a6e89c213213dfc5263088f6bd5 show no such intake bound in the declared scope. Maintenance cost and original receiving acceptance are explicit. Registration refusal concerns legal clearance, not technical utility.",
+            "acceptance_criteria": [
+              "Missing configuration retains current defaults.",
+              "Complete valid UTF-8 configurations at or below the byte budget load with existing behavior.",
+              "Budget-plus-one input is rejected with a content-free UsageError before YAML parsing.",
+              "The budget counts encoded bytes and preserves complete in-budget multibyte UTF-8.",
+              "Truncated input is never accepted as a complete configuration.",
+              "Existing duplicate-key, diagnostic-privacy, empty/comment-only, mapping, and from_data behavior remains unchanged.",
+              "Intake is bounded to at most the configured budget plus one byte."
+            ],
+            "legal_adoption": "Not cleared. Applicable grants for src/index.ts, HISTORY.md, and docs/examples.md were reported unresolved, and registration was refused for differing or unresolved licences. No obligations, adoption, merge, or release may be inferred."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The investigator expressly deferred assessment and supplied no concrete adaptation or acceptance criteria. Its donor citation contains only the option contract, not byte counting, overflow enforcement, bounded buffering, exact-boundary handling, or completion behavior. Although the receiving evidence shows whole-file read_text intake and scoped absence of a cap, no source-supported positive adaptation was actually proposed.",
+            "acceptance_criteria": [],
+            "legal_adoption": "Not assessed for adoption. The operative grant for cited src/index.ts was unresolved, and no transfer clearance or obligations were established."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "bound MawConfig.load byte intake before UTF-8 decoding and YAML parsing",
+            "reason": "The underlying additive design is valid but equivalent to R2: impose a receiving-owned encoded-byte ceiling, observe EOF before acceptance, reject the first excess byte before decoding or YAML, and preserve existing configuration behavior. Donor history and error documentation describe immediate excess-byte refusal and configured-limit errors; the receiving acceptance artifact is concrete and original, with explicit maintenance cost. The declared selected/default/pending scope contains no implementation of this mechanism. This record remains in the proposed-novel denominator despite being a duplicate and despite legal registration refusal.",
+            "acceptance_criteria": [
+              "An exactly-at-budget valid UTF-8 configuration loads with existing behavior.",
+              "Budget-plus-one input is rejected before YAML, witnessed by a recording loader.",
+              "In-budget multibyte UTF-8 retains its decoded values while the budget counts bytes.",
+              "Empty and comment-only in-budget files retain existing results.",
+              "Short reads continue until EOF; an eventual excess byte causes refusal.",
+              "The error is content-free, and the existing unique-key, private-diagnostic, mapping, and from_data path remains unchanged."
+            ],
+            "legal_adoption": "Not cleared. Applicable grants for HISTORY.md and docs/errors.md were reported unresolved, and registration was refused. Technical duplication and utility do not establish permission, obligations, adoption, merge, or release."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "The novelty conclusion is limited to the supplied selected, default, and confirmed-pending implementation scope; global historical absence was not proven.",
+          "R1 and R3 did not inspect enforcement code and therefore cannot independently validate a donor mechanism.",
+          "R2 and R4 are additive designs only; no receiving runtime implementation or executed target cases were supplied or required for those design claims.",
+          "Donor release-history statements support immediate overflow behavior, but the cited implementation window does not itself show the overflow branch.",
+          "All cited donor paths had unresolved operative grant information, so technical usefulness is separate from legal transfer clearance.",
+          "No human acceptance, adoption, merge, release, or version advantage is evidenced."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 20602,
+        "inputTokens": 18468,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 2134,
+        "reasoningOutputTokens": 995,
+        "lastInputTokens": 18468
+      },
+      "seconds": 36.532,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "bb4db264058ffb5459c8a8caa9a068cb1d54cf16821b8681954c6c6b883c038f",
+      "native_result_sha256": "5b967780ccd27647ff637c556552b0e88375a962bd102783cf8362aab967207f"
+    },
+    {
+      "name": "devostasis-1",
+      "private_mapping": {
+        "R1": "devostasis-candidate-2",
+        "R2": "devostasis-candidate-1",
+        "R3": "devostasis-baseline-2",
+        "R4": "devostasis-baseline-1"
+      },
+      "verdict": {
+        "records": [],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "All four runs reported zero observations and zero actual receiving cases, so there are no producing-investigator proposals to review or count.",
+          "The static-cycle-edge-witness need remained an unassessed design proposal with no receipt, cited donor source window, concrete donor mechanism, or acceptance criteria supplied by an investigator.",
+          "No runtime probes were performed; no target_called witnesses or target/control outcomes exist.",
+          "Novelty evidence is limited to the selected/default/confirmed-pending scope; global historical absence is not proven.",
+          "Legal transfer clearance and obligations cannot be assessed because no donor source or proposed adaptation was cited."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 13463,
+        "inputTokens": 13244,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 219,
+        "reasoningOutputTokens": 73,
+        "lastInputTokens": 13244
+      },
+      "seconds": 5.36,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "089d65b24ee7f615323cfd8816c1eddbdfcd935c28f46d50e68c19090198054e",
+      "native_result_sha256": "d3beeaa68583b9664bf11ece49427857ee92bb191a516c8c04cf9b06c6f5e4b4"
+    },
+    {
+      "name": "devostasis-2",
+      "private_mapping": {
+        "R1": "devostasis-candidate-2",
+        "R2": "devostasis-baseline-1",
+        "R3": "devostasis-baseline-2",
+        "R4": "devostasis-candidate-1"
+      },
+      "verdict": {
+        "records": [],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "All four masked investigations produced zero observations and no actual receiving cases.",
+          "The only need probe status was an unverified design-proposal placeholder with no receipt or case outcomes.",
+          "No donor mechanism or cited donor source window was supplied, so utility, novelty, adaptation cost, duplication, and legal transfer obligations could not be assessed.",
+          "No runtime probe evidence was supplied.",
+          "Novelty review was limited to the selected revision a4761daa9fa87026ea106a3d722e7299b3de3b8b and bounded default/pending scope; global historical absence was not proven.",
+          "Open backlog items are requests, not implemented behavior."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 13464,
+        "inputTokens": 13244,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 220,
+        "reasoningOutputTokens": 63,
+        "lastInputTokens": 13244
+      },
+      "seconds": 6.062,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "f26c05f3249c988eebbe0ad386ee4d938d7fb25adcbe2d9f6a174843e36f931a",
+      "native_result_sha256": "d8ffe5593500f311484a1732cd613be420b06735ab57953b61121b882bf13fb7"
+    }
+  ],
+  "metrics": {
+    "native_verified_gap_occurrences": {
+      "baseline": 2,
+      "candidate": 2
+    },
+    "shared_nominations": 30,
+    "semantic_admissions": 8,
+    "assessed_occurrences": 8,
+    "distinct_assessed_donors": 2,
+    "actual_native_tokens": {
+      "baseline": 112122,
+      "candidate": 120115
+    },
+    "review_tokens": 102442,
+    "all_trial_usage_complete": true,
+    "all_trial_budgets_valid": true,
+    "all_review_usage_complete": true,
+    "all_review_budgets_valid": true,
+    "currency": null,
+    "whole_project_cost": null,
+    "confirmed_unique_changes": {
+      "baseline": 1,
+      "candidate": 1
+    },
+    "confirmed_unique_by_maw": {
+      "crab": {
+        "baseline": 0,
+        "candidate": 1
+      },
+      "devostasis": {
+        "baseline": 0,
+        "candidate": 0
+      },
+      "beautifulrepo": {
+        "baseline": 1,
+        "candidate": 0
+      }
+    }
+  },
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Thirty exact pinned acquisitions, both digest arms and filename catalogues only. No donor source body or shared investigation judgment supplied to new workers before seal. Pretraining and unrecognized ports unknown.",
+    "receiving_context": "Actual complete acquired c88eeb3 owned snapshots; selected/default/all canonical pending implementations and bounded all-state queries. One concrete additive flow per maw, equal for both arms; all prior precision/yield/safety gates unchanged.",
+    "known_work": "All old cohorts/calibrations and prior163 repository identities excluded fresh yield. Crab547/548/551 guards, Dev117 physical line counting, Beauty230 and HTML1..6, conditional import-context and generic bounded-resource ideas are known. No reviewer-created proposal becomes investigator yield.",
+    "cost": "Actual input incl cached plus output and captured elapsed time retained. Setup/engineering/root coordination and currency unknown. No whole-project efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "donor_default_drift": [],
+    "receiving_drift": "No differences from the focused nominated current pins. Setup corrected a nonexistent owned HTML helper name before either measured arm; initial failed setup retained.",
+    "open_pr_delta": "557 reviewed and integrated preserving authorship. Merged upstream548/556 reviewed and cherry-picked with attribution; this task merged no PR.",
+    "metadata_only_scope_correction": "An initial compiler-metadata shortlist was discarded before source acquisition or model inference: the actual receiving specification explicitly excludes signature defaults/decorators from its named complexity measure. The new dependency-cycle flow is grounded in the existing component-only output.",
+    "lineage_caveats": [
+      "yaml/libyaml is a known PyYAML substrate; newly nominated implementation is distinct from the previously read Python paths, but ecosystem independence is not claimed.",
+      "kivikakk/koino shares an author/ecosystem with previously exposed comrak; unknown ports/shared lineage are not extra corroboration or unique receiving-change votes."
+    ]
+  },
+  "safety": {
+    "donor_program_execution": false,
+    "human_licence_override": false,
+    "publication_from_trials": false,
+    "merge": false,
+    "tag": false,
+    "release": false
+  },
+  "interpretation": [
+    "Both independent reviews support one candidate bounded-YAML-byte-intake design and one baseline HTML-type7 design. Two repeated producing observations per arm describe the same canonical change, not two unique changes. No runtime defect or implemented fix is claimed.",
+    "Candidate wins Crab only; baseline wins BeautifulRepo; Devostasis has zero donor admissions in all four attempts because the bounded first assessment cannot fit after planning. Overall unique yield is tied1:1, so the unchanged comparative gate fails.",
+    "Only8semantic admissions/assessments and2distinct donors from30shared nominations. All12trials stop at model-budget-reserve. This is not30complete eats or90verified hypotheses.",
+    "Both substantive proposals in each arm are supported as the same design; the canonical proposed denominator is1perarm, while duplicate-inclusive occurrence counting is1unique/2occurrences. Retain both views; no precision interpretation can repair the failed yield gate.",
+    "Current candidate MIT registration is held for an unresolved operative root grant; raw-body LICENSE has a standard full MIT body and a three-part holder name rejected by the current metadata grammar. This new regression is not retroactively cleared by a later fix. Baseline BSD registration reports unavailable source ranges under its published reader; source-supported utility remains separate.",
+    "Candidate BeautifulRepo navigation selected IDE metadata instead of the parser implementation. Its request-more observations contain no adaptation/acceptance and are not producing proposals. No reviewer-created proposal is counted.",
+    "All actual trial/review usage is known and within caps; setup, engineering, root coordination and currency remain unknown. No whole-project efficiency claim. Earlier failed/unknown cohorts remain retained."
+  ],
+  "release_gates": {
+    "candidate_strictly_more_overall": false,
+    "candidate_strictly_more_in_at_least_two_maws": false,
+    "all_actual_trial_review_costs_known_and_within_caps": true,
+    "complete_discovery_readiness": false
+  }
+}

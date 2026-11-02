@@ -1,0 +1,281 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured focused-protocol arm",
+  "sealed_at": "2026-11-02T06:24:43.768177+00:00",
+  "candidate": {
+    "commit": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+    "source_identity": "9325c5739549ba8b17bda15ef953f1a203efab9d6c194181baa5d7a40c543603",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+    "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Thirty exact pinned acquisitions, both digest arms and filename catalogues only. No donor source body or shared investigation judgment supplied to new workers before seal. Pretraining and unrecognized ports unknown.",
+    "receiving_context": "Actual complete acquired c88eeb3 owned snapshots; selected/default/all canonical pending implementations and bounded all-state queries. One concrete additive flow per maw, equal for both arms; all prior precision/yield/safety gates unchanged.",
+    "known_work": "All old cohorts/calibrations and prior163 repository identities excluded fresh yield. Crab547/548/551 guards, Dev117 physical line counting, Beauty230 and HTML1..6, conditional import-context and generic bounded-resource ideas are known. No reviewer-created proposal becomes investigator yield.",
+    "cost": "Actual input incl cached plus output and captured elapsed time retained. Setup/engineering/root coordination and currency unknown. No whole-project efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "donor_default_drift": [],
+    "receiving_drift": "No differences from the focused nominated current pins. Setup corrected a nonexistent owned HTML helper name before either measured arm; initial failed setup retained.",
+    "open_pr_delta": "557 reviewed and integrated preserving authorship. Merged upstream548/556 reviewed and cherry-picked with attribution; this task merged no PR.",
+    "metadata_only_scope_correction": "An initial compiler-metadata shortlist was discarded before source acquisition or model inference: the actual receiving specification explicitly excludes signature defaults/decorators from its named complexity measure. The new dependency-cycle flow is grounded in the existing component-only output.",
+    "lineage_caveats": [
+      "yaml/libyaml is a known PyYAML substrate; newly nominated implementation is distinct from the previously read Python paths, but ecosystem independence is not claimed.",
+      "kivikakk/koino shares an author/ecosystem with previously exposed comrak; unknown ports/shared lineage are not extra corroboration or unique receiving-change votes."
+    ]
+  },
+  "protocol_amendment": "One concrete receiving flow per maw, equal for both arms, to permit real continuation/replacement under the same actual caps. Controlled positive/negative/replacement tests stay separate. No precision/yield/safety threshold or quota change. All earlier failed cohorts and exposed control costs remain retained.",
+  "sealed_sha256": "9f4b5ebace3e55170c6885ccb87d9c4084df7bde74f937cac2e15e6b7bee56b4",
+  "pool": [
+    {
+      "id": "crab-1",
+      "repository": "stream-utils/raw-body",
+      "sha": "c3949f885af40733c680eb410b7d1f5aeddc2877",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-2",
+      "repository": "sindresorhus/get-stream",
+      "sha": "3862b22798bddd61ea3fee18468ab0b7113514d0",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-3",
+      "repository": "isaacs/minipass-sized",
+      "sha": "6bfc4bf784d68ae84f61e0ddfb9415d424fc17fd",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-4",
+      "repository": "uhop/stream-json",
+      "sha": "0f70a661308d12973b63f1e7ec23c396265a5361",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-5",
+      "repository": "json-c/json-c",
+      "sha": "d9b375ff1b4ea0305566527e377ecf6545771e80",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-6",
+      "repository": "lloyd/yajl",
+      "sha": "5e3a7856e643b4d6410ddc3f84bc2f38174f2872",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-7",
+      "repository": "goccy/go-yaml",
+      "sha": "edee2f91616c6d73112a13e7c0dbde72ce938877",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-8",
+      "repository": "yaml/libyaml",
+      "sha": "90a56d4500aa1a1798514c5cb55c3ad4cb095f94",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-9",
+      "repository": "mafintosh/length-prefixed-stream",
+      "sha": "47e6f5b6ba62416057d1540930d8f71e29e05e53",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-10",
+      "repository": "zserge/jsmn",
+      "sha": "25647e692c7906b96ffd2b05ca54c097948e879c",
+      "batch": "crab"
+    },
+    {
+      "id": "devostasis-1",
+      "repository": "networkx/networkx",
+      "sha": "a325f6a948c0c2959fb48db205fa36534ea9429d",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-2",
+      "repository": "dagrejs/graphlib",
+      "sha": "0438a8f5c33d5d5ba1a9028832a0a4313cc7e3e9",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-3",
+      "repository": "graphology/graphology",
+      "sha": "65e278f0075de97bee3fce12d10e423752ed395a",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-4",
+      "repository": "Qiskit/rustworkx",
+      "sha": "6565c2d1d6573198f067a6a015d1c097011e13bf",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-5",
+      "repository": "petgraph/petgraph",
+      "sha": "6b4ee17598daf3237ffe570d526b86f992ef4748",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-6",
+      "repository": "anvaka/ngraph.path",
+      "sha": "3dba5d04ace3317b487bee1f6e0e614ae57cd4f5",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-7",
+      "repository": "jriecken/dependency-graph",
+      "sha": "a9eb7aa253b857ec7652dddefb48a350af787ef4",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-8",
+      "repository": "sverweij/dependency-cruiser",
+      "sha": "5173200de662c89c6ed0fd687e9a62aedaf792a0",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-9",
+      "repository": "acrazing/dpdm",
+      "sha": "52ac8b89b90615fc2398c9a95f53cafa33f558dc",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-10",
+      "repository": "pahen/madge",
+      "sha": "456057b85c2d063dad9c10147d7686ded4fc5ce5",
+      "batch": "devostasis"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "repository": "thephpleague/commonmark",
+      "sha": "3164fa3d41d78857384a29e1c606c456cbab9600",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "repository": "erusev/parsedown",
+      "sha": "4e433a8d57078645b55d21fd12c887d3ba6ca01e",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "repository": "michelf/php-markdown",
+      "sha": "98b12b84b11c3fe488015b11e3b84bd1aaa7d719",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "repository": "JetBrains/markdown",
+      "sha": "81ecab69d96be048fd6edb09997392ba4e8c7962",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "repository": "JohnSundell/Ink",
+      "sha": "bcc9f219900a62c4210e6db726035d7f03ae757b",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "repository": "miyuchina/mistletoe",
+      "sha": "2d404e2c9e3ba41cc2f0409842201f9365960381",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "repository": "kivikakk/koino",
+      "sha": "0f10363e02ff575b008f219e54dc30ef8fad55db",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "repository": "icyleaf/markd",
+      "sha": "c45af09ff4a8b3afb57f79114ff0eaca0f4a8d03",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "repository": "dbuenzli/cmarkit",
+      "sha": "247a041aa63affa6166f0dce6efce6b157c0e803",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "repository": "MichaelHatherly/CommonMark.jl",
+      "sha": "a8d69c640da0eaf7fc2538467b8c5f9645785f04",
+      "batch": "beautifulrepo"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "c88eeb3cebb267ec82f7cf602d994101cc52f102",
+      "needs": [
+        {
+          "id": "bounded-configuration-byte-intake",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "static-cycle-edge-witness",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+      "needs": [
+        {
+          "id": "top-level-type7-html-context",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}
