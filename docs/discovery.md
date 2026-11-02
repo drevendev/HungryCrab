@@ -399,6 +399,14 @@ With `defer_oversized_source`, an inadmissible first packet becomes a charged
 deferral rather than stopping unrelated remaining work. Preview artifacts have
 distinct preparation names so later leads cannot overwrite earlier refusals.
 
+The qualification host's optional `breadth_before_continuations` policy applies
+equally to both arms. When a source request has no substantive adaptation,
+maintenance or acceptance and another frozen need is unassessed, it defers that
+request before reading or reassessing it. Exact operations and the original
+native-answer hash remain retained; the decision is unreviewed and verification
+is unrun. This resource policy does not classify usefulness or erase proposed
+changes from review denominators. It is disabled unless explicitly configured.
+
 Explicit per-need literal `terms` reach CLI seeding directly. When all needs
 already have them, the compact semantic nomination stage is unnecessary; the
 matching installed skill is supplied to the first assessment instead. Actual
