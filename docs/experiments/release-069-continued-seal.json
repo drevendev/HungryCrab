@@ -1,0 +1,335 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured continuation-repair arm",
+  "sealed_at": "2026-11-02T12:00:38.166667+00:00",
+  "candidate": {
+    "commit": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+    "source_identity": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "30immutable acquisitions, both digest arms and filename catalogues only. No source body or shared judgment supplied to fresh investigators/reviewers. Standards informed receiving needs; PyPA page includes a reference snippet. Pretraining/shared ports unknown.",
+    "prior_repository_identities": 224,
+    "prior_provider_ids": 211,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All previous study findings, HungryCrab563/564/565, BeautifulRepo240/241 and earlier548/551/561/237 etc.; original Dev117 and conditional-import context; broad generic resource-policy ideas"
+    ],
+    "lineage": [
+      "Poetry and poetry-core are related upstream packages, not independent receiving-change votes.",
+      "graphlib2 describes a Rust port of Python stdlib graphlib; actual selected pin is bound, not presumed independent implementation.",
+      "Redcarpet has Sundown ancestry; prior exposed primary parser identities remain excluded. Metadata-rejected Hoedown would add shared Sundown lineage and was replaced before source acquisition.",
+      "Primary PyPA/CommonMark/Dart standards informed receiving requirements; the PyPA page includes a reference snippet. No snippet/root utility judgment is supplied to investigators. Source family overlap and pretraining cannot be ruled out."
+    ],
+    "cost": "All native input including cached+output and elapsed time retained; currency, setup, engineering/root coordination and whole-project cost unknown. No aggregate efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "source_and_host_repairs": [
+      "566actual source continuation checkpoints/explicit rereads/bounded2rounds",
+      "567complete MIT forms",
+      "568complete Boost dispatch",
+      "569bounded-read seed ranking with raw owner override"
+    ],
+    "receiving": {
+      "HungryCrab": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+      "Devostasis": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "BeautifulRepo": "fd222b9013448ba0f346ef88d9951a03abbd2e12"
+    },
+    "shared_acquisition_runs": [
+      41436576020,
+      41436576045
+    ],
+    "donor_or_receiving_drift": [],
+    "source_eol_reconciliation": {
+      "local_before": "8d463ddf8ecb843dd810887d80c4b303de897db95b0850d9be41427b3971d4d4",
+      "canonical_installed_source": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
+      "normalization": "Only CRLF/LF; exact committed Git blobs restored, hash algorithm unchanged",
+      "files": [
+        "src/hungry_crab/novelty.py",
+        "src/hungry_crab/novelty_diffs.py"
+      ],
+      "models_started": 0,
+      "candidate_commit": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+      "shared_digest_pairs_retained": 30
+    },
+    "metadata_refinements": [
+      "Two guessed old owner URLs returned404 before source acquisition; canonical Earmark/Lute providers verified by repository search.",
+      "Undirected Boost wrapper excluded from a directed-cycle need using metadata; replaced with a directed/undirected explicit cycle-list implementation.",
+      "Hoedown shares Sundown lineage with Redcarpet; choose an independent tree-sitter grammar instead. No model/source outcome was inspected."
+    ],
+    "receiving_need_amendment": {
+      "recorded_at": "2026-11-02T11:43:46.657913+00:00",
+      "reason": "Receiving Cargo implementation explicitly stores but does not correlate workspace declarations. Add this distinct actual design need before any model call. Three Crab needs also avoid a two-need/two-repeat unique-change ceiling; thresholds/caps remain unchanged. No donor source body or trial outcome was inspected, and all30 original nominees/pins remain fixed.",
+      "acquisition_plan_sha256": "4d358eadb7bc6b2f099833685d8e7181414c3df597ffeed5e9412f0705f3b471"
+    },
+    "candidate_declaration_view": "Derived only from the public CLI artifact; use only when exact serialized view is smaller, keep full raw file changes and external-helper uncertainty. Baseline receives its original actual scoped comparison.",
+    "open_pr_delta": "Only539open in HungryCrab. All14Devostasis canonical pending heads captured; BeautifulRepo238/239nowmerged and no open PR at capture. No PR merged by this task."
+  },
+  "protocol_amendment": "Substantive source/host repair after the retained seeded failure. Same12balanced trials/6masked reviews/30nominees and535caps/criteria. Six actual design needs(3/1/2); earlier confirmed receiving changes excluded. Same-trial exact source checkpoints apply to botharms; explicitly2local source continuation rounds within unchanged total budgets. Candidate optional CLI-derived declaration change view preserves full raw sources, bindings and external-helper uncertainty. No reviewer-created yield, byte proxy or reset of a failed attempt.",
+  "sealed_sha256": "e934a5576b33a89370a624b69cbd1f8afb9a8f10aefb9a2a2bd585a49f41232c",
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "pypa/dependency-groups",
+      "sha": "ddced08419a713e8885b90d1384b893d7fefed09"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "astral-sh/uv",
+      "sha": "39a02a0d9085f14dc3d5aa8655ac010a1fd377f8"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "python-poetry/poetry",
+      "sha": "6ecadf5b71309b1da4f00949cc349a79884cff8f"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "python-poetry/poetry-core",
+      "sha": "625c5cbe20bbffc58861baa855ce7c8b7546a535"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "pypa/pip",
+      "sha": "0f798f11959785035b37634d732e83693c5fded5"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "Andersmholmgren/pubspec",
+      "sha": "7c32a1a48c08623513e3dd28a910299922c27487"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "alexei-sintotski/pubspec_yaml",
+      "sha": "ca1e218ddb01fe1e1d11bcfcf980034919bbc088"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "alexei-sintotski/pubspec_lock",
+      "sha": "22d09fed1219e126086b0a2b0c2bb75a8ddb4072"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "onepub-dev/pubspec_manager",
+      "sha": "ccfdbefdca8b0d05fd627f16e977a47075ea6610"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "dart-lang/tools",
+      "sha": "1579f8d690d28e7e38adf469d35d31a573ed5132"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "tmont/tarjan-graph",
+      "sha": "2ae093bb24fdee5bb704857caa5db87d3edc6d5c"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "simphotonics/directed_graph",
+      "sha": "c1da2561cd09e1003d5cf2c8dfad096fefe543a1"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "blutorange/js-incremental-cycle-detect",
+      "sha": "3ac21d88d23cbe87de3aca7a210b54b996f354c5"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "jepsen-io/elle",
+      "sha": "4e359e597c52938b0afebb8bc42273914d68a424"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "purpleprotocol/graphlib",
+      "sha": "3b4a0332b07098823f33b8f1b42a9f1747826a89"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "lucaslouca/graph-cycles",
+      "sha": "57b11fd4064def817d90cb63fe407e8353972e1a"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "adriangb/graphlib2",
+      "sha": "09e683f85604caa609f3c38f15e4aded5ed55829"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "hapijs/topo",
+      "sha": "0b59efb0ea08c3be52c138baf05fec3d5be244d5"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "datavis-tech/graph-data-structure",
+      "sha": "bf01f127887b5fff43c48bc1fb19da5d588cd51b"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "josch/cycles_tarjan",
+      "sha": "91beb23e1f28ef9228591620d585e3c5b24ecce3"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "xoofx/markdig",
+      "sha": "bbf197eaf3c96b9a6ada6532ec970b59751ca9c6"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "Knagis/CommonMark.NET",
+      "sha": "f82761c0718943cfaca2e2fbf00ea286d2153ae4"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "gettalong/kramdown",
+      "sha": "12b3d2e752793d4128b6355c338b23fefa674ee0"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "vmg/redcarpet",
+      "sha": "be45edba28f4432b9b8cfeaf1d53ec64dafbdb58"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "tree-sitter-grammars/tree-sitter-markdown",
+      "sha": "41ff24a6c775492c543b09228aeb98d1cd2b3a0f"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "RobertDober/earmark_parser",
+      "sha": "d8b5bd910bd227a5f5d16f4587147cdf349a6769"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "88250/lute",
+      "sha": "a824e50cadcc5d7f65c55d29d7a3b1f78029ad5a"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "sirthias/pegdown",
+      "sha": "19ca3d3d2bea5df19eb885260ab24f1200a16452"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "evilstreak/markdown-js",
+      "sha": "14344a8f0eb1ca5d6ff99eb3fa54c1fd821bf484"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "trentm/python-markdown2",
+      "sha": "cecee4f51625fa82e8f55e1ba1024e8073bd42b1"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+      "needs": [
+        {
+          "id": "python-dependency-group-includes",
+          "verification_mode": "design"
+        },
+        {
+          "id": "literal-dart-pubspec-evidence",
+          "verification_mode": "design"
+        },
+        {
+          "id": "cargo-workspace-dependency-inheritance",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "static-cycle-edge-witness",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "fd222b9013448ba0f346ef88d9951a03abbd2e12",
+      "needs": [
+        {
+          "id": "multiline-reference-definition-scanning",
+          "verification_mode": "design"
+        },
+        {
+          "id": "balanced-reference-link-text",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}

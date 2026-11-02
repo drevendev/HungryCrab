@@ -48,6 +48,7 @@ def _declarations(
     requests: list[dict[str, str]],
     deadline: float,
     cache: dict[tuple[str, str], list[dict[str, Any]]],
+    absence: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     by_path = {f["path"]: f["content_sha256"] for f in files}
@@ -55,7 +56,22 @@ def _declarations(
         wanted = [r for r in requests if r["path"] == path]
         digest = by_path.get(path)
         if digest is None:
-            result.extend({**r, "status": "source-unavailable-in-acquired-scope"} for r in wanted)
+            witness = next(
+                (w for w in absence if path == w["prefix"] or path.startswith(w["prefix"] + "/")),
+                None,
+            )
+            result.extend(
+                {
+                    **r,
+                    "status": (
+                        "source-absent-at-pin"
+                        if witness
+                        else "source-unavailable-in-acquired-scope"
+                    ),
+                    **({"absence_witness": witness} if witness else {}),
+                }
+                for r in wanted
+            )
             continue
         key = (path, digest)
         if key not in cache:
@@ -102,24 +118,40 @@ def _declarations(
 
 def _scope_paths(
     reader: GitSourceReader, sha: str, prefix: str
-) -> tuple[list[tuple[str, str]], list[dict[str, str]], bool]:
+) -> tuple[list[tuple[str, str]], list[dict[str, str]], bool, list[dict[str, str]]]:
     directory = ""
     parts = PurePosixPath(prefix).parts
     for index, part in enumerate(parts):
         entries = reader.tree_entries(sha, directory)
         if entries is None:
-            return [], [{"path": directory, "reason": "scope-tree-unavailable"}], False
+            return [], [{"path": directory, "reason": "scope-tree-unavailable"}], False, []
         mode = entries.get(part)
         if mode is None:
-            return [], [], True  # Established absence at this immutable head.
+            # Successful immediate-tree lookup proves this component absent;
+            # failed reads and empty acquired file lists do not.
+            return (
+                [],
+                [],
+                True,
+                [
+                    {
+                        "prefix": prefix,
+                        "sha": sha,
+                        "parent": directory,
+                        "missing_path": directory + "/" + part if directory else part,
+                        "method": "pinned-immediate-tree-component-absence",
+                    }
+                ],
+            )
         path = directory + "/" + part if directory else part
         if mode == "040000":
             directory = path
         elif mode in {"100644", "100755"} and index == len(parts) - 1:
-            return [(path, mode)], [], True
+            return [(path, mode)], [], True, []
         else:
-            return [], [{"path": path, "reason": "scope-not-regular"}], False
-    return _source_paths(reader, sha, directory)
+            return [], [{"path": path, "reason": "scope-not-regular"}], False, []
+    paths, omissions, available = _source_paths(reader, sha, directory)
+    return paths, omissions, available, []
 
 
 def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
@@ -185,8 +217,10 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
                 continue
         omissions_before = len(omissions)
         eligible: list[str] = []
+        absence: list[dict[str, str]] = []
         for prefix in prefixes:
-            paths, missing, available = _scope_paths(reader, sha, prefix)
+            paths, missing, available, absent = _scope_paths(reader, sha, prefix)
+            absence.extend(absent)
             if not available or missing:
                 omissions.extend(
                     {**target, **row} for row in missing or [{"reason": "tree-unavailable"}]
@@ -222,8 +256,14 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
                 "files": selected,
                 "scope_files_observed": len(eligible),
                 "scope_complete": len(omissions) == omissions_before,
+                "path_absence_witnesses": absence,
                 "declarations": _declarations(
-                    selected, sources, symbols, reader.deadline or time.monotonic(), declarations
+                    selected,
+                    sources,
+                    symbols,
+                    reader.deadline or time.monotonic(),
+                    declarations,
+                    absence,
                 ),
             }
         )
@@ -259,6 +299,8 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
         "source_roles": "All bindings describe the receiving project, never donor transfer grants.",
         "declaration_scope": (
             "Exact declaration source bytes including decorators; never runtime equivalence. "
+            "Source-absent-at-pin carries a successful immutable tree witness; unavailable "
+            "source remains unknown. Neither proves global historical or semantic absence. "
             "Imported/global/helper behavior and missing declarations need separate comparison. "
             "Full file bodies, hashes and every role/ref binding remain in this artifact."
         ),

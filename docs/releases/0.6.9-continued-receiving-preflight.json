@@ -1,6 +1,6 @@
 {
   "schema": "hungry-crab.receiving-qualification-preflight/1",
-  "candidate_source_identity": "8d463ddf8ecb843dd810887d80c4b303de897db95b0850d9be41427b3971d4d4",
+  "candidate_source_identity": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
   "pending_observed_as_of": "2026-11-02T11:09:27.576Z",
   "receiving": {
     "HungryCrab": {
@@ -82,5 +82,17 @@
       "sha": "fd222b9013448ba0f346ef88d9951a03abbd2e12",
       "pending": []
     }
+  },
+  "pre_inference_source_eol_reconciliation": {
+    "local_before": "8d463ddf8ecb843dd810887d80c4b303de897db95b0850d9be41427b3971d4d4",
+    "canonical_installed_source": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
+    "normalization": "Only CRLF/LF; exact committed Git blobs restored, hash algorithm unchanged",
+    "files": [
+      "src/hungry_crab/novelty.py",
+      "src/hungry_crab/novelty_diffs.py"
+    ],
+    "models_started": 0,
+    "candidate_commit": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+    "shared_digest_pairs_retained": 30
   }
 }

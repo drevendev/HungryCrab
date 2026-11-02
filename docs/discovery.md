@@ -309,6 +309,15 @@ original probe also pins the trusted runner's bytes before execution.
 {"symbols": [{"path": "src/package/config.py", "qualified_name": "Config.load"}]}
 ```
 
+Declaration status distinguishes `source-absent-at-pin` from
+`source-unavailable-in-acquired-scope`. The former includes an immutable tree
+witness naming the successfully read parent and missing path component;
+unavailable trees, nonregular material, exclusions and read/resource failures
+cannot supply that witness. `declaration-absent` means a present file was parsed
+successfully without the requested declaration. These are facts about the
+explicit scope, not global historical absence or semantic novelty. Every
+selected/default/pending role remains bound to its actual revision.
+
 Supply this alongside the existing explicit prefixes/default/pending plan. Each
 acquired role/ref records declaration availability, exact decorator-inclusive
 ranges and a source-content hash. Absence, duplicate definitions, unsupported

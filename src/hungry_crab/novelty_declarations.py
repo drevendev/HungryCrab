@@ -54,6 +54,8 @@ def declaration_comparisons(targets: list[dict[str, Any]]) -> dict[str, Any]:
                 "other_file_sha256": counterpart.get("source_content_sha256"),
                 "selected_range": {k: declaration.get(k) for k in ("start", "end")},
                 "other_range": {k: counterpart.get(k) for k in ("start", "end")},
+                "selected_absence_witness": declaration.get("absence_witness"),
+                "other_absence_witness": counterpart.get("absence_witness"),
             }
             locations = rows[fingerprint]["bindings"]
             group = next((g for g in locations if g["location"] == location), None)
@@ -140,7 +142,12 @@ def declaration_change_view(scope: dict[str, Any]) -> dict[str, Any]:
         "coordinates": (
             "Hunk lines are declaration-relative; physical line = origin.start + line - 1"
         ),
-        "presence_or_unknown": "Absent/ambiguous/unavailable declarations need parent source reads",
+        "presence_or_unknown": (
+            "Source-absent-at-pin has a successful immutable tree witness, not unavailable "
+            "source. Declaration-absent means successful parsing found no requested function. "
+            "Unavailable/ambiguous/incomplete source stays unknown. No status proves global "
+            "historical absence or semantic novelty; inspect relevant alternate implementations."
+        ),
         "other_file_changes": {
             "projected": False,
             "reason": "explicit-declaration-view; external behavior remains unknown",
