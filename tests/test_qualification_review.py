@@ -110,6 +110,31 @@ def test_packet_masks_metadata_and_requires_every_trial_complete(tmp_path: Path)
     assert payload["shared_actual_implementation_scope"] == {"bindings": []}
     serialized = json.dumps(payload)
     assert all(arm not in serialized for arm in ("baseline", "candidate"))
+    source = 'VERSION = "0.6.8"\nclass Candidate: pass\n'
+    other = {
+        **need,
+        "id": "other",
+        "novelty": {
+            "bindings": [{"sha": "b" * 40}],
+            "source": {"content": source},
+            "backlog_summary": [],
+            "backlog_coverage": [],
+        },
+    }
+    plan["maws"]["crab"]["needs"] = [need, other]
+    payload, _ = packet(plan, "crab", 1)
+    assert payload["shared_actual_implementation_scope"] is None
+    assert len(payload["actual_implementation_scopes"]) == 2
+    first, second = payload["needs_and_actual_novelty_context"]
+    assert payload["actual_implementation_scopes"][first["implementation_scope_id"]] == {
+        "bindings": []
+    }
+    assert (
+        payload["actual_implementation_scopes"][second["implementation_scope_id"]]["source"][
+            "content"
+        ]
+        == source
+    )
     state["phase"] = "research"
     write(tmp_path / names[-1] / "host-state.json", state)
     with pytest.raises(RuntimeError, match="all measured trials finish"):

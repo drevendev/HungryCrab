@@ -272,23 +272,27 @@ def packet(
         mapping[blind] = run.pop("original")
         run["blind_id"] = blind
     needs = []
-    common_novelty = None
+    scopes: dict[str, Any] = {}
     for need in definition["needs"]:
         novelty = dict(need["novelty"])
         backlog = {k: novelty.pop(k) for k in ("backlog_summary", "backlog_coverage")}
-        if common_novelty is None:
-            common_novelty = novelty
-        elif common_novelty != novelty:
-            raise RuntimeError("receiving needs unexpectedly have different implementation scopes")
+        scope_id = "N" + identity(novelty)[:20]
+        if scope_id in scopes and scopes[scope_id] != novelty:
+            raise RuntimeError("implementation scope identity collision")
+        scopes[scope_id] = novelty
         needs.append(
             {k: need[k] for k in ("id", "flow", "expected", "observed", "constraints", "target")}
         )
         needs[-1]["backlog_context"] = backlog
+        needs[-1]["implementation_scope_id"] = scope_id
     payload = {
         "receiving_project": batch,
         "selected_sha": definition["context"]["sha"],
         "needs_and_actual_novelty_context": needs,
-        "shared_actual_implementation_scope": common_novelty,
+        "shared_actual_implementation_scope": next(iter(scopes.values()))
+        if len(scopes) == 1
+        else None,
+        "actual_implementation_scopes": scopes,
         "runs": runs,
         "actual_cited_source_windows": bank,
         "limitations": [
@@ -320,7 +324,13 @@ def packet(
         if isinstance(value, list):
             return [mask(v) for v in value]
         if isinstance(value, dict):
-            return {k: mask(v) for k, v in value.items() if k not in {"exploration", "menu_path"}}
+            return {
+                k: v
+                if k in {"content", "original_case_data", "actual_acceptance_artifact"}
+                else mask(v)
+                for k, v in value.items()
+                if k not in {"exploration", "menu_path"}
+            }
         return value
 
     return mask(payload), mapping
@@ -388,6 +398,7 @@ def main() -> None:
         "the admitted donor mechanism as not useful. A substantive positive adaptation claim "
         "cannot escape the denominator merely through a request-more label. "
         "Check the actual concrete donor mechanism, receiving benefit, scoped "
+        "implementation_scope_id in actual_implementation_scopes for EACH need, "
         "selected/default/pending novelty, adaptation/maintenance cost, "
         "source/probe validity and duplication. Design proposals need concrete original receiving "
         "acceptance and cited mechanism; do not require runtime evidence for an explicitly "
