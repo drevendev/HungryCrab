@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.receiving-qualification-preflight/1",
   "candidate_source_identity": "442a099298fb780a3907483d2f70d98d6fec8f94f078bd080a97eb508a7fe489",
-  "pending_observed_as_of": "2026-11-02T07:41:01.185Z",
+  "pending_observed_as_of": "2026-11-02T08:11:41.514Z",
   "receiving": {
     "HungryCrab": {
       "sha": "c9f432e36d447c437eb967f1b80fcc5a15c7b6b6",
@@ -83,10 +83,11 @@
       "pending": [
         {
           "number": 238,
-          "sha": "3cc0512f291afc726cf1d27ac9a71fa7fe79a2c6"
+          "sha": "7ea7e8581d89f1353c6e070b8ef814d817f35c80"
         }
       ]
     }
   },
-  "status": "Provider metadata before acquisition/inference; self head bound to workflow SHA."
+  "status": "Provider metadata before acquisition/inference; self head bound to workflow SHA.",
+  "pre_inference_reconciliation": "Initial acquisition41410069400 refused changed canonical BeautifulRepo238 head before model inference; original partial artifact retained. Donor acquisitions unchanged and reused by exact hashes."
 }

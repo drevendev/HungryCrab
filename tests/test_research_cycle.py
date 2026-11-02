@@ -44,6 +44,31 @@ def test_completed_goal_is_reported_even_when_no_next_model_call_fits(candidate:
     ]
 
 
+@pytest.mark.parametrize("arm", ["baseline", "candidate"])
+def test_both_arms_can_read_actual_conventional_dependency_data_files(
+    tmp_path: Path,
+    arm: str,
+) -> None:
+    from qualification_cycle import paths
+
+    donor = repository(
+        tmp_path / "donor", {"deps.edn": '{:deps {example/lib {:mvn/version "1.2.3"}}}\n'}
+    )
+    sha = live_context(donor)["sha"]
+    trial = object.__new__(Trial)
+    trial.arm = arm
+    trial.pool = {"fixture": {"view": str(donor), "sha": sha, "catalog": paths(donor, sha, [])}}
+    trial.maw = donor
+    trial.context = {"sha": sha}
+    prepared = trial.prepare_source(
+        {"donor": "fixture", "terms": ["dependency"]},
+        {"id": "clojure", "source_names": ["deps.edn"], "maw_evidence": []},
+    )
+    assert prepared["donor"] == [{"path": "deps.edn", "start": 1, "end": 1}]
+    assert prepared["windows"][0]["content"].startswith("{:deps")
+    assert prepared["windows"][0]["side"] == "donor"
+
+
 def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     donor = repository(tmp_path / "donor", {"stream.py": "VALUE = 7\n"})
