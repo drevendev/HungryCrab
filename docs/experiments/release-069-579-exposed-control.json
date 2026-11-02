@@ -1,0 +1,106 @@
+{
+  "kind": "EXPOSED engineering control, not fresh qualification",
+  "status": "FAILED preregistered >=2 distinct assessed needs target",
+  "candidate": {
+    "commit": "8e49f97635e6c94520cebb9c05eb3e17590c6527",
+    "version": "0.6.9.dev0",
+    "source_identity": "63516e5343eb5e228dfeb91b8a9e1ed950692feaf1c2b5ca06b97636899a7591"
+  },
+  "seal_sha256": "6352b48ced6c0c99e1aaeb4b3ae0ba0e559647e44dc8fd52afa4060c170696d8",
+  "expected": "At least two distinct receiving needs reach actual semantic source assessment, or retain a genuine measured external failure. Every native call must have known actual usage within caps. No interrupted-call replay.",
+  "actual_assessed_needs": [
+    "balanced-reference-link-text"
+  ],
+  "assessed_need_count": 1,
+  "donor_admissions": 1,
+  "actual_model_tokens": 23741,
+  "usage_complete": true,
+  "model_budget_valid": true,
+  "seconds": 129.85883235931396,
+  "stop_reason": "model-budget-reserve",
+  "execution_target_pass": false,
+  "fresh_yield": null,
+  "release_acceptance": false,
+  "source_preparations": {
+    "balanced-reference-link-text:beautifulrepo-6": {
+      "budget": 4096,
+      "bytes_selected": 3566,
+      "original_ranges": [
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "start": 4,
+          "end": 57
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "start": 13,
+          "end": 66
+        },
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "start": 2,
+          "end": 61
+        },
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "start": 62,
+          "end": 102
+        }
+      ],
+      "selected_ranges": [
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "start": 4,
+          "end": 57
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "start": 13,
+          "end": 66
+        }
+      ],
+      "deferred_ranges": [
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "start": 2,
+          "end": 61
+        },
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "start": 62,
+          "end": 102
+        }
+      ],
+      "omissions": [
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "reason": "whole-packet-byte-limit"
+        }
+      ],
+      "raw_preparation_sha256": "3402f72efc45f375608a60272f64a2b0f0e8f86e7d45d692414643c72bd88054",
+      "packet_sha256": "9715b7b6fed4696d6e7145c46603c10df006ee6254cc037834c996ac6875f3d4",
+      "interpretation": "Initial reads only; deferred source is uninspected, not rejected"
+    }
+  },
+  "preparation_deferrals": [],
+  "stages": [
+    {
+      "name": "assess-0-preparation-0",
+      "state": "settled",
+      "actual_tokens": 12586,
+      "native_seconds": 12.969
+    },
+    {
+      "name": "assess-0-preparation-0-continued",
+      "state": "settled",
+      "actual_tokens": 11155,
+      "native_seconds": 25.609
+    }
+  ],
+  "limitations": [
+    "The original empty trial now reaches one actual investigation but still not two receiving needs.",
+    "Already exposed source and already filed245/246 designs; no new independent usefulness, adoption or version advantage.",
+    "Original source635 control remains frozen and failed; later repairs cannot retroactively pass it.",
+    "No donor programs, publication, licence override, merge, tag or release."
+  ]
+}

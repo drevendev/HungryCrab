@@ -93,6 +93,23 @@ def filename_terms(terms: list[str]) -> list[str]:
     return list(result)
 
 
+def callable_text(line: str) -> bool:
+    """A bounded navigation hint, not a parsed declaration or callable proof."""
+    return bool(
+        re.match(
+            r"\s*(?:(?:pub(?:\([^\n)]{1,32}\))?|public|private|protected|static|async|export|"
+            r"default|final|internal|open|override|mutating|nonmutating|unsafe|inline)\s+)*"
+            r"(?:def|fn|function|func)\s+",
+            line,
+        )
+        or re.match(
+            r"\s*(?:[A-Za-z_][\w:<>,*&]{0,100}\s+){0,3}"
+            r"[A-Za-z_]\w*(?:::[A-Za-z_]\w*)+\s*\(",
+            line,
+        )
+    )
+
+
 def find_source(
     repo: Path,
     sha: str,
@@ -155,9 +172,14 @@ def find_source(
     )
     matches: list[dict[str, Any]] = []
 
-    def rank(row: dict[str, Any]) -> tuple[int, int, int, str, int]:
+    def rank(row: dict[str, Any]) -> tuple[int, int, int, int, int, str, int]:
+        anchor = focus == "implementation" and row["callable_anchor"]
         return (
             priority(row["path"]),
+            -int(anchor),
+            -sum(len(t) for t in path_terms if t in Path(row["path"]).name.casefold())
+            if anchor
+            else 0,
             -row["score"],
             -int(row["declaration_like"]),
             row["path"],
@@ -202,6 +224,9 @@ def find_source(
                     "line_count": len(lines),
                     "terms": hit,
                     "score": sum(len(t) for t in hit),
+                    "callable_like": callable_text(line),
+                    "callable_anchor": callable_text(line)
+                    and (len(hit) >= 2 or any(len(t) == max(map(len, needles)) for t in hit)),
                     "declaration_like": bool(
                         re.match(
                             r"\s*(?:(?:pub|public|private|protected|static|async|export|final)\s+)*"
@@ -212,6 +237,8 @@ def find_source(
                 }
             )
             match = matches[-1]
+            if focus == "implementation":
+                match["declaration_like"] |= match["callable_like"]
             first = number if match["declaration_like"] else max(1, number - 8)
             last = min(len(lines), number + (119 if match["declaration_like"] else 45))
             match["context_ranges"] = [
@@ -260,8 +287,10 @@ def find_source(
             "body matches still require original literals; omissions disclosed"
         ),
         "match_order": (
-            "focus path-role convention, literal-specificity, declaration-like text, path/line; "
-            "declaration-like is a text heuristic, not syntax proof"
+            "focus role; implementation callable anchors and filename association; "
+            "literal specificity, declaration-like text, path/line. Callable anchors match "
+            "the longest query literal or multiple literals. These are text heuristics; "
+            "syntax and behavior remain unproven"
         ),
         "donor_executed": False,
         "license_permission": "not-established",

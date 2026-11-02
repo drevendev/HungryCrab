@@ -16,6 +16,50 @@ from hungry_crab.source_inspection import _source_paths, source_index, source_pa
 from hungry_crab.source_lines import physical_lines
 
 
+@pytest.mark.parametrize(
+    "suffix,declaration",
+    [
+        (".swift", 'func parseReference() { fatalError("NEVER_EXECUTE") }\n'),
+        (".cpp", "Node* Decoder::parseReference() { return nullptr; }\n"),
+        (".rs", "pub(crate) fn parse_reference() {}\n"),
+        (".py", "async def parse_reference():\n    pass\n"),
+    ],
+)
+def test_callable_anchor_reaches_implementation_before_dense_type_names(
+    tmp_path: Path, suffix: str, declaration: str
+) -> None:
+    repo = repository(
+        tmp_path / "source",
+        {
+            "a_reference_table" + suffix: "enum ReferenceBracketLabel {}\n",
+            "z_reference_processor" + suffix: declaration,
+        },
+    )
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    terms = ["reference", "bracket", "label"]
+    result = find_source(repo, pin, terms, max_files=2)
+    selected = result["matches"][0]
+    assert selected["path"] == "z_reference_processor" + suffix
+    assert selected["callable_anchor"] and selected["callable_like"]
+    assert selected["score"] == len("reference")
+    raw = find_source(repo, pin, terms, max_files=2, focus="any")
+    assert raw["matches"][0]["path"] == "a_reference_table" + suffix
+
+
+def test_generic_callable_does_not_displace_a_more_distinctive_body_literal(tmp_path: Path) -> None:
+    repo = repository(
+        tmp_path / "source",
+        {
+            "generic.py": "def read():\n    return None\n",
+            "guard.py": "if rare_mutation_guard:\n    pass\n",
+        },
+    )
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    result = find_source(repo, pin, ["rare_mutation_guard", "read"], max_files=2)
+    assert result["matches"][0]["path"] == "guard.py"
+    assert not next(r for r in result["matches"] if r["path"] == "generic.py")["callable_anchor"]
+
+
 def test_identifier_parts_navigate_under_file_cap_without_loosening_literal_match(
     tmp_path: Path,
 ) -> None:
