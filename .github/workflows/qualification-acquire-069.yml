@@ -5,7 +5,7 @@ on:
     inputs:
       plan:
         description: Shared public donor metadata preflight path
-        default: docs/releases/0.6.9-navigated-qualification-preflight.json
+        default: docs/releases/0.6.9-breadth-qualification-preflight.json
         required: true
   push:
     branches: [codex/release-0.6.9]
@@ -19,6 +19,7 @@ on:
       - docs/releases/0.6.9-absence-qualification-preflight.json
       - docs/releases/0.6.9-primary-qualification-preflight.json
       - docs/releases/0.6.9-navigated-qualification-preflight.json
+      - docs/releases/0.6.9-breadth-qualification-preflight.json
 
 permissions:
   contents: read
@@ -57,7 +58,7 @@ jobs:
       - name: Acquire shared facts without executing donor content or models
         env:
           GH_TOKEN: ${{ github.token }}
-          CRAB_QUALIFICATION_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-navigated-qualification-preflight.json' }}
+          CRAB_QUALIFICATION_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-breadth-qualification-preflight.json' }}
         run: >-
           uv run python benchmarks/qualification_acquire.py
           --plan "$CRAB_QUALIFICATION_PLAN"
