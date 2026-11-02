@@ -53,6 +53,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Continue same-investigation source reads from exact prior model checkpoints,
   preserve raw proof and explicit unassessed requests, and compare bounded
   declaration changes without inferring runtime equivalence (#566).
+- Expose bounded-read coverage in metadata seed ranking, retain raw association
+  and an explicit owner override, and keep candidate usefulness unknown.
 - Recognize complete MIT British-title, paired-quote and collective project-credit
   forms, retaining operative-term/rider checks. Distinguish the complete standard
   Boost grant from MIT's shared introductory wording; names alone do not qualify
