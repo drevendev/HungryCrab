@@ -1,0 +1,143 @@
+{
+  "kind": "EXPOSED engineering control, not fresh qualification",
+  "status": "FAILED preregistered >=2 distinct assessed needs target",
+  "candidate": {
+    "commit": "cc303b3f017b7efc408310ff826c4fbd32a8d31e",
+    "version": "0.6.9.dev0",
+    "source_identity": "7ec3e5bdc0add759825619b27ea8a253a767d1791771dbaec3b41cdab410372d"
+  },
+  "seal_sha256": "b1e9175535a4d9ab588c2a6670f033e5a6a15f6e30f67e660492d0e3984acaec",
+  "expected": "At least two distinct receiving needs reach actual semantic source assessment, or retain a genuine measured external failure. Every native call must have known actual usage within caps. No interrupted-call replay.",
+  "actual_assessed_needs": [
+    "balanced-reference-link-text"
+  ],
+  "assessed_need_count": 1,
+  "donor_admissions": 1,
+  "actual_model_tokens": 23762,
+  "usage_complete": true,
+  "model_budget_valid": true,
+  "seconds": 131.65689039230347,
+  "stop_reason": "model-budget-reserve",
+  "execution_target_pass": false,
+  "fresh_yield": null,
+  "release_acceptance": false,
+  "source_preparations": {
+    "balanced-reference-link-text:beautifulrepo-6": {
+      "budget": 4096,
+      "bytes_selected": 2514,
+      "original_ranges": [
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 9,
+          "end": 68
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 69,
+          "end": 128
+        },
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "start": 4,
+          "end": 57
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "start": 13,
+          "end": 66
+        }
+      ],
+      "selected_ranges": [
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 9,
+          "end": 68
+        }
+      ],
+      "deferred_ranges": [
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 69,
+          "end": 128
+        },
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "start": 4,
+          "end": 57
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "start": 13,
+          "end": 66
+        }
+      ],
+      "omissions": [
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "reason": "whole-packet-byte-limit"
+        },
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "reason": "whole-packet-byte-limit"
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "reason": "whole-packet-byte-limit"
+        }
+      ],
+      "raw_preparation_sha256": "6e30177af08b9f08a908256f1ed622bf6474c05dfe7d3fa07a5b278c4ab9ed2a",
+      "packet_sha256": "9170b0014a5985abbebbde8fa4ff8215d15a21c64258f0bd5f48c39510a61541",
+      "interpretation": "Initial reads only; deferred source is uninspected, not rejected"
+    }
+  },
+  "preparation_deferrals": [],
+  "stages": [
+    {
+      "name": "assess-0-preparation-0",
+      "state": "settled",
+      "actual_tokens": 12350,
+      "native_seconds": 12.906
+    },
+    {
+      "name": "assess-0-preparation-0-continued",
+      "state": "settled",
+      "actual_tokens": 11412,
+      "native_seconds": 26.172
+    }
+  ],
+  "limitations": [
+    "Callable anchors reach actual processing source, but continuation still exhausts resources before the second need.",
+    "Already exposed source and already filed245/246 designs; no new independent usefulness, adoption or version advantage.",
+    "The source7ec control remains frozen and failed; later repairs cannot retroactively pass it.",
+    "No donor programs, publication, licence override, merge, tag or release.",
+    "Later exposed source investigation contradicts the balanced-reference donor mechanism behind BeautifulRepo245. This is an unreviewed counterexample, not an independent adjudication or retrospective rewrite of frozen qualification metrics."
+  ],
+  "counterevidence": [
+    {
+      "need": "balanced-reference-link-text",
+      "disposition": "not-useful",
+      "source_behavior": "Apodimark tokenizes reference openers and closers as delimiter kinds. Its retained scan selects the most recently encountered opener before the first closer. The supplied continuation handles a following destination opener, a following reference-label opener, or a shortcut lookup; it constructs spans from that selected opener and returns nil when the selected shortcut text has no stored definition. Consequently, the shown path does not fall through to reinterpret an unresolved inner bracket pair as text inside a later outer reference.",
+      "reason": "The retained first range shows that scanning replaces the current opener when it encounters a nested opener and processes the first subsequent closer. The new continuation then performs definition lookup for that selected inner span; in the default shortcut branch, a missing inner definition immediately returns nil rather than continuing to the outer balanced closer. Thus a form such as an outer reference whose display contains an otherwise undefined bracketed fragment is not demonstrated as an outer reference and is structurally blocked by the shown path. The donor does preserve definition-store lookup and distinguishes direct, full/collapsed, and shortcut forms, but those behaviors do not supply the concrete additional benefit required for balanced outer display text. No runtime result is claimed.",
+      "source_evidence": [
+        {
+          "sha": "b048b945c9b0cebd10226f554461ca7b5f795da5",
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 9,
+          "end": 68
+        },
+        {
+          "sha": "b048b945c9b0cebd10226f554461ca7b5f795da5",
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "start": 69,
+          "end": 128
+        },
+        {
+          "sha": "b048b945c9b0cebd10226f554461ca7b5f795da5",
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "start": 13,
+          "end": 66
+        }
+      ]
+    }
+  ]
+}

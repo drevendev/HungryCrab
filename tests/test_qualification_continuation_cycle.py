@@ -89,13 +89,21 @@ def test_two_requested_reads_are_assessed_or_remain_explicitly_unassessed(
     assert stops
 
 
-def test_oversized_preparation_continues_to_a_distinct_need_in_the_invoked_host(
+@pytest.mark.parametrize("cause", ["oversized", "unfinished-source"])
+def test_preparation_continues_to_a_distinct_need_in_the_invoked_host(
     monkeypatch: pytest.MonkeyPatch,
+    cause: str,
 ) -> None:
     trial = Trial.__new__(Trial)
     trial.session = Path("owned-session")
     trial.arm = "candidate"
-    trial.frozen = {"host": {"minimum_assessment_reserve": 1, "defer_oversized_source": True}}
+    trial.frozen = {
+        "host": {
+            "minimum_assessment_reserve": 1,
+            "defer_oversized_source": True,
+            "breadth_before_continuations": True,
+        }
+    }
     trial.meter = SimpleNamespace(remaining=20000, data={"usage_complete": True})  # type: ignore[assignment]
     trial.needs = [{"id": name, "verification_mode": "design"} for name in ("first", "second")]
     trial.pool = {"large": {"repository": "owned/large"}, "small": {"repository": "owned/small"}}
@@ -138,9 +146,27 @@ def test_oversized_preparation_continues_to_a_distinct_need_in_the_invoked_host(
 
     def assess(lead: dict[str, Any], *args: Any, **kwargs: Any) -> dict[str, Any]:
         if kwargs.get("admission_only"):
-            return {"admissible": lead["donor"] != "large", "remaining": 20000, "estimate": 22000}
+            return {
+                "admissible": cause != "oversized" or lead["donor"] != "large",
+                "remaining": 20000,
+                "estimate": 22000,
+            }
         assessed.append(lead["donor"])
+        if lead["donor"] == "large":
+            return {
+                "disposition": "request-more",
+                "adaptation": "",
+                "maintenance": "",
+                "acceptance": "",
+                "operations": [{"side": "donor", "path": "unread.py", "start": 1, "end": 20}],
+            }
         return {"disposition": "verified-gap", "operations": []}
+
+    def finish(answer: dict[str, Any], _lead: Any, need: dict[str, Any], *_: Any) -> None:
+        trial.state["outcomes"].append({"need": need["id"], "decision": answer})
+
+    def no_read(*_: Any) -> None:
+        pytest.fail("An unfinished first need must not starve another need's initial assessment")
 
     monkeypatch.setattr(trial, "next", next_action)
     monkeypatch.setattr(trial, "prepare_source", prepare)
@@ -148,11 +174,21 @@ def test_oversized_preparation_continues_to_a_distinct_need_in_the_invoked_host(
     monkeypatch.setattr(trial, "record", receipts.append)
     monkeypatch.setattr(trial, "acquire", lambda *_: {"exploration": "owned"})
     monkeypatch.setattr(trial, "initial_source", lambda *_: [])
-    monkeypatch.setattr(trial, "finish", lambda *_: None)
+    monkeypatch.setattr(trial, "finish", finish)
+    monkeypatch.setattr(trial, "inspect", no_read)
     monkeypatch.setattr(trial, "save", lambda: None)
     monkeypatch.setattr(trial, "stop", stops.append)
     trial.run()
-    assert prepared == ["large", "small"] and assessed == ["small"]
-    assert receipts[0]["status"] == "budget-deferred"
-    assert trial.state["preparation_deferrals"][0]["attempt"] == "first-owned"
+    assert prepared == ["large", "small"]
+    assert assessed == (["small"] if cause == "oversized" else ["large", "small"])
+    if cause == "oversized":
+        assert receipts[0]["status"] == "budget-deferred"
+        assert trial.state["preparation_deferrals"][0]["attempt"] == "first-owned"
+    else:
+        deferred = trial.state["unassessed_continuations"][0]
+        assert deferred["status"] == "requested-source; neither read nor reassessed"
+        assert deferred["operations"] == [
+            {"side": "donor", "path": "unread.py", "start": 1, "end": 20}
+        ]
+        assert len(deferred["original_answer_sha256"]) == 64
     assert stops == ["scoped-goals-met"]
