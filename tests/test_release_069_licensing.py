@@ -16,6 +16,38 @@ from hungry_crab.licensing.sections import composite_sections
 MIT = (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize("contact", ["", " <jane@example.org>"])
+def test_three_part_holder_retains_full_mit_grant_and_immutable_path_proof(contact: str) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    text = "MIT License\nCopyright (c) 2024 Jane Mary Doe" + contact + "\n\n" + body
+    assert detect_from_text(text) == ("MIT", 0.99)
+    reader = Reader({"LICENSE": text, "a.py": "VALUE = 1\n"})
+    proof = GrantResolver(reader, "a" * 40).resolve("a.py")
+    assert proof.expression == "MIT"
+    assert "retain-applicable-grant-texts" in proof.obligations
+    assert verify_path_proofs(reader, "a" * 40, None, "MIT", [proof.to_dict()], ["a.py"]) == "MIT"
+
+
+@pytest.mark.parametrize(
+    "holder",
+    [
+        "Additional Conditions Apply",
+        "Custom Exception Applies",
+        "Alice Smith Copyleft",
+        "Alice Smith Attribution",
+        "No External Hosting",
+        "Jane Mary Doe Additional Conditions Apply",
+        "Jane Mary Do\ufffd",
+    ],
+)
+def test_three_part_holder_extension_does_not_admit_policy_or_lossy_notices(holder: str) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    assert detect_from_text("MIT License\nCopyright (c) 2024 " + holder + "\n\n" + body) == (
+        None,
+        0.0,
+    )
+
+
 def test_source_headers_ignore_strings_and_conflicting_comments() -> None:
     assert find_source_header("# SPDX-License-Identifier: MIT\nVALUE = 1", path="a.py") == "MIT"
     assert (

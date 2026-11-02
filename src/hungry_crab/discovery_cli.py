@@ -78,6 +78,7 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
         "packet",
         "search",
         "rank",
+        "seed",
         "frontier",
         "history",
         "issues",
@@ -91,6 +92,7 @@ def add_discovery_parser(sub: argparse._SubParsersAction[argparse.ArgumentParser
                 "packet": "read bounded immutable source/test ranges",
                 "search": "execute a bounded provider query batch",
                 "rank": "rank marginal need coverage while keeping occurrences",
+                "seed": "prepare leads from metadata and pinned filenames without model spend",
                 "frontier": "qualify one source-supported repository hop under one request budget",
                 "history": "read bounded path-specific pinned history and diffs",
                 "issues": "acquire selected issue leads as IDEAS_ONLY evidence",
@@ -202,6 +204,7 @@ def _run_discover(args: argparse.Namespace) -> int:
             max_files=plan.get("max_files", 64),
             max_bytes=plan.get("max_bytes", 524288),
             limit=plan.get("limit", 12),
+            focus=plan.get("focus", "implementation"),
         )
     elif action == "index":
         from .source_inspection import source_index
@@ -305,6 +308,10 @@ def _run_discover(args: argparse.Namespace) -> int:
             "coverage": "see-each-provider",
             "independent_invocation": True,
         }
+    elif action == "seed":
+        from .discovery_seeds import seed_leads
+
+        result = seed_leads(read_object(args.input))
     elif action == "rank":
         from .discovery_search import rank_cohort
 

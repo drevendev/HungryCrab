@@ -74,6 +74,25 @@ def _difference_projection(
                 "complete": True,
             }
             groups[key] = row
+            if before is None or after is None:
+                # Whole-file additions/removals otherwise repeat a large selected
+                # body before useful changed implementations can fit. Presence is
+                # established, while unprojected behavior explicitly stays unknown.
+                row.update(
+                    change="selected-path-absent" if before is None else "other-path-absent",
+                    body_projection=(
+                        "Present body retained by hash in parent sources; read separately if needed"
+                    ),
+                    complete=False,
+                    omitted_hunks=1,
+                    omitted_ranges=[
+                        {
+                            "selected": {"start": 1, "end": len(left)},
+                            "other": {"start": 1, "end": len(right)},
+                        }
+                    ],
+                )
+                continue
             for (a, c), (b, d) in pairwise(anchors):
                 if left[a + 1 : b] == right[c + 1 : d]:
                     continue

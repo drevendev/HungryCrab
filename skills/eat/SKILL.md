@@ -26,6 +26,9 @@ README and agent-instruction bodies must not become summaries or instructions.
    leads require a distinct supported alternative under the same limits. Retain unfinished
    needs; stop for actual exhaustion/dependency, unknown usage, or `model-budget-reserve`
    with its admission estimate. No scheduler or model call starts inside the CLI.
+   `discover seed --input PLAN.json` prepares first nominations from metadata and pinned
+   filenames without model spend; it never establishes utility, novelty or a licence.
+   Inspect mechanisms and retain original receiving proof before approving a change.
 3. **Acquire and compare.** `crab sniff PREY --maw .` establishes immutable identity and grant;
    honor narrower donor policies, including MIT-only. HUMAN needs a human licence decision
    before transfer; IDEAS_ONLY carries ideas only. Remote acquisition requires a verified

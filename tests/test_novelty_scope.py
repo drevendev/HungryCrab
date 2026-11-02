@@ -12,6 +12,30 @@ from hungry_crab.errors import CrabError
 from hungry_crab.novelty import implementation_scope
 
 
+def test_added_file_presence_does_not_repeat_or_hide_the_retained_body(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "receiving", {"existing.py": "VALUE = 1\n"})
+    before = git(maw, "rev-parse", "HEAD").strip()
+    body = "VALUE = 'ORIGINAL_RETAINED_SOURCE'\n" * 300
+    (maw / "new.py").write_text(body, encoding="utf-8", newline="\n")
+    git(maw, "add", ".")
+    git(maw, "commit", "-m", "test: added implementation")
+    result = implementation_scope(
+        maw,
+        {
+            "prefixes": ["new.py"],
+            "default_sha": before,
+            "include_differences": True,
+            "pending_collection": {"complete": True, "as_of": "2026-11-02T00:00:00Z"},
+        },
+    )
+    row = result["implementation_differences"]["comparisons"][0]
+    assert row["change"] == "other-path-absent"
+    assert not row["hunks"] and not row["complete"]
+    assert row["omitted_ranges"][0]["selected"]["end"] == 300
+    assert result["sources"][row["selected_content_sha256"]]["content"] == body
+    assert result["implementation_scope_complete"]
+
+
 def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_path: Path) -> None:
     maw = repository(
         tmp_path / "receiving",
