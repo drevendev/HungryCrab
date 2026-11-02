@@ -51,9 +51,7 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
         kind = contract.get("type")
         # JSON integers are arbitrary precision; math.isfinite(large_int)
         # raises OverflowError while converting to float. Only floats need it.
-        finite_number = type(item) is int or (
-            type(item) is float and math.isfinite(item)
-        )
+        finite_number = type(item) is int or (type(item) is float and math.isfinite(item))
         types = {
             "object": isinstance(item, dict),
             "array": isinstance(item, list),
@@ -91,9 +89,9 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
             if not contract.get("minLength", 0) <= len(item) <= contract.get("maxLength", 96000):
                 raise ValueError("answer string bound")
         elif type(item) in (int, float):
-            if not finite_number or not contract.get(
-                "minimum", -math.inf
-            ) <= item <= contract.get("maximum", math.inf):
+            if not finite_number or not contract.get("minimum", -math.inf) <= item <= contract.get(
+                "maximum", math.inf
+            ):
                 raise ValueError("answer numeric bound")
 
     check(value, schema)
