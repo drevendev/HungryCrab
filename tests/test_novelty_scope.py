@@ -9,6 +9,7 @@ import pytest
 from fixture_builder import git
 from test_discovery_inputs import repository
 
+from hungry_crab.attribution import GitSourceReader
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
 from hungry_crab.novelty import implementation_scope
@@ -63,6 +64,85 @@ def test_added_file_presence_does_not_repeat_or_hide_the_retained_body(tmp_path:
     assert row["omitted_ranges"][0]["selected"]["end"] == 300
     assert result["sources"][row["selected_content_sha256"]]["content"] == body
     assert result["implementation_scope_complete"]
+
+
+@pytest.mark.parametrize("path", ["added.py", "new_package/added.py"])
+def test_absent_source_has_an_immutable_tree_witness(tmp_path: Path, path: str) -> None:
+    maw = repository(tmp_path / "receiving", {"existing.py": "VALUE = 1\n"})
+    before = git(maw, "rev-parse", "HEAD").strip()
+    source = maw / path
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("def flow():\n    return 1\n", encoding="utf-8", newline="\n")
+    git(maw, "add", ".")
+    git(maw, "commit", "-m", "test: add scoped source")
+    result = implementation_scope(
+        maw,
+        {
+            "prefixes": [path],
+            "default_sha": before,
+            "symbols": [{"path": path, "qualified_name": "flow"}],
+            "pending_collection": {"complete": True, "as_of": "2026-11-02T00:00:00Z"},
+        },
+    )
+    selected, default = result["targets"]
+    assert selected["declarations"][0]["status"] == "declaration-available"
+    absent = default["declarations"][0]
+    assert absent["status"] == "source-absent-at-pin"
+    assert absent["absence_witness"] == default["path_absence_witnesses"][0]
+    assert absent["absence_witness"]["sha"] == before
+    assert absent["absence_witness"]["missing_path"] == path.split("/")[0]
+    comparison = result["declaration_change_view"]["declaration_comparisons"]["comparisons"][0]
+    assert comparison["other_status"] == "source-absent-at-pin"
+    assert (
+        comparison["bindings"][0]["location"]["other_absence_witness"] == absent["absence_witness"]
+    )
+    assert result["implementation_scope_complete"]
+    assert not result["global_historical_absence_proven"]
+    assert result["semantic_novelty"] == "requires-agent-comparison"
+
+
+@pytest.mark.parametrize("failure", ["tree", "file", "nonregular"])
+def test_unavailable_source_never_becomes_a_path_absence_witness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    maw = repository(tmp_path / "receiving", {"app.py": "def flow():\n    return 1\n"})
+    if failure == "tree":
+        monkeypatch.setattr(GitSourceReader, "tree_entries", lambda *args: None)
+    elif failure == "file":
+        monkeypatch.setattr(GitSourceReader, "read", lambda *args: None)
+    else:
+        blob = git(maw, "rev-parse", "HEAD:app.py").strip()
+        git(maw, "update-index", "--cacheinfo", "120000," + blob + ",app.py")
+        git(maw, "commit", "-m", "test: nonregular scoped material")
+    pin = git(maw, "rev-parse", "HEAD").strip()
+    result = implementation_scope(
+        maw,
+        {
+            "prefixes": ["app.py"],
+            "default_sha": pin,
+            "symbols": [{"path": "app.py", "qualified_name": "flow"}],
+        },
+    )
+    assert result["omissions"] and not result["implementation_scope_complete"]
+    for target in result["targets"]:
+        assert not target["path_absence_witnesses"]
+        assert target["declarations"][0]["status"] == "source-unavailable-in-acquired-scope"
+
+
+def test_present_parsed_file_without_symbol_is_not_a_missing_source(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "receiving", {"app.py": "VALUE = 1\n"})
+    pin = git(maw, "rev-parse", "HEAD").strip()
+    result = implementation_scope(
+        maw,
+        {
+            "prefixes": ["app.py"],
+            "default_sha": pin,
+            "symbols": [{"path": "app.py", "qualified_name": "flow"}],
+        },
+    )
+    for target in result["targets"]:
+        assert not target["path_absence_witnesses"]
+        assert target["declarations"][0]["status"] == "declaration-absent"
 
 
 def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_path: Path) -> None:

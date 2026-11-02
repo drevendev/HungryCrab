@@ -573,7 +573,7 @@
       "setup_exposure": "Metadata, default-branch commit and filename catalogues only before source/model qualification. No nominated source body supplied to investigators before the seal. Shared standards/pretraining/undisclosed ports unknown."
     }
   ],
-  "candidate_source_identity": "8d463ddf8ecb843dd810887d80c4b303de897db95b0850d9be41427b3971d4d4",
+  "candidate_source_identity": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
   "baseline": {
     "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
     "version": "0.6.8"
@@ -601,7 +601,8 @@
   "receiving_flows": {
     "crab": [
       "Retain bounded literal include edges and their provenance, validate missing/cyclic/normalized-name cases, and distinguish original groups from any explicitly supported expansion without installing packages or executing a resolver.",
-      "Add bounded literal declared/locked Dart evidence with manifest provenance, explicit supported source forms, constraint-versus-pin distinction, and unsupported SDK/dynamic cases. No Dart, pub, hooks or dependency resolution."
+      "Add bounded literal declared/locked Dart evidence with manifest provenance, explicit supported source forms, constraint-versus-pin distinction, and unsupported SDK/dynamic cases. No Dart, pub, hooks or dependency resolution.",
+      "Retain a bounded explicit relation from supported member inherited dependency declarations to an acquired workspace declaration, with original constraints, member/root provenance, source/feature limitations and unsupported/missing/ambiguous cases. Do not run Cargo, resolve versions, change original package keys or turn a declared constraint into a locked version."
     ],
     "devostasis": [
       "An opt-in deterministic bounded closed-cycle edge witness with import-line provenance, preserving existing SCC results and canonical producer/exporter contracts. Actual new cited mechanism required; callback names alone do not qualify."
@@ -611,7 +612,7 @@
       "A bounded balanced-bracket mechanism for reference-use display text that preserves labels, precedence, source positions, masking and existing simple forms. Keep definitions and use scanning distinct; do not count multiple donors as multiple receiving changes."
     ]
   },
-  "protocol_amendment": "Substantive source/host repair after the retained seeded failure. Same12balanced trials/6masked reviews/30nominees and535caps/criteria. Five actual design needs(2/1/2); earlier confirmed receiving changes excluded. Same-trial exact source checkpoints apply to botharms; explicitly2local source continuation rounds within unchanged total budgets. Candidate optional CLI-derived declaration change view preserves full raw sources, bindings and external-helper uncertainty. No reviewer-created yield, byte proxy or reset of a failed attempt.",
+  "protocol_amendment": "Substantive source/host repair after the retained seeded failure. Same12balanced trials/6masked reviews/30nominees and535caps/criteria. Six actual design needs(3/1/2); earlier confirmed receiving changes excluded. Same-trial exact source checkpoints apply to botharms; explicitly2local source continuation rounds within unchanged total budgets. Candidate optional CLI-derived declaration change view preserves full raw sources, bindings and external-helper uncertainty. No reviewer-created yield, byte proxy or reset of a failed attempt.",
   "exclusions": {
     "prior_repository_identities": 224,
     "prior_provider_ids": 211,
@@ -634,5 +635,22 @@
     "combined_envelope": 27160,
     "result": "The requested next source was semantically assessed; correctly still request-more. Later explicit reread/two-round unit controls and immutable licence replay are separately retained."
   },
-  "safety": "No donor execution/tests/builds/installers/hooks. Shared inert acquisition/mining/catalogues only; no models/publication in CI. No merge/tag/release/scheduler."
+  "safety": "No donor execution/tests/builds/installers/hooks. Shared inert acquisition/mining/catalogues only; no models/publication in CI. No merge/tag/release/scheduler.",
+  "pre_inference_receiving_amendment": {
+    "recorded_at": "2026-11-02T11:43:46.657913+00:00",
+    "reason": "Receiving Cargo implementation explicitly stores but does not correlate workspace declarations. Add this distinct actual design need before any model call. Three Crab needs also avoid a two-need/two-repeat unique-change ceiling; thresholds/caps remain unchanged. No donor source body or trial outcome was inspected, and all30 original nominees/pins remain fixed.",
+    "acquisition_plan_sha256": "4d358eadb7bc6b2f099833685d8e7181414c3df597ffeed5e9412f0705f3b471"
+  },
+  "pre_inference_source_eol_reconciliation": {
+    "local_before": "8d463ddf8ecb843dd810887d80c4b303de897db95b0850d9be41427b3971d4d4",
+    "canonical_installed_source": "7e519a9c23412e2fd9dd3763700d1330efbf8c6ae8dbe7bc927aa0ca70fb283c",
+    "normalization": "Only CRLF/LF; exact committed Git blobs restored, hash algorithm unchanged",
+    "files": [
+      "src/hungry_crab/novelty.py",
+      "src/hungry_crab/novelty_diffs.py"
+    ],
+    "models_started": 0,
+    "candidate_commit": "2dd59c165f77252b46cf7ace3f33901d80aee0a2",
+    "shared_digest_pairs_retained": 30
+  }
 }
