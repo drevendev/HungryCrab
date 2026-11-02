@@ -4,7 +4,7 @@ on:
     inputs:
       plan:
         description: Owned receiving preflight path
-        default: docs/releases/0.6.9-primary-receiving-preflight.json
+        default: docs/releases/0.6.9-navigated-receiving-preflight.json
         required: true
   push:
     branches: [codex/release-0.6.9]
@@ -17,6 +17,7 @@ on:
       - docs/releases/0.6.9-continued-receiving-preflight.json
       - docs/releases/0.6.9-absence-receiving-preflight.json
       - docs/releases/0.6.9-primary-receiving-preflight.json
+      - docs/releases/0.6.9-navigated-receiving-preflight.json
 permissions:
   contents: read
 jobs:
@@ -37,7 +38,7 @@ jobs:
       - name: Acquire current receiving pins without running receiving programs
         env:
           GH_TOKEN: ${{ github.token }}
-          CRAB_RECEIVING_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-primary-receiving-preflight.json' }}
+          CRAB_RECEIVING_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-navigated-receiving-preflight.json' }}
         run: >-
           uv run python benchmarks/qualification_receiving.py
           --plan "$CRAB_RECEIVING_PLAN"

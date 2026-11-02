@@ -32,6 +32,8 @@ _CODE_SUFFIXES = frozenset(
         ".cpp",
         ".hpp",
         ".cs",
+        ".fs",
+        ".fsx",
         ".hs",
         ".sh",
         ".php",
