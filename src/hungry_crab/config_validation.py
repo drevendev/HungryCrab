@@ -8,7 +8,6 @@ from typing import Any
 
 from .errors import UsageError
 
-
 _DIAGNOSTIC_MEMBERS = 5
 
 
