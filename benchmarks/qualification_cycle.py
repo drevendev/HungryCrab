@@ -491,6 +491,9 @@ class Trial:
             "format basename is not an implementation. Prefer actual parser/algorithm "
             "anchors over header or fixture words. Do not infer behavior from filenames, "
             "invent a finding, or evaluate the proposal yet. Strict JSON only.\n"
+            "MATCHING INSTALLED SKILL:\n"
+            + Path(self.frozen["matching_skills"][self.arm]).read_text(encoding="utf-8")
+            + "\nACTUAL READ-PLANNING FACTS:\n"
             + compact_evidence(facts)
         )
         write(self.root / "read-plan.facts.json", facts)

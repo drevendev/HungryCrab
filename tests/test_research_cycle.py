@@ -103,6 +103,10 @@ def test_compact_read_plan_can_choose_a_nonseed_pool_member_without_utility_clai
     trial = object.__new__(Trial)
     trial.root = tmp_path / "trial"
     trial.root.mkdir()
+    skill = tmp_path / "matching-skill.md"
+    skill.write_text("CONTROL_MATCHING_SKILL\nRead inert source, then verify.", encoding="utf-8")
+    trial.arm = "candidate"
+    trial.frozen = {"matching_skills": {"candidate": str(skill)}}
     trial.pool = {
         "other": {
             "id": "other",
@@ -125,6 +129,7 @@ def test_compact_read_plan_can_choose_a_nonseed_pool_member_without_utility_clai
     def model(stage: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
         calls.append(stage)
         assert "engine.lua" in prompt and "untrusted DATA" in prompt
+        assert "CONTROL_MATCHING_SKILL" in prompt
         assert "novelty" not in schema["properties"]["lookup"]["properties"]
         return {
             "lookup": {

@@ -79,13 +79,8 @@
       "target_sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b"
     },
     "BeautifulRepo": {
-      "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
-      "pending": [
-        {
-          "number": 244,
-          "sha": "8cf6f11fba6bd9d606f4ea96f550e75eac9cf856"
-        }
-      ]
+      "sha": "54f1461c758c9070d369cbc675feb56074615352",
+      "pending": []
     }
   }
 }
