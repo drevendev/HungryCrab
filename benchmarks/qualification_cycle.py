@@ -787,6 +787,57 @@ class Trial:
         receiving = prepared["receiving"]
         return self.inspect(child, "receiving", receiving, "initial-receiving", donor)
 
+    def lookup_source(
+        self,
+        lead: dict[str, Any],
+        need: dict[str, Any],
+        info: dict[str, Any],
+        operation: dict[str, Any],
+        label: str,
+    ) -> list[dict[str, Any]]:
+        """Ordinary bounded literal search/read, available to both arms without AST backport."""
+        donor = self.pool[lead["donor"]]
+        path, query = operation["path"], operation["query"]
+        if path not in donor["catalog"] or not 1 <= len(query.strip()) <= 100:
+            raise RuntimeError("source search requires an actual catalog path and bounded literal")
+        reader = GitSourceReader(Path(donor["view"]), byte_limit=65536)
+        parent, _, filename = path.rpartition("/")
+        if (reader.entries(donor["sha"], parent) or {}).get(filename) not in {"100644", "100755"}:
+            raise RuntimeError("source search requires a regular immutable file")
+        text = reader.read(donor["sha"], path)
+        if text is None:
+            raise RuntimeError("source search file unavailable or over byte limit")
+        lines = physical_lines(text)
+        hits = [i for i, line in enumerate(lines, 1) if query.casefold() in line.casefold()]
+        self.state.setdefault("source_lookups", {}).setdefault(need["id"], []).append(
+            {
+                "path": path,
+                "sha": donor["sha"],
+                "literal": query,
+                "matching_lines": hits[:12],
+                "matches_not_returned": max(0, len(hits) - 12),
+                "file_content_sha256": identity(text),
+                "method": "raw literal search; no AST facts",
+            }
+        )
+        self.save()
+        if not hits:
+            if self.arm == "candidate":
+                return self.commands.json(["discover", "witnesses", info["exploration"]])[
+                    "witnesses"
+                ]
+            return list(self.state.get("read_by_child", {}).get(info["exploration"], []))
+        return self.inspect(
+            info["exploration"],
+            "donor",
+            [
+                {"path": path, "start": max(1, n - 8), "end": min(len(lines), n + 45)}
+                for n in hits[:3]
+            ],
+            label,
+            donor,
+        )
+
     def assess(
         self,
         lead: dict[str, Any],
@@ -819,8 +870,12 @@ class Trial:
 
         operation = strict(
             {
-                "side": {"type": "string", "enum": ["donor", "receiving", "pending", "backlog"]},
+                "side": {
+                    "type": "string",
+                    "enum": ["donor", "receiving", "pending", "backlog", "donor-search"],
+                },
                 "path": text(240),
+                "query": text(100),
                 "start": {"type": "integer", "minimum": 1},
                 "end": {"type": "integer", "minimum": 1},
                 "revision": {
@@ -891,6 +946,7 @@ class Trial:
             "legal": "Resolve actual path grants before transfer; assess utility separately.",
             "omissions": "Only supplied ranges were read; unread paths/history remain unknown.",
             "additional_novelty_reads": self.state.get("novelty_reads", {}).get(need["id"], []),
+            "source_searches": self.state.get("source_lookups", {}).get(need["id"], []),
             "operation_refusals": self.state.get("operation_refusals", [])[-3:],
             "own_prior_need_outcomes": [
                 {
@@ -939,6 +995,9 @@ class Trial:
             "If missing actual context, request-more with <=3 exact supplied real paths "
             "and bounded ranges (<=60 lines). "
             "pending reads an exact frozen receiving path across confirmed heads; backlog reads "
+            "donor-search performs ordinary literal search plus bounded matching contexts in an "
+            "actual supplied file for BOTH arms, without supplying AST facts to the baseline. "
+            "Set query to that literal and start=end=1; other operations use empty query. "
             "issue:NUMBER text. Those channels retain IDEAS_ONLY/receiving roles and do not "
             "replace your earlier donor/receiving windows. "
             "Only pending uses revision (empty selects all); other sides use empty revision. "
@@ -1399,7 +1458,11 @@ class Trial:
                     try:
                         if not 1 <= op["start"] <= op["end"] < op["start"] + 60:
                             raise RuntimeError("source operations require 1..60 actual lines")
-                        if op["side"] in {"pending", "backlog"}:
+                        if op["side"] == "donor-search":
+                            windows = self.lookup_source(
+                                lead, need, info, op, label + ":search:" + str(i)
+                            )
+                        elif op["side"] in {"pending", "backlog"}:
                             self.read_novelty(need, op)
                         else:
                             windows = self.inspect(

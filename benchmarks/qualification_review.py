@@ -237,6 +237,7 @@ def packet(
                     for row in state.get("case_history", [])
                 ],
                 "additional_novelty_reads": state.get("novelty_reads", {}),
+                "additional_source_searches": state.get("source_lookups", {}),
                 "budget_valid": state["model_budget_valid"],
                 "usage_complete": state["usage_complete"],
                 "stop_reason": state["stop_reason"],
