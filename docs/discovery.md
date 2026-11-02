@@ -384,3 +384,22 @@ ordinary implementation paths. Identifier components affect filename ordering,
 not literal body matching. Directory/queue/path/file/byte/time bounds are
 unchanged, discarded directories remain explicit omissions, and ancillary/tests
 remain eligible. Other search focuses keep their existing traversal.
+
+An owned `acquire` result may use `status: budget-deferred` when the next evidence
+context cannot fit. This consumes its already reserved donor allowance, retains
+the lead as unreviewed, and rotates to another supported need/lead. It establishes
+neither rejection nor novelty nor permission; repeated receipts do not charge it
+twice and the shared donor/deadline limits still stop the session.
+
+The invoked host can set `initial_donor_bytes` within the existing1,024..14,000-byte
+inspection allowance to apply `discover packet` before native admission. Original
+preparation and omitted physical ranges stay retained; only selected ranges become
+inspection witnesses. Completed preparations have integrity-checked cached results.
+With `defer_oversized_source`, an inadmissible first packet becomes a charged
+deferral rather than stopping unrelated remaining work. Preview artifacts have
+distinct preparation names so later leads cannot overwrite earlier refusals.
+
+Explicit per-need literal `terms` reach CLI seeding directly. When all needs
+already have them, the compact semantic nomination stage is unnecessary; the
+matching installed skill is supplied to the first assessment instead. Actual
+source/novelty/original acceptance and all model-use limits still apply.

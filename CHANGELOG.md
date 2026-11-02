@@ -50,6 +50,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Retain oversized initial source as deferred, rotate a charged acquisition under
+  the same global caps, and use CLI packet byte policy before native admission.
+  Receiving-owned literal anchors can bypass redundant semantic nomination (#579).
 - Preserve explicit literal seed anchors and distinguish design implementation reads
   from explicitly selected data-file inspection. The invoked host can refine
   metadata nominations in a compact metered planning stage before full verification

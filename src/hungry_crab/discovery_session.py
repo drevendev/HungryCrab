@@ -43,6 +43,7 @@ OUTCOMES = {
     "unsupported",
     "budget-deferred",
 }
+ACQUISITION_DEFERRALS = frozenset({"unavailable", "license-held", "unsupported", "budget-deferred"})
 
 
 def _text(value: object, field: str, limit: int = 2000) -> str:
@@ -285,10 +286,7 @@ def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
     result = completed["receipt"]["result"]
     donor_boundary = (
         action == "decide"
-        or (
-            action == "acquire"
-            and result.get("status") in {"unavailable", "license-held", "unsupported"}
-        )
+        or (action == "acquire" and result.get("status") in ACQUISITION_DEFERRALS)
         or (action == "search" and (active is None or active["phase"] == "search"))
     )
     if not donor_boundary:
@@ -492,7 +490,7 @@ def record(
         elif action == "acquire":
             from .compare import load_menu
 
-            if result.get("status") in {"unavailable", "license-held", "unsupported"}:
+            if result.get("status") in ACQUISITION_DEFERRALS:
                 need["outcomes"].append({**result, "lead": need["lead"], "reviewed": False})
                 _replace(need, value)
                 return _finish_record(directory, value, receipt, tokens, instant)

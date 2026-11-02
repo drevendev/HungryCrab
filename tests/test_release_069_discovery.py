@@ -373,8 +373,10 @@ def test_session_charges_once_reconciles_and_replaces_held_leads(tmp_path: Path)
         sessions.next_action(directory, now=instant)
 
 
+@pytest.mark.parametrize("status", ["license-held", "budget-deferred"])
 def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search(
     tmp_path: Path,
+    status: str,
 ) -> None:
     """A first need must not exhaust the shared pool before the next is even searched."""
     maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
@@ -397,11 +399,11 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
     )
     acquire = sessions.next_action(directory, now=instant)
     assert acquire["need"] == first["need"] and acquire["action"] == "acquire"
-    sessions.record(
-        directory,
-        receipt(acquire, {"status": "license-held", "reason": "no path grant"}),
-        now=instant,
-    )
+    deferred = receipt(acquire, {"status": status, "reason": "bounded unavailable channel"})
+    sessions.record(directory, deferred, now=instant)
+    sessions.record(directory, deferred, now=instant)
+    outcome = sessions.report(directory)["needs"][0]["outcomes"][0]
+    assert outcome["status"] == status and outcome["reviewed"] is False
 
     second = sessions.next_action(directory, now=instant)
     assert second["need"] == "second-receiving-need" and second["action"] == "search"
@@ -414,6 +416,44 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
         "donors": 1,
         "model_tokens": 0,
     }
+
+
+def test_preparation_deferrals_consume_the_shared_donor_cap_without_native_work(
+    tmp_path: Path,
+) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
+    definition = plan(maw)
+    definition["limits"] = {**sessions.LIMITS, "donors": 2}
+    directory = tmp_path / "session"
+    instant = datetime.now(UTC)
+    sessions.initialize(directory, maw, definition, now=instant)
+    action = sessions.next_action(directory, now=instant)
+    sessions.record(
+        directory,
+        receipt(
+            action,
+            {
+                "candidates": [
+                    {"repository": name}
+                    for name in ("one/oversized", "two/oversized", "three/unread")
+                ]
+            },
+        ),
+        now=instant,
+    )
+    for expected in ("one/oversized", "two/oversized"):
+        action = sessions.next_action(directory, now=instant)
+        assert action["lead"]["repository"] == expected
+        sessions.record(
+            directory,
+            receipt(
+                action, {"status": "budget-deferred", "reason": "Unassessed packet does not fit"}
+            ),
+            now=instant,
+        )
+    result = sessions.next_action(directory, now=instant)
+    assert result["finished"] and result["stop_reason"] == "donors-budget"
+    assert result["spent"]["donors"] == 2 and result["actual_model_tokens"] == 0
 
 
 def test_invoked_host_rebinds_after_empty_search_to_existing_acquire_need() -> None:

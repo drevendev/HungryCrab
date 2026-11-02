@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "sealed_at": "2026-11-02T16:12:42.935842+00:00",
+  "protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds.",
+    "concurrency": 1,
+    "dispatch": "Six fixed fresh reviews sequentially to avoid concurrent request bursts. Each unchanged30000actualtokens/2700seconds; unknown calls retained, no silent replay."
+  },
+  "model_calls_before_review_seal": 0,
+  "input_projection": "All native observations and actual cited source, original acceptance/case proof and actual per-need selected/default/pending scopes. Exact JSON/proposal text references verify full round trip. Original raw inputs remain retained. No supervisor usefulness judgment; all positive proposals stay in denominator. Same30000actual tokens including cached input+output and2700seconds per fresh review. No byte proxy, semantic source omission, trial rerun or gate change.",
+  "hashes": {
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "daf6d1ec97a6c20006362d7d713bd3e7495eb16a9b20c77bac4a453c4852131d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "4307cf854a60839a1f433fc8e02b9489fdd5e3d949f6374d3b766935de390319",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\review_transport.py": "4d857a8e0cbbcf469ba5ea075c3ef91434592c93b130a5c4bb46bfd393403a4c",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\research_host.py": "30eac37361793bff93f1e4c194c5df5c375cea91b9e72eb474373aec9f08fe0d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\semantic_json.py": "69c3d443adbd64f4f4e23dd28cf7ff89e6b7735414a0b81150c363923d2333d4",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\sealed.json": "31bf57ba7358c54b9860c49ee8cda2ced914b186d32fb7abfecf7f6f1d21d278",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\crab-1\\input.json": "b4980bd1a31cffdf3f8f59a6faf406f424207e1929062c65eb21b401a59b512c",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\crab-1\\private-mapping.json": "8aac0d475ab552f372859cc79aca1260fa69e52b3a33728d88604be47a504502",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\crab-2\\input.json": "53b94424dabb444a33fb130d72992671e50debea08b654c6da2bdd8d64a416b3",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\crab-2\\private-mapping.json": "d92fa2e07c26b1b9f4529101f21fd78b7158f80a6b61b9f3b10708cad6f66612",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\devostasis-1\\input.json": "6dc0a2fda9b6f927115b5d59c0c3120e64fc24172eeeac71d3ceb44fc9686254",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\devostasis-1\\private-mapping.json": "4ac2ae6f5a6f5e294539f08d7243428472ff164988beffef014b932bb601e13e",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\devostasis-2\\input.json": "6dc0a2fda9b6f927115b5d59c0c3120e64fc24172eeeac71d3ceb44fc9686254",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\devostasis-2\\private-mapping.json": "4ac2ae6f5a6f5e294539f08d7243428472ff164988beffef014b932bb601e13e",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\beautifulrepo-1\\input.json": "368ac1861ac2dfe162b8fcbed912b107e3e337f929b5db9aa095e5741cc27160",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\beautifulrepo-1\\private-mapping.json": "394a691ada0e3f3572503d4ce814a4dad257371a85a72b3c1dc210fa1b706e41",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\beautifulrepo-2\\input.json": "7b5ca88450688af26cb59e9b3ab593cb52c0c7f52910987629030c054adf4733",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\independent-review-v3\\beautifulrepo-2\\private-mapping.json": "89e5d73a9bab54afb46a21da2b7660366d743797f15078b0e3373f259bf05d61"
+  }
+}
