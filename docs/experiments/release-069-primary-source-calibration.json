@@ -1,0 +1,284 @@
+{
+  "kind": "Exposed source-navigation calibration only; no fresh yield or semantic utility conclusion",
+  "parent_commit": "245f48385deb8d59abcfbbd1ac601cf0b5bebae9",
+  "working_source": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "1f7492ae59d378115959b226b5b7205b76ee88f4dcc4ac5420013b6114f2cd71"
+  },
+  "repository": "greghendershott/markdown",
+  "pin": "1083700a81c0bdb38f62f31fd711686007fe33e8",
+  "original_catalog": [
+    ".github/FUNDING.yml",
+    ".github/workflows/test.yml"
+  ],
+  "new_implementation_paths": [
+    "info.rkt",
+    "markdown/ci-environment.rkt",
+    "markdown/display-xexpr.rkt",
+    "markdown/entity.rkt",
+    "markdown/example.rkt",
+    "markdown/html.rkt",
+    "markdown/info.rkt",
+    "markdown/main.rkt",
+    "markdown/parsack.rkt",
+    "markdown/parse.rkt",
+    "markdown/perf-test.rkt",
+    "markdown/random-test.rkt",
+    "markdown/redex-test.rkt",
+    "markdown/scrib.rkt",
+    "markdown/suite-test.rkt",
+    "markdown/test.rkt",
+    "markdown/toc.rkt",
+    "markdown/xexpr.rkt",
+    "markdown/xexpr2text.rkt"
+  ],
+  "seed_result": {
+    "schema": "hungry-crab.discovery-seeds/1",
+    "needs": [
+      {
+        "need": "balanced-reference-link-text",
+        "leads": [
+          {
+            "repository": "cebe/markdown",
+            "sha": "2b2461bed9e15305486319ee552bafca75d1cdaa",
+            "terms": [
+              "markdown",
+              "parser",
+              "link",
+              "reference",
+              "balanced"
+            ],
+            "paths": [
+              "GithubMarkdown.php",
+              "Markdown.php",
+              "MarkdownExtra.php",
+              "Parser.php",
+              "inline/LinkTrait.php",
+              "inline/UrlLinkTrait.php",
+              "tests/BaseMarkdownTest.php",
+              "tests/GithubMarkdownTest.php"
+            ],
+            "literal_association": 5,
+            "implementation_association": 5,
+            "implementation_files_observed": 25,
+            "all_searchable_files_observed": 175,
+            "implementation_paths_not_retained": 0,
+            "bounded_read_association": {
+              "numerator": 125,
+              "denominator": 25,
+              "file_budget": 96,
+              "searchable_files_observed": 25,
+              "focus": "implementation",
+              "interpretation": "Coverage/cost heuristic, not behavior or usefulness"
+            },
+            "paths_not_retained": 0,
+            "excluded_paths": 2,
+            "reason": "Literal metadata/filename association; inspect actual behavior next"
+          },
+          {
+            "repository": "kzykhys/Ciconia",
+            "sha": "94e9c7564d0fe00eafa6800176ff42147958f855",
+            "terms": [
+              "text",
+              "markdown",
+              "link",
+              "reference",
+              "balanced"
+            ],
+            "paths": [
+              "src/Ciconia/Common/Text.php",
+              "src/Ciconia/Diagnose/Markdown.php",
+              "src/Ciconia/Exception/MarkdownException.php",
+              "src/Ciconia/Extension/Core/LinkExtension.php",
+              "src/Ciconia/Extension/Core/ListExtension.php",
+              "src/Ciconia/Extension/Gfm/TaskListExtension.php",
+              "src/Ciconia/Extension/Gfm/UrlAutoLinkExtension.php",
+              "src/Ciconia/Extension/Textile/CommentExtension.php"
+            ],
+            "literal_association": 5,
+            "implementation_association": 5,
+            "implementation_files_observed": 58,
+            "all_searchable_files_observed": 367,
+            "implementation_paths_not_retained": 0,
+            "bounded_read_association": {
+              "numerator": 290,
+              "denominator": 58,
+              "file_budget": 96,
+              "searchable_files_observed": 58,
+              "focus": "implementation",
+              "interpretation": "Coverage/cost heuristic, not behavior or usefulness"
+            },
+            "paths_not_retained": 0,
+            "excluded_paths": 1,
+            "reason": "Literal metadata/filename association; inspect actual behavior next"
+          },
+          {
+            "repository": "greghendershott/markdown",
+            "sha": "1083700a81c0bdb38f62f31fd711686007fe33e8",
+            "terms": [
+              "markdown",
+              "link",
+              "text",
+              "reference",
+              "balanced"
+            ],
+            "paths": [
+              "markdown/xexpr2text.rkt",
+              "markdown/ci-environment.rkt",
+              "markdown/display-xexpr.rkt",
+              "markdown/entity.rkt",
+              "markdown/example.rkt",
+              "markdown/html.rkt",
+              "markdown/info.rkt",
+              "markdown/main.rkt"
+            ],
+            "literal_association": 4,
+            "implementation_association": 4,
+            "implementation_files_observed": 19,
+            "all_searchable_files_observed": 74,
+            "implementation_paths_not_retained": 0,
+            "bounded_read_association": {
+              "numerator": 76,
+              "denominator": 19,
+              "file_budget": 96,
+              "searchable_files_observed": 19,
+              "focus": "implementation",
+              "interpretation": "Coverage/cost heuristic, not behavior or usefulness"
+            },
+            "paths_not_retained": 0,
+            "excluded_paths": 1,
+            "reason": "Literal metadata/filename association; inspect actual behavior next"
+          }
+        ],
+        "not_selected": 7
+      }
+    ],
+    "omissions": [],
+    "provider_requests": 0,
+    "model_calls": 0,
+    "source_bodies_read": false,
+    "usefulness": "unknown; no hypothesis or novelty verdict",
+    "license_permission": "not-established",
+    "identity_scope": "Available objects; provider/repository binding needs verification",
+    "selection": "Literal association weighted by the bounded-read fraction of observed eligible files, then raw association and identity. A large tree is not a usefulness verdict; unselected candidates remain unreviewed and raw inputs remain necessary.",
+    "cost_weighted": true,
+    "focus": "implementation",
+    "limits": {
+      "seconds": 60,
+      "tree_bytes_each": 1048576,
+      "paths_each": 4096
+    }
+  },
+  "actual_match_locations": [
+    {
+      "path": "markdown/parse.rkt",
+      "line": 486,
+      "score": 20,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/test.rkt",
+      "line": 285,
+      "score": 13,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/suite-test.rkt",
+      "line": 48,
+      "score": 9,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/display-xexpr.rkt",
+      "line": 81,
+      "score": 4,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/html.rkt",
+      "line": 240,
+      "score": 4,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/redex-test.rkt",
+      "line": 42,
+      "score": 4,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/scrib.rkt",
+      "line": 66,
+      "score": 4,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/MarkdownTest_1.0.3/Backslash escapes.text",
+      "line": 15,
+      "score": 7,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/MarkdownTest_1.0.3/Backslash escapes.xhtml",
+      "line": 15,
+      "score": 7,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/MarkdownTest_1.0.3/Links, inline style.text",
+      "line": 11,
+      "score": 7,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/MarkdownTest_1.0.3/Links, inline style.xhtml",
+      "line": 11,
+      "score": 7,
+      "declaration_like": false
+    },
+    {
+      "path": "markdown/MarkdownTest_1.0.3/Links, reference style.text",
+      "line": 11,
+      "score": 7,
+      "declaration_like": false
+    }
+  ],
+  "find_coverage": {
+    "schema": "hungry-crab.source-find/1",
+    "sha": "1083700a81c0bdb38f62f31fd711686007fe33e8",
+    "terms": [
+      "bracket",
+      "reference",
+      "link"
+    ],
+    "focus": "implementation",
+    "matching_lines_observed": 170,
+    "matching_lines_not_returned": 158,
+    "eligible_files": 74,
+    "files_inspected": 51,
+    "bytes_read": 162334,
+    "files_not_inspected": 23,
+    "tree_available": true,
+    "omissions": [
+      {
+        "path": "markdown/MarkdownTest_1.0.3/Inline HTML Simple.text",
+        "reason": "file-unavailable-or-byte-limit"
+      }
+    ],
+    "omissions_not_returned": 0,
+    "read_limits": {
+      "files": 96,
+      "bytes": 524288,
+      "seconds": 30
+    },
+    "coverage": "bounded-literal-search; strings/comments may match; not semantic coverage",
+    "file_order": "focus role convention, source-code-first, literal-path/name; all retained",
+    "match_order": "focus path-role convention, literal-specificity, declaration-like text, path/line; declaration-like is a text heuristic, not syntax proof",
+    "donor_executed": false,
+    "license_permission": "not-established"
+  },
+  "raw_receipt_sha256": "77e089e195319a5082229540f46ceeede66384f54f29e47ba8984abee1f71cfb",
+  "model_calls": 0,
+  "donor_execution": false,
+  "original_failed_comparison_unchanged": true
+}

@@ -24,6 +24,7 @@ from hungry_crab.analysis_context import installed_source_identity
 from hungry_crab.attribution import GitSourceReader
 from hungry_crab.errors import CrabError
 from hungry_crab.fetch.git import GitRunner
+from hungry_crab.source_find import path_role
 from hungry_crab.source_inspection import body_excluded
 from hungry_crab.source_lines import physical_lines
 
@@ -81,50 +82,27 @@ def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
         )
         .splitlines()
     )
+    # Config/data channels supplement the CLI's shared implementation roles.
     allowed = {
-        ".py",
-        ".pyi",
-        ".js",
-        ".ts",
-        ".rs",
-        ".go",
-        ".rb",
         ".toml",
         ".yaml",
         ".yml",
         ".json",
-        ".c",
-        ".h",
-        ".cpp",
-        ".java",
-        ".hs",
-        ".php",
-        ".kt",
-        ".kts",
-        ".swift",
-        ".dart",
-        ".ex",
-        ".exs",
-        ".cr",
-        ".jl",
-        ".ml",
-        ".mli",
-        ".scala",
-        ".clj",
-        ".cljs",
-        ".cljc",
         ".edn",
         ".lock",
         ".resolved",
-        ".zig",
-        ".mjs",
-        ".cjs",
-        ".tsx",
-        ".jsx",
-        ".cs",
-        ".hpp",
+        ".xml",
+        ".props",
+        ".targets",
+        ".csproj",
+        ".vbproj",
+        ".fsproj",
     }
-    source = [p for p in names if not body_excluded(p) and Path(p).suffix.lower() in allowed]
+    source = [
+        p
+        for p in names
+        if not body_excluded(p) and (path_role(p) == "source" or Path(p).suffix.lower() in allowed)
+    ]
     return sorted(source, key=lambda p: (-sum(t.casefold() in p.casefold() for t in terms), p))
 
 
@@ -292,6 +270,7 @@ class Trial:
                     ],
                     "limit": 3,
                     "source_file_budget": 96,
+                    "focus": self.frozen["host"].get("seed_focus", "any"),
                 },
             )
             write(self.root / "seed-preparation.json", seeds)

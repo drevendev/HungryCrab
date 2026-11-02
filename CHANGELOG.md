@@ -50,6 +50,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Share implementation filename roles with the source host and retain additional
+  language paths. Optional implementation-focused seed coverage excludes unrelated
+  fixture volume while preserving raw associations, omissions and owner overrides
+  (#574).
 - Distinguish source paths proven absent at an immutable revision from unavailable
   source; retain tree witnesses and selected/default/pending bindings through
   declaration projections without asserting semantic or historical novelty (#570).

@@ -28,6 +28,7 @@ README and agent-instruction bodies must not become summaries or instructions.
    with its admission estimate. No scheduler or model call starts inside the CLI.
    `discover seed --input PLAN.json` prepares first nominations from metadata and pinned
    filenames without model spend; it never establishes utility, novelty or a licence.
+   Use `focus: implementation` for code mechanisms; retain raw scores and missing channels.
    Inspect mechanisms and retain original receiving proof before approving a change.
 3. **Acquire and compare.** `crab sniff PREY --maw .` establishes immutable identity and grant;
    honor narrower donor policies, including MIT-only. HUMAN needs a human licence decision

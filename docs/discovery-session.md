@@ -60,6 +60,16 @@ files the declared read allowance can inspect. `source_file_budget` defaults to
 remain visible. This is a cost/coverage hint, not a claim that a broad project is
 irrelevant or that a focused project implements the required behavior. Owners can
 set `cost_weighted: false` for the raw-association ordering.
+For code mechanisms, set `focus: implementation`: filename association and read
+coverage then use the observed implementation frontier. Raw association and total
+file counts remain available; a tree without recognized implementation has zero
+implementation coverage, rather than an invented cheap source channel. The default
+`focus: any` retains the broader metadata/configuration ordering. Retention gives
+implementation filenames priority before the 4,096-path cap and discloses omitted
+implementation paths. Racket, Scheme/Lisp, Lua, Nix, R, Perl/Raku and declarative
+MSBuild files join the existing filename
+conventions for inert literal inspection; this does not add AST parsers or execute
+those languages. The host catalog uses the same implementation roles.
 Record the normal leased search/acquisition/inspection receipts afterwards.
 Runtime cases still require original receiving-owned preparation before donor
 source; additive designs require concrete original acceptance at assessment.

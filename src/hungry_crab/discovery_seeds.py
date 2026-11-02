@@ -22,6 +22,7 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
     needs, candidates, limit = plan.get("needs"), plan.get("candidates"), plan.get("limit", 3)
     file_budget = plan.get("source_file_budget", 64)
     cost_weighted = plan.get("cost_weighted", True)
+    focus = plan.get("focus", "any")
     if (
         not isinstance(needs, list)
         or not 1 <= len(needs) <= 12
@@ -32,6 +33,8 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
         or type(file_budget) is not int
         or not 1 <= file_budget <= 128
         or type(cost_weighted) is not bool
+        or not isinstance(focus, str)
+        or focus not in {"implementation", "any"}
     ):
         raise CrabError("seed preparation requires bounded needs, candidate metadata and limit")
     parsed_needs = []
@@ -112,8 +115,9 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
                 "repository": repository,
                 "sha": sha,
                 "description": description,
-                "paths": sorted(paths)[:4096],
+                "paths": sorted(paths, key=lambda p: (path_role(p) != "source", p))[:4096],
                 "searchable_files_observed": len(paths),
+                "implementation_files_observed": sum(path_role(p) == "source" for p in paths),
                 "paths_not_retained": max(0, len(paths) - 4096),
                 "excluded_paths": excluded,
             }
@@ -136,7 +140,19 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             metadata_hits = sum(t in row["description"].casefold() for t in terms)
             path_hits = sum(any(t in p.casefold() for p in paths[:8]) for t in terms)
             association = metadata_hits + path_hits
-            observed = row["searchable_files_observed"]
+            implementation_paths = [p for p in paths if path_role(p) == "source"]
+            implementation_association = metadata_hits + sum(
+                any(t in p.casefold() for p in implementation_paths[:8]) for t in terms
+            )
+            implementation_focus = focus == "implementation"
+            observed = row[
+                "implementation_files_observed"
+                if implementation_focus
+                else "searchable_files_observed"
+            ]
+            focused_association = (
+                implementation_association if implementation_focus else association
+            )
             ranked.append(
                 {
                     "repository": row["repository"],
@@ -144,11 +160,18 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
                     "terms": selected_terms,
                     "paths": paths[:8],
                     "literal_association": association,
+                    "implementation_association": implementation_association,
+                    "implementation_files_observed": row["implementation_files_observed"],
+                    "all_searchable_files_observed": row["searchable_files_observed"],
+                    "implementation_paths_not_retained": max(
+                        0, row["implementation_files_observed"] - len(implementation_paths)
+                    ),
                     "bounded_read_association": {
-                        "numerator": association * min(file_budget, observed),
+                        "numerator": focused_association * min(file_budget, observed),
                         "denominator": max(1, observed),
                         "file_budget": file_budget,
                         "searchable_files_observed": observed,
+                        "focus": focus,
                         "interpretation": "Coverage/cost heuristic, not behavior or usefulness",
                     },
                     "paths_not_retained": row["paths_not_retained"],
@@ -190,5 +213,6 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
         if cost_weighted
         else "Owner-selected raw literal association, then repository identity",
         "cost_weighted": cost_weighted,
+        "focus": focus,
         "limits": {"seconds": 60, "tree_bytes_each": 1024 * 1024, "paths_each": 4096},
     }
