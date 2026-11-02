@@ -222,6 +222,18 @@ This records cost only. It does not advance a phase, refresh a lease, accept a
 finding or write acceptance learning. Late settlement of a known attempt is
 allowed after expiry, a rejected semantic result, a receiving change or a stop;
 it cannot grant more work. Actual overrun is retained and stops further work.
+
+The optional qualification host can continue a same-trial source investigation
+from its own exact prior model answer, immutable model-facing fact identity and
+cited read index. It sends newly requested source bodies instead of resending all
+earlier bodies. Full raw facts remain retained for separate review; this is no
+new read, stronger verification or other investigator's judgment. Only an
+explicitly resolved prior scoped novelty judgment can replace resending the same
+comparison; unresolved novelty remains in the next input. Changed need, donor,
+source witness, novelty or receiving-case context refuses checkpoint reuse.
+If another original range is necessary, request it again. Requested source that
+cannot receive semantic reassessment remains an unassessed continuation with
+the original operation and stop reason, not a confirmed finding.
 The remaining-token value on an existing lease reflects the settled total.
 
 After separately settling a model stage, subsequent deterministic action records

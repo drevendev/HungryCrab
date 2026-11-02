@@ -317,6 +317,17 @@ within the existing scope limits. Equality of declaration bytes does not prove
 runtime equivalence: imports, globals, helpers and other changed code need their
 own comparison. Full file bodies and immutable bindings remain in the artifact.
 
+The additive `declaration_comparisons` field groups exact requested declaration
+bytes across acquired roles, preserving file hashes, physical ranges and every
+revision binding. `declaration_change_view` projects changed declaration hunks
+under an 8,192-byte content allowance. Its hunk coordinates are relative to the
+declared origin; add `origin.start - 1` for physical lines. Missing/ambiguous
+declarations and exhausted comparisons/bodies stay explicit. File additions or
+removals do not imply that unseen present bodies were inspected. Full file changes
+remain in the parent artifact; the narrow view explicitly leaves external helper,
+import and global behavior unknown. It cannot by itself establish runtime
+equivalence or semantic novelty.
+
 Source windows use physical LF/CRLF/CR coordinates; Unicode separators inside
 source characters do not invent lines or move parser citations. A bounded chunk
 whose end exceeds EOF returns only existing lines with `requested_end` and
