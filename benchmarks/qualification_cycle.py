@@ -1423,9 +1423,6 @@ class Trial:
         if self.state["phase"] == "cases":
             self.cases()
         while time.time() - self.state["started"] < 2700:
-            # Do not admit a donor unless a bounded assessment stage can fit.
-            if self.meter.remaining < self.frozen["host"]["minimum_assessment_reserve"]:
-                return self.stop("model-budget-reserve")
             if self.session:
                 action = self.next()
                 assert action
@@ -1452,6 +1449,10 @@ class Trial:
                     available,
                     key=lambda n: sum(o["need"] == n["id"] for o in self.state["outcomes"]),
                 )
+            # Read terminal controller/frontier state before reserving another
+            # call. Reaching the goal spends no tokens and must remain visible.
+            if self.meter.remaining < self.frozen["host"]["minimum_assessment_reserve"]:
+                return self.stop("model-budget-reserve")
             leads = self.state["plan"][need["id"]]["leads"]
             if self.session and self.action and self.action["action"] == "search":
                 self.record(

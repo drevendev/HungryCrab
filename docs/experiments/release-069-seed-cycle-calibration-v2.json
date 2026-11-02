@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "role": "Owned identical-data continuation control; not fresh release yield",
+  "source": "2040b1fe75ac74138778bc5a685482167e66b97eb73f6709ae47a31929b830e1",
+  "host_commit": "6e2aaef3b9783024fd35499564cfcff21c06686c",
+  "synthetic_pending_refs": 14,
+  "actual_model_tokens": 24689,
+  "usage_complete": true,
+  "budget_valid": true,
+  "recorded_stop_reason": "model-budget-reserve",
+  "terminal_reporting_followup": "The host checked next-call reserve before terminal queue state; subsequent deterministic terminal-state controls fix ordering. Original stop/cost retained; no native rerun for that reporting fix.",
+  "outcomes": [
+    {
+      "donor": "fixture-a",
+      "disposition": "not-useful",
+      "level": "source-supported",
+      "adoption_held": false,
+      "registration_policy_blocked": null
+    },
+    {
+      "donor": "fixture-b",
+      "disposition": "verified-gap",
+      "level": "design-proposal",
+      "adoption_held": false,
+      "registration_policy_blocked": false
+    }
+  ],
+  "replacement_reached": true,
+  "model_plan_calls": 0,
+  "native_stages": [
+    {
+      "name": "assess-0",
+      "signature": "bfa1a5755080b77db919c3018bc0117a1a7486993517f5ec16d2c5c1e4d2b4d1",
+      "admission_estimate": 15869,
+      "attempt": "d0619dc912876eff967e1e8bcffd2df60898a0aa07ea3093d66b7fd5caf30cf1",
+      "state": "settled",
+      "actual_tokens": 12075,
+      "native_seconds": 15.891
+    },
+    {
+      "name": "assess-1",
+      "signature": "7c25d129ffab29e1219318dee53b535ec46ecd0a2db90756d33c260ea3e07dea",
+      "admission_estimate": 15936,
+      "attempt": "782b4e16e0313e076a3972b1bc5f3b467fa398fd87086b134ee13829a57dd390",
+      "state": "settled",
+      "actual_tokens": 12614,
+      "native_seconds": 17.078
+    }
+  ],
+  "host_state_sha256": "6e57042a1b4d08c887ff0b9e60dc67d07e5ec6fb08abb345b431d50a1cf29d3c",
+  "effects": [],
+  "prior_failed_control_tokens": 16460,
+  "currency": null
+}

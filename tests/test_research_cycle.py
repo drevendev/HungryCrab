@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from test_discovery_inputs import repository
 from test_release_069_discovery import plan
 
@@ -16,6 +19,29 @@ from hungry_crab.discovery_session import live_context
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
 from qualification_cycle import Trial
 from research_host import Commands
+
+
+@pytest.mark.parametrize("candidate", [True, False])
+def test_completed_goal_is_reported_even_when_no_next_model_call_fits(candidate: bool) -> None:
+    trial = object.__new__(Trial)
+    trial.state = {
+        "phase": "research",
+        "started": time.time(),
+        "outcomes": [
+            {"need": "done", "decision": {"disposition": "verified-gap"}, "adoption_held": False}
+        ],
+    }
+    trial.needs = [{"id": "done"}]
+    trial.meter = SimpleNamespace(remaining=0)
+    trial.frozen = {"host": {"minimum_assessment_reserve": 6500}}
+    trial.session = Path("owned-session") if candidate else None
+    observed = []
+    trial.stop = observed.append
+    trial.next = lambda: {"finished": True, "stop_reason": "scoped-goals-met"}
+    trial.run()
+    assert observed == [
+        "scoped-goals-met" if candidate else "supported-frontier-exhausted-or-goals-met"
+    ]
 
 
 def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_path: Path) -> None:
