@@ -1,0 +1,8 @@
+{
+  "kind": "All frozen inputs verified after trials/reviews and before subsequent source repair",
+  "input_count": 57,
+  "all_original_hashes_match": true,
+  "trial_seal_sha256": "fc1c84e10efbaac15b92d0618e0aefb45f08f92630545b39b124e8eee4efd230",
+  "effective_plan_sha256": "f6437c1608fce1918fc559d83ebdecd811a1dcfa0263d85e1c2e8d5b526f9b70",
+  "review_seal_sha256": "505ba0be05f5e8fe4cecda61f3fa259c718d7312e6e2401c031a2c155ef1a94a"
+}

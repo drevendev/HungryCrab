@@ -50,6 +50,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Preserve receiving query context separately from explicit source anchors; do
+  not bypass configured semantic donor qualification merely because words are
+  known. Retain raw scores/overrides and actual shared limits (#584).
+- Reject malformed qualification host settings and inconsistent fixed limits
+  before any native model spend or session effect (#583).
 - Validate explicitly retained supporting corpus paths against immutable Git files
   instead of reporting authentic testdata as corrupt evidence; preserve primary
   traits, ignores and the conservative no-inventory fallback (#582).

@@ -59,20 +59,18 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             or any(not isinstance(t, str) or not 1 <= len(t.strip()) <= 100 for t in anchors)
         ):
             raise CrabError("seed terms must be 1..5 bounded nonempty literal anchors")
+        query_terms = list(
+            dict.fromkeys(re.findall(r"[a-z_][a-z0-9_]{2,47}", " ".join(queries).lower()))
+        )[:32]
         terms = list(
             dict.fromkeys(
-                t.casefold().strip()
-                for t in (
-                    anchors
-                    if anchors is not None
-                    else re.findall(r"[a-z_][a-z0-9_]{2,47}", " ".join(queries).lower())
-                )
+                t.casefold().strip() for t in (anchors if anchors is not None else query_terms)
             )
         )
         if not terms:
             raise CrabError("seed query needs at least one bounded literal token")
         seen_needs.add(identity)
-        parsed_needs.append((identity, terms[:32], anchors is not None))
+        parsed_needs.append((identity, terms[:32], anchors is not None, query_terms))
     deadline = time.monotonic() + 60
     rows: list[dict[str, Any]] = []
     omissions = []
@@ -139,7 +137,7 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             }
         )
     results = []
-    for identity, terms, explicit_terms in parsed_needs:
+    for identity, terms, explicit_terms, query_terms in parsed_needs:
         ranked = []
         for row in rows:
             paths = sorted(
@@ -173,6 +171,9 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             focused_association = (
                 implementation_association if implementation_focus else association
             )
+            query_association = sum(t in row["description"].casefold() for t in query_terms) + sum(
+                any(t in p.casefold() for p in row["paths"]) for t in query_terms
+            )
             ranked.append(
                 {
                     "repository": row["repository"],
@@ -184,6 +185,7 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
                     "paths": paths[:8],
                     "literal_association": association,
                     "implementation_association": implementation_association,
+                    "query_context_association": query_association,
                     "implementation_files_observed": row["implementation_files_observed"],
                     "all_searchable_files_observed": row["searchable_files_observed"],
                     "implementation_paths_not_retained": max(
@@ -204,6 +206,7 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             )
         ranked.sort(
             key=lambda r: (
+                -r["query_context_association"] if cost_weighted and explicit_terms else 0,
                 -Fraction(
                     r["bounded_read_association"]["numerator"],
                     r["bounded_read_association"]["denominator"],
@@ -216,7 +219,12 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             )
         )
         results.append(
-            {"need": identity, "leads": ranked[:limit], "not_selected": len(ranked[limit:])}
+            {
+                "need": identity,
+                "query_context_terms": query_terms,
+                "leads": ranked[:limit],
+                "not_selected": len(ranked[limit:]),
+            }
         )
     return {
         "schema": "hungry-crab.discovery-seeds/1",
@@ -229,7 +237,9 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
         "license_permission": "not-established",
         "identity_scope": "Available objects; provider/repository binding needs verification",
         "selection": (
-            "Literal association weighted by the bounded-read fraction of observed eligible "
+            "For explicit source anchors, receiving query-context association precedes "
+            "read-cost hints. Literal association weighted by the bounded-read fraction of "
+            "eligible "
             "files, then raw association and identity. A large tree is not a usefulness verdict; "
             "unselected candidates remain unreviewed and raw inputs remain necessary."
         )

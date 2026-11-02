@@ -408,9 +408,22 @@ is unrun. This resource policy does not classify usefulness or erase proposed
 changes from review denominators. It is disabled unless explicitly configured.
 
 Explicit per-need literal `terms` reach CLI seeding directly. When all needs
-already have them, the compact semantic nomination stage is unnecessary; the
-matching installed skill is supplied to the first assessment instead. Actual
-source/novelty/original acceptance and all model-use limits still apply.
+already have them, they still do not establish donor relevance. Configured host
+read planning runs regardless of known anchors; it receives the original need,
+queries, anchors, metadata and real filenames. A cross-domain lead needs a
+plausible mechanism bridge. The matching skill reaches this planning stage or,
+when the owner explicitly omits planning, the first assessment. Actual source,
+novelty, original acceptance and all model-use limits still apply.
+
+Explicit anchors remain exact source-search terms. Seed output separately
+retains `query_context_terms` and `query_context_association`; with cost weighting,
+this original query context precedes read-cost hints when anchors are explicit.
+Raw literal scores and the owner's unweighted override remain available. Neither
+association establishes usefulness; no source body or model is read by seeding.
+
+Qualification profiles validate required host settings and their fixed token/time
+limits before creating a command runner, session or native meter. Missing reserve
+configuration must fail before any model spend, rather than after planning.
 
 Implementation-focused `find` exposes `callable_like` and `callable_anchor`
 text hints, including bounded Swift `func`, visibility-qualified Rust and

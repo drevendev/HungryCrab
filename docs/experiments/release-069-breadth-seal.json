@@ -1,0 +1,486 @@
+{
+  "schema": 1,
+  "status": "SEALED before independent BREADTH trials; no acceptance claimed",
+  "sealed_at": "2026-11-02T18:19:17.781749+00:00",
+  "candidate": {
+    "commit": "651fea8841752995f3c344773534eb350ccebd41",
+    "version": "0.6.9.dev0",
+    "source_identity": "971624da4cd9792032e11a7f1f1ced750c1317276184a972e2c9399c6e569950"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "651fea8841752995f3c344773534eb350ccebd41",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds.",
+    "concurrency": 1,
+    "dispatch": "Six fixed fresh reviews sequentially to avoid concurrent request bursts. Each unchanged30000actualtokens/2700seconds; unknown calls retained, no silent replay."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "standards_exposure": "Own receiving source and CPython AST/Unicode/POM/Composer/Actions format concepts, prior344 nominee identities and exposed579/580/progression controls are known. New nominee bodies and utility/review judgments are unseen before sealing. Pretraining/undocumented port lineage unknown.",
+    "prior_repository_identities": 344,
+    "prior_provider_ids": 331,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All prior confirmed/provisional findings and all344 prior repository names/331 native IDs. No repeat of NAVIGATED578/121/245/246, PRIMARY120, ABSENCE575/576/119, CONTINUED571/572/118/243, earlier source locations and multiline references, existing dependency parsers, source spans or cycle witnesses. New scoped design requests cannot count only because predeclared: actual independent donor utility is required."
+    ],
+    "lineage": [
+      "Maven and Composer ecosystem readers can share model/solver libraries. Inspect actual own code; delegation and a metadata name alone are not a new mechanism. No parent/dependency resolution or donor execution.",
+      "Import analyzers can share CPython AST and graph algorithms or ports. Distinct IDs are not proof of semantic independence; static literal calls/lexical guards are uncertain declarations, not runtime import execution. Archived python-deps status is retained.",
+      "Workflow parsers may share yaml libraries and upstream Actions grammar; wrapper-only adoption cannot satisfy the stdlib-only receiving constraint. Quoted/flow/unsupported coverage must be disclosed.",
+      "Unicode lists and viewers share UCD concepts/data; preserve data grants separately from implementation, do not silently transfer tables or prohibit valid language/emoji shaping. Hiding mechanisms are not automatically useful viewers.",
+      "No repository-specific scoring boost or relaxed safety, licence, precision, gain or resource threshold. Earlier failed comparisons and exposed controls remain separate."
+    ],
+    "shared_setup": "Actual immutable paired digests and filename catalogues only. No donor code/test/build/hook/installer executed, and no cross-arm judgments. No hidden known-case path hints.",
+    "cost": "Actual native input including cached+output and elapsed time; unknown calls invalidate qualification. Currency/setup/engineering/coordination/whole-project costs remain unknown."
+  },
+  "pre_inference_reconciliation": {
+    "receiving": {
+      "ci_run": 41498972703,
+      "artifact_id": 13167442499,
+      "artifact_sha256": "b117e3f44bf32206558758e57564a06d1f2b1c9f8ad65b1614c426ad75e1c151",
+      "contexts": {
+        "HungryCrab": {
+          "context": {
+            "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-breadth-exact\\maws\\HungryCrab",
+            "sha": "651fea8841752995f3c344773534eb350ccebd41",
+            "selected_ref": null,
+            "worktree": "clean",
+            "policy": "fbbf588996f6c4c1277033c2d86c6077e38c182c57079634bf9bd223f1274892",
+            "ledger": "9ffcf575fac3e0aa69359e1a33802e18170071761400fed4aa14651be0b431a2",
+            "depth": null,
+            "analysis_identity": null,
+            "ignore": null,
+            "wiki": null
+          },
+          "default_sha": "c9f432e36d447c437eb967f1b80fcc5a15c7b6b6",
+          "selected_target_ref": "refs/pull/539/head",
+          "pending": [
+            {
+              "number": 539,
+              "sha": "651fea8841752995f3c344773534eb350ccebd41"
+            }
+          ]
+        },
+        "Devostasis": {
+          "context": {
+            "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-breadth-exact\\maws\\Devostasis",
+            "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+            "selected_ref": null,
+            "worktree": "clean",
+            "policy": "b5095209ec73bd03f2570743fd1b6b6c4fda80b14192f3b9e4d8b6b5c275f296",
+            "ledger": "569f29a8bd41d24f2207035b7c7a9ecd438f67c2a796ba2f72a57fd5a564dabf",
+            "depth": null,
+            "analysis_identity": null,
+            "ignore": null,
+            "wiki": null
+          },
+          "default_sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+          "selected_target_ref": "refs/pull/75/head",
+          "pending": [
+            {
+              "number": 95,
+              "sha": "611b21ee19ad46b4ae6f9ad2dcf872da6dbf7156"
+            },
+            {
+              "number": 90,
+              "sha": "51e58b8a4f1504f8f953fbc47db6157d157051e6"
+            },
+            {
+              "number": 89,
+              "sha": "1a735f451f9fe6dae7948a014b660249501a1ffc"
+            },
+            {
+              "number": 88,
+              "sha": "9cf0c0cf678aeef620b5f6d6a1662533894c10b2"
+            },
+            {
+              "number": 81,
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b"
+            },
+            {
+              "number": 75,
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b"
+            },
+            {
+              "number": 69,
+              "sha": "aa5e0e12aea6ee0514cbd2c9dd9aa29ff5dfe75c"
+            },
+            {
+              "number": 64,
+              "sha": "c98e7ed4fe53f1809f9a5ec0b7651da49aa0ab3a"
+            },
+            {
+              "number": 59,
+              "sha": "a41fac6353030f684b2e77b12079503b7b8a1e96"
+            },
+            {
+              "number": 57,
+              "sha": "b849923511ffef24b3b53d0ed01937ae706f60f8"
+            },
+            {
+              "number": 53,
+              "sha": "96d10fc844732d196628e3a8f39737eab69fe871"
+            },
+            {
+              "number": 50,
+              "sha": "4c7f0a1a93cd3231feea89fb879c0fafe5fdf1fb"
+            },
+            {
+              "number": 37,
+              "sha": "aae7b21df35f96ba074331482ff37f70f509d222"
+            },
+            {
+              "number": 36,
+              "sha": "2a575750d511a47d69a5c97c41ec121deff920ef"
+            }
+          ]
+        },
+        "BeautifulRepo": {
+          "context": {
+            "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-breadth-exact\\maws\\BeautifulRepo",
+            "sha": "2eb25a5219405e765681e2bed0b9814688153304",
+            "selected_ref": null,
+            "worktree": "clean",
+            "policy": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "ledger": "57854d00ac3e2b9d1b7a0dfd0abdaa0eb55ba009d968901a6aca5431f29390d4",
+            "depth": null,
+            "analysis_identity": null,
+            "ignore": null,
+            "wiki": null
+          },
+          "default_sha": "2eb25a5219405e765681e2bed0b9814688153304",
+          "selected_target_ref": null,
+          "pending": []
+        }
+      },
+      "external_beautifulrepo_merge": 247,
+      "implemented_exclusion": "Multiline Markdown definitions are already implemented at2eb25a5 and excluded. Active action-pin/preview functions remain unchanged from previously read own source.",
+      "qualification_head": "651fea8841752995f3c344773534eb350ccebd41",
+      "preparation_refusal": "581/source7ec original incomplete scopes retained in qualification-breadth/preparation-refusals. Same six flows and30nominees; no native/source-utility judgment before refresh.",
+      "shared_query_fairness": "Both arms receive original receiving literal terms and queries, with matching skills and native baseline nomination; no CLI backport."
+    },
+    "execution_control": {
+      "seal": "20e01ba375a48d8a7c3cac7bcffcce60d72fa1327d28e7293002a879ea90924e",
+      "target_pass": true,
+      "distinct_assessed_needs": 2,
+      "actual_tokens": 24291,
+      "seconds": 196.5765528678894,
+      "fresh_usefulness": false,
+      "new_empty_request_branch_exercised": false
+    },
+    "shared_query_fairness": "Explicit receiving terms and queries reach BOTH arms before investigation. Baseline still nominates leads with its native planner and matching published skill; no candidate CLI functionality is backported.",
+    "source_preparation_refusal": "581/readme-prefix-source7ec retained, no model started or nominee replaced. Current candidate facts must match repaired installed source.",
+    "artifact_identity_receipts": [
+      {
+        "batch": "beautifulrepo",
+        "run_id": 41498972588,
+        "artifact_id": 13167791707,
+        "size": 3553673,
+        "digest": "sha256:a43db784f5cf71892c8f57d3bba599787800f2596fd9b58168a4c123e5e1555a",
+        "archive_bytes": 3553673,
+        "archive_sha256": "a43db784f5cf71892c8f57d3bba599787800f2596fd9b58168a4c123e5e1555a",
+        "donor_executed": false
+      },
+      {
+        "batch": "crab",
+        "run_id": 41498972588,
+        "artifact_id": 13166933758,
+        "size": 2555989,
+        "digest": "sha256:be10020a00ee0688d76a19b1f1497c07da8ccc4f136f798c7dab9fd5842eeb1d",
+        "archive_bytes": 2555989,
+        "archive_sha256": "be10020a00ee0688d76a19b1f1497c07da8ccc4f136f798c7dab9fd5842eeb1d",
+        "donor_executed": false
+      },
+      {
+        "batch": "devostasis",
+        "run_id": 41498972588,
+        "artifact_id": 13166464865,
+        "size": 756806,
+        "digest": "sha256:70bd0ab403013a7f7df1baf41b9b0a143e590e8a4151b94d0aaf31c286f6d45c",
+        "archive_bytes": 756806,
+        "archive_sha256": "70bd0ab403013a7f7df1baf41b9b0a143e590e8a4151b94d0aaf31c286f6d45c",
+        "donor_executed": false
+      },
+      {
+        "batch": "receiving",
+        "run_id": 41498972703,
+        "artifact_id": 13167442499,
+        "size": 4626036,
+        "digest": "sha256:b117e3f44bf32206558758e57564a06d1f2b1c9f8ad65b1614c426ad75e1c151",
+        "archive_bytes": 4626036,
+        "archive_sha256": "b117e3f44bf32206558758e57564a06d1f2b1c9f8ad65b1614c426ad75e1c151",
+        "donor_executed": false
+      }
+    ],
+    "safety": "No donor execution, scheduler, publication, policy override, merge, tag or release."
+  },
+  "protocol_amendment": "579/580 actual callable source navigation, bounded4096-byte initial donor packets, integrity-checked preparation, explicit receiving terms shared with both arms, deferral of oversized leads and optional common breadth-before-empty-continuation policy. Same actual30k/2700s/6donors/16requests/12hypotheses/2replacements/two source continuation rounds,12balanced trials and6separate masked reviews. No threshold or safety relaxation.",
+  "parallel_schedule": "Six fixed two-trial blocks in the balanced schedule; launch in declared order, wait both before next block, at most2concurrent. Separate native contexts/meters/artifact roots; shared frozen receiving/source facts only, no shared judgments. Same per-trial actual caps; no efficiency/generalization claim.",
+  "evaluation_method": "Use actual trial/index agreement, conservative at most one unique per declared need per arm and explicit peer canonical equivalences. All native verified-gap and either peer substantive positives remain in denominator. Missing reviewer gives no support and unknown usage fails. For no-lower precision, perfect observed candidate precision is provably no lower than any baseline precision in[0,1], even when empty baseline precision remains undefined; otherwise require known baseline and exact ratio comparison. Tested qualification_acceptance.py is frozen before both arms. No retrospective pass of previous studies.",
+  "nomination_holds": [],
+  "eligible_by_maw": {
+    "crab": 10,
+    "devostasis": 10,
+    "beautifulrepo": 10
+  },
+  "sealed_sha256": "fc1c84e10efbaac15b92d0618e0aefb45f08f92630545b39b124e8eee4efd230",
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "vifraa/gopom",
+      "sha": "f21dc21042a29ea34bf2d0563f72a5794f1a24b6"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "creekorful/mvnparser",
+      "sha": "ef9f0b7413568c99250e8341c8f474c0a3c86329"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "fabric8io/maven-model-helper",
+      "sha": "4f103af761e6c542ecde2d91bdcb8a6a468da79c"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "CoreMedia/maven-jdom-parser",
+      "sha": "acee3433638c3cbe506b5536fa95a7d0878ae2da"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "intuit/node-pom-parser",
+      "sha": "344d6146dd9251bd348ac64572da176530124609"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "composer/composer",
+      "sha": "e1460b9e86fee91bf99dfde2dbe9d4fd8e325c1f"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "clue/graph-composer",
+      "sha": "bb3f6a99b5ce6ba3dd0ad4b6834a09bf43f7a1c9"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "shipmonk-rnd/composer-dependency-analyser",
+      "sha": "93876a3adeb5b040ef28a6f79a1e07309b9ec21c"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "maglnet/ComposerRequireChecker",
+      "sha": "4d55f11414bba3ff9e8f24707ae767f220f517f5"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "schmittjoh/composer-deps-analyzer",
+      "sha": "6e72a866c40a98e63efb6bb059a2bbaadcb8aa15"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "mgedmin/findimports",
+      "sha": "941ee7f9f4ddc1ed90d2ef15a4af4eedeb68c39b"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "sourcegraph/python-deps",
+      "sha": "a7f1b28cc53bfdc3c71f70d0c0f3ae759e68c6f3"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "NeilGirdhar/graph_imports",
+      "sha": "20f31a3826f8ee0898fa9b21f8922a6202ae1868"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "hyyan112/proimp",
+      "sha": "18261da059ddcce25a1400eb2f3011ca070caa9c"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "medbndr/importscope",
+      "sha": "692418a40132a7deae2e40e49a88ef05c8c3f9b9"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "gazzycodes/knot",
+      "sha": "2bb03ae4b50d2568ecc403fa304b83e1640f3153"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "kriskimmerle/importgraph",
+      "sha": "2daad69a6e5dff27bbb4665365a6eaac2c5fa76e"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "Thomas20090425/import-hygiene",
+      "sha": "2e91da3cf58193b59efb5d356cdac4eae75c72f2"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "justiceandmercy/importgraph",
+      "sha": "b6723d56e5be8c0267610867f4e49662766998e6"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "dmibaranov/using_imports",
+      "sha": "164df4536806c44e539beb1788ff0b0add5d18ea"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "github/actions-lockfile",
+      "sha": "54969dc7fee8b1e0e22b06bd4b591c44232f831c"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "tomasrollo/py_actions_workflow_parser",
+      "sha": "9ec59cf0be35a12b98a1101da2533083e4f3937f"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "scagogogo/github-action-parser",
+      "sha": "a41be24f20ffee29848cfb6849752c50fe9b6b49"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "rvolosatovs/workflow-jobs",
+      "sha": "5ed10c77adac0dc5d507485095701880ac991f37"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "CreoDAMO/gh-workflow-validate",
+      "sha": "c74dcd5a73754574d964838af5b94fb2de4ecb43"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "flopp/invisible-characters",
+      "sha": "802d7db6789c109cef3fb239f9c3c7d641ceb95d"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "dwisiswant0/unch",
+      "sha": "0533981242505ee6da2e9b343a709bbd61fe72f9"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "spencermountain/out-of-character",
+      "sha": "ad58e858ff4eca02a1cc53c7e3bbfb46345f6e6f"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "es7s/kolombos",
+      "sha": "eb614862652d5efa57f7bc5caaf57d19c072bbc8"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "garywill/cc-visualize",
+      "sha": "8b82dacc51a40f74ce52c20b09633bc97d1bee2d"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "651fea8841752995f3c344773534eb350ccebd41",
+      "needs": [
+        {
+          "id": "maven-declaration-qualifiers",
+          "verification_mode": "design"
+        },
+        {
+          "id": "composer-declaration-relations",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "import-edge-lexical-context",
+          "verification_mode": "design"
+        },
+        {
+          "id": "literal-dynamic-import-evidence",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "2eb25a5219405e765681e2bed0b9814688153304",
+      "needs": [
+        {
+          "id": "workflow-uses-structural-context",
+          "verification_mode": "design"
+        },
+        {
+          "id": "readme-preview-invisible-display",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}
