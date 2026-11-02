@@ -16,6 +16,32 @@ from hungry_crab.licensing.sections import composite_sections
 MIT = (Path(__file__).parents[1] / "LICENSE").read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize(
+    "holder", ["NoCommercialUse Labs", "NoExternalUse Labs", "ResearchOnly Labs", "ShareAlike Labs"]
+)
+def test_compound_policy_labels_do_not_become_mit_holder_names(holder: str) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    text = "MIT License\nCopyright (c) 2026 " + holder + "\n\n" + body
+    assert detect_from_text(text) == (None, 0.0)
+    assert (
+        GrantResolver(Reader({"LICENSE": text, "a.py": "VALUE = 1\n"}), "a" * 40)
+        .resolve("a.py")
+        .expression
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "holder", ["Nonprofit Labs", "NonProfit Labs", "Nordic Labs", "Jane Mary Doe"]
+)
+def test_compound_policy_check_preserves_ordinary_attribution(holder: str) -> None:
+    body = MIT[MIT.index("Permission is hereby") :]
+    assert detect_from_text("MIT License\nCopyright (c) 2026 " + holder + "\n\n" + body) == (
+        "MIT",
+        0.99,
+    )
+
+
 @pytest.mark.parametrize("contact", ["", " <jane@example.org>"])
 def test_three_part_holder_retains_full_mit_grant_and_immutable_path_proof(contact: str) -> None:
     body = MIT[MIT.index("Permission is hereby") :]

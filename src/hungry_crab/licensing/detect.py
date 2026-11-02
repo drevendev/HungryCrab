@@ -541,6 +541,18 @@ def _copyright_metadata(line: str) -> bool:
     if "\ufffd" in holder:
         # Lost attribution bytes are not a supported holder spelling variation.
         return False
+    # Compound labels can hide an operative restriction in a nominal holder.
+    # Inspect word boundaries without rewriting the attribution. "NonProfit"
+    # remains a name; only explicit policy-shaped tokens trigger this check.
+    compound = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", holder)
+    compound = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", compound)
+    if compound != holder and re.search(
+        r"\b(?:no|use|licen[cs]\w*|permission|commercial|paid|only|"
+        r"forbidden|prohibited|restricted|requir\w*)\b|\bshare\s+alike\b",
+        compound,
+        re.I,
+    ):
+        return False
     if re.search(
         r"\b(?:use|licen[cs]e|permission|grant|paid|commercial|prohibit\w*|restrict\w*|redistribut\w*|requir\w*)\b",
         holder,
