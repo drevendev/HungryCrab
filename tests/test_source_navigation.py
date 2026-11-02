@@ -381,7 +381,7 @@ def test_packets_preserve_worker_limits_and_actual_byte_omissions(tmp_path: Path
 
 
 @pytest.mark.parametrize(
-    "suffix", [".rkt", ".lua", ".nix", ".R", ".jsx", ".cljc", ".pm6", ".props"]
+    "suffix", [".rkt", ".lua", ".nix", ".R", ".jsx", ".cljc", ".pm6", ".props", ".fs", ".fsx"]
 )
 def test_host_catalog_and_literal_search_share_implementation_roles(
     tmp_path: Path, suffix: str
