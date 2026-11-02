@@ -330,3 +330,28 @@ def test_packets_preserve_worker_limits_and_actual_byte_omissions(tmp_path: Path
     assert row["structural_ranges_deferred"] == 92
     assert len(row["ranges"]) < 8 and packet["bytes"] <= 1024
     assert any(item["reason"] == "whole-packet-byte-limit" for item in packet["omissions"])
+
+
+@pytest.mark.parametrize(
+    "suffix", [".rkt", ".lua", ".nix", ".R", ".jsx", ".cljc", ".pm6", ".props"]
+)
+def test_host_catalog_and_literal_search_share_implementation_roles(
+    tmp_path: Path, suffix: str
+) -> None:
+    from qualification_cycle import paths
+
+    from hungry_crab.source_find import find_source, path_role
+
+    repo = repository(
+        tmp_path / "source",
+        {
+            "z/reader" + suffix: "resolve_reference = SOURCE_MUST_NOT_EXECUTE\n",
+            "a/resolve_reference.text": "resolve_reference prose\n",
+        },
+    )
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    assert path_role("z/reader" + suffix) == "source"
+    assert "z/reader" + suffix in paths(repo, pin, [])
+    result = find_source(repo, pin, ["resolve_reference"], max_files=1)
+    assert result["matches"][0]["path"] == "z/reader" + suffix
+    assert result["matches"][0]["line"] == 1

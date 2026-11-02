@@ -1,0 +1,364 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured absence-evidence-repair arm",
+  "sealed_at": "2026-11-02T13:09:46.838587+00:00",
+  "candidate": {
+    "commit": "245f48385deb8d59abcfbbd1ac601cf0b5bebae9",
+    "source_identity": "527e9c1a07ce53a2388c96fa66103a004fa6327ca1cb275a397009e348e7582a",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "245f48385deb8d59abcfbbd1ac601cf0b5bebae9",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Thirty original immutable nominations;29paired acquisitions/digests plus one retained baseline180second preparation timeout (candidate unrun), held equally before either arm. Filename catalogues only. No new donor source body or shared investigation/review judgment supplied before seal. Prior receiving findings excluded; standards/pretraining/shared ports exposure remains explicit.",
+    "prior_repository_identities": 254,
+    "prior_provider_ids": 241,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All earlier study findings, including HungryCrab563/564/565/571/572, BeautifulRepo240/241/243, Devostasis117/118 (including provisional cycle witness), configuration fixes, HTML types1..7, broad generic scan-budget ideas, prior source-span/line-index changes."
+    ],
+    "lineage": [
+      "LukeMathWalker/cargo-manifest describes a serialization fork; unexposed upstream lineage is not asserted independent. No earlier provider identity overlaps.",
+      "JGM authored both cheapskate and lunamark and earlier exposed parsers; related authorship is disclosed, independent code ancestry/pretraining unknown. No independent change count per donor.",
+      "Python packaging tools share standards/dependencies; selected own source paths require actual mechanism and per-path grants. Archived repositories remain eligible inert source, not current product recommendations.",
+      "All previous thirty nominees excluded by canonical name/provider identity. Shared standards exposure and unknown pretraining remain disclosed."
+    ],
+    "cost": "All actual native input including cached+output and elapsed time retained. Currency/setup/engineering/coordination/whole-project costs unknown; no aggregate efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "source_and_host_repairs": [
+      "570 verified path absence distinct from genuinely unavailable source; immutable tree witnesses survive role/declaration projection"
+    ],
+    "receiving": {
+      "crab": "245f48385deb8d59abcfbbd1ac601cf0b5bebae9",
+      "devostasis": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "beautifulrepo": "fd222b9013448ba0f346ef88d9951a03abbd2e12"
+    },
+    "shared_acquisition_runs": [
+      41448500970,
+      41448501003
+    ],
+    "donor_or_receiving_drift": [],
+    "metadata_refinements": [
+      "nathanbabcock/cargo-manifest:404; canonical LukeMathWalker repository verified by name search",
+      "nix-community/pyproject.nix: provider redirect667358543; canonical pyproject-nix verified",
+      "mattvonrocketstein/pygenie: explicitly an unofficial mirror; replaced before source acquisition"
+    ],
+    "receiving_needs": "Six source-grounded additive flows (3/1/2), frozen before native source investigation; no Cargo or balanced-reference proposal was produced in the previous study. Earlier confirmed/provisional designs, including Devostasis118, excluded.",
+    "candidate_declaration_view": "Actual public CLI view only when exact serialized transport is smaller; all raw files/changes/bindings and external-helper uncertainty retained. Baseline gets original actual scope, no candidate CLI backport.",
+    "preparation_hold_amendment": {
+      "recorded_before_any_native_call": true,
+      "issue": 573,
+      "original_nominees": 30,
+      "eligible_pairs": 29,
+      "held": "phpmetrics/PhpMetrics baseline digest exceeded fixed180seconds, candidate unrun. Same eligible29pool botharms. Original receipts/costs retained, no raised timeout, replacement or source/outcome selection."
+    },
+    "open_pr_delta": "Only539open in HungryCrab; all14Devostasis pending heads captured; BeautifulRepo242line-index performance captured separately from new syntax needs. No PR merged by this task."
+  },
+  "protocol_amendment": "570: explicit immutable path-absence witnesses versus genuinely unavailable source. Same previous host, actual caps, two-round continuation, matching skills, balanced12 trials/six independent reviews. No new scoring/precision/yield threshold or reviewer arbitration.",
+  "evaluation_method": "All native verified-gap and either reviewer substantive positive proposals stay in precision denominator. Align trial/index, never cross-reviewer canonical wording. Duplicate supports count only with a confirmed representative in the SAME review. Conservatively at most one unique receiving change per declared need per arm across repeats; merge explicit reviewer equivalences across needs too. No reviewer-created yield or supervisor usefulness arbitration. Source/design/runtime/legal/publication/adoption remain separate.",
+  "nomination_holds": [
+    {
+      "batch": "devostasis",
+      "id": "devostasis-10",
+      "receipt": {
+        "repository": "phpmetrics/PhpMetrics",
+        "nominated_sha": "3ba04e7526257ac2edc1547309e883e1cf8bcbc9",
+        "status": "held",
+        "model_trials_started": 0,
+        "sha": "3ba04e7526257ac2edc1547309e883e1cf8bcbc9",
+        "pin_changed": false,
+        "catch": {
+          "slug": "phpmetrics/PhpMetrics",
+          "url": "https://github.com/phpmetrics/PhpMetrics.git",
+          "repo_dir": "/home/runner/work/_temp/crab-acquisition-0iqqz4nm/volume/qualification-cache/github/phpmetrics/PhpMetrics/repo",
+          "sha": "3ba04e7526257ac2edc1547309e883e1cf8bcbc9",
+          "default_branch": "master",
+          "shallow": true,
+          "since": null,
+          "updated": false,
+          "caught_at": "2026-11-02T12:55:44+00:00",
+          "issues_fetched": 0,
+          "wiki": {
+            "status": "disabled",
+            "sha": null
+          },
+          "history_window_applied": null
+        },
+        "provider_id": 15167051,
+        "object_bytes": 46433707,
+        "reason": "TimeoutExpired: Command '['/home/runner/work/HungryCrab/HungryCrab/.venv/bin/python', '-B', '-m', 'hungry_crab', '--cache-dir', '/home/runner/work/_temp/crab-acquisition-0iqqz4nm/volume/qualification-cache', 'digest', 'phpmetrics/PhpMetrics', '--out', '/home/runner/work/_temp/crab-acquisition-0iqqz4nm/volume/devostasis-10-baseline-digest', '--depth', 'normal', '--fail-on-miner-error']' timed out after 179.999985867 seconds"
+      },
+      "effect": "Both arms share the same pre-inference unavailable digest channel; excluded from eligible investigation pool, retained among30 original nominations. No model outcome or source judgment informed exclusion."
+    }
+  ],
+  "eligible_by_maw": {
+    "crab": 10,
+    "devostasis": 9,
+    "beautifulrepo": 10
+  },
+  "sealed_sha256": "75675fbdaabc8343e2a8f9b80bbb2bfa70b1772e024e676f236624b7b800ec23",
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "rust-lang/cargo",
+      "sha": "809bcc525b6169903fc41aa861a2029ab7388381"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "LukeMathWalker/cargo-manifest",
+      "sha": "1e7a2a242b916a921974167aa0ca5ae6f7e22248"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "pksunkara/cargo-workspaces",
+      "sha": "41657116ce4648a7e1a537a5907adf7ed26f1023"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "pypa/setuptools",
+      "sha": "049ae8e3083514378aedb352a2017fbc306bd126"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "sarugaku/requirementslib",
+      "sha": "591f194bb67d7b4124483ca62fdda8cd19088a86"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "requirements/rparse",
+      "sha": "726c944d1c61708ebcf4288893e2ea2f2e1eab8c"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "figsoda/pep-508",
+      "sha": "9839f187a0a3f2d8dea4f6016902f4cefa48820a"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "pyproject-nix/pyproject.nix",
+      "sha": "bf7d4b1d6de61db02fd4e748395634f03006e5de"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "block/gradle-catalog-editor",
+      "sha": "10fc19b8c35805961ce1d22fa795167a693b65c7"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "littlerobots/version-catalog-update-plugin",
+      "sha": "46c6f8dc1197ee07d2f8f6dec217d750718a9a72"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "Melevir/cognitive_complexity",
+      "sha": "1cb05131e1abe20b78abcb5f97996090724defb2"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "uudashr/gocognit",
+      "sha": "e304e0317bef7ab5888217553be77ae89cb24ec3"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "rohaquinlop/complexipy",
+      "sha": "ab030267375861c5d09073de64df6f36fccc5a2c"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "fzipp/gocyclo",
+      "sha": "7b6c7c5e29f1e2abfde310b3210309272745fc45"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "rossmacarthur/complexity",
+      "sha": "428f0a893b637e6604038d03563732292d29eaef"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "garybernhardt/pycomplexity",
+      "sha": "1343a2eddde1b8893c4de2a95cb39b66b3af1822"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "SonarSource/sonar-python",
+      "sha": "c12454812b25494aba6f9a878c93061363548b26"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "TomasVotruba/cognitive-complexity",
+      "sha": "cbb481d171ecb7fd520da210918a60538f2ff49a"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "Rarst/phpcs-cognitive-complexity",
+      "sha": "620a16150e2de8ff3a1451f702cfff7ccb3518c4"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "phpmetrics/PhpMetrics",
+      "sha": "3ba04e7526257ac2edc1547309e883e1cf8bcbc9"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "cebe/markdown",
+      "sha": "2b2461bed9e15305486319ee552bafca75d1cdaa"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "lezer-parser/markdown",
+      "sha": "30fe1b12a53f58ebab66e156a7847484addf610b"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "ariabuckles/simple-markdown",
+      "sha": "7fb8bb5943ee4e561fec17c2e271a327f4e86d64"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "greghendershott/markdown",
+      "sha": "1083700a81c0bdb38f62f31fd711686007fe33e8"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "developit/snarkdown",
+      "sha": "7619436b10a3e31e6779bf1209da4762409b86be"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "kzykhys/Ciconia",
+      "sha": "94e9c7564d0fe00eafa6800176ff42147958f855"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "jgm/cheapskate",
+      "sha": "abc76f14dd416f9221ab60980ddc4d9816a79b2f"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "Orc/discount",
+      "sha": "0cc4fef6b7ccdc19a8e64ef73aa21596b47c335b"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "yogthos/markdown-clj",
+      "sha": "13ce0c4e7e52245f2cf4690116b89dcf2ebc0274"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "jgm/lunamark",
+      "sha": "708c67068c0676b60935b019000c0dbbb972da2f"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "245f48385deb8d59abcfbbd1ac601cf0b5bebae9",
+      "needs": [
+        {
+          "id": "cargo-workspace-dependency-inheritance",
+          "verification_mode": "design"
+        },
+        {
+          "id": "python-requirement-marker-evidence",
+          "verification_mode": "design"
+        },
+        {
+          "id": "gradle-version-catalog-evidence",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "complexity-decision-contributions",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "fd222b9013448ba0f346ef88d9951a03abbd2e12",
+      "needs": [
+        {
+          "id": "balanced-reference-link-text",
+          "verification_mode": "design"
+        },
+        {
+          "id": "inline-link-nesting-precedence",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}

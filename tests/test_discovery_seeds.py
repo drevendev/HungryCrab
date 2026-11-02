@@ -71,6 +71,8 @@ def test_seed_keeps_unavailable_pins_and_duplicate_identity_explicit(tmp_path: P
         {"source_file_budget": True},
         {"cost_weighted": "false"},
         {"source_file_budget": 129},
+        {"focus": []},
+        {"focus": "assume-useful"},
     ):
         with pytest.raises(CrabError):
             seed_leads({**plan, **change})
@@ -140,3 +142,78 @@ def test_seed_exposes_read_cost_without_declaring_a_broad_tree_not_useful(tmp_pa
     )
     assert overridden["needs"][0]["leads"][0]["repository"] == "owned/broad"
     assert not overridden["cost_weighted"]
+
+
+@pytest.mark.parametrize("suffix", [".rkt", ".lua", ".nix"])
+def test_implementation_focus_does_not_charge_fixture_volume_as_source_cost(
+    tmp_path: Path, suffix: str
+) -> None:
+    implementation = repository(
+        tmp_path / "implementation",
+        {
+            "parser/module" + suffix: "SOURCE_MUST_NOT_EXECUTE\n",
+            **{f"fixtures/nested_reference_bracket_{i}.text": "DATA\n" for i in range(120)},
+        },
+    )
+    metadata = repository(
+        tmp_path / "metadata",
+        {"nested_reference_bracket_parser.json": "{}\n"},
+    )
+    plan = {
+        "needs": [{"id": "explain", "queries": ["nested reference bracket parser"]}],
+        "candidates": [
+            {
+                "repository": "owned/" + repo.name,
+                "repo": str(repo),
+                "sha": git(repo, "rev-parse", "HEAD").strip(),
+                "description": "parser"
+                if repo == implementation
+                else "nested reference bracket parser",
+            }
+            for repo in (metadata, implementation)
+        ],
+        "source_file_budget": 1,
+        "limit": 2,
+        "focus": "implementation",
+    }
+    result = seed_leads(plan)
+    first, second = result["needs"][0]["leads"]
+    assert first["repository"] == "owned/implementation"
+    assert first["paths"][0] == "parser/module" + suffix
+    assert first["bounded_read_association"]["searchable_files_observed"] == 1
+    assert first["all_searchable_files_observed"] == 122
+    assert second["implementation_files_observed"] == 0
+    assert second["bounded_read_association"]["numerator"] == 0
+    assert second["literal_association"] > first["literal_association"]
+    raw = seed_leads({**plan, "cost_weighted": False})
+    assert raw["needs"][0]["leads"][0]["repository"] == "owned/metadata"
+    assert not result["source_bodies_read"] and "unknown" in result["usefulness"]
+
+
+def test_retention_cap_preserves_implementation_before_supporting_filenames(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import hungry_crab.discovery_seeds as seeds
+
+    class Reader:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def _bounded_read(self, *args: object, **kwargs: object) -> str:
+            paths = [f"examples/parser_{i:04}.text" for i in range(5000)] + ["z/module.lua"]
+            return "".join("100644 blob " + "0" * 40 + "\t" + p + "\0" for p in paths)
+
+    monkeypatch.setattr(seeds, "GitSourceReader", Reader)
+    monkeypatch.setattr(seeds, "_commit_pin", lambda *args: True)
+    result = seed_leads(
+        {
+            "needs": [{"id": "bounded", "queries": ["parser"]}],
+            "candidates": [{"repository": "owned/example", "repo": str(tmp_path), "sha": "a" * 40}],
+            "focus": "implementation",
+        }
+    )
+    lead = result["needs"][0]["leads"][0]
+    assert lead["paths"][0] == "z/module.lua"
+    assert lead["paths_not_retained"] == 905
+    assert lead["implementation_files_observed"] == 1
+    assert lead["implementation_paths_not_retained"] == 0
