@@ -49,12 +49,17 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
         if set(contract) - allowed:
             raise ValueError("unsupported host contract keyword")
         kind = contract.get("type")
+        # JSON integers are arbitrary precision; math.isfinite(large_int)
+        # raises OverflowError while converting to float. Only floats need it.
+        finite_number = type(item) is int or (
+            type(item) is float and math.isfinite(item)
+        )
         types = {
             "object": isinstance(item, dict),
             "array": isinstance(item, list),
             "string": isinstance(item, str),
             "integer": type(item) is int,
-            "number": type(item) in (int, float) and math.isfinite(item),
+            "number": finite_number,
             "boolean": type(item) is bool,
             "null": item is None,
         }
@@ -86,7 +91,7 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
             if not contract.get("minLength", 0) <= len(item) <= contract.get("maxLength", 96000):
                 raise ValueError("answer string bound")
         elif type(item) in (int, float):
-            if not math.isfinite(item) or not contract.get(
+            if not finite_number or not contract.get(
                 "minimum", -math.inf
             ) <= item <= contract.get("maximum", math.inf):
                 raise ValueError("answer numeric bound")
