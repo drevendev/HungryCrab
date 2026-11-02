@@ -33,6 +33,21 @@ _CODE_SUFFIXES = frozenset(
         ".cs",
         ".hs",
         ".sh",
+        ".php",
+        ".kt",
+        ".kts",
+        ".swift",
+        ".dart",
+        ".ex",
+        ".exs",
+        ".cr",
+        ".jl",
+        ".ml",
+        ".mli",
+        ".scala",
+        ".clj",
+        ".cljs",
+        ".zig",
     }
 )
 
@@ -130,6 +145,18 @@ def find_source(
                         )
                     ),
                 }
+            )
+            match = matches[-1]
+            first = number if match["declaration_like"] else max(1, number - 8)
+            last = min(len(lines), number + (119 if match["declaration_like"] else 45))
+            match["context_ranges"] = [
+                {"start": start, "end": min(last, start + 59)}
+                for start in range(first, last + 1, 60)
+            ]
+            match["context_kind"] = (
+                "bounded-declaration-text; end is not a parsed declaration boundary"
+                if match["declaration_like"]
+                else "bounded-literal-context"
             )
             if len(matches) >= 256:
                 matches.sort(key=rank)

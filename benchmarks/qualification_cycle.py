@@ -96,6 +96,27 @@ def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
         ".cpp",
         ".java",
         ".hs",
+        ".php",
+        ".kt",
+        ".kts",
+        ".swift",
+        ".dart",
+        ".ex",
+        ".exs",
+        ".cr",
+        ".jl",
+        ".ml",
+        ".mli",
+        ".scala",
+        ".clj",
+        ".cljs",
+        ".zig",
+        ".mjs",
+        ".cjs",
+        ".tsx",
+        ".jsx",
+        ".cs",
+        ".hpp",
     }
     source = [p for p in names if not body_excluded(p) and Path(p).suffix.lower() in allowed]
     return sorted(source, key=lambda p: (-sum(t.casefold() in p.casefold() for t in terms), p))
@@ -229,6 +250,11 @@ class Trial:
             # owner, even if a later deterministic action was already recorded.
             attempt = previous["attempt"]
         return self.meter.call(name, prompt, schema, attempt=attempt)
+
+    def model_stop_reason(self) -> str:
+        if not self.meter.data["usage_complete"]:
+            return "usage-unavailable"
+        return str(self.meter.data.get("last_stop_reason", "model-budget-reserve"))
 
     def planner(self) -> bool:
         properties = {}
@@ -615,21 +641,49 @@ class Trial:
                             "need": need["id"],
                             "prefix": parent,
                             "terms": [filename],
+                            "symbol_terms": lead["terms"][:4],
                             "limit": 1,
                             "symbol_files": 1,
                         },
                     )
-                    declarations = [
+                    symbols = [
                         symbol
                         for row in index["files"]
                         if row["path"] == hit["path"]
                         for symbol in row["symbols"]
-                        if symbol["start"] <= hit["line"] <= symbol["end"]
                     ]
+                    declarations = [
+                        s for s in symbols if s["start"] <= hit["line"] <= s["node_end"]
+                    ]
+                    if not declarations:
+                        declarations = [
+                            s
+                            for s in symbols
+                            if any(
+                                t.casefold() in s["qualified_name"].casefold()
+                                for t in lead["terms"]
+                            )
+                        ]
                     if declarations:
-                        declaration = min(declarations, key=lambda s: s["end"] - s["start"])
-                        first, last = declaration["start"], declaration["end"]
-                        if last - first < 60:
+                        declaration = min(
+                            declarations,
+                            key=lambda s: (
+                                -sum(t.casefold() == s["name"].casefold() for t in lead["terms"]),
+                                s["node_end"] - s["start"],
+                                s["start"],
+                            ),
+                        )
+                        first, last = declaration["declaration_start"], declaration["node_end"]
+                        body = declaration.get("body_start")
+                        if body is not None and body > first + 8:
+                            ranges.append(
+                                {"path": hit["path"], "start": first, "end": min(last, first + 7)}
+                            )
+                            ranges.append(
+                                {"path": hit["path"], "start": body, "end": min(last, body + 111)}
+                            )
+                            continue
+                        if last - first < 120:
                             ranges.append({"path": hit["path"], "start": first, "end": last})
                             continue
                         ranges.append({"path": hit["path"], "start": first, "end": first + 7})
@@ -641,13 +695,13 @@ class Trial:
                             }
                         )
                         continue
-                ranges.append(
+                suggested = hit.get("context_ranges") or [
                     {
-                        "path": hit["path"],
                         "start": max(1, hit["line"] - 8),
                         "end": min(hit["line_count"], hit["line"] + 45),
                     }
-                )
+                ]
+                ranges.extend({"path": hit["path"], **part} for part in suggested)
             if not ranges:
                 index = self.commands.json(
                     ["discover", "index"],
@@ -697,6 +751,17 @@ class Trial:
                         ranges.append(
                             {"path": path, "start": 1, "end": min(60, len(physical_lines(source)))}
                         )
+        ranges = list(
+            {
+                (r["path"], start, min(r["end"], start + 59)): {
+                    "path": r["path"],
+                    "start": start,
+                    "end": min(r["end"], start + 59),
+                }
+                for r in ranges
+                for start in range(r["start"], r["end"] + 1, 60)
+            }.values()
+        )
         receiving = []
         for ref in need["maw_evidence"]:
             for start in range(ref["start"], ref["end"] + 1, 60):
@@ -793,13 +858,22 @@ class Trial:
                 "maw_evidence": citation(receiving_ids),
                 "evidence_level": {
                     "type": "string",
-                    "enum": ["design-proposal", "behavior-verified", "source-supported", "unrun"],
+                    "enum": (
+                        ["design-proposal", "source-supported", "unrun"]
+                        if need.get("verification_mode") == "design"
+                        else ["design-proposal", "behavior-verified", "source-supported", "unrun"]
+                    ),
                 },
                 "operations": array(operation, 3),
-                "receiving_probe_question": text(),
+                "receiving_probe_question": (
+                    {"type": "string", "const": ""}
+                    if need.get("verification_mode") == "design"
+                    else text()
+                ),
             }
         )
         facts = {
+            "verification_mode": need.get("verification_mode", "runtime"),
             "need": {k: need[k] for k in ("id", "flow", "observed", "expected", "constraints")},
             "donor": {"repository": donor["repository"], "sha": donor["sha"]},
             "actual_windows": windows,
@@ -840,6 +914,9 @@ class Trial:
             "behavior, anti-pattern for a cited bad behavior exposing the same receiving risk, "
             "or none. With none, reject as not-useful or request specific missing evidence; "
             "do not invent a hypothetical positive adaptation from the predeclared need. "
+            "An unfinished request-more investigation keeps adaptation, maintenance and "
+            "acceptance empty; state only the missing evidence and bounded next operation. "
+            "Substantive positive adaptations remain proposed findings regardless of their label. "
             "receiving benefit, adaptation, maintenance and acceptance. "
             "Use actual selected/default/confirmed pending code for scoped novelty; an "
             "open request is not implementation, "
@@ -853,6 +930,8 @@ class Trial:
             "Correct target controls mean already-present when covering the same claim. "
             "An architecture improvement may instead use design-proposal with concrete "
             "original receiving-specific acceptance criteria. "
+            "For a predeclared design-mode need, use design-proposal for a supported positive "
+            "adaptation, keep receiving_probe_question empty and do not invent a runtime defect. "
             "For a runtime proposal not covered by initial cases, give a concise code-free "
             "receiving_probe_question and mark evidence_level unrun. A fresh receiving-only "
             "writer will generate original cases under this same budget. Do not put donor "
@@ -1194,7 +1273,7 @@ class Trial:
 
     def stop(self, reason: str) -> None:
         if self.session:
-            if reason in {"model-budget-reserve", "usage-unavailable"}:
+            if reason in {"model-budget-reserve", "usage-unavailable", "model-output-invalid"}:
                 self.commands.json(["discover", "stop", self.session, "--reason", reason])
             self.state["controller_report"] = self.commands.json(
                 ["discover", "report", self.session]
@@ -1236,9 +1315,7 @@ class Trial:
         if self.state["phase"] == "complete":
             return
         if self.state["phase"] == "planning" and not self.planner():
-            return self.stop(
-                "model-budget-reserve" if self.meter.data["usage_complete"] else "usage-unavailable"
-            )
+            return self.stop(self.model_stop_reason())
         if self.state["phase"] == "cases":
             self.cases()
         while time.time() - self.state["started"] < 2700:
@@ -1316,11 +1393,7 @@ class Trial:
             windows = self.initial_source(lead, info, prepared)
             answer = self.assess(lead, need, info, windows, label)
             if answer is None:
-                return self.stop(
-                    "model-budget-reserve"
-                    if self.meter.data["usage_complete"]
-                    else "usage-unavailable"
-                )
+                return self.stop(self.model_stop_reason())
             if answer["disposition"] == "request-more" and answer["operations"]:
                 for i, op in enumerate(answer["operations"]):
                     try:
@@ -1344,7 +1417,11 @@ class Trial:
                 continuation = self.assess(lead, need, info, windows, label + "-continued")
                 if continuation is not None:
                     answer = continuation
-            if answer["disposition"] == "verified-gap" and answer["receiving_probe_question"]:
+            if (
+                need.get("verification_mode") != "design"
+                and answer["disposition"] == "verified-gap"
+                and answer["receiving_probe_question"]
+            ):
                 answer["_native_before_probe"] = json.loads(json.dumps(answer))
                 self.additional_probe(need, answer, label)
             self.finish(answer, lead, need, info, windows)

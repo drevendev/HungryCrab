@@ -85,6 +85,17 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
             ):
                 start = int(getattr(node, "lineno", 1))
                 node_end = max(start, getattr(node, "end_lineno", start) or start)
+                body_start: int | None = start
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+                    body = node.body
+                    if (
+                        body
+                        and isinstance(body[0], ast.Expr)
+                        and isinstance(body[0].value, ast.Constant)
+                        and isinstance(body[0].value.value, str)
+                    ):
+                        body = body[1:]
+                    body_start = body[0].lineno if body else None
                 record = {
                     "query_index": query_index,
                     "kind": kind,
@@ -98,6 +109,7 @@ def inspect(source: str, queries: list[dict[str, str]]) -> dict[str, Any]:
                         start + 59,
                     ),
                     "node_end": node_end,
+                    "body_start": body_start,
                     "declaration_start": min(
                         [start] + [d.lineno for d in getattr(node, "decorator_list", [])]
                     ),

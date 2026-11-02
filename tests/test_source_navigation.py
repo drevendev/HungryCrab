@@ -36,6 +36,37 @@ def test_unicode_source_characters_do_not_move_parser_or_literal_ranges(tmp_path
     assert physical_lines("a\u2028b\r\nc\rd\n", keepends=True) == ["a\u2028b\r\n", "c\r", "d\n"]
 
 
+def test_long_docstrings_do_not_hide_implementation_or_shift_physical_positions(
+    tmp_path: Path,
+) -> None:
+    source = (
+        '__all__ = ["target", "alias"]\ndef target():\n    """DOCSTRING_SENTINEL\n'
+        + "    documentation\n" * 120
+        + '    """\n    result = 7\n    return result\n'
+    )
+    repo = repository(tmp_path / "source", {"api.py": source})
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    index = source_index(repo, sha, need="algorithm", terms=["api.py"], symbol_terms=["target"])
+    symbol = index["files"][0]["symbols"][0]
+    assert symbol["range_truncated"] and symbol["end"] < symbol["node_end"]
+    assert symbol["body_start"] == 125 and symbol["node_end"] == 126
+    assert "DOCSTRING_SENTINEL" not in json.dumps(index)
+    packet = source_packet(
+        repo,
+        sha,
+        ["api.py"],
+        [{"kind": "function", "name": "target"}],
+        need="algorithm",
+        related=False,
+    )
+    ranges = packet["files"][0]["ranges"]
+    assert len(ranges) == 2 and all(r["end"] - r["start"] < 60 for r in ranges)
+    assert ranges[0]["unread_interval"] == {"start": 10, "end": 124}
+    assert ranges[1]["content"] == "    result = 7\n    return result"
+    with pytest.raises(CrabError, match="symbol terms"):
+        source_index(repo, sha, need="algorithm", terms=[], symbol_terms=["x"] * 5)
+
+
 def test_explicit_chunk_ends_at_actual_eof_and_retains_requested_bound(tmp_path: Path) -> None:
     repo = repository(tmp_path / "donor", {"app.py": "def target():\n    return True\n"})
     sha = git(repo, "rev-parse", "HEAD").strip()
