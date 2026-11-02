@@ -350,6 +350,8 @@ class Trial:
                     },
                     "receiving_source_ids": [w["id"] for w in windows],
                     "verification_mode": need.get("verification_mode", "runtime"),
+                    "receiving_literal_terms": need.get("terms", []),
+                    "receiving_queries": need["queries"],
                     "receiving_input_contract": (
                         None
                         if need.get("verification_mode") == "design"
