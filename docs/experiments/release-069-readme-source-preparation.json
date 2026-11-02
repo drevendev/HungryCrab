@@ -1,0 +1,24 @@
+{
+  "kind": "Pre-inference preparation refusal; no model trial started",
+  "issue": 581,
+  "candidate": "9fbd63dcf616596a585a5ad96835e5f6d2220dc3",
+  "product_source": "7ec3e5bdc0add759825619b27ea8a253a767d1791771dbaec3b41cdab410372d",
+  "affected": [
+    "tools/readme_preview.py",
+    "tools/readme_apply.py"
+  ],
+  "actual": "scope-body-excluded; implementation_scope_complete false",
+  "expected": "Recognized implementation modules remain readable as untrusted source; README/instruction bodies excluded",
+  "model_calls_started": 0,
+  "nominees_replaced": 0,
+  "retained_files": {
+    "beautifulrepo-readme-preview-invisible-display.json": "1b10ada81eb719eb5dd2b3c23b2e2dbd2bc80735b4581075dd5fbcc7b3a4a833",
+    "beautifulrepo-workflow-uses-structural-context.json": "245ce2753e8336a809e12f63753df1192a0f84e63998bc677539e3055525dd5f",
+    "contexts.json": "3613f6019f3e208032eb7e059cd2cf8f8c5d00df74d81cf479b50d6db305b580",
+    "crab-composer-declaration-relations.json": "eddb5b6be6afdf6a350ecc67a7d523db26f2627572d03bde16f733446a6d8b4e",
+    "crab-maven-declaration-qualifiers.json": "b37a5fcfe6cd24866d6cc06d04438551e5e1c6fd3509c240149c86db3a9855fd",
+    "devostasis-import-edge-lexical-context.json": "9f61721473c0fc66ed26e9f8909a949f9444048efd90aae54ea0bdd3e210a039",
+    "devostasis-literal-dynamic-import-evidence.json": "cc34408f9a509868c219ffcd24f43c9367cadad12bac98d0ac7da12cf64314cb",
+    "receiving-needs.json": "3f88d8d0c9d0d49bda2c70d2d6eca63e71938f136f6832a1efb83e5580f33968"
+  }
+}

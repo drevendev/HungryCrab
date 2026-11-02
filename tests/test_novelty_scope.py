@@ -13,6 +13,58 @@ from hungry_crab.attribution import GitSourceReader
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
 from hungry_crab.novelty import implementation_scope
+from hungry_crab.source_find import find_source
+from hungry_crab.source_inspection import body_excluded, source_packet
+
+
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        ("tools/readme_tools.py", "def inspect_format():\n    return 'format witness'\n"),
+        ("src/ReadMemory.cpp", "int inspect_format() { return 1; }\n"),
+        ("readme-check.rs", "pub fn inspect_format() -> bool { true }\n"),
+    ],
+)
+def test_readme_prefixed_implementation_is_source_not_documentation(
+    tmp_path: Path, path: str, body: str
+) -> None:
+    maw = repository(tmp_path / "owned", {path: body})
+    pin = git(maw, "rev-parse", "HEAD").strip()
+    assert not body_excluded(path)
+    found = find_source(maw, pin, ["inspect_format"])
+    assert any(row["path"] == path for row in found["matches"])
+    packet = source_packet(maw, pin, [path], [], need="inspect format", related=False)
+    assert packet["files"][0]["path"] == path
+    scope = implementation_scope(
+        maw,
+        {
+            "prefixes": [path],
+            "default_sha": pin,
+            "pending_collection": {"complete": True, "as_of": "2026-11-02T00:00:00Z"},
+        },
+    )
+    assert scope["implementation_scope_complete"]
+    assert all(target["files"][0]["path"] == path for target in scope["targets"])
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "README",
+        "readme.md",
+        "Readme.fr.md",
+        "readme_notes.txt",
+        "readme.unknown",
+        "README.py",
+        "readme.md.py",
+        "AGENTS.md",
+        "skills/example/SKILL.md",
+        ".github/instructions/readme_tools.py",
+        ".cursor/rules/readme_tools.py",
+    ],
+)
+def test_readme_source_exception_keeps_documents_and_instructions_excluded(path: str) -> None:
+    assert body_excluded(path)
 
 
 def test_public_novelty_returns_bounded_declaration_view(

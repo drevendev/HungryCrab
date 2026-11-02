@@ -16,9 +16,13 @@ from .compare.candidates import _evidence_path
 from .errors import CrabError
 from .licensing.path_grants import GrantResolver
 from .miners.ai_config import INSTRUCTION_FILES
+from .miners.inventory import CODE_LANGUAGES, LANGUAGE_BY_EXT
 from .source_lines import physical_lines
 
 PACKET_SCHEMA = "hungry-crab.source-packet/1"
+_IMPLEMENTATION_SUFFIXES = frozenset(
+    suffix for suffix, language in LANGUAGE_BY_EXT.items() if language in CODE_LANGUAGES
+)
 
 
 def _commit_pin(reader: GitSourceReader, sha: str) -> bool:
@@ -31,8 +35,16 @@ def _commit_pin(reader: GitSourceReader, sha: str) -> bool:
 def body_excluded(path: str) -> bool:
     lowered = path.casefold()
     name = Path(path).name.casefold()
+    stem = Path(name).stem
+    # A README tool is source, while bare/translated/disguised README documents
+    # stay excluded. Filename hints never make source content trusted.
+    implementation_name = (
+        Path(name).suffix in _IMPLEMENTATION_SUFFIXES
+        and stem != "readme"
+        and not stem.startswith("readme.")
+    )
     return (
-        name.startswith("readme")
+        (name.startswith("readme") and not implementation_name)
         or name == "skill.md"
         or name in {Path(item).name.casefold() for item in INSTRUCTION_FILES}
         or lowered.startswith((".cursor/rules/", ".github/instructions/", ".github/prompts/"))

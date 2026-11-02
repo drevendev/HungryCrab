@@ -420,3 +420,9 @@ type tables. A weak generic callable does not receive this priority over a more
 distinctive body literal. Original scores stay visible and `focus: any` retains
 raw ordering. These hints do not prove parsed declarations, function boundaries,
 runtime calls or usefulness; inspect the returned actual code.
+
+README-prefixed implementation names with a recognized code extension remain
+eligible as untrusted source, such as documentation-processing modules. Bare
+README, document/unknown extensions, plain or disguised `readme.*` stems and
+instruction paths stay excluded. This filename rule grants no content trust and
+does not expose README or agent-instruction bodies in summaries.

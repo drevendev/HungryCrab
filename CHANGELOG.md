@@ -50,6 +50,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Keep recognized README-prefixed implementation modules available to source
+  inspection and novelty checks while excluding actual README documents,
+  ambiguous/disguised names and instruction paths (#581).
 - Prefer flow-associated callable text over dense type tables in implementation
   source lookup, retain literal scores and raw focus, and disclose that lexical
   signature hints establish neither syntax nor behavior (#580).
