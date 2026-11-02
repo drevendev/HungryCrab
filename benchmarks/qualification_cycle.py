@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from qualification_memory import continuation_packet
+from qualification_memory import continuation_packet, requested_window_ids
 from qualification_review import compact_evidence
 from research_host import Commands, Meter, identity, read, strict, write
 
@@ -956,6 +956,7 @@ class Trial:
             permitted = set(prior_answer["source_evidence"] + prior_answer["maw_evidence"]) | (
                 {r["id"] for r in windows} - prior_ids
             )
+            permitted |= requested_window_ids(windows, prior_answer)
             donor_ids = [key for key in donor_ids if key in permitted]
             receiving_ids = [key for key in receiving_ids if key in permitted]
 
@@ -1499,6 +1500,9 @@ class Trial:
             return self.stop(self.model_stop_reason())
         if self.state["phase"] == "cases":
             self.cases()
+        continuation_rounds = self.frozen["host"].get("source_continuation_rounds", 1)
+        if type(continuation_rounds) is not int or not 1 <= continuation_rounds <= 2:
+            raise RuntimeError("source continuation rounds require an explicit 1..2 bound")
         while time.time() - self.state["started"] < 2700:
             if self.session:
                 action = self.next()
@@ -1576,14 +1580,18 @@ class Trial:
             answer = self.assess(lead, need, info, windows, label)
             if answer is None:
                 return self.stop(self.model_stop_reason())
-            if answer["disposition"] == "request-more" and answer["operations"]:
+            prior_stage = label
+            for read_round in range(continuation_rounds):
+                if answer["disposition"] != "request-more" or not answer["operations"]:
+                    break
+                next_stage = label + "-continued" + ("-2" if read_round else "")
                 for i, op in enumerate(answer["operations"]):
                     try:
                         if not 1 <= op["start"] <= op["end"] < op["start"] + 60:
                             raise RuntimeError("source operations require 1..60 actual lines")
                         if op["side"] == "donor-search":
                             windows = self.lookup_source(
-                                lead, need, info, op, label + ":search:" + str(i)
+                                lead, need, info, op, next_stage + ":search:" + str(i)
                             )
                         elif op["side"] in {"pending", "backlog"}:
                             self.read_novelty(need, op)
@@ -1592,7 +1600,7 @@ class Trial:
                                 info["exploration"],
                                 op["side"],
                                 [{k: op[k] for k in ("path", "start", "end")}],
-                                label + ":" + str(i),
+                                next_stage + ":" + str(i),
                                 self.pool[lead["donor"]],
                             )
                     except (RuntimeError, CrabError) as error:
@@ -1605,23 +1613,25 @@ class Trial:
                     need,
                     info,
                     windows,
-                    label + "-continued",
-                    continuation_of=(label, answer),
+                    next_stage,
+                    continuation_of=(prior_stage, answer),
                 )
                 if continuation is not None:
                     answer = continuation
+                    prior_stage = next_stage
                 else:
                     self.state.setdefault("unassessed_continuations", []).append(
                         {
                             "need": need["id"],
                             "donor": lead["donor"],
-                            "stage": label + "-continued",
+                            "stage": next_stage,
                             "operations": answer["operations"],
                             "status": "source-read; semantic reassessment unrun",
                             "reason": self.model_stop_reason(),
                         }
                     )
                     self.save()
+                    break
             if (
                 need.get("verification_mode") != "design"
                 and answer["disposition"] == "verified-gap"

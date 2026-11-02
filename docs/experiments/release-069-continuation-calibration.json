@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "kind": "Known-exposed diagnostic; not fresh qualification or a modification of original trials",
+  "source": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "b9006eb5a51a544a5964a179cb5a3d3991a9579b050eee09e11d2e1cb3279339"
+  },
+  "commit": "87233d9",
+  "historical_prior_tokens": 18880,
+  "actual_new_tokens": 8280,
+  "combined_original_budget_envelope_tokens": 27160,
+  "actual_new_usage": {
+    "totalTokens": 8280,
+    "inputTokens": 7828,
+    "cachedInputTokens": 2688,
+    "cacheWriteInputTokens": 0,
+    "outputTokens": 452,
+    "reasoningOutputTokens": 51,
+    "lastInputTokens": 7828
+  },
+  "status": "completed",
+  "budget_valid": true,
+  "usage_complete": true,
+  "native_seconds": 10.984,
+  "admission": {
+    "estimate": 11007,
+    "remaining": 11120,
+    "remaining_seconds": 2699.7075641155243,
+    "admissible": true
+  },
+  "seal_sha256": "0303e7f1b8ca5faa8ff2c6244fa16b801bc1b9a273a0b6ed58d0ee81704adb24",
+  "raw_result_sha256": "b9a0f09b42baf5c3fdfe9bf9604e300a36d5ab2a6cc174e045c9f65af86f8a21",
+  "retained_answer": {
+    "disposition": "request-more",
+    "hypothesis": "The donor implementation may use the shown path-membership helper in subsequent traversal code to construct and deliver an elementary cycle path, but the supplied windows still do not show that mechanism.",
+    "reason": "Missing evidence: the new donor window adds a no-op CycleVisitor, a min/max visitor, and a helper that tests whether a vertex is already in a path. It still does not show cycle-path construction, closure, ordering, bounding, or callback invocation. Read the next 60 lines of the same donor file.",
+    "adaptation": "",
+    "maintenance": "",
+    "acceptance": "",
+    "novelty": "Within the explicit selected/default/confirmed-pending implementation scope, receiving cycles returns sorted SCC path lists and evaluate records only those component paths; no edge-witness representation is implemented. This scoped novelty is resolved, independently of the incomplete donor-mechanism evidence.",
+    "novelty_resolved": true,
+    "source_behavior": "The donor defines visitor callbacks receiving a path and graph, a visitor that derives minimum and maximum reported path sizes, and a helper using linear search to detect whether a vertex is already present in a path. The supplied source does not yet show how paths are extended, closed, bounded, ordered, or reported.",
+    "source_relation": "none",
+    "source_evidence": [
+      "Ddbb2158a235eedd56e8f0963",
+      "D235814bc375e8ff4503cce69"
+    ],
+    "maw_evidence": [
+      "R730c4d5a4ae115a7ce8d4d6e",
+      "R8a52df61d58944938e5fb2cb",
+      "R0a3648126c0fdef46a70777a"
+    ],
+    "evidence_level": "source-supported",
+    "operations": [
+      {
+        "side": "donor",
+        "path": "include/boost/graph/tiernan_all_cycles.hpp",
+        "query": "",
+        "start": 130,
+        "end": 189,
+        "revision": ""
+      }
+    ],
+    "receiving_probe_question": ""
+  },
+  "utility_yield": 0,
+  "interpretation": "Requested actual next source was semantically assessed under the original remaining budget; correctly still request-more, no positive adaptation. Not fresh qualification, not a retroactive trial success. Subsequent source/host changes have their own controls.",
+  "safety": {
+    "donor_execution": false,
+    "publication": false,
+    "original_trial_rewritten": false
+  }
+}

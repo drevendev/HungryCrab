@@ -14,7 +14,15 @@ from qualification_memory import continuation_packet
 
 
 def test_checkpoint_carries_only_own_exact_prior_judgment_and_new_bodies() -> None:
-    donor = {"id": "D1", "side": "donor", "content": "old donor body", "sha": "a" * 40}
+    donor = {
+        "id": "D1",
+        "side": "donor",
+        "content": "old donor body",
+        "sha": "a" * 40,
+        "path": "example.py",
+        "start": 1,
+        "end": 10,
+    }
     receiving = {"id": "R1", "side": "receiving", "content": "old receiving body"}
     prior: dict[str, Any] = {
         "need": {"id": "bounded-iteration"},
@@ -42,6 +50,15 @@ def test_checkpoint_carries_only_own_exact_prior_judgment_and_new_bodies() -> No
     assert result["own_prior_checkpoint"]["original_answer"] == answer
     assert result["novelty"]["own_original_judgment"] == answer["novelty"]
     assert result["original_receiving_cases"] == prior["original_receiving_cases"]
+    reread = {
+        **answer,
+        "operations": [
+            {"side": "donor", "path": "example.py", "start": 1, "end": 10},
+        ],
+    }
+    replayed = continuation_packet(current, prior, reread)
+    assert replayed["actual_windows"][0] == donor
+    assert replayed["resent_prior_window_ids"] == ["D1"]
     answer["novelty_resolved"] = False
     assert continuation_packet(current, prior, answer)["novelty"] == prior["novelty"]
     for field in ("need", "donor", "novelty", "original_receiving_cases"):

@@ -106,3 +106,22 @@ operations. Exercise large-pending-work positive and changed-helper/declaration,
 unavailable-source and exhausted-budget controls. A subsequent held-out study
 requires a substantive repair and a newly sealed pool; this exposed cohort cannot
 be rerun as unseen qualification. #540/#535 remain open.
+
+## Subsequent repair controls, outside the measured result
+
+The [known-exposed continuation calibration](release-069-continuation-calibration.json)
+at repair commit `87233d9` resupplied the actual requested source under the original
+11,120-token remainder. It used 8,280 new actual tokens: the combined original
+budget envelope is 27,160. It correctly remained `request-more`, because the
+visitor/helper body still does not establish cycle-path construction. It proves
+semantic continuation was admitted and performed, not a new useful finding or
+retroactive qualification success. Later explicit-reread and two-round controls
+remain separate from that exact calibrated host.
+
+The [later immutable-path replay](release-069-seeded-license-followup.json)
+addresses #567/#568: complete British MIT titles, paired single quotes with the
+non-infringement spelling, bounded project/developer credits and the full standard
+Boost grant. Actual path expressions, explicit MIT alternative selection and
+all original notices/obligations are retained. Missing grants remain held.
+This replay does not rewrite original trial grant verdicts or increase discovery
+yield. No copied implementation, publication exception or human override follows.

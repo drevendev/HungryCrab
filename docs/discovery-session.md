@@ -234,6 +234,10 @@ source witness, novelty or receiving-case context refuses checkpoint reuse.
 If another original range is necessary, request it again. Requested source that
 cannot receive semantic reassessment remains an unassessed continuation with
 the original operation and stop reason, not a confirmed finding.
+The sealed qualification host may explicitly select one or two local source
+continuation rounds (default one), under the same total token/time/read caps.
+Explicit rereads resend the requested original bodies and retain their roles;
+the memory index cannot substitute for a requested reread.
 The remaining-token value on an existing lease reflects the settled total.
 
 After separately settling a model stage, subsequent deterministic action records

@@ -93,7 +93,7 @@ def declaration_change_view(scope: dict[str, Any]) -> dict[str, Any]:
         ):
             continue
         targets, sources, origins = [], {}, []
-        for side, role in (("selected", "receiving-selected"), ("other", "receiving-pending")):
+        for side in ("selected", "other"):
             digest = row[side + "_content_sha256"]
             declaration, target = declarations[row["path"], row["qualified_name"], digest]
             source = scope["sources"][declaration["source_content_sha256"]]["content"]
@@ -103,7 +103,7 @@ def declaration_change_view(scope: dict[str, Any]) -> dict[str, Any]:
             sources[digest] = {"content": body}
             targets.append(
                 {
-                    "role": role,
+                    "role": target["role"],
                     "sha": target["sha"],
                     "ref": target["ref"],
                     "scope_complete": True,
@@ -113,6 +113,7 @@ def declaration_change_view(scope: dict[str, Any]) -> dict[str, Any]:
             origins.append(
                 {
                     "side": side,
+                    "role": target["role"],
                     "sha": target["sha"],
                     "start": declaration["start"],
                     "end": declaration["end"],

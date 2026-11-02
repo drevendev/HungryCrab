@@ -2,14 +2,43 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 from fixture_builder import git
 from test_discovery_inputs import repository
 
+from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
 from hungry_crab.novelty import implementation_scope
+
+
+def test_public_novelty_returns_bounded_declaration_view(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def flow():\n    return 1\n"})
+    pin = git(maw, "rev-parse", "HEAD").strip()
+    plan = tmp_path / "scope.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "prefixes": ["app.py"],
+                "default_sha": pin,
+                "symbols": [{"path": "app.py", "qualified_name": "flow"}],
+                "include_differences": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert main(["discover", "novelty", "--maw", str(maw), "--input", str(plan)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    view = result["declaration_change_view"]
+    assert view["declaration_comparisons"]["comparisons"][0]["exact_declaration_bytes_equal"]
+    assert not view["changed_declarations"]
+    assert "sources" in result and view["raw_scope_required"]
+    assert result["semantic_novelty"] == "requires-agent-comparison"
 
 
 def test_added_file_presence_does_not_repeat_or_hide_the_retained_body(tmp_path: Path) -> None:
@@ -101,6 +130,11 @@ def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_pa
     hunks = view["changed_declarations"][0]["differences"]["comparisons"][0]["hunks"]
     assert hunks[0]["selected"]["content"].startswith("@other\n")
     assert hunks[0]["other"]["content"].startswith("@helper\n")
+    changed_declaration = view["changed_declarations"][0]
+    assert changed_declaration["origins"][1]["role"] == "receiving-default"
+    assert changed_declaration["differences"]["comparisons"][0]["bindings"][0]["role"] == (
+        "receiving-default"
+    )
 
 
 def test_change_projection_bounds_large_gaps_and_does_not_infer_missing_source(
