@@ -49,7 +49,7 @@ def test_unknown_config_member_diagnostic_is_single_line(data: dict[str, object]
     with pytest.raises(UsageError) as error:
         validate(data)
     message = error.value.message
-    assert "\n" in message or "\r" in message or "\t" in message or "\u2028" in message
+    assert any(escaped in message for escaped in (r"\n", r"\r", r"\t", r"\u2028"))
     assert all(char not in message for char in ("\n", "\r", "\x1b", "\u2028", "\t"))
     assert len(message) <= 650
 
