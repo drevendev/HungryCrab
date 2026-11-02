@@ -83,6 +83,26 @@ def share_exact_evidence(payload: Any) -> dict[str, Any]:
     }
 
 
+def compact_evidence(payload: Any) -> str:
+    """Use exact references only when smaller, verifying a full round trip first."""
+    encoded = share_exact_evidence(payload)
+
+    def expand(value: Any) -> Any:
+        if isinstance(value, dict):
+            if set(value) == {"$shared_evidence"}:
+                return expand(encoded["shared_evidence"][value["$shared_evidence"]])
+            return {key: expand(child) for key, child in value.items()}
+        if isinstance(value, list):
+            return [expand(child) for child in value]
+        return value
+
+    if expand(encoded["evidence"]) != payload:
+        raise RuntimeError("evidence codec changed actual source or role values")
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    packed = json.dumps(encoded, ensure_ascii=False, separators=(",", ":"))
+    return packed if len(packed.encode()) < len(raw.encode()) else raw
+
+
 def project_case(case: dict[str, Any]) -> dict[str, Any]:
     """Include actual output and data, without an arm-revealing output path."""
     result = {

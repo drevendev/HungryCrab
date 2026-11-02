@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "role": "Original owned synthetic continuation calibration only; no fresh yield",
+  "source": "2040b1fe75ac74138778bc5a685482167e66b97eb73f6709ae47a31929b830e1",
+  "host_commit": "e85b9fe1e0ee8aefe67a37f7a6660e7ce5657ce1",
+  "synthetic_pending_refs": 14,
+  "actual_model_tokens": 16460,
+  "usage_complete": true,
+  "budget_valid": true,
+  "stop_reason": "model-budget-reserve",
+  "outcomes": [
+    {
+      "donor": "fixture-a",
+      "disposition": "not-useful"
+    }
+  ],
+  "replacement_reached": false,
+  "model_plan_calls": 0,
+  "native_stages": [
+    {
+      "name": "assess-0",
+      "signature": "69f2a0780ff72249306b42e6a89dba42bbe833bbafa1fa80a4d36269d81a3bf9",
+      "admission_estimate": 17532,
+      "attempt": "d0619dc912876eff967e1e8bcffd2df60898a0aa07ea3093d66b7fd5caf30cf1",
+      "state": "settled",
+      "actual_tokens": 16460,
+      "native_seconds": 20.094
+    }
+  ],
+  "host_state_sha256": "255c4525fcf77c5cc64040ca720a4be08bda44a9e0cba30a8b68f0e5b90e5448",
+  "effects": [],
+  "currency": null
+}

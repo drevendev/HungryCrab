@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
-from qualification_review import packet, project_case, share_exact_evidence
+from qualification_review import compact_evidence, packet, project_case, share_exact_evidence
 from research_host import write
 
 
@@ -34,6 +34,20 @@ def test_shared_evidence_roundtrips_exact_values_and_refuses_ambiguous_input(cop
     assert len(json.dumps(encoded)) < len(json.dumps(original))
     with pytest.raises(ValueError, match="reserved"):
         share_exact_evidence({"nested": {"$shared_evidence": "E1"}})
+
+
+def test_semantic_context_compression_preserves_repeated_pending_source_and_roles() -> None:
+    declaration = {"path": "app.py", "source": "def consume(stream):\n    yield stream.read()\n"}
+    payload = {
+        "pending": [{"sha": str(i), "declaration": declaration} for i in range(14)],
+        "witness": {"id": "D123", "side": "donor", "content": "not instructions"},
+    }
+    packed = json.loads(compact_evidence(payload))
+    assert packed["encoding"].startswith("Exact JSON")
+    assert packed["evidence"]["witness"] == payload["witness"]
+    assert len(compact_evidence(payload)) < len(json.dumps(payload, separators=(",", ":")))
+    # The function verifies every expanded value before returning a packet.
+    assert json.loads(compact_evidence({"unique": 7})) == {"unique": 7}
 
 
 def test_case_projection_retains_original_data_actual_calls_and_hashes(tmp_path: Path) -> None:
