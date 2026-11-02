@@ -1,0 +1,60 @@
+{
+  "kind": "EXPOSED engineering control; not fresh qualification",
+  "candidate": {
+    "commit": "b064a3759503df26364355ee6a80321586f81454",
+    "version": "0.6.9.dev0",
+    "source_identity": "7ec3e5bdc0add759825619b27ea8a253a767d1791771dbaec3b41cdab410372d"
+  },
+  "seal_sha256": "20e01ba375a48d8a7c3cac7bcffcce60d72fa1327d28e7293002a879ea90924e",
+  "expected": "At least two distinct receiving needs reach actual semantic source assessment, or retain a genuine measured external failure. Every native call must have known actual usage within caps. No interrupted-call replay.",
+  "status": "PASS execution target only",
+  "actual_assessed_needs": [
+    "balanced-reference-link-text",
+    "inline-link-nesting-precedence"
+  ],
+  "assessed_need_count": 2,
+  "donor_admissions": 2,
+  "actual_model_tokens": 24291,
+  "usage_complete": true,
+  "model_budget_valid": true,
+  "seconds": 196.5765528678894,
+  "stop_reason": "model-budget-reserve",
+  "execution_target_pass": true,
+  "fresh_yield": null,
+  "release_acceptance": false,
+  "outcomes": [
+    {
+      "need": "balanced-reference-link-text",
+      "donor": "beautifulrepo-6",
+      "disposition": "duplicate",
+      "reviewed": true
+    },
+    {
+      "need": "inline-link-nesting-precedence",
+      "donor": "beautifulrepo-5",
+      "disposition": "duplicate",
+      "reviewed": true
+    }
+  ],
+  "unassessed_continuations": [],
+  "stages": [
+    {
+      "name": "assess-0-preparation-0",
+      "state": "settled",
+      "actual_tokens": 12695,
+      "native_seconds": 16.968
+    },
+    {
+      "name": "assess-1-preparation-0",
+      "state": "settled",
+      "actual_tokens": 11596,
+      "native_seconds": 22.532
+    }
+  ],
+  "limitations": [
+    "Already exposed sources and filed receiving requests; no new usefulness, transfer clearance or adoption.",
+    "Both initial semantic answers ended without requesting continuation. This run validates progression to two assessed needs, but does not exercise the new unfinished-request branch. Its behavior is covered by owned regression controls.",
+    "Earlier failed579/580 controls remain failed, unmodified and public.",
+    "No baseline arm in this engineering control; no comparative version gain, merge, tag or release."
+  ]
+}
