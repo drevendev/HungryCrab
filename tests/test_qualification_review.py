@@ -13,6 +13,35 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
 from qualification_review import compact_evidence, packet, project_case, share_exact_evidence
 from research_host import write
+from review_transport import expand_review_text, factor_review_text
+
+
+def test_review_transport_restores_original_proposal_source_and_acceptance() -> None:
+    adaptation = "Add an opt-in receiving mechanism. " * 12
+    acceptance = "Preserve exact existing outputs and test original cases. " * 12
+    payload = {
+        "runs": [
+            {
+                "observations": [
+                    {
+                        "native_decision": {"adaptation": adaptation, "acceptance": acceptance},
+                        "verification": {"assessment": adaptation, "criteria": acceptance + "\n"},
+                        "actual_acceptance_artifact": adaptation + "\nAcceptance:\n" + acceptance,
+                    }
+                ]
+            }
+        ],
+        "content": "# untrusted literal\n" + acceptance,
+        "roles": {"held": True, "mode": "HUMAN", "original_receiving_owned": True},
+    }
+    original = json.dumps(payload)
+    encoded = factor_review_text(payload)
+    assert expand_review_text(encoded) == payload
+    assert json.dumps(payload) == original
+    assert len(json.dumps(encoded)) < len(original)
+    payload["reserved"] = {"$concat_text": ["not a reference"]}
+    with pytest.raises(ValueError, match="reserved review transport"):
+        factor_review_text(payload)
 
 
 @pytest.mark.parametrize("copies", [2, 3])

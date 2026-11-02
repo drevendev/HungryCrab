@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "sealed_at": "2026-11-02T09:58:53.183912+00:00",
+  "protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+    "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "input_projection": "Deduplicated common implementation context and all actual cited windows. Probe projection retains actual per-check observations, exceptions, original JSON inputs, actual call witnesses and raw result/receipt/stdout hashes; full return objects stay in retained raw files. No source-level supervisor review. All observations retained. No UTF8 byte proxy; unchanged actual30000 input-plus-output token and2700second caps, including cached input. Exact proposal-text factoring verifies full roundtrip; original inputs retained.",
+  "model_calls_before_review_seal": 0,
+  "pre_inference_amendment": "Initial review preparation refused differing per-need scopes before inference. Corrected scope-ID bindings retain every actual scope; source/case/acceptance literals are no longer relabelled. A second preparation refused89450UTF8bytes before inference. The63000byte host proxy was not a535requirement and is removed before ALL6reviews. Same6reviews/30ktokens/45min and unchanged utility criteria. Exact lossless proposal text references reduce duplicated evidence; no semantic claims/source/acceptance removed. Prior12trials not rerun.",
+  "hashes": {
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "daf6d1ec97a6c20006362d7d713bd3e7495eb16a9b20c77bac4a453c4852131d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "4307cf854a60839a1f433fc8e02b9489fdd5e3d949f6374d3b766935de390319",
+    "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\review_transport.py": "4d857a8e0cbbcf469ba5ea075c3ef91434592c93b130a5c4bb46bfd393403a4c",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\sealed.json": "c4a52daf911962f9177ed3c2755d20ef609d69b79bcd9c85f8cda44de09e39d3",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\crab-1\\input.json": "1a6f71ad48229be3a592d1b1ad50e665e35cfc85a5d60849dc58d323405221cc",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\crab-1\\private-mapping.json": "8aac0d475ab552f372859cc79aca1260fa69e52b3a33728d88604be47a504502",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\crab-2\\input.json": "7b7cf3ea53beb7cee0ba26b060178ad4ddaea02aead6555e4d2ead052d233981",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\crab-2\\private-mapping.json": "d4eb72b5997dc60b525b38e83f0ffa6394af5c3b9f65b970d7e82abf4dee94ab",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\devostasis-1\\input.json": "b4d4682b46285e1d05b0e3e1ca01f838c478357cb3bc68ca2ed224e5c76fddc2",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\devostasis-1\\private-mapping.json": "13ca2067e1a2c9f7413d38c890bf801da623b7c9648324eda03c903d5937c22e",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\devostasis-2\\input.json": "1f9d7e4c5ffe76dcf51c424fbfb0601186085e65f1ab2d401e6edde3a08e8679",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\devostasis-2\\private-mapping.json": "e63fb4c5e231557fbd79bf05efa9215828b6379085352f81c1fb88fe4b6075df",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\beautifulrepo-1\\input.json": "7bc48a8379bef628cb5a9b6dc78e5ade44ea6b2e0c87887d16e48dc86d16631d",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\beautifulrepo-1\\private-mapping.json": "cbb3f552e15e492a08df7efab26e70da5dd6536f4f22a2a23a163c47f7278f60",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\beautifulrepo-2\\input.json": "351463d2a389d5fb8d636de9ca9119e9f6ad4150865765bda1c3a07eb2610235",
+    "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-seeded\\independent-review-v3\\beautifulrepo-2\\private-mapping.json": "92cf4b3f28add3311c2a0ac5c403ecf40b00591504f6c92a40e62fb20f554346"
+  }
+}

@@ -1,0 +1,295 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured seeded-protocol arm",
+  "sealed_at": "2026-11-02T08:43:20.946182+00:00",
+  "candidate": {
+    "commit": "81d94bed47a0d076d6fd99db6c837f97470a6ef2",
+    "source_identity": "442a099298fb780a3907483d2f70d98d6fec8f94f078bd080a97eb508a7fe489",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "81d94bed47a0d076d6fd99db6c837f97470a6ef2",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw; all raw native novel proposals retained in denominator including deterministic refusals. Confirm only actual investigator proposals accepted by both reviews. Dedupe canonical receiving changes across repeats/donors. Designs need concrete source/novelty/original acceptance; runtime needs actual target entry and meaningful failed desired property with passing controls. Utility and legal transfer separate. No root semantic arbitration or reviewer-created findings to boost yield.",
+    "gates": "At least80% novel precision; strictly more confirmed unique changes overall and >=2/3 maws; no lower precision or safety. Unchanged535 thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "shared_setup": "Thirty immutable acquisitions/digest pairs and filename catalogues only; no shared investigation judgments. Pretraining and unrecognized ports unknown.",
+    "receiving_context": "Actual acquired81d94be / selectedDev75 / BeautifulRepo default and all canonical pending heads; per-need scopes and raw files retained.",
+    "known_work": "All prior193 repository identities/180provider IDs, historical findings,561,237/238,562, held conditional-import and generic resource-policy suggestions excluded fresh yield. New Clojure/Swift/style and line-location scopes are additive designs.",
+    "cost": "All native input incl cached and output retained; setup/engineering/root coordination/currency unknown. No whole-project efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "donor_drift": [],
+    "receiving_drift": "Initial41410069400 refused changed canonical BeautifulRepo238 head before inference; partial archive retained.41412251495 captured refreshed7ea7e858 plus workflow-head81d.",
+    "setup_corrections": "Receiving context builder replaced a nonexistent import_cycles consumer search with the actual bundle.sarif exporter and added the Package schema; no new donor judgments or model calls.",
+    "nomination_refinement": "Metadata-only six-need mix before acquisition/inference; no post-outcome pool changes.",
+    "lineage_caveats": [
+      "clojure/tools.deps is a canonical provider fork of clojure/tools.deps.alpha (provider 98198115); neither identity occurs in prior exclusions. Fork/mirror status is disclosed, not extra corroboration.",
+      "technomancy/leiningen describes itself as a temporary Codeberg mirror; this study binds the actual GitHub mirror pin and grants only.",
+      "AlejandroFrias/case-conversion describes a port of Davis Clark CaseConversion. Shared/unknown ports are not extra unique change votes."
+    ],
+    "open_pr_delta": "515/538/550/557 changes integrated preserving authorship.557 now provider-closed; no PR was merged by this task."
+  },
+  "protocol_amendment": "Six distinct actual receiving needs (3/1/2), rather than the prior single-change ceiling per maw. Same source pool size, 12 balanced fresh trials, 6 masked reviews, caps and535 precision/yield/safety thresholds. No quota or reviewer-created yield. Candidate deterministic design seeding replaces a model planning call; semantic utility remains independently captured. Exact context sharing is common host transport, not a baseline CLI feature.",
+  "sealed_sha256": "c4a52daf911962f9177ed3c2755d20ef609d69b79bcd9c85f8cda44de09e39d3",
+  "pool": [
+    {
+      "id": "crab-1",
+      "repository": "withoutboats/heck",
+      "sha": "252c1906cefefb8d13ecad7fce7b8f27ce6437e0",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-2",
+      "repository": "clj-commons/camel-snake-kebab",
+      "sha": "92b1ee45cdac6bad10e0a3b6c0820b22f8dd5cf3",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-3",
+      "repository": "AlejandroFrias/case-conversion",
+      "sha": "14ea3306249b54b35bd2f9cf3f952dae24947625",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-4",
+      "repository": "codemodus/kace",
+      "sha": "e3ecf78ee2a5e58652cb2be34d3159ad9c89acf8",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-5",
+      "repository": "chanced/caps",
+      "sha": "64e02c2f468a3f3569d7b881772fdb4d8303a5da",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-6",
+      "repository": "clojure/tools.deps",
+      "sha": "dec86fcce4787c0a778fee673bf1e9e03b1a304a",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-7",
+      "repository": "technomancy/leiningen",
+      "sha": "d35aef298829ef8191331ed8f9dc3c2d3aef77de",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-8",
+      "repository": "pointfreeco/swift-composable-architecture",
+      "sha": "bb175b544d019c7f23a2e41ae29d8c70592aeb58",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-9",
+      "repository": "SwiftGen/SwiftGen",
+      "sha": "ddb03a73cab2a9feaf870b00ecab0fdda3d451e1",
+      "batch": "crab"
+    },
+    {
+      "id": "crab-10",
+      "repository": "swiftlang/swift-format",
+      "sha": "77e88e4a03c75322d85500248587d3ccd1bd2fcb",
+      "batch": "crab"
+    },
+    {
+      "id": "devostasis-1",
+      "repository": "igraph/igraph",
+      "sha": "fcf4ebb47a83faf27a70be1a624980bede60d031",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-2",
+      "repository": "boostorg/graph",
+      "sha": "84930b0183454c3cfabef67b5f5c566037ed3c8e",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-3",
+      "repository": "TheAlgorithms/C-Plus-Plus",
+      "sha": "fdcc29b0ac2848e9d1a8d926e171cc5b39f97759",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-4",
+      "repository": "dominikbraun/graph",
+      "sha": "b8919a8021b1f0342a473db682040f713ba56454",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-5",
+      "repository": "gonum/gonum",
+      "sha": "70fa4c447520aa9f18cd16a9114548df732dc381",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-6",
+      "repository": "jcoreio/find-cycle",
+      "sha": "31e74978aa39407375d0f5caea502c29b46b75a7",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-7",
+      "repository": "graphp/algorithms",
+      "sha": "269389305c94ad9b72b35a9f798ed70c1f708fc2",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-8",
+      "repository": "JuliaGraphs/Graphs.jl",
+      "sha": "dffc7a640133850569647851b4533a56fc7d40c8",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-9",
+      "repository": "danielrbradley/CycleDetection",
+      "sha": "10cf461b73e51ee387e14db4f7d226f5f5165af1",
+      "batch": "devostasis"
+    },
+    {
+      "id": "devostasis-10",
+      "repository": "marcelklehr/toposort",
+      "sha": "3e3d72d1b48196ab0e87348d142ef23788a5bb67",
+      "batch": "devostasis"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "repository": "Rich-Harris/locate-character",
+      "sha": "08bc0b7674e53239083988c961057fe59f6265e2",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "repository": "vfile/vfile-location",
+      "sha": "8d5d41dca227bc2d6535d3d293b31287d5d7953f",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "repository": "eventualbuddha/lines-and-columns",
+      "sha": "eea2581b131685f2c21de777fd037c8ddd343354",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "repository": "io-monad/line-column",
+      "sha": "a7a2b4cb6ca58f0d36b900c8e60bf9428aa0bb4e",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "repository": "microsoft/vscode-textbuffer",
+      "sha": "7bff2aa029d36d592553e95a4904a73bb614813e",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "repository": "dfego/line-position",
+      "sha": "4b347c4ca8d45f591eac796c7525a9e514b4112c",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "repository": "A4-Tacks/line-column-rs",
+      "sha": "15eb07531740a1c3c56f4c97795ea3fdb49e069c",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "repository": "duereg/find-line-column",
+      "sha": "756b2547cf224714d2928e08afb6be2ba17048a3",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "repository": "Wilfred/line-numbers",
+      "sha": "e903fa0c354b2b056669476a383434414f5f611f",
+      "batch": "beautifulrepo"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "repository": "open-alchemy/json-source-map",
+      "sha": "5c4f44323c0a8d9cd9b9af4348c43f24fb3b892c",
+      "batch": "beautifulrepo"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "81d94bed47a0d076d6fd99db6c837f97470a6ef2",
+      "needs": [
+        {
+          "id": "identifier-style-source-navigation",
+          "verification_mode": "design"
+        },
+        {
+          "id": "literal-clojure-dependency-evidence",
+          "verification_mode": "design"
+        },
+        {
+          "id": "swiftpm-dependency-evidence",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "static-cycle-edge-witness",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "a692491a7a973032d90545bc6f428ba6b77f706f",
+      "needs": [
+        {
+          "id": "indexed-markdown-link-line-mapping",
+          "verification_mode": "design"
+        },
+        {
+          "id": "opt-in-precise-link-locations",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}
