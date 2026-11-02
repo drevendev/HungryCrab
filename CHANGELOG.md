@@ -50,6 +50,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Preserve explicit literal seed anchors and distinguish design implementation reads
+  from explicitly selected data-file inspection. The invoked host can refine
+  metadata nominations in a compact metered planning stage before full verification
+  (#577).
+- Order the bounded implementation-search tree frontier before fixture breadth
+  exhausts its queue; retain all omissions and exact original body literals (#577).
 - Share implementation filename roles with the source host and retain additional
   language paths. Optional implementation-focused seed coverage excludes unrelated
   fixture volume while preserving raw associations, omissions and owner overrides

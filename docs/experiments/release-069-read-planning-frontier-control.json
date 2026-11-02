@@ -1,0 +1,79 @@
+{
+  "kind": "Previously exposed navigation control, not fresh usefulness or acceptance",
+  "product_source_identity": "ca70baf858fa98c9e75fdf5f8caa40701fd87473e1523950ae3d25e39f12d27c",
+  "actual_planning_tokens": 7719,
+  "usage_complete": true,
+  "source_locations": [
+    {
+      "need": "npm-optional-peer-evidence",
+      "repository": "pnpm/pnpm",
+      "terms": [
+        "transformPeerDependenciesMeta",
+        "peerDependenciesMeta",
+        "optional"
+      ],
+      "donor_ranges": [
+        {
+          "path": "pnpm11/lockfile/peer-edges/src/index.ts",
+          "start": 265,
+          "end": 317
+        },
+        {
+          "path": "pnpm/crates/deps-inspection-peers/src/linked.rs",
+          "start": 191,
+          "end": 244
+        },
+        {
+          "path": "pnpm/crates/deps-inspection-peers/src/tests.rs",
+          "start": 454,
+          "end": 513
+        },
+        {
+          "path": "pnpm/crates/deps-inspection-peers/src/tests.rs",
+          "start": 514,
+          "end": 573
+        }
+      ],
+      "actual_content_sha256": [
+        "e85051bf20aebe355eb8cc32b94f99af700b2a612092e49f999fc06ead85cff2",
+        "82d450596ce73507e39f5c9692c5f38cc187e9bc7169e37ef85056f6e3340239",
+        "595c5f992e468111d3245abab86919af76629bb50b1773c9e779bb51b2628925",
+        "ce6a8022bd2f6d57b18841d552388f7b0ffe649f2e6ee692a8cc9b77221fd6f1"
+      ]
+    },
+    {
+      "need": "dotnet-central-version-relations",
+      "repository": "microsoft/MSBuildSdks",
+      "terms": [
+        "PackageVersion",
+        "PackageReference",
+        "VersionOverride",
+        "ManagePackageVersionsCentrally",
+        "CentralPackageVersions"
+      ],
+      "donor_ranges": [
+        {
+          "path": "src/CentralPackageVersions/Sdk/Sdk.props",
+          "start": 4,
+          "end": 25
+        },
+        {
+          "path": "src/CentralPackageVersions/Sdk/Sdk.targets",
+          "start": 5,
+          "end": 58
+        },
+        {
+          "path": "Directory.Packages.props",
+          "start": 1,
+          "end": 48
+        }
+      ],
+      "actual_content_sha256": [
+        "4185663618e6d6b897d0c0197787ec18339d6fe2242dc1898a0f2bf69ab2d8e5",
+        "d2b8eed30afb42868312351ffdaacc87c25ea625db9be881c4f15fdbebaab918",
+        "36d3d9aa482c701efff4c1759a46ee7db81ebd1bc0c2e6b658ef095445345194"
+      ]
+    }
+  ],
+  "limits": "Original find96files,64KiB/file, bounded initialwindows; no donor execution, no utility or legal verdict"
+}

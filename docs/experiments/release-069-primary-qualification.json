@@ -1,0 +1,3440 @@
+{
+  "schema": "hungry-crab.primary-qualification/1",
+  "recorded_at": "2026-11-02T15:22:03.230484+00:00",
+  "status": "FAILED: gain in only one maw and one unavailable independent review with unknown usage; no release readiness.",
+  "candidate": {
+    "commit": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+    "source_identity": "10f8bf9199630ac7d97e4854d04fca45d91409ef964a708dcd673baf105b1dfc",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+  "seal_sha256": "9942216221801adaf41e3cb52b7ccb9b22faf13fa2b9aaf9b926bad9d9a4be79",
+  "review_seal": {
+    "schema": 1,
+    "sealed_at": "2026-11-02T15:04:38.169758+00:00",
+    "protocol": {
+      "reviewers": 6,
+      "model": "gpt-5.6-sol",
+      "effort": "low",
+      "model_tokens": 30000,
+      "seconds": 2700,
+      "transport": "host-validated-json/v1",
+      "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+      "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds."
+    },
+    "model_calls_before_review_seal": 0,
+    "input_projection": "All native observations and actual cited source, original acceptance/case proof and actual per-need selected/default/pending scopes. Exact JSON/proposal text references verify full round trip. Original raw inputs remain retained. No supervisor usefulness judgment; all positive proposals stay in denominator. Same30000actual tokens including cached input+output and2700seconds per fresh review. No byte proxy, semantic source omission, trial rerun or gate change.",
+    "hashes": {
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_review.py": "daf6d1ec97a6c20006362d7d713bd3e7495eb16a9b20c77bac4a453c4852131d",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\qualification_native.py": "4307cf854a60839a1f433fc8e02b9489fdd5e3d949f6374d3b766935de390319",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\review_transport.py": "4d857a8e0cbbcf469ba5ea075c3ef91434592c93b130a5c4bb46bfd393403a4c",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\research_host.py": "30eac37361793bff93f1e4c194c5df5c375cea91b9e72eb474373aec9f08fe0d",
+      "C:\\MyProjects\\Codex\\HungryCrab\\benchmarks\\semantic_json.py": "69c3d443adbd64f4f4e23dd28cf7ff89e6b7735414a0b81150c363923d2333d4",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\sealed.json": "9942216221801adaf41e3cb52b7ccb9b22faf13fa2b9aaf9b926bad9d9a4be79",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\crab-1\\input.json": "717b0e279fb38797e69395632e130c50af08007e28d30555fa98af90db4e0744",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\crab-1\\private-mapping.json": "05c29d09085f8e2122102525bfa119709d8f06c435b23c0ebaa71288c9c5ed8d",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\crab-2\\input.json": "78463433eb17fbb68bf7c59e5ab6471bad5b457f2360c3a3ebebb8abbd650c5e",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\crab-2\\private-mapping.json": "cfecda2319b4be239c5d3c64ad051b25ded48f3a0df46a56dada00a6a97cec93",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\devostasis-1\\input.json": "ac86c62fc981f0e09b842d205bad46a6bfd60fb1fa98e0a8d0170686f7b2e643",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\devostasis-1\\private-mapping.json": "e63fb4c5e231557fbd79bf05efa9215828b6379085352f81c1fb88fe4b6075df",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\devostasis-2\\input.json": "0c89083bd9f30798c6cfe6070d88d6f6b32b9078290c913d76fbf9ba942d17d0",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\devostasis-2\\private-mapping.json": "21cdf2ee96496ec8f1f62af2009b153241003e657808d7876d0dd14a49dd8d6a",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\beautifulrepo-1\\input.json": "94e8dce64179f9f14af840b14fb667bf1d76ec874b5ea536adf12cbc85286084",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\beautifulrepo-1\\private-mapping.json": "394a691ada0e3f3572503d4ce814a4dad257371a85a72b3c1dc210fa1b706e41",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\beautifulrepo-2\\input.json": "75dc08a1406db74f621a4d69dea13229ab9c9c509cf84c23a9b519f50e3b2de5",
+      "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\independent-review-v3\\beautifulrepo-2\\private-mapping.json": "238349783c00e74279602f299d16ac433200b3868033ce0533b52715f4ff022d"
+    }
+  },
+  "pool": [
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "pnpm/pnpm",
+      "sha": "f2655515566f10e3fc4205ad231847855e13894d"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "npm/package-json",
+      "sha": "a7dafdbdee34c96c672862fadde9ae5b594c938e"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "npm/normalize-package-data",
+      "sha": "34c98503c4e828a166aa3bb78a4cb0525af3c8f5"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "NuGet/NuGet.Client",
+      "sha": "aa539166b2ff5abf970ee44281d73c96e3dbaa1a"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "CycloneDX/cyclonedx-dotnet",
+      "sha": "051582cc8939e81a468a3961b51763d6f4ead31f"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "microsoft/component-detection",
+      "sha": "d2b7149e483886f48e041ef243762aba0e05cd60"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "dotnet-outdated/dotnet-outdated",
+      "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "microsoft/MSBuildSdks",
+      "sha": "eeadbd0c1d4fecbd95f5c6d4c8194726998508bc"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "zesterer/ariadne",
+      "sha": "5e62913d34dabf34140ad812448dc8faae5abf15"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "brendanzab/codespan",
+      "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "rust-lang/annotate-snippets-rs",
+      "sha": "fece78576e7c925900be65b059698b3a6c02d5e9"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "zkat/miette",
+      "sha": "e853bbf9bc78bbe0b225995de54a3108d77dcaf8"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "cessen/ropey",
+      "sha": "1992665990964e5eee68a42a1aed2bd7abcfda87"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "alexmojaki/executing",
+      "sha": "5c15c1d03c9e6bc90fb3e5cd5174398d92853784"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "friendly-traceback/friendly-traceback",
+      "sha": "995a95b3bec2592e96b25134d6a58002d021978d"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "Qix-/better-exceptions",
+      "sha": "b928ff9e2c933cdd3b27321c766ce68bfa60826c"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "getsentry/sentry-python",
+      "sha": "7ad4e1a4270b3c79a41b42b0596b7092bcf976d9"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "alexmojaki/stack_data",
+      "sha": "dc2eae9b4b75d1d6c485f7335b819a2a0ac5ca6f"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "3b/3bmd",
+      "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "hraban/cl-markdown",
+      "sha": "3788802199228b49d0e06c3feb80c1c22af05cfc"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "houseabsolute/Markdent",
+      "sha": "80c0a9f831fe3bd1b1514667a10fd4fa07fe461c"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "perlancar/perl-Markdown-Parser-Tiny",
+      "sha": "17b32547e2ee0c7a12a1653e055b9c5cec2f966d"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "tristanjuricek/knockoff",
+      "sha": "93caedec766d9d10b013b18bc664b45f638d0806"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "edadma/markdown",
+      "sha": "217709321c2a596c0ade1c90da2d6d257f2ffbdb"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "bradsharp/Romarkable",
+      "sha": "f4eb406c3db03f693427fa0778706d1ec22e1cab"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "skynetlua/fast-markdown-lua",
+      "sha": "38c3845fd49439e2ebddec294567158195771a0f"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "nerima-lisp/cl-markdown-kit",
+      "sha": "fdb19cf8cda2064e7471654fc9b979c2d7a0fc52"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "masak/simple-markdown-parser",
+      "sha": "c2d977146a8b9e4efc27fb76e945442cd7266d29"
+    }
+  ],
+  "original_nominations": [
+    {
+      "batch": "crab",
+      "id": "crab-1",
+      "repository": "npm/cli",
+      "provider_id": "139910229",
+      "description": "the package manager for JavaScript",
+      "default_branch": "latest",
+      "api_license": "NOASSERTION",
+      "language": "JavaScript",
+      "size": 179931,
+      "fork": false,
+      "archived": false,
+      "sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-2",
+      "repository": "pnpm/pnpm",
+      "provider_id": "50565430",
+      "description": "Fast, disk space efficient package manager",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "Rust",
+      "size": 296652,
+      "fork": false,
+      "archived": false,
+      "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-3",
+      "repository": "yarnpkg/yarn",
+      "provider_id": "49970642",
+      "description": "The 1.x line is frozen - features and bugfixes now happen on https://github.com/yarnpkg/berry",
+      "default_branch": "master",
+      "api_license": "NOASSERTION",
+      "language": "JavaScript",
+      "size": 119774,
+      "fork": false,
+      "archived": false,
+      "parent": null,
+      "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-4",
+      "repository": "npm/package-json",
+      "provider_id": "379075817",
+      "description": "Programmatic API to update package.json",
+      "default_branch": "main",
+      "api_license": "NOASSERTION",
+      "language": "JavaScript",
+      "size": 409,
+      "fork": false,
+      "archived": false,
+      "sha": "a7dafdbdee34c96c672862fadde9ae5b594c938e",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-5",
+      "repository": "npm/normalize-package-data",
+      "provider_id": "9301720",
+      "description": "normalizes package metadata, typically found in package.json file.",
+      "default_branch": "main",
+      "api_license": "NOASSERTION",
+      "language": "JavaScript",
+      "size": 611,
+      "fork": false,
+      "archived": false,
+      "sha": "34c98503c4e828a166aa3bb78a4cb0525af3c8f5",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-6",
+      "repository": "NuGet/NuGet.Client",
+      "provider_id": "19330736",
+      "description": "Client Tools for NuGet - including Visual Studio extensions, command line tools, and msbuild support. (Open issues on https://github.com/nuget/home/issues)",
+      "default_branch": "dev",
+      "api_license": "NOASSERTION",
+      "language": "C#",
+      "size": 99470,
+      "fork": false,
+      "archived": false,
+      "sha": "aa539166b2ff5abf970ee44281d73c96e3dbaa1a",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-7",
+      "repository": "CycloneDX/cyclonedx-dotnet",
+      "provider_id": "151328875",
+      "description": "Creates CycloneDX Software Bill of Materials (SBOM) from .NET Projects",
+      "default_branch": "master",
+      "api_license": "Apache-2.0",
+      "language": "C#",
+      "size": 3545,
+      "fork": false,
+      "archived": false,
+      "sha": "051582cc8939e81a468a3961b51763d6f4ead31f",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-8",
+      "repository": "microsoft/component-detection",
+      "provider_id": "428828424",
+      "description": "Scans your project to determine what components you use",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "C#",
+      "size": 10311,
+      "fork": false,
+      "archived": false,
+      "sha": "d2b7149e483886f48e041ef243762aba0e05cd60",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-9",
+      "repository": "dotnet-outdated/dotnet-outdated",
+      "provider_id": "133814602",
+      "description": "A .NET Core global tool to display and update outdated NuGet packages in a project",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "C#",
+      "size": 1383,
+      "fork": false,
+      "archived": false,
+      "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-10",
+      "repository": "microsoft/MSBuildSdks",
+      "provider_id": "119565463",
+      "description": "MSBuild project SDKs",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "C#",
+      "size": 1295,
+      "fork": false,
+      "archived": false,
+      "sha": "eeadbd0c1d4fecbd95f5c6d4c8194726998508bc",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-1",
+      "repository": "zesterer/ariadne",
+      "provider_id": "385751793",
+      "description": "[Ariadne has moved to Codeberg!] A fancy diagnostics & error reporting crate",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "Rust",
+      "size": 387,
+      "fork": false,
+      "archived": true,
+      "sha": "5e62913d34dabf34140ad812448dc8faae5abf15",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-2",
+      "repository": "brendanzab/codespan",
+      "provider_id": "122145662",
+      "description": "Beautiful diagnostic reporting for text-based programming languages.",
+      "default_branch": "master",
+      "api_license": "Apache-2.0",
+      "language": "Rust",
+      "size": 1191,
+      "fork": false,
+      "archived": false,
+      "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-3",
+      "repository": "rust-lang/annotate-snippets-rs",
+      "provider_id": "124958286",
+      "description": "Library for snippet annotations",
+      "default_branch": "main",
+      "api_license": "Apache-2.0",
+      "language": "Rust",
+      "size": 2354,
+      "fork": false,
+      "archived": false,
+      "sha": "fece78576e7c925900be65b059698b3a6c02d5e9",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-4",
+      "repository": "zkat/miette",
+      "provider_id": "392161911",
+      "description": "Fancy extension for std::error::Error with pretty, detailed diagnostic printing.",
+      "default_branch": "main",
+      "api_license": "Apache-2.0",
+      "language": "Rust",
+      "size": 1871,
+      "fork": false,
+      "archived": false,
+      "sha": "e853bbf9bc78bbe0b225995de54a3108d77dcaf8",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-5",
+      "repository": "cessen/ropey",
+      "provider_id": "113392374",
+      "description": "A utf8 text rope for manipulating and editing large texts.",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Rust",
+      "size": 2802,
+      "fork": false,
+      "archived": false,
+      "sha": "1992665990964e5eee68a42a1aed2bd7abcfda87",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-6",
+      "repository": "alexmojaki/executing",
+      "provider_id": "188540096",
+      "description": "Get information about what a Python frame is currently doing, particularly the AST node being executed",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Python",
+      "size": 2545,
+      "fork": false,
+      "archived": false,
+      "sha": "5c15c1d03c9e6bc90fb3e5cd5174398d92853784",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-7",
+      "repository": "friendly-traceback/friendly-traceback",
+      "provider_id": "380823659",
+      "description": "Friendlier Python tracebacks.",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "Python",
+      "size": 4247,
+      "fork": false,
+      "archived": false,
+      "sha": "995a95b3bec2592e96b25134d6a58002d021978d",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-8",
+      "repository": "Qix-/better-exceptions",
+      "provider_id": "84720080",
+      "description": "Pretty and useful exceptions in Python, automatically.",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Python",
+      "size": 250,
+      "fork": false,
+      "archived": true,
+      "sha": "b928ff9e2c933cdd3b27321c766ce68bfa60826c",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-9",
+      "repository": "getsentry/sentry-python",
+      "provider_id": "137814779",
+      "description": "The official Python SDK for Sentry.io",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Python",
+      "size": 118494,
+      "fork": false,
+      "archived": false,
+      "sha": "7ad4e1a4270b3c79a41b42b0596b7092bcf976d9",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "devostasis",
+      "id": "devostasis-10",
+      "repository": "alexmojaki/stack_data",
+      "provider_id": "204524289",
+      "description": "",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Python",
+      "size": 255,
+      "fork": false,
+      "archived": false,
+      "sha": "dc2eae9b4b75d1d6c485f7335b819a2a0ac5ca6f",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-1",
+      "repository": "3b/3bmd",
+      "provider_id": "1469268",
+      "description": "markdown processor in CL using esrap parser",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Common Lisp",
+      "size": 202,
+      "fork": false,
+      "archived": false,
+      "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-2",
+      "repository": "hraban/cl-markdown",
+      "provider_id": "1156524",
+      "description": "A Common Lisp rewrite of Markdown",
+      "default_branch": "master",
+      "api_license": "MIT",
+      "language": "Common Lisp",
+      "size": 408,
+      "fork": false,
+      "archived": false,
+      "parent": null,
+      "sha": "3788802199228b49d0e06c3feb80c1c22af05cfc",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-3",
+      "repository": "houseabsolute/Markdent",
+      "provider_id": "2296259",
+      "description": "An event-based Markdown parser toolkit",
+      "default_branch": "master",
+      "api_license": "NOASSERTION",
+      "language": "Perl",
+      "size": 1842,
+      "fork": false,
+      "archived": false,
+      "sha": "80c0a9f831fe3bd1b1514667a10fd4fa07fe461c",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-4",
+      "repository": "perlancar/perl-Markdown-Parser-Tiny",
+      "provider_id": "4710665",
+      "description": "",
+      "default_branch": "master",
+      "language": "Perl",
+      "size": 6,
+      "fork": false,
+      "archived": false,
+      "api_license": null,
+      "sha": "17b32547e2ee0c7a12a1653e055b9c5cec2f966d",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-5",
+      "repository": "tristanjuricek/knockoff",
+      "provider_id": "161723",
+      "description": "A Markdown parser + object model in scala",
+      "default_branch": "master",
+      "api_license": "BSD-3-Clause",
+      "language": "Scala",
+      "size": 15433,
+      "fork": false,
+      "archived": false,
+      "sha": "93caedec766d9d10b013b18bc664b45f638d0806",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-6",
+      "repository": "edadma/markdown",
+      "provider_id": "969842750",
+      "description": "A fast, minimal Scala 3 CommonMark Markdown parser — JVM, JS, and Native",
+      "default_branch": "stable",
+      "api_license": "ISC",
+      "language": "Scala",
+      "size": 1251,
+      "fork": false,
+      "archived": false,
+      "sha": "217709321c2a596c0ade1c90da2d6d257f2ffbdb",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-7",
+      "repository": "bradsharp/Romarkable",
+      "provider_id": "330401919",
+      "description": "Fast and lightweight markdown parser designed for Roblox and other Lua applications where HTML may not be applicable.",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "Lua",
+      "size": 28,
+      "fork": false,
+      "archived": false,
+      "sha": "f4eb406c3db03f693427fa0778706d1ec22e1cab",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-8",
+      "repository": "skynetlua/fast-markdown-lua",
+      "provider_id": "198740187",
+      "description": "a quick lua markdown parse",
+      "default_branch": "master",
+      "api_license": "Apache-2.0",
+      "language": "Lua",
+      "size": 12,
+      "fork": false,
+      "archived": false,
+      "sha": "38c3845fd49439e2ebddec294567158195771a0f",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-9",
+      "repository": "nerima-lisp/cl-markdown-kit",
+      "provider_id": "1415108359",
+      "description": "Common Lisp toolkit for parsing and emitting Markdown",
+      "default_branch": "main",
+      "api_license": "MIT",
+      "language": "Common Lisp",
+      "size": 888,
+      "fork": false,
+      "archived": false,
+      "sha": "fdb19cf8cda2064e7471654fc9b979c2d7a0fc52",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    },
+    {
+      "batch": "beautifulrepo",
+      "id": "beautifulrepo-10",
+      "repository": "masak/simple-markdown-parser",
+      "provider_id": "47203540",
+      "description": "Work in progress. A markdown parser in Perl 6 based on commonmark.org",
+      "default_branch": "master",
+      "language": "Perl",
+      "size": 24,
+      "fork": false,
+      "archived": false,
+      "api_license": null,
+      "sha": "c2d977146a8b9e4efc27fb76e945442cd7266d29",
+      "visibility": "public",
+      "overlap": false,
+      "as_of": "2026-11-02T14:30:45.866Z",
+      "setup_exposure": "Repository/ref metadata only; no new nominated source body or investigator/reviewer judgment supplied before seal. API licence labels are not grant evidence."
+    }
+  ],
+  "nomination_holds": [
+    {
+      "batch": "crab",
+      "id": "crab-1",
+      "receipt": {
+        "repository": "npm/cli",
+        "nominated_sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+        "status": "held",
+        "model_trials_started": 0,
+        "sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+        "pin_changed": false,
+        "catch": {
+          "slug": "npm/cli",
+          "url": "https://github.com/npm/cli.git",
+          "repo_dir": "/home/runner/work/_temp/crab-acquisition-fiiu_s2s/volume/qualification-cache/github/npm/cli/repo",
+          "sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+          "default_branch": "latest",
+          "shallow": true,
+          "since": null,
+          "updated": false,
+          "caught_at": "2026-11-02T14:34:26+00:00",
+          "issues_fetched": 0,
+          "wiki": {
+            "status": "disabled",
+            "sha": null
+          },
+          "history_window_applied": null
+        },
+        "provider_id": 139910229,
+        "reason": "ValueError: export byte budget exhausted"
+      },
+      "effect": "Same pre-inference unavailable preparation channel in both arms; retained among30 original nominations, not a source utility or licence verdict. No raised caps, source replacement or model outcome informed treatment."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-3",
+      "receipt": {
+        "repository": "yarnpkg/yarn",
+        "nominated_sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+        "status": "held",
+        "model_trials_started": 0,
+        "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+        "pin_changed": false,
+        "catch": {
+          "slug": "yarnpkg/yarn",
+          "url": "https://github.com/yarnpkg/yarn.git",
+          "repo_dir": "/home/runner/work/_temp/crab-acquisition-fiiu_s2s/volume/qualification-cache/github/yarnpkg/yarn/repo",
+          "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+          "default_branch": "master",
+          "shallow": true,
+          "since": null,
+          "updated": false,
+          "caught_at": "2026-11-02T14:34:51+00:00",
+          "issues_fetched": 0,
+          "wiki": {
+            "status": "disabled",
+            "sha": null
+          },
+          "history_window_applied": null
+        },
+        "provider_id": 49970642,
+        "reason": "ValueError: export byte budget exhausted"
+      },
+      "effect": "Same pre-inference unavailable preparation channel in both arms; retained among30 original nominations, not a source utility or licence verdict. No raised caps, source replacement or model outcome informed treatment."
+    }
+  ],
+  "trials": [
+    {
+      "trial": "crab-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 24071,
+      "usage_complete": true,
+      "seconds": 52.525028467178345,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "npm-optional-peer-evidence",
+          "donor": "crab-2"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "npm-optional-peer-evidence",
+          "donor": "crab-2",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The receiving parser has a scoped metadata-retention gap, but the supplied donor windows do not establish a peerDependenciesMeta mechanism that can support a useful donor-derived adaptation.",
+            "reason": "Missing evidence: the admitted donor windows show package manifests and repository scripts, but none contains peerDependenciesMeta parsing, validation, preservation, or its relation to peerDependencies. Read the donor transform and its focused tests to determine the actual supported boolean handling and treatment of malformed, unsupported, or orphan entries.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "In the complete selected/default/confirmed-pending scope, parse_package_json has identical relevant bytes and emits peer and optional Package rows without retaining peerDependenciesMeta; the pending differences concern Ruby support, not this need. Donor-derived usefulness remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor manifests declare ordinary dependencies, devDependencies, scripts, and fixture dependencies; they contain no peerDependenciesMeta entries or mechanism relating optional peer metadata to peer declarations.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D61980de2c2abb7259f117cfa",
+              "D726d91f64b57d2ae984a3d47",
+              "D9c6dd06e37054b04f9b24706"
+            ],
+            "maw_evidence": [
+              "Re31c96db59a5a3ed066133b2",
+              "R7dd8938a473fddc3f637ef2c"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "pnpm11/releasing/exportable-manifest/src/transform/peerDependenciesMeta.ts",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "pnpm11/releasing/exportable-manifest/test/transformPeerDependenciesMeta.test.ts",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The receiving parser has a scoped metadata-retention gap, but the supplied donor windows do not establish a peerDependenciesMeta mechanism that can support a useful donor-derived adaptation.",
+            "reason": "Missing evidence: the admitted donor windows show package manifests and repository scripts, but none contains peerDependenciesMeta parsing, validation, preservation, or its relation to peerDependencies. Read the donor transform and its focused tests to determine the actual supported boolean handling and treatment of malformed, unsupported, or orphan entries.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "In the complete selected/default/confirmed-pending scope, parse_package_json has identical relevant bytes and emits peer and optional Package rows without retaining peerDependenciesMeta; the pending differences concern Ruby support, not this need. Donor-derived usefulness remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor manifests declare ordinary dependencies, devDependencies, scripts, and fixture dependencies; they contain no peerDependenciesMeta entries or mechanism relating optional peer metadata to peer declarations.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+                "path": ".meta-updater/package.json",
+                "start": 1,
+                "end": 32
+              },
+              {
+                "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+                "path": "package.json",
+                "start": 1,
+                "end": 60
+              },
+              {
+                "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+                "path": "pnpm/crates/cli/tests/fixtures/workspace-sbom-filter-prod/app/package.json",
+                "start": 1,
+                "end": 10
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 83,
+                "end": 121
+              },
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 657,
+                "end": 696
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor",
+                "path": "pnpm11/releasing/exportable-manifest/src/transform/peerDependenciesMeta.ts",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "pnpm11/releasing/exportable-manifest/test/transformPeerDependenciesMeta.test.ts",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D61980de2c2abb7259f117cfa",
+              "side": "donor",
+              "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+              "path": ".meta-updater/package.json",
+              "start": 1,
+              "end": 32,
+              "content_sha256": "ea9c1a1fcedf36a7d64640d2a9d6f2915c219cb320d93b46fed989876ea70dab"
+            },
+            {
+              "id": "D726d91f64b57d2ae984a3d47",
+              "side": "donor",
+              "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+              "path": "package.json",
+              "start": 1,
+              "end": 60,
+              "content_sha256": "616e15e98df5704bf83cfd271f2ae60900c0bb751ecd21dcfbd9a21c0261973e"
+            },
+            {
+              "id": "D9c6dd06e37054b04f9b24706",
+              "side": "donor",
+              "sha": "f2655515566f10e3fc4205ad231847855e13894d",
+              "path": "pnpm/crates/cli/tests/fixtures/workspace-sbom-filter-prod/app/package.json",
+              "start": 1,
+              "end": 10,
+              "content_sha256": "bc559788cd119d2c8068d674ebd1a717b37aca2a7abf3a47bc2699b104df3091"
+            },
+            {
+              "id": "Re31c96db59a5a3ed066133b2",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 83,
+              "end": 121,
+              "content_sha256": "3c7a92d1aeae8ff6dafea2dbd259a2a3cd1305dfdc3e489eb07e4960b84ce7d9"
+            },
+            {
+              "id": "R7dd8938a473fddc3f637ef2c",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 657,
+              "end": 696,
+              "content_sha256": "2225d758147c131b84188fbeeb872e394097565f32bfb5c73064b0d40759982f"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "707351bb47b2a2ecdcfcbb2c07353ac42f026018bd4270eedcdb0e59edb4c460",
+      "native_meter": {
+        "started": 1793630908.6239948,
+        "tokens": 24071,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "49143528e178e5e251a25a3c9d2cd54d9bf95543f80eebc91f1fded84470bed5",
+            "admission_estimate": 17041,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12266,
+            "native_seconds": 13.281
+          },
+          {
+            "name": "assess-0",
+            "signature": "643c5b61e2304f723399ae1c2155d40a46ff732efa56a41d03423df3d25db27d",
+            "admission_estimate": 15457,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11805,
+            "native_seconds": 12.015
+          }
+        ]
+      },
+      "probe_summaries": {
+        "npm-optional-peer-evidence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "dotnet-central-version-relations": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 25261,
+      "usage_complete": true,
+      "seconds": 92.4230318069458,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "npm-optional-peer-evidence",
+          "donor": "crab-5"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "npm-optional-peer-evidence",
+          "donor": "crab-5",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The receiving parser omits peerDependenciesMeta, but the supplied donor evidence still demonstrates no mechanism for retaining, validating, or relating that metadata to peer declarations.",
+            "reason": "Literal searches found no peerDependenciesMeta occurrence in the five searched donor paths. The only citable donor window is package.json project metadata and establishes no relevant behavior. Donor utility therefore remains unresolved; bounded searches for the donor's actual peer-dependency normalization and tests are required.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "R3842fecb11283b9c36ac1829 shows parse_package_json emits peerDependencies and optionalDependencies but does not retain peerDependenciesMeta. The selected and confirmed-pending declaration are byte-identical, and the default declaration is also byte-identical; the supplied differences concern Ruby support, not npm peer metadata. Donor utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor window contains project metadata only. Raw literal searches of lib/fixer.js, lib/normalize.js, test/dependencies.js, test/normalize.js, and test/fixtures/npm.json found no peerDependenciesMeta matches; these negative searches do not establish how the donor handles peer dependencies or unknown metadata.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D5048c68166b8cc5a9a410f68"
+            ],
+            "maw_evidence": [
+              "R3842fecb11283b9c36ac1829",
+              "R08cea4cd40ef646f97321546"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "lib/fixer.js",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/dependencies.js",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/fixtures/npm.json",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The receiving parser omits peerDependenciesMeta, but the supplied donor evidence still demonstrates no mechanism for retaining, validating, or relating that metadata to peer declarations.",
+            "reason": "Literal searches found no peerDependenciesMeta occurrence in the five searched donor paths. The only citable donor window is package.json project metadata and establishes no relevant behavior. Donor utility therefore remains unresolved; bounded searches for the donor's actual peer-dependency normalization and tests are required.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "R3842fecb11283b9c36ac1829 shows parse_package_json emits peerDependencies and optionalDependencies but does not retain peerDependenciesMeta. The selected and confirmed-pending declaration are byte-identical, and the default declaration is also byte-identical; the supplied differences concern Ruby support, not npm peer metadata. Donor utility remains unresolved.",
+            "novelty_resolved": true,
+            "source_behavior": "The cited donor window contains project metadata only. Raw literal searches of lib/fixer.js, lib/normalize.js, test/dependencies.js, test/normalize.js, and test/fixtures/npm.json found no peerDependenciesMeta matches; these negative searches do not establish how the donor handles peer dependencies or unknown metadata.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "34c98503c4e828a166aa3bb78a4cb0525af3c8f5",
+                "path": "package.json",
+                "start": 1,
+                "end": 50
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 83,
+                "end": 121
+              },
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 657,
+                "end": 696
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "lib/fixer.js",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/dependencies.js",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/fixtures/npm.json",
+                "query": "peerDependencies",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D5048c68166b8cc5a9a410f68",
+              "side": "donor",
+              "sha": "34c98503c4e828a166aa3bb78a4cb0525af3c8f5",
+              "path": "package.json",
+              "start": 1,
+              "end": 50,
+              "content_sha256": "55cb00465735a4fd14c4414152e8b321b92e5c88a31276a9d0bf31a5040cd302"
+            },
+            {
+              "id": "R3842fecb11283b9c36ac1829",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 83,
+              "end": 121,
+              "content_sha256": "3c7a92d1aeae8ff6dafea2dbd259a2a3cd1305dfdc3e489eb07e4960b84ce7d9"
+            },
+            {
+              "id": "R08cea4cd40ef646f97321546",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 657,
+              "end": 696,
+              "content_sha256": "2225d758147c131b84188fbeeb872e394097565f32bfb5c73064b0d40759982f"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "5800a2c466bf5359f5dd41da6a9d803b265badfda48e3798687aa47d9dd56d3f",
+      "native_meter": {
+        "started": 1793630911.0449507,
+        "tokens": 25261,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "4df08e7134ca7339700b1789fb3bc59005ca38f35a9048332dc2f3447b5f0644",
+            "admission_estimate": 13422,
+            "attempt": "302522ff7fc0e80b7a43e763c9038b2b9ffb9c3d4ebd6e18da0ef5a813bcb08c",
+            "state": "settled",
+            "actual_tokens": 10098,
+            "native_seconds": 13.954
+          },
+          {
+            "name": "assess-0-continued",
+            "signature": "db04d56dbc04c476b826e8bb1a8ad9bd41b77d6d57c2d16b39cc886ed4790f26",
+            "admission_estimate": 10057,
+            "attempt": "302522ff7fc0e80b7a43e763c9038b2b9ffb9c3d4ebd6e18da0ef5a813bcb08c",
+            "state": "settled",
+            "actual_tokens": 7450,
+            "native_seconds": 8.891
+          },
+          {
+            "name": "assess-0-continued-2",
+            "signature": "77da592459b468403b7ef9be8c72ba8f8ba4a541b60a155ebd9d1831f0a8b54e",
+            "admission_estimate": 10422,
+            "attempt": "302522ff7fc0e80b7a43e763c9038b2b9ffb9c3d4ebd6e18da0ef5a813bcb08c",
+            "state": "settled",
+            "actual_tokens": 7713,
+            "native_seconds": 8.562
+          }
+        ]
+      },
+      "probe_summaries": {
+        "npm-optional-peer-evidence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "dotnet-central-version-relations": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 17578,
+      "usage_complete": true,
+      "seconds": 139.07586002349854,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "optional-source-character-spans",
+          "donor": "devostasis-2"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "optional-source-character-spans",
+          "donor": "devostasis-2",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "An opt-in, explicitly typed source-location projection can add precise function and finding spans while preserving canonical evidence, IDs, scores, line fields, and legacy exports.",
+            "reason": "The receiving analyzer retains decoded source and AST line ranges but emits only line endpoints for functions, findings, and SARIF regions. The donor demonstrates the relevant mechanism: project each endpoint of a byte span independently into a declared external coordinate system, including variable-width UTF-16 character accounting. This supports an additive receiving design without asserting a runtime defect.",
+            "adaptation": "Add an opt-in receiving-specific location projection derived from admitted source bytes, the detected decoding, and AST endpoint metadata. Keep canonical line fields and finding IDs unchanged. Represent coordinate kind and end convention explicitly; preserve AST UTF-8 byte-column evidence where available, project start and exclusive end independently to the selected character unit, and retain original-file byte offsets only when the decoded-to-original mapping is determinable. Mark unavailable endpoints unknown rather than fabricating them. Populate opt-in SARIF columns only after converting to SARIF's declared coordinate convention; default bundles and SARIF remain byte-for-byte behaviorally unchanged.",
+            "maintenance": "Centralize endpoint projection and coordinate metadata so function records, findings, and opt-in exporters share one conversion contract. Document one-based lines, the chosen column base/unit, exclusive-end semantics, handling of encoding markers and newline forms, and explicit unknown values. Keep the feature disabled by default and avoid new parsing, execution, rendering, authority, scoring, or health semantics.",
+            "acceptance": "Original receiving-only design cases establish that: (1) without the option, analysis and SARIF retain their existing shapes and values; (2) enabling projection does not change canonical IDs, line/end_line, scores, evidence, ordering, coverage, or policy/resource outcomes; (3) ASCII, non-ASCII BMP, supplementary Unicode, CRLF, and multiline functions/findings produce independently projected start and exclusive-end coordinates in the declared unit; (4) AST UTF-8 byte columns are not mislabeled as character columns; (5) original-file byte offsets are retained when mapping is available and otherwise are explicitly unknown; (6) missing AST endpoints, including synthetic whole-file findings, do not receive invented columns; and (7) opt-in SARIF emits startColumn/endColumn only after correct conversion while legacy SARIF remains unchanged.",
+            "novelty": "Within the explicit selected/default/confirmed-pending scope, evaluate and sarif contain no character-span projection: selected and several confirmed pending heads have identical declarations, older heads lack the subsystem, and the only supplied differing pending declaration changes history-proof/engine behavior rather than locations. Issue 76 is merely open and does not establish an implementation. Unrelated repository history remains unknown but is not needed for this scoped design finding.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor converts a byte-span range by converting its start and end byte indices separately into LSP positions. Its reverse conversion scans Unicode scalar values and advances the external character offset by each scalar's UTF-16 width, accepting the position after the final character and rejecting an out-of-range position.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D17bddcd3b46c06f6686fad67"
+            ],
+            "maw_evidence": [
+              "R48f41da4bf5b30a3e2d74838",
+              "R3d7fb3ad3a30ba4e68f106ae",
+              "R0a3648126c0fdef46a70777a"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "An opt-in, explicitly typed source-location projection can add precise function and finding spans while preserving canonical evidence, IDs, scores, line fields, and legacy exports.",
+            "reason": "The receiving analyzer retains decoded source and AST line ranges but emits only line endpoints for functions, findings, and SARIF regions. The donor demonstrates the relevant mechanism: project each endpoint of a byte span independently into a declared external coordinate system, including variable-width UTF-16 character accounting. This supports an additive receiving design without asserting a runtime defect.",
+            "adaptation": "Add an opt-in receiving-specific location projection derived from admitted source bytes, the detected decoding, and AST endpoint metadata. Keep canonical line fields and finding IDs unchanged. Represent coordinate kind and end convention explicitly; preserve AST UTF-8 byte-column evidence where available, project start and exclusive end independently to the selected character unit, and retain original-file byte offsets only when the decoded-to-original mapping is determinable. Mark unavailable endpoints unknown rather than fabricating them. Populate opt-in SARIF columns only after converting to SARIF's declared coordinate convention; default bundles and SARIF remain byte-for-byte behaviorally unchanged.",
+            "maintenance": "Centralize endpoint projection and coordinate metadata so function records, findings, and opt-in exporters share one conversion contract. Document one-based lines, the chosen column base/unit, exclusive-end semantics, handling of encoding markers and newline forms, and explicit unknown values. Keep the feature disabled by default and avoid new parsing, execution, rendering, authority, scoring, or health semantics.",
+            "acceptance": "Original receiving-only design cases establish that: (1) without the option, analysis and SARIF retain their existing shapes and values; (2) enabling projection does not change canonical IDs, line/end_line, scores, evidence, ordering, coverage, or policy/resource outcomes; (3) ASCII, non-ASCII BMP, supplementary Unicode, CRLF, and multiline functions/findings produce independently projected start and exclusive-end coordinates in the declared unit; (4) AST UTF-8 byte columns are not mislabeled as character columns; (5) original-file byte offsets are retained when mapping is available and otherwise are explicitly unknown; (6) missing AST endpoints, including synthetic whole-file findings, do not receive invented columns; and (7) opt-in SARIF emits startColumn/endColumn only after correct conversion while legacy SARIF remains unchanged.",
+            "novelty": "Within the explicit selected/default/confirmed-pending scope, evaluate and sarif contain no character-span projection: selected and several confirmed pending heads have identical declarations, older heads lack the subsystem, and the only supplied differing pending declaration changes history-proof/engine behavior rather than locations. Issue 76 is merely open and does not establish an implementation. Unrelated repository history remains unknown but is not needed for this scoped design finding.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor converts a byte-span range by converting its start and end byte indices separately into LSP positions. Its reverse conversion scans Unicode scalar values and advances the external character offset by each scalar's UTF-16 width, accepting the position after the final character and rejecting an out-of-range position.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8",
+                "path": "codespan-lsp/src/lib.rs",
+                "start": 61,
+                "end": 114
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/engine.py",
+                "start": 119,
+                "end": 153
+              },
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/engine.py",
+                "start": 154,
+                "end": 201
+              },
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/bundle.py",
+                "start": 148,
+                "end": 159
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: source paths have differing or unresolved applicable licences\ncrab: hint: differing or unresolved nested grant: codespan-lsp/LICENSE\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\trials\\devostasis-candidate-1\\acceptance-0.md",
+              "sha256": "f9d5d4d1545097e4adb0bbd5508ac9cd5ae483343bb5c857521ee196ca81a8fd",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\maws\\Devostasis",
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "b5095209ec73bd03f2570743fd1b6b6c4fda80b14192f3b9e4d8b6b5c275f296",
+                "ledger": "569f29a8bd41d24f2207035b7c7a9ecd438f67c2a796ba2f72a57fd5a564dabf",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving-only design cases establish that: (1) without the option, analysis and SARIF retain their existing shapes and values; (2) enabling projection does not change canonical IDs, line/end_line, scores, evidence, ordering, coverage, or policy/resource outcomes; (3) ASCII, non-ASCII BMP, supplementary Unicode, CRLF, and multiline functions/findings produce independently projected start and exclusive-end coordinates in the declared unit; (4) AST UTF-8 byte columns are not mislabeled as character columns; (5) original-file byte offsets are retained when mapping is available and otherwise are explicitly unknown; (6) missing AST endpoints, including synthetic whole-file findings, do not receive invented columns; and (7) opt-in SARIF emits startColumn/endColumn only after correct conversion while legacy SARIF remains unchanged."
+              ],
+              "assessment": "Add an opt-in receiving-specific location projection derived from admitted source bytes, the detected decoding, and AST endpoint metadata. Keep canonical line fields and finding IDs unchanged. Represent coordinate kind and end convention explicitly; preserve AST UTF-8 byte-column evidence where available, project start and exclusive end independently to the selected character unit, and retain original-file byte offsets only when the decoded-to-original mapping is determinable. Mark unavailable endpoints unknown rather than fabricating them. Populate opt-in SARIF columns only after converting to SARIF's declared coordinate convention; default bundles and SARIF remain byte-for-byte behaviorally unchanged.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D17bddcd3b46c06f6686fad67",
+              "side": "donor",
+              "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8",
+              "path": "codespan-lsp/src/lib.rs",
+              "start": 61,
+              "end": 114,
+              "content_sha256": "3a938be24096258485ccd07c7a44ce5ec7358ebf4d10bde5a83bb06d585408d4"
+            },
+            {
+              "id": "R48f41da4bf5b30a3e2d74838",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "start": 119,
+              "end": 153,
+              "content_sha256": "420dd1a1dfb544b0dfdde184bf373bee7828a72e3354360faea77576705f1773"
+            },
+            {
+              "id": "R3d7fb3ad3a30ba4e68f106ae",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "start": 154,
+              "end": 201,
+              "content_sha256": "fb078b616e507adf6c128dc4a7ba41031b911e2327b8b29ede0d59ea6833d81e"
+            },
+            {
+              "id": "R0a3648126c0fdef46a70777a",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/bundle.py",
+              "start": 148,
+              "end": 159,
+              "content_sha256": "c376483e98edf329a83f4cb0663b3d9baf90e125fe9b14c5af5a2c9f1d651969"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "26cf294529939b33bb01ce89e27f7c6974c296e8e1c9e3bba5050b96fb2a95b1",
+      "native_meter": {
+        "started": 1793631003.5595353,
+        "tokens": 17578,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "c5ba78ac08ddf906b49a174a1555b18abf6a5ab8209302c255daebf783740e53",
+            "admission_estimate": 22567,
+            "attempt": "228759c783c007777329e0f1d24bdc571647a26624aec5455306f203c555e54f",
+            "state": "settled",
+            "actual_tokens": 17578,
+            "native_seconds": 24.125
+          }
+        ]
+      },
+      "probe_summaries": {
+        "optional-source-character-spans": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 11151,
+      "usage_complete": true,
+      "seconds": 18.797627449035645,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "d04c5ae5045ffe1f151f7543428c9ddec36c0717846366b0f2f4e99791140863",
+      "native_meter": {
+        "started": 1793631001.8883524,
+        "tokens": 11151,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "30a36ff770a71066b6dff7a3db7b6304d83799c0e690e19826ec596cdd8d05c8",
+            "admission_estimate": 15767,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11151,
+            "native_seconds": 10.265
+          }
+        ]
+      },
+      "probe_summaries": {
+        "optional-source-character-spans": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 12369,
+      "usage_complete": true,
+      "seconds": 50.70794939994812,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "ff57f3246544ab96dec96cbb7e7672e8f90a5b852cab504111eee6b5d2f726f9",
+      "native_meter": {
+        "started": 1793631141.7616074,
+        "tokens": 12369,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "6d3cff19c5cbe36a2523e9f90bf3c1f094b373f8e332b8b754967751152fa6db",
+            "admission_estimate": 16791,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12369,
+            "native_seconds": 14.484
+          }
+        ]
+      },
+      "probe_summaries": {
+        "balanced-reference-link-text": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "inline-link-nesting-precedence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-1",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 25862,
+      "usage_complete": true,
+      "seconds": 194.30394458770752,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "balanced-reference-link-text",
+          "donor": "beautifulrepo-1"
+        },
+        {
+          "need": "inline-link-nesting-precedence",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "balanced-reference-link-text",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The supplied donor windows do not establish a parser mechanism for balanced nested brackets in reference-use display text.",
+            "reason": "The image tests cover only flat reference labels, the emphasis test establishes nesting only for emphasis, and the printer recursively emits an already-built reference-link label but does not show how reference uses are recognized. The receiving code still uses a flat REFERENCE_USE_RE, but that predeclared limitation cannot substitute for a concrete donor mechanism or prove an additional missed destination. Inspect the donor's reference-link parser and its directly associated tests before proposing an adaptation.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Selected receiving code and confirmed pending declarations were compared, but useful mechanism novelty is unresolved because no supplied donor window shows balanced reference-use recognition.",
+            "novelty_resolved": false,
+            "source_behavior": "The cited donor printer emits a reference-link by iterating the existing label elements between '[' and ']', then iterating definition elements between the following brackets; the cited image cases exercise only flat labels. No cited donor code parses balanced nested brackets in reference-use text.",
+            "source_relation": "none",
+            "source_evidence": [
+              "D56eff8e459e5bd5983ada5fb",
+              "D60d70e2b2d5d92535e779102"
+            ],
+            "maw_evidence": [
+              "R4383cb5f843245aeea175fcc",
+              "R9d87df34c8bcb1bc27a2ff88"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "parser.lisp",
+                "query": "reference-link",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "tests/grammar/inlines/link.lisp",
+                "query": "reference-link",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The supplied donor windows do not establish a parser mechanism for balanced nested brackets in reference-use display text.",
+            "reason": "The image tests cover only flat reference labels, the emphasis test establishes nesting only for emphasis, and the printer recursively emits an already-built reference-link label but does not show how reference uses are recognized. The receiving code still uses a flat REFERENCE_USE_RE, but that predeclared limitation cannot substitute for a concrete donor mechanism or prove an additional missed destination. Inspect the donor's reference-link parser and its directly associated tests before proposing an adaptation.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Selected receiving code and confirmed pending declarations were compared, but useful mechanism novelty is unresolved because no supplied donor window shows balanced reference-use recognition.",
+            "novelty_resolved": false,
+            "source_behavior": "The cited donor printer emits a reference-link by iterating the existing label elements between '[' and ']', then iterating definition elements between the following brackets; the cited image cases exercise only flat labels. No cited donor code parses balanced nested brackets in reference-use text.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "tests/grammar/inlines/image.lisp",
+                "start": 54,
+                "end": 107
+              },
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "markdown-printer.lisp",
+                "start": 131,
+                "end": 184
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 991,
+                "end": 1016
+              },
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 931,
+                "end": 940
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "parser.lisp",
+                "query": "reference-link",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "tests/grammar/inlines/link.lisp",
+                "query": "reference-link",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D56eff8e459e5bd5983ada5fb",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "tests/grammar/inlines/image.lisp",
+              "start": 54,
+              "end": 107,
+              "content_sha256": "b53ae319f98a5277672f38b3cf1590e3ba0f24776396e2492f0b5b7345a0dfc0"
+            },
+            {
+              "id": "D60d70e2b2d5d92535e779102",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "markdown-printer.lisp",
+              "start": 131,
+              "end": 184,
+              "content_sha256": "ffa3a9a2d6d32e6e491e0cb9ccb81889f9df3863d544fdf041255b3db8b34efe"
+            },
+            {
+              "id": "R4383cb5f843245aeea175fcc",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 991,
+              "end": 1016,
+              "content_sha256": "6a841a927e973538c01cd763e97c856566dd44f47f0f2fc5ad6d714fa25bec74"
+            },
+            {
+              "id": "R9d87df34c8bcb1bc27a2ff88",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 931,
+              "end": 940,
+              "content_sha256": "2183c05339496fb890097c6ecb4faec9681c847ed581fcedb6e1f9a3853eb7e1"
+            }
+          ]
+        },
+        {
+          "need": "inline-link-nesting-precedence",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor does not provide a mechanism for resolving nested standard inline-link precedence or distinguishing images from enclosing links.",
+            "reason": "The cited donor only registers a separate [[...]] wiki-link grammar after emphasis and demonstrates that extension syntax plus an apostrophe-quoted form. It supplies no successful-inner-link state, failed-inner fallback, standard inline-link nesting rule, or image-in-link distinction. Its rule-ordering hook is therefore superficially related but does not support the receiving need.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "No donor-derived adaptation exists to assess for scoped novelty. The selected/default receiving implementation independently pairs every unescaped bracket opener, while the confirmed pending declaration delegates to an unread candidate helper; that pending uncertainty does not make the cited donor useful.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor defines a distinct wiki-link inline extension recognizing [[foo|bar]], registers it after the emphasis grammar, and tests both ordinary parsing and an apostrophe-prefixed quoted form that remains literal.",
+            "source_relation": "none",
+            "source_evidence": [
+              "Dd2326ea134e03938cf970ec4",
+              "D7a6d5b5d47f6784780e31d50",
+              "D47756c78d9473efa1b28d58d"
+            ],
+            "maw_evidence": [
+              "R7868165cdba4502fd6a2e20e",
+              "R4acffd350780d026109b23e3",
+              "R5d5191eff39dee664d14fc08"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "not-useful",
+            "hypothesis": "The donor does not provide a mechanism for resolving nested standard inline-link precedence or distinguishing images from enclosing links.",
+            "reason": "The cited donor only registers a separate [[...]] wiki-link grammar after emphasis and demonstrates that extension syntax plus an apostrophe-quoted form. It supplies no successful-inner-link state, failed-inner fallback, standard inline-link nesting rule, or image-in-link distinction. Its rule-ordering hook is therefore superficially related but does not support the receiving need.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "No donor-derived adaptation exists to assess for scoped novelty. The selected/default receiving implementation independently pairs every unescaped bracket opener, while the confirmed pending declaration delegates to an unread candidate helper; that pending uncertainty does not make the cited donor useful.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor defines a distinct wiki-link inline extension recognizing [[foo|bar]], registers it after the emphasis grammar, and tests both ordinary parsing and an apostrophe-prefixed quoted form that remains literal.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "wiki-links.lisp",
+                "start": 39,
+                "end": 90
+              },
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "extensions.lisp",
+                "start": 1,
+                "end": 52
+              },
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "tests/extensions/wiki-links.lisp",
+                "start": 1,
+                "end": 17
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 205,
+                "end": 233
+              },
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 271,
+                "end": 325
+              },
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 1019,
+                "end": 1047
+              }
+            ],
+            "evidence_level": "source-supported",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "R5d5191eff39dee664d14fc08",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 1019,
+              "end": 1047,
+              "content_sha256": "de986b1c3a88549e0ff1d82acd4d8bb541481acd0bad0f2e0f6f71ff1118114d"
+            },
+            {
+              "id": "Dd2326ea134e03938cf970ec4",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "wiki-links.lisp",
+              "start": 39,
+              "end": 90,
+              "content_sha256": "9430a935367c122df22b508695e6438acf0f31db672ea9a5f3c9d3448a3fe5ee"
+            },
+            {
+              "id": "D7a6d5b5d47f6784780e31d50",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "extensions.lisp",
+              "start": 1,
+              "end": 52,
+              "content_sha256": "73c281227efcd3601df08b4a7601bc5dbfd2c97375b5fe1b0486649c4713c5ff"
+            },
+            {
+              "id": "D47756c78d9473efa1b28d58d",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "tests/extensions/wiki-links.lisp",
+              "start": 1,
+              "end": 17,
+              "content_sha256": "b3921a282278857d7b45dea9ef1f25e8cd232a6210ff85b8cdd83ceb7ab726f7"
+            },
+            {
+              "id": "R7868165cdba4502fd6a2e20e",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 205,
+              "end": 233,
+              "content_sha256": "ba6d6c1c4489de846caebb1ec11aa64c2c736c94a59209538b574ecdf28cd122"
+            },
+            {
+              "id": "R4acffd350780d026109b23e3",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 271,
+              "end": 325,
+              "content_sha256": "8d893ceb733426fcd003898d29f2adb027363ab6817a77e34761839d85a7599c"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "aa69fed17a41c8f07e501017463e8d73ab9986998d27aba3b028f3c533e56ba8",
+      "native_meter": {
+        "started": 1793631144.1107397,
+        "tokens": 25862,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "4c8c2cfc92660ed9a2dac4d2380154c27dfe7a424203360002222d0be5939770",
+            "admission_estimate": 17327,
+            "attempt": "86dab354c2589dc7a68ba9c46cef5eec4c0ca672864a919592791de8c5f720e3",
+            "state": "settled",
+            "actual_tokens": 13179,
+            "native_seconds": 15.609
+          },
+          {
+            "name": "assess-1",
+            "signature": "4890a3395a81ea2cb07157dd943d87a6eb2c3b8ee01d9041842aaf98d1a42b4d",
+            "admission_estimate": 16713,
+            "attempt": "3dd75ccb27ad9363fae652c5cbee38733707fc888287836cdb3bef07a2eed74f",
+            "state": "settled",
+            "actual_tokens": 12683,
+            "native_seconds": 19.328
+          }
+        ]
+      },
+      "probe_summaries": {
+        "balanced-reference-link-text": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "inline-link-nesting-precedence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 21648,
+      "usage_complete": true,
+      "seconds": 138.67077016830444,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "dotnet-central-version-relations",
+          "donor": "crab-9"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "dotnet-central-version-relations",
+          "donor": "crab-9",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The receiving implementation has a scoped design gap for a bounded project-to-central-package declaration relation, while the donor now demonstrates useful project-path-based central-file behavior but not yet the concrete association mechanism needed for adaptation.",
+            "reason": "The new donor evidence shows an unversioned Newtonsoft.Json PackageReference in a project and a test in which AddPackage receives a project path, updates Newtonsoft.Json in Directory.Packages.props, preserves Serilog, and does not invoke dotnet. However, the test's project content is empty and is separate from the supplied PackageReference fixture, while the service search found no ManagePackageVersionsCentrally literal. Thus the evidence does not establish how the donor discovers the central file, associates a PackageReference with a PackageVersion, handles multiple or unavailable roots, or preserves Version versus VersionOverride distinctions. Bounded searches for the concrete central-file and PackageVersion mechanisms are required.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the explicit selected/default/confirmed-pending scope, parse_msbuild is byte-identical and emits independent runtime and central Package rows, while DepsMiner serializes packages and manifests without a project-to-central relation. This establishes a scoped receiving gap but not donor utility.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor project fixture contains an unversioned Newtonsoft.Json PackageReference. Separately, the donor test constructs Directory.Packages.props with literal Newtonsoft.Json and Serilog PackageVersion entries, calls AddPackage using a project path and noRestore=true, verifies success and no dotnet invocation, verifies Newtonsoft.Json changes from 12.0.3 to 13.0.1, and verifies Serilog remains 2.10.0. The supplied ranges do not reveal the service mechanism or prove PackageReference-to-PackageVersion relation construction.",
+            "source_relation": "none",
+            "source_evidence": [
+              "Da605c586101d729e5e91189e",
+              "D77d11adc45fd55da4a16fe1d"
+            ],
+            "maw_evidence": [
+              "R9d35dd647bbd58f058910977",
+              "R104f80d78f5afed7394e8b9d"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "src/DotNetOutdated.Core/Services/DotNetPackageService.cs",
+                "query": "Directory.Packages.props",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "src/DotNetOutdated.Core/Services/DotNetPackageService.cs",
+                "query": "PackageVersion",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/DotNetOutdated.Tests/DotNetPackageServiceTests.cs",
+                "query": "Directory.Packages.props",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The receiving implementation has a scoped design gap for a bounded project-to-central-package declaration relation, while the donor now demonstrates useful project-path-based central-file behavior but not yet the concrete association mechanism needed for adaptation.",
+            "reason": "The new donor evidence shows an unversioned Newtonsoft.Json PackageReference in a project and a test in which AddPackage receives a project path, updates Newtonsoft.Json in Directory.Packages.props, preserves Serilog, and does not invoke dotnet. However, the test's project content is empty and is separate from the supplied PackageReference fixture, while the service search found no ManagePackageVersionsCentrally literal. Thus the evidence does not establish how the donor discovers the central file, associates a PackageReference with a PackageVersion, handles multiple or unavailable roots, or preserves Version versus VersionOverride distinctions. Bounded searches for the concrete central-file and PackageVersion mechanisms are required.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "Within the explicit selected/default/confirmed-pending scope, parse_msbuild is byte-identical and emits independent runtime and central Package rows, while DepsMiner serializes packages and manifests without a project-to-central relation. This establishes a scoped receiving gap but not donor utility.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor project fixture contains an unversioned Newtonsoft.Json PackageReference. Separately, the donor test constructs Directory.Packages.props with literal Newtonsoft.Json and Serilog PackageVersion entries, calls AddPackage using a project path and noRestore=true, verifies success and no dotnet invocation, verifies Newtonsoft.Json changes from 12.0.3 to 13.0.1, and verifies Serilog remains 2.10.0. The supplied ranges do not reveal the service mechanism or prove PackageReference-to-PackageVersion relation construction.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb",
+                "path": "test-projects/central-package-management/central-package-management.csproj",
+                "start": 1,
+                "end": 8
+              },
+              {
+                "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb",
+                "path": "test/DotNetOutdated.Tests/DotNetPackageServiceTests.cs",
+                "start": 18,
+                "end": 71
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 213,
+                "end": 263
+              },
+              {
+                "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+                "path": "src/hungry_crab/miners/deps.py",
+                "start": 652,
+                "end": 696
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "donor-search",
+                "path": "src/DotNetOutdated.Core/Services/DotNetPackageService.cs",
+                "query": "Directory.Packages.props",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "src/DotNetOutdated.Core/Services/DotNetPackageService.cs",
+                "query": "PackageVersion",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              },
+              {
+                "side": "donor-search",
+                "path": "test/DotNetOutdated.Tests/DotNetPackageServiceTests.cs",
+                "query": "Directory.Packages.props",
+                "start": 1,
+                "end": 1,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "R9d35dd647bbd58f058910977",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 213,
+              "end": 263,
+              "content_sha256": "31353f9d881d30e034666f85796bfec7f64589adb25449f20b3f8d6754647e8e"
+            },
+            {
+              "id": "R104f80d78f5afed7394e8b9d",
+              "side": "receiving",
+              "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+              "path": "src/hungry_crab/miners/deps.py",
+              "start": 652,
+              "end": 696,
+              "content_sha256": "417e9677e11e9bfe729722da0fdc03aedd64ced01884ca01d3f2aa9ffbe228d2"
+            },
+            {
+              "id": "Da605c586101d729e5e91189e",
+              "side": "donor",
+              "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb",
+              "path": "test-projects/central-package-management/central-package-management.csproj",
+              "start": 1,
+              "end": 8,
+              "content_sha256": "87e6a2e6b1b68f36fec37945f9749eebe6f9d768a50797b6f0feec9fa0851cf2"
+            },
+            {
+              "id": "D77d11adc45fd55da4a16fe1d",
+              "side": "donor",
+              "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb",
+              "path": "test/DotNetOutdated.Tests/DotNetPackageServiceTests.cs",
+              "start": 18,
+              "end": 71,
+              "content_sha256": "11eed21f2de62d61d083f508c4fc2d19ecb03573266d071a0ef99bdf119c4561"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "a795094a74a8ed87af90435694719fa8d0a680770f09cfa3f03a67c0caed15eb",
+      "native_meter": {
+        "started": 1793631339.2684014,
+        "tokens": 21648,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "798e0f90db7890c8232b5bc191249eb47048b49cd9659d191120286c1fa8b3d6",
+            "admission_estimate": 15255,
+            "attempt": "82516cb968498b3078cd587cf72f5c9257e539f98c5f88cc7ba591da15b2bfef",
+            "state": "settled",
+            "actual_tokens": 11839,
+            "native_seconds": 22.719
+          },
+          {
+            "name": "assess-0-continued",
+            "signature": "d1f573e5dfdff99440f34eb79d24598b066057b20cb8d92ebd4f3ca813079b1c",
+            "admission_estimate": 12686,
+            "attempt": "82516cb968498b3078cd587cf72f5c9257e539f98c5f88cc7ba591da15b2bfef",
+            "state": "settled",
+            "actual_tokens": 9809,
+            "native_seconds": 14.75
+          }
+        ]
+      },
+      "probe_summaries": {
+        "dotnet-central-version-relations": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "npm-optional-peer-evidence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "crab-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 12630,
+      "usage_complete": true,
+      "seconds": 29.6581130027771,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "349da052a7c7541556514d1a0e95a80281d2937b9405051b7fedfeeb7d8ee48e",
+      "native_meter": {
+        "started": 1793631336.981426,
+        "tokens": 12630,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "7eca72fd78a566fb9c7d93b6e7a4616c9561966204c2fc19b0ee55e5fa226516",
+            "admission_estimate": 17041,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12630,
+            "native_seconds": 18.047
+          }
+        ]
+      },
+      "probe_summaries": {
+        "dotnet-central-version-relations": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "npm-optional-peer-evidence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 11096,
+      "usage_complete": true,
+      "seconds": 19.97198224067688,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "860c34266cdbda88b00528c8099578d707f72a524e2b1cdedec75dd086dcb29f",
+      "native_meter": {
+        "started": 1793631476.6619282,
+        "tokens": 11096,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "30a36ff770a71066b6dff7a3db7b6304d83799c0e690e19826ec596cdd8d05c8",
+            "admission_estimate": 15767,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 11096,
+            "native_seconds": 8.031
+          }
+        ]
+      },
+      "probe_summaries": {
+        "optional-source-character-spans": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "devostasis-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 17738,
+      "usage_complete": true,
+      "seconds": 153.36290574073792,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "optional-source-character-spans",
+          "donor": "devostasis-2"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "optional-source-character-spans",
+          "donor": "devostasis-2",
+          "native_decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "An opt-in, explicitly typed projection from retained Python AST byte offsets to exporter-specific character coordinates would let consumers locate analyzed functions and findings precisely without altering canonical evidence or legacy output.",
+            "reason": "The receiving evaluator currently emits only one-based line/end_line values for functions and findings, and SARIF exports only startLine/endLine. The donor demonstrates the relevant mechanism: preserve byte-based source evidence and convert each half-open endpoint at an output boundary using an explicitly defined character unit. Adapting that mechanism would improve editor and SARIF precision while preserving IDs, scores, existing line fields, and default bundles.",
+            "adaptation": "Add an opt-in location projection for AST-backed functions and findings. Retain available original zero-based UTF-8 byte columns and expose a separately typed projected span whose lines remain one-based and whose columns have a declared unit and half-open end convention. Compute projections from the already decoded source, treating CRLF consistently and returning unknown endpoints rather than fabricated columns when no AST endpoint exists. Keep legacy analysis and SARIF unchanged by default; when SARIF columns are requested, convert the internal coordinate kind to SARIF's required one-based column representation rather than relabeling incompatible units.",
+            "maintenance": "Centralize byte-to-character conversion and coordinate metadata instead of duplicating exporter arithmetic. Keep projection opt-in and dependency-light, bound conversion work to admitted source and existing resource limits, preserve byte evidence for diagnostics, and require each future exporter to declare or convert its coordinate kind explicitly.",
+            "acceptance": "Original receiving-specific cases establish that: (1) default analysis and SARIF are byte-for-byte unchanged and canonical finding IDs, scores, line/end_line values, legacy bundles, safety guards, and policy results remain unchanged; (2) opted-in ASCII function and finding spans report the expected one-based lines and declared character columns with a half-open end; (3) non-ASCII text before and within a multiline node is projected from retained UTF-8 byte offsets without splitting a code point; (4) CRLF input maps endpoints to the correct logical lines and excludes line terminators consistently; (5) multiline definitions have independently projected start and end endpoints; (6) findings without usable AST endpoints retain their existing line range and report unknown byte/character endpoints; (7) opted-in SARIF emits valid one-based startColumn/endColumn values after an explicit conversion from the internal coordinate kind; and (8) repeated projection is deterministic and remains subject to existing admission and resource limits.",
+            "novelty": "Within the declared complete implementation scope, selected evaluate records only line/end_line for functions and findings, while selected sarif emits only startLine/endLine. The selected declarations are identical across the confirmed PR-81, PR-75, PR-88, PR-89, and PR-90 heads; older default and pending heads lack these files, and the differing PR-95 declarations concern history-proof accounting and engine version selection rather than source-character spans. Thus no equivalent implementation is present in the supplied selected/default/confirmed-pending scope; unrelated global history remains unknown but is not needed for this scoped conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor converts a byte span to an LSP range by projecting its start and end byte indexes independently. Its shown byte-index path derives a byte column relative to the containing line, while the reverse conversion walks Unicode scalar values, accumulates UTF-16 code-unit widths, returns the corresponding byte offset only at a character boundary, handles the position after the last character, and rejects an oversized character position.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              "D17bddcd3b46c06f6686fad67"
+            ],
+            "maw_evidence": [
+              "R48f41da4bf5b30a3e2d74838",
+              "R3d7fb3ad3a30ba4e68f106ae",
+              "R0a3648126c0fdef46a70777a"
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "verified-gap",
+            "hypothesis": "An opt-in, explicitly typed projection from retained Python AST byte offsets to exporter-specific character coordinates would let consumers locate analyzed functions and findings precisely without altering canonical evidence or legacy output.",
+            "reason": "The receiving evaluator currently emits only one-based line/end_line values for functions and findings, and SARIF exports only startLine/endLine. The donor demonstrates the relevant mechanism: preserve byte-based source evidence and convert each half-open endpoint at an output boundary using an explicitly defined character unit. Adapting that mechanism would improve editor and SARIF precision while preserving IDs, scores, existing line fields, and default bundles.",
+            "adaptation": "Add an opt-in location projection for AST-backed functions and findings. Retain available original zero-based UTF-8 byte columns and expose a separately typed projected span whose lines remain one-based and whose columns have a declared unit and half-open end convention. Compute projections from the already decoded source, treating CRLF consistently and returning unknown endpoints rather than fabricated columns when no AST endpoint exists. Keep legacy analysis and SARIF unchanged by default; when SARIF columns are requested, convert the internal coordinate kind to SARIF's required one-based column representation rather than relabeling incompatible units.",
+            "maintenance": "Centralize byte-to-character conversion and coordinate metadata instead of duplicating exporter arithmetic. Keep projection opt-in and dependency-light, bound conversion work to admitted source and existing resource limits, preserve byte evidence for diagnostics, and require each future exporter to declare or convert its coordinate kind explicitly.",
+            "acceptance": "Original receiving-specific cases establish that: (1) default analysis and SARIF are byte-for-byte unchanged and canonical finding IDs, scores, line/end_line values, legacy bundles, safety guards, and policy results remain unchanged; (2) opted-in ASCII function and finding spans report the expected one-based lines and declared character columns with a half-open end; (3) non-ASCII text before and within a multiline node is projected from retained UTF-8 byte offsets without splitting a code point; (4) CRLF input maps endpoints to the correct logical lines and excludes line terminators consistently; (5) multiline definitions have independently projected start and end endpoints; (6) findings without usable AST endpoints retain their existing line range and report unknown byte/character endpoints; (7) opted-in SARIF emits valid one-based startColumn/endColumn values after an explicit conversion from the internal coordinate kind; and (8) repeated projection is deterministic and remains subject to existing admission and resource limits.",
+            "novelty": "Within the declared complete implementation scope, selected evaluate records only line/end_line for functions and findings, while selected sarif emits only startLine/endLine. The selected declarations are identical across the confirmed PR-81, PR-75, PR-88, PR-89, and PR-90 heads; older default and pending heads lack these files, and the differing PR-95 declarations concern history-proof accounting and engine version selection rather than source-character spans. Thus no equivalent implementation is present in the supplied selected/default/confirmed-pending scope; unrelated global history remains unknown but is not needed for this scoped conclusion.",
+            "novelty_resolved": true,
+            "source_behavior": "The donor converts a byte span to an LSP range by projecting its start and end byte indexes independently. Its shown byte-index path derives a byte column relative to the containing line, while the reverse conversion walks Unicode scalar values, accumulates UTF-16 code-unit widths, returns the corresponding byte offset only at a character boundary, handles the position after the last character, and rejects an oversized character position.",
+            "source_relation": "mechanism",
+            "source_evidence": [
+              {
+                "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8",
+                "path": "codespan-lsp/src/lib.rs",
+                "start": 61,
+                "end": 114
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/engine.py",
+                "start": 119,
+                "end": 153
+              },
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/engine.py",
+                "start": 154,
+                "end": 201
+              },
+              {
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "path": "src/devostasis/codeanalysis/bundle.py",
+                "start": 148,
+                "end": 159
+              }
+            ],
+            "evidence_level": "design-proposal",
+            "operations": [],
+            "receiving_probe_question": ""
+          },
+          "reviewed": true,
+          "registration": {
+            "status": "held",
+            "reason": "crab: error: source paths have differing or unresolved applicable licences\ncrab: hint: differing or unresolved nested grant: codespan-lsp/LICENSE\n"
+          },
+          "adoption_held": true,
+          "verification": {
+            "evidence_level": "design-proposal",
+            "acceptance_artifact": {
+              "path": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\trials\\devostasis-candidate-2\\acceptance-0.md",
+              "sha256": "5d1ee02a34a2cde915085ec7e8e9b4cf278760a47a371d64ce6917f5fdfc3863",
+              "receiving_context": {
+                "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-primary\\maws\\Devostasis",
+                "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+                "selected_ref": null,
+                "worktree": "clean",
+                "policy": "b5095209ec73bd03f2570743fd1b6b6c4fda80b14192f3b9e4d8b6b5c275f296",
+                "ledger": "569f29a8bd41d24f2207035b7c7a9ecd438f67c2a796ba2f72a57fd5a564dabf",
+                "depth": null,
+                "analysis_identity": null,
+                "ignore": null,
+                "wiki": null
+              },
+              "criteria": [
+                "Original receiving-specific cases establish that: (1) default analysis and SARIF are byte-for-byte unchanged and canonical finding IDs, scores, line/end_line values, legacy bundles, safety guards, and policy results remain unchanged; (2) opted-in ASCII function and finding spans report the expected one-based lines and declared character columns with a half-open end; (3) non-ASCII text before and within a multiline node is projected from retained UTF-8 byte offsets without splitting a code point; (4) CRLF input maps endpoints to the correct logical lines and excludes line terminators consistently; (5) multiline definitions have independently projected start and end endpoints; (6) findings without usable AST endpoints retain their existing line range and report unknown byte/character endpoints; (7) opted-in SARIF emits valid one-based startColumn/endColumn values after an explicit conversion from the internal coordinate kind; and (8) repeated projection is deterministic and remains subject to existing admission and resource limits."
+              ],
+              "assessment": "Add an opt-in location projection for AST-backed functions and findings. Retain available original zero-based UTF-8 byte columns and expose a separately typed projected span whose lines remain one-based and whose columns have a declared unit and half-open end convention. Compute projections from the already decoded source, treating CRLF consistently and returning unknown endpoints rather than fabricated columns when no AST endpoint exists. Keep legacy analysis and SARIF unchanged by default; when SARIF columns are requested, convert the internal coordinate kind to SARIF's required one-based column representation rather than relabeling incompatible units.",
+              "original_receiving_owned": true
+            }
+          },
+          "actual_cited_windows": [
+            {
+              "id": "D17bddcd3b46c06f6686fad67",
+              "side": "donor",
+              "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8",
+              "path": "codespan-lsp/src/lib.rs",
+              "start": 61,
+              "end": 114,
+              "content_sha256": "3a938be24096258485ccd07c7a44ce5ec7358ebf4d10bde5a83bb06d585408d4"
+            },
+            {
+              "id": "R48f41da4bf5b30a3e2d74838",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "start": 119,
+              "end": 153,
+              "content_sha256": "420dd1a1dfb544b0dfdde184bf373bee7828a72e3354360faea77576705f1773"
+            },
+            {
+              "id": "R3d7fb3ad3a30ba4e68f106ae",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/engine.py",
+              "start": 154,
+              "end": 201,
+              "content_sha256": "fb078b616e507adf6c128dc4a7ba41031b911e2327b8b29ede0d59ea6833d81e"
+            },
+            {
+              "id": "R0a3648126c0fdef46a70777a",
+              "side": "receiving",
+              "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+              "path": "src/devostasis/codeanalysis/bundle.py",
+              "start": 148,
+              "end": 159,
+              "content_sha256": "c376483e98edf329a83f4cb0663b3d9baf90e125fe9b14c5af5a2c9f1d651969"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "4419342a92f19d9de63a01002c023315164db10eaf9e2571a641822fe5adbedd",
+      "native_meter": {
+        "started": 1793631479.2572143,
+        "tokens": 17738,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "c5ba78ac08ddf906b49a174a1555b18abf6a5ab8209302c255daebf783740e53",
+            "admission_estimate": 22567,
+            "attempt": "228759c783c007777329e0f1d24bdc571647a26624aec5455306f203c555e54f",
+            "state": "settled",
+            "actual_tokens": 17738,
+            "native_seconds": 24.828
+          }
+        ]
+      },
+      "probe_summaries": {
+        "optional-source-character-spans": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-candidate-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 12930,
+      "usage_complete": true,
+      "seconds": 154.171945810318,
+      "model_budget_valid": true,
+      "admissions": [
+        {
+          "need": "inline-link-nesting-precedence",
+          "donor": "beautifulrepo-1"
+        }
+      ],
+      "outcomes": [
+        {
+          "need": "inline-link-nesting-precedence",
+          "donor": "beautifulrepo-1",
+          "native_decision": {
+            "disposition": "request-more",
+            "hypothesis": "The donor may contain standard-link or image-link parsing rules that establish nesting precedence, but the admitted donor windows do not show them.",
+            "reason": "The cited donor only registers a separate wiki-link grammar alternative after emphasis and verifies simple and quoted wiki-link forms. It does not show successful-inner-link state, enclosing link versus image handling, or recovery after a failed inner parse. Scoped novelty is also unresolved because the confirmed pending wrapper delegates to _iter_inline_link_candidates, whose implementation was not supplied.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "The selected receiving scanner independently pairs every bracket opener, while confirmed pending code delegates candidate selection to an unread helper. That helper must be inspected before deciding whether the requested precedence mechanism is absent, present, or duplicate.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor defines wiki-link as an alternative between quoted and normal wiki-link rules, inserts that inline extension after the emphasis rule, and tests only a simple [[foo|bar]] form plus a leading-quote escape form.",
+            "source_relation": "none",
+            "source_evidence": [
+              "Dd2326ea134e03938cf970ec4",
+              "D7a6d5b5d47f6784780e31d50",
+              "D47756c78d9473efa1b28d58d"
+            ],
+            "maw_evidence": [
+              "R7868165cdba4502fd6a2e20e",
+              "R4acffd350780d026109b23e3",
+              "R5d5191eff39dee664d14fc08"
+            ],
+            "evidence_level": "source-supported",
+            "operations": [
+              {
+                "side": "pending",
+                "path": "tools/docs_links.py",
+                "query": "",
+                "start": 180,
+                "end": 239,
+                "revision": "8cf6f11fba6bd9d606f4ea96f550e75eac9cf856"
+              },
+              {
+                "side": "donor",
+                "path": "tests/grammar/inlines/link.lisp",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "tests/grammar/inlines/image.lisp",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "decision": {
+            "disposition": "budget-deferred",
+            "hypothesis": "The donor may contain standard-link or image-link parsing rules that establish nesting precedence, but the admitted donor windows do not show them.",
+            "reason": "The cited donor only registers a separate wiki-link grammar alternative after emphasis and verifies simple and quoted wiki-link forms. It does not show successful-inner-link state, enclosing link versus image handling, or recovery after a failed inner parse. Scoped novelty is also unresolved because the confirmed pending wrapper delegates to _iter_inline_link_candidates, whose implementation was not supplied.",
+            "adaptation": "",
+            "maintenance": "",
+            "acceptance": "",
+            "novelty": "The selected receiving scanner independently pairs every bracket opener, while confirmed pending code delegates candidate selection to an unread helper. That helper must be inspected before deciding whether the requested precedence mechanism is absent, present, or duplicate.",
+            "novelty_resolved": false,
+            "source_behavior": "The donor defines wiki-link as an alternative between quoted and normal wiki-link rules, inserts that inline extension after the emphasis rule, and tests only a simple [[foo|bar]] form plus a leading-quote escape form.",
+            "source_relation": "none",
+            "source_evidence": [
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "wiki-links.lisp",
+                "start": 39,
+                "end": 90
+              },
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "extensions.lisp",
+                "start": 1,
+                "end": 52
+              },
+              {
+                "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+                "path": "tests/extensions/wiki-links.lisp",
+                "start": 1,
+                "end": 17
+              }
+            ],
+            "maw_evidence": [
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 205,
+                "end": 233
+              },
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 271,
+                "end": 325
+              },
+              {
+                "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+                "path": "tools/docs_links.py",
+                "start": 1019,
+                "end": 1047
+              }
+            ],
+            "evidence_level": "unrun",
+            "operations": [
+              {
+                "side": "pending",
+                "path": "tools/docs_links.py",
+                "query": "",
+                "start": 180,
+                "end": 239,
+                "revision": "8cf6f11fba6bd9d606f4ea96f550e75eac9cf856"
+              },
+              {
+                "side": "donor",
+                "path": "tests/grammar/inlines/link.lisp",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              },
+              {
+                "side": "donor",
+                "path": "tests/grammar/inlines/image.lisp",
+                "query": "",
+                "start": 1,
+                "end": 60,
+                "revision": ""
+              }
+            ],
+            "receiving_probe_question": ""
+          },
+          "reviewed": false,
+          "registration": null,
+          "adoption_held": false,
+          "verification": {
+            "evidence_level": "source-supported"
+          },
+          "actual_cited_windows": [
+            {
+              "id": "Dd2326ea134e03938cf970ec4",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "wiki-links.lisp",
+              "start": 39,
+              "end": 90,
+              "content_sha256": "9430a935367c122df22b508695e6438acf0f31db672ea9a5f3c9d3448a3fe5ee"
+            },
+            {
+              "id": "D7a6d5b5d47f6784780e31d50",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "extensions.lisp",
+              "start": 1,
+              "end": 52,
+              "content_sha256": "73c281227efcd3601df08b4a7601bc5dbfd2c97375b5fe1b0486649c4713c5ff"
+            },
+            {
+              "id": "D47756c78d9473efa1b28d58d",
+              "side": "donor",
+              "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0",
+              "path": "tests/extensions/wiki-links.lisp",
+              "start": 1,
+              "end": 17,
+              "content_sha256": "b3921a282278857d7b45dea9ef1f25e8cd232a6210ff85b8cdd83ceb7ab726f7"
+            },
+            {
+              "id": "R7868165cdba4502fd6a2e20e",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 205,
+              "end": 233,
+              "content_sha256": "ba6d6c1c4489de846caebb1ec11aa64c2c736c94a59209538b574ecdf28cd122"
+            },
+            {
+              "id": "R4acffd350780d026109b23e3",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 271,
+              "end": 325,
+              "content_sha256": "8d893ceb733426fcd003898d29f2adb027363ab6817a77e34761839d85a7599c"
+            },
+            {
+              "id": "R5d5191eff39dee664d14fc08",
+              "side": "receiving",
+              "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+              "path": "tools/docs_links.py",
+              "start": 1019,
+              "end": 1047,
+              "content_sha256": "de986b1c3a88549e0ff1d82acd4d8bb541481acd0bad0f2e0f6f71ff1118114d"
+            }
+          ]
+        }
+      ],
+      "host_state_sha256": "4c9da416fdd85ced97a5f8070d9277dad3ee8cad10273554e7c4b789d9115dca",
+      "native_meter": {
+        "started": 1793631633.5460048,
+        "tokens": 12930,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "assess-0",
+            "signature": "4890a3395a81ea2cb07157dd943d87a6eb2c3b8ee01d9041842aaf98d1a42b4d",
+            "admission_estimate": 16713,
+            "attempt": "b20e4eb289ef256dd2ddfda121bcaa80d73816c89f7b4ca459124f375b82706c",
+            "state": "settled",
+            "actual_tokens": 12930,
+            "native_seconds": 22.922
+          }
+        ]
+      },
+      "probe_summaries": {
+        "inline-link-nesting-precedence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "balanced-reference-link-text": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    },
+    {
+      "trial": "beautifulrepo-baseline-2",
+      "phase": "complete",
+      "stop_reason": "model-budget-reserve",
+      "actual_model_tokens": 12216,
+      "usage_complete": true,
+      "seconds": 51.33132243156433,
+      "model_budget_valid": true,
+      "admissions": [],
+      "outcomes": [],
+      "host_state_sha256": "bcc3b812991cbe191783ffb774c21d3cce8512a27ae10bf932f0a10b574d0015",
+      "native_meter": {
+        "started": 1793631630.9549942,
+        "tokens": 12216,
+        "usage_complete": true,
+        "stages": [
+          {
+            "name": "plan",
+            "signature": "2747a7dfca3d2769b656e398e1663af9ce348fb85003efd1a0d146daae59d20b",
+            "admission_estimate": 16791,
+            "attempt": null,
+            "state": "settled",
+            "actual_tokens": 12216,
+            "native_seconds": 12.39
+          }
+        ]
+      },
+      "probe_summaries": {
+        "inline-link-nesting-precedence": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        },
+        "balanced-reference-link-text": {
+          "status": "design-proposal",
+          "receipt_sha256": null,
+          "probe_sha256": null,
+          "actual_receiving_calls": null,
+          "runtime": null,
+          "target_calls_complete": null,
+          "case_results_usable": null,
+          "case_roles_and_outcomes": []
+        }
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "name": "beautifulrepo-1",
+      "private_mapping": {
+        "R1": "beautifulrepo-candidate-2",
+        "R2": "beautifulrepo-baseline-2",
+        "R3": "beautifulrepo-candidate-1",
+        "R4": "beautifulrepo-baseline-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "enforce inline-link nesting precedence while preserving image-in-link syntax",
+            "reason": "The investigator proposed no adaptation. The cited donor implements a separate wiki-link extension and does not evidence standard inline-link nesting precedence, successful-inner-link state, image-versus-link handling, or failed-inner recovery. The later pending-scope read shows the receiving helper still independently pairs bracket openers, resolving that scoped implementation uncertainty but not supplying a useful donor mechanism.",
+            "acceptance_criteria": [
+              "Cite a concrete donor parser mechanism governing nested standard inline links and images.",
+              "Specify the receiving-owned precedence algorithm and behavior after failed inner parses.",
+              "Compare the design against selected, default, and confirmed pending implementations in scope.",
+              "For an additive design, provide concrete original receiving acceptance cases preserving escapes, masking, paragraph bounds, destinations, source lines, images-in-links, and simple links."
+            ],
+            "legal_adoption": "No transfer is proposed. The cited donor paths have verified MIT grants with applicable grant text and notices to retain, but this does not establish utility or complete legal clearance."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "unsupported",
+            "canonical_change": "parse balanced nested display text in reference-link uses",
+            "reason": "The investigator proposed no adaptation and correctly identified that the cited flat image fixtures and recursive printer do not show recognition of balanced nested brackets. The receiving selected and pending implementations retain flat REFERENCE_USE_RE-based recognition, but that receiving gap alone is not a donor mechanism or proof of an additional destination benefit. Search hits without returned parser windows do not establish source behavior.",
+            "acceptance_criteria": [
+              "Cite the donor reference-use parser and directly associated nested-bracket tests.",
+              "Show a concrete additional receiving destination that legacy shortcut rediscovery does not already report equivalently.",
+              "Specify bounded parsing, label normalization and lookup, escape behavior, link/image precedence, masking, source-line preservation, and simple-form compatibility.",
+              "Compare the design with selected, default, and confirmed pending implementations without duplicating the source-anchor request."
+            ],
+            "legal_adoption": "No transfer is proposed. The cited donor files have verified MIT grants requiring retention of applicable grant texts and notices; legal transfer clearance remains separate from usefulness."
+          },
+          {
+            "blind_id": "R3",
+            "index": 1,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "enforce inline-link nesting precedence while preserving image-in-link syntax",
+            "reason": "The investigator explicitly rejected the admitted donor mechanism and proposed no receiving change. The donor's independently registered wiki-link grammar and rule-order hook do not implement standard inline-link nesting precedence, successful-inner-link state, failed-inner fallback, or image-in-link distinction. The receiving scope may exhibit the stated gap, but it must not be converted into a new finding after the donor mechanism was rejected as not useful.",
+            "acceptance_criteria": [],
+            "legal_adoption": "No transfer is proposed. Verified MIT path grants and notice-retention obligations do not make the mechanism useful or establish broader legal clearance."
+          }
+        ],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "R2 and R4 produced no observations, so there are no records to review for those runs.",
+          "The donor reference-link parser windows identified by search were not supplied; balanced-reference usefulness remains unsupported rather than conclusively absent.",
+          "No runtime probe was run, and the observations make no qualifying runtime claims.",
+          "Selected/default and confirmed pending receiving scope is bounded; global historical absence, merge, adoption, release, human acceptance, and version advantage are unknown.",
+          "Open issues are backlog requests, not implemented behavior; no evidenced proposal here should create a duplicate issue."
+        ],
+        "unjustified_claims": [
+          "R1's statement that scoped novelty remained unresolved became stale after its additional pending read exposed _iter_inline_link_candidates; that read confirms the pending helper lacks the requested precedence state, although donor usefulness remains unsupported.",
+          "No observation justifies a positive donor-derived adaptation, runtime success, human acceptance, adoption, merge, release, or version advantage."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 21511,
+        "inputTokens": 20023,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1488,
+        "reasoningOutputTokens": 664,
+        "lastInputTokens": 20023
+      },
+      "seconds": 25.609,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "94e8dce64179f9f14af840b14fb667bf1d76ec874b5ea536adf12cbc85286084",
+      "native_result_sha256": "2c39fcaa544645f0c4d9d31accc91d43c2d31b017c53f047b85e57e0e6688a5a"
+    },
+    {
+      "name": "beautifulrepo-2",
+      "private_mapping": {
+        "R1": "beautifulrepo-candidate-2",
+        "R2": "beautifulrepo-baseline-2",
+        "R3": "beautifulrepo-baseline-1",
+        "R4": "beautifulrepo-candidate-1"
+      },
+      "verdict": {
+        "review_unavailable": true
+      },
+      "actual_usage": null,
+      "seconds": 1.797,
+      "budget_valid": false,
+      "usage_complete": false,
+      "input_sha256": "75dc08a1406db74f621a4d69dea13229ab9c9c509cf84c23a9b519f50e3b2de5",
+      "native_result_sha256": "2f0095ca1eb4bae17779a67cef6c662898c1aac027b6d0fd765c0d4d68a12162"
+    },
+    {
+      "name": "crab-1",
+      "private_mapping": {
+        "R1": "crab-baseline-1",
+        "R2": "crab-candidate-2",
+        "R3": "crab-candidate-1",
+        "R4": "crab-baseline-2"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "retain npm optional-peer metadata linked to peer declarations",
+            "reason": "The scoped receiving gap is supported: parse_package_json emits peer and optional dependency rows but omits peerDependenciesMeta, with identical relevant selected/default/pending bytes. However, the cited pnpm windows contain only unrelated manifests and show no parsing, validation, preservation, or linkage mechanism. The investigator explicitly withheld adaptation, maintenance, and acceptance proposals, so this is not a proposed novel change.",
+            "acceptance_criteria": [
+              "Cite a concrete donor mechanism for peerDependenciesMeta handling and its relation to peerDependencies.",
+              "Define receiving behavior for supported boolean optional values and absent, malformed, unsupported, and orphan entries.",
+              "Preserve existing Package rows, raw names, provenance, ordering, and non-execution constraints."
+            ],
+            "legal_adoption": "Transfer clearance is unresolved: all cited pnpm paths have unresolved operative grants and obligations; utility evidence would not itself establish legal adoption."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "relate .NET project package references to central package versions",
+            "reason": "The scoped receiving gap is supported: parse_msbuild emits separate PackageReference and PackageVersion rows without a project-to-central relation, and relevant selected/default/pending parser bytes are identical. The donor test supports project-path-based editing of Directory.Packages.props without invoking dotnet, but its project is empty and separate from the PackageReference fixture. It does not establish discovery, association, ambiguity handling, multiple or unavailable roots, or Version versus VersionOverride treatment. The investigator therefore supplied no concrete adaptation or original receiving acceptance and did not actually propose a change.",
+            "acceptance_criteria": [
+              "Cite the donor implementation that discovers the applicable Directory.Packages.props and associates project PackageReference entries with PackageVersion declarations.",
+              "Define a receiving-owned literal-only relation with project, root, member, local-version, central-version, and ambiguity provenance.",
+              "Keep conditions, imports, expressions, unavailable or multiple roots, and unsupported cases explicitly unknown without MSBuild, SDK, restore, or resolution."
+            ],
+            "legal_adoption": "The cited donor paths have verified MIT grants with applicable grant text and notices to retain, but this establishes obligations only, not human acceptance, adoption, merge, or release."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "duplicate",
+            "canonical_change": "retain npm optional-peer metadata linked to peer declarations",
+            "reason": "This repeats R1's scoped receiving gap, but the normalize-package-data evidence adds no relevant donor mechanism: the sole cited window is project metadata and five literal searches found no peerDependenciesMeta occurrence. The investigator explicitly withheld adaptation, maintenance, and acceptance proposals. The underlying receiving change is valid as a need, but this observation is a duplicate unsupported donor route rather than a new proposal.",
+            "acceptance_criteria": [
+              "Cite a concrete donor mechanism for peerDependenciesMeta handling and its relation to peerDependencies.",
+              "Define receiving behavior for supported boolean optional values and absent, malformed, unsupported, and orphan entries.",
+              "Preserve existing Package rows, raw names, provenance, ordering, and non-execution constraints."
+            ],
+            "legal_adoption": "The cited package.json has a verified BSD-2-Clause grant with applicable grant text and notices to retain; that does not establish clearance for any uncited implementation or adoption."
+          }
+        ],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "All validation decisions were budget-deferred and no receiving runtime probes or acceptance artifacts were produced.",
+          "R4 produced no observations; its two needs remained unassessed design-proposal statuses.",
+          "The npm donor evidence contains no concrete optional-peer mechanism, while the .NET evidence omits the concrete discovery and association implementation requested by its investigator.",
+          "Novelty is bounded to the supplied selected/default/confirmed-pending scopes; global historical absence is not proven.",
+          "No human acceptance, adoption, merge, release, publication, or version advantage is evidenced."
+        ],
+        "unjustified_claims": [
+          "Treating any request-more label here as a substantive proposed adaptation would be unjustified because every observation leaves adaptation and acceptance empty and expressly says donor utility or mechanism is unresolved.",
+          "Claiming runtime confirmation would be unjustified: no target failure, positive target call, passing control set, or usable runtime case exists.",
+          "Claiming the pnpm or normalize-package-data donors support peerDependenciesMeta adaptation would be unjustified from the cited windows and searches.",
+          "Claiming the dotnet donor establishes PackageReference-to-PackageVersion relation construction or ambiguity handling would exceed the cited fixture and test.",
+          "Claiming legal adoption from a license grant alone would conflate transfer obligations with project acceptance."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 21224,
+        "inputTokens": 19931,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1293,
+        "reasoningOutputTokens": 329,
+        "lastInputTokens": 19931
+      },
+      "seconds": 18.203,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "717b0e279fb38797e69395632e130c50af08007e28d30555fa98af90db4e0744",
+      "native_result_sha256": "beb4563c4bb5f3dfba104e8491ff3e20d03b2f92f9f8de7ed63d138098843b3c"
+    },
+    {
+      "name": "crab-2",
+      "private_mapping": {
+        "R1": "crab-baseline-2",
+        "R2": "crab-baseline-1",
+        "R3": "crab-candidate-2",
+        "R4": "crab-candidate-1"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "retain bounded peerDependenciesMeta relations for declared npm peers",
+            "reason": "The receiving-scope evidence confirms that parse_package_json does not retain peerDependenciesMeta, but that gap was predeclared. The cited pnpm windows contain only unrelated manifests and show no parsing, validation, preservation, or peer-relation mechanism. The investigator supplied no adaptation, maintenance assessment, acceptance criteria, or acceptance artifact and explicitly left donor-derived usefulness unresolved; therefore no donor-derived change was actually proposed.",
+            "acceptance_criteria": [
+              "Cite a concrete donor mechanism and focused tests for supported optional booleans and malformed, unsupported, or orphan metadata.",
+              "Specify an additive receiving design preserving raw peer names, provenance, existing Package rows, and ordering without package-manager execution.",
+              "Provide explicit receiving acceptance for the design and assess maintenance cost."
+            ],
+            "legal_adoption": "Not cleared. The cited donor paths have unresolved operative root grants; utility and legal transfer clearance are separate, and no transferable implementation mechanism was cited."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "relate literal .NET PackageReference declarations to central PackageVersion declarations",
+            "reason": "The receiving scope supports a predeclared absence of a project-to-central relation, while existing PackageReference and PackageVersion parsing must not be rebranded. The donor fixture and test show an unversioned reference and, separately, project-path-based editing of Directory.Packages.props without invoking dotnet, but the test project is empty and the cited windows do not establish discovery, association, root selection, ambiguity handling, or Version versus VersionOverride preservation. The investigator requested more evidence and supplied no concrete adaptation, maintenance assessment, acceptance criteria, or acceptance artifact, so it did not actually propose the change.",
+            "acceptance_criteria": [
+              "Cite the donor implementation that discovers the central file and associates project PackageReference entries with PackageVersion entries.",
+              "Define bounded behavior for actual roots and members, multiple or unavailable roots, conditions, imports, expressions, Version, and VersionOverride while preserving raw facts.",
+              "Obtain explicit receiving acceptance for the additive design and assess maintenance cost."
+            ],
+            "legal_adoption": "The two cited donor paths have verified MIT grants subject to retaining applicable grant texts and notices. That establishes limited path-level legal availability, not usefulness, acceptance, adoption, or clearance for an uncited mechanism."
+          },
+          {
+            "blind_id": "R4",
+            "index": 0,
+            "proposed_novel": false,
+            "verdict": "not-useful",
+            "canonical_change": "retain bounded peerDependenciesMeta relations for declared npm peers",
+            "reason": "The receiving-scope evidence confirms the same predeclared peerDependenciesMeta omission as R2, but the cited normalize-package-data window is only project metadata. Negative literal searches across five paths establish no relevant donor behavior. The investigator explicitly left donor utility unresolved and supplied no adaptation, maintenance assessment, acceptance criteria, or acceptance artifact; no donor-derived change was actually proposed. The underlying receiving gap is equivalent to R2, but there is no valid proposal to count as a duplicate finding.",
+            "acceptance_criteria": [
+              "Cite a concrete donor normalization or retention mechanism and focused tests for peerDependenciesMeta.",
+              "Specify supported optional booleans and explicit handling of absent, malformed, unsupported, and orphan entries without package-manager execution.",
+              "Provide explicit receiving acceptance for the additive design and assess maintenance cost."
+            ],
+            "legal_adoption": "The cited package.json has a verified BSD-2-Clause grant with applicable grant-text and notice obligations, but it is only metadata and supplies no transferable mechanism. Legal availability does not establish utility or adoption."
+          }
+        ],
+        "study_adequate_for_usefulness": false,
+        "limitations": [
+          "R1 produced no observations; R2 and R4 left the .NET need unassessed, and R3 left the npm need unassessed.",
+          "All three validations were budget-deferred and unrun; no runtime evidence or explicit receiving design acceptance exists.",
+          "Selected, default, and confirmed-pending novelty checks are bounded to the stated implementation scopes and do not prove global historical absence.",
+          "The pnpm donor grants are unresolved, and the relevant donor mechanisms requested by every producing investigator were not acquired.",
+          "No human acceptance, adoption, merge, release, or version advantage can be inferred."
+        ],
+        "unjustified_claims": [
+          "R3's statement that the donor demonstrates useful project-path-based central-file behavior overstates adaptation usefulness: the cited test demonstrates editing behavior but not the concrete association mechanism required by the receiving need.",
+          "Any claim that R2 or R4 supplies a useful peerDependenciesMeta adaptation is unsupported by the cited donor evidence.",
+          "Any claim that the observations establish implemented behavior, runtime correctness, receiving acceptance, or release benefit is unsupported."
+        ]
+      },
+      "actual_usage": {
+        "totalTokens": 21419,
+        "inputTokens": 19931,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1488,
+        "reasoningOutputTokens": 516,
+        "lastInputTokens": 19931
+      },
+      "seconds": 20.375,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "78463433eb17fbb68bf7c59e5ab6471bad5b457f2360c3a3ebebb8abbd650c5e",
+      "native_result_sha256": "2ad224e1ecaab54749bc8fafd0dde53669586cd057a541ca25571d21ce299dcb"
+    },
+    {
+      "name": "devostasis-1",
+      "private_mapping": {
+        "R1": "devostasis-candidate-2",
+        "R2": "devostasis-baseline-1",
+        "R3": "devostasis-candidate-1",
+        "R4": "devostasis-baseline-2"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "Add opt-in typed AST source spans with explicit coordinate conversion while preserving legacy outputs",
+            "reason": "The cited receiving code records only line ranges and emits SARIF without columns. The cited donor concretely converts both byte-span endpoints into an explicitly defined character coordinate system. The proposal is additive, scoped to Nd00232ffd36f942493be, has original receiving-owned design acceptance, and the supplied selected/default/pending scope contains no equivalent implementation. Runtime proof is not required for this explicitly additive design. Issue 76 is an open, broader backlog item rather than implemented code or a clearly equivalent evidence request.",
+            "acceptance_criteria": [
+              "Default analysis, canonical IDs, scores, line fields, bundles, SARIF, safety guards, and policy results remain unchanged.",
+              "Opted-in ASCII, Unicode, CRLF, and multiline spans independently project start and exclusive-end coordinates in the declared unit without splitting code points.",
+              "Unavailable AST endpoints remain unknown rather than receiving fabricated columns.",
+              "Opted-in SARIF columns use an explicit correct conversion to SARIF's one-based convention.",
+              "Projection remains deterministic and subject to existing admission and resource limits."
+            ],
+            "legal_adoption": "Not cleared. Registration was refused because the nested codespan-lsp/LICENSE grant is differing or unresolved; utility of the mechanism does not establish permission to transfer donor material or determine obligations."
+          },
+          {
+            "blind_id": "R3",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Add opt-in typed AST source spans with explicit coordinate conversion while preserving legacy outputs",
+            "reason": "This independently proposes the same underlying valid receiving change as R1 using the same donor mechanism and receiving gap. Its original receiving-owned acceptance covers additive coordinate typing, independent endpoint projection, Unicode/newline handling, unknown endpoints, and legacy preservation. It remains in the proposed-novel precision denominator, but is marked duplicate rather than counted as a distinct change.",
+            "acceptance_criteria": [
+              "Without the option, existing analysis and SARIF shapes and values remain unchanged.",
+              "Enabling projection preserves canonical IDs, line fields, scores, evidence, ordering, coverage, and policy/resource outcomes.",
+              "ASCII, BMP and supplementary Unicode, CRLF, and multiline spans use independently projected start and exclusive-end coordinates.",
+              "AST UTF-8 byte columns are not mislabeled as character columns, and original-file offsets are unknown where mapping is indeterminate.",
+              "Missing AST endpoints receive no invented columns, and opt-in SARIF columns are explicitly converted."
+            ],
+            "legal_adoption": "Not cleared. Registration was refused because the nested codespan-lsp/LICENSE grant is differing or unresolved; no transfer permission or obligations can be inferred."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "R2 and R4 produced no observations, so no change records can be attributed to them.",
+          "The confirmed result is a design finding, not runtime verification or implemented code.",
+          "Novelty is established only within the supplied complete selected/default/confirmed-pending implementation scope; unrelated history remains unknown.",
+          "No human acceptance, adoption, merge, release, or version advantage is established.",
+          "Legal transfer clearance and obligations remain unresolved."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 23228,
+        "inputTokens": 22130,
+        "cachedInputTokens": 0,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1098,
+        "reasoningOutputTokens": 441,
+        "lastInputTokens": 22130
+      },
+      "seconds": 21.25,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "ac86c62fc981f0e09b842d205bad46a6bfd60fb1fa98e0a8d0170686f7b2e643",
+      "native_result_sha256": "4cb5ef208fb50457d0d9f8d24ef5af3d3ebfd9b5e1c62b6e6e800843c937dca9"
+    },
+    {
+      "name": "devostasis-2",
+      "private_mapping": {
+        "R1": "devostasis-candidate-1",
+        "R2": "devostasis-candidate-2",
+        "R3": "devostasis-baseline-1",
+        "R4": "devostasis-baseline-2"
+      },
+      "verdict": {
+        "records": [
+          {
+            "blind_id": "R1",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "confirmed-design",
+            "canonical_change": "Add opt-in typed source-character spans for AST-backed functions and findings with explicit coordinate and end conventions.",
+            "reason": "Concrete additive design for implementation scope Nd00232ffd36f942493be. Receiving evidence shows evaluate retains decoded source and AST line ranges but emits no columns, while SARIF emits only startLine/endLine. The cited donor mechanism independently projects both byte-span endpoints and accounts for UTF-16 width. The proposal defines receiving benefit, preservation rules, unknown endpoints, maintenance boundaries, and original receiving-owned acceptance. Scoped selected/default/pending novelty is adequately supported; issue 76 is an open general triage request, not an implementation or a clearly equivalent span request. Runtime evidence is unnecessary for this explicitly additive design.",
+            "acceptance_criteria": [
+              "Default analysis and SARIF remain unchanged, including IDs, scores, evidence, ordering, line fields, coverage, and policy/resource outcomes.",
+              "ASCII, BMP Unicode, supplementary Unicode, CRLF, and multiline cases independently project start and exclusive-end coordinates in the declared unit.",
+              "AST UTF-8 byte columns are retained where available and never mislabeled as character columns.",
+              "Original-file byte offsets are retained only when mapping is determinable; unavailable or synthetic endpoints remain explicitly unknown.",
+              "Opt-in SARIF columns are emitted only after conversion to SARIF's coordinate convention."
+            ],
+            "legal_adoption": "Utility is supported, but transfer clearance is unresolved: the path grant reports a differing or unresolved nested grant at codespan-lsp/LICENSE, with no resolved license expression or obligations. No adoption, merge, release, or human acceptance is established."
+          },
+          {
+            "blind_id": "R2",
+            "index": 0,
+            "proposed_novel": true,
+            "verdict": "duplicate",
+            "canonical_change": "Add opt-in typed source-character spans for AST-backed functions and findings with explicit coordinate and end conventions.",
+            "reason": "This independently proposes the same valid receiving change as R1 from the same donor mechanism and receiving scope, so it remains a substantive proposed-novel denominator record but is marked duplicate. Its design is concrete, cites the donor's independent endpoint conversion and Unicode-width handling, supplies original receiving-owned acceptance, addresses maintenance cost, and preserves legacy behavior. Scoped novelty is supported; no runtime defect is claimed or required.",
+            "acceptance_criteria": [
+              "Default analysis and SARIF remain unchanged, including canonical IDs, scores, line fields, legacy bundles, safety guards, and policy results.",
+              "Opted-in ASCII, non-ASCII, CRLF, and multiline cases produce independently projected half-open endpoints without splitting code points.",
+              "Findings lacking usable AST endpoints retain their line range and report unknown byte/character endpoints.",
+              "Opt-in SARIF emits valid one-based columns only after explicit coordinate conversion.",
+              "Projection is deterministic, centralized, dependency-light, and remains subject to existing admission and resource limits."
+            ],
+            "legal_adoption": "Utility is supported, but transfer clearance is unresolved: the path grant reports a differing or unresolved nested grant at codespan-lsp/LICENSE, with no resolved license expression or obligations. No adoption, merge, release, or human acceptance is established."
+          }
+        ],
+        "study_adequate_for_usefulness": true,
+        "limitations": [
+          "R3 and R4 produced no observations; their design-proposal status entries contain no acceptance receipt or proposed change, so no record can be created for them.",
+          "The implementation-scope conclusion is bounded to the supplied selected/default/confirmed-pending revisions; global historical absence is not proven.",
+          "No runtime verification was performed, but both recorded claims are explicitly additive designs rather than runtime defect claims.",
+          "Only the supplied cited donor and receiving windows were verified; unread source remains unknown.",
+          "Legal transfer clearance is unresolved and is separate from the supported technical utility."
+        ],
+        "unjustified_claims": []
+      },
+      "actual_usage": {
+        "totalTokens": 23350,
+        "inputTokens": 22130,
+        "cachedInputTokens": 2688,
+        "cacheWriteInputTokens": 0,
+        "outputTokens": 1220,
+        "reasoningOutputTokens": 453,
+        "lastInputTokens": 22130
+      },
+      "seconds": 21.625,
+      "budget_valid": true,
+      "usage_complete": true,
+      "input_sha256": "0c89083bd9f30798c6cfe6070d88d6f6b32b9078290c913d76fbf9ba942d17d0",
+      "native_result_sha256": "7a4caf8dd60a513dca543c239baef8224dd9ce991f80535bd8557734eafd9269"
+    }
+  ],
+  "metrics": {
+    "native_verified_gap_occurrences": {
+      "baseline": 0,
+      "candidate": 2
+    },
+    "shared_nominations": 30,
+    "eligible_digest_pairs": 28,
+    "preparation_held_nominations": 2,
+    "semantic_admissions": 8,
+    "assessed_occurrences": 8,
+    "distinct_assessed_donors": 5,
+    "actual_native_tokens": {
+      "baseline": 83533,
+      "candidate": 121017
+    },
+    "review_tokens": null,
+    "known_review_tokens_lower_bound": 110732,
+    "unavailable_reviews": [
+      "beautifulrepo-2"
+    ],
+    "all_trial_usage_complete": true,
+    "all_trial_budgets_valid": true,
+    "all_review_usage_complete": false,
+    "all_review_budgets_valid": false,
+    "currency": null,
+    "whole_project_cost": null
+  },
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "standards_exposure": "Root read Python3.12 AST public documentation for UTF-8 offset/end-position semantics; no nominated donor code or source judgment inspected before seal. Shared standards/dependencies/ports and pretraining exposure remain explicit.",
+    "shared_setup": "Thirty original immutable nominations;28paired acquisitions/digests plus two export-budget holds, shared identically before either arm. Filename catalogues only. No new donor source body or shared investigation/review judgment supplied before seal. Prior receiving findings excluded; standards/pretraining/shared ports exposure remains explicit.",
+    "prior_repository_identities": 284,
+    "prior_provider_ids": 271,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All previous confirmed and provisional findings, including HungryCrab563/564/565/571/572/575/576, BeautifulRepo240/241/243 and Devostasis117/118/119, configuration/HTML repairs, generic scan-budget suggestions. Earlier unassessed Gradle need remains unfinished in its original record and is outside this cohort's active scope; no completion is claimed."
+    ],
+    "lineage": [
+      "npm/cli,package-json and normalize-package-data are related packages; classic Yarn and pnpm share ecosystem concepts. No independent change count per donor.",
+      "Python diagnostic libraries may depend on already exposed ASTTokens or each other; actual own source and any delegated/unknown mechanism must be distinguished. Ariadne GitHub snapshot is archived after a Codeberg move, not a current-product recommendation.",
+      "Markdown projects can share MarkdownTest/CommonMark fixtures. Previously exposed prose/examples are not a fresh mechanism; own parser source requires actual inspection. Family/port/pretraining independence is not guaranteed.",
+      "New filename roles are inert conventions, not AST support, source quality, usefulness or permission. Tests cover independent language/directory/fixture-volume controls; no repository-specific boosts."
+    ],
+    "cost": "All actual native input including cached+output and elapsed time retained. Currency/setup/engineering/coordination/whole-project costs unknown; no aggregate efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "source_and_host_repairs": [
+      "574 shared language roles/catalog, source-before-fixture retention and explicit implementation-focused association/coverage with raw/any overrides"
+    ],
+    "receiving": {
+      "crab": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+      "devostasis": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "beautifulrepo": "9a16200bf5a0c183910312e15d894d1137dc590d"
+    },
+    "shared_acquisition_runs": [
+      41463155114,
+      41463155056
+    ],
+    "donor_or_receiving_drift": [],
+    "metadata_refinements": [
+      "gwkkwg/cl-markdown redirects1156524; canonical hraban/cl-markdown verified by provider identity.",
+      "yarnpkg/berry historical metadata size2932708KiB; shallow export unknown. Conservative acquisition-fit nomination uses classic yarnpkg/yarn instead, before any source/body/model investigation, with unchanged64MiB export bound. Related Yarn/npm families disclosed."
+    ],
+    "receiving_needs": "Five source-grounded additive flows(2/1/2), frozen before new source investigation. Earlier confirmed/provisional designs excluded, including Cargo/markers/contribution traces. Prior unfinished Gradle scope remains retained, not completed. Root inspected own pending244 helper bodies and clarified that a flat regex alone does not prove additional utility; original receiving reconciliation is retained.",
+    "candidate_declaration_view": "Actual public CLI view only when exact serialized transport is smaller; all raw files/changes/bindings and external-helper uncertainty retained. Baseline gets original actual scope, no candidate CLI backport.",
+    "preparation_hold_amendment": {
+      "recorded_before_any_native_call": true,
+      "original_nominees": 30,
+      "eligible_pairs": 28,
+      "held": "npm/cli and yarnpkg/yarn exceeded unchanged export byte budget. Same28eligible pool botharms. Original receipts/costs retained, no raised limit, replacement or source/outcome selection."
+    },
+    "open_pr_delta": "Only539open in HungryCrab; all14Devostasis pending heads captured; BeautifulRepo default9a16200 includes externally merged242 and open244source-anchors captured. No source-anchor feature is fresh yield. No PR merged by this task."
+  },
+  "safety": {
+    "donor_program_execution": false,
+    "human_licence_override": false,
+    "publication_from_trials": false,
+    "merge": false,
+    "tag": false,
+    "release": false
+  },
+  "independent_agreement": {
+    "method": "Every native verified-gap and either reviewer substantive positive proposal stays in denominator. Agreement uses actual trial/index, never cross-reviewer phrase equality. Duplicate supports count only with a confirmed representative in that same review. Conservatively at most one unique change per declared receiving need per arm across repeats, merging needs explicitly canonical-equated by either reviewer; no reviewer-created yield. This is comparative accounting, not runtime, legal-effect, adoption or technical acceptance.",
+    "counts": {
+      "baseline": {
+        "positive_occurrences": 0,
+        "confirmed_occurrences": 0,
+        "precision": null,
+        "unique_by_maw": {
+          "crab": 0,
+          "devostasis": 0,
+          "beautifulrepo": 0
+        },
+        "unique_total": 0
+      },
+      "candidate": {
+        "positive_occurrences": 2,
+        "confirmed_occurrences": 2,
+        "precision": 1.0,
+        "unique_by_maw": {
+          "crab": 0,
+          "devostasis": 1,
+          "beautifulrepo": 0
+        },
+        "unique_total": 1
+      }
+    },
+    "gates": {
+      "candidate_precision_at_least_80_percent": true,
+      "no_lower_precision": false,
+      "strictly_more_unique_overall": true,
+      "maws_with_strict_candidate_gain": 1,
+      "complete_actual_usage_within_caps": false,
+      "comparative_usefulness_pass": false
+    },
+    "occurrences": [
+      {
+        "trial": "crab-baseline-1",
+        "index": 0,
+        "batch": "crab",
+        "arm": "baseline",
+        "need": "npm-optional-peer-evidence",
+        "donor": "crab-2",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "not-useful",
+          "not-useful"
+        ],
+        "canonical_changes": [
+          "retain npm optional-peer metadata linked to peer declarations",
+          "retain bounded peerDependenciesMeta relations for declared npm peers"
+        ],
+        "legal_adoption": [
+          "Transfer clearance is unresolved: all cited pnpm paths have unresolved operative grants and obligations; utility evidence would not itself establish legal adoption.",
+          "Not cleared. The cited donor paths have unresolved operative root grants; utility and legal transfer clearance are separate, and no transferable implementation mechanism was cited."
+        ]
+      },
+      {
+        "trial": "crab-candidate-1",
+        "index": 0,
+        "batch": "crab",
+        "arm": "candidate",
+        "need": "npm-optional-peer-evidence",
+        "donor": "crab-5",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "duplicate",
+          "not-useful"
+        ],
+        "canonical_changes": [
+          "retain npm optional-peer metadata linked to peer declarations",
+          "retain bounded peerDependenciesMeta relations for declared npm peers"
+        ],
+        "legal_adoption": [
+          "The cited package.json has a verified BSD-2-Clause grant with applicable grant text and notices to retain; that does not establish clearance for any uncited implementation or adoption.",
+          "The cited package.json has a verified BSD-2-Clause grant with applicable grant-text and notice obligations, but it is only metadata and supplies no transferable mechanism. Legal availability does not establish utility or adoption."
+        ]
+      },
+      {
+        "trial": "devostasis-candidate-1",
+        "index": 0,
+        "batch": "devostasis",
+        "arm": "candidate",
+        "need": "optional-source-character-spans",
+        "donor": "devostasis-2",
+        "positive_denominator": true,
+        "both_reviewers_support": true,
+        "reviewer_verdicts": [
+          "duplicate",
+          "confirmed-design"
+        ],
+        "canonical_changes": [
+          "Add opt-in typed AST source spans with explicit coordinate conversion while preserving legacy outputs",
+          "Add opt-in typed source-character spans for AST-backed functions and findings with explicit coordinate and end conventions."
+        ],
+        "legal_adoption": [
+          "Not cleared. Registration was refused because the nested codespan-lsp/LICENSE grant is differing or unresolved; no transfer permission or obligations can be inferred.",
+          "Utility is supported, but transfer clearance is unresolved: the path grant reports a differing or unresolved nested grant at codespan-lsp/LICENSE, with no resolved license expression or obligations. No adoption, merge, release, or human acceptance is established."
+        ]
+      },
+      {
+        "trial": "beautifulrepo-candidate-1",
+        "index": 0,
+        "batch": "beautifulrepo",
+        "arm": "candidate",
+        "need": "balanced-reference-link-text",
+        "donor": "beautifulrepo-1",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "unsupported",
+          "review-unavailable"
+        ],
+        "canonical_changes": [
+          "parse balanced nested display text in reference-link uses",
+          ""
+        ],
+        "legal_adoption": [
+          "No transfer is proposed. The cited donor files have verified MIT grants requiring retention of applicable grant texts and notices; legal transfer clearance remains separate from usefulness.",
+          "Unknown: review unavailable"
+        ]
+      },
+      {
+        "trial": "beautifulrepo-candidate-1",
+        "index": 1,
+        "batch": "beautifulrepo",
+        "arm": "candidate",
+        "need": "inline-link-nesting-precedence",
+        "donor": "beautifulrepo-1",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "not-useful",
+          "review-unavailable"
+        ],
+        "canonical_changes": [
+          "enforce inline-link nesting precedence while preserving image-in-link syntax",
+          ""
+        ],
+        "legal_adoption": [
+          "No transfer is proposed. Verified MIT path grants and notice-retention obligations do not make the mechanism useful or establish broader legal clearance.",
+          "Unknown: review unavailable"
+        ]
+      },
+      {
+        "trial": "crab-candidate-2",
+        "index": 0,
+        "batch": "crab",
+        "arm": "candidate",
+        "need": "dotnet-central-version-relations",
+        "donor": "crab-9",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "not-useful",
+          "not-useful"
+        ],
+        "canonical_changes": [
+          "relate .NET project package references to central package versions",
+          "relate literal .NET PackageReference declarations to central PackageVersion declarations"
+        ],
+        "legal_adoption": [
+          "The cited donor paths have verified MIT grants with applicable grant text and notices to retain, but this establishes obligations only, not human acceptance, adoption, merge, or release.",
+          "The two cited donor paths have verified MIT grants subject to retaining applicable grant texts and notices. That establishes limited path-level legal availability, not usefulness, acceptance, adoption, or clearance for an uncited mechanism."
+        ]
+      },
+      {
+        "trial": "devostasis-candidate-2",
+        "index": 0,
+        "batch": "devostasis",
+        "arm": "candidate",
+        "need": "optional-source-character-spans",
+        "donor": "devostasis-2",
+        "positive_denominator": true,
+        "both_reviewers_support": true,
+        "reviewer_verdicts": [
+          "confirmed-design",
+          "duplicate"
+        ],
+        "canonical_changes": [
+          "Add opt-in typed AST source spans with explicit coordinate conversion while preserving legacy outputs",
+          "Add opt-in typed source-character spans for AST-backed functions and findings with explicit coordinate and end conventions."
+        ],
+        "legal_adoption": [
+          "Not cleared. Registration was refused because the nested codespan-lsp/LICENSE grant is differing or unresolved; utility of the mechanism does not establish permission to transfer donor material or determine obligations.",
+          "Utility is supported, but transfer clearance is unresolved: the path grant reports a differing or unresolved nested grant at codespan-lsp/LICENSE, with no resolved license expression or obligations. No adoption, merge, release, or human acceptance is established."
+        ]
+      },
+      {
+        "trial": "beautifulrepo-candidate-2",
+        "index": 0,
+        "batch": "beautifulrepo",
+        "arm": "candidate",
+        "need": "inline-link-nesting-precedence",
+        "donor": "beautifulrepo-1",
+        "positive_denominator": false,
+        "both_reviewers_support": false,
+        "reviewer_verdicts": [
+          "unsupported",
+          "review-unavailable"
+        ],
+        "canonical_changes": [
+          "enforce inline-link nesting precedence while preserving image-in-link syntax",
+          ""
+        ],
+        "legal_adoption": [
+          "No transfer is proposed. The cited donor paths have verified MIT grants with applicable grant text and notices to retain, but this does not establish utility or complete legal clearance.",
+          "Unknown: review unavailable"
+        ]
+      }
+    ],
+    "review_adequacy": {
+      "beautifulrepo-1": false,
+      "beautifulrepo-2": false,
+      "crab-1": false,
+      "crab-2": false,
+      "devostasis-1": true,
+      "devostasis-2": true
+    }
+  },
+  "post_completion_export_note": "Frozen evaluator is retained byte-for-byte. Supplemental failure-only accounting treats the unavailable reviewer as no support, not a negative or fabricated review. Raw proposed positives remain; all usage gates fail when actual usage is unknown. No retroactive acceptance or rerun. Original export failed on null usage; null is now preserved, known tokens reported only as a lower bound."
+}

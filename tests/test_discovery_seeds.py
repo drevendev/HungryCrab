@@ -14,6 +14,33 @@ from hungry_crab.discovery_seeds import seed_leads
 from hungry_crab.errors import CrabError
 
 
+def test_explicit_literal_anchors_survive_unrelated_filename_words(tmp_path: Path) -> None:
+    donor = repository(tmp_path / "named", {"generic_parser.py": "VALUE = 7\n"})
+    candidate = {
+        "repository": "owned/example",
+        "repo": str(donor),
+        "sha": git(donor, "rev-parse", "HEAD").strip(),
+    }
+    plan = {
+        "needs": [
+            {
+                "id": "coordinates",
+                "queries": ["generic parser words"],
+                "terms": ["Map::lookup", "position/v2", "MAP::LOOKUP"],
+            }
+        ],
+        "candidates": [candidate],
+    }
+    result = seed_leads(plan)
+    lead = result["needs"][0]["leads"][0]
+    assert lead["terms"] == ["map::lookup", "position/v2"]
+    assert lead["term_selection"] == "explicit literal anchors"
+    assert result["source_bodies_read"] is False
+    for invalid in ([], [" "], ["x" * 101], [False], "token", ["x"] * 6):
+        with pytest.raises(CrabError, match="literal anchors"):
+            seed_leads({**plan, "needs": [{**plan["needs"][0], "terms": invalid}]})
+
+
 def test_public_seed_reads_pinned_filenames_without_source_or_instruction_prose(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -494,16 +494,37 @@ def source_index(
 
 
 def _source_paths(
-    reader: GitSourceReader, sha: str, prefix: str = ""
+    reader: GitSourceReader, sha: str, prefix: str = "", *, priority_terms: list[str] | None = None
 ) -> tuple[list[tuple[str, str]], list[dict[str, str]], bool]:
     queue = [prefix]
     files: list[tuple[str, str]] = []
     omissions: list[dict[str, str]] = []
     available = False
     observed_entries = 0
+
+    def priority(path: str) -> tuple[int, int, int, str]:
+        parts = set(path.casefold().split("/"))
+        ancillary = (
+            3
+            if any(p.startswith(".") for p in parts)
+            else 2
+            if parts & {"fixtures", "__fixtures__", "testdata", "test_data", "samples", "examples"}
+            else 1
+            if parts & {"test", "tests", "spec", "specs"}
+            else 0
+        )
+        return (
+            ancillary,
+            -sum(len(t) for t in priority_terms or [] if t in path.casefold()),
+            path.count("/"),
+            path,
+        )
+
     for _ in range(128):
         if not queue or len(files) >= 5000 or observed_entries >= 10000 or reader.expired():
             break
+        if priority_terms is not None:
+            queue.sort(key=priority)
         directory = queue.pop(0)
         entries = reader.tree_entries(sha, directory)
         if entries is None or len(entries) > 5000:
@@ -517,7 +538,13 @@ def _source_paths(
             if len(path.encode("utf-8")) > 2048 or not _evidence_path(path):
                 omissions.append({"path": path[:200], "reason": "unsupported-path"})
             elif mode == "040000":
-                if len(queue) < 128:
+                if priority_terms is not None:
+                    queue.append(path)
+                    if len(queue) > 128:
+                        queue.sort(key=priority)
+                        omitted = queue.pop()
+                        omissions.append({"path": omitted[:200], "reason": "directory-queue-limit"})
+                elif len(queue) < 128:
                     queue.append(path)
                 else:
                     omissions.append({"path": path[:200], "reason": "directory-queue-limit"})

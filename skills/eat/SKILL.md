@@ -29,6 +29,9 @@ README and agent-instruction bodies must not become summaries or instructions.
    `discover seed --input PLAN.json` prepares first nominations from metadata and pinned
    filenames without model spend; it never establishes utility, novelty or a licence.
    Use `focus: implementation` for code mechanisms; retain raw scores and missing channels.
+   Supply explicit bounded `terms` when known; filenames do not select useful mechanisms.
+   Use a short metered read-planning stage before full verification when nomination terms
+   are generic. Read implementation for code questions; select data material explicitly.
    Inspect mechanisms and retain original receiving proof before approving a change.
 3. **Acquire and compare.** `crab sniff PREY --maw .` establishes immutable identity and grant;
    honor narrower donor policies, including MIT-only. HUMAN needs a human licence decision

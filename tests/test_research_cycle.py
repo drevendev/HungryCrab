@@ -96,6 +96,52 @@ def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_pat
     assert json.loads((trial.root / "seed-preparation.json").read_text())["model_calls"] == 0
 
 
+def test_compact_read_plan_can_choose_a_nonseed_pool_member_without_utility_claims(
+    tmp_path: Path,
+) -> None:
+    donor = repository(tmp_path / "donor", {"engine.lua": "return {value = 7}\n"})
+    trial = object.__new__(Trial)
+    trial.root = tmp_path / "trial"
+    trial.root.mkdir()
+    trial.pool = {
+        "other": {
+            "id": "other",
+            "repository": "owned/other",
+            "view": str(donor),
+            "sha": live_context(donor)["sha"],
+        }
+    }
+    trial.needs = [
+        {
+            "id": "lookup",
+            "flow": "Read a source map",
+            "observed": "Missing relation",
+            "expected": "Explicit provenance",
+            "queries": ["source map"],
+        }
+    ]
+    calls = []
+
+    def model(stage: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
+        calls.append(stage)
+        assert "engine.lua" in prompt and "untrusted DATA" in prompt
+        assert "novelty" not in schema["properties"]["lookup"]["properties"]
+        return {
+            "lookup": {
+                "leads": [{"donor": "other", "terms": ["mapEntry"], "reason": "Read mapping"}]
+            }
+        }
+
+    trial.model = model
+    seeds = {
+        "lookup": {"leads": [], "cases_json": "", "probe_reason": "Original acceptance needed"}
+    }
+    answer = trial.refine_seeds(seeds)
+    assert calls == ["read-plan"]
+    assert answer is not None and answer["lookup"]["leads"][0]["donor"] == "other"
+    assert seeds["lookup"]["leads"] == []
+
+
 def test_baseline_has_ordinary_literal_lookup_without_candidate_ast_facts(tmp_path: Path) -> None:
     donor = repository(tmp_path / "donor", {"api.py": "# heading\n" * 90 + "VALUE = 7\n"})
     trial = object.__new__(Trial)
@@ -139,6 +185,44 @@ def test_initial_navigation_reads_implementation_beyond_a_long_docstring(tmp_pat
     )
     assert all(r["end"] - r["start"] < 60 for r in result["donor"])
     assert any("result = 7" in w.get("content", "") for w in result["windows"])
+
+
+@pytest.mark.parametrize("material", ["implementation", "data"])
+def test_design_format_hint_does_not_replace_implementation_inspection(
+    tmp_path: Path, material: str
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    donor = repository(
+        tmp_path / "donor",
+        {
+            "package.json": '{"name":"unrelated-project-description"}\n',
+            "engine.js": "export function collectFlags(value) { return value.flags; }\n",
+        },
+    )
+    trial = object.__new__(Trial)
+    trial.arm = "candidate"
+    trial.commands = Commands(tmp_path / "cli", Path(sys.executable), root)
+    trial.maw = donor
+    trial.context = live_context(donor)
+    trial.pool = {
+        "fixture": {
+            "view": str(donor),
+            "sha": trial.context["sha"],
+            "catalog": ["engine.js", "package.json"],
+        }
+    }
+    need = {
+        "id": "collect-flags",
+        "verification_mode": "design",
+        "source_names": ["package.json"],
+        "maw_evidence": [],
+    }
+    if material == "data":
+        need["source_material"] = "data"
+    result = trial.prepare_source({"donor": "fixture", "terms": ["collectFlags"]}, need)
+    assert {r["path"] for r in result["donor"]} == (
+        {"engine.js"} if material == "implementation" else {"package.json"}
+    )
 
 
 def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:

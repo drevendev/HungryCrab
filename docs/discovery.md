@@ -359,3 +359,28 @@ describe the proposed receiving change and cannot establish that the donor
 already implements it. Missing source claims, including legacy exploratory
 cards, render an explicit unknown in issue previews. Nutrient and ledger IDs
 remain unchanged.
+
+`discover seed` accepts optional per-need `terms`: one to five nonempty literal
+anchors, each at most 100 characters. Explicit anchors keep their order (case-folded
+duplicates collapse) rather than being replaced by filename-frequency tokens.
+Queries still describe the need; these anchors guide bounded lookup and do not
+establish a mechanism, novelty or permission. Automatic term selection remains
+the default. Keep `focus: implementation`, cost/coverage metadata and raw owner
+overrides when appropriate.
+
+The explicitly invoked qualification host can enable `candidate_read_planner` to
+refine metadata nominations before supplying the full verification context. This
+single compact native stage sees receiving needs and actual bounded filenames,
+chooses only pool members and literal anchors, and is charged to the same owned
+attempt, token total and deadline. It produces no utility or acceptance verdict.
+All implementation and novelty evidence must still reach actual assessment.
+For design needs, a conventional `source_names` hint is used only with explicit
+`source_material: data`; the default inspects implementation. Runtime/legacy data
+navigation remains compatible. The deterministic CLI makes no model calls.
+
+Implementation-focused `find` orders its bounded directory frontier before
+ranking files: hidden auxiliary/fixture trees cannot fill the queue ahead of
+ordinary implementation paths. Identifier components affect filename ordering,
+not literal body matching. Directory/queue/path/file/byte/time bounds are
+unchanged, discarded directories remain explicit omissions, and ancillary/tests
+remain eligible. Other search focuses keep their existing traversal.

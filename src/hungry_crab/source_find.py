@@ -79,6 +79,18 @@ def path_role(path: str) -> str:
     return "source" if Path(path).suffix.casefold() in _CODE_SUFFIXES else "other"
 
 
+def filename_terms(terms: list[str]) -> list[str]:
+    """Expand identifier spellings for filename ordering only, never body matches."""
+    result: dict[str, None] = {}
+    for term in terms:
+        result[term.casefold()] = None
+        separated = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", term)
+        separated = re.sub(r"([A-Z])([A-Z][a-z])", r"\1 \2", separated)
+        for part in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", separated):
+            result[part.casefold()] = None
+    return list(result)
+
+
 def find_source(
     repo: Path,
     sha: str,
@@ -111,8 +123,11 @@ def find_source(
     reader = GitSourceReader(repo, byte_limit=65_536, deadline=time.monotonic() + 30)
     if not _commit_pin(reader, sha):
         raise CrabError("literal source search requires an available immutable commit pin")
-    paths, omissions, available = _source_paths(reader, sha, prefix)
     needles = list(dict.fromkeys(t.casefold().strip() for t in terms))
+    path_terms = filename_terms(terms)
+    paths, omissions, available = _source_paths(
+        reader, sha, prefix, priority_terms=path_terms if focus == "implementation" else None
+    )
     eligible = [p for p, _ in paths if not body_excluded(p)]
 
     def priority(path: str) -> int:
@@ -132,7 +147,7 @@ def find_source(
         key=lambda p: (
             priority(p),
             Path(p).suffix.casefold() not in _CODE_SUFFIXES,
-            -sum(t in p.casefold() for t in needles),
+            -sum(len(t) for t in path_terms if t in p.casefold()),
             p,
         )
     )
@@ -238,7 +253,10 @@ def find_source(
         "omissions_not_returned": max(0, len(omissions) - 80),
         "read_limits": {"files": max_files, "bytes": max_bytes, "seconds": 30},
         "coverage": "bounded-literal-search; strings/comments may match; not semantic coverage",
-        "file_order": "focus role convention, source-code-first, literal-path/name; all retained",
+        "file_order": (
+            "focus role, implementation tree frontier, identifier filename association; "
+            "body matches still require original literals; omissions disclosed"
+        ),
         "match_order": (
             "focus path-role convention, literal-specificity, declaration-like text, path/line; "
             "declaration-like is a text heuristic, not syntax proof"

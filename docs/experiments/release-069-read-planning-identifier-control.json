@@ -1,0 +1,73 @@
+{
+  "kind": "Previously exposed navigation control, not fresh usefulness or acceptance",
+  "product_source_identity": "7299056a4ca6d7c5e7cb6d7d61842b432a57c8b85e2b52e573c70f484017357f",
+  "actual_planning_tokens": 7719,
+  "usage_complete": true,
+  "source_locations": [
+    {
+      "need": "npm-optional-peer-evidence",
+      "repository": "pnpm/pnpm",
+      "terms": [
+        "transformPeerDependenciesMeta",
+        "peerDependenciesMeta",
+        "optional"
+      ],
+      "donor_ranges": [
+        {
+          "path": ".github/scripts/assert-windows-crt-static.mjs",
+          "start": 11,
+          "end": 64
+        },
+        {
+          "path": ".github/scripts/assert-windows-crt-static.test.mjs",
+          "start": 77,
+          "end": 130
+        },
+        {
+          "path": ".meta-updater/src/index.ts",
+          "start": 101,
+          "end": 154
+        }
+      ],
+      "actual_content_sha256": [
+        "bdc8f125e30581ed1c13a8b07f24f17d5963d06a334a1f3563ee0a10ed372eeb",
+        "7cde0053c1cb99e3edd1f10434b858759e63e23edd94626db231b38f988b3f51",
+        "ca3ed0be38b4fd8294bebd40be3da23c776d5222e5a94605a64c569542dccafc"
+      ]
+    },
+    {
+      "need": "dotnet-central-version-relations",
+      "repository": "microsoft/MSBuildSdks",
+      "terms": [
+        "PackageVersion",
+        "PackageReference",
+        "VersionOverride",
+        "ManagePackageVersionsCentrally",
+        "CentralPackageVersions"
+      ],
+      "donor_ranges": [
+        {
+          "path": "src/CentralPackageVersions/Sdk/Sdk.props",
+          "start": 4,
+          "end": 25
+        },
+        {
+          "path": "src/CentralPackageVersions/Sdk/Sdk.targets",
+          "start": 5,
+          "end": 58
+        },
+        {
+          "path": "Directory.Packages.props",
+          "start": 1,
+          "end": 48
+        }
+      ],
+      "actual_content_sha256": [
+        "4185663618e6d6b897d0c0197787ec18339d6fe2242dc1898a0f2bf69ab2d8e5",
+        "d2b8eed30afb42868312351ffdaacc87c25ea625db9be881c4f15fdbebaab918",
+        "36d3d9aa482c701efff4c1759a46ee7db81ebd1bc0c2e6b658ef095445345194"
+      ]
+    }
+  ],
+  "limits": "Original find96files,64KiB/file, bounded initialwindows; no donor execution, no utility or legal verdict"
+}
