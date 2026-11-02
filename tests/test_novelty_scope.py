@@ -73,6 +73,20 @@ def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_pa
     assert "return fn" in comparison["hunks"][0]["other"]["content"]
     assert comparison["bindings"][0]["role"] == "receiving-default"
     assert "Not syntax or runtime equivalence" in delta["interpretation"]
+    declarations = projected["declaration_comparisons"]
+    assert declarations["complete"]
+    declaration_delta = declarations["comparisons"][0]
+    assert declaration_delta["exact_declaration_bytes_equal"]
+    assert (
+        declaration_delta["bindings"][0]["location"]["selected_file_sha256"]
+        != (declaration_delta["bindings"][0]["location"]["other_file_sha256"])
+    )
+    view = projected["declaration_change_view"]
+    assert not view["changed_declarations"]
+    assert not view["other_file_changes"]["projected"]
+    assert "imports, globals, helpers" in declarations["interpretation"]
+    # The helper change remains in the full retained diff, not an equal-runtime claim.
+    assert "return None" in comparison["hunks"][0]["selected"]["content"]
     (maw / "app.py").write_text(
         "@other\ndef flow():\n    return 1\n", encoding="utf-8", newline="\n"
     )
@@ -82,6 +96,11 @@ def test_declaration_projection_retains_decorators_and_helper_uncertainty(tmp_pa
     assert (
         changed["targets"][0]["declarations"][0]["content_sha256"] != declaration["content_sha256"]
     )
+    view = changed["declaration_change_view"]
+    assert not view["declaration_comparisons"]["comparisons"][0]["exact_declaration_bytes_equal"]
+    hunks = view["changed_declarations"][0]["differences"]["comparisons"][0]["hunks"]
+    assert hunks[0]["selected"]["content"].startswith("@other\n")
+    assert hunks[0]["other"]["content"].startswith("@helper\n")
 
 
 def test_change_projection_bounds_large_gaps_and_does_not_infer_missing_source(
@@ -123,6 +142,10 @@ def test_declaration_absence_ambiguity_and_scope_are_explicit(tmp_path: Path) ->
         "declaration-ambiguous",
         "declaration-absent",
     ]
+    assert all(
+        not row["exact_declaration_bytes_equal"]
+        for row in result["declaration_comparisons"]["comparisons"]
+    )
     plan["symbols"] = [{"path": "elsewhere.py", "qualified_name": "flow"}]
     with pytest.raises(CrabError, match="in scope"):
         implementation_scope(maw, plan)
@@ -195,3 +218,26 @@ def test_unrelated_nonregular_tree_does_not_poison_checked_module_scope(tmp_path
     )
     assert result["implementation_scope_complete"]
     assert len(result["sources"]) == 1 and not result["omissions"]
+
+
+def test_changed_declaration_view_bounds_bodies_without_deleting_raw_source(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def flow():\n    return 1\n"})
+    before = git(maw, "rev-parse", "HEAD").strip()
+    body = "def flow():\n" + "    # retained original large body\n" * 400 + "    return 2\n"
+    (maw / "app.py").write_text(body, encoding="utf-8", newline="\n")
+    git(maw, "add", ".")
+    git(maw, "commit", "-m", "test: large changed declaration")
+    result = implementation_scope(
+        maw,
+        {
+            "prefixes": ["app.py"],
+            "default_sha": before,
+            "symbols": [{"path": "app.py", "qualified_name": "flow"}],
+        },
+    )
+    view = result["declaration_change_view"]
+    assert not view["declaration_comparisons"]["comparisons"][0]["exact_declaration_bytes_equal"]
+    delta = view["changed_declarations"][0]["differences"]
+    assert not delta["complete"]
+    assert delta["comparisons"][0]["omitted_hunks"] > 0
+    assert any(source["content"] == body for source in result["sources"].values())
