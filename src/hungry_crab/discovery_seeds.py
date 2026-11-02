@@ -52,11 +52,27 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             or any(not isinstance(q, str) or not 1 <= len(q) <= 256 for q in queries)
         ):
             raise CrabError("seed need requires unique identity and bounded query strings")
-        terms = list(dict.fromkeys(re.findall(r"[a-z_][a-z0-9_]{2,47}", " ".join(queries).lower())))
+        anchors = need.get("terms")
+        if anchors is not None and (
+            not isinstance(anchors, list)
+            or not 1 <= len(anchors) <= 5
+            or any(not isinstance(t, str) or not 1 <= len(t.strip()) <= 100 for t in anchors)
+        ):
+            raise CrabError("seed terms must be 1..5 bounded nonempty literal anchors")
+        terms = list(
+            dict.fromkeys(
+                t.casefold().strip()
+                for t in (
+                    anchors
+                    if anchors is not None
+                    else re.findall(r"[a-z_][a-z0-9_]{2,47}", " ".join(queries).lower())
+                )
+            )
+        )
         if not terms:
             raise CrabError("seed query needs at least one bounded literal token")
         seen_needs.add(identity)
-        parsed_needs.append((identity, terms[:32]))
+        parsed_needs.append((identity, terms[:32], anchors is not None))
     deadline = time.monotonic() + 60
     rows: list[dict[str, Any]] = []
     omissions = []
@@ -123,7 +139,7 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             }
         )
     results = []
-    for identity, terms in parsed_needs:
+    for identity, terms, explicit_terms in parsed_needs:
         ranked = []
         for row in rows:
             paths = sorted(
@@ -136,7 +152,11 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
                 ),
             )
             scores = {t: sum(t in p.casefold() for p in paths[:24]) for t in terms}
-            selected_terms = sorted(terms, key=lambda t: (-scores[t], -len(t), t))[:5]
+            selected_terms = (
+                terms
+                if explicit_terms
+                else sorted(terms, key=lambda t: (-scores[t], -len(t), t))[:5]
+            )
             metadata_hits = sum(t in row["description"].casefold() for t in terms)
             path_hits = sum(any(t in p.casefold() for p in paths[:8]) for t in terms)
             association = metadata_hits + path_hits
@@ -158,6 +178,9 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
                     "repository": row["repository"],
                     "sha": row["sha"],
                     "terms": selected_terms,
+                    "term_selection": "explicit literal anchors"
+                    if explicit_terms
+                    else "filename association",
                     "paths": paths[:8],
                     "literal_association": association,
                     "implementation_association": implementation_association,

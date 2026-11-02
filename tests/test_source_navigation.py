@@ -16,6 +16,54 @@ from hungry_crab.source_inspection import _source_paths, source_index, source_pa
 from hungry_crab.source_lines import physical_lines
 
 
+def test_identifier_parts_navigate_under_file_cap_without_loosening_literal_match(
+    tmp_path: Path,
+) -> None:
+    repo = repository(
+        tmp_path / "donor",
+        {
+            ".github/scripts/ancillary.js": "const optional = true;\n",
+            "src/coordinate/project.js": "function projectCoordinate(x) { return x; }\n",
+            "src/map.js": "// coordinate text without the requested identifier\n",
+        },
+    )
+    sha = git(repo, "rev-parse", "HEAD").strip()
+    result = find_source(repo, sha, ["projectCoordinate", "optional"], max_files=1)
+    assert result["matches"][0]["path"] == "src/coordinate/project.js"
+    assert result["matches"][0]["terms"] == ["projectcoordinate"]
+    assert result["files_inspected"] == 1
+    absent = find_source(repo, sha, ["projectCoordinate"], prefix="src/map.js", max_files=1)
+    assert absent["matches"] == []
+
+
+def test_wide_fixture_tree_cannot_fill_queue_before_nested_implementation() -> None:
+    class Reader:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def expired(self) -> bool:
+            return False
+
+        def tree_entries(self, sha: str, directory: str) -> dict[str, str]:
+            self.calls += 1
+            if directory == "":
+                return {"fixtures": "040000", "workspace": "040000"}
+            if directory == "fixtures":
+                return {f"sample-{n:03}": "040000" for n in range(200)}
+            if directory == "workspace":
+                return {"src": "040000"}
+            if directory == "workspace/src":
+                return {"coordinates.py": "100644"}
+            return {"example.json": "100644"}
+
+    reader = Reader()
+    files, omissions, available = _source_paths(reader, "a" * 40, priority_terms=["coordinate"])  # type: ignore[arg-type]
+    assert available and ("workspace/src/coordinates.py", "100644") in files
+    assert reader.calls <= 128
+    assert any(o["reason"] == "directory-queue-limit" for o in omissions)
+    assert any(o["reason"] == "tree-path-directory-or-time-budget" for o in omissions)
+
+
 def test_unicode_source_characters_do_not_move_parser_or_literal_ranges(tmp_path: Path) -> None:
     source = "value = 'a\u0085\u2028\u2029\v\fb'\ndef target():\n    return value\n"
     repo = repository(tmp_path / "donor", {"app.py": source})

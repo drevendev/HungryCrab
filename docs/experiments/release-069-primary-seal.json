@@ -1,0 +1,392 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured primary-source-repair arm",
+  "sealed_at": "2026-11-02T14:46:43.772015+00:00",
+  "candidate": {
+    "commit": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+    "source_identity": "10f8bf9199630ac7d97e4854d04fca45d91409ef964a708dcd673baf105b1dfc",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "standards_exposure": "Root read Python3.12 AST public documentation for UTF-8 offset/end-position semantics; no nominated donor code or source judgment inspected before seal. Shared standards/dependencies/ports and pretraining exposure remain explicit.",
+    "shared_setup": "Thirty original immutable nominations;28paired acquisitions/digests plus two export-budget holds, shared identically before either arm. Filename catalogues only. No new donor source body or shared investigation/review judgment supplied before seal. Prior receiving findings excluded; standards/pretraining/shared ports exposure remains explicit.",
+    "prior_repository_identities": 284,
+    "prior_provider_ids": 271,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All previous confirmed and provisional findings, including HungryCrab563/564/565/571/572/575/576, BeautifulRepo240/241/243 and Devostasis117/118/119, configuration/HTML repairs, generic scan-budget suggestions. Earlier unassessed Gradle need remains unfinished in its original record and is outside this cohort's active scope; no completion is claimed."
+    ],
+    "lineage": [
+      "npm/cli,package-json and normalize-package-data are related packages; classic Yarn and pnpm share ecosystem concepts. No independent change count per donor.",
+      "Python diagnostic libraries may depend on already exposed ASTTokens or each other; actual own source and any delegated/unknown mechanism must be distinguished. Ariadne GitHub snapshot is archived after a Codeberg move, not a current-product recommendation.",
+      "Markdown projects can share MarkdownTest/CommonMark fixtures. Previously exposed prose/examples are not a fresh mechanism; own parser source requires actual inspection. Family/port/pretraining independence is not guaranteed.",
+      "New filename roles are inert conventions, not AST support, source quality, usefulness or permission. Tests cover independent language/directory/fixture-volume controls; no repository-specific boosts."
+    ],
+    "cost": "All actual native input including cached+output and elapsed time retained. Currency/setup/engineering/coordination/whole-project costs unknown; no aggregate efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "source_and_host_repairs": [
+      "574 shared language roles/catalog, source-before-fixture retention and explicit implementation-focused association/coverage with raw/any overrides"
+    ],
+    "receiving": {
+      "crab": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+      "devostasis": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "beautifulrepo": "9a16200bf5a0c183910312e15d894d1137dc590d"
+    },
+    "shared_acquisition_runs": [
+      41463155114,
+      41463155056
+    ],
+    "donor_or_receiving_drift": [],
+    "metadata_refinements": [
+      "gwkkwg/cl-markdown redirects1156524; canonical hraban/cl-markdown verified by provider identity.",
+      "yarnpkg/berry historical metadata size2932708KiB; shallow export unknown. Conservative acquisition-fit nomination uses classic yarnpkg/yarn instead, before any source/body/model investigation, with unchanged64MiB export bound. Related Yarn/npm families disclosed."
+    ],
+    "receiving_needs": "Five source-grounded additive flows(2/1/2), frozen before new source investigation. Earlier confirmed/provisional designs excluded, including Cargo/markers/contribution traces. Prior unfinished Gradle scope remains retained, not completed. Root inspected own pending244 helper bodies and clarified that a flat regex alone does not prove additional utility; original receiving reconciliation is retained.",
+    "candidate_declaration_view": "Actual public CLI view only when exact serialized transport is smaller; all raw files/changes/bindings and external-helper uncertainty retained. Baseline gets original actual scope, no candidate CLI backport.",
+    "preparation_hold_amendment": {
+      "recorded_before_any_native_call": true,
+      "original_nominees": 30,
+      "eligible_pairs": 28,
+      "held": "npm/cli and yarnpkg/yarn exceeded unchanged export byte budget. Same28eligible pool botharms. Original receipts/costs retained, no raised limit, replacement or source/outcome selection."
+    },
+    "open_pr_delta": "Only539open in HungryCrab; all14Devostasis pending heads captured; BeautifulRepo default9a16200 includes externally merged242 and open244source-anchors captured. No source-anchor feature is fresh yield. No PR merged by this task."
+  },
+  "protocol_amendment": "574: shared implementation roles/catalog, source-before-fixture retention, explicit implementation-focused source coverage with raw/default-any overrides. Same actual caps, skills, two continuation rounds and six masked reviews. Twelve independent trials in preregistered two-trial blocks, at most2concurrent; fixed balanced launch order and barrier after each pair. No shared investigation judgments or extra model budgets.",
+  "parallel_schedule": "Six fixed two-trial blocks in the balanced schedule; launch in declared order, wait both before next block, at most2concurrent. Separate native contexts/meters/artifact roots; shared frozen receiving/source facts only, no shared judgments. Same per-trial actual caps; no efficiency/generalization claim.",
+  "receiving_reconciliation": "Own pending244 wrappers and actual underlying helpers inspected before any new-cohort native inference. Existing shortcut compensation/source-anchor work must not be mistaken for fresh utility. Same source pool, goals, caps and gates; no new donor body or outcome informed this clarification.",
+  "evaluation_method": "All native verified-gap and either reviewer substantive positive proposals stay in precision denominator. Align trial/index, never cross-reviewer canonical wording. Duplicate supports count only with a confirmed representative in the SAME review. Conservatively at most one unique receiving change per declared need per arm across repeats; merge explicit reviewer equivalences across needs too. No reviewer-created yield or supervisor usefulness arbitration. Source/design/runtime/legal/publication/adoption remain separate.",
+  "nomination_holds": [
+    {
+      "batch": "crab",
+      "id": "crab-1",
+      "receipt": {
+        "repository": "npm/cli",
+        "nominated_sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+        "status": "held",
+        "model_trials_started": 0,
+        "sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+        "pin_changed": false,
+        "catch": {
+          "slug": "npm/cli",
+          "url": "https://github.com/npm/cli.git",
+          "repo_dir": "/home/runner/work/_temp/crab-acquisition-fiiu_s2s/volume/qualification-cache/github/npm/cli/repo",
+          "sha": "fc517df18fb59a33b39d383c6766690bc427ac06",
+          "default_branch": "latest",
+          "shallow": true,
+          "since": null,
+          "updated": false,
+          "caught_at": "2026-11-02T14:34:26+00:00",
+          "issues_fetched": 0,
+          "wiki": {
+            "status": "disabled",
+            "sha": null
+          },
+          "history_window_applied": null
+        },
+        "provider_id": 139910229,
+        "reason": "ValueError: export byte budget exhausted"
+      },
+      "effect": "Same pre-inference unavailable preparation channel in both arms; retained among30 original nominations, not a source utility or licence verdict. No raised caps, source replacement or model outcome informed treatment."
+    },
+    {
+      "batch": "crab",
+      "id": "crab-3",
+      "receipt": {
+        "repository": "yarnpkg/yarn",
+        "nominated_sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+        "status": "held",
+        "model_trials_started": 0,
+        "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+        "pin_changed": false,
+        "catch": {
+          "slug": "yarnpkg/yarn",
+          "url": "https://github.com/yarnpkg/yarn.git",
+          "repo_dir": "/home/runner/work/_temp/crab-acquisition-fiiu_s2s/volume/qualification-cache/github/yarnpkg/yarn/repo",
+          "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147",
+          "default_branch": "master",
+          "shallow": true,
+          "since": null,
+          "updated": false,
+          "caught_at": "2026-11-02T14:34:51+00:00",
+          "issues_fetched": 0,
+          "wiki": {
+            "status": "disabled",
+            "sha": null
+          },
+          "history_window_applied": null
+        },
+        "provider_id": 49970642,
+        "reason": "ValueError: export byte budget exhausted"
+      },
+      "effect": "Same pre-inference unavailable preparation channel in both arms; retained among30 original nominations, not a source utility or licence verdict. No raised caps, source replacement or model outcome informed treatment."
+    }
+  ],
+  "eligible_by_maw": {
+    "crab": 8,
+    "devostasis": 10,
+    "beautifulrepo": 10
+  },
+  "sealed_sha256": "9942216221801adaf41e3cb52b7ccb9b22faf13fa2b9aaf9b926bad9d9a4be79",
+  "pool": [
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "npm/cli",
+      "sha": "fc517df18fb59a33b39d383c6766690bc427ac06"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "pnpm/pnpm",
+      "sha": "f2655515566f10e3fc4205ad231847855e13894d"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "yarnpkg/yarn",
+      "sha": "c2dda503f3759b5be5f0e24ecd9cf5c97a540147"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "npm/package-json",
+      "sha": "a7dafdbdee34c96c672862fadde9ae5b594c938e"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "npm/normalize-package-data",
+      "sha": "34c98503c4e828a166aa3bb78a4cb0525af3c8f5"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "NuGet/NuGet.Client",
+      "sha": "aa539166b2ff5abf970ee44281d73c96e3dbaa1a"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "CycloneDX/cyclonedx-dotnet",
+      "sha": "051582cc8939e81a468a3961b51763d6f4ead31f"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "microsoft/component-detection",
+      "sha": "d2b7149e483886f48e041ef243762aba0e05cd60"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "dotnet-outdated/dotnet-outdated",
+      "sha": "5002ab07f4128dd63e2df556ae01f415e49926fb"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "microsoft/MSBuildSdks",
+      "sha": "eeadbd0c1d4fecbd95f5c6d4c8194726998508bc"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "zesterer/ariadne",
+      "sha": "5e62913d34dabf34140ad812448dc8faae5abf15"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "brendanzab/codespan",
+      "sha": "b56329354ce0ecbe4afe7c85f7b76417678a5ef8"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "rust-lang/annotate-snippets-rs",
+      "sha": "fece78576e7c925900be65b059698b3a6c02d5e9"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "zkat/miette",
+      "sha": "e853bbf9bc78bbe0b225995de54a3108d77dcaf8"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "cessen/ropey",
+      "sha": "1992665990964e5eee68a42a1aed2bd7abcfda87"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "alexmojaki/executing",
+      "sha": "5c15c1d03c9e6bc90fb3e5cd5174398d92853784"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "friendly-traceback/friendly-traceback",
+      "sha": "995a95b3bec2592e96b25134d6a58002d021978d"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "Qix-/better-exceptions",
+      "sha": "b928ff9e2c933cdd3b27321c766ce68bfa60826c"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "getsentry/sentry-python",
+      "sha": "7ad4e1a4270b3c79a41b42b0596b7092bcf976d9"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "alexmojaki/stack_data",
+      "sha": "dc2eae9b4b75d1d6c485f7335b819a2a0ac5ca6f"
+    },
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "3b/3bmd",
+      "sha": "bc7ae591e58a4db60ff41c2b550323bab2c6dfd0"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "hraban/cl-markdown",
+      "sha": "3788802199228b49d0e06c3feb80c1c22af05cfc"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "houseabsolute/Markdent",
+      "sha": "80c0a9f831fe3bd1b1514667a10fd4fa07fe461c"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "perlancar/perl-Markdown-Parser-Tiny",
+      "sha": "17b32547e2ee0c7a12a1653e055b9c5cec2f966d"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "tristanjuricek/knockoff",
+      "sha": "93caedec766d9d10b013b18bc664b45f638d0806"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "edadma/markdown",
+      "sha": "217709321c2a596c0ade1c90da2d6d257f2ffbdb"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "bradsharp/Romarkable",
+      "sha": "f4eb406c3db03f693427fa0778706d1ec22e1cab"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "skynetlua/fast-markdown-lua",
+      "sha": "38c3845fd49439e2ebddec294567158195771a0f"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "nerima-lisp/cl-markdown-kit",
+      "sha": "fdb19cf8cda2064e7471654fc9b979c2d7a0fc52"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "masak/simple-markdown-parser",
+      "sha": "c2d977146a8b9e4efc27fb76e945442cd7266d29"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "6b0a0db8cdf66656783e24fd8a22ed76952ac9e0",
+      "needs": [
+        {
+          "id": "npm-optional-peer-evidence",
+          "verification_mode": "design"
+        },
+        {
+          "id": "dotnet-central-version-relations",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "optional-source-character-spans",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "9a16200bf5a0c183910312e15d894d1137dc590d",
+      "needs": [
+        {
+          "id": "balanced-reference-link-text",
+          "verification_mode": "design"
+        },
+        {
+          "id": "inline-link-nesting-precedence",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}
