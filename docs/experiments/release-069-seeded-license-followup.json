@@ -1,0 +1,539 @@
+{
+  "schema": 1,
+  "kind": "Post-repair immutable-path regression replay; not a new utility/discovery result",
+  "recorded_at": "2026-11-02T10:45:01.246205+00:00",
+  "source": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "014b699631da54ce77f393b03866f50e46263e940f6b2c36f77b9d5e4088b432"
+  },
+  "rows": [
+    {
+      "repository": "withoutboats/heck",
+      "sha": "252c1906cefefb8d13ecad7fce7b8f27ce6437e0",
+      "path": "src/lib.rs",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "src/lib.rs",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "Apache-2.0 OR MIT",
+        "chosen_branch": "MIT"
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "withoutboats/heck",
+      "sha": "252c1906cefefb8d13ecad7fce7b8f27ce6437e0",
+      "path": "src/kebab.rs",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "src/kebab.rs",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "Apache-2.0 OR MIT",
+        "chosen_branch": "MIT"
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "withoutboats/heck",
+      "sha": "252c1906cefefb8d13ecad7fce7b8f27ce6437e0",
+      "path": "src/lower_camel.rs",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "src/lower_camel.rs",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE-APACHE",
+          "LICENSE-MIT"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "Apache-2.0 OR MIT",
+        "chosen_branch": "MIT"
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "AlejandroFrias/case-conversion",
+      "sha": "14ea3306249b54b35bd2f9cf3f952dae24947625",
+      "path": "case_conversion/parser.py",
+      "measured_expression": "MIT",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "case_conversion/parser.py",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE.md"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "clj-commons/camel-snake-kebab",
+      "sha": "92b1ee45cdac6bad10e0a3b6c0820b22f8dd5cf3",
+      "path": "project.clj",
+      "measured_expression": "EPL-1.0",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "project.clj",
+        "expression": "EPL-1.0",
+        "evidence": [
+          "LICENSE.txt"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "EPL-1.0",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY_FILE",
+      "obligations": [
+        "file-license"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "clj-commons/camel-snake-kebab",
+      "sha": "92b1ee45cdac6bad10e0a3b6c0820b22f8dd5cf3",
+      "path": "deps.edn",
+      "measured_expression": "EPL-1.0",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "deps.edn",
+        "expression": "EPL-1.0",
+        "evidence": [
+          "LICENSE.txt"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "EPL-1.0",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY_FILE",
+      "obligations": [
+        "file-license"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "clojure/tools.deps",
+      "sha": "dec86fcce4787c0a778fee673bf1e9e03b1a304a",
+      "path": "deps.edn",
+      "measured_expression": "EPL-1.0",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "deps.edn",
+        "expression": "EPL-1.0",
+        "evidence": [
+          "LICENSE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "EPL-1.0",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY_FILE",
+      "obligations": [
+        "file-license"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "SwiftGen/SwiftGen",
+      "sha": "ddb03a73cab2a9feaf870b00ecab0fdda3d451e1",
+      "path": "Package.swift",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "Package.swift",
+        "expression": "MIT",
+        "evidence": [
+          "LICENCE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "SwiftGen/SwiftGen",
+      "sha": "ddb03a73cab2a9feaf870b00ecab0fdda3d451e1",
+      "path": "Package.resolved",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "Package.resolved",
+        "expression": "MIT",
+        "evidence": [
+          "LICENCE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "boostorg/graph",
+      "sha": "84930b0183454c3cfabef67b5f5c566037ed3c8e",
+      "path": "include/boost/graph/tiernan_all_cycles.hpp",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "include/boost/graph/tiernan_all_cycles.hpp",
+        "expression": "BSL-1.0",
+        "evidence": [
+          "LICENSE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "data-or-documentation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "BSL-1.0",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "Rich-Harris/locate-character",
+      "sha": "08bc0b7674e53239083988c961057fe59f6265e2",
+      "path": "src/index.js",
+      "measured_expression": null,
+      "measured_reason": "no bounded established root grant",
+      "current_path_grant": {
+        "path": "src/index.js",
+        "expression": null,
+        "evidence": [],
+        "notices": [],
+        "reason": "no bounded established root grant",
+        "material_role": "unknown",
+        "scope": "unresolved",
+        "obligations": [],
+        "references": [],
+        "declared_expression": null,
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "IDEAS_ONLY",
+      "obligations": [],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "open-alchemy/json-source-map",
+      "sha": "5c4f44323c0a8d9cd9b9af4348c43f24fb3b892c",
+      "path": "json_source_map/handle.py",
+      "measured_expression": "MIT",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "json_source_map/handle.py",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "open-alchemy/json-source-map",
+      "sha": "5c4f44323c0a8d9cd9b9af4348c43f24fb3b892c",
+      "path": "json_source_map/types.py",
+      "measured_expression": "MIT",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "json_source_map/types.py",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "open-alchemy/json-source-map",
+      "sha": "5c4f44323c0a8d9cd9b9af4348c43f24fb3b892c",
+      "path": "json_source_map/advance.py",
+      "measured_expression": "MIT",
+      "measured_reason": "verified immutable path grant; retain all applicable notices",
+      "current_path_grant": {
+        "path": "json_source_map/advance.py",
+        "expression": "MIT",
+        "evidence": [
+          "LICENSE"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "vfile/vfile-location",
+      "sha": "8d5d41dca227bc2d6535d3d293b31287d5d7953f",
+      "path": "index.d.ts",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "index.d.ts",
+        "expression": "MIT",
+        "evidence": [
+          "license"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "vfile/vfile-location",
+      "sha": "8d5d41dca227bc2d6535d3d293b31287d5d7953f",
+      "path": "lib/index.js",
+      "measured_expression": null,
+      "measured_reason": "unresolved operative root grant",
+      "current_path_grant": {
+        "path": "lib/index.js",
+        "expression": "MIT",
+        "evidence": [
+          "license"
+        ],
+        "notices": [],
+        "reason": "verified immutable path grant; retain all applicable notices",
+        "material_role": "implementation",
+        "scope": "inherited-equivalent-grants",
+        "obligations": [
+          "retain-applicable-grant-texts",
+          "retain-applicable-notices"
+        ],
+        "references": [],
+        "declared_expression": "MIT",
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "COPY",
+      "obligations": [
+        "copyright-notice"
+      ],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "duereg/find-line-column",
+      "sha": "756b2547cf224714d2928e08afb6be2ba17048a3",
+      "path": "findLineColumn.js",
+      "measured_expression": null,
+      "measured_reason": "no bounded established root grant",
+      "current_path_grant": {
+        "path": "findLineColumn.js",
+        "expression": null,
+        "evidence": [],
+        "notices": [],
+        "reason": "no bounded established root grant",
+        "material_role": "unknown",
+        "scope": "unresolved",
+        "obligations": [],
+        "references": [],
+        "declared_expression": null,
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "IDEAS_ONLY",
+      "obligations": [],
+      "later_policy_and_receipts_still_required": true
+    },
+    {
+      "repository": "duereg/find-line-column",
+      "sha": "756b2547cf224714d2928e08afb6be2ba17048a3",
+      "path": "test/basic.spec.js",
+      "measured_expression": null,
+      "measured_reason": "no bounded established root grant",
+      "current_path_grant": {
+        "path": "test/basic.spec.js",
+        "expression": null,
+        "evidence": [],
+        "notices": [],
+        "reason": "no bounded established root grant",
+        "material_role": "unknown",
+        "scope": "unresolved",
+        "obligations": [],
+        "references": [],
+        "declared_expression": null,
+        "chosen_branch": null
+      },
+      "normal_mit_maw_mode": "IDEAS_ONLY",
+      "obligations": [],
+      "later_policy_and_receipts_still_required": true
+    }
+  ],
+  "safety": {
+    "human_override": false,
+    "source_transfer": false,
+    "donor_execution": false,
+    "original_measured_holds_rewritten": false
+  }
+}

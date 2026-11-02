@@ -8,6 +8,21 @@ from typing import Any
 from research_host import identity
 
 
+def requested_window_ids(windows: list[dict[str, Any]], answer: dict[str, Any]) -> set[str]:
+    """Also resupply prior bodies when the investigator explicitly requests them."""
+    result = set()
+    for operation in answer.get("operations", []):
+        side = "donor" if operation["side"] == "donor-search" else operation["side"]
+        for window in windows:
+            if window.get("side") != side or window.get("path") != operation["path"]:
+                continue
+            if operation["side"] == "donor-search" or (
+                window["start"] <= operation["end"] and window["end"] >= operation["start"]
+            ):
+                result.add(window["id"])
+    return result
+
+
 def continuation_packet(
     facts: dict[str, Any], prior_facts: dict[str, Any], prior_answer: dict[str, Any]
 ) -> dict[str, Any]:
@@ -27,7 +42,11 @@ def continuation_packet(
         if any(key not in old or old[key]["side"] != side for key in prior_answer[field]):
             raise RuntimeError("checkpoint cites an unread or wrong-role prior witness")
     result = copy.deepcopy(facts)
-    result["actual_windows"] = [w for key, w in current.items() if key not in old]
+    requested = requested_window_ids(list(current.values()), prior_answer)
+    result["actual_windows"] = [
+        w for key, w in current.items() if key not in old or key in requested
+    ]
+    result["resent_prior_window_ids"] = sorted(requested & old.keys())
     cited = set(prior_answer["source_evidence"] + prior_answer["maw_evidence"])
     result["previous_read_window_index"] = [
         {key: value for key, value in w.items() if key != "content"}

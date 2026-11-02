@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -180,7 +181,6 @@ _SIGNATURES: tuple[_Signature, ...] = (
     ("CC-BY-SA-3.0", ("attribution-sharealike 3.0",), ()),
     ("CC-BY-3.0", ("attribution 3.0 unported",), ()),
     ("GFDL-1.3-only", ("gnu free documentation license",), ()),
-    ("BSL-1.0", ("boost software license",), ()),
     ("WTFPL", ("do what the fuck you want to public license",), ()),
     ("Artistic-2.0", ("artistic license 2.0",), ()),
     ("PostgreSQL", ("postgresql license",), ()),
@@ -419,6 +419,15 @@ def detect_from_text(text: str) -> tuple[str | None, float]:
     ident = find_spdx_identifier(text)
     body = _SPDX_ID_RE.sub("", text) if ident else text
     normalized = _norm(body)
+    if normalized.startswith("boost software license"):
+        # Complete standard text, verified against SPDX license-list-data/text/BSL-1.0.txt.
+        # Boost shares MIT's introductory phrase; a heading alone proves no grant.
+        established = hashlib.sha256(normalized.encode()).hexdigest() == (
+            "1038fefb4162c5e42b425e328f9ef076b1246ea7c15b8eafea6ffe507f7be3f0"
+        )
+        if established and (not ident or canonical_expression(ident) == "BSL-1.0"):
+            return "BSL-1.0", 0.99
+        return None, 0.0
     # An MIT-looking grant must account for the operative text, including appended riders.
     # A tag embedded in that same document cannot overrule contradictory terms.
     if "permission is hereby granted, free of charge" in normalized:
@@ -669,7 +678,11 @@ def _copyright_metadata(line: str) -> bool:
         if collective.group(2) and not _attribution_identifier(collective.group(2)):
             return False
         holder = collective.group(1)
-    project = re.fullmatch(r"(?:[Tt]he )?([A-Za-z0-9-]{1,63}) (?:developers|contributors)", holder)
+    project = re.fullmatch(
+        r"(?:the )?([A-Za-z0-9-]{1,63})(?: project)? (?:developers|contributors)",
+        holder,
+        re.I,
+    )
     if project is not None:
         return _attribution_identifier(project.group(1))
     team = re.fullmatch(r"([A-Za-z0-9-]{1,63}) dev team: (.+)", holder)
@@ -776,11 +789,15 @@ def _detect_mit(text: str) -> tuple[str | None, float]:
     # Two exact typographical representations of the same quoted expressions.
     # Never remove arbitrary punctuation, suffixes or operative words.
     body = body.replace('""software""', '"software"').replace("*as is*", '"as is"')
+    body = body.replace("'software'", '"software"').replace("'as is'", '"as is"')
+    body = body.replace(
+        "particular purpose and non-infringement.", "particular purpose and noninfringement."
+    )
     # A complete title may be parenthesized; arbitrary parenthesized prose is
     # still operative/unknown. The full grant, condition and disclaimer follow.
     title = re.compile(
-        r"(?:(?:the )?mit(?:-0| no attribution)?(?: license)?(?: \(mit\))?|"
-        r"expat license|\((?:the )?mit license\))[.:]?"
+        r"(?:(?:the )?mit(?:-0| no attribution)?(?: licen[cs]e)?(?: \(mit\))?|"
+        r"expat licen[cs]e|\((?:the )?mit licen[cs]e\))[.:]?"
     )
     prefix = text[: start.start()].splitlines()
     for index, raw in enumerate(prefix):
