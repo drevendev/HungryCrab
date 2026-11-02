@@ -36,6 +36,41 @@ def test_scoring_shape_and_non_string_member_are_bounded() -> None:
     validate({"scoring": {"traits": {"zero": 0, "one": 1}}})
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"mode\n\x1b[31m": True},
+        {"trust": {"bad\rkey": True}},
+        {"serve": {"bad\u2028key": True}},
+        {"hunger": {"bad\tkey": True}},
+    ],
+)
+def test_unknown_config_member_diagnostic_is_single_line(data: dict[str, object]) -> None:
+    with pytest.raises(UsageError) as error:
+        validate(data)
+    message = error.value.message
+    assert any(escaped in message for escaped in (r"\n", r"\r", r"\t", r"\u2028"))
+    assert all(char not in message for char in ("\n", "\r", "\x1b", "\u2028", "\t"))
+    assert len(message) <= 650
+
+
+def test_unknown_config_member_diagnostic_is_bounded_with_many_long_keys() -> None:
+    unknown = {f"bad-{i:04d}-" + "x" * 1000: True for i in range(40)}
+    with pytest.raises(UsageError) as error:
+        validate(unknown)
+    assert len(error.value.message) <= 650
+    assert "(+35 more)" in error.value.message
+    assert "..." in error.value.message
+
+
+def test_unknown_config_member_typo_hint_and_valid_controls() -> None:
+    with pytest.raises(UsageError) as error:
+        validate({"trust": {"bypas_license": True}})
+    assert error.value.message == "unknown trust keys: bypas_license"
+    assert error.value.hint == "did you mean: bypass_license"
+    validate({"mode": "strict", "trust": {"same_owner": True, "bypass_license": False}})
+
+
 def test_scoring_rewrite_keeps_comments_by_full_member_path(tmp_path: Path) -> None:
     path = tmp_path / ".crab.yml"
     path.write_bytes(

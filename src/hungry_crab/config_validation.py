@@ -8,20 +8,42 @@ from typing import Any
 
 from .errors import UsageError
 
+_DIAGNOSTIC_MEMBERS = 5
+
+
+def _display_member(key: str, *, limit: int = 96) -> str:
+    """Display an untrusted configuration key on one bounded, escaped line."""
+    parts: list[str] = []
+    width = 0
+    for character in key:
+        escaped = character.encode("unicode_escape").decode("ascii")
+        if width + len(escaped) > limit:
+            parts.append("...")
+            break
+        parts.append(escaped)
+        width += len(escaped)
+    return "".join(parts)
+
 
 def section(value: object, name: str, allowed: set[str]) -> dict[str, Any]:
     if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
         raise UsageError(f"{name} must be a mapping")
     unknown = sorted(set(value) - allowed)
     if unknown:
-        suggestions = [
-            match
-            for key in unknown
-            for match in difflib.get_close_matches(key, sorted(allowed), n=1, cutoff=0.5)
-        ]
+        visible = unknown[:_DIAGNOSTIC_MEMBERS]
+        labels = ", ".join(_display_member(key) for key in visible)
+        if len(unknown) > len(visible):
+            labels += f", ... (+{len(unknown) - len(visible)} more)"
+        suggestions = list(
+            dict.fromkeys(
+                match
+                for key in visible
+                for match in difflib.get_close_matches(key, sorted(allowed), n=1, cutoff=0.5)
+            )
+        )
         raise UsageError(
-            f"unknown {name} keys: {', '.join(unknown)}",
-            hint="did you mean: " + ", ".join(suggestions)
+            f"unknown {name} keys: {labels}",
+            hint="did you mean: " + ", ".join(_display_member(s) for s in suggestions[:3])
             if suggestions
             else "check the documented configuration keys",
         )
