@@ -63,7 +63,15 @@ def test_seed_keeps_unavailable_pins_and_duplicate_identity_explicit(tmp_path: P
     assert not result["needs"][0]["leads"] and result["omissions"]
     with pytest.raises(CrabError, match="unique"):
         seed_leads({**plan, "candidates": [candidate, candidate]})
-    for change in ({"limit": True}, {"limit": 7}, {"needs": []}, {"candidates": []}):
+    for change in (
+        {"limit": True},
+        {"limit": 7},
+        {"needs": []},
+        {"candidates": []},
+        {"source_file_budget": True},
+        {"cost_weighted": "false"},
+        {"source_file_budget": 129},
+    ):
         with pytest.raises(CrabError):
             seed_leads({**plan, **change})
 
@@ -86,3 +94,49 @@ def test_local_seed_preserves_actual_local_identity_without_inventing_a_forge(
     )
     assert result["needs"][0]["leads"][0]["repository"] == "owned-fixture"
     assert result["provider_requests"] == 0
+
+
+def test_seed_exposes_read_cost_without_declaring_a_broad_tree_not_useful(tmp_path: Path) -> None:
+    small = repository(tmp_path / "small", {"cycle.py": "SOURCE_NOT_READ = True\n"})
+    broad = repository(
+        tmp_path / "broad",
+        {
+            **{f"graph/path{i}.py": "SOURCE_NOT_READ = True\n" for i in range(40)},
+            "cycle.py": "SOURCE_NOT_READ = True\n",
+        },
+    )
+    candidates = [
+        {
+            "repository": "owned/" + repo.name,
+            "repo": str(repo),
+            "sha": git(repo, "rev-parse", "HEAD").strip(),
+            "description": "cycle graph path" if repo == broad else "cycle",
+        }
+        for repo in (broad, small)
+    ]
+    result = seed_leads(
+        {
+            "needs": [{"id": "cycle", "queries": ["cycle graph path"]}],
+            "candidates": candidates,
+            "limit": 2,
+            "source_file_budget": 4,
+        }
+    )
+    focused, larger = result["needs"][0]["leads"]
+    assert focused["repository"] == "owned/small"
+    assert larger["literal_association"] > focused["literal_association"]
+    # The owned repository helper also commits its .crab.yml policy file.
+    assert larger["bounded_read_association"]["searchable_files_observed"] == 42
+    assert result["needs"][0]["not_selected"] == 0
+    assert "unknown" in result["usefulness"] and not result["source_bodies_read"]
+    overridden = seed_leads(
+        {
+            "needs": [{"id": "cycle", "queries": ["cycle graph path"]}],
+            "candidates": candidates,
+            "limit": 2,
+            "source_file_budget": 4,
+            "cost_weighted": False,
+        }
+    )
+    assert overridden["needs"][0]["leads"][0]["repository"] == "owned/broad"
+    assert not overridden["cost_weighted"]

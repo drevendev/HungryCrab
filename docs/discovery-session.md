@@ -54,6 +54,12 @@ and `candidates` with `repository`, full `sha`, local immutable object `repo`, a
 optional bounded `description`; `limit` defaults to three. The CLI verifies local
 commit availability and reads regular filenames only. Literal association is a
 nomination, not usefulness, novelty, a licence grant or verified provider binding.
+The default ranking weights that association by the fraction of observed eligible
+files the declared read allowance can inspect. `source_file_budget` defaults to
+64 (1..128); raw scores, exact numerator/denominator and observed file counts
+remain visible. This is a cost/coverage hint, not a claim that a broad project is
+irrelevant or that a focused project implements the required behavior. Owners can
+set `cost_weighted: false` for the raw-association ordering.
 Record the normal leased search/acquisition/inspection receipts afterwards.
 Runtime cases still require original receiving-owned preparation before donor
 source; additive designs require concrete original acceptance at assessment.

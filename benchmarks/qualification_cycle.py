@@ -291,6 +291,7 @@ class Trial:
                         for r in self.pool.values()
                     ],
                     "limit": 3,
+                    "source_file_budget": 96,
                 },
             )
             write(self.root / "seed-preparation.json", seeds)
