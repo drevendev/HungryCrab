@@ -1,0 +1,54 @@
+{
+  "kind": "Pre-source mechanical host configuration repair, not a new study or replay",
+  "recorded_at": "2026-11-02T18:22:44.525668+00:00",
+  "original_seal_sha256": "fc1c84e10efbaac15b92d0618e0aefb45f08f92630545b39b124e8eee4efd230",
+  "change": {
+    "host.minimum_assessment_reserve": {
+      "before": "missing; causes KeyError before source preparation",
+      "after": 6500
+    }
+  },
+  "predeclared_basis": "Meter.admission already hardcodes6500+ceil(request UTF8bytes/3) in the original frozen source. The previous sealed NAVIGATED host uses the same6500 reserve. No new threshold, semantic policy, budget, model, source, query, lead plan or usefulness criterion.",
+  "original_attempts": [
+    {
+      "trial": "crab-baseline-1",
+      "state_sha256": "50eb129354bf5636aab9e074df70b592e99de655a242a5808a99dafd491727e5",
+      "meter_sha256": "55dcf6d280b40d47e1f4d69dc9b828682becef94806df77d835da42fa3489842",
+      "original_started": 1793643578.0010269,
+      "actual_tokens": 10880,
+      "stages": [
+        {
+          "name": "plan",
+          "signature": "67218985bcc7b8f0b646d27fa900e122d9c0bd6247d3855071fcc5a7bb99c2e0",
+          "admission_estimate": 15312,
+          "attempt": null,
+          "state": "settled",
+          "actual_tokens": 10880,
+          "native_seconds": 14.016
+        }
+      ]
+    },
+    {
+      "trial": "crab-candidate-1",
+      "state_sha256": "b4f40c85915d98c96089fadbc18e728e6b286d660072d5ce69434dd5e67cea63",
+      "meter_sha256": "026ae1d631c4224de201bd804aca57ab447bcdca1f31d56994e3757d74b4dfc1",
+      "original_started": 1793643578.0010269,
+      "actual_tokens": 0,
+      "stages": []
+    }
+  ],
+  "original_wall_timers_and_ledgers_retained": true,
+  "native_calls_replayed": 0,
+  "new_donor_source_assessments_before_amendment": 0,
+  "root_or_peer_utility_judgments_supplied": false,
+  "original_seal_unmodified": true,
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "effective_plan_sha256": "f6437c1608fce1918fc559d83ebdecd811a1dcfa0263d85e1c2e8d5b526f9b70"
+}

@@ -137,8 +137,29 @@ def raw_window(repo: Path, pin: str, path: str, start: int, end: int, side: str)
     }
 
 
+def validate_host_configuration(frozen: dict[str, Any]) -> None:
+    """Refuse malformed qualification profiles before effects or native spend."""
+    host, limits = frozen.get("host"), frozen.get("limits")
+    if not isinstance(host, dict) or not isinstance(limits, dict):
+        raise ValueError("qualification requires host configuration and explicit limits")
+    if any(
+        type(limits.get(key)) is not int or limits[key] != expected
+        for key, expected in (("model_tokens", 30000), ("seconds", 2700))
+    ):
+        raise ValueError("qualification host requires its fixed 30000-token/2700-second limits")
+    reserve = host.get("minimum_assessment_reserve")
+    if type(reserve) is not int or not 1 <= reserve <= limits["model_tokens"]:
+        raise ValueError("minimum_assessment_reserve must be an integer within the token budget")
+    if any(
+        not isinstance(host.get(key), str) or not 1 <= len(host[key]) <= 100
+        for key in ("model", "effort")
+    ):
+        raise ValueError("qualification requires bounded model and effort strings")
+
+
 class Trial:
     def __init__(self, name: str, frozen: dict[str, Any]) -> None:
+        validate_host_configuration(frozen)
         self.frozen, self.name = frozen, name
         for filename, expected in frozen.get("artifact_hashes", {}).items():
             if hashlib.sha256(Path(filename).read_bytes()).hexdigest() != expected:
@@ -299,9 +320,7 @@ class Trial:
                     "cases_json": "",
                     "probe_reason": "Additive design; original acceptance required at assessment",
                 }
-            if self.frozen["host"].get("candidate_read_planner") and not all(
-                n.get("terms") for n in self.needs
-            ):
+            if self.frozen["host"].get("candidate_read_planner"):
                 refined = self.refine_seeds(answer)
                 if refined is None:
                     return False
@@ -465,7 +484,10 @@ class Trial:
         )
         facts = {
             "needs": [
-                {k: n[k] for k in ("id", "flow", "observed", "expected", "queries")}
+                {
+                    **{k: n[k] for k in ("id", "flow", "observed", "expected", "queries")},
+                    "receiving_literal_terms": n.get("terms", []),
+                }
                 for n in self.needs
             ],
             "literal_cli_nominations": seeds,
@@ -496,6 +518,9 @@ class Trial:
             "read planning only, not a usefulness, novelty, license or acceptance verdict. "
             "The CLI nominations are a cost/filename heuristic; you may choose other members "
             "of the SAME pool. Choose 1..3 distinct donors per need likely to implement the "
+            "receiving flow. Explicit literal anchors do not qualify a donor. Keep the receiving "
+            "domain and data contract; a cross-domain lead needs a concrete plausible mechanism "
+            "bridge, not merely shared words or a cheap tree. "
             "specific mechanism. Use 1..5 distinctive bounded literal source tokens each, "
             "including relevant identifier spellings. Avoid generic project/language words, "
             "singular/plural duplicates and an unrelated similarly named extension. A data "

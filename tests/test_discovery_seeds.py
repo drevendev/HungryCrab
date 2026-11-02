@@ -14,6 +14,39 @@ from hungry_crab.discovery_seeds import seed_leads
 from hungry_crab.errors import CrabError
 
 
+def test_explicit_source_anchor_does_not_erase_receiving_query_context(tmp_path: Path) -> None:
+    relevant = repository(
+        tmp_path / "descriptors",
+        {f"src/reader_{i}.py": "SOURCE_MUST_NOT_EXECUTE\n" for i in range(20)},
+    )
+    generic = repository(tmp_path / "generic", {"optional.py": "SOURCE_MUST_NOT_EXECUTE\n"})
+    candidates = [
+        {
+            "repository": "owned/" + repo.name,
+            "repo": str(repo),
+            "sha": git(repo, "rev-parse", "HEAD").strip(),
+            "description": "Lunar descriptor reader" if repo == relevant else "Optional utilities",
+        }
+        for repo in (generic, relevant)
+    ]
+    plan = {
+        "needs": [{"id": "qualifiers", "queries": ["lunar descriptor"], "terms": ["optional"]}],
+        "candidates": candidates,
+        "source_file_budget": 1,
+        "limit": 2,
+    }
+    result = seed_leads(plan)
+    first, second = result["needs"][0]["leads"]
+    assert first["repository"] == "owned/descriptors"
+    assert first["query_context_association"] > second["query_context_association"]
+    assert first["literal_association"] < second["literal_association"]
+    assert first["terms"] == second["terms"] == ["optional"]
+    assert result["needs"][0]["query_context_terms"] == ["lunar", "descriptor"]
+    assert not result["source_bodies_read"] and "unknown" in result["usefulness"]
+    raw = seed_leads({**plan, "cost_weighted": False})
+    assert raw["needs"][0]["leads"][0]["repository"] == "owned/generic"
+
+
 def test_explicit_literal_anchors_survive_unrelated_filename_words(tmp_path: Path) -> None:
     donor = repository(tmp_path / "named", {"generic_parser.py": "VALUE = 7\n"})
     candidate = {
