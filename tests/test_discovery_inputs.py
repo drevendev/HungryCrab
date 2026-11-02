@@ -221,6 +221,48 @@ def test_explicit_public_artifact_comparison_uses_only_git_objects(tmp_path: Pat
         )
 
 
+def test_snapshot_preserves_retained_supporting_evidence_and_rejects_forged_paths(
+    tmp_path: Path,
+) -> None:
+    prey = repository(
+        tmp_path / "donor",
+        {
+            "app.py": "pass\n",
+            "testdata/check.yml": "jobs: {}\n",
+            "vendor/blocked.yml": "jobs: {}\n",
+            "build/blocked.yml": "jobs: {}\n",
+        },
+    )
+    pd = digest(prey, tmp_path / "pd")
+    inventory_path = pd.out_dir / "inventory.json"
+    inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+    assert "testdata/check.yml" in inventory["evidence_files"]
+    original = Side.load(pd.out_dir)
+    relocated = Side.load(pd.out_dir, objects=prey)
+    assert relocated.inventory["evidence_files"] == original.inventory["evidence_files"]
+    assert relocated.traits == original.traits
+    assert relocated.find_files("testdata/*.yml") == ["testdata/check.yml"]
+    original_paths = list(inventory["evidence_files"])
+    for path in ("testdata/absent.yml", "vendor/blocked.yml", "build/blocked.yml"):
+        inventory["evidence_files"] = [*original_paths, path]
+        inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+        with pytest.raises(CrabError, match="inconsistent"):
+            Side.load(pd.out_dir, objects=prey)
+    inventory["evidence_files"] = original_paths
+    inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+    manifest_path = pd.out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["ignore"] = ["testdata/check.yml"]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(CrabError, match="inconsistent"):
+        Side.load(pd.out_dir, objects=prey)
+    manifest["ignore"] = []
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    inventory.pop("evidence_files")
+    inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+    assert Side.load(pd.out_dir, objects=prey).find_files("testdata/*.yml") == []
+
+
 def test_partial_and_unavailable_inventories_remain_explicit() -> None:
     side = Side(label="old", sha="a" * 40, url=None, root=None)
     assert side.evidence_capability == "unavailable"
