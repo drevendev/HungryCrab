@@ -18,6 +18,28 @@ from qualification_cycle import Trial
 from research_host import Commands
 
 
+def test_baseline_has_ordinary_literal_lookup_without_candidate_ast_facts(tmp_path: Path) -> None:
+    donor = repository(tmp_path / "donor", {"api.py": "# heading\n" * 90 + "VALUE = 7\n"})
+    trial = object.__new__(Trial)
+    trial.arm = "baseline"
+    trial.state = {"read_ranges": []}
+    trial.state_path = tmp_path / "state.json"
+    trial.pool = {
+        "fixture": {"view": str(donor), "sha": live_context(donor)["sha"], "catalog": ["api.py"]}
+    }
+    rows = trial.lookup_source(
+        {"donor": "fixture"},
+        {"id": "lookup"},
+        {"exploration": "child"},
+        {"path": "api.py", "query": "VALUE ="},
+        "ordinary-read",
+    )
+    assert any("VALUE = 7" in r["content"] for r in rows)
+    assert all(r["side"] == "donor" and r["end"] - r["start"] < 60 for r in rows)
+    assert trial.state["source_lookups"]["lookup"][0]["matching_lines"] == [91]
+    assert "no AST facts" in trial.state["source_lookups"]["lookup"][0]["method"]
+
+
 def test_initial_navigation_reads_implementation_beyond_a_long_docstring(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[1]
     source = (

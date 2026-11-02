@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "role": "Exposed retained owned synthetic controls only; no fresh release findings",
+  "source": "9325c5739549ba8b17bda15ef953f1a203efab9d6c194181baa5d7a40c543603",
+  "host_transport": "host-validated-json/v1",
+  "actual_model_tokens": 23771,
+  "usage_complete": true,
+  "native_stages": [
+    {
+      "name": "plan",
+      "signature": "ae878aa48fcab1e0c757bbcb75b19b17a008136f98db3ae7d0f3a319a229fb60",
+      "admission_estimate": 11324,
+      "attempt": "7ed5c585fdcbed30ef2c41e61773feb1a547bdd112e490184f91318f692669e5",
+      "state": "settled",
+      "actual_tokens": 9014,
+      "native_seconds": 32.406
+    },
+    {
+      "name": "assess-0",
+      "signature": "0243e3e872c9ee8733632b09dba863930998e39cfc0f321c731338e7c9f84d73",
+      "admission_estimate": 9819,
+      "attempt": "f1a8b930cbac338563d9619e0a709de0033c7f5d23b06f21b1e2f75d3b5a6c52",
+      "state": "settled",
+      "actual_tokens": 7409,
+      "native_seconds": 12.578
+    },
+    {
+      "name": "assess-1",
+      "signature": "bd7c3062ffc2ea8b687c622d7ada049678fdd493e4e33f1e2bdd835bfe1468b3",
+      "admission_estimate": 9657,
+      "attempt": "4782a0cf87a5b91521059c92cd2f08e95dec4cd029a43f3268a906454eae5eed",
+      "state": "settled",
+      "actual_tokens": 7348,
+      "native_seconds": 8.375
+    }
+  ],
+  "seconds": 141.2588334083557,
+  "budget_valid": true,
+  "stop_reason": "model-budget-reserve",
+  "outcomes": [
+    {
+      "need": "unbounded",
+      "disposition": "verified-gap",
+      "level": "behavior-verified",
+      "source_relation": "mechanism",
+      "source_behavior": "The donor consume generator loops while stream.read(4) returns a nonempty chunk and yields each returned chunk.",
+      "registration_policy_blocked": null
+    },
+    {
+      "need": "already-safe",
+      "disposition": "already-present",
+      "level": "behavior-verified",
+      "source_relation": "mechanism",
+      "source_behavior": "reader.py consume repeatedly calls stream.read(4) and yields each nonempty returned chunk.",
+      "registration_policy_blocked": null
+    }
+  ],
+  "host_state_sha256": "dc7d8a8c4241a835246a7775fb998bd08ac92408cf49f12a36a2cb021cefa081",
+  "new_release_findings": 0,
+  "currency": null,
+  "whole_project_cost": null
+}
