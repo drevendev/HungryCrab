@@ -15,6 +15,30 @@ from hungry_crab.discovery_session import live_context
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
 from qualification_cycle import Trial
+from research_host import Commands
+
+
+def test_initial_navigation_reads_implementation_beyond_a_long_docstring(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    source = (
+        '__all__ = ["choose", "alias"]\ndef choose():\n    """documentation\n'
+        + "    text\n" * 120
+        + '    """\n    result = 7\n    return result\n'
+    )
+    donor = repository(tmp_path / "donor", {"api.py": source})
+    maw = repository(tmp_path / "maw", {"app.py": "VALUE = 1\n"})
+    trial = object.__new__(Trial)
+    trial.arm = "candidate"
+    trial.commands = Commands(tmp_path / "cli", Path(sys.executable), root)
+    trial.maw = maw
+    trial.context = live_context(maw)
+    trial.pool = {"fixture": {"view": str(donor), "sha": live_context(donor)["sha"]}}
+    result = trial.prepare_source(
+        {"donor": "fixture", "terms": ["choose", "alias"]},
+        {"id": "algorithm", "maw_evidence": []},
+    )
+    assert all(r["end"] - r["start"] < 60 for r in result["donor"])
+    assert any("result = 7" in w.get("content", "") for w in result["windows"])
 
 
 def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:

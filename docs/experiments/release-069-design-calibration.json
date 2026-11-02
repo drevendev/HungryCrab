@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "role": "Exposed retained owned additive-design control; not fresh release yield",
+  "source": "af772d1b7c99731a46976734d4733fa9a564f2477d88b62c3d2c6efb4a8c5a73",
+  "actual_model_tokens": 14297,
+  "usage_complete": true,
+  "budget_valid": true,
+  "stop_reason": "scoped-goals-met",
+  "original_acceptance_sha256": "e0afcbaa1d348eddc479d075d23235900799f4e5284e3242e458afe1a63e4c8b",
+  "initial_runtime_probe": "not requested or claimed",
+  "source_relation": "mechanism",
+  "source_behavior": "In reader.py, donor consume is a generator that repeatedly calls stream.read(4), yields each truthy chunk, and terminates when the read result is falsy.",
+  "registration_policy_blocked": false,
+  "new_release_findings": 0,
+  "currency": null,
+  "whole_project_cost": null
+}

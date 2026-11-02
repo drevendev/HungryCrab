@@ -180,6 +180,35 @@ def source_packet(
         ):
             unique.setdefault((match["start"], match["end"]), match)
         matches = manual if manual is not None else list(unique.values())[:8]
+        if manual is None:
+            context_matches = []
+            for match in matches:
+                body = match.get("body_start")
+                if (
+                    match.get("kind") in {"function", "class"}
+                    and isinstance(body, int)
+                    and body > match["end"]
+                ):
+                    header_end = min(match["end"], match["start"] + 7)
+                    context_matches.append(
+                        {
+                            **match,
+                            "end": header_end,
+                            "relationship": "declaration-signature-context",
+                            "unread_interval": {"start": header_end + 1, "end": body - 1},
+                        }
+                    )
+                    context_matches.append(
+                        {
+                            **match,
+                            "start": body,
+                            "end": min(match["node_end"], body + 59),
+                            "relationship": "implementation-after-docstring",
+                        }
+                    )
+                else:
+                    context_matches.append(match)
+            matches = context_matches
         if manual is None and not matches:
             matches = [{"start": 1, "end": min(60, len(lines)), "relationship": "selected-context"}]
         # Related test/source paths are a heuristic. A static association never
@@ -267,6 +296,23 @@ _INDEX_SUFFIXES = frozenset(
         ".toml",
         ".json",
         ".sh",
+        ".php",
+        ".kt",
+        ".kts",
+        ".swift",
+        ".dart",
+        ".ex",
+        ".exs",
+        ".cr",
+        ".jl",
+        ".ml",
+        ".mli",
+        ".scala",
+        ".clj",
+        ".cljs",
+        ".zig",
+        ".cs",
+        ".hpp",
     }
 )
 
@@ -293,6 +339,7 @@ def source_index(
     prefix: str = "",
     limit: int = 24,
     symbol_files: int = 8,
+    symbol_terms: list[str] | None = None,
 ) -> dict[str, Any]:
     """Navigate actual pinned files/declarations before requesting source windows.
 
@@ -311,6 +358,14 @@ def source_index(
         raise CrabError("source index accepts at most eight bounded literal path terms")
     if sum(len(term.encode("utf-8")) for term in terms) > 512:
         raise CrabError("source index literal terms exceed the total byte budget")
+    if symbol_terms is not None and (
+        not isinstance(symbol_terms, list)
+        or len(symbol_terms) > 4
+        or any(not isinstance(t, str) or not 1 <= len(t) <= 100 for t in symbol_terms)
+        or sum(len(t.encode()) for t in symbol_terms) > 512
+    ):
+        raise CrabError("source index accepts at most four bounded symbol terms")
+    structural_terms = terms[:4] if symbol_terms is None else symbol_terms
     if type(limit) is not int or not 1 <= limit <= 64:
         raise CrabError("source index file limit must be in 1..64")
     if type(symbol_files) is not int or not 0 <= symbol_files <= 16:
@@ -366,7 +421,7 @@ def source_index(
                     symbol_queries = [
                         {"kind": kind, "contains": term}
                         for kind in ("function", "class")
-                        for term in terms[:4]
+                        for term in structural_terms
                     ] or [{"kind": "function"}, {"kind": "class"}]
                     result = syntax_query(
                         text,
@@ -393,7 +448,7 @@ def source_index(
                         key=lambda row: (
                             -sum(
                                 term in row.get("qualified_name", row["name"]).casefold()
-                                for term in lowered
+                                for term in [t.casefold() for t in structural_terms]
                             ),
                             row["start"],
                             row["end"],

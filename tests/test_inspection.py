@@ -137,8 +137,20 @@ def test_literal_find_prefers_declaration_text_over_same_term_imports(tmp_path: 
     result = find_source(repo, git(repo, "rev-parse", "HEAD").strip(), ["BlockParser"], limit=1)
     assert result["matches"][0]["path"] == "z_parser.py"
     assert result["matches"][0]["declaration_like"]
+    assert result["matches"][0]["context_ranges"] == [{"start": 1, "end": 2}]
     assert result["matching_lines_not_returned"] == 1
     assert "text heuristic" in result["match_order"]
+
+
+def test_literal_context_hints_are_bounded_and_not_syntax_claims(tmp_path: Path) -> None:
+    repo = repository(
+        tmp_path / "source",
+        {"Parser.php": "<?php\nclass HtmlParser {\n" + "// data\n" * 150 + "}\n"},
+    )
+    result = find_source(repo, git(repo, "rev-parse", "HEAD").strip(), ["HtmlParser"])
+    hit = result["matches"][0]
+    assert hit["context_ranges"] == [{"start": 2, "end": 61}, {"start": 62, "end": 121}]
+    assert "not a parsed declaration boundary" in hit["context_kind"]
 
 
 def test_public_contract_exposes_actual_paths_and_preserves_empty_citation_roles(

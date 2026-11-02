@@ -215,6 +215,7 @@ def _run_discover(args: argparse.Namespace) -> int:
             prefix=plan.get("prefix", ""),
             limit=plan.get("limit", 24),
             symbol_files=plan.get("symbol_files", 8),
+            symbol_terms=plan.get("symbol_terms"),
         )
     elif action == "packet":
         from .source_inspection import source_index, source_packet
