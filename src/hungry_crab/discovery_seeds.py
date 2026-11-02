@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from pathlib import Path
@@ -65,8 +66,12 @@ def seed_leads(plan: dict[str, Any]) -> dict[str, Any]:
             or len(description) > 2000
         ):
             raise CrabError("seed candidate needs repository, immutable pin and owned object path")
-        slug = Slug.parse(repository)
-        key = str(slug).casefold()
+        if "/" not in repository and repository == Path(repo).name:
+            if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}", repository) is None:
+                raise CrabError("local seed identity must be a bounded repository basename")
+            key = "local:" + os.path.normcase(str(Path(repo).resolve()))
+        else:
+            key = str(Slug.parse(repository)).casefold()
         if key in seen:
             raise CrabError("seed candidate repository identities must be unique")
         seen.add(key)

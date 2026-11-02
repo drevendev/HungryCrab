@@ -66,3 +66,23 @@ def test_seed_keeps_unavailable_pins_and_duplicate_identity_explicit(tmp_path: P
     for change in ({"limit": True}, {"limit": 7}, {"needs": []}, {"candidates": []}):
         with pytest.raises(CrabError):
             seed_leads({**plan, **change})
+
+
+def test_local_seed_preserves_actual_local_identity_without_inventing_a_forge(
+    tmp_path: Path,
+) -> None:
+    repo = repository(tmp_path / "owned-fixture", {"stream.py": "VALUE = 1\n"})
+    result = seed_leads(
+        {
+            "needs": [{"id": "need", "queries": ["stream"]}],
+            "candidates": [
+                {
+                    "repository": repo.name,
+                    "repo": str(repo),
+                    "sha": git(repo, "rev-parse", "HEAD").strip(),
+                }
+            ],
+        }
+    )
+    assert result["needs"][0]["leads"][0]["repository"] == "owned-fixture"
+    assert result["provider_requests"] == 0
