@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from qualification_review import compact_evidence
 from research_host import Commands, Meter, identity, read, strict, write
 
 from hungry_crab.analysis_context import installed_source_identity
@@ -1046,7 +1047,7 @@ class Trial:
             "replace your earlier donor/receiving windows. "
             "Only pending uses revision (empty selects all); other sides use empty revision. "
             "Do not require a second summary stage when this evidence already suffices. "
-            "JSON only.\n" + json.dumps(facts, ensure_ascii=False)
+            "JSON only.\n" + compact_evidence(facts)
         )
         if admission_only:
             admission = self.meter.admission(prompt, schema)
