@@ -74,8 +74,15 @@ def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_pat
     donor = repository(tmp_path / "donor", {"stream.py": "VALUE = 7\n"})
     trial = object.__new__(Trial)
     trial.arm = "candidate"
-    trial.frozen = {"host": {"candidate_metadata_seeds": True}}
-    trial.needs = [{"id": "intake", "queries": ["stream limit"], "verification_mode": "design"}]
+    trial.frozen = {"host": {"candidate_metadata_seeds": True, "candidate_read_planner": True}}
+    trial.needs = [
+        {
+            "id": "intake",
+            "queries": ["stream limit"],
+            "verification_mode": "design",
+            "terms": ["VALUE"],
+        }
+    ]
     trial.pool = {
         "fixture": {
             "id": "fixture",
@@ -93,7 +100,64 @@ def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_pat
     assert trial.state["phase"] == "cases"
     assert trial.state["plan"]["intake"]["cases_json"] == ""
     assert trial.state["plan"]["intake"]["leads"][0]["donor"] == "fixture"
+    assert trial.state["plan"]["intake"]["leads"][0]["terms"] == ["value"]
     assert json.loads((trial.root / "seed-preparation.json").read_text())["model_calls"] == 0
+
+
+def test_initial_byte_budget_keeps_omitted_source_unread_and_raw_preparation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from qualification_cycle import raw_window
+
+    root = Path(__file__).resolve().parents[1]
+    donor = repository(
+        tmp_path / "source",
+        {
+            "large.py": "#" + "x" * 5000 + "\nraise RuntimeError('NEVER_EXECUTE')\n",
+            "small.py": "VALUE = 7\n",
+        },
+    )
+    pin = live_context(donor)["sha"]
+    trial = object.__new__(Trial)
+    trial.root = tmp_path / "trial"
+    trial.root.mkdir()
+    trial.frozen = {"host": {"initial_donor_bytes": 1024}}
+    trial.arm = "candidate"
+    trial.context = {"sha": pin}
+    trial.pool = {"fixture": {"id": "fixture", "view": str(donor), "sha": pin}}
+    trial.state = {}
+    trial.state_path = trial.root / "state.json"
+    trial.commands = Commands(trial.root / "cli", Path(sys.executable), root)
+    ranges = [
+        {"path": "large.py", "start": 1, "end": 2},
+        {"path": "small.py", "start": 1, "end": 1},
+    ]
+    prepared = {
+        "donor": ranges,
+        "receiving": [],
+        "windows": [
+            raw_window(donor, pin, r["path"], r["start"], r["end"], "donor") for r in ranges
+        ],
+    }
+    monkeypatch.setattr(trial, "prepare_source", lambda *_: prepared)
+    result = trial.prepare_initial_source({"donor": "fixture"}, {"id": "bytes"})
+    assert result["donor"] == [ranges[1]]
+    assert {w["path"] for w in result["windows"]} == {"small.py"}
+    receipt = trial.state["source_preparations"]["bytes:fixture"]
+    assert receipt["deferred_ranges"] == [ranges[0]] and receipt["bytes_selected"] <= 1024
+    assert (
+        json.loads(next(trial.root.glob("source-preparation-*.json")).read_text(encoding="utf-8"))
+        == prepared
+    )
+    monkeypatch.setattr(
+        trial.commands, "json", lambda *_: pytest.fail("completed preparation replayed")
+    )
+    assert trial.prepare_initial_source({"donor": "fixture"}, {"id": "bytes"}) == result
+    cache = next(trial.root.glob("prepared-initial-*.json"))
+    cache.write_text("{}", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="changed"):
+        trial.prepare_initial_source({"donor": "fixture"}, {"id": "bytes"})
 
 
 def test_compact_read_plan_can_choose_a_nonseed_pool_member_without_utility_claims(

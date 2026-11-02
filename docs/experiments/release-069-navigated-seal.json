@@ -1,0 +1,463 @@
+{
+  "schema": 1,
+  "status": "SEALED before either measured navigated-source-repair arm",
+  "sealed_at": "2026-11-02T15:58:49.069448+00:00",
+  "candidate": {
+    "commit": "4534078b4e7bc58956ff37c2d16644e759fe5abc",
+    "source_identity": "477cfd31cdde7a0c876444a4a9ecf1c079eda51ec4fb29fc615abd74f38d1de9",
+    "version": "0.6.9.dev0"
+  },
+  "baseline": {
+    "commit": "915779769747908a14b1a0f7fdecdd79d16dce43",
+    "source_identity": "6d7e9da6b028c7b3fd050d77637e9a4d5342b4e34eeff44f0ab90190d58437be",
+    "version": "0.6.8"
+  },
+  "host_commit": "4534078b4e7bc58956ff37c2d16644e759fe5abc",
+  "schedule": [
+    "crab-baseline-1",
+    "crab-candidate-1",
+    "devostasis-candidate-1",
+    "devostasis-baseline-1",
+    "beautifulrepo-baseline-1",
+    "beautifulrepo-candidate-1",
+    "crab-candidate-2",
+    "crab-baseline-2",
+    "devostasis-baseline-2",
+    "devostasis-candidate-2",
+    "beautifulrepo-candidate-2",
+    "beautifulrepo-baseline-2"
+  ],
+  "limits": {
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "provider_search_requests": 16,
+    "donor_admissions": 6,
+    "hypotheses": 12,
+    "replacement_rounds_per_need": 2
+  },
+  "review_protocol": {
+    "reviewers": 6,
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "model_tokens": 30000,
+    "seconds": 2700,
+    "transport": "host-validated-json/v1",
+    "mode": "Two fresh arm-masked independent reviewers per maw. Every raw native positive proposal stays in denominator, including refused and substantive request-more proposals. Count only investigator proposals supported by both reviewers; duplicate independent confirmations add no unique yield. Designs need concrete source/novelty/original acceptance; runtime requires actual target-called failure and correct controls. Utility/legal transfer/publication/adoption distinct. No root usefulness arbitration or reviewer-created yield.",
+    "gates": "At least80% confirmed precision; strictly more unique candidate changes overall and in at least2of3maws; no lower precision/safety. Unchanged535thresholds.",
+    "concurrency": 1,
+    "dispatch": "Six fixed fresh reviews sequentially to avoid concurrent request bursts. Each unchanged30000actualtokens/2700seconds; unknown calls retained, no silent replay."
+  },
+  "exposure": {
+    "new_donor_source_supplied_to_models_before_seal": false,
+    "standards_exposure": "Prior Python3.12 AST documentation and previously exposed controls remain disclosed. No newly nominated donor source body or native utility judgment supplied before sealing.",
+    "shared_setup": "30verified immutable paired digests and filename catalogues only. No new nominated source body or semantic investigation/review supplied before sealing. Original receiving needs are frozen first. Digest miners ran inertly; no donor program executed. Prior source controls were exposed engineering evidence and are not fresh yield.",
+    "prior_repository_identities": 314,
+    "prior_provider_ids": 301,
+    "overlaps": 0,
+    "known_findings_excluded": [
+      "All previous confirmed and provisional findings, including HungryCrab563/564/565/571/572/575/576, BeautifulRepo240/241/243 and Devostasis117/118/119, configuration/HTML repairs, generic scan-budget suggestions. Earlier unassessed Gradle need remains unfinished in its original record and is outside this cohort's active scope; no completion is claimed.",
+      "Devostasis120 typed AST source spans; all PRIMARY positives. The new parse-failure-classification need concerns exception category and uncertainty, not source columns."
+    ],
+    "lineage": [
+      "npm readers may share normalize-package-data or other previously exposed packages; only actual own source can support a fresh mechanism. Config/schema material and parser implementations are distinct. No independent receiving-change count per donor.",
+      "Central-package migrators share NuGet/MSBuild concepts; discover actual literal mechanism and ambiguity rather than treating them as resolved MSBuild evaluation. Archive status is explicit. F# filenames are readable literals, not a supported AST.",
+      "Python parser libraries share grammar techniques and may delegate to exposed packages or CPython. A wrapper or generic exception name is insufficient; actual failure mechanism must be inspected.",
+      "md4qt GitHub is an archived KDE mirror; apiaryio declares Sundown/Hoedown/Redcarpet lineage. Markdown fixtures and ports may share content. Source lineage and semantic independence cannot be inferred from repository IDs.",
+      "Previously exposed source controls are engineering evidence only. New nominations remain source-unseen at preflight. No repository-specific ranking boost or relaxed safety, licence, precision, cost or gain threshold."
+    ],
+    "cost": "All actual native input including cached+output and elapsed time retained. Currency/setup/engineering/coordination/whole-project costs unknown; no aggregate efficiency claim."
+  },
+  "pre_inference_reconciliation": {
+    "repairs": [
+      "577 bounded implementation frontier, literal anchors and identifier filename ordering, explicit data versus implementation, compact metered semantic read planning with matching skill"
+    ],
+    "shared_donor_acquisition_run": 41474540886,
+    "shared_digest_build_commit": "54dac3807146cd31eab790ce6189e39e3073bd18",
+    "shared_digest_source_matches_candidate": true,
+    "receiving": {
+      "failure_run": 41474540918,
+      "old_beautifulrepo_default": "9a16200bf5a0c183910312e15d894d1137dc590d",
+      "current_default": "54f1461c758c9070d369cbc675feb56074615352",
+      "pending": [],
+      "external_merge": 244,
+      "source_of_receiving_objects": "Owned regular Git object exports; changed owned BeautifulRepo canonical ref fetched read-only with hooks disabled. Not donor acquisition or donor program execution.",
+      "root_prior_exposure": "Own source origin helpers had been inspected in prior244 scope; initial evidence now includes those exact current helper functions. No donor source body, producing utility judgment or model result from this cohort used for reconciliation."
+    },
+    "receiving_contexts": {
+      "HungryCrab": {
+        "context": {
+          "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\maws\\HungryCrab",
+          "sha": "4534078b4e7bc58956ff37c2d16644e759fe5abc",
+          "selected_ref": null,
+          "worktree": "clean",
+          "policy": "fbbf588996f6c4c1277033c2d86c6077e38c182c57079634bf9bd223f1274892",
+          "ledger": "9ffcf575fac3e0aa69359e1a33802e18170071761400fed4aa14651be0b431a2",
+          "depth": null,
+          "analysis_identity": null,
+          "ignore": null,
+          "wiki": null
+        },
+        "default_sha": "c9f432e36d447c437eb967f1b80fcc5a15c7b6b6",
+        "selected_target_ref": "refs/pull/539/head",
+        "pending": [
+          {
+            "number": 539,
+            "sha": "4534078b4e7bc58956ff37c2d16644e759fe5abc",
+            "title": "feat: add 0.6.9 discovery and MIT adoption; usefulness gate open"
+          }
+        ],
+        "owned_export_bytes": 44122724,
+        "final_git_bytes": 44198805,
+        "snapshot_method": "Bounded regular Git-object export from owned receiving contexts; canonical read-only fetch for changed BeautifulRepo default only. No donor programs or receiving hooks executed. Acquisition/network/engineering cost separate and unknown."
+      },
+      "Devostasis": {
+        "context": {
+          "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\maws\\Devostasis",
+          "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+          "selected_ref": null,
+          "worktree": "clean",
+          "policy": "b5095209ec73bd03f2570743fd1b6b6c4fda80b14192f3b9e4d8b6b5c275f296",
+          "ledger": "569f29a8bd41d24f2207035b7c7a9ecd438f67c2a796ba2f72a57fd5a564dabf",
+          "depth": null,
+          "analysis_identity": null,
+          "ignore": null,
+          "wiki": null
+        },
+        "default_sha": "3bd60db707c5022f5df6034458cb23b949911dad",
+        "selected_target_ref": "refs/pull/75/head",
+        "pending": [
+          {
+            "number": 95,
+            "sha": "611b21ee19ad46b4ae6f9ad2dcf872da6dbf7156",
+            "title": "fix: enforce current cache limits when restoring entries"
+          },
+          {
+            "number": 90,
+            "sha": "51e58b8a4f1504f8f953fbc47db6157d157051e6",
+            "title": "fix(history): preserve parent-kind conflicts through reconciliation (#83)"
+          },
+          {
+            "number": 89,
+            "sha": "1a735f451f9fe6dae7948a014b660249501a1ffc",
+            "title": "fix(history): preserve malformed legacy carrier values (partial #83)"
+          },
+          {
+            "number": 88,
+            "sha": "9cf0c0cf678aeef620b5f6d6a1662533894c10b2",
+            "title": "fix(history): reject malformed carried arrays (partial #83)"
+          },
+          {
+            "number": 81,
+            "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+            "title": "0.6: independently verified Git history and executable assurance"
+          },
+          {
+            "number": 75,
+            "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+            "title": "Release 0.6.0: offline repository analysis and executable assurance"
+          },
+          {
+            "number": 69,
+            "sha": "aa5e0e12aea6ee0514cbd2c9dd9aa29ff5dfe75c",
+            "title": "Release 0.5.0: bound consumer operations and portable private history"
+          },
+          {
+            "number": 64,
+            "sha": "c98e7ed4fe53f1809f9a5ec0b7651da49aa0ab3a",
+            "title": "Release 0.4.0: reproducible consumer handoff and exact contract compatibility"
+          },
+          {
+            "number": 59,
+            "sha": "a41fac6353030f684b2e77b12079503b7b8a1e96",
+            "title": "Release 0.3.0: Evidence to Action with verified work scopes and bounded handoff"
+          },
+          {
+            "number": 57,
+            "sha": "b849923511ffef24b3b53d0ed01937ae706f60f8",
+            "title": "Finish 0.2.0: preserve verified Integrity history and reconcile pending branches"
+          },
+          {
+            "number": 53,
+            "sha": "96d10fc844732d196628e3a8f39737eab69fe871",
+            "title": "Release 0.2.0: adopt the accepted Direction, Horizon, Debt and T9 repairs, and carry Integrity history across bundles (B3)"
+          },
+          {
+            "number": 50,
+            "sha": "4c7f0a1a93cd3231feea89fb879c0fafe5fdf1fb",
+            "title": "Keep the Hungry Crab configuration and ledger in the repository"
+          },
+          {
+            "number": 37,
+            "sha": "aae7b21df35f96ba074331482ff37f70f509d222",
+            "title": "Cancel superseded CI runs with concurrency groups"
+          },
+          {
+            "number": 36,
+            "sha": "2a575750d511a47d69a5c97c41ec121deff920ef",
+            "title": "Enable Dependabot updates"
+          }
+        ],
+        "owned_export_bytes": 1248848,
+        "final_git_bytes": 1278633,
+        "snapshot_method": "Bounded regular Git-object export from owned receiving contexts; canonical read-only fetch for changed BeautifulRepo default only. No donor programs or receiving hooks executed. Acquisition/network/engineering cost separate and unknown."
+      },
+      "BeautifulRepo": {
+        "context": {
+          "root": "C:\\MyProjects\\Codex\\HungryCrab\\.venv\\qualification-navigated\\maws\\BeautifulRepo",
+          "sha": "54f1461c758c9070d369cbc675feb56074615352",
+          "selected_ref": null,
+          "worktree": "clean",
+          "policy": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "ledger": "57854d00ac3e2b9d1b7a0dfd0abdaa0eb55ba009d968901a6aca5431f29390d4",
+          "depth": null,
+          "analysis_identity": null,
+          "ignore": null,
+          "wiki": null
+        },
+        "default_sha": "54f1461c758c9070d369cbc675feb56074615352",
+        "selected_target_ref": "refs/heads/master",
+        "pending": [],
+        "owned_export_bytes": 599050,
+        "final_git_bytes": 642268,
+        "snapshot_method": "Bounded regular Git-object export from owned receiving contexts; canonical read-only fetch for changed BeautifulRepo default only. No donor programs or receiving hooks executed. Acquisition/network/engineering cost separate and unknown."
+      }
+    },
+    "pending_collection": "Complete bounded API collection before inference: one owned539,14Devostasis heads,noBeautifulRepo pending after externally merged244. Canonical539 ref fetched and exact equality verified, no fabricated ref binding.",
+    "preparation_refusals": "Initial receiving CI41474540918 correctly refused externally advanced default. Local preliminary Crab novelty rejected unmatched pending ref; originals retained under preparation-refusals, then canonical owned ref acquired before inference. No model call or donor outcome informed corrections.",
+    "root_semantic_input": "Own receiving source/needs only; no new donor body judgments or reviewer-created adaptation. Typed parse failure classification is separate from confirmedDevostasis120 AST spans, which is excluded. Previous unresolved Gradle remains unfinished outside active scope.",
+    "evaluation": "The tested maximal-precision bound handles undefined empty baseline without inventing a baseline rate; prerecorded before both arms. Earlier reports/gates stay failed. All other535 thresholds and counts unchanged.",
+    "safety": "No donor programs/tests/builds/installers/hooks, policy override, publication, scheduler, merge, tag or release."
+  },
+  "protocol_amendment": "577: distinguish implementation/data hints; compact metered read planning; explicit literal anchors; implementation tree-frontier and identifier filename ordering before full verification. F# filename roles are inert literal channels, not AST support. Same unchanged limits, two continuation rounds, six masked reviews and balanced two-trial barriers.",
+  "parallel_schedule": "Six fixed two-trial blocks in the balanced schedule; launch in declared order, wait both before next block, at most2concurrent. Separate native contexts/meters/artifact roots; shared frozen receiving/source facts only, no shared judgments. Same per-trial actual caps; no efficiency/generalization claim.",
+  "evaluation_method": "Use actual trial/index agreement, conservative at most one unique per declared need per arm and explicit peer canonical equivalences. All native verified-gap and either peer substantive positives remain in denominator. Missing reviewer gives no support and unknown usage fails. For no-lower precision, perfect observed candidate precision is provably no lower than any baseline precision in[0,1], even when empty baseline precision remains undefined; otherwise require known baseline and exact ratio comparison. Tested qualification_acceptance.py is frozen before both arms. No retrospective pass of previous studies.",
+  "nomination_holds": [],
+  "eligible_by_maw": {
+    "crab": 10,
+    "devostasis": 10,
+    "beautifulrepo": 10
+  },
+  "sealed_sha256": "31bf57ba7358c54b9860c49ee8cda2ced914b186d32fb7abfecf7f6f1d21d278",
+  "pool": [
+    {
+      "id": "beautifulrepo-1",
+      "batch": "beautifulrepo",
+      "repository": "xemantic/markanywhere",
+      "sha": "12648d62c2a1315ff58fde512aa499cd2a55a399"
+    },
+    {
+      "id": "beautifulrepo-2",
+      "batch": "beautifulrepo",
+      "repository": "igormironchik/md4qt",
+      "sha": "04dd8bfe69ecc977d1ea52236c28341c4dcb3396"
+    },
+    {
+      "id": "beautifulrepo-3",
+      "batch": "beautifulrepo",
+      "repository": "apiaryio/markdown-parser",
+      "sha": "52c411068583e7207c15fb4918d690d7a39d96a9"
+    },
+    {
+      "id": "beautifulrepo-4",
+      "batch": "beautifulrepo",
+      "repository": "gmbeard/cpp-markdown",
+      "sha": "d976206d4ae17ab4c097cee22c9e4319a026d0b3"
+    },
+    {
+      "id": "beautifulrepo-5",
+      "batch": "beautifulrepo",
+      "repository": "doowzs/markdown",
+      "sha": "d349778c6e6de9987b2dd1204c6a4a63e4ee11be"
+    },
+    {
+      "id": "beautifulrepo-6",
+      "batch": "beautifulrepo",
+      "repository": "colemancda/Apodimark",
+      "sha": "b048b945c9b0cebd10226f554461ca7b5f795da5"
+    },
+    {
+      "id": "beautifulrepo-7",
+      "batch": "beautifulrepo",
+      "repository": "hbowie/NotenikMkdown",
+      "sha": "dad6a09d132f2a4dbed756b702a1a79056be3cc8"
+    },
+    {
+      "id": "beautifulrepo-8",
+      "batch": "beautifulrepo",
+      "repository": "M2mobi/Marky-Mark",
+      "sha": "fd4b8b446af171fc85c5ebb749dba72a1cb904e3"
+    },
+    {
+      "id": "beautifulrepo-9",
+      "batch": "beautifulrepo",
+      "repository": "bmoliveira/MarkdownKit",
+      "sha": "39ea7a3fc7e65bcafe55152592b834859be574a5"
+    },
+    {
+      "id": "beautifulrepo-10",
+      "batch": "beautifulrepo",
+      "repository": "octree/MarkRight",
+      "sha": "472ad2f98b112a0a1bce0429e3bdfd7ce3051c63"
+    },
+    {
+      "id": "crab-1",
+      "batch": "crab",
+      "repository": "npm/read-package-json",
+      "sha": "7c74b84f4888b6a396f2cfde03569eb720118501"
+    },
+    {
+      "id": "crab-2",
+      "batch": "crab",
+      "repository": "npm/read-package-json-fast",
+      "sha": "2f1bc75e120cd2f7b20b603d170da6ac917abe99"
+    },
+    {
+      "id": "crab-3",
+      "batch": "crab",
+      "repository": "sindresorhus/read-pkg",
+      "sha": "fb100dc2b9f5765bab8ff96f87c5abee538bd9cc"
+    },
+    {
+      "id": "crab-4",
+      "batch": "crab",
+      "repository": "unjs/pkg-types",
+      "sha": "9be578de7d4efdd36c189c0fc988571a769db08f"
+    },
+    {
+      "id": "crab-5",
+      "batch": "crab",
+      "repository": "mainrs/npm-package-json-rs",
+      "sha": "0c6295497a26ae135e05ec57c16ceae9ed6fc056"
+    },
+    {
+      "id": "crab-6",
+      "batch": "crab",
+      "repository": "microsoft/CentralPackageManagementMigrator",
+      "sha": "d27f139cc172bbd9d3122db5f3a338ccb2d9cd9a"
+    },
+    {
+      "id": "crab-7",
+      "batch": "crab",
+      "repository": "AlbertoMonteiro/nuget-cpm-cleaner",
+      "sha": "cbf652705c02fca952a1fce05574d57069255815"
+    },
+    {
+      "id": "crab-8",
+      "batch": "crab",
+      "repository": "PureJoyMind/CPMGen",
+      "sha": "192286c0216bdeb6d54b5e2e8550ae7a95e8144e"
+    },
+    {
+      "id": "crab-9",
+      "batch": "crab",
+      "repository": "akselkvitberg/PackageManagementConverter",
+      "sha": "d80e465134030166de19f806420952f1639d9fe2"
+    },
+    {
+      "id": "crab-10",
+      "batch": "crab",
+      "repository": "christianheld/migratetocpm",
+      "sha": "7a1bc9837852a2037526b9471070403920f05066"
+    },
+    {
+      "id": "devostasis-1",
+      "batch": "devostasis",
+      "repository": "we-like-parsers/pegen",
+      "sha": "813cf0879bc5e2dac8f7eca158c96aec3e481d59"
+    },
+    {
+      "id": "devostasis-2",
+      "batch": "devostasis",
+      "repository": "akaihola/darker",
+      "sha": "bfa840cf7a0b6fb6427f248155baf51ae5321da2"
+    },
+    {
+      "id": "devostasis-3",
+      "batch": "devostasis",
+      "repository": "ethframe/reparsec",
+      "sha": "71d60cf38b17785a4d80454b1f5292bacb2151c5"
+    },
+    {
+      "id": "devostasis-4",
+      "batch": "devostasis",
+      "repository": "javawizard/parcon",
+      "sha": "1e4e5422c1339658fd0977998ae811662307bc46"
+    },
+    {
+      "id": "devostasis-5",
+      "batch": "devostasis",
+      "repository": "cesbit/pyleri",
+      "sha": "e5acbfdd8a5da3f19bb3dc07aa10b77254101353"
+    },
+    {
+      "id": "devostasis-6",
+      "batch": "devostasis",
+      "repository": "igordejanovic/parglare",
+      "sha": "f2615c81a8419d0f53c33a192e95669b2aafe430"
+    },
+    {
+      "id": "devostasis-7",
+      "batch": "devostasis",
+      "repository": "neogeny/TatSu",
+      "sha": "8f9d741a4652c4b7bb34033cfefa6ce562b856d8"
+    },
+    {
+      "id": "devostasis-8",
+      "batch": "devostasis",
+      "repository": "dabeaz/ply",
+      "sha": "9d7c40099e23ff78f9d86ef69a26c1e8a83e706a"
+    },
+    {
+      "id": "devostasis-9",
+      "batch": "devostasis",
+      "repository": "dabeaz/sly",
+      "sha": "09c2ba30df9143298ae5eef79d0baf23755d4cd9"
+    },
+    {
+      "id": "devostasis-10",
+      "batch": "devostasis",
+      "repository": "msherry/flycheck-pycheckers",
+      "sha": "de546e52ceb3147da9688c428f7243e6d98af507"
+    }
+  ],
+  "receiving": [
+    {
+      "batch": "crab",
+      "sha": "4534078b4e7bc58956ff37c2d16644e759fe5abc",
+      "needs": [
+        {
+          "id": "npm-optional-peer-evidence",
+          "verification_mode": "design"
+        },
+        {
+          "id": "dotnet-central-version-relations",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "devostasis",
+      "sha": "a4761daa9fa87026ea106a3d722e7299b3de3b8b",
+      "needs": [
+        {
+          "id": "typed-parse-failure-evidence",
+          "verification_mode": "design"
+        }
+      ]
+    },
+    {
+      "batch": "beautifulrepo",
+      "sha": "54f1461c758c9070d369cbc675feb56074615352",
+      "needs": [
+        {
+          "id": "balanced-reference-link-text",
+          "verification_mode": "design"
+        },
+        {
+          "id": "inline-link-nesting-precedence",
+          "verification_mode": "design"
+        }
+      ]
+    }
+  ]
+}

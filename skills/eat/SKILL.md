@@ -32,6 +32,8 @@ README and agent-instruction bodies must not become summaries or instructions.
    Supply explicit bounded `terms` when known; filenames do not select useful mechanisms.
    Use a short metered read-planning stage before full verification when nomination terms
    are generic. Read implementation for code questions; select data material explicitly.
+   Bound initial packets with the CLI byte policy. Record a precharged oversized lead as
+   `budget-deferred`, then try another supported need/lead under the same caps; keep omissions.
    Inspect mechanisms and retain original receiving proof before approving a change.
 3. **Acquire and compare.** `crab sniff PREY --maw .` establishes immutable identity and grant;
    honor narrower donor policies, including MIT-only. HUMAN needs a human licence decision

@@ -259,7 +259,14 @@ class Trial:
             seeds = self.commands.json(
                 ["discover", "seed"],
                 {
-                    "needs": [{"id": n["id"], "queries": n["queries"]} for n in self.needs],
+                    "needs": [
+                        {
+                            "id": n["id"],
+                            "queries": n["queries"],
+                            **({"terms": n["terms"]} if "terms" in n else {}),
+                        }
+                        for n in self.needs
+                    ],
                     "candidates": [
                         {
                             "repository": r["repository"],
@@ -292,7 +299,9 @@ class Trial:
                     "cases_json": "",
                     "probe_reason": "Additive design; original acceptance required at assessment",
                 }
-            if self.frozen["host"].get("candidate_read_planner"):
+            if self.frozen["host"].get("candidate_read_planner") and not all(
+                n.get("terms") for n in self.needs
+            ):
                 refined = self.refine_seeds(answer)
                 if refined is None:
                     return False
@@ -952,6 +961,113 @@ class Trial:
         receiving = prepared["receiving"]
         return self.inspect(child, "receiving", receiving, "initial-receiving", donor)
 
+    def budget_source(
+        self, lead: dict[str, Any], need: dict[str, Any], prepared: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Use the existing CLI packet byte policy before native admission.
+
+        No raw window is silently made a read witness. Omitted original ranges
+        stay deferred; only the selected physical ranges reach inspection.
+        """
+        budget = self.frozen["host"]["initial_donor_bytes"]
+        if type(budget) is not int or not 1024 <= budget <= 14000:
+            raise RuntimeError("initial donor bytes must be within existing1024..14000 bounds")
+        donor = self.pool[lead["donor"]]
+        packet = self.commands.json(
+            ["discover", "packet"],
+            {
+                "repo": donor["view"],
+                "sha": donor["sha"],
+                "need": need["id"],
+                "paths": list(dict.fromkeys(r["path"] for r in prepared["donor"])),
+                "ranges": prepared["donor"],
+                "queries": [],
+                "related": False,
+                "byte_budget": budget,
+            },
+        )
+        selected = [
+            {"path": file["path"], "start": row["start"], "end": row["end"]}
+            for file in packet["files"]
+            for row in file["ranges"]
+        ]
+        deferred = [r for r in prepared["donor"] if r not in selected]
+        key = need["id"] + ":" + donor["id"]
+        self.state.setdefault("source_preparations", {})[key] = {
+            "budget": budget,
+            "bytes_selected": packet["bytes"],
+            "original_ranges": prepared["donor"],
+            "selected_ranges": selected,
+            "deferred_ranges": deferred,
+            "omissions": packet["omissions"],
+            "raw_preparation_sha256": identity(prepared),
+            "packet_sha256": identity(packet),
+            "interpretation": "Initial reads only; deferred source is uninspected, not rejected",
+        }
+        write(self.root / ("source-preparation-" + identity(key)[:16] + ".json"), prepared)
+        self.save()
+        windows = [
+            raw_window(Path(donor["view"]), donor["sha"], r["path"], r["start"], r["end"], "donor")
+            for r in selected
+        ]
+        windows.extend(w for w in prepared["windows"] if w.get("side") == "receiving")
+        return {**prepared, "donor": selected, "windows": windows}
+
+    def prepare_initial_source(self, lead: dict[str, Any], need: dict[str, Any]) -> dict[str, Any]:
+        if "initial_donor_bytes" not in self.frozen["host"] or self.arm != "candidate":
+            return self.prepare_source(lead, need)
+        request = {
+            "lead": lead,
+            "need": need,
+            "donor_sha": self.pool[lead["donor"]]["sha"],
+            "receiving_sha": self.context["sha"],
+            "budget": self.frozen["host"]["initial_donor_bytes"],
+        }
+        key = identity(request)
+        artifact = self.root / ("prepared-initial-" + key[:24] + ".json")
+        receipts = self.state.setdefault("source_preparation_receipts", {})
+        if artifact.exists():
+            cached = read(artifact)
+            if receipts.get(key) != identity(cached):
+                raise RuntimeError("completed source preparation changed; refusing replay")
+            return dict(cached["prepared"])
+        prepared = self.budget_source(lead, need, self.prepare_source(lead, need))
+        cached = {"request": request, "prepared": prepared}
+        write(artifact, cached)
+        receipts[key] = identity(cached)
+        self.save()
+        return prepared
+
+    def defer_source(
+        self, lead: dict[str, Any], need: dict[str, Any], admission: dict[str, Any]
+    ) -> None:
+        """A charged acquire attempt may defer without claiming donor utility."""
+        assert self.session and self.action and self.action["action"] == "acquire"
+        attempt = self.action["attempt"]
+        row = {
+            "attempt": attempt,
+            "need": need["id"],
+            "donor": lead["donor"],
+            "admission": admission,
+            "status": "budget-deferred; utility unassessed",
+        }
+        entries = self.state.setdefault("preparation_deferrals", [])
+        previous = next((r for r in entries if r["attempt"] == attempt), None)
+        if previous is not None:
+            if any(previous[k] != row[k] for k in ("need", "donor")):
+                raise RuntimeError("a deferred owned preparation cannot change its owner")
+            admission = previous["admission"]
+        if previous is None:
+            entries.append(row)
+            self.save()
+        self.record(
+            {
+                "status": "budget-deferred",
+                "reason": "Initial verification context does not fit the remaining model reserve",
+                "admission": admission,
+            }
+        )
+
     def lookup_source(
         self,
         lead: dict[str, Any],
@@ -1125,6 +1241,9 @@ class Trial:
             "additional_novelty_reads": self.state.get("novelty_reads", {}).get(need["id"], []),
             "source_searches": self.state.get("source_lookups", {}).get(need["id"], []),
             "operation_refusals": self.state.get("operation_refusals", [])[-3:],
+            "source_preparation": self.state.get("source_preparations", {}).get(
+                need["id"] + ":" + donor["id"]
+            ),
             "own_prior_need_outcomes": [
                 {
                     "disposition": r["decision"]["disposition"],
@@ -1204,6 +1323,20 @@ class Trial:
                 "start=end=1; other operations use empty query. Only pending uses revision. "
                 "Keep legal transfer separate. Return the same strict JSON decision schema.\n"
                 + compact_evidence(facts)
+            )
+        if (
+            self.arm == "candidate"
+            and not self.state["outcomes"]
+            and continuation_of is None
+            and not any(
+                s["name"] in {"plan", "read-plan"} for s in self.meter.data.get("stages", [])
+            )
+        ):
+            prompt = (
+                "MATCHING INSTALLED SKILL:\n"
+                + Path(self.frozen["matching_skills"][self.arm]).read_text(encoding="utf-8")
+                + "\nACTUAL ASSESSMENT:\n"
+                + prompt
             )
         if admission_only:
             admission = self.meter.admission(prompt, schema)
@@ -1646,12 +1779,17 @@ class Trial:
             if len(self.state["admissions"]) >= 6:
                 return self.stop("donor-budget")
             label = "assess-" + str(len(self.state["outcomes"]))
-            prepared = self.prepare_source(lead, need)
+            if self.frozen["host"].get("defer_oversized_source"):
+                label += "-preparation-" + str(len(self.state.get("preparation_deferrals", [])))
+            prepared = self.prepare_initial_source(lead, need)
             planned = self.assess(
                 lead, need, {}, prepared["windows"], label + "-preview", admission_only=True
             )
             assert planned
             if not planned["admissible"]:
+                if self.session and self.frozen["host"].get("defer_oversized_source"):
+                    self.defer_source(lead, need, planned)
+                    continue
                 return self.stop("model-budget-reserve")
             info = self.acquire(lead, need)
             windows = self.initial_source(lead, info, prepared)
