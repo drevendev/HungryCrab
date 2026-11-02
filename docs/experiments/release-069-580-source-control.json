@@ -1,0 +1,319 @@
+{
+  "kind": "Exposed navigation diagnostic; not fresh usefulness",
+  "source": {
+    "version": "0.6.9.dev0",
+    "source_sha256": "7ec3e5bdc0add759825619b27ea8a253a767d1791771dbaec3b41cdab410372d"
+  },
+  "locations": [
+    {
+      "repository": "colemancda/Apodimark",
+      "sha": "b048b945c9b0cebd10226f554461ca7b5f795da5",
+      "terms": [
+        "reference",
+        "bracket",
+        "label"
+      ],
+      "matches": [
+        {
+          "path": "Sources/Apodimark/InlineParsing/DelimiterArray/ProcessReference.swift",
+          "line": 9,
+          "score": 9,
+          "callable_like": true,
+          "callable_anchor": true,
+          "context_ranges": [
+            {
+              "start": 9,
+              "end": 68
+            },
+            {
+              "start": 69,
+              "end": 128
+            }
+          ]
+        },
+        {
+          "path": "Sources/Apodimark/Apodimark.swift",
+          "line": 12,
+          "score": 16,
+          "callable_like": false,
+          "callable_anchor": false,
+          "context_ranges": [
+            {
+              "start": 4,
+              "end": 57
+            }
+          ]
+        },
+        {
+          "path": "Sources/Apodimark/InlineParsing/InlineParsingStructures.swift",
+          "line": 21,
+          "score": 16,
+          "callable_like": false,
+          "callable_anchor": false,
+          "context_ranges": [
+            {
+              "start": 13,
+              "end": 66
+            }
+          ]
+        },
+        {
+          "path": "Sources/Apodimark/BlockParsing/BlockAST.swift",
+          "line": 2,
+          "score": 9,
+          "callable_like": false,
+          "callable_anchor": false,
+          "context_ranges": [
+            {
+              "start": 2,
+              "end": 61
+            },
+            {
+              "start": 62,
+              "end": 102
+            }
+          ]
+        }
+      ],
+      "files_inspected": 96,
+      "files_not_inspected": 791,
+      "omissions": [],
+      "match_order": "focus role; implementation callable anchors and filename association; literal specificity, declaration-like text, path/line. Callable anchors match the longest query literal or multiple literals. These are text heuristics; syntax and behavior remain unproven"
+    },
+    {
+      "repository": "igormironchik/md4qt",
+      "sha": "04dd8bfe69ecc977d1ea52236c28341c4dcb3396",
+      "terms": [
+        "bracket",
+        "link",
+        "image",
+        "active"
+      ],
+      "matches": [
+        {
+          "path": "src/link_image_parser.cpp",
+          "line": 24,
+          "score": 9,
+          "callable_like": true,
+          "callable_anchor": true,
+          "context_ranges": [
+            {
+              "start": 24,
+              "end": 83
+            },
+            {
+              "start": 84,
+              "end": 143
+            }
+          ]
+        },
+        {
+          "path": "src/gfm_autolink_parser.cpp",
+          "line": 126,
+          "score": 9,
+          "callable_like": true,
+          "callable_anchor": true,
+          "context_ranges": [
+            {
+              "start": 126,
+              "end": 185
+            },
+            {
+              "start": 186,
+              "end": 225
+            }
+          ]
+        },
+        {
+          "path": "src/doc.cpp",
+          "line": 857,
+          "score": 9,
+          "callable_like": true,
+          "callable_anchor": true,
+          "context_ranges": [
+            {
+              "start": 857,
+              "end": 916
+            },
+            {
+              "start": 917,
+              "end": 976
+            }
+          ]
+        },
+        {
+          "path": "src/doc.h",
+          "line": 1529,
+          "score": 9,
+          "callable_like": false,
+          "callable_anchor": false,
+          "context_ranges": [
+            {
+              "start": 1529,
+              "end": 1588
+            },
+            {
+              "start": 1589,
+              "end": 1648
+            }
+          ]
+        }
+      ],
+      "files_inspected": 96,
+      "files_not_inspected": 1327,
+      "omissions": [
+        {
+          "path": "3rdparty/doctest/doctest.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/entities_map.cpp",
+          "reason": "file-unavailable-or-byte-limit"
+        },
+        {
+          "path": "src/paragraph_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/poscache.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/poscache.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/reverse_solidus.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/setext_heading_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/setext_heading_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/strikethrough_emphasis_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/strikethrough_emphasis_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/table_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/table_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/text_stream.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/text_stream.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/thematic_break_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/thematic_break_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/underline_emphasis_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/underline_emphasis_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/utils.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/utils.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/visitor.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/visitor.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/yaml_parser.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "src/yaml_parser.h",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/algo/main.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/bench/main.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/0.30/convert/spec_to_mds.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/0_31_2.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/6.8-6.9.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/backslash.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/blockquote.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/blocks.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/code_spans.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/emphasis-1-10.cpp",
+          "reason": "total-read-byte-limit"
+        },
+        {
+          "path": "tests/auto/commonmark/emphasis-11-17.cpp",
+          "reason": "total-read-byte-limit"
+        }
+      ],
+      "match_order": "focus role; implementation callable anchors and filename association; literal specificity, declaration-like text, path/line. Callable anchors match the longest query literal or multiple literals. These are text heuristics; syntax and behavior remain unproven"
+    }
+  ],
+  "donor_execution": false,
+  "native_model_calls": 0
+}

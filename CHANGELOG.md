@@ -50,6 +50,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Prefer flow-associated callable text over dense type tables in implementation
+  source lookup, retain literal scores and raw focus, and disclose that lexical
+  signature hints establish neither syntax nor behavior (#580).
 - Retain oversized initial source as deferred, rotate a charged acquisition under
   the same global caps, and use CLI packet byte policy before native admission.
   Receiving-owned literal anchors can bypass redundant semantic nomination (#579).

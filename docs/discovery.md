@@ -403,3 +403,12 @@ Explicit per-need literal `terms` reach CLI seeding directly. When all needs
 already have them, the compact semantic nomination stage is unnecessary; the
 matching installed skill is supplied to the first assessment instead. Actual
 source/novelty/original acceptance and all model-use limits still apply.
+
+Implementation-focused `find` exposes `callable_like` and `callable_anchor`
+text hints, including bounded Swift `func`, visibility-qualified Rust and
+qualified C++ spellings. A callable anchor matches the longest requested literal
+or several literals; matching filenames help order such anchors before dense
+type tables. A weak generic callable does not receive this priority over a more
+distinctive body literal. Original scores stay visible and `focus: any` retains
+raw ordering. These hints do not prove parsed declarations, function boundaries,
+runtime calls or usefulness; inspect the returned actual code.
