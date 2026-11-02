@@ -33,3 +33,29 @@ def test_valid_bounded_answer_is_preserved() -> None:
         {"items": {"type": "array", "maxItems": 2, "items": {"type": "integer", "minimum": 0}}}
     )
     assert parse_answer('{"items":[0,2]}', schema) == {"items": [0, 2]}
+
+@pytest.mark.parametrize("numeric_kind", ["integer", "number"])
+def test_large_json_integer_is_checked_without_float_conversion(numeric_kind: str) -> None:
+    digits = "9" * 400
+    answer = '{"items":[' + digits + "]}"
+
+    def schema_with(**bounds: int) -> dict[str, object]:
+        return strict(
+            {
+                "items": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "items": {"type": numeric_kind, **bounds},
+                }
+            }
+        )
+
+    assert parse_answer(answer, schema_with(minimum=0)) == {"items": [int(digits)]}
+    with pytest.raises(ValueError, match="answer numeric bound"):
+        parse_answer(answer, schema_with(maximum=9))
+
+
+def test_large_json_integer_wrong_type_is_bounded_validation_error() -> None:
+    schema = strict({"items": {"type": "string"}})
+    with pytest.raises(ValueError, match="answer type differs from contract"):
+        parse_answer('{"items":' + "9" * 400 + "}", schema)
