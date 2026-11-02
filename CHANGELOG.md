@@ -50,6 +50,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Validate explicitly retained supporting corpus paths against immutable Git files
+  instead of reporting authentic testdata as corrupt evidence; preserve primary
+  traits, ignores and the conservative no-inventory fallback (#582).
 - Keep recognized README-prefixed implementation modules available to source
   inspection and novelty checks while excluding actual README documents,
   ambiguous/disguised names and instruction paths (#581).

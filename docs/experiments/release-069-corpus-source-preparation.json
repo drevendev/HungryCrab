@@ -1,0 +1,17 @@
+{
+  "kind": "Pre-inference preparation refusal and exposed path audit; no usefulness result",
+  "issue": 582,
+  "candidate": "1b3fc40b0539aadd33e569babd8b01a832dd25ab",
+  "product_source": "3e2688176adbe3dc5c226f4857326ba77c93a06836aa095ef6ee83de3fdb7875",
+  "repository": "rvolosatovs/workflow-jobs",
+  "sha": "5ed10c77adac0dc5d507485095701880ac991f37",
+  "arms_refused": ["baseline", "candidate"],
+  "present_regular_paths_rejected": ["testdata/check.yml", "testdata/lint.yml", "testdata/missing.yml", "testdata/test.yml"],
+  "actual": "Retained inventory evidence is rejected because immutable enumeration removes all corpus directories before checking membership",
+  "expected": "Validate explicitly retained supporting corpus files at the exact pin, without promoting their role or broadening legacy fallback",
+  "after_repair_exposed_path_audit": {"verified_sides": 60, "errors": [], "all_checked": true},
+  "model_calls_started": 0,
+  "donor_body_utility_judgments": 0,
+  "nominees_replaced": 0,
+  "limitations": ["The audit reads authentic earlier-source digests through repaired validation; it is not current exact-source qualification.", "All raw earlier acquired artifacts, scopes and refusal outputs remain retained. Current candidate digests and receiving pins must be refreshed before sealing."]
+}

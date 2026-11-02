@@ -117,8 +117,13 @@ class Side:
         traits = as_dict(data["traits"].get("traits"))
         recorded_root = prey.get("root")
         if objects is not None:
-            paths = _snapshot_files(objects, str(prey.get("sha", "")), manifest)
             existing = data["inventory"].get("evidence_files")
+            paths = _snapshot_files(
+                objects,
+                str(prey.get("sha", "")),
+                manifest,
+                include_corpus=isinstance(existing, list),
+            )
             if isinstance(existing, list) and not set(existing) <= set(paths):
                 raise CrabError(
                     "digest file evidence is inconsistent with the immutable Git snapshot"
@@ -262,7 +267,9 @@ def _match_evidence_path(path: str, pattern: str) -> bool:
     return False
 
 
-def _snapshot_files(objects: Path, sha: str, manifest: dict[str, Any]) -> list[str]:
+def _snapshot_files(
+    objects: Path, sha: str, manifest: dict[str, Any], *, include_corpus: bool = False
+) -> list[str]:
     """Resolve regular files from an explicit immutable object store without a checkout."""
     if not re.fullmatch(r"[0-9a-f]{40}(?:[0-9a-f]{24})?", sha):
         raise CrabError("Git snapshot evidence requires a full immutable commit SHA")
@@ -290,16 +297,18 @@ def _snapshot_files(objects: Path, sha: str, manifest: dict[str, Any]) -> list[s
         raise CrabError("immutable commit is unavailable in the selected Git object store")
     paths: list[str] = []
     ignores = [str(p) for p in as_list(manifest.get("ignore"))]
+    # Explicit inventory evidence includes supporting corpus files. Validate
+    # their existence, without broadening the legacy no-inventory fallback.
+    excluded_dirs = VENDORED_DIRS | BUILD_OUTPUT_DIRS
+    if not include_corpus:
+        excluded_dirs |= CORPUS_DIRS
     for entry in result.stdout.decode("utf-8", errors="replace").split("\0"):
         meta, _, path = entry.partition("\t")
         if (
             meta.startswith(("100644 blob ", "100755 blob "))
             and _evidence_path(path)
             and not is_ignored(path, ignores)
-            and not any(
-                part in VENDORED_DIRS | BUILD_OUTPUT_DIRS | CORPUS_DIRS
-                for part in path.split("/")[:-1]
-            )
+            and not any(part in excluded_dirs for part in path.split("/")[:-1])
         ):
             paths.append(path)
         if len(paths) > 120_000:
