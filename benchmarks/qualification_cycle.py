@@ -111,6 +111,10 @@ def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
         ".scala",
         ".clj",
         ".cljs",
+        ".cljc",
+        ".edn",
+        ".lock",
+        ".resolved",
         ".zig",
         ".mjs",
         ".cjs",
@@ -664,7 +668,37 @@ class Trial:
         """
         donor = self.pool[lead["donor"]]
         ranges = []
-        if self.arm == "candidate":
+        # Conventional data-file hints belong to the receiving need and both
+        # arms. Resolve actual immutable names; never invent a donor path.
+        source_names = need.get("source_names", [])
+        if (
+            not isinstance(source_names, list)
+            or len(source_names) > 4
+            or any(
+                not isinstance(n, str) or Path(n).name != n or body_excluded(n)
+                for n in source_names
+            )
+        ):
+            raise RuntimeError("source names must be bounded conventional data-file basenames")
+        preferred = sorted(
+            (p for p in donor.get("catalog", []) if Path(p).name in source_names),
+            key=lambda p: (source_names.index(Path(p).name), p),
+        )[:3]
+        if preferred:
+            reader = GitSourceReader(Path(donor["view"]), byte_limit=65536)
+            for path in preferred:
+                parent, _, name = path.rpartition("/")
+                if (reader.entries(donor["sha"], parent) or {}).get(name) not in {
+                    "100644",
+                    "100755",
+                }:
+                    continue
+                source = reader.read(donor["sha"], path)
+                if source and physical_lines(source):
+                    ranges.append(
+                        {"path": path, "start": 1, "end": min(60, len(physical_lines(source)))}
+                    )
+        elif self.arm == "candidate":
             located = self.commands.json(
                 ["discover", "find"],
                 {
