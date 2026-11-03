@@ -25,6 +25,7 @@ from .serve import (
     decode_receipt_stream,
     load_cleanroom_receipts,
     publish_serve_plans,
+    require_positive_top,
     select_cards,
     serve,
 )
@@ -187,6 +188,7 @@ def serve_many(
     cache_root: Path | None = None,
     log: Callable[[str], None] = lambda _: None,
 ) -> ServeReport:
+    require_positive_top(options)
     menu, paths, targets = load_multi(bundle)
     if (
         options.mode in {"issue", "pr-branch"}

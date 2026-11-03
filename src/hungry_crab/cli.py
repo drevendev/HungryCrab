@@ -287,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="analysis depth and miner read budgets (default: normal)",
     )
     p_compare.add_argument("--force", action="store_true", help="re-run both digests")
-    p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md")
+    p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md (positive)")
     p_compare.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_compare.add_argument("--since", default=None, help="when catching first: --since")
     p_compare.add_argument(
@@ -397,7 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
-    p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids")
+    p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids (positive)")
     p_serve.add_argument(
         "--as",
         dest="mode",
@@ -466,7 +466,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--maw", type=Path, default=Path(), help="maw repository whose meal to read (default: .)"
     )
     p_menu.add_argument(
-        "--top", type=int, default=30, help="maximum candidates shown (default: 30)"
+        "--top", type=int, default=30, help="maximum candidates shown (positive, default: 30)"
     )
     p_menu.add_argument("--category", default=None, help="comma-separated categories to show")
     p_menu.add_argument("--all", action="store_true", help="also list hidden candidates")
@@ -1101,6 +1101,8 @@ def cmd_tune(args: argparse.Namespace) -> int:
 def cmd_menu(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     from .meal_review import project_menu
 
+    if args.top < 1:
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
     menu: dict[str, Any] | None
     if bool(args.prey) == bool(args.meal_dir):
         raise UsageError("menu needs exactly one prey or --meal-dir")

@@ -640,6 +640,14 @@ class ServeReport:
         }
 
 
+def require_positive_top(options: ServeOptions) -> None:
+    """--top takes the first N cards; a negative count would slice all but the
+    last one and zero would publish nothing, so both are refused before any
+    acquisition, ledger write or provider call."""
+    if options.top is not None and options.top < 1:
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1, or --ids")
+
+
 def select_cards(
     menu: dict[str, Any], options: ServeOptions, ledger: Ledger | None = None
 ) -> tuple[list[Candidate], list[dict[str, Any]]]:
@@ -891,6 +899,7 @@ def serve(
     publication_plans: list[PullRequestServePlan] | None = None,
     before_publication: Callable[[], None] | None = None,
 ) -> ServeReport:
+    require_positive_top(options)
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
             f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch"
