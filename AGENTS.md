@@ -62,7 +62,7 @@ authority when a document disagrees with it. The decisions log is at the end of
   `extensions.com.openai`; never a `.codex-plugin/plugin.json`, which would override the name
   and version), `.codex-plugin/assets/` and `.agents/plugins/`.
   `tests/test_plugin.py` and `tests/test_agent_plugin.py` keep them well-formed.
-- `tests/fixtures/`: three synthetic repositories; `tests/fixture_builder.py` turns them into real
+- `tests/fixtures/`: five synthetic repositories; `tests/fixture_builder.py` turns them into real
   git repositories with history, tags and branches.
 
 ## Commands
@@ -102,4 +102,4 @@ uv run crab digest . --maw . --out /tmp/self-digest --maw-license MIT
    `json_file`, `md_file` and `run(ctx) -> MinerResult`.
 2. Register it in `miners/__init__.py` in dependency order (after everything it requires).
 3. Feed comparable facts into `miners/traits.py`.
-4. Add `tests/test_miner_<name>.py` with assertions against the three fixtures.
+4. Add `tests/test_miner_<name>.py` with assertions against the five fixtures.
