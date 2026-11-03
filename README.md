@@ -243,6 +243,9 @@ Codex/Cursor/Claude configurations, portable skills and the clean-install verifi
 `crab init` writes `.crab.yml` in the maw. Every key is optional; omitted keys use the defaults
 below. Unknown top-level, `hunger`, `budget`, `serve`, and `trust` keys are usage errors (exit 2),
 with a suggested spelling where available; `scoring` retains its own flexible nested schema.
+The maw-owned `.crab.yml` is limited to 1 MiB (1,048,576 encoded bytes), with no
+configuration override. Larger files are refused before UTF-8 decoding or YAML parsing;
+malformed UTF-8 is reported without including configuration content.
 `serve.max_prs_per_run` must be a non-negative integer. `trust.same_owner` and
 `trust.bypass_license` accept YAML booleans only: write `false`, not the string `"false"`.
 
