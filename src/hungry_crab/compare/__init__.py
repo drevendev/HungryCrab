@@ -20,7 +20,7 @@ from ..cache import Slug, Target, maw_paths
 from ..digest import DigestOptions, DigestResult, run_digest
 from ..digest_integrity import digest_integrity_errors
 from ..digest_reader import locate_digest_sha
-from ..errors import CrabError
+from ..errors import CrabError, UsageError
 from ..ledger import Ledger
 from ..licensing import Relationship, decide
 from ..licensing.origin import ContentOrigin
@@ -493,6 +493,10 @@ def run_compare(
     """Digest both sides and compare; only persist the CLI meal when requested."""
     d_opts = digest_options or DigestOptions()
     opts = options or CompareOptions()
+    if opts.top < 1:
+        # A negative --top would slice all but the last card and a zero one would
+        # write an empty meal, so the count is refused before any prey is read.
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
     if prey_digest_dir is None:
         if prey_objects is not None:
             raise CrabError("--prey-objects requires --prey-digest")

@@ -741,3 +741,49 @@ def test_notes_and_a_later_hunger_cannot_lift_a_card_over_the_maw(
     )  # fmt: skip
     assert later.previews == []
     assert later.skipped == [{"id": ci[0], "reason": "hunger: ci is off"}]
+
+
+def test_serve_refuses_a_nonpositive_top_before_any_effect(
+    npm_app: Path, pyproject_cli: Path, tmp_path: Path
+) -> None:
+    """A negative --top would slice all but the last card and zero would publish
+    nothing; both are refused before the menu is read or a provider is touched."""
+    prey_dir = _menu_dir(npm_app, pyproject_cli, tmp_path / "cache")
+    config = MawConfig.load(pyproject_cli)
+    ledger = Ledger(None)
+    client = FakeIssues()
+    for top in (-1, 0):
+        with pytest.raises(UsageError, match="--top must be positive"):
+            serve(
+                prey_dir,
+                pyproject_cli,
+                ServeOptions(top=top, mode="issue"),
+                config=config,
+                ledger=ledger,
+                client=client,
+            )
+    assert client.created == []
+    assert client.labels == []
+
+
+def test_compare_refuses_a_nonpositive_top_before_any_acquisition(tmp_path: Path) -> None:
+    """The count is validated before the prey is resolved or digested."""
+    with pytest.raises(UsageError, match="--top must be positive"):
+        run_compare(
+            Target(path=tmp_path / "nowhere"),
+            tmp_path / "also-nowhere",
+            options=CompareOptions(top=-1),
+        )
+    assert not (tmp_path / "nowhere").exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_menu_refuses_a_nonpositive_top(tmp_path: Path) -> None:
+    """The printed menu refuses the count before it reads any meal."""
+    from hungry_crab.cli import build_parser, cmd_menu
+
+    args = build_parser().parse_args(
+        ["menu", "--top", "0", "--meal-dir", str(tmp_path / "meal")]
+    )
+    with pytest.raises(UsageError, match="--top must be positive"):
+        cmd_menu(args, lambda _: None)
