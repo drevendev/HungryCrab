@@ -398,10 +398,6 @@ def walk_tree(
                 visible_files is not None and rel not in visible_files
             ):
                 continue
-            if len(files) >= max_files:
-                stats["truncated"] = True
-                dirnames[:] = []
-                break
             full = os.path.join(dirpath, name)
             if os.path.islink(full):
                 stats["symlinks"] += 1
@@ -414,6 +410,10 @@ def walk_tree(
             if not stat.S_ISREG(st.st_mode):
                 stats["special_files"] += 1
                 continue
+            if len(files) >= max_files:
+                stats["truncated"] = True
+                dirnames[:] = []
+                break
             if vendored:
                 vendored_counts[vendored_key] += 1
             files.append(
