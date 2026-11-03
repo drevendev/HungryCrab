@@ -26,7 +26,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
+Released: **0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
 security releases on **0.6.0
 Everywhere** (2026-10-22), a limited stable analysis release, after **0.2.0**. `hungry-crab` is
 on PyPI from 0.6.1.
@@ -34,17 +34,20 @@ The 0.2.1-0.5 implementations are included in it; that does not close their unfu
 milestone exit criteria, which stay open in #224, #236, #242, #243, #250 and #256. See the
 [release record](../releases/0.6.0-readiness.md).
 
-Planned next release: **0.6.9**, the owner-expanded verified discovery, selection
-and MIT-quality scope. The complete agent search/verification/replanning cycle,
-all open PRs at the planning snapshot and eight additional backlog issues are
-specified in [the implementation scope](../releases/0.6.9-scope.md), tracked by
-[#535](https://github.com/drevendev/HungryCrab/issues/535). This supersedes the
-earlier separate 0.7.0 discovery target. The CLI implementation is in draft
-[#539](https://github.com/drevendev/HungryCrab/pull/539); independent usefulness
-qualification still fails and complete-cycle readiness remains open in
-[#540](https://github.com/drevendev/HungryCrab/issues/540). See the
-[corrected-host evidence](../experiments/release-069-corrected-qualification.md).
-It is not a release announcement.
+The **0.6.9** patch contains bounded licensing, source-reading,
+evidence-integrity and host-safety fixes under the owner-amended
+[scope](../releases/0.6.9-scope.md), tracked by
+[#535](https://github.com/drevendev/HungryCrab/issues/535) and implemented in
+[#539](https://github.com/drevendev/HungryCrab/pull/539). See the
+[release record](../releases/0.6.9-candidate.md) for verification and limitations.
+The release tree precedes the reopened **0.6.10.dev0** development tree.
+
+The complete useful-change search/verification/replanning cycle and independent
+comparative acceptance move to **0.6.10**, [specification #585](../releases/0.6.10-scope.md).
+[#540](https://github.com/drevendev/HungryCrab/issues/540) remains open there.
+The [latest comparison](../experiments/release-069-breadth-qualification.md)
+confirmed zero useful changes in either arm. Its failed gates are transferred,
+not passed; search remains experimental.
 
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
