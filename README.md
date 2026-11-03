@@ -56,8 +56,10 @@ public replay and its remaining unexplored facets.
 
 The [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers bounded MIT/path-licence,
 source-reading, evidence-integrity and host-safety fixes under the amended
-[scope](docs/releases/0.6.9-scope.md). Complete useful-change discovery and its
-independent comparative acceptance belong to [0.6.10](docs/releases/0.6.10-scope.md).
+[scope](docs/releases/0.6.9-scope.md). The next [0.6.10 maintenance patch](docs/releases/0.6.10-scope.md) is scoped to
+24 bounded issue candidates in [#587](https://github.com/drevendev/HungryCrab/issues/587).
+Complete useful-change discovery and its unchanged independent comparative acceptance
+belong to [0.6.11](docs/releases/0.6.11-scope.md) under [#585](https://github.com/drevendev/HungryCrab/issues/585).
 Search remains experimental: the latest comparison confirmed zero useful changes
 in either arm. Development continues at 0.6.10.dev0.
 
