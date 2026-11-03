@@ -69,15 +69,24 @@ def test_both_arms_can_read_actual_conventional_dependency_data_files(
     assert prepared["windows"][0]["side"] == "donor"
 
 
-def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_path: Path) -> None:
+@pytest.mark.parametrize("semantic_planner", [False, True])
+def test_candidate_design_planning_preserves_cli_seeds_and_optional_semantic_work(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, semantic_planner: bool
+) -> None:
     root = Path(__file__).resolve().parents[1]
     donor = repository(tmp_path / "donor", {"stream.py": "VALUE = 7\n"})
     trial = object.__new__(Trial)
     trial.arm = "candidate"
-    trial.frozen = {"host": {"candidate_metadata_seeds": True, "candidate_read_planner": True}}
+    trial.frozen = {
+        "host": {"candidate_metadata_seeds": True, "candidate_read_planner": semantic_planner},
+        "matching_skills": {"candidate": str(root / "skills" / "eat" / "SKILL.md")},
+    }
     trial.needs = [
         {
             "id": "intake",
+            "flow": "Read a bounded stream",
+            "observed": "Reads have no finite limit",
+            "expected": "Bound memory during stream intake",
             "queries": ["stream limit"],
             "verification_mode": "design",
             "terms": ["VALUE"],
@@ -96,11 +105,29 @@ def test_candidate_design_planning_uses_actual_cli_seeds_without_a_model(tmp_pat
     trial.state = {}
     trial.state_path = trial.root / "state.json"
     trial.commands = Commands(trial.root / "cli", Path(sys.executable), root)
+    calls = []
+
+    def model(stage: str, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
+        assert semantic_planner, "The deterministic seed path must not invoke a model"
+        assert stage == "read-plan" and schema["properties"]["intake"]
+        facts = json.loads((trial.root / "read-plan.facts.json").read_text(encoding="utf-8"))
+        assert facts["needs"][0]["queries"] == ["stream limit"]
+        assert facts["needs"][0]["receiving_literal_terms"] == ["VALUE"]
+        assert facts["pool"][0]["actual_paths"] == ["stream.py"]
+        calls.append(stage)
+        return {
+            "intake": {"leads": [{"donor": "fixture", "terms": ["VALUE"], "reason": "control"}]}
+        }
+
+    monkeypatch.setattr(trial, "model", model)
     assert trial.planner()
     assert trial.state["phase"] == "cases"
     assert trial.state["plan"]["intake"]["cases_json"] == ""
     assert trial.state["plan"]["intake"]["leads"][0]["donor"] == "fixture"
-    assert trial.state["plan"]["intake"]["leads"][0]["terms"] == ["value"]
+    assert trial.state["plan"]["intake"]["leads"][0]["terms"] == (
+        ["VALUE"] if semantic_planner else ["value"]
+    )
+    assert calls == (["read-plan"] if semantic_planner else [])
     assert json.loads((trial.root / "seed-preparation.json").read_text())["model_calls"] == 0
 
 
@@ -314,7 +341,8 @@ def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:
         "arm_python": {"candidate": sys.executable},
         "tool_cwd": {"candidate": str(root)},
         "native_cwd": str(tmp_path),
-        "host": {"model": "not-invoked", "effort": "medium"},
+        "host": {"model": "not-invoked", "effort": "medium", "minimum_assessment_reserve": 6500},
+        "limits": {"model_tokens": 30000, "seconds": 2700},
         "pool": [
             {
                 "id": "source",
