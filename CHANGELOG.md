@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-11-03
+
 ### Added
 
 - Project verified receiving-case checks/calls within explicit value/packet bounds,
@@ -119,9 +121,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Restore the ranking-pressure gate through general unknown agent-host uptake,
   retaining B1 labels, thresholds and the negative control (#303).
 
-Independent usefulness/cost qualification for the owner-expanded 0.6.9 scope is
-still required; see the [implementation record](docs/releases/0.6.9-implementation.md).
-These entries do not announce a release or assert measured discovery gains.
+0.6.9 is a bounded patch under the [owner-amended scope](docs/releases/0.6.9-scope.md).
+Complete useful-change discovery and its independent usefulness/cost acceptance
+move to [0.6.10 / #585](docs/releases/0.6.10-scope.md); #540 remains open.
+The retained latest comparison confirmed zero useful changes in either arm.
+Search remains experimental; these entries assert no measured discovery gain.
 
 ## [0.6.8] - 2026-10-28
 
@@ -1353,7 +1357,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.8...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.9...HEAD
+[0.6.9]: https://github.com/drevendev/HungryCrab/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...v0.6.7
 [0.6.6]: https://github.com/drevendev/HungryCrab/compare/v0.6.5...v0.6.6

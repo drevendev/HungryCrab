@@ -7,6 +7,11 @@ identity, actual receipts and stopping decisions. It does not call a model or
 start a scheduler. See [discovery.md](discovery.md) for exploration decisions,
 registration and the existing per-meal publication path.
 
+Complete-cycle usefulness remains unqualified. The 0.6.9 patch contains bounded
+correctness and safety fixes; independent comparative acceptance belongs to
+[0.6.10 / #585](releases/0.6.10-scope.md), with #540 open. Persisted evidence and
+successful commands do not establish a useful finding or accepted change.
+
 ## Freeze receiving needs
 
 Read actual receiving source/tests and check the default branch and confirmed

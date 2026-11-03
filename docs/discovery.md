@@ -1,5 +1,10 @@
 # Supervised discovery beyond traits
 
+Complete useful-change discovery remains experimental. The 0.6.9 bounded fixes
+do not pass independent comparative usefulness acceptance; the latest study
+confirmed zero useful changes in either arm. Completion and qualification are
+tracked in [0.6.10 / #585](releases/0.6.10-scope.md), with #540 still open.
+
 For the persisted invoked host cycle, provider budgets, replacements and actual
 verification receipts, see [Invoked discovery sessions](discovery-session.md).
 

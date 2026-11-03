@@ -38,9 +38,8 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.8](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.8) is the latest
-release, adding behavior-planned donor searches, runtime coverage, safer loop recovery and
-actionable MCP diagnostics on
+**Status: [0.6.9](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.9), a bounded
+licensing, source-reading, evidence-integrity and host-safety patch on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
 Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
@@ -55,9 +54,12 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 The [0.6.5 execution report](docs/experiments/discovery-453-report.md) records the bounded
 public replay and its remaining unexplored facets.
 
-The planned [0.6.9 scope](docs/releases/0.6.9-scope.md) brings together the full
-supervised discovery cycle, selection quality and MIT/path-licence corrections.
-Implementation and independent qualification are pending; 0.6.8 remains released.
+The [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers bounded MIT/path-licence,
+source-reading, evidence-integrity and host-safety fixes under the amended
+[scope](docs/releases/0.6.9-scope.md). Complete useful-change discovery and its
+independent comparative acceptance belong to [0.6.10](docs/releases/0.6.10-scope.md).
+Search remains experimental: the latest comparison confirmed zero useful changes
+in either arm. Development continues at 0.6.10.dev0.
 
 ## The metaphor, in five words
 
