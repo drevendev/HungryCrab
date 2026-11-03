@@ -37,8 +37,8 @@ def test_maw_yaml_byte_ceiling_accepts_exact_budget_and_rejects_one_extra(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     path = tmp_path / CONFIG_FILE
-    prefix = b"mode: normal\\n#"
-    exact = prefix + b"x" * (MAX_MAW_CONFIG_BYTES - len(prefix) - 1) + b"\\n"
+    prefix = b"mode: normal\n#"
+    exact = prefix + b"x" * (MAX_MAW_CONFIG_BYTES - len(prefix) - 1) + b"\n"
     assert len(exact) == MAX_MAW_CONFIG_BYTES
     path.write_bytes(exact)
     assert MawConfig.load(tmp_path).mode == "normal"
@@ -57,8 +57,8 @@ def test_maw_yaml_byte_ceiling_accepts_exact_budget_and_rejects_one_extra(
 
 def test_maw_yaml_intake_counts_utf8_bytes_not_characters(tmp_path: Path) -> None:
     path = tmp_path / CONFIG_FILE
-    prefix = "mode: normal\\n# "
-    valid = prefix + "✓" * 1000 + "\\n"
+    prefix = "mode: normal\n# "
+    valid = prefix + "✓" * 1000 + "\n"
     path.write_bytes(valid.encode("utf-8"))
     assert MawConfig.load(tmp_path).mode == "normal"
 
@@ -72,7 +72,7 @@ def test_maw_yaml_intake_counts_utf8_bytes_not_characters(tmp_path: Path) -> Non
 
 def test_maw_yaml_invalid_utf8_is_explicit_and_content_free(tmp_path: Path) -> None:
     path = tmp_path / CONFIG_FILE
-    path.write_bytes(b"mode: normal\\n#SYNTHETIC_PRIVATE_VALUE_Q9Z2\\xff")
+    path.write_bytes(b"mode: normal\n#SYNTHETIC_PRIVATE_VALUE_Q9Z2\xff")
     with pytest.raises(UsageError) as caught:
         MawConfig.load(tmp_path)
     assert "invalid UTF-8 configuration" in caught.value.message
