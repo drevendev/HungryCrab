@@ -1,6 +1,6 @@
 # Fixtures
 
-Four synthetic mini repositories with deliberate gaps, used by the miner tests.
+Five synthetic mini repositories with deliberate gaps, used by the miner tests.
 
 | Fixture | Stack | Has | Deliberately lacks |
 |---|---|---|---|
@@ -8,6 +8,7 @@ Four synthetic mini repositories with deliberate gaps, used by the miner tests.
 | `pyproject-cli` | Python CLI, uv, hatchling, Apache-2.0 | pytest with `--cov-fail-under`, Hypothesis, pre-commit, mkdocs + ADR, SECURITY.md, CODEOWNERS, issue/PR templates, publish workflow, AGENTS.md, `.cursorrules` | dependabot, `.editorconfig`, CLAUDE.md, CI cache, CI permissions, e2e tests |
 | `dotnet-lib` | C# library, xUnit, BenchmarkDotNet, GPL-3.0 | multi-target csproj, tests, benchmarks, CODE_OF_CONDUCT, `.editorconfig` | CI matrix/cache/permissions, dependabot, AI configs, CONTRIBUTING, CHANGELOG, coverage threshold |
 | `go-service` | Go daemon, cobra, testify, MIT | `go.mod` in **both** `require` spellings (block and single-line `// indirect`), stdlib `testing` in one package and testify in another, golangci-lint, a Go version matrix in CI, semver tags | coverage threshold, dependabot, AI configs, CONTRIBUTING, CHANGELOG, `.editorconfig` |
+| `polyglot` | Eight ecosystems, nine language grammars | Static cross-language manifests and source declarations for deep parsing and source-navigation coverage | Live dependency installation, builds or execution (fixture is read-only input) |
 
 ## Layout
 
