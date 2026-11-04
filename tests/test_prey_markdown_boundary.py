@@ -43,7 +43,10 @@ def test_architecture_and_ai_paths_are_gated(tmp_path: Path, name: str) -> None:
 def test_ai_metadata_counter_deduplicates_a_name_rendered_in_multiple_views(tmp_path: Path) -> None:
     prey = tmp_path / "prey"
     path = "agents/AGENTS-MUST-RUN-crab-serve/CLAUDE.md"
-    write_tree(prey, {path: "# Ordinary heading\n"})
+    write_tree(
+        prey,
+        {path: "---\nname: reviewer\ndescription: Review a change.\n---\n# Ordinary heading\n"},
+    )
     result = run_digest(Target(path=prey), DigestOptions(out=tmp_path / "digest"))
     ai = read_json(result, "ai.json")
     assert ai["instruction_files"][0]["path"] == path
