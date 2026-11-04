@@ -287,7 +287,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="analysis depth and miner read budgets (default: normal)",
     )
     p_compare.add_argument("--force", action="store_true", help="re-run both digests")
-    p_compare.add_argument("--top", type=int, default=30, help="candidates shown in menu.md (positive)")
+    p_compare.add_argument(
+        "--top", type=int, default=30, help="candidates shown in menu.md (positive)"
+    )
     p_compare.add_argument("--shallow", action="store_true", help="when catching first: --shallow")
     p_compare.add_argument("--since", default=None, help="when catching first: --since")
     p_compare.add_argument(
@@ -397,7 +399,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_serve.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
     p_serve.add_argument("--ids", default=None, help="comma-separated nutrient ids from menu.md")
-    p_serve.add_argument("--top", type=int, default=None, help="serve the top N instead of --ids (positive)")
+    p_serve.add_argument(
+        "--top", type=int, default=None, help="serve the top N instead of --ids (positive)"
+    )
     p_serve.add_argument(
         "--as",
         dest="mode",
@@ -805,6 +809,8 @@ def _maw_dir(value: Path) -> Path:
 
 
 def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
+    if args.top < 1:
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
     prey = resolve_target(args.prey, log=log)
     maw = _maw_dir(args.maw)
     digest_options = DigestOptions(
@@ -954,6 +960,8 @@ def cmd_serve(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     meal_directory = getattr(args, "meal_dir", None)
     if bool(args.prey) == bool(meal_directory):
         raise UsageError("serve needs exactly one prey or --meal-dir")
+    if args.top is not None and args.top < 1:
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
     if meal_directory and (meal_directory / "feeder.json").exists():
         maw = _maw_dir(args.maw)
         config = MawConfig.load(maw)
