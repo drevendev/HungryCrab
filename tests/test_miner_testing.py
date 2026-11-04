@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from conftest import FIXED_NOW
 from helpers import read_json, read_md, write_tree
 
@@ -102,6 +103,76 @@ def test_go_standard_library_alone_is_still_a_framework(tmp_path: Path) -> None:
     data = read_json(result, "tests.json")
     assert data["has_tests"] is True
     assert data["frameworks"] == {"testing": "unit"}
+
+
+def test_rust_harness_and_integration_layout_in_fixture(digests: dict[str, DigestResult]) -> None:
+    data = read_json(digests["polyglot"], "tests.json")
+    assert data["frameworks"]["cargo test"] == "unit"
+    assert data["special"]["integration"] is True
+
+
+def test_rust_inline_tests_and_explicit_snapshot_framework(tmp_path: Path) -> None:
+    data = _digest(
+        tmp_path,
+        {
+            "Cargo.toml": '[package]\nname="example"\n[dev-dependencies]\ninsta="1"\n',
+            "src/lib.rs": (
+                "const QUOTE: char = '\"';\npub fn value() {}\n#[cfg(test)]\nmod tests {}\n"
+            ),
+        },
+    )
+    assert data["has_tests"] is True
+    assert data["inline_test_files"] == ["src/lib.rs"]
+    assert data["src_files"] == 1, "a module with inline tests remains source"
+    assert data["frameworks"]["cargo test"] == "unit"
+    assert data["frameworks"]["insta"] == "snapshot"
+    assert data["special"]["integration"] is False
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "/* outer /* inner */\n#[cfg(test)]\n*/\npub fn value() {}\n",
+        'const EXAMPLE: &str = r##"\n#[cfg(test)]\nmod tests {}\n"##;\n',
+        'const EXAMPLE: &str = "\n#[cfg(test)]\nmod tests {}\n";\n',
+    ],
+)
+def test_rust_comment_and_string_attributes_are_not_tests(tmp_path: Path, source: str) -> None:
+    data = _digest(tmp_path, {"Cargo.toml": '[package]\nname="plain"\n', "src/lib.rs": source})
+    assert data["has_tests"] is False
+    assert "cargo test" not in data["frameworks"]
+
+
+def test_rust_inline_scan_reports_unexamined_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("hungry_crab.miners.testing.MAX_INLINE_RUST_FILES", 2)
+    data = _digest(
+        tmp_path,
+        {
+            "Cargo.toml": '[package]\nname="plain"\n',
+            "src/a.rs": "pub fn a() {}\n",
+            "src/b.rs": "pub fn b() {}\n",
+            "src/c.rs": "#[cfg(test)]\nmod tests {}\n",
+        },
+    )
+    assert data["inline_test_scan"]["files_examined"] == 2
+    assert data["inline_test_scan"]["unexamined_files"] == 1
+
+
+def test_supporting_jest_snapshot_needs_its_own_primary_test(tmp_path: Path) -> None:
+    own = {f"src/own{i}.ts": "export const value = 1;\n" for i in range(12)}
+    own["src/__tests__/app.test.ts"] = "test('snapshot', () => expect(1).toMatchSnapshot());\n"
+    snapshot = "src/__tests__/__snapshots__/app.test.ts.snap"
+    positive = _digest(tmp_path, {**own, snapshot: "exports.snapshot = 'value';\n"}, "positive")
+    assert positive["special"]["snapshot"] is True
+    assert positive["test_files"] == 1, "supporting corpus does not inflate primary counts"
+    for name, path in (
+        ("unrelated", "corpus/__snapshots__/unrelated.test.ts.snap"),
+        ("vendor", "vendor/src/__tests__/__snapshots__/app.test.ts.snap"),
+    ):
+        negative = _digest(tmp_path, {**own, path: "exports.snapshot = 'value';\n"}, name)
+        assert negative["special"]["snapshot"] is False
 
 
 def _digest(tmp_path: Path, files: dict[str, str], name: str = "prey") -> dict:  # type: ignore[type-arg]

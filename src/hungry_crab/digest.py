@@ -36,8 +36,8 @@ from .digest_publication import (
     check_digest_ref_publishable,
     publish_digest_generation,
 )
-from .errors import CrabError
-from .fetch.catch import CatchOptions, catch
+from .errors import CrabError, UsageError
+from .fetch.catch import CatchOptions, catch, parse_since
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
 from .fs import is_link_stat, read_text
@@ -247,6 +247,12 @@ def prepare_context(
     if target.slug is not None:
         paths = prey_paths(target.slug, options.cache_root)
         caught = (paths.repo / ".git").exists()
+        if caught and (options.catch_options.shallow or options.catch_options.since is not None):
+            log(
+                f"{target.slug} is already cached; --shallow/--since apply only to a fresh catch. "
+                "The cached commit and history are unchanged; use crab catch with the "
+                "requested history options to replace its acquisition policy."
+            )
         if not caught or any(
             (
                 options.catch_options.issues,
@@ -964,22 +970,37 @@ def locate_digest(target: Target, options: DigestOptions | None = None) -> Path:
     return out_dir
 
 
-def run_digest(
-    target: Target, options: DigestOptions | None = None, *, log: Callable[[str], None] = _noop
-) -> DigestResult:
-    opts = options or DigestOptions()
+def validate_digest_options(opts: DigestOptions) -> list[Miner]:
+    """Validate the complete request before any context, cache or provider effect."""
     if opts.depth not in MD_BUDGET:
-        raise CrabError(f"unknown depth {opts.depth!r}", hint="use normal or deep")
+        raise UsageError(f"unknown depth {opts.depth!r}", hint="use normal or deep")
     if opts.budget_policy not in BUDGET_POLICIES:
-        raise CrabError(
+        raise UsageError(
             f"unknown budget policy {opts.budget_policy!r}",
             hint=f"use one of: {', '.join(BUDGET_POLICIES)}",
         )
     if opts.total_budget < 0:
-        raise CrabError("markdown total budget must not be negative")
+        raise UsageError("markdown total budget must not be negative")
     if opts.md_budget is not None and opts.md_budget <= 0:
-        raise CrabError(
+        raise UsageError(
             "markdown budget per file must be positive", hint="--md-budget takes a token count"
+        )
+    if opts.catch_options.since is not None:
+        parse_since(opts.catch_options.since, now=opts.now)
+    try:
+        return select_miners(opts.miners)
+    except ValueError as exc:
+        raise UsageError(str(exc)) from exc
+
+
+def run_digest(
+    target: Target, options: DigestOptions | None = None, *, log: Callable[[str], None] = _noop
+) -> DigestResult:
+    opts = options or DigestOptions()
+    miners = validate_digest_options(opts)
+    if opts.out is not None and opts.out.exists() and not opts.out.is_dir():
+        raise UsageError(
+            "digest --out must name a directory", hint="choose a directory destination"
         )
     ctx, requested_out_dir = prepare_context(target, opts, log=log)
     canonical = _is_canonical_request(ctx, opts)
@@ -1009,27 +1030,28 @@ def run_digest(
 
     log("digest reuse: " + json.dumps({"reused": False, "reasons": reuse_reasons}))
 
-    try:
-        miners = select_miners(opts.miners)
-    except ValueError as exc:
-        raise CrabError(str(exc)) from exc
-
     generation = None
     explicit_stage: Path | None = None
     out_dir = requested_out_dir
-    if canonical:
-        assert digests_dir is not None
-        generation = allocate_digest_generation(digests_dir, ctx.sha)
-        out_dir = generation.path
-    elif opts.out is not None:
-        parent = requested_out_dir.parent
-        parent.mkdir(parents=True, exist_ok=True)
-        explicit_stage = Path(
-            tempfile.mkdtemp(prefix=f".{requested_out_dir.name}.crab-", dir=str(parent))
-        )
-        out_dir = explicit_stage
-    else:
-        out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        if canonical:
+            assert digests_dir is not None
+            generation = allocate_digest_generation(digests_dir, ctx.sha)
+            out_dir = generation.path
+        elif opts.out is not None:
+            parent = requested_out_dir.parent
+            parent.mkdir(parents=True, exist_ok=True)
+            explicit_stage = Path(
+                tempfile.mkdtemp(prefix=f".{requested_out_dir.name}.crab-", dir=str(parent))
+            )
+            out_dir = explicit_stage
+        else:
+            out_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise CrabError(
+            f"cannot prepare digest output {requested_out_dir}",
+            hint="check that the destination parent is a writable directory",
+        ) from exc
 
     try:
         manifest_path = out_dir / MANIFEST_NAME
@@ -1052,6 +1074,11 @@ def run_digest(
         return DigestResult(
             published_out, manifest, cached=False, reuse={"reused": False, "reasons": reuse_reasons}
         )
+    except OSError as exc:
+        raise CrabError(
+            f"cannot write digest output {requested_out_dir}",
+            hint="check destination permissions and available space; existing output is retained",
+        ) from exc
     finally:
         if explicit_stage is not None:
             shutil.rmtree(explicit_stage, ignore_errors=True)

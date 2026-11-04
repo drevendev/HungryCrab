@@ -5,7 +5,7 @@ description = "Eat a foreign repository, digest it, and extract everything usefu
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE.md", "THIRD_PARTY_NOTICES.md", "CODE_OF_CONDUCT.md"]
 authors = [{ name = "Dreven" }]
 keywords = [
   "repository-mining",
@@ -49,6 +49,7 @@ Changelog = "https://github.com/drevendev/HungryCrab/blob/master/CHANGELOG.md"
 dev = [
   "mypy>=1.17",
   "pytest>=8.4",
+  "pytest-cov>=7.1.0",
   "ruff>=0.13",
   "types-pyyaml>=6.0.12",
 ]
@@ -65,7 +66,10 @@ packages = ["src/hungry_crab"]
 # Repository tests depend on hooks, plugins, benchmarks and synthetic git fixture assets.
 # Keep running the full tests in CI from the repository checkout instead.
 # Hatch's only-include is an explicit top-level selection, unlike glob-style include.
-only-include = ["src/hungry_crab", "docs", "README.md", "LICENSE", "CHANGELOG.md"]
+only-include = [
+  "src/hungry_crab", "docs", "README.md", "LICENSE", "NOTICE.md",
+  "THIRD_PARTY_NOTICES.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md",
+]
 exclude = ["/tests", "/tests/**"]
 
 [tool.ruff]
@@ -106,3 +110,11 @@ pythonpath = ["benchmarks"]
 norecursedirs = ["fixtures", ".venv", ".git"]
 addopts = "-ra --strict-markers --strict-config"
 xfail_strict = true
+
+[tool.coverage.run]
+source = ["hungry_crab"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

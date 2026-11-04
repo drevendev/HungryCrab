@@ -32,7 +32,7 @@ from .errors import CrabError, UsageError
 from .exploration_cli import add_exploration_parser, cmd_explore
 from .feeder import EatOptions, eat
 from .fetch.cache_identity import require_cache_identity
-from .fetch.catch import CatchOptions, catch, rmtree_force
+from .fetch.catch import CatchOptions, catch, parse_since, rmtree_force
 from .fetch.providers import client_for
 from .hunt import format_hunt, hunt
 from .hunt_config import HuntSettings
@@ -379,7 +379,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     p_ledger = sub.add_parser("ledger", help="show or update the maw ledger")
-    p_ledger.add_argument("--maw", type=Path, default=Path(), help="maw repository (default: .)")
+    p_ledger.add_argument("--maw", type=Path, default=None, help="maw repository (default: .)")
     ledger_sub = p_ledger.add_subparsers(dest="ledger_command", metavar="<action>")
     p_show = ledger_sub.add_parser("show", help="print the ledger summary (default)")
     p_show.add_argument("--json", action="store_true", help="print the result as JSON")
@@ -388,6 +388,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_mark.add_argument("status", choices=STATUSES, help="new ledger status for the nutrient")
     p_mark.add_argument("--reason", default="", help="why (kept for crab tune)")
     p_mark.add_argument("--url", default=None, help="issue or pull request URL")
+    for action in (p_show, p_mark):
+        action.add_argument("--maw", dest="action_maw", type=Path, help="maw repository")
 
     p_serve = sub.add_parser(
         "serve",
@@ -811,6 +813,8 @@ def _maw_dir(value: Path) -> Path:
 def cmd_compare(args: argparse.Namespace, log: Callable[[str], None]) -> int:
     if args.top < 1:
         raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
+    if args.since is not None:
+        parse_since(args.since)
     prey = resolve_target(args.prey, log=log)
     maw = _maw_dir(args.maw)
     digest_options = DigestOptions(
@@ -915,8 +919,20 @@ def print_ledger(ledger: Ledger, config: MawConfig) -> None:
 
 
 def cmd_ledger(args: argparse.Namespace) -> int:
-    maw = _maw_dir(args.maw)
+    action_maw = getattr(args, "action_maw", None)
+    if (
+        args.maw is not None
+        and action_maw is not None
+        and args.maw.resolve() != action_maw.resolve()
+    ):
+        raise UsageError("conflicting --maw values before and after the ledger action")
+    maw = _maw_dir(action_maw or args.maw or Path())
     config = MawConfig.load(maw)
+    if args.ledger_command == "mark" and config.ledger == "none":
+        raise UsageError(
+            "cannot mark a nutrient while ledger persistence is disabled (ledger: none)",
+            hint="set ledger to repo or cache in .crab.yml and compare again",
+        )
     ledger = Ledger.load(config.ledger_path(args.cache_dir), maw=maw.name)
     if args.ledger_command == "mark":
         entry = ledger.mark(args.id, args.status, reason=args.reason, url=args.url)

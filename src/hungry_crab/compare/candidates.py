@@ -898,8 +898,9 @@ def history_candidates(prey: Side, maw: Side) -> list[Candidate]:
     out: list[Candidate] = []
     fix_prone = [
         as_dict(f)
-        for f in as_list(prey.history.get("fix_prone"))
-        if as_dict(f).get("commits", 0) >= 10 and as_dict(f).get("fix_ratio", 0) > 0.3
+        for f in as_list(prey.history.get("fix_prone_candidates", prey.history.get("fix_prone")))
+        if as_dict(f).get("commits", 0) >= 10
+        and 10 * as_dict(f).get("fixes", 0) > 3 * as_dict(f).get("commits", 0)
     ][:5]
     reverts = prey.history.get("revert_count")
     if fix_prone or (isinstance(reverts, int) and reverts >= 3):

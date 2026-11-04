@@ -1,17 +1,71 @@
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 
+from conftest import FIXED_NOW
 from helpers import read_json, read_md
 
-from hungry_crab.digest import DigestResult
+from hungry_crab.cache import Target
+from hungry_crab.compare.candidates import Side, history_candidates
+from hungry_crab.digest import DigestOptions, DigestResult, run_digest
 from hungry_crab.miners.history import (
+    Commit,
+    analyse,
     bus_factor,
     is_conventional,
     is_fix,
     is_security_fix,
     parse_log,
 )
+
+
+def test_fix_prone_candidates_survive_short_history_diagnostics() -> None:
+    commits = []
+    for index in range(23):
+        paths = ["src/core.py", "CHANGELOG.md", "ignored/private.py"]
+        if index < 3:
+            paths += [f"src/small{n}.py" for n in range(20)]
+        commits.append(
+            Commit(
+                str(index),
+                "Author",
+                "author@example.com",
+                FIXED_NOW,
+                1,
+                "fix: repair" if index < 7 else "feat: extend",
+                False,
+                [(path, 1, 0) for path in paths],
+            )
+        )
+    result = analyse(commits, now=FIXED_NOW, noise=set(), ignore=["ignored/**"])
+    assert len(result["fix_prone"]) == 15
+    assert [f["path"] for f in result["fix_prone_candidates"]] == ["src/core.py"]
+    assert result["fix_prone_candidates"][0]["fix_ratio"] == 0.3
+    prey = Side("example/prey", "a" * 40, "https://github.com/example/prey", None, history=result)
+    maw = Side("maw", "b" * 40, None, None)
+    card = history_candidates(prey, maw)[0]
+    assert "src/core.py" in card.what and "CHANGELOG.md" not in card.what
+    assert all(f["path"] != "ignored/private.py" for f in result["hotspots"])
+    assert all("ignored/" not in f[side] for f in result["coupling"] for side in ("a", "b"))
+
+
+def test_history_ignores_removed_inventory_paths(pyproject_cli: Path, tmp_path: Path) -> None:
+    result = run_digest(
+        Target(path=pyproject_cli),
+        DigestOptions(
+            out=tmp_path / "digest",
+            cache_root=tmp_path / "cache",
+            now=FIXED_NOW,
+            ignore=["src/**", "tests/**"],
+        ),
+    )
+    data = read_json(result, "history.json")
+    for field in ("hotspots", "fix_prone", "fix_prone_candidates"):
+        assert all(not f["path"].startswith(("src/", "tests/")) for f in data[field])
+    assert all(
+        not f[side].startswith(("src/", "tests/")) for f in data["coupling"] for side in ("a", "b")
+    )
 
 
 def test_helpers() -> None:

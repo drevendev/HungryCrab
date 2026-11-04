@@ -304,6 +304,7 @@ def describe_file(
         manifest_kind=manifest_kind,
         lfs=lfs_size is not None,
         lfs_size=lfs_size,
+        exclusion="build-output" if build_output else None,
     )
 
 
@@ -554,7 +555,10 @@ def coverage_block(files: list[FileInfo], stats: dict[str, Any], ignored: int) -
         "read_errors": int(stats.get("read_errors", 0)),
         "special_files": int(stats.get("special_files", 0)),
         "symlinks_skipped": int(stats.get("symlinks", 0)),
+        # Legacy numeric field remains a lower bound: pruned descendants are not visited.
         "vendored_capped_files": int(stats.get("vendored_capped_files", 0)),
+        "vendored_capped_files_at_least": int(stats.get("vendored_capped_files", 0)),
+        "vendored_capped_total_known": not bool(stats.get("vendored_dirs_capped")),
     }
     return {
         "files_seen": seen,
@@ -575,6 +579,11 @@ def describe_coverage(coverage: dict[str, Any]) -> str:
     if reasons:
         line += f" (excluded: {reasons})"
     loss = coverage.get("loss") or {}
+    if loss.get("vendored_capped_total_known") is False:
+        line += (
+            f"; at least {loss.get('vendored_capped_files_at_least', 0)} vendored entries omitted"
+            " (pruned subtree total unknown)"
+        )
     if coverage.get("healthy"):
         return line + "; visibility healthy"
     problems = []

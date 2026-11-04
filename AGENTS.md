@@ -68,11 +68,14 @@ authority when a document disagrees with it. The decisions log is at the end of
 ## Commands
 
 ```bash
-uv sync
+uv sync --all-extras
 uv run pytest
 uv run ruff check . && uv run ruff format . && uv run mypy
 uv run crab digest . --maw . --out /tmp/self-digest --maw-license MIT
 ```
+
+The optional MCP SDK is needed for strict type checking, as in CI. A base CLI
+installation and its offline commands still use `uv sync` without extras.
 
 ## Rules
 

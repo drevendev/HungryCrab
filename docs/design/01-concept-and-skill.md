@@ -113,8 +113,9 @@ its own marketplace (`.claude-plugin/marketplace.json`):
 /plugin install crab@hungry-crab
 ```
 
-Skills call the CLI via `${CLAUDE_PLUGIN_ROOT}/src/...` — no separate Python package install is
-required. Commands appear as `/crab:eat`, `/crab:sniff`, `/crab:menu`, `/crab:serve`.
+Skills invoke the installed CLI or its owned Python launcher; install the package as described
+in the README. Only the safety hooks bootstrap directly from the plugin's own `src/` through
+`hooks/guard.py`. Commands appear as `/crab:eat`, `/crab:sniff`, `/crab:menu`, `/crab:serve`.
 
 **Path B — skills only, any agent.** `npx skills add drevendev/HungryCrab` places the `SKILL.md`
 folders into Claude Code / Codex / Cursor. On first run the skill checks for the CLI and suggests
@@ -122,8 +123,9 @@ folders into Claude Code / Codex / Cursor. On first run the skill checks for the
 
 **Path C — manual.** `git clone`, symlink `skills/*` into `~/.claude/skills/`, `pip install -e .`.
 
-**Path D — CI (post-MVP).** `uses: drevendev/HungryCrab/action@v1` — run digest and serve in the
-maw's workflow on a schedule or via `workflow_dispatch`.
+**Path D — CI.** The root `action.yml` is the read-only Feeder composite Action. It creates
+meal artifacts; publication remains separately authorized. See [the Feeder guide](../feeder.md)
+for immutable installation references and acquisition limits.
 
 ## 6. Repository layout of `HungryCrab`
 
@@ -140,7 +142,6 @@ HungryCrab/
 ├── agents/
 │   ├── crab-historian.md        # reads history.md/branches.md, formulates lessons
 │   ├── crab-architect.md        # reads architecture.md, compares with the maw
-│   ├── crab-license-auditor.md  # ambiguous license cases
 │   └── crab-cleanroom-impl.md   # implementer without read access to the prey cache
 ├── hooks/hooks.json             # PreToolUse: forbid executing anything from the prey cache
 ├── hooks/guard.py               # what the hooks run: imports a guard from src/ with any Python 3.11+
@@ -150,11 +151,12 @@ HungryCrab/
 │   ├── miners/       (license, inventory, traits, ci, tests, deps, history, branches,
 │   │                  issues, docs, architecture, ai_config, security)
 │   ├── compare/      (traits diff, deps diff, scoring → menu)
-│   ├── serve/        (templates, gh issue/pr, dedup, ledger, attribution)
-│   └── schemas/      (nutrient.json, digest manifest, .crab.yml)
+│   ├── serve.py      (issue templates, provider reconciliation and serving policy)
+│   ├── pr_*.py       (guarded pull-request preparation and effects)
+│   └── data/         (scoring configuration and report assets)
 ├── tests/            (synthetic mini repositories as fixtures)
 ├── docs/
-├── action/           (post-MVP: composite GitHub Action)
+├── action.yml        (read-only Feeder composite Action)
 ├── pyproject.toml · README.md · LICENSE (MIT)
 ```
 
@@ -213,11 +215,12 @@ Target: a full default digest ≤ 30k tokens.
 
 ```json
 {
-  "id": "crab:owner/repo@1a2b3c:ci:actions-cache-npm:7f3a",
+  "id": "crab:ci:ci.cache",
   "category": "ci",
+  "key": "ci.cache",
   "title": "npm cache in CI via actions/setup-node cache",
   "what": "…", "why": "…", "how": "…",
-  "evidence": [{"path": ".github/workflows/ci.yml", "lines": "12-30",
+  "evidence": [{"path": ".github/workflows/ci.yml", "note": "lines 12-30",
                 "url": "https://github.com/owner/repo/blob/1a2b3c/.github/workflows/ci.yml#L12-L30"}],
   "license_mode": "REIMPLEMENT",
   "effort": "S", "risk": "low", "score": 0.82,
@@ -228,17 +231,20 @@ Target: a full default digest ≤ 30k tokens.
 }
 ```
 
-`id` is stable (a hash of category + normalized trait), so deduplication and the ledger work
-across runs.
+`id` is the stable maw-relative `crab:<category>:<key>`, so deduplication and the ledger
+work across runs. The prey, commit and source range belong in evidence and trace;
+prey-specific lessons include the prey slug in the key. Existing keys require a ledger
+migration if they change.
 
 ## 10. License engine
 
 ### Source of truth
 
-1. `gh api repos/{o}/{r}` → `license.spdx_id` (primary, cheap).
-2. Locally: `LICENSE*`, `COPYING*`, `SPDX-License-Identifier:` in file headers,
+1. Immutable source grants: `LICENSE*`, `COPYING*`, `SPDX-License-Identifier:` in file headers,
    `package.json.license`, `pyproject.license`, separate licenses in subfolders (`vendor/`,
-   `third_party/`) — per-file exceptions.
+   `third_party/`) — applicable path scopes, retained notices and explicit unknowns.
+2. `gh api repos/{o}/{r}` → `license.spdx_id` is supplementary metadata, never authority
+   to override unresolved, restrictive or conflicting source grants.
 3. Signs of "source-available but not open": BSL, SSPL, Elastic, Commons Clause, "all rights
    reserved", no license at all.
 

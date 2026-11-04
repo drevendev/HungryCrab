@@ -88,7 +88,12 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --all-extras
-      - run: uv run pytest
+      - name: Tests with coverage (one matrix leg)
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        run: uv run pytest --cov --cov-report=term
+      - name: Tests
+        if: matrix.os != 'ubuntu-latest' || matrix.python != '3.14'
+        run: uv run pytest
       - name: Menu benchmark (B1)
         run: uv run python benchmarks/menu_benchmark.py
       # Unknown agent-host adoption has transferable uptake, without key-specific weights.

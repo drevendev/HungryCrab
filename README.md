@@ -203,9 +203,32 @@ crab serve pallets/click --maw . --ids crab:ci:ci.cache --as dry-run   # preview
 crab ledger mark crab:tooling:tooling.renovate rejected --reason "dependabot is enough"
 ```
 
-`crab compare` catches and digests the prey the first time; digests are addressed by commit SHA,
-so eating the same commit twice is free. Giants take `--since 2y` (history newer than two years)
-or `--shallow` (default branch, tree only).
+`crab compare` catches and digests the prey the first time. Digests are addressed by commit SHA;
+reuse also checks source/configuration identity and artifact integrity. Bound a fresh catch
+with `--since 2y` (history newer than two years) or `--shallow` (a shallow default branch).
+For an already cached prey, digest/compare validate those flags and explain that the cached
+commit and history stay unchanged. Use `crab catch PREY --shallow --since 2y` to change its
+acquisition policy. `menu` and a dry-run `serve` only read saved meals.
+
+`compare`, `menu`, `serve` and `eat` require a positive `--top`. `ledger --maw PATH show`
+and `ledger show --maw PATH` select the same maw; conflicting values are usage errors.
+`ledger mark` refuses with exit 2 when `ledger: none` disables persistence.
+
+## Exit status
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Successful command or read-only preview. |
+| 1 | A reported operation/analysis failure. |
+| 2 | Invalid arguments or configuration, including argparse errors. |
+| 3 | A required external tool is missing. |
+| 4 | An external command failed. |
+| 130 | Interrupted with Ctrl+C. |
+
+Ordinary expected errors print a bounded message and an applicable recovery hint. The wider
+error-contract audit remains [#228](https://github.com/drevendev/HungryCrab/issues/228).
+Hook processes have a separate contract: exit 2 refuses an operation; launcher/environment
+failures exit 1 and are visible errors, as documented in [SECURITY.md](SECURITY.md).
 
 ## Feeder: a menu in CI
 
@@ -373,6 +396,12 @@ a policy for its 30,000-token reading budget — `warn` by default, `enforce` fo
 loop, `off` for a human, set under `budget` in `.crab.yml`; JSON keeps the full data for
 scripts.
 
+Inventory coverage retains `loss.vendored_capped_files` for compatibility and exposes
+the same lower bound as `vendored_capped_files_at_least`. These count observed filename
+entries omitted at the vendor cap, not an exhaustive census of regular files. When
+`vendored_capped_total_known` is false, pruned descendants make the total unknown;
+the summary says "at least" and the miner does not traverse those subtrees just to count them.
+
 For `crab digest --out`, use an empty directory or an existing digest directory. The crab
 replaces and removes only artifacts recorded in that directory's previous valid manifest.
 Other files are preserved; a conflicting caller-owned name is refused before publication,
@@ -461,11 +490,11 @@ The milestone limits are 120 seconds and 30,000 Markdown tokens per digest. Resu
 ## Development
 
 ```bash
-uv sync                      # environment with the dev group
+uv sync --all-extras         # dev group and optional MCP types for strict mypy, as in CI
 ```
 
 ```bash
-uv run pytest                # tests build three synthetic git repositories as fixtures
+uv run pytest                # tests build five synthetic git repositories as fixtures
 ```
 
 ```bash

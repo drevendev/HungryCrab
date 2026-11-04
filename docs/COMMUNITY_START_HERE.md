@@ -10,6 +10,10 @@ there and whether this maw needs it. See the [glossary](design/GLOSSARY.md).
 
 ## Choose one small task
 
+Before working, read the [Code of Conduct](../CODE_OF_CONDUCT.md).
+Confidential conduct reports go to <drevendev@gmail.com>; vulnerabilities use the
+private GitHub reporting route in [SECURITY.md](../SECURITY.md).
+
 **Nominate one prey — [#276](https://github.com/drevendev/HungryCrab/issues/276).**
 Find a small public repository with one specific practice that HungryCrab is missing.
 Link an exact commit and the relevant file/lines. Explain the maw gap in your own words.

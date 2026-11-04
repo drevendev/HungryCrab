@@ -200,7 +200,7 @@ def test_unknown_miner_is_reported(
     npm_app: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     code = main(["-q", "digest", str(npm_app), "--out", str(tmp_path / "d"), "--miners", "bogus"])
-    assert code == 1
+    assert code == 2
     assert "unknown miner" in capsys.readouterr().err
 
 

@@ -188,6 +188,14 @@ class AiConfigMiner:
             key=lambda info: info.path,
         )
         by_path = {f.path: f for f in files}
+        manifest = (
+            _load_json(ctx, ".claude-plugin/plugin.json")
+            if ".claude-plugin/plugin.json" in by_path
+            else None
+        )
+        claude_plugin = bool(
+            manifest and isinstance(manifest.get("name"), str) and manifest["name"].strip()
+        )
 
         instructions: list[dict[str, Any]] = []
         for rel, tool in INSTRUCTION_FILES.items():
@@ -221,15 +229,28 @@ class AiConfigMiner:
                 skills.append(gist)
         agents = []
         for info in files:
-            if info.ext == ".md" and (
-                info.path.startswith(".claude/agents/") or info.path.startswith("agents/")
-            ):
-                agents.append(_gist_markdown(ctx, info))
+            if info.ext == ".md" and info.path.startswith((".claude/agents/", "agents/")):
+                gist = _gist_markdown(ctx, info)
+                if (
+                    info.path.startswith(".claude/agents/")
+                    or claude_plugin
+                    or all(gist["frontmatter"].get(key) for key in ("name", "description"))
+                ):
+                    agents.append(gist)
         commands = sorted(
-            f.path for f in files if f.path.startswith(".claude/commands/") and f.ext == ".md"
+            f.path
+            for f in files
+            if f.ext == ".md"
+            and (
+                f.path.startswith(".claude/commands/")
+                or (claude_plugin and f.path.startswith("commands/"))
+            )
         )
         hook_files = sorted(
-            f.path for f in files if f.path.startswith((".claude/hooks/", "hooks/"))
+            f.path
+            for f in files
+            if f.path.startswith(".claude/hooks/")
+            or (claude_plugin and f.path == "hooks/hooks.json")
         )
         settings = [
             _settings_gist(ctx, rel) for rel in (".claude/settings.json",) if rel in by_path

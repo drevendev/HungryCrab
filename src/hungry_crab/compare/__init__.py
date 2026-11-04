@@ -9,6 +9,7 @@ eating the same prey no longer overwrite each other.
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
@@ -17,7 +18,7 @@ from typing import Any
 
 from ..analysis_context import fingerprint, receiving_context
 from ..cache import Slug, Target, maw_paths
-from ..digest import DigestOptions, DigestResult, run_digest
+from ..digest import DigestOptions, DigestResult, run_digest, validate_digest_options
 from ..digest_integrity import digest_integrity_errors
 from ..digest_reader import locate_digest_sha
 from ..errors import CrabError, UsageError
@@ -365,17 +366,77 @@ def meal_for(prey: Target, maw_root: Path, options: DigestOptions | None = None)
 
 def load_menu(meal_dir: Path) -> dict[str, Any] | None:
     path = meal_dir / "menu.json"
-    if not path.is_file():
-        return None
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except FileNotFoundError:
         return None
-    return as_dict(loaded) if isinstance(loaded, dict) else None
+    except (OSError, ValueError, RecursionError) as exc:
+        raise CrabError(
+            f"cannot read saved menu {path}",
+            hint="the menu is damaged or unreadable; rerun crab compare for this prey and maw",
+        ) from exc
+    if not isinstance(loaded, dict):
+        raise CrabError(f"saved menu {path} must be an object", hint="rerun crab compare")
+    try:
+        menu_candidates(loaded)
+    except CrabError:
+        raise CrabError(
+            f"saved menu {path} contains malformed candidates", hint="rerun crab compare"
+        ) from None
+    return loaded
 
 
 def menu_candidates(menu: dict[str, Any]) -> list[Candidate]:
-    return [Candidate.from_dict(as_dict(item)) for item in menu.get("candidates", [])]
+    rows = menu.get("candidates", [])
+    if not isinstance(rows, list):
+        raise CrabError("menu candidates must be an array")
+    cards: list[Candidate] = []
+    for index, item in enumerate(rows):
+        try:
+            if not isinstance(item, dict) or any(
+                not isinstance(item.get(key), str) for key in ("category", "key", "title", "what")
+            ):
+                raise ValueError("candidate identity shape")
+            for name in (
+                "prey_state",
+                "maw_state",
+                "serve_as",
+                "effort",
+                "risk",
+                "uptake_kind",
+                "origin",
+                "license_reason",
+                "license_mode",
+                "why",
+                "how",
+                "status",
+                "material",
+                "license_policy_reason",
+            ):
+                if name in item and not isinstance(item[name], str):
+                    raise ValueError("candidate string shape")
+            for name in ("value", "uptake", "score"):
+                if name in item and (
+                    isinstance(item[name], bool)
+                    or not isinstance(item[name], int | float)
+                    or not math.isfinite(item[name])
+                ):
+                    raise ValueError("candidate number shape")
+            if not isinstance(item.get("trace", {}), dict):
+                raise ValueError("candidate trace shape")
+            tags = item.get("tags", [])
+            evidence = item.get("evidence", [])
+            if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+                raise ValueError("candidate tags shape")
+            if not isinstance(evidence, list) or any(
+                not isinstance(row, dict) or not isinstance(row.get("path"), str)
+                for row in evidence
+            ):
+                raise ValueError("candidate evidence shape")
+            cards.append(Candidate.from_dict(item))
+        except (TypeError, ValueError, AttributeError, KeyError, OverflowError, CrabError):
+            raise CrabError(f"malformed menu candidate at position {index + 1}") from None
+    return cards
 
 
 IssueLookup = Callable[[Slug, str], dict[str, dict[str, Any]]]
@@ -397,6 +458,9 @@ def compare_for_maw(
     prey_objects: Path | None = None,
 ) -> tuple[CompareResult, DigestResult, Ledger, MawConfig]:
     """The full maw-aware comparison: .crab.yml hunger and scoring, ledger and issue dedup."""
+    validate_digest_options(digest_options or DigestOptions())
+    if top < 1:
+        raise UsageError("--top must be positive", hint="pass --top N with N >= 1")
     config = MawConfig.load(maw_root)
     d_opts = replace(digest_options or DigestOptions(), budget_policy=config.budget.policy)
     ledger = Ledger.load(config.ledger_path(d_opts.cache_root), maw=maw_root.name)
@@ -549,6 +613,4 @@ def run_compare(
         f"compared {result.prey.label}@{result.prey.short_sha} with "
         f"{result.maw.label}@{result.maw.short_sha}: {len(result.candidates)} candidates"
     )
-    if persist_meal:
-        log(f"meal written to {result.meal_dir}")
     return result, prey_result, maw_result

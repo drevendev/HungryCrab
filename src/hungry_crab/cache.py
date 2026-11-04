@@ -199,12 +199,11 @@ def resolve_target(text: str, *, log: Callable[[str], None] | None = None) -> Ta
     raw = text.strip()
     if not raw:
         raise UsageError("repository target must not be empty")
-    candidate = Path(raw).expanduser()
-    if candidate.is_dir():
-        return Target(path=candidate.resolve())
-    if candidate.exists() or candidate.is_symlink():
+    original = Path(text).expanduser()
+    if original.is_dir():
+        return Target(path=original.resolve())
+    if original.exists() or original.is_symlink():
         raise UsageError(f"{text!r} is not a directory; the crab eats directories or owner/repo")
-
     explicit_path = (
         raw.startswith(("./", "../", ".\\", "..\\", "/", "\\", "~"))
         or "\\" in raw
