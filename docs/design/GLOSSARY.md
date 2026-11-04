@@ -83,9 +83,17 @@ lets the next maw overwrite it.
   github/<owner>/<repo>/
     repo/                          the clone
     api/                           sniff, issues
-    digests/<sha>/                 the prey's digest
+    digests/                      prey digests by logical commit SHA
+      .refs/<sha>.json             selected canonical generation
+      .generations/<sha>/<gen>/    immutable published digest
+      .scratch/                    noncanonical digest work
+      <sha>/                       legacy cache fallback (only without ref)
   maws/<name>-<hash>/
-    digests/<sha>/                 the maw's digest
+    digests/                      maw digests (same ref/generation layout)
+      .refs/<sha>.json
+      .generations/<sha>/<gen>/
+      .scratch/
+      <sha>/                       legacy fallback (only without ref)
     meals/<prey>@<sha>/            one meal
     ledger.json                    when the ledger mode is `cache`
 ```
