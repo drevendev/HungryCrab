@@ -71,6 +71,36 @@ on an older commit, does not establish a completed green run for the latest
 commit in the upstream repository. Never expose a token or bypass required
 checks to get past an approval gate.
 
+## How your pull request is credited
+
+The normal path is an independently reviewed, green PR merged **directly
+from your original pull request**. That gives GitHub the native **Merged**
+status. A maintainer may occasionally have to include your changes in a
+separate integration or release PR; the source PR will then show **Closed**
+rather than **Merged**, even when the contribution was accepted. The
+maintainer should explain why, link the exact source and landed commits,
+preserve your authorship, and state which checks actually ran.
+
+Three common cases:
+
+- **Green external PR:** the latest upstream PR commit has completed required
+  checks and independent review. Merge that original PR before batching
+  unrelated release work.
+- **Fork workflow awaiting approval:** `action_required` is **not** a pass or a
+  failure of your code. Leave the PR open and provide the exact commit and
+  your real local-check results. A maintainer must inspect and approve the
+  workflow, then wait for and review the resulting upstream CI before merge.
+- **Accepted through a batch:** an exceptional conflict or release dependency
+  means a maintainer lands the patch through an integration PR. They should
+  identify the source commit, integration commit and final `master` SHA,
+  separately report integration checks, leave an explanatory note on your
+  original PR and acknowledge its **Closed** (not **Merged**) GitHub status.
+
+See the [maintainer checklist](../CONTRIBUTING.md#reviewing-and-merging-external-pull-requests)
+and [#613](https://github.com/drevendev/HungryCrab/issues/613) for the
+policy and historical examples. Neither fork CI approval nor a green build
+authorizes bypassing required security or review gates.
+
 ## A useful evidence note
 
 Use this outline for one observation, not a batch of generated recommendations:
