@@ -1077,7 +1077,7 @@ def run_digest(
     except OSError as exc:
         raise CrabError(
             f"cannot write digest output {requested_out_dir}",
-            hint="check destination permissions and available space; existing output is retained",
+            hint="check destination permissions and available space, then rerun crab digest",
         ) from exc
     finally:
         if explicit_stage is not None:
