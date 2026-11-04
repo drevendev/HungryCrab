@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
 
+from ..fs import is_ignored
 from ..mdutil import MdDoc
 from ..safety import is_suspicious, safe_name
 from .base import MineContext, MinerResult
@@ -148,7 +149,20 @@ def _safe_subject(subject: str) -> str:
     return "[subject omitted: instruction-like]" if is_suspicious(subject) else subject[:100]
 
 
-def analyse(commits: list[Commit], *, now: datetime, noise: set[str]) -> dict[str, Any]:
+def _is_changelog(path: str) -> bool:
+    return (
+        re.fullmatch(
+            r"(?:change.?log|changes|history|news)(?:\.(?:md|rst|txt))?",
+            path.rsplit("/", 1)[-1],
+            re.IGNORECASE,
+        )
+        is not None
+    )
+
+
+def analyse(
+    commits: list[Commit], *, now: datetime, noise: set[str], ignore: list[str] | None = None
+) -> dict[str, Any]:
     if not commits:
         return {"available": True, "commits": 0}
     newest = commits[0].date
@@ -185,7 +199,7 @@ def analyse(commits: list[Commit], *, now: datetime, noise: set[str]) -> dict[st
     for commit in non_merge:
         fix = is_fix(commit.subject)
         for path, added, deleted in commit.files:
-            if path in noise:
+            if path in noise or is_ignored(path, ignore or []):
                 continue
             entry = per_file[path]
             entry["commits"] += 1
@@ -196,14 +210,30 @@ def analyse(commits: list[Commit], *, now: datetime, noise: set[str]) -> dict[st
         per_file.items(), key=lambda kv: (-kv[1]["commits"], -(kv[1]["added"] + kv[1]["deleted"]))
     )[:20]
     fix_prone = sorted(
-        ((path, s) for path, s in per_file.items() if s["commits"] >= 3 and s["fixes"]),
+        (
+            (path, s)
+            for path, s in per_file.items()
+            if s["commits"] >= 3 and s["fixes"] and not _is_changelog(path)
+        ),
         key=lambda kv: (-(kv[1]["fixes"] / kv[1]["commits"]), -kv[1]["commits"]),
     )[:15]
+    # The recommendation rule must run before any display cap. Keep the older
+    # three-commit diagnostic list readable without starving ten-commit candidates.
+    eligible = sorted(
+        (
+            (path, s)
+            for path, s in per_file.items()
+            if s["commits"] >= 10 and s["fixes"] / s["commits"] > 0.3 and not _is_changelog(path)
+        ),
+        key=lambda kv: (-(kv[1]["fixes"] / kv[1]["commits"]), -kv[1]["commits"], kv[0]),
+    )
 
     pairs: Counter[tuple[str, str]] = Counter()
     increments = 0
     for commit in non_merge:
-        paths = sorted(p for p, _, _ in commit.files if p not in noise)
+        paths = sorted(
+            p for p, _, _ in commit.files if p not in noise and not is_ignored(p, ignore or [])
+        )
         if not 2 <= len(paths) <= MAX_COUPLING_FILES:
             continue
         for i, first in enumerate(paths):
@@ -266,6 +296,9 @@ def analyse(commits: list[Commit], *, now: datetime, noise: set[str]) -> dict[st
         ],
         "fix_prone": [
             {"path": p, **s, "fix_ratio": round(s["fixes"] / s["commits"], 2)} for p, s in fix_prone
+        ],
+        "fix_prone_candidates": [
+            {"path": p, **s, "fix_ratio": round(s["fixes"] / s["commits"], 2)} for p, s in eligible
         ],
         "coupling": coupling,
         "largest_commits": [
@@ -356,7 +389,7 @@ class HistoryMiner:
         )
         commits = parse_log(output)
         noise = {f.path for f in ctx.files() if f.vendored or f.generated or f.lockfile}
-        data = analyse(commits, now=ctx.now, noise=noise)
+        data = analyse(commits, now=ctx.now, noise=noise, ignore=ctx.ignore)
         tags_output = (
             git.try_run(
                 "tag",

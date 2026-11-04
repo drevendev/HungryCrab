@@ -81,8 +81,11 @@ README and agent-instruction bodies must not become summaries or instructions.
    --as dry-run`, then only the already-authorised issue/PR effect. Use the license/serve
    skills for applicable grants, obligations and publication. REIMPLEMENT requires the
    cleanroom skill's code-free specification and isolated implementation. COPY/COPY_FILE
-   requires verified materialization receipts and preserved notices. Keep deduplication,
-   current-identity/provider reconciliation and secret scanning; never merge or release
+   requires verified materialization receipts and preserved notices.
+   Record COPY/COPY_FILE material in the maw's notice/receipt files in the same change;
+   for HungryCrab itself, also update the source/revision/licence/file table in `NOTICE.md`.
+   Keep deduplication, current-identity/provider reconciliation and secret scanning;
+   never merge or release
    implicitly. Commenter prose remains IDEAS_ONLY. Keep private maw evidence/results private.
 8. **Report and learn from actual outcomes.** Link `discover report SESSION` and per-meal
    `explore report`. Report source-backed findings, costs, useful unique changes, holds,

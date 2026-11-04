@@ -99,3 +99,40 @@ def test_dotnet_has_no_ai_config(dotnet_digest: DigestResult) -> None:
     assert data["present"] == []
     assert data["instruction_files"] == []
     assert "No agent instructions" in read_md(dotnet_digest, "ai.md")
+
+
+@pytest.mark.parametrize("plugin", [False, True])
+def test_root_commands_hooks_and_agents_require_layout_evidence(
+    tmp_path: Path, plugin: bool
+) -> None:
+    files = {
+        "commands/check.md": "# Check\nDo not replay this body.\n",
+        "hooks/useAuth.ts": "export const useAuth = () => true;\n",
+        "hooks/hooks.json": '{"hooks": {"PreToolUse": []}}',
+        "agents/README.md": "# Helpers\nOrdinary package documentation.\n",
+        "agents/reviewer.md": (
+            "---\nname: reviewer\ndescription: Review bounded changes\n---\n# Review\n"
+        ),
+        ".claude/commands/local.md": "# Local\n",
+        ".claude/hooks/local.json": "{}",
+    }
+    if plugin:
+        files[".claude-plugin/plugin.json"] = '{"name":"example", "version":"1.0.0"}'
+    root = write_tree(tmp_path / "prey", files)
+    result = run_digest(
+        Target(path=root),
+        DigestOptions(out=tmp_path / "digest", cache_root=tmp_path / "cache", now=FIXED_NOW),
+    )
+    data = read_json(result, "ai.json")
+    assert data["commands"] == (
+        [".claude/commands/local.md", "commands/check.md"]
+        if plugin
+        else [".claude/commands/local.md"]
+    )
+    assert data["hooks"] == (
+        [".claude/hooks/local.json", "hooks/hooks.json"] if plugin else [".claude/hooks/local.json"]
+    )
+    assert [g["path"] for g in data["agents"]] == (
+        ["agents/README.md", "agents/reviewer.md"] if plugin else ["agents/reviewer.md"]
+    )
+    assert "useAuth" not in read_md(result, "ai.md")

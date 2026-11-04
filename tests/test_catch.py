@@ -327,6 +327,20 @@ def test_invalid_since_does_not_create_cache_directory(tmp_path: Path) -> None:
     assert not prey_paths(slug, root).root.exists()
 
 
+def test_since_replaces_a_previously_full_catch(npm_app: Path, tmp_path: Path) -> None:
+    slug = Slug("example", "new-history-window")
+    cache = tmp_path / "cache"
+    first = catch(slug, cache_root=cache, source_url=npm_app.as_uri(), now=NOW)
+    assert first.shallow is False
+    second = catch(
+        slug, CatchOptions(since="6m"), cache_root=cache, source_url=npm_app.as_uri(), now=NOW
+    )
+    assert second.sha == first.sha
+    assert second.shallow is True and second.history_window_applied is True
+    recorded = json.loads(prey_paths(slug, cache).catch_file.read_text(encoding="utf-8"))
+    assert recorded["since"] == "6m" and recorded["history_window_applied"] is True
+
+
 def test_default_switch_preserves_date_bound_on_diverged_history(tmp_path: Path) -> None:
     source = tmp_path / "source"
     source.mkdir()

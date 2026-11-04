@@ -33,7 +33,7 @@ def test_coverage_says_what_was_analysed_left_out_and_seen(npm_digest: DigestRes
     # every excluded file is reported beside the share, by reason
     assert coverage["excluded"]["examples"] >= 1, "the example providers of the fixture"
     assert coverage["excluded"]["binary"] == 1
-    assert coverage["excluded"]["generated"] >= 1, "dist/bundle.js"
+    assert coverage["excluded"]["build-output"] >= 1, "dist/bundle.js"
     assert sum(coverage["excluded"].values()) == data["files"] - data["files_counted"]
     assert coverage["healthy"] is True
     assert coverage["loss"] == {
@@ -45,6 +45,8 @@ def test_coverage_says_what_was_analysed_left_out_and_seen(npm_digest: DigestRes
         "special_files": 0,
         "symlinks_skipped": 0,
         "vendored_capped_files": 0,
+        "vendored_capped_files_at_least": 0,
+        "vendored_capped_total_known": True,
     }
     assert "visibility healthy" in describe_coverage(coverage)
 

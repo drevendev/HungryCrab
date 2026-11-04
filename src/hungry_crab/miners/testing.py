@@ -233,6 +233,66 @@ def _test_dirs(test_files: list[FileInfo]) -> list[str]:
     return sorted(found)[:20]
 
 
+MAX_INLINE_RUST_FILES = 128
+MAX_INLINE_RUST_CHARACTERS = 1_000_000
+
+
+def _rust_inline_tests(text: str) -> bool:
+    """Bounded lexical attribute evidence, excluding comments and string bodies."""
+    code: list[str] = []
+    cursor = 0
+    while cursor < len(text):
+        start = cursor
+        if text.startswith("//", cursor):
+            end = text.find("\n", cursor)
+            cursor = len(text) if end < 0 else end
+        elif text.startswith("/*", cursor):
+            cursor += 2
+            depth = 1
+            while cursor < len(text) and depth:
+                if text.startswith("/*", cursor):
+                    depth += 1
+                    cursor += 2
+                elif text.startswith("*/", cursor):
+                    depth -= 1
+                    cursor += 2
+                else:
+                    cursor += 1
+            if depth:
+                return False
+        elif text[cursor] in {"r", "b"} and (
+            raw := re.match(r'(?:br|r)(#{0,255})"', text[cursor : cursor + 260])
+        ):
+            end_marker = '"' + raw[1]
+            end = text.find(end_marker, cursor + raw.end())
+            if end < 0:
+                return False
+            cursor = end + len(end_marker)
+        elif text[cursor] == "'" and (
+            char_literal := re.match(
+                r"'(?:\\(?:u\{[0-9A-Fa-f_]+\}|x[0-9A-Fa-f]{2}|[^\n])|[^'\\\n])'",
+                text[cursor : cursor + 32],
+            )
+        ):
+            cursor += char_literal.end()
+        elif text[cursor] == '"':
+            cursor += 1
+            while cursor < len(text) and text[cursor] != '"':
+                cursor += 2 if text[cursor] == "\\" else 1
+            if cursor >= len(text):
+                return False
+            cursor += 1
+        else:
+            code.append(text[cursor])
+            cursor += 1
+            continue
+        code.append(" ")
+        code.extend("\n" for char in text[start:cursor] if char == "\n")
+    return (
+        re.search(r"(?m)^[ \t]*#\[\s*(?:test|cfg\s*\(\s*test\s*\))\s*\]", "".join(code)) is not None
+    )
+
+
 class TestingMiner:
     name = "testing"
     # `ci` is here for coverage. A Go or Rust project declares it on the `go test` command line
@@ -248,8 +308,32 @@ class TestingMiner:
         test_paths = {f.path for f in test_files}
         src_files = [f for f in files if f.is_code and f.path not in test_paths]
         test_dirs = _test_dirs(test_files)
+        rust_files = [f for f in files if f.ext == ".rs" and f.path not in test_paths]
+        inline_tests = []
+        examined = characters = prefix_limited = 0
+        for info in rust_files:
+            if examined >= MAX_INLINE_RUST_FILES or characters >= MAX_INLINE_RUST_CHARACTERS:
+                break
+            limit = min(200_000, MAX_INLINE_RUST_CHARACTERS - characters)
+            text = ctx.read(info.path, limit=limit)
+            examined += 1
+            characters += len(text)
+            # File size is in bytes, so this conservatively discloses possible prefix reads.
+            prefix_limited += int(info.size > limit)
+            if _rust_inline_tests(text):
+                inline_tests.append(info)
+        # Jest snapshots may be supporting corpus evidence, but need an actual counted
+        # neighboring test. They never become primary files, LOC or a framework by themselves.
+        supporting_snapshots = any(
+            f.exclusion == "corpus"
+            and not (f.generated or f.binary or f.lfs)
+            and "/__snapshots__/" in f.path
+            and f.ext == ".snap"
+            and f.path.replace("/__snapshots__/", "/").removesuffix(".snap") in test_paths
+            for f in ctx.files()
+        )
 
-        frameworks = self._frameworks(ctx, files, test_files)
+        frameworks = self._frameworks(ctx, files, test_files + inline_tests)
         configs = [
             {"path": f.path, "tool": CONFIG_FILES[f.name]}
             for f in files
@@ -287,6 +371,7 @@ class TestingMiner:
             "e2e": "e2e" in kinds or any(d.split("/")[-1] == "e2e" for d in test_dirs),
             "property": "property" in kinds,
             "snapshot": "snapshot" in kinds
+            or supporting_snapshots
             or any(
                 f.ext == ".snap" or "__snapshots__" in f.path or f.name.endswith(".verified.txt")
                 for f in files
@@ -297,13 +382,14 @@ class TestingMiner:
             or bool(top_dirs & _BENCH_DIRS)
             or any(".bench." in f.name for f in files),
             "integration": "integration" in kinds
-            or any(d.split("/")[-1] == "integration" for d in test_dirs),
+            or any(d.split("/")[-1] == "integration" for d in test_dirs)
+            or any(f.ext == ".rs" and "tests" in f.path.split("/")[:-1] for f in test_files),
             "mocking": "mock" in kinds,
         }
         test_loc = sum(f.loc for f in test_files)
         src_loc = sum(f.loc for f in src_files)
         data: dict[str, Any] = {
-            "has_tests": bool(test_files),
+            "has_tests": bool(test_files or inline_tests),
             "test_files": len(test_files),
             "src_files": len(src_files),
             "test_to_src_ratio": round(len(test_files) / len(src_files), 2) if src_files else None,
@@ -323,7 +409,20 @@ class TestingMiner:
             "special": special,
             "sample_test_files": [f.path for f in test_files[:15]],
         }
-        return MinerResult(self.name, data, doc=self._doc(ctx, data))
+        if inline_tests:
+            data["inline_test_files"] = [f.path for f in inline_tests]
+        warnings = []
+        if rust_files:
+            data["inline_test_scan"] = {
+                "files_examined": examined,
+                "unexamined_files": len(rust_files) - examined,
+                "characters_read": characters,
+                "potential_prefix_reads": prefix_limited,
+                "evidence": "lexical attributes; not a Rust parser or executed tests",
+            }
+            if examined < len(rust_files) or prefix_limited:
+                warnings.append("Rust inline-test inspection is partial; see inline_test_scan")
+        return MinerResult(self.name, data, doc=self._doc(ctx, data), warnings=warnings)
 
     def _frameworks(
         self, ctx: MineContext, files: list[FileInfo], test_files: list[FileInfo]
@@ -359,6 +458,8 @@ class TestingMiner:
         # repository that tests without a framework.
         if any(f.path.endswith("_test.go") for f in test_files):
             frameworks.setdefault("testing", "unit")
+        if any(f.ext == ".rs" for f in test_files):
+            frameworks.setdefault("cargo test", "unit")
         return frameworks
 
     def _ci_coverage(self, ctx: MineContext) -> dict[str, Any] | None:

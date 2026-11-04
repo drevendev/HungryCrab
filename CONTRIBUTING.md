@@ -7,6 +7,8 @@ Thanks for feeding the crab. This is a small project with a clear design; the de
 
 1. Install [uv](https://docs.astral.sh/uv/).
 2. `uv sync` creates `.venv` with the development group.
+   Run `uv sync --all-extras` before strict type checking: the optional MCP SDK supplies
+   the types used by `mcp_server.py`, matching CI. The base CLI does not require this extra.
 3. `git` is required by the tests. Some commands can use GitHub via authenticated `gh` or fetch remote Git/HTTPS data; ordinary local unit tests do not require GitHub authentication. Read the online boundaries below before using live repositories.
 
 ## Checks
@@ -26,11 +28,26 @@ the exact self-digest output remains local. A build may download trusted build d
 The published sdist intentionally omits repository tests because those tests require plugin,
 hook and benchmark fixture files from the complete checkout.
 
+Coverage is measured in the Linux/Python 3.14 CI leg only, without a minimum threshold.
+For a local report use `uv run pytest --cov --cov-report=term`; ordinary `pytest` runs
+and other matrix legs keep coverage disabled.
+
 Optional: `uv tool install pre-commit` and `pre-commit install` to run the hooks on every commit.
 The Ruff hooks use `uv run --locked`, so pre-commit and CI run the same dependency
 version from `uv.lock` rather than independent version pins.
 
 ## Conventions
+
+Follow the [Code of Conduct](CODE_OF_CONDUCT.md); confidential conduct reports go to
+<drevendev@gmail.com>. Report vulnerabilities through the private GitHub channel in
+[SECURITY.md](SECURITY.md).
+
+Record copied or adapted third-party material in [NOTICE.md](NOTICE.md) in the same
+change, with its exact source revision, licence and affected files. Keep applicable texts
+and materialization receipts; `crab attribution` maintains `THIRD_PARTY_NOTICES.md` from
+`.crab/attributions.json`. NOTICE.md is the human-maintained index, not a replacement
+for those receipts or required licence texts. Installed dependencies retain their own
+licences and are tracked by the package lockfiles.
 
 - Everything in the repository is written in English.
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org); the crab

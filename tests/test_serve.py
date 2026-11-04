@@ -782,8 +782,6 @@ def test_menu_refuses_a_nonpositive_top(tmp_path: Path) -> None:
     """The printed menu refuses the count before it reads any meal."""
     from hungry_crab.cli import build_parser, cmd_menu
 
-    args = build_parser().parse_args(
-        ["menu", "--top", "0", "--meal-dir", str(tmp_path / "meal")]
-    )
+    args = build_parser().parse_args(["menu", "--top", "0", "--meal-dir", str(tmp_path / "meal")])
     with pytest.raises(UsageError, match="--top must be positive"):
         cmd_menu(args, lambda _: None)

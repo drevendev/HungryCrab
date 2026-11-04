@@ -127,7 +127,8 @@ that belonged elsewhere.
 - Repository, `pyproject`, the crab's own CI (lint, tests on Windows + Linux).
 - `sniff`, `catch`, `digest` with miners: license, inventory, traits, ci, tests, deps, history,
   branches, docs, ai_config.
-- Fixtures: 3 synthetic mini repositories (npm, pyproject, csproj) with deliberate "gaps" and
+- Historical MVP fixtures: 3 synthetic mini repositories (npm, pyproject, csproj); the current
+  registry has five, adding go-service and polyglot. They contain deliberate "gaps" and
   history; tests for every miner.
 - Exit: a digest of any public repository fits the token budget.
 

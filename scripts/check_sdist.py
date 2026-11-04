@@ -25,6 +25,9 @@ def verify_sdist(archive: Path) -> None:
         "pyproject.toml",
         "README.md",
         "LICENSE",
+        "NOTICE.md",
+        "THIRD_PARTY_NOTICES.md",
+        "CODE_OF_CONDUCT.md",
         "src/hungry_crab/__init__.py",
         "src/hungry_crab/data/report.css",
     }

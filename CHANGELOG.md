@@ -7,10 +7,40 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Measure branch coverage in one Linux/Python 3.14 CI leg, without a threshold or
+  coverage overhead in the other legs (#19).
+- Add an audited third-party material index and Contributor Covenant 2.1 with the
+  owner-approved conduct contact, preserving the private vulnerability route (#22, #163).
+- Recognize Rust's ordinary integration harness and bounded lexical inline-test evidence;
+  disclose unexamined source without running Cargo or donor tests (#164).
+
 ### Fixed
 
 - Only report a truncated inventory when a regular file is omitted, preserving skipped symlink,
   stat failure and special-file counts at the file limit (#593).
+- Preserve supporting Jest snapshots without inflating primary file counts; recognize
+  plugin-root commands and distinguish real agent/hook layouts from ordinary package files
+  (#588–#590).
+- Report capped vendored filename counts as lower bounds with unknown subtree totals,
+  and consistently classify build output separately from generated filenames (#591, #592).
+- Select fix-prone history before display caps, use exact counts at the threshold,
+  exclude changelog noise and honor ignore patterns in historical paths (#196).
+- Validate miner/budget/history options before acquisition or provider effects, reject
+  non-positive selection counts, and explain cached history options (#230, #594, #595).
+- Report damaged/malformed menus and ordinary output failures with actionable errors;
+  preserve existing files and private input contents (#596, #599).
+- Accept ledger maw options on either side of the action, reject conflicting paths and
+  diagnose disabled persistence before looking up a nutrient (#597, #598).
+- Announce a compare destination once, retain significant local-path whitespace,
+  and bound encoded YAML intake before decoding or parsing (#600, #603, #561).
+
+### Documentation
+
+- Document exit statuses, current stable nutrient/receipt/command contracts, five fixtures,
+  optional MCP type-check prerequisites and the separate 0.6.10 maintenance / 0.6.11 discovery
+  scopes (#601, #602, #604). Complete discovery remains experimental and unqualified.
 
 ## [0.6.9] - 2026-11-03
 

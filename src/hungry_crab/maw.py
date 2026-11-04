@@ -465,7 +465,13 @@ def write_default_config(root: Path, *, force: bool = False, profile: str = "bal
     intended["hunger"] = hunger_for(profile)
     text = replace_section(text, "hunger", hunger_for(profile))
     _validated_rewrite(root, text, intended)
-    atomic_text(path, text)
+    try:
+        atomic_text(path, text)
+    except OSError as exc:
+        raise CrabError(
+            f"cannot write configuration file {path}",
+            hint="check that .crab.yml is a writable file and its parent is writable",
+        ) from exc
     return path
 
 
