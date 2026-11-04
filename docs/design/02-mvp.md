@@ -28,18 +28,24 @@ and PRs on CI / tooling / AI configs merge without rework.
 ## 3. CLI commands (MVP set)
 
 ```bash
-crab sniff owner/repo                     # API reconnaissance, "is it worth eating" verdict
-crab catch owner/repo [--shallow] [--since 2y] [--issues 500]
-crab digest owner/repo [--depth normal|deep]
-crab compare owner/repo --maw .          # traits/deps/ci/tests/ai diff → gap.md, menu.md
-crab menu owner/repo [--top 30] [--category ci,tests]   # print the menu (for agent and human)
-crab serve owner/repo --ids <id,...> --as issue|pr-branch|dry-run
-crab ledger [--maw .] [show|mark <id> accepted|rejected]
-crab attribution --maw .                 # rebuild THIRD_PARTY_NOTICES.md from the ledger
-crab cache [ls|rm owner/repo|prune]
+crab sniff owner/repo                     # API reconnaissance; no prey code execution
+crab catch owner/repo --shallow --since 2y --issues 500
+crab digest owner/repo --depth normal
+crab compare owner/repo --maw .          # rank nutrients for this receiving repository
+crab menu owner/repo --maw . --top 30 --category ci,tests
+crab serve owner/repo --maw . --ids crab:ci:ci.cache --as dry-run  # default: preview, no publication
+crab serve owner/repo --maw . --ids crab:ci:ci.cache --as issue    # explicit issue publication
+crab spec crab:ci:ci.cache               # print the spec path; does not write the spec
+crab ledger --maw . show                 # show is optional: plain 'crab ledger' also summarizes
+crab ledger --maw . mark crab:ci:ci.cache accepted
+crab attribution --maw .                 # render notice from stored COPY materialization receipts
+crab attribution --maw . --check         # verify only; no rewrite
+crab cache path
+crab cache ls
+crab cache rm owner/repo                 # no 'prune' action
 ```
 
-The `/crab:eat` skill chains them; every command is idempotent and works on its own.
+These are current CLI-shaped examples of the original MVP flow, not a promise of automatic publication. `crab serve` defaults to dry-run; `--as pr-branch` requires a strict nutrient-scoped clean-room or COPY/COPY_FILE materialization receipt on stdin, passing source/attribution and publication guards before any remote effects. See [the serve skill](../../skills/serve/SKILL.md). Issue and PR publication always require explicit authority and policy checks; no command merges a PR.
 
 ## 4. MVP miners
 
