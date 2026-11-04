@@ -26,7 +26,7 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
+Released: **0.6.10** (2026-11-04), a bounded maintenance patch, after **0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
 security releases on **0.6.0
 Everywhere** (2026-10-22), a limited stable analysis release, after **0.2.0**. `hungry-crab` is
 on PyPI from 0.6.1.
@@ -42,9 +42,12 @@ evidence-integrity and host-safety fixes under the owner-amended
 [release record](../releases/0.6.9-candidate.md) for verification and limitations.
 The release tree precedes the reopened **0.6.10.dev0** development tree.
 
-**0.6.10** is a bounded maintenance patch with 24 independently closable candidates:
-see [its scope](../releases/0.6.10-scope.md) and
-[tracker #587](https://github.com/drevendev/HungryCrab/issues/587).
+**0.6.10** delivers the 24 bounded maintenance tasks from
+[tracker #587](https://github.com/drevendev/HungryCrab/issues/587), integrated through
+[PR #611](https://github.com/drevendev/HungryCrab/pull/611). See
+[its scope](../releases/0.6.10-scope.md) and
+[implementation/validation map](../releases/0.6.10-maintenance.md).
+The release tree precedes the reopened **0.6.11.dev0** development tree.
 The complete useful-change search/verification/replanning cycle and independent
 comparative acceptance move to **0.6.11** under
 [specification #585](../releases/0.6.11-scope.md).

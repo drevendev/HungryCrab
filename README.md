@@ -38,8 +38,8 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.9](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.9), a bounded
-licensing, source-reading, evidence-integrity and host-safety patch on
+**Status: [0.6.10](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.10), a bounded
+maintenance patch covering 24 CLI, miner, configuration and documentation issues on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
 Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
@@ -54,14 +54,16 @@ complete. Start with the [Everywhere guide](docs/everywhere.md) and the
 The [0.6.5 execution report](docs/experiments/discovery-453-report.md) records the bounded
 public replay and its remaining unexplored facets.
 
-The [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers bounded MIT/path-licence,
-source-reading, evidence-integrity and host-safety fixes under the amended
-[scope](docs/releases/0.6.9-scope.md). The next [0.6.10 maintenance patch](docs/releases/0.6.10-scope.md) is scoped to
-24 bounded issue candidates in [#587](https://github.com/drevendev/HungryCrab/issues/587).
+The [0.6.10 implementation record](docs/releases/0.6.10-maintenance.md) maps all 24
+maintenance issues to their fixes and checks under the [scope](docs/releases/0.6.10-scope.md).
+[PR #611](https://github.com/drevendev/HungryCrab/pull/611) integrates the patch and closes
+[tracker #587](https://github.com/drevendev/HungryCrab/issues/587).
+The earlier [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers MIT/path-licence,
+source-reading, evidence-integrity and host-safety fixes.
 Complete useful-change discovery and its unchanged independent comparative acceptance
 belong to [0.6.11](docs/releases/0.6.11-scope.md) under [#585](https://github.com/drevendev/HungryCrab/issues/585).
 Search remains experimental: the latest comparison confirmed zero useful changes
-in either arm. Development continues at 0.6.10.dev0.
+in either arm. The next development version is 0.6.11.dev0.
 
 ## The metaphor, in five words
 

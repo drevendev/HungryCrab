@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-11-04
+
 ### Added
 
 - Measure branch coverage in one Linux/Python 3.14 CI leg, without a threshold or
@@ -1392,7 +1394,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.9...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.10...HEAD
+[0.6.10]: https://github.com/drevendev/HungryCrab/compare/v0.6.9...v0.6.10
 [0.6.9]: https://github.com/drevendev/HungryCrab/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...v0.6.8
 [0.6.7]: https://github.com/drevendev/HungryCrab/compare/v0.6.6...v0.6.7
