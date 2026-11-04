@@ -63,7 +63,7 @@ source-reading, evidence-integrity and host-safety fixes.
 Complete useful-change discovery and its unchanged independent comparative acceptance
 belong to [0.6.11](docs/releases/0.6.11-scope.md) under [#585](https://github.com/drevendev/HungryCrab/issues/585).
 Search remains experimental: the latest comparison confirmed zero useful changes
-in either arm. The next development version is 0.6.11.dev0.
+in either arm. Development continues at 0.6.11.dev0.
 
 ## The metaphor, in five words
 
