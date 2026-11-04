@@ -38,8 +38,8 @@ trace footer. Say no to one and the crab remembers, so it never offers it again.
 The prey is never executed. Not one line of its text reaches your issues unless the license says
 it may.
 
-**Status: [0.6.10](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.10), a bounded
-maintenance patch covering 24 CLI, miner, configuration and documentation issues on
+**Status: [latest published release](https://github.com/drevendev/HungryCrab/releases/latest).
+The 0.6.10 maintenance patch covers 24 CLI, miner, configuration and documentation issues on
 [0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
 stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
 Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
