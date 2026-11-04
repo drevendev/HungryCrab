@@ -7,6 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Only report a truncated inventory when a regular file is omitted, preserving skipped symlink,
+  stat failure and special-file counts at the file limit (#593).
+
 ## [0.6.9] - 2026-11-03
 
 ### Added

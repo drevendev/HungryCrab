@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -146,6 +147,53 @@ def test_walk_tree_skips_symlinks_and_caps_vendored(tmp_path: Path) -> None:
     ignored = coverage_block([f for f in files if f.path == "a.py"], stats, 3)
     assert ignored["files_seen"] == 4 and ignored["excluded"] == {"ignored": 3}
     assert ignored["analysis_share"] == 0.25 and ignored["healthy"] is True
+
+
+@pytest.mark.parametrize("limit", [0, 1])
+@pytest.mark.parametrize("extra_file", [False, True])
+@pytest.mark.parametrize(
+    ("skipped_kind", "counter"),
+    [("symlink", "symlinks"), ("stat_error", "stat_errors"), ("special", "special_files")],
+)
+def test_file_limit_only_marks_omitted_regular_files(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    limit: int,
+    extra_file: bool,
+    skipped_kind: str,
+    counter: str,
+) -> None:
+    retained = {f"a{index}.py": "x = 1\n" for index in range(limit)}
+    tree = {**retained, "z-skipped": "not source\n"}
+    if extra_file:
+        tree["zz-extra.py"] = "y = 2\n"
+    root = write_tree(tmp_path / "prey", tree)
+    skipped = str(root / "z-skipped")
+    real_islink = os.path.islink
+    real_stat = os.stat
+
+    def islink(path: str) -> bool:
+        return (path == skipped and skipped_kind == "symlink") or real_islink(path)
+
+    def stat_entry(path: str | os.PathLike[str], *args: object, **kwargs: object) -> object:
+        if os.fspath(path) == skipped:
+            if skipped_kind == "stat_error":
+                raise PermissionError(13, "Permission denied", skipped)
+            if skipped_kind == "special":
+                return os.stat_result((stat.S_IFIFO, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        return real_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(inventory.os.path, "islink", islink)
+    monkeypatch.setattr(inventory.os, "stat", stat_entry)
+
+    files, stats = walk_tree(root, max_files=limit)
+
+    assert [info.path for info in files] == list(retained)
+    assert stats["truncated"] is extra_file
+    assert stats[counter] == 1
+    coverage = coverage_block(files, stats, 0)
+    assert coverage["loss"]["truncated"] is extra_file
+    assert coverage["healthy"] is (not extra_file and skipped_kind != "stat_error")
 
 
 def test_go_service_reads_as_go(go_digest: DigestResult) -> None:
