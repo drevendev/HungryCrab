@@ -447,3 +447,131 @@ def test_sniff_with_a_missing_maw_is_a_usage_error(
     _stub_sniff(monkeypatch, captured)
     assert main(["sniff", "example/prey", "--maw", str(tmp_path / "nowhere")]) == 2
     assert "is not a directory" in capsys.readouterr().err
+
+
+def _fail_if_reached(monkeypatch: pytest.MonkeyPatch, reached: set[str]) -> None:
+    """Patch the effects #594 orders the count check to precede: prey
+    resolution, maw config, ledger access, provider client construction."""
+    from hungry_crab import cli
+
+    def sentinel(name: str):
+        def inner(*args: object, **kwargs: object) -> object:
+            reached.add(name)
+            pytest.fail(f"{name} must not run before --top validation")
+
+        return inner
+
+    monkeypatch.setattr(cli, "resolve_target", sentinel("resolve_target"))
+    monkeypatch.setattr(cli.MawConfig, "load", sentinel("MawConfig.load"))
+    monkeypatch.setattr(cli.Ledger, "load", sentinel("Ledger.load"))
+    monkeypatch.setattr(cli, "GhIssueClient", sentinel("GhIssueClient"))
+
+
+@pytest.mark.parametrize("top", ["-1", "0"])
+def test_compare_entry_rejects_a_nonpositive_top_before_any_effect(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    top: str,
+) -> None:
+    """`crab compare --top -1` used to resolve the prey and build the optional
+    provider client before run_compare's guard saw the count (#594)."""
+    reached: set[str] = set()
+    _fail_if_reached(monkeypatch, reached)
+    code = main(
+        [
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "compare",
+            "example/prey",
+            "--top",
+            top,
+            "--maw",
+            str(tmp_path / "maw"),
+            "--no-issues",
+        ]
+    )
+    assert code == 2
+    assert "--top must be positive" in capsys.readouterr().err
+    assert reached == set()
+
+
+@pytest.mark.parametrize("top", ["-1", "0"])
+def test_serve_entry_rejects_a_nonpositive_top_before_any_effect(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    top: str,
+) -> None:
+    """`crab serve --top -1 --as issue` used to load the maw config and ledger
+    and construct GhIssueClient before serve's guard saw the count (#594)."""
+    reached: set[str] = set()
+    _fail_if_reached(monkeypatch, reached)
+    code = main(
+        [
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "serve",
+            "example/prey",
+            "--top",
+            top,
+            "--as",
+            "issue",
+            "--maw",
+            str(tmp_path / "maw"),
+        ]
+    )
+    assert code == 2
+    assert "--top must be positive" in capsys.readouterr().err
+    assert reached == set()
+
+
+def test_compare_entry_top_one_gets_past_the_count_guard(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A positive control: --top 1 passes the entry guard; the run stops later,
+    on the absent maw directory, never on the count."""
+    prey = tmp_path / "prey"
+    prey.mkdir()
+    code = main(
+        [
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "compare",
+            str(prey),
+            "--top",
+            "1",
+            "--maw",
+            str(tmp_path / "maw"),
+            "--no-issues",
+        ]
+    )
+    err = capsys.readouterr().err
+    assert "--top must be positive" not in err
+    assert "is not a directory" in err
+    assert code == 2
+
+
+def test_serve_entry_top_one_gets_past_the_count_guard(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A positive control: --top 1 passes the entry guard; the run stops later,
+    on the absent maw directory, never on the count."""
+    code = main(
+        [
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "serve",
+            "example/prey",
+            "--top",
+            "1",
+            "--as",
+            "dry-run",
+            "--maw",
+            str(tmp_path / "maw"),
+        ]
+    )
+    err = capsys.readouterr().err
+    assert "--top must be positive" not in err
+    assert "is not a directory" in err
+    assert code == 2
