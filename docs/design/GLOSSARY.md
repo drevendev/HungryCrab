@@ -108,8 +108,8 @@ lets the next maw overwrite it.
 `version` show the CLI version ·
 `sniff` look before eating · `catch` clone into the cache · `digest` run the miners ·
 `compare` digest both sides and rank · `eat --deterministic` export a Feeder meal bundle ·
-`menu` print the ranked menu · `serve` publish approved issues or guarded PR branches ·
-`spec` write the clean-room specification · `attribution` render or check the notice ·
+`menu` print the ranked menu · `serve` preview by default or publish approved issues / receipt-backed guarded PR branches ·
+`spec` print the maw-relative clean-room specification path · `attribution` render or check the notice ·
 `ledger` show or record decisions · `tune` suggest weights from the ledger · `loop` manage
 persisted phases and guarded effects · `init` write `.crab.yml` · `update` check the CLI and
 the plugins · `cache` inspect and clean
@@ -140,7 +140,7 @@ that part.
 **since** how far back to fetch · **depth** `normal` or `deep` · **budget** the token ceiling
 per page, and a policy (`warn`, `enforce`, `off`) for the whole digest · **page** one physical
 Markdown file of a document that did not fit its budget (`history.md`, `history.2.md`, …) ·
-**receipt** the clean-room implementer's strict JSON declaration of the maw paths it changed ·
+**receipt** a nutrient-bound JSON record: for REIMPLEMENT, the clean-room implementation's changed maw paths and checks; for COPY/COPY_FILE, the materialization record of carried source files, hashes and attribution. A guarded PR publishes only verified, receipt-declared material ·
 **corpus** somebody's sample or fixture tree, which is not their code ·
 **vendored** third-party code checked into a repository
 
