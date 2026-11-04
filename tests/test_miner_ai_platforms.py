@@ -57,7 +57,6 @@ def _markdown(result: MinerResult) -> str:
         (".agents/skills/review/SKILL.md", "skills"),
         ("docs/example/SKILL.md", "skills"),
         ("agents/reviewer.md", "agents"),
-        ("hooks/preflight.py", "hooks"),
     ],
 )
 def test_portable_content_does_not_imply_claude(tmp_path: Path, path: str, collection: str) -> None:
@@ -68,6 +67,13 @@ def test_portable_content_does_not_imply_claude(tmp_path: Path, path: str, colle
     assert "Portable skills, subagents or hook files found" in text
     assert "No agent instructions, skills" not in text
     assert "BODY_SENTINEL" not in text
+
+
+def test_root_hook_file_without_a_plugin_is_ordinary_content(tmp_path: Path) -> None:
+    result = AiConfigMiner().run(_context(tmp_path, {"hooks/preflight.py": _SKILL}))
+    assert result.data["present"] == []
+    assert result.data["hooks"] == []
+    assert "BODY_SENTINEL" not in _markdown(result)
 
 
 @pytest.mark.parametrize(
