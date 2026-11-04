@@ -63,6 +63,51 @@ licences and are tracked by the package lockfiles.
   [tests/fixtures/README.md](tests/fixtures/README.md) for how the synthetic repositories work.
 - Windows and Linux are first-class: use `pathlib`, avoid shell-only scripts.
 
+## Reviewing and merging external pull requests
+
+**Default: merge the contributor's own PR.** Review the original PR at its latest
+commit, obtain independent review and complete the required upstream checks on
+that exact head before merging it into `master`. Land individual contributions
+before assembling a release batch when practical; a passing integration build
+does not retroactively make the original PR green or merged.
+
+A first-time fork workflow may show `action_required` / **Awaiting approval**.
+Only an authorized maintainer may review and approve that workflow; approval
+means it may run, **not** that it passed. `queued`, `in_progress`, skipped,
+missing, failed and stale checks are not success. Contributors should report
+the exact commit and the checks they really ran, as explained in the
+[first-time CI guide](docs/COMMUNITY_START_HERE.md#if-your-forks-ci-needs-approval)
+and [#289](https://github.com/drevendev/HungryCrab/issues/289). Do not
+request secrets or bypass required checks.
+
+**Batch integration is an exception**, for a genuine conflict, dependency or
+deadline. Document the reason before integrating; link each source PR and its
+commit SHA, record the integrated PR and landed `master` SHA, and retain
+original authorship/commits when possible. If a rewrite is necessary, attribute
+the actual contributors accurately, including `Co-authored-by` where
+appropriate. Verify the integrated patch and its own CI separately; never
+represent those results as checks on the source branch.
+
+When a contribution was accepted through a different PR, leave a clear comment
+on the original stating whether acceptance was full or partial, why native
+merge was not possible, the original and integrated SHAs, the final landing
+commit, and exactly what was validated. Thank the author and explain that
+GitHub will show **Closed**, not **Merged**, for that original PR.
+
+Maintainer checklist before any batch merge:
+
+- [ ] Inventory all affected external PRs, authors, current heads and feedback.
+- [ ] Prefer native merge of each reviewed, green source PR before the batch.
+- [ ] Record `action_required` and other non-green checks truthfully; approve
+      untrusted fork workflows only after a maintainer's safety review.
+- [ ] For each necessary exception, record the reason, source-to-landed SHA map,
+      attribution and independent integration verification.
+- [ ] Comment on every source PR accepted elsewhere; do not silently close it.
+
+These contributor decisions are separate from the two-commit release/reopen
+procedure below. The release PR must still use **Rebase and merge**, never
+squash away its release and development-reopen commits.
+
 ## Releasing
 
 Releases are cut by hand until [#14](https://github.com/drevendev/HungryCrab/issues/14) automates
