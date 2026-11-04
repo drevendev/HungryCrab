@@ -42,8 +42,12 @@ evidence-integrity and host-safety fixes under the owner-amended
 [release record](../releases/0.6.9-candidate.md) for verification and limitations.
 The release tree precedes the reopened **0.6.10.dev0** development tree.
 
+**0.6.10** is a bounded maintenance patch with 24 independently closable candidates:
+see [its scope](../releases/0.6.10-scope.md) and
+[tracker #587](https://github.com/drevendev/HungryCrab/issues/587).
 The complete useful-change search/verification/replanning cycle and independent
-comparative acceptance move to **0.6.10**, [specification #585](../releases/0.6.10-scope.md).
+comparative acceptance move to **0.6.11** under
+[specification #585](../releases/0.6.11-scope.md).
 [#540](https://github.com/drevendev/HungryCrab/issues/540) remains open there.
 The [latest comparison](../experiments/release-069-breadth-qualification.md)
 confirmed zero useful changes in either arm. Its failed gates are transferred,
