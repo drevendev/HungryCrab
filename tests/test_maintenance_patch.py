@@ -275,3 +275,24 @@ def test_output_permission_failures_are_bounded_and_preserve_configuration(
     assert cli.main(["digest", str(tmp_path), "--out", str(tmp_path / "output")]) == 1
     error = capsys.readouterr().err
     assert "cannot prepare digest output" in error and "Traceback" not in error
+
+
+def test_failed_digest_artifact_write_does_not_publish_staging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    prey = write_tree(tmp_path / "prey", {"src/app.py": "value = 1\n"})
+    output = tmp_path / "output"
+    output.mkdir()
+    (output / "notes.txt").write_text("keep", encoding="utf-8")
+
+    def denied(*args: object, **kwargs: object) -> None:
+        raise PermissionError("PRIVATE_SYNTHETIC_CONTENT")
+
+    monkeypatch.setattr(digest, "_write_json", denied)
+    assert cli.main(["digest", str(prey), "--out", str(output), "--miners", "inventory"]) == 1
+    error = capsys.readouterr().err
+    assert "cannot write digest output" in error
+    assert "PRIVATE_SYNTHETIC_CONTENT" not in error and "Traceback" not in error
+    assert {path.name for path in output.iterdir()} == {"notes.txt"}
+    assert (output / "notes.txt").read_text(encoding="utf-8") == "keep"
+    assert not list(tmp_path.glob(".output.crab-*"))
