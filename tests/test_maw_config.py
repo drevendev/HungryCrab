@@ -12,6 +12,7 @@ from hungry_crab.licensing import Relationship
 from hungry_crab.maw import (
     CONFIG_FILE,
     DEFAULT_HUNGER,
+    MAX_MAW_CONFIG_BYTES,
     MawConfig,
     maw_slug,
     relationship_for,
@@ -30,6 +31,106 @@ def test_defaults_without_a_file(tmp_path: Path) -> None:
     assert config.ledger == "repo"
     assert config.ledger_path() == tmp_path.resolve() / ".crab" / "ledger.json"
     assert config.scoring == {}
+
+
+def test_maw_yaml_byte_ceiling_accepts_exact_budget_and_rejects_one_extra(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / CONFIG_FILE
+    prefix = b"mode: normal\n#"
+    exact = prefix + b"x" * (MAX_MAW_CONFIG_BYTES - len(prefix) - 1) + b"\n"
+    assert len(exact) == MAX_MAW_CONFIG_BYTES
+    path.write_bytes(exact)
+    assert MawConfig.load(tmp_path).mode == "normal"
+
+    path.write_bytes(exact + b"SYNTHETIC_PRIVATE_VALUE_L8X1")
+
+    def forbidden_parser(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("oversized YAML reached the parser")
+
+    monkeypatch.setattr("hungry_crab.maw.yaml.load", forbidden_parser)
+
+    # The exact overflow boundary must fail, not only a much larger sample.
+    path.write_bytes(exact + b"x")
+    assert path.stat().st_size == MAX_MAW_CONFIG_BYTES + 1
+    with pytest.raises(UsageError) as one_extra:
+        MawConfig.load(tmp_path)
+    assert f"{MAX_MAW_CONFIG_BYTES} bytes" in one_extra.value.message
+
+    # A longer private sentinel must not appear in diagnostics either.
+    path.write_bytes(exact + b"SYNTHETIC_PRIVATE_VALUE_L8X1")
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert f"{MAX_MAW_CONFIG_BYTES} bytes" in caught.value.message
+    assert "SYNTHETIC_PRIVATE_VALUE_L8X1" not in str(caught.value)
+
+
+def test_maw_yaml_short_binary_reads_preserve_complete_input(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / CONFIG_FILE
+    prefix = b"mode: strict\n#"
+    exact = prefix + b"x" * (MAX_MAW_CONFIG_BYTES - len(prefix) - 1) + b"\n"
+    assert len(exact) == MAX_MAW_CONFIG_BYTES
+    path.write_bytes(exact)
+
+    real_open = Path.open
+    read_calls = 0
+
+    class ShortReader:
+        def __init__(self, stream: object) -> None:
+            self.stream = stream
+
+        def __enter__(self) -> ShortReader:
+            return self
+
+        def __exit__(self, *_exc: object) -> None:
+            self.stream.close()
+
+        def read(self, size: int) -> bytes:
+            nonlocal read_calls
+            read_calls += 1
+            return self.stream.read(min(size, 4096))
+
+    def short_read_open(self: Path, mode: str = "r", *args: object, **kwargs: object) -> object:
+        stream = real_open(self, mode, *args, **kwargs)
+        if self == path and mode == "rb":
+            return ShortReader(stream)
+        return stream
+
+    monkeypatch.setattr(Path, "open", short_read_open)
+    assert MawConfig.load(tmp_path).mode == "strict"
+    assert read_calls > 2
+
+    # A short-reading stream must still observe the final excess byte.
+    path.write_bytes(exact + b"x")
+    with pytest.raises(UsageError, match="configuration exceeds"):
+        MawConfig.load(tmp_path)
+
+
+def test_maw_yaml_intake_counts_utf8_bytes_not_characters(tmp_path: Path) -> None:
+    path = tmp_path / CONFIG_FILE
+    prefix = "mode: normal\n# "
+    valid = prefix + "✓" * 1000 + "\n"
+    path.write_bytes(valid.encode("utf-8"))
+    assert MawConfig.load(tmp_path).mode == "normal"
+
+    too_long = prefix + "✓" * (MAX_MAW_CONFIG_BYTES // 3)
+    assert len(too_long) < MAX_MAW_CONFIG_BYTES
+    assert len(too_long.encode("utf-8")) > MAX_MAW_CONFIG_BYTES
+    path.write_bytes(too_long.encode("utf-8"))
+    with pytest.raises(UsageError, match="configuration exceeds"):
+        MawConfig.load(tmp_path)
+
+
+def test_maw_yaml_invalid_utf8_is_explicit_and_content_free(tmp_path: Path) -> None:
+    path = tmp_path / CONFIG_FILE
+    path.write_bytes(b"mode: normal\n#SYNTHETIC_PRIVATE_VALUE_Q9Z2\xff")
+    with pytest.raises(UsageError) as caught:
+        MawConfig.load(tmp_path)
+    assert "invalid UTF-8 configuration" in caught.value.message
+    assert "SYNTHETIC_PRIVATE_VALUE_Q9Z2" not in str(caught.value)
+    assert caught.value.__cause__ is None
 
 
 def test_default_template_round_trips(tmp_path: Path) -> None:

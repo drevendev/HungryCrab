@@ -23,6 +23,8 @@ from .profiles import hunger_for
 from .typeutil import as_dict, as_list
 
 CONFIG_FILE = ".crab.yml"
+# Fixed, non-overridable upper bound for maw-owned YAML, measured as encoded bytes.
+MAX_MAW_CONFIG_BYTES = 1024 * 1024
 LEDGER_MODES = ("repo", "cache", "none")
 SERVE_MODES = ("auto", "ask", "off")
 MAW_MODES = ("normal", "strict")
@@ -298,7 +300,23 @@ class MawConfig:
         path = config.path
         if not path.is_file():
             return config
-        source_text = path.read_text(encoding="utf-8")
+        # Read at most the fixed budget plus one witness byte. Repeated bounded
+        # reads also work when the input stream returns short chunks.
+        payload = bytearray()
+        with path.open("rb") as stream:
+            while len(payload) <= MAX_MAW_CONFIG_BYTES:
+                remaining = MAX_MAW_CONFIG_BYTES + 1 - len(payload)
+                chunk = stream.read(min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                payload.extend(chunk)
+        if len(payload) > MAX_MAW_CONFIG_BYTES:
+            raise UsageError(f"{path}: configuration exceeds {MAX_MAW_CONFIG_BYTES} bytes")
+        try:
+            source_text = payload.decode("utf-8")
+        except UnicodeDecodeError:
+            # Decode failures may quote source bytes; never echo private config.
+            raise UsageError(f"{path}: invalid UTF-8 configuration") from None
         try:
             loaded = yaml.load(source_text, Loader=_UniqueKeySafeLoader)
         except yaml.YAMLError as exc:
