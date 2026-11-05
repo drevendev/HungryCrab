@@ -2675,7 +2675,10 @@ def test_message_exception_refuses_shell_side_channels(command: str, home: Path)
         'gh pr create --title "Improve guard docs" --body "Cache at ~/.cache/hungry-crab"',
         "gh pr create --title 'cache ~/.cache/hungry-crab' --body 'cache ~/.cache/hungry-crab'",
         'gh pr create --body "cache ~/.cache/hungry-crab" --title "title"',
-        'gh pr create --body "cache ~/.cache/hungry-crab" --title "also cache ~/.cache/hungry-crab"',
+        (
+            'gh pr create --body "cache ~/.cache/hungry-crab" '
+            '--title "also cache ~/.cache/hungry-crab"'
+        ),
     ],
 )
 def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, home: Path) -> None:
