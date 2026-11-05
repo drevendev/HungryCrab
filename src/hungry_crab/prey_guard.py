@@ -4073,7 +4073,6 @@ _LITERAL_PUBLISHING_MESSAGE = re.compile(
 )
 
 
-
 # `gh pr create` is supported only in this one inert, two-option
 # shape. Both values must be wholly quoted, literal and free of shell syntax.
 # Other PR options/orderings and heredoc/substitution remain fail-closed.
