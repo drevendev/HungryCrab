@@ -2668,6 +2668,46 @@ def test_message_exception_refuses_shell_side_channels(command: str, home: Path)
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        'gh pr create --title "fix: ~/.cache/hungry-crab is protected" --body "Guard docs"',
+        'gh pr create --title "Improve guard docs" --body "Cache at ~/.cache/hungry-crab"',
+        "gh pr create --title 'cache ~/.cache/hungry-crab' --body 'cache ~/.cache/hungry-crab'",
+    ],
+)
+def test_standalone_literal_pr_create_text_does_not_access_prey(
+    command: str, home: Path
+) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
+    assert guard_reason(command, root=root, cwd=root / "github" / "acme") is not None
+    assert guard_reason(
+        command, root=root, cwd=home / "work" / "maw", shell="powershell"
+    ) is not None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        'gh pr create --title "cache ~/.cache/hungry-crab" --body "ok" && sh -c x',
+        'gh pr create --title "title" --body "$(cat ~/.cache/hungry-crab/x)"',
+        'gh pr create --title "title" --body "cache ~/.cache/hungry-crab" | sh',
+        'gh pr create --title "title" --body "cache ~/.cache/hungry-crab" > /tmp/pr.log',
+        'gh pr create --title "ok" --body-file ~/.cache/hungry-crab/brief.md',
+        'gh pr create --title "ok" --body "cache ~/.cache/hungry-crab" --draft',
+        'gh pr create --body "cache ~/.cache/hungry-crab" --title "title"',
+        'gh pr create --title "ok" --body "cache ~/.cache/hungry-crab" '
+        '&& git -C ~/.cache/hungry-crab status',
+    ],
+)
+def test_literal_pr_create_exception_refuses_other_shapes(
+    command: str, home: Path
+) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None
+
+
 @pytest.mark.parametrize("command", MESSAGES)
 def test_a_message_that_spells_the_cache_counts_as_it_did_in_0_6_1(
     command: str, home: Path
