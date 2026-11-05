@@ -4073,16 +4073,38 @@ _LITERAL_PUBLISHING_MESSAGE = re.compile(
 )
 
 
+
+# `gh pr create` is supported only in this one inert, two-option
+# shape. Both values must be wholly quoted, literal and free of shell syntax.
+# Other PR options/orderings and heredoc/substitution remain fail-closed.
+_LITERAL_PR_CREATE_MESSAGE = re.compile(
+    r"^[ \t]*gh[ \t]+pr[ \t]+create[ \t]+--title[ \t]+"
+    r"(?P<title_quote>[\x27\x22])"
+    r"(?P<title>[^\x27\x22\r\n$\x60\\;&|<>!]*)"
+    r"(?P=title_quote)[ \t]+--body[ \t]+(?P<body_quote>[\x27\x22])"
+    r"(?P<body>[^\x27\x22\r\n$\x60\\;&|<>!]*)"
+    r"(?P=body_quote)[ \t]*\Z"
+)
+
+
 def _mask_literal_publishing_message(command: str) -> str | None:
     """Mask by exact source span only for literal, standalone publishing text.
 
     A rejected shape retains the original raw cache-spelling check.
     """
     match = _LITERAL_PUBLISHING_MESSAGE.fullmatch(command)
+    if match is not None:
+        start, end = match.span("message")
+        return command[:start] + "literal publishing message" + command[end:]
+    match = _LITERAL_PR_CREATE_MESSAGE.fullmatch(command)
     if match is None:
         return None
-    start, end = match.span("message")
-    return command[:start] + "literal publishing message" + command[end:]
+    masked = command
+    # Mask from right to left: the earlier source indexes stay unchanged.
+    for name in ("body", "title"):
+        start, end = match.span(name)
+        masked = masked[:start] + "literal publishing message" + masked[end:]
+    return masked
 
 
 def _judge(command: str, *, root: Path, cwd: Path, shell: Shell) -> _Verdict:
