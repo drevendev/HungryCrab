@@ -290,6 +290,15 @@ def packet(
         needs[-1]["implementation_scope_id"] = scope_id
     payload = {
         "receiving_project": batch,
+        "acquisition_holds": [
+            {
+                k: row[k]
+                for k in ("id", "repository", "sha", "acquisition_status", "acquisition_error")
+            }
+            for row in plan.get("pool", [])
+            if row["batch"] == batch
+            and row.get("acquisition_status", "shared-facts-acquired") != "shared-facts-acquired"
+        ],
         "selected_sha": definition["context"]["sha"],
         "needs_and_actual_novelty_context": needs,
         "shared_actual_implementation_scope": next(iter(scopes.values()))

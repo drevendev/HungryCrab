@@ -52,6 +52,25 @@ CASE_CONTRACT = (
 CASE_CONTRACT += PYTHON_CASE_CONTRACT
 
 
+def controller_need(need: dict[str, Any]) -> dict[str, Any]:
+    """Keep controller state bounded; full evidence stays in the host's frozen need."""
+    keys = {
+        "id",
+        "flow",
+        "expected",
+        "observed",
+        "impact",
+        "constraints",
+        "verification_mode",
+        "maw_evidence",
+        "queries",
+        "backlog",
+        "target",
+        "runtime_inputs",
+    }
+    return {key: value for key, value in need.items() if key in keys}
+
+
 def text(length: int = 500) -> dict[str, Any]:
     # Native constrained decoding can loop in legal whitespace at maxLength.
     # Transport, CLI field validators and actual usage bound the response;
@@ -193,7 +212,20 @@ class Trial:
         self.definition = frozen["maws"][batch]
         self.context = self.definition["context"]
         self.maw = Path(self.context["root"])
-        self.pool = {r["id"]: r for r in frozen["pool"] if r["batch"] == batch}
+        nominees = [r for r in frozen["pool"] if r["batch"] == batch]
+        self.pool = {
+            r["id"]: r
+            for r in nominees
+            if r.get("acquisition_status", "shared-facts-acquired") == "shared-facts-acquired"
+        }
+        self.unavailable_nominees = [
+            {
+                key: r[key]
+                for key in ("id", "repository", "sha", "acquisition_status", "acquisition_error")
+            }
+            for r in nominees
+            if r["id"] not in self.pool
+        ]
         self.needs = self.definition["needs"][:]
         if self.arm == "candidate" and frozen["host"].get("candidate_declaration_projection"):
             self.needs = [
@@ -229,9 +261,14 @@ class Trial:
                 "effects": [],
                 "currency": None,
                 "provider_search_requests": 0,
+                "nomination_pool_size": len(nominees),
+                "unavailable_nominees": self.unavailable_nominees,
             }
             if self.session:
-                plan = {**self.definition["plan"], "needs": self.needs}
+                plan = {
+                    **self.definition["plan"],
+                    "needs": [controller_need(need) for need in self.needs],
+                }
                 write(self.root / "session-plan.json", plan)
                 self.commands.json(
                     [
@@ -368,31 +405,19 @@ class Trial:
                         3,
                         1,
                     ),
-                    "cases_json": (
-                        {"type": "string", "const": ""}
-                        if need.get("verification_mode") == "design"
-                        else text(5500)
-                    ),
+                    "cases_json": {"type": "string", "const": ""},
                     "probe_reason": text(240),
                 }
             )
         facts = []
-        source_bank = {}
         for need in self.needs:
-            windows = [
-                raw_window(
-                    self.maw, self.context["sha"], r["path"], r["start"], r["end"], "receiving"
-                )
-                for r in need["maw_evidence"]
-            ]
-            source_bank.update({w["id"]: w for w in windows})
             facts.append(
                 {
                     "need": {
                         k: need[k]
                         for k in ("id", "flow", "expected", "observed", "constraints", "target")
                     },
-                    "receiving_source_ids": [w["id"] for w in windows],
+                    "receiving_source_references": need["maw_evidence"],
                     "verification_mode": need.get("verification_mode", "runtime"),
                     "receiving_literal_terms": need.get("terms", []),
                     "receiving_queries": need["queries"],
@@ -439,7 +464,15 @@ class Trial:
             + "\nACTUAL RECEIVING INPUT:\n"
             + CASE_CONTRACT
             + json.dumps(
-                {"needs": facts, "receiving_source_by_id": source_bank}, ensure_ascii=False
+                {
+                    "needs": facts,
+                    "receiving_source_access": (
+                        "Metadata lead planning only. Full pinned receiving ranges remain "
+                        "available to source assessment and the original receiving-only writer."
+                    ),
+                    "unavailable_nominees": getattr(self, "unavailable_nominees", []),
+                },
+                ensure_ascii=False,
             )
             + "\nPOOL METADATA ONLY:\n"
             + json.dumps(
@@ -517,6 +550,7 @@ class Trial:
                 }
                 for n in self.needs
             ],
+            "unavailable_nominees": getattr(self, "unavailable_nominees", []),
             "literal_cli_nominations": seeds,
             "pool": [
                 {
