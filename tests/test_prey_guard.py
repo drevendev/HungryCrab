@@ -2635,6 +2635,8 @@ MESSAGES = [
         'git commit -m "fix: refuse writes under ~/.cache/hungry-crab"',
         "git commit --message 'docs: ~/.cache/hungry-crab is off-limits'",
         "gh release create v1 --notes 'cache at ~/.cache/hungry-crab'",
+        'git tag -a v0.7.0 -m "docs: ~/.cache/hungry-crab is protected"',
+        "git tag -a v0.7.0 --message 'guard: paths under ~/.cache/hungry-crab are prey'",
     ],
 )
 def test_standalone_literal_publishing_text_does_not_access_prey(command: str, home: Path) -> None:
@@ -2654,6 +2656,10 @@ def test_standalone_literal_publishing_text_does_not_access_prey(command: str, h
         'git commit -m "cache ~/.cache/hungry-crab" > /tmp/log',
         'gh release create v1 --notes "cache ~/.cache/hungry-crab" && sh -c x',
         'gh release create v1 --notes "$(cat ~/.cache/hungry-crab/x)"',
+        'git tag -a v0.7.0 -m "cache ~/.cache/hungry-crab" && git tag -l v0.7.0 | sh',
+        'git tag -a v0.7.0 -m "$(cat ~/.cache/hungry-crab/secret)"',
+        'git tag -a v0.7.0 -m "cache ~/.cache/hungry-crab" > /tmp/tag.log',
+        'git tag -a v0.7.0 -m "cache ~/.cache/hungry-crab" | sh',
         'git -C ~/.cache/hungry-crab commit -m "literal message"',
     ],
 )
