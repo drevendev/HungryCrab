@@ -2637,9 +2637,7 @@ MESSAGES = [
         "gh release create v1 --notes 'cache at ~/.cache/hungry-crab'",
     ],
 )
-def test_standalone_literal_publishing_text_does_not_access_prey(
-    command: str, home: Path
-) -> None:
+def test_standalone_literal_publishing_text_does_not_access_prey(command: str, home: Path) -> None:
     root = home / ".cache" / "hungry-crab"
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
     # Still refuse a publishing command issued from inside a prey checkout.
