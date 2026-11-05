@@ -2676,15 +2676,11 @@ def test_message_exception_refuses_shell_side_channels(command: str, home: Path)
         "gh pr create --title 'cache ~/.cache/hungry-crab' --body 'cache ~/.cache/hungry-crab'",
     ],
 )
-def test_standalone_literal_pr_create_text_does_not_access_prey(
-    command: str, home: Path
-) -> None:
+def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, home: Path) -> None:
     root = home / ".cache" / "hungry-crab"
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
     assert guard_reason(command, root=root, cwd=root / "github" / "acme") is not None
-    assert guard_reason(
-        command, root=root, cwd=home / "work" / "maw", shell="powershell"
-    ) is not None
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw", shell="powershell") is not None
 
 
 @pytest.mark.parametrize(
@@ -2701,9 +2697,7 @@ def test_standalone_literal_pr_create_text_does_not_access_prey(
         '&& git -C ~/.cache/hungry-crab status',
     ],
 )
-def test_literal_pr_create_exception_refuses_other_shapes(
-    command: str, home: Path
-) -> None:
+def test_literal_pr_create_exception_refuses_other_shapes(command: str, home: Path) -> None:
     root = home / ".cache" / "hungry-crab"
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None
 
