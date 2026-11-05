@@ -57,9 +57,17 @@ copies, archives or mounts the cache or `~/.cache` (`cp -r`, `rsync`, `tar`, `zi
 even on its own; one that runs what a search of the cache or a directory above it finds
 (`find ~ … | xargs python`, `fd … ~ -x`, `rg --pre`, `Get-ChildItem ~ -Recurse |
 ForEach-Object`, cmd's `for /r`, `forfiles /s`), a copy or a mount of home searched or
-entered counting as home; and an encoded script it cannot decode. Message text is no
-exception: a commit, tag or pull request message that spells the cache counts as the
-cache, as it did in 0.6.1, because it can be read back and run. A command with carriage
+entered counting as home; and an encoded script it cannot decode. Message text is not a general exemption: publishing text that names the cache is
+refused except when the guard recognizes a complete standalone command with inert,
+quoted literal message arguments. Narrow Git publishing-message forms are supported,
+and `gh pr create` specifically permits exactly `--title` followed by `--body`,
+each with a single- or double-quoted literal value and no additional options.
+Only those literal value spans are exempted from cache-path scanning; the
+original executable command is still checked. Shell substitutions, escapes,
+redirections, pipelines, command chaining, unsupported option orderings and
+running from the cache directory are not exempt. Such messages can still be
+dangerous if later executed; the guard does not make them safe to run or
+provide a sandbox. A command with carriage
 returns is judged both as Git Bash reads it, without them, and as bash elsewhere does. A
 command it cannot parse, or cannot finish judging within its fixed budget, passes only
 when its text is plain: no expansion, glob, tilde, brace or escape and no hint of the cache. A

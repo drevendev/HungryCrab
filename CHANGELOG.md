@@ -7,6 +7,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- Permit cache-path mentions in inert, quoted `gh pr create --title ... --body ...`
+  messages for a single standalone Bash command; continue refusing substitutions,
+  extra flags, redirections, pipelines and cache-root execution (#401).
+
 ## [0.6.10] - 2026-11-04
 
 ### Added
