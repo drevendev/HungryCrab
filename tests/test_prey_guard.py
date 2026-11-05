@@ -2681,8 +2681,7 @@ def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, ho
     assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
     assert guard_reason(command, root=root, cwd=root / "github" / "acme") is not None
     assert (
-        guard_reason(command, root=root, cwd=home / "work" / "maw", shell="powershell")
-        is not None
+        guard_reason(command, root=root, cwd=home / "work" / "maw", shell="powershell") is not None
     )
 
 
@@ -2698,7 +2697,7 @@ def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, ho
         'gh pr create --body "cache ~/.cache/hungry-crab" --title "title"',
         (
             'gh pr create --title "ok" --body "cache ~/.cache/hungry-crab" '
-            '&& git -C ~/.cache/hungry-crab status'
+            "&& git -C ~/.cache/hungry-crab status"
         ),
     ],
 )
