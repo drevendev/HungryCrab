@@ -4112,9 +4112,9 @@ def _mask_literal_publishing_message(command: str) -> str | None:
     if match is None:
         return None
     masked = command
-    # Mask from right to left: the earlier source indexes stay unchanged.
-    for name in ("body", "title"):
-        start, end = match.span(name)
+    # Mask by descending original source offsets for either option order.
+    # Editing a left-hand span first would shift the remaining right-hand index.
+    for start, end in sorted((match.span("title"), match.span("body")), reverse=True):
         masked = masked[:start] + "literal publishing message" + masked[end:]
     return masked
 
