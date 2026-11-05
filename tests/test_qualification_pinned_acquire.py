@@ -98,3 +98,15 @@ def test_shared_digest_retains_canonical_public_source_identity(tmp_path: Path) 
         prey_objects=objects,
     )
     assert result.meal_dir is not None
+
+
+def test_receiving_pending_revisions_do_not_relax_donor_uniqueness() -> None:
+    first = {**row(), "batch": "pending"}
+    second = {**first, "id": "control-2", "sha": "c" * 40}
+    assert len(records({"schema": 1, "pool": [first, second]}, "pending")) == 2
+    with pytest.raises(ValueError, match="distinct"):
+        records(
+            {"schema": 1, "pool": [{**first, "batch": "crab"}, {**second, "batch": "crab"}]}, "crab"
+        )
+    with pytest.raises(ValueError, match="unique"):
+        records({"schema": 1, "pool": [first, {**second, "id": first["id"]}]}, "pending")

@@ -30,6 +30,7 @@ def records(value: object, batch: str) -> list[dict[str, Any]]:
     if not isinstance(pool, list) or not 1 <= len(pool) <= 30:
         raise ValueError("acquisition pool must contain 1..30 metadata records")
     seen: set[str] = set()
+    seen_ids: set[str] = set()
     selected = []
     for row in pool:
         if not isinstance(row, dict) or set(row) != {
@@ -44,10 +45,18 @@ def records(value: object, batch: str) -> list[dict[str, Any]]:
         for key in ("id", "batch"):
             if not isinstance(row[key], str) or not re.fullmatch(r"[a-z0-9-]{1,60}", row[key]):
                 raise ValueError("invalid acquisition identity")
+        if row["id"] in seen_ids:
+            raise ValueError("acquisition locator identities must be unique")
+        seen_ids.add(row["id"])
         slug = Slug.parse(row["repository"])
-        if slug.host != "github.com" or str(slug).casefold() in seen:
+        # Confirmed receiving PRs are revisions of one receiver, not new donor
+        # nominations. Every other batch retains canonical repository uniqueness.
+        source_key = str(slug).casefold()
+        if row["batch"] == "pending":
+            source_key += "@" + str(row["sha"])
+        if slug.host != "github.com" or source_key in seen:
             raise ValueError("acquisition requires distinct public GitHub repositories")
-        seen.add(str(slug).casefold())
+        seen.add(source_key)
         if type(row["provider_id"]) is not int or row["provider_id"] <= 0:
             raise ValueError("positive immutable provider identity required")
         if any(
