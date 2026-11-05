@@ -339,13 +339,15 @@ def packet(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("batch", choices=["crab", "devostasis", "beautifulrepo"])
+    parser.add_argument("batch")
     parser.add_argument("reviewer", type=int, choices=[1, 2])
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--output-root", type=Path)
     args = parser.parse_args()
     plan = read(args.plan)
+    if args.batch not in plan["maws"]:
+        raise ValueError("review batch is not in the sealed receiving cohort")
     payload, mapping = packet(plan, args.batch, args.reviewer)
     output = args.output_root or args.plan.parent / "independent-review-v2"
     root = output / f"{args.batch}-{args.reviewer}"
@@ -439,7 +441,7 @@ def main() -> None:
         model=protocol["model"],
         effort=protocol["effort"],
         output_schema=schema,
-        constrained_output=False,
+        constrained_output=True,
         token_limit=protocol["model_tokens"],
         seconds=protocol["seconds"],
     )
