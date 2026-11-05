@@ -317,6 +317,7 @@ def run_worker(
         and result["status"] == "completed"
         and usage["totalTokens"] <= token_limit,
         usage_complete=result["status"] == "completed" and usage is not None,
+        observed_usage_lower_bound=usage["totalTokens"] if usage is not None else None,
         token_limit=token_limit,
     )
     (output / "result.json").write_text(

@@ -64,3 +64,26 @@ def test_unknown_started_operation_cannot_replay(
         meter.call("uncertain", "prompt", {}, attempt=None)
     assert meter.data["usage_complete"] is False
     assert meter.call("next", "prompt", {}, attempt=None) is None
+
+
+def test_interrupted_partial_usage_retains_a_lower_bound_and_blocks_more_spend(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def worker(directory: Path, *_: Any, **__: Any) -> dict[str, Any]:
+        directory.mkdir()
+        value = {
+            **result(status="interrupted", tokens=21000),
+            "usage_complete": False,
+            "budget_valid": False,
+        }
+        host.write(directory / "result.json", value)
+        return value
+
+    monkeypatch.setattr(host, "run_worker", worker)
+    meter = host.Meter(tmp_path / "meter", cwd=tmp_path, model="model", effort="medium")
+    assert meter.call("interrupted", "prompt", host.strict({}), attempt="one") is None
+    assert meter.data["usage_complete"] is False
+    assert meter.data["observed_tokens_lower_bound"] == 21000
+    assert meter.data["stages"][0]["actual_tokens"] is None
+    assert meter.call("next", "prompt", {}, attempt=None) is None

@@ -234,7 +234,18 @@ class Meter:
                 self.data["usage_complete"] = False
             else:
                 self.data["tokens"] += tokens
-            row.update(state="settled", actual_tokens=tokens, native_seconds=result["seconds"])
+            row.update(
+                state="settled",
+                actual_tokens=tokens,
+                native_seconds=result["seconds"],
+                observed_tokens_lower_bound=(
+                    tokens if tokens is not None else (result.get("usage") or {}).get("totalTokens")
+                ),
+            )
+            self.data["observed_tokens_lower_bound"] = sum(
+                item.get("actual_tokens") or item.get("observed_tokens_lower_bound") or 0
+                for item in self.data["stages"]
+            )
             write(self.path, self.data)
         if not complete or not result["budget_valid"] or self.data["tokens"] > self.limit:
             return None
