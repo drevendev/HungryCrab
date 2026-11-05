@@ -24,6 +24,15 @@ import qualification_cycle as cycle
         {"model_tokens": 30001},
         {"model_tokens": True},
         {"seconds": 1800},
+        {"donors": 7},
+        {"requests": True},
+        {"requests": 17},
+        {"hypotheses": 13},
+        {"replacement_rounds": 3},
+        {"setting": ("transport", "unsupported")},
+        {"setting": ("initial_donor_bytes", 14001)},
+        {"setting": ("initial_donor_bytes", True)},
+        {"setting": ("source_continuation_rounds", 3)},
     ],
 )
 def test_bad_profile_is_refused_before_commands_meter_or_model(
@@ -37,6 +46,9 @@ def test_bad_profile_is_refused_before_commands_meter_or_model(
         profile["host"] = change["host"]
     elif "reserve" in change:
         profile["host"]["minimum_assessment_reserve"] = change["reserve"]
+    elif "setting" in change:
+        key, value = change["setting"]
+        profile["host"][key] = value
     else:
         profile["limits"].update(change)
 

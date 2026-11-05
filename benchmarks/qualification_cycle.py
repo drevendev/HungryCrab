@@ -155,6 +155,22 @@ def validate_host_configuration(frozen: dict[str, Any]) -> None:
         for key in ("model", "effort")
     ):
         raise ValueError("qualification requires bounded model and effort strings")
+    for key, expected in (
+        ("requests", 16),
+        ("donors", 6),
+        ("hypotheses", 12),
+        ("replacement_rounds", 2),
+    ):
+        if key in limits and (type(limits[key]) is not int or limits[key] != expected):
+            raise ValueError("qualification requires its original " + key + " limit")
+    if host.get("transport", "host-validated-json/v1") != "host-validated-json/v1":
+        raise ValueError("unsupported qualification transport")
+    for key, low, high in (
+        ("initial_donor_bytes", 1024, 14000),
+        ("source_continuation_rounds", 1, 2),
+    ):
+        if key in host and (type(host[key]) is not int or not low <= host[key] <= high):
+            raise ValueError("qualification " + key + " is outside its existing bounds")
 
 
 class Trial:
