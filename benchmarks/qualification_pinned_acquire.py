@@ -14,7 +14,7 @@ from typing import Any
 
 from qualification_acquire import MAX_EXPORT, MAX_REPO_EXPORT, copy_regular_tree, export_objects
 
-from hungry_crab.cache import Slug
+from hungry_crab.cache import Slug, prey_paths
 from hungry_crab.fetch.acquisition import AcquisitionBudget
 from hungry_crab.fetch.git import GitRunner
 from hungry_crab.fetch.github import GitHubClient
@@ -79,7 +79,7 @@ def fetch_pin(repo: Path, row: dict[str, Any]) -> None:
         raise ValueError("pinned worktree identity changed")
 
 
-def digest(repo: Path, output: Path, arm: Path, cache: Path, log: Path) -> None:
+def digest(slug: Slug, output: Path, arm: Path, cache: Path, log: Path) -> None:
     env = {**os.environ, "PYTHONPATH": str(arm / "src"), "PYTHONDONTWRITEBYTECODE": "1"}
     with log.open("wb") as stream:
         subprocess.run(
@@ -91,7 +91,7 @@ def digest(repo: Path, output: Path, arm: Path, cache: Path, log: Path) -> None:
                 "--cache-dir",
                 str(cache),
                 "digest",
-                str(repo),
+                str(slug),
                 "--out",
                 str(output),
                 "--depth",
@@ -140,8 +140,12 @@ def main() -> None:
             metadata = GitHubClient(retries=0).repo(Slug.parse(row["repository"]))
             if metadata.get("private") is not False or metadata.get("id") != row["provider_id"]:
                 raise ValueError("public provider identity changed")
-            repo = owned / "repo"
-            repo.mkdir()
+            cache = owned / "cache"
+            paths = prey_paths(Slug.parse(row["repository"]), cache)
+            repo = paths.repo
+            repo.mkdir(parents=True)
+            paths.api.mkdir()
+            write(paths.api / "repo.json", metadata)
             with budget.scope():
                 fetch_pin(repo, row)
             receipt["downloaded_tls_bytes"] = budget.downloaded
@@ -153,7 +157,7 @@ def main() -> None:
             )
             for name, arm in (("baseline", args.baseline), ("candidate", args.candidate)):
                 staging = owned / (name + "-digest")
-                digest(repo, staging, arm, owned / "cache", target / (name + ".log"))
+                digest(Slug.parse(row["repository"]), staging, arm, cache, target / (name + ".log"))
                 exported += copy_regular_tree(
                     staging, target / (name + "-digest"), MAX_EXPORT - exported
                 )

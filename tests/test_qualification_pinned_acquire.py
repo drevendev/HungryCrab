@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from fixture_builder import git
-from qualification_pinned_acquire import fetch_pin, records
+from qualification_pinned_acquire import digest, fetch_pin, records
 from test_discovery_inputs import repository
 
 from hungry_crab.errors import CrabError
@@ -62,3 +62,39 @@ def test_exact_old_commit_is_fetched_instead_of_moving_head(
     fetch_pin(target, {**row(), "sha": old, "tree": tree})
     assert git(target, "rev-parse", "HEAD").strip() == old
     assert (target / "data.txt").read_text() == "original\n"
+
+
+def test_shared_digest_retains_canonical_public_source_identity(tmp_path: Path) -> None:
+    import json
+
+    from hungry_crab.cache import Slug, prey_paths
+
+    slug = Slug("owned", "source")
+    cache = tmp_path / "cache"
+    paths = prey_paths(slug, cache)
+    repo = repository(paths.repo, {"source.py": "raise RuntimeError('never execute donor')\n"})
+    pin = git(repo, "rev-parse", "HEAD").strip()
+    output = tmp_path / "digest"
+    digest(slug, output, Path(__file__).resolve().parents[1], cache, tmp_path / "digest.log")
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["prey"]["url"] == slug.url
+    assert manifest["prey"]["label"] == str(slug)
+    assert manifest["prey"]["sha"] == pin
+    from qualification_acquire import export_objects
+
+    from hungry_crab.cache import Target
+    from hungry_crab.compare import compare_for_maw
+    from hungry_crab.digest import DigestOptions
+
+    objects = tmp_path / "objects"
+    export_objects(repo, objects, slug, 1024 * 1024)
+    maw = repository(tmp_path / "maw", {"app.py": "def owned(): return 1\n"})
+    result, _, _, _ = compare_for_maw(
+        Target(slug=slug),
+        maw,
+        digest_options=DigestOptions(cache_root=tmp_path / "meal-cache", maw_license="MIT"),
+        record_ledger=False,
+        prey_digest_dir=output,
+        prey_objects=objects,
+    )
+    assert result.meal_dir is not None
