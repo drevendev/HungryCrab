@@ -163,7 +163,10 @@ def validate_host_configuration(frozen: dict[str, Any]) -> None:
     ):
         if key in limits and (type(limits[key]) is not int or limits[key] != expected):
             raise ValueError("qualification requires its original " + key + " limit")
-    if host.get("transport", "host-validated-json/v1") != "host-validated-json/v1":
+    if host.get("transport", "native-constrained-json/v2") not in {
+        "host-validated-json/v1",
+        "native-constrained-json/v2",
+    }:
         raise ValueError("unsupported qualification transport")
     for key, low, high in (
         ("initial_donor_bytes", 1024, 14000),

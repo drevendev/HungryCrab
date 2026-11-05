@@ -150,7 +150,7 @@ class Meter:
             "schema": schema,
             "model": self.model,
             "effort": self.effort,
-            "transport": "host-validated-json/v1",
+            "transport": "native-constrained-json/v2",
         }
         # Known-control receipts observed about 4.6k native-prefix tokens.
         # Reserve 6.5k for prefix/reply plus conservative request bytes/3.
@@ -175,7 +175,7 @@ class Meter:
             "schema": schema,
             "model": self.model,
             "effort": self.effort,
-            "transport": "host-validated-json/v1",
+            "transport": "native-constrained-json/v2",
         }
         signature = identity(request)
         existing = next((r for r in self.data["stages"] if r["name"] == name), None)
@@ -216,7 +216,7 @@ class Meter:
                 model=self.model,
                 effort=self.effort,
                 output_schema=schema,
-                constrained_output=False,
+                constrained_output=True,
                 token_limit=self.remaining,
                 seconds=max(1, int(left)),
             )
