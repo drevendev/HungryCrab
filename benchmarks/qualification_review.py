@@ -144,13 +144,15 @@ def project_case(case: dict[str, Any]) -> dict[str, Any]:
         result["stdout_sha256"] = hashlib.sha256(
             (receipt.parent / "stdout.txt").read_bytes()
         ).hexdigest()
-        # This is original JSON data, not a generated executable program.
+        # Retain the original receiving-only input, including typed programs.
         data = receipt.parent.parent / (
             receipt.parent.name.removeprefix("receiving-") + ".original-cases.json"
         )
         if data.exists():
             result["original_case_data"] = {
-                k: v for k, v in read(data).items() if k in {"cases", "helpers", "target"}
+                k: v
+                for k, v in read(data).items()
+                if k in {"cases", "helpers", "python_probe", "target"}
             }
     return result
 

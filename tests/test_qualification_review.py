@@ -79,7 +79,10 @@ def test_semantic_context_compression_preserves_repeated_pending_source_and_role
     assert json.loads(compact_evidence({"unique": 7})) == {"unique": 7}
 
 
-def test_case_projection_retains_original_data_actual_calls_and_hashes(tmp_path: Path) -> None:
+@pytest.mark.parametrize("typed", [False, True])
+def test_case_projection_retains_original_data_actual_calls_and_hashes(
+    tmp_path: Path, typed: bool
+) -> None:
     execution = tmp_path / "receiving-original"
     execution.mkdir()
     receipt = execution / "receipt.json"
@@ -87,6 +90,8 @@ def test_case_projection_retains_original_data_actual_calls_and_hashes(tmp_path:
     write(receipt, {"context": {"sha": "a" * 40}, "observed_receiving_calls": calls})
     (execution / "stdout.txt").write_bytes(b'{"cases":[]}\n')
     data = {"cases": [{"label": "original"}], "target": {"path": "app.py"}, "author": "host"}
+    if typed:
+        data = {"python_probe": "from app import consume\n", "target": data["target"]}
     write(tmp_path / "original.original-cases.json", data)
     checks = [{"pointer": "/value/count", "observed": 2, "passed": True}]
     original = {
@@ -101,7 +106,7 @@ def test_case_projection_retains_original_data_actual_calls_and_hashes(tmp_path:
     assert result["receipt_sha256"] == hashlib.sha256(receipt.read_bytes()).hexdigest()
     assert result["stdout_sha256"] == hashlib.sha256(b'{"cases":[]}\n').hexdigest()
     assert result["receiving_sha"] == "a" * 40
-    assert result["original_case_data"] == {k: data[k] for k in ("cases", "target")}
+    assert result["original_case_data"] == {k: v for k, v in data.items() if k != "author"}
     assert result["cases"][0]["checks"] == checks
     assert result["cases"][0]["actual_result_sha256"]
     assert "large return object" not in json.dumps(result)
