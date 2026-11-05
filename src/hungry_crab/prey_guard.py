@@ -4059,6 +4059,30 @@ def _spells_the_cache(text: str, scope: _Scope) -> bool:
     )
 
 
+# A deliberately tiny *whole-command* grammar, not a general message exemption.
+# The raw message span is masked only when one literal publishing invocation
+# has no expansions, shell operators, redirections or nested commands.
+# Complex/combined commands and PowerShell keep the original fail-closed rule.
+_LITERAL_PUBLISHING_MESSAGE = re.compile(
+    r"^[ \t]*(?:git[ \t]+commit[ \t]+(?:-m|--message)|"
+    r"gh[ \t]+release[ \t]+create[ \t]+[A-Za-z0-9][A-Za-z0-9._-]*"
+    r"[ \t]+--notes)[ \t]+(?P<quote>[\x27\x22])"
+    r"(?P<message>[^\x27\x22\r\n$\x60\\;&|<>!]*)(?P=quote)[ \t]*\Z"
+)
+
+
+def _mask_literal_publishing_message(command: str) -> str | None:
+    """Mask by exact source span only for literal, standalone publishing text.
+
+    A rejected shape retains the original raw cache-spelling check.
+    """
+    match = _LITERAL_PUBLISHING_MESSAGE.fullmatch(command)
+    if match is None:
+        return None
+    start, end = match.span("message")
+    return command[:start] + "literal publishing message" + command[end:]
+
+
 def _judge(command: str, *, root: Path, cwd: Path, shell: Shell) -> _Verdict:
     homes = _homes(cwd)
     scope = _Scope(
@@ -4070,15 +4094,20 @@ def _judge(command: str, *, root: Path, cwd: Path, shell: Shell) -> _Verdict:
         homes=homes,
         hints=_hint_patterns(root, homes),
     )
+    judged_command = command
+    if shell == "bash" and not _is_within(cwd, root):
+        masked = _mask_literal_publishing_message(command)
+        if masked is not None:
+            judged_command = masked
     if shell == "powershell":
         verdict = _judge_powershell(command, scope, 0)
     else:
-        lexed = _lex_bash(command)
+        lexed = _lex_bash(judged_command)
         if lexed is None:
             raise _UnparsableError
         verdict = _judge_bash(lexed, scope, 0)
-    # The cache spelled anywhere in the text: in a word, a here-document, a message.
-    if _spells_the_cache(command, scope):
+    # Judge original bytes unless a whole-command literal publishing form was matched.
+    if _spells_the_cache(judged_command, scope):
         verdict.reaches = True
     if verdict.spelled and _powershell_split_hint(verdict.spelled, scope):
         verdict.strong = True

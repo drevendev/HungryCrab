@@ -2588,13 +2588,11 @@ def test_printers_stay_allowed_after_the_fifth_review(ordinary: str, twin: str, 
     assert guard_reason(twin, root=root, cwd=home / "work" / "maw") is not None
 
 
-# Message text is a channel like any other: recorded, read back and run. As in 0.6.1, a
-# message that spells the cache counts as the cache.
+# Nonliteral, combined or executable message text can be recorded, read back
+# and run, so it retains the 0.6.1 fail-closed cache-path rule.
 MESSAGES = [
-    'git commit -m "fix: refuse writes under ~/.cache/hungry-crab"',
     "git commit -m \"$(cat <<'EOF'\nfix: refuse writes in ~/.cache/hungry-crab\nEOF\n)\"",
     "git commit -F - <<'EOF'\nfix: refuse ~/.cache/hungry-crab writes\nEOF",
-    "gh release create v1 --notes 'cache at ~/.cache/hungry-crab'",
     (
         "gh pr create --title 'fix(guard): hungry-crab' --body \"$(cat <<'EOF'\n"
         'Guard refuses ~/.cache/hungry-crab writes.\nEOF\n)"'
@@ -2629,6 +2627,39 @@ MESSAGES = [
         f"python - <<'EOF'\nimport runpy; runpy.run_path(r\"~/.cache/hungry-crab/{TAIL}\")\nEOF"
     ),
 ]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        'git commit -m "fix: refuse writes under ~/.cache/hungry-crab"',
+        "git commit --message 'docs: ~/.cache/hungry-crab is off-limits'",
+        "gh release create v1 --notes 'cache at ~/.cache/hungry-crab'",
+    ],
+)
+def test_standalone_literal_publishing_text_does_not_access_prey(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is None
+    # Still refuse a publishing command issued from inside a prey checkout.
+    assert guard_reason(command, root=root, cwd=root / "github" / "acme") is not None
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        'git commit -m "cache ~/.cache/hungry-crab" && git log -1 --format=%s | sh',
+        'git commit -m "cache ~/.cache/hungry-crab"; sh -c "echo unsafe"',
+        'git commit -m "cache ~/.cache/hungry-crab" | sh',
+        'git commit -m "$(cat ~/.cache/hungry-crab/secret)"',
+        'git commit -m "cache ~/.cache/hungry-crab" > /tmp/log',
+        'gh release create v1 --notes "cache ~/.cache/hungry-crab" && sh -c x',
+        'gh release create v1 --notes "$(cat ~/.cache/hungry-crab/x)"',
+        'git -C ~/.cache/hungry-crab commit -m "literal message"',
+    ],
+)
+def test_message_exception_refuses_shell_side_channels(command: str, home: Path) -> None:
+    root = home / ".cache" / "hungry-crab"
+    assert guard_reason(command, root=root, cwd=home / "work" / "maw") is not None
 
 
 @pytest.mark.parametrize("command", MESSAGES)
