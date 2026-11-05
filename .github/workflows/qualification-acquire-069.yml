@@ -3,23 +3,13 @@ name: Qualification acquisition (no model)
 on:
   workflow_dispatch:
     inputs:
-      plan:
-        description: Shared public donor metadata preflight path
-        default: docs/releases/0.6.9-breadth-qualification-preflight.json
+      catalog:
+        description: Neutral schema-1 exact-pin catalog JSON (no hypotheses or source code)
         required: true
-  push:
-    branches: [codex/release-0.6.9]
-    paths:
-      - .github/workflows/qualification-acquire-069.yml
-      - benchmarks/qualification_acquire.py
-      - docs/releases/0.6.9-qualification-preflight.json
-      - docs/releases/0.6.9-resumed-qualification-preflight.json
-      - docs/releases/0.6.9-seeded-qualification-preflight.json
-      - docs/releases/0.6.9-continued-qualification-preflight.json
-      - docs/releases/0.6.9-absence-qualification-preflight.json
-      - docs/releases/0.6.9-primary-qualification-preflight.json
-      - docs/releases/0.6.9-navigated-qualification-preflight.json
-      - docs/releases/0.6.9-breadth-qualification-preflight.json
+      batches:
+        description: JSON array of catalog batch identifiers
+        default: '["control"]'
+        required: true
 
 permissions:
   contents: read
@@ -37,7 +27,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        batch: [crab, devostasis, beautifulrepo]
+        batch: ${{ fromJSON(inputs.batches) }}
     env:
       PYTHONIOENCODING: utf-8
       PYTHONDONTWRITEBYTECODE: '1'
@@ -58,11 +48,12 @@ jobs:
       - name: Acquire shared facts without executing donor content or models
         env:
           GH_TOKEN: ${{ github.token }}
-          CRAB_QUALIFICATION_PLAN: ${{ inputs.plan || 'docs/releases/0.6.9-breadth-qualification-preflight.json' }}
+          CRAB_ACQUISITION_CATALOG: ${{ inputs.catalog }}
+          CRAB_ACQUISITION_BATCH: ${{ matrix.batch }}
         run: >-
-          uv run python benchmarks/qualification_acquire.py
-          --plan "$CRAB_QUALIFICATION_PLAN"
-          --batch "${{ matrix.batch }}"
+          uv run python benchmarks/qualification_pinned_acquire.py
+          --catalog-env CRAB_ACQUISITION_CATALOG
+          --batch "$CRAB_ACQUISITION_BATCH"
           --volume "${{ steps.volume.outputs.volume }}"
           --baseline "$RUNNER_TEMP/crab-baseline"
           --candidate "$GITHUB_WORKSPACE"
