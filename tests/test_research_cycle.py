@@ -45,15 +45,23 @@ def test_completed_goal_is_reported_even_when_no_next_model_call_fits(candidate:
 
 
 @pytest.mark.parametrize("arm", ["baseline", "candidate"])
+@pytest.mark.parametrize(
+    ("filename", "body"),
+    [
+        ("deps.edn", '{:deps {example/lib {:mvn/version "1.2.3"}}}\n'),
+        ("screen.html", "<button class='control'>Owned fixture</button>\n"),
+        ("screen.css", ".control:focus-visible { outline: 2px solid currentColor; }\n"),
+    ],
+)
 def test_both_arms_can_read_actual_conventional_dependency_data_files(
     tmp_path: Path,
     arm: str,
+    filename: str,
+    body: str,
 ) -> None:
     from qualification_cycle import paths
 
-    donor = repository(
-        tmp_path / "donor", {"deps.edn": '{:deps {example/lib {:mvn/version "1.2.3"}}}\n'}
-    )
+    donor = repository(tmp_path / "donor", {filename: body})
     sha = live_context(donor)["sha"]
     trial = object.__new__(Trial)
     trial.arm = arm
@@ -62,10 +70,10 @@ def test_both_arms_can_read_actual_conventional_dependency_data_files(
     trial.context = {"sha": sha}
     prepared = trial.prepare_source(
         {"donor": "fixture", "terms": ["dependency"]},
-        {"id": "clojure", "source_names": ["deps.edn"], "maw_evidence": []},
+        {"id": "owned", "source_names": [filename], "maw_evidence": []},
     )
-    assert prepared["donor"] == [{"path": "deps.edn", "start": 1, "end": 1}]
-    assert prepared["windows"][0]["content"].startswith("{:deps")
+    assert prepared["donor"] == [{"path": filename, "start": 1, "end": 1}]
+    assert prepared["windows"][0]["content"] == body.rstrip("\n")
     assert prepared["windows"][0]["side"] == "donor"
 
 

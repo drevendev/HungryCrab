@@ -99,6 +99,10 @@ def paths(repo: Path, pin: str, terms: list[str]) -> list[str]:
         ".csproj",
         ".vbproj",
         ".fsproj",
+        ".html",
+        ".css",
+        ".scss",
+        ".svg",
     }
     source = [
         p
