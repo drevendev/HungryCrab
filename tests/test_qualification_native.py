@@ -15,8 +15,15 @@ def test_missing_meter_refuses_additional_work() -> None:
 
 def test_degenerate_or_oversized_answer_stops_without_inventing_token_use() -> None:
     assert output_stop('{"unfinished": "x"' + "\n " * 2049)
-    assert output_stop("x" * 24001)
+    assert output_stop("x" * 80001)
     assert not output_stop('{"ordinary": "a bounded complete answer"}')
+
+
+def test_concrete_acceptance_artifact_is_not_cut_at_the_old_transport_limit() -> None:
+    artifact = json.dumps({"acceptance_artifact": "original case mapping\n" * 1500})
+    assert len(artifact) > 24000
+    assert not output_stop(artifact)
+    assert budget_stop({"totalTokens": 30000, "lastInputTokens": 1000}, limit=30000)
 
 
 def test_cached_tokens_still_exhaust_the_actual_read_budget() -> None:

@@ -85,7 +85,7 @@ def run_worker(
     output_schema: dict[str, Any] | None = None,
     token_limit: int = 30000,
     seconds: int = 2700,
-    output_characters: int = 24000,
+    output_characters: int = 80000,
     constrained_output: bool = True,
 ) -> dict[str, Any]:
     """Run one fresh ephemeral context, preserving actual usage and overruns.
@@ -325,6 +325,6 @@ def run_worker(
     return result
 
 
-def output_stop(value: str, *, maximum: int = 24000) -> bool:
+def output_stop(value: str, *, maximum: int = 80000) -> bool:
     """Transport/degeneration guard, never an estimate of actual model tokens."""
     return len(value) > maximum or len(value) - len(value.rstrip()) > 4096
