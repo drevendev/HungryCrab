@@ -4064,7 +4064,10 @@ def _spells_the_cache(text: str, scope: _Scope) -> bool:
 # has no expansions, shell operators, redirections or nested commands.
 # Complex/combined commands and PowerShell keep the original fail-closed rule.
 _LITERAL_PUBLISHING_MESSAGE = re.compile(
-    r"""^[ \t]*(?:git[ \t]+commit[ \t]+(?:-m|--message)|gh[ \t]+release[ \t]+create[ \t]+[A-Za-z0-9][A-Za-z0-9._-]*[ \t]+--notes)[ \t]+(?P<quote>[\x27\x22])(?P<message>[^\x27\x22\r\n$\x60\\;&|<>!]*)(?P=quote)[ \t]*\Z"""
+    r"^[ \t]*(?:git[ \t]+commit[ \t]+(?:-m|--message)|"
+    r"gh[ \t]+release[ \t]+create[ \t]+[A-Za-z0-9][A-Za-z0-9._-]*"
+    r"[ \t]+--notes)[ \t]+(?P<quote>[\x27\x22])"
+    r"(?P<message>[^\x27\x22\r\n$\x60\\;&|<>!]*)(?P=quote)[ \t]*\Z"
 )
 
 
