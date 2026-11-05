@@ -4079,6 +4079,7 @@ def _mask_literal_publishing_message(command: str) -> str | None:
     start, end = match.span("message")
     return command[:start] + "literal publishing message" + command[end:]
 
+
 def _judge(command: str, *, root: Path, cwd: Path, shell: Shell) -> _Verdict:
     homes = _homes(cwd)
     scope = _Scope(
