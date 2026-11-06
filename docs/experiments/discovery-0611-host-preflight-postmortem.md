@@ -125,3 +125,22 @@ The control preparer must validate runtime and design plans through the actual
 candidate `discover init` before writing an executable control profile or allowing
 either arm to spend model tokens. Fixture preparation is not exempt from the
 same configuration preflight required of fresh qualification.
+
+The corrected four small controls at `5685161` completed in 101,553 actual
+tokens; an independent 21,880-token review supported their recorded outcomes.
+They still did not establish the original exposed real-project gate. Its actual
+full executor rejected existing behavior, then deferred both the deliberately
+oversized packet and the useful continuation: the latter required an estimated
+13,387 tokens with only 9,819 remaining. The real control stopped at 20,181
+actual tokens without a useful completion. It remains failed, not qualified by
+the smaller fixture results. No fresh cohort was selected.
+
+The native worker's directory was inside this repository. Codex automatically
+loads AGENTS instructions along that path, introducing inputs beyond the sealed
+worker protocol and its explicitly supplied matching skill. Isolate experimental
+workers using the invocation-only `project_doc_max_bytes=0` setting. Preserve
+the operator's normal instructions/configuration, worker safety base instructions,
+disabled tools, model/effort, exact skills and unchanged actual-token accounting.
+Measure the resulting actual usage and repeat full-head controls before treating
+this as a fix. The [official instruction-discovery documentation](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+describes the automatically loaded files and their configurable combined limit.

@@ -51,6 +51,7 @@ def test_native_settings_are_temporary_and_disable_other_tools(
     assert "features.goals=false" in command
     assert "features.shell_tool=false" in command
     assert "features.multi_agent=false" in command
+    assert "project_doc_max_bytes=0" in command
     assert config.read_text(encoding="utf-8") == original
     for remaining in (1, 2000, 8000, 12000):
         scoped = native_command(remaining)

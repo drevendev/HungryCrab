@@ -34,7 +34,14 @@ def native_command(limit: int) -> list[str]:
     if executable is None:
         raise RuntimeError("installed Codex CLI is required")
     args = [executable, "app-server", "--stdio", "--strict-config"]
-    settings: dict[str, Any] = {"web_search": "disabled"}
+    settings: dict[str, Any] = {
+        "web_search": "disabled",
+        # Workers receive a sealed protocol and exact matching skill explicitly.
+        # Ambient repository/global AGENTS files are undeclared worker inputs;
+        # they also charge repeated actual input despite all tools being disabled.
+        # This invocation-only override never changes the operator's config.
+        "project_doc_max_bytes": 0,
+    }
     for feature in (
         "shell_tool",
         "multi_agent",
