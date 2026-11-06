@@ -11,9 +11,35 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
-from qualification_review import compact_evidence, packet, project_case, share_exact_evidence
+from qualification_review import (
+    compact_evidence,
+    mask_review_metadata,
+    packet,
+    project_case,
+    share_exact_evidence,
+)
 from research_host import write
 from review_transport import expand_review_text, factor_review_text
+
+
+def test_current_and_baseline_versions_are_masked_without_changing_original_evidence() -> None:
+    original = {
+        "actual_legal_check": {
+            "actual_arm": "candidate",
+            "interpreter": "C:/workspace/baseline-env/python.exe",
+            "result": {"version": "0.6.11.dev0", "mode": "HUMAN"},
+        },
+        "previous_version": "0.6.8",
+        "content": "literal donor source mentions candidate 0.6.11.dev0",
+        "original_case_data": {"input": "baseline 0.6.8"},
+    }
+    masked = mask_review_metadata(original, "C:/workspace")
+    assert masked["actual_legal_check"]["result"] == {"version": "<tool-version>", "mode": "HUMAN"}
+    assert masked["previous_version"] == "<tool-version>"
+    assert masked["actual_legal_check"]["actual_arm"] == "arm-masked"
+    assert "C:/workspace" not in masked["actual_legal_check"]["interpreter"]
+    assert masked["content"] == original["content"]
+    assert masked["original_case_data"] == original["original_case_data"]
 
 
 def test_review_transport_restores_original_proposal_source_and_acceptance() -> None:

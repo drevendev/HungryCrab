@@ -157,6 +157,25 @@ def project_case(case: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def mask_review_metadata(value: Any, workspace: str) -> Any:
+    """Mask arm metadata while retaining verbatim source and authored artifacts."""
+    if isinstance(value, str):
+        value = re.sub(r"\b(?:baseline|candidate)\b", "arm-masked", value, flags=re.I)
+        value = value.replace(workspace, "<workspace>")
+        return re.sub(r"0\.6\.(?:8|9|10|11)(?:\.dev\.?\d+)?", "<tool-version>", value)
+    if isinstance(value, list):
+        return [mask_review_metadata(v, workspace) for v in value]
+    if isinstance(value, dict):
+        return {
+            k: v
+            if k in {"content", "original_case_data", "actual_acceptance_artifact"}
+            else mask_review_metadata(v, workspace)
+            for k, v in value.items()
+            if k not in {"exploration", "menu_path"}
+        }
+    return value
+
+
 def packet(
     plan: dict[str, Any], batch: str, reviewer: int
 ) -> tuple[dict[str, Any], dict[str, str]]:
@@ -261,6 +280,17 @@ def packet(
                 ],
                 "additional_novelty_reads": state.get("novelty_reads", {}),
                 "additional_source_searches": state.get("source_lookups", {}),
+                "unassessed_preparations": [
+                    {
+                        **{k: v for k, v in row.items() if k != "legal_receipt"},
+                        **(
+                            {"actual_legal_check": read(Path(row["legal_receipt"]))}
+                            if row.get("legal_receipt")
+                            else {}
+                        ),
+                    }
+                    for row in state.get("unassessed_preparations", [])
+                ],
                 "budget_valid": state["model_budget_valid"],
                 "usage_complete": state["usage_complete"],
                 "stop_reason": state["stop_reason"],
@@ -327,25 +357,7 @@ def packet(
         ],
     }
 
-    # Paths, versions and controller internals must not advertise the arm.
-    def mask(value: Any) -> Any:
-        if isinstance(value, str):
-            value = re.sub(r"\b(?:baseline|candidate)\b", "arm-masked", value, flags=re.I)
-            value = value.replace(str(Path(plan["tool_cwd"]["candidate"])), "<workspace>")
-            return re.sub(r"0\.6\.(?:8|9(?:\.dev0)?)", "<tool-version>", value)
-        if isinstance(value, list):
-            return [mask(v) for v in value]
-        if isinstance(value, dict):
-            return {
-                k: v
-                if k in {"content", "original_case_data", "actual_acceptance_artifact"}
-                else mask(v)
-                for k, v in value.items()
-                if k not in {"exploration", "menu_path"}
-            }
-        return value
-
-    return mask(payload), mapping
+    return mask_review_metadata(payload, str(Path(plan["tool_cwd"]["candidate"]))), mapping
 
 
 def main() -> None:
