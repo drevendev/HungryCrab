@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 from typing import Any
 
@@ -138,6 +139,37 @@ def test_large_raw_uses_is_byte_bounded_without_silent_truncation() -> None:
     tiny = build_ci_relations([caller], byte_limit=100)
     assert tiny["relations"] == []
     assert tiny["truncation"]["bytes"] is True
+
+
+
+def _nested_relation_payload_bytes(rows: list[dict[str, str | None]]) -> int:
+    """Actual contribution of relations[] in digest's nested UTF-8 JSON format."""
+    serialize = lambda records: len(
+        json.dumps({"relations": records}, indent=2, ensure_ascii=False).encode("utf-8")
+    )
+    return serialize(rows) - serialize([])
+
+
+@pytest.mark.parametrize(
+    "raw_uses",
+    [
+        "remote/" + ("x" * 3950),
+        "remote/" + (("\\\\\" + "\"" + "Ω") * 1500),
+    ],
+)
+def test_relation_byte_budget_bounds_nested_json(raw_uses: str) -> None:
+    caller = {
+        "path": ".github/workflows/a.yml",
+        "jobs": [{"id": f"call-{i:03d}", "uses": raw_uses} for i in range(256)],
+    }
+    source = deepcopy(caller)
+    result = build_ci_relations([caller])
+    assert caller == source
+    assert 0 < len(result["relations"]) < 256
+    assert result["truncation"]["bytes"] is True
+    assert result["relation_bytes"] <= result["byte_limit"] == 1_048_576
+    assert _nested_relation_payload_bytes(result["relations"]) <= result["relation_bytes"]
+    assert all(row["raw_uses"] == raw_uses for row in result["relations"])
 
 
 def test_digest_emits_separate_versioned_relation_artifact(npm_digest: DigestResult) -> None:
