@@ -146,9 +146,7 @@ def _nested_relation_payload_bytes(rows: list[dict[str, str | None]]) -> int:
     """Actual contribution of relations[] in digest's nested UTF-8 JSON format."""
 
     def serialized_size(records: list[dict[str, str | None]]) -> int:
-        return len(
-            json.dumps({"relations": records}, indent=2, ensure_ascii=False).encode("utf-8")
-        )
+        return len(json.dumps({"relations": records}, indent=2, ensure_ascii=False).encode("utf-8"))
 
     return serialized_size(rows) - serialized_size([])
 
