@@ -106,8 +106,14 @@ def test_inventory_cap_does_not_claim_target_absence() -> None:
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{"workflow_limit": 0}, {"workflow_limit": 65}, {"relation_limit": 257},
-               {"byte_limit": 0}, {"byte_limit": 1_048_577}]
+    "kwargs",
+    [
+        {"workflow_limit": 0},
+        {"workflow_limit": 65},
+        {"relation_limit": 257},
+        {"byte_limit": 0},
+        {"byte_limit": 1_048_577},
+    ],
 )
 def test_caps_cannot_be_raised_or_disabled(kwargs: dict[str, int]) -> None:
     with pytest.raises(ValueError):
