@@ -13,6 +13,7 @@ import copy
 import hashlib
 import json
 import re
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
@@ -814,7 +815,7 @@ class Trial:
         self.state["phase"] = "research"
         self.save()
 
-    def acquire(self, lead: dict[str, Any], need: dict[str, Any]) -> dict[str, Any]:
+    def compare_meal(self, lead: dict[str, Any], need: dict[str, Any]) -> Path:
         donor = self.pool[lead["donor"]]
         key = need["id"] + ":" + donor["id"]
         if key not in self.state["meals"]:
@@ -856,6 +857,108 @@ class Trial:
             if not found:
                 raise RuntimeError("compare did not establish a fresh meal")
             meal = Path(found[-1].strip())
+            self.state["meals"][key] = {"meal": str(meal)}
+            self.save()
+        return Path(self.state["meals"][key]["meal"])
+
+    def legal_hold(
+        self, lead: dict[str, Any], need: dict[str, Any], prepared: dict[str, Any]
+    ) -> bool:
+        """Respect a real unresolved HUMAN grant before spending on semantics.
+
+        Each actual arm performs comparison and path resolution. An established
+        selected-path grant overrides a broad repository hold; do not repeat the
+        historical false blanket holds. No utility verdict is manufactured.
+        """
+        meal = self.compare_meal(lead, need)
+        menu = read(meal / "menu.json")
+        if menu["verdict"]["mode"] != "HUMAN":
+            return False
+        donor = self.pool[lead["donor"]]
+        key = need["id"] + ":" + donor["id"]
+        artifact = self.root / ("legal-check-" + identity(key)[:16] + ".json")
+        request = {
+            "repo": donor["view"],
+            "sha": donor["sha"],
+            "url": "https://github.com/" + donor["repository"],
+            "paths": list(dict.fromkeys(r["path"] for r in prepared["donor"])),
+        }
+        if artifact.exists():
+            receipt = read(artifact)
+            if receipt["request"] != request:
+                raise RuntimeError("a legal preflight changed its immutable source scope")
+        else:
+            program = (
+                "import json,sys,hungry_crab,importlib.util\nfrom pathlib import Path\n"
+                "from hungry_crab.attribution import GitSourceReader\n"
+                "r=json.loads(sys.argv[1])\n"
+                "if importlib.util.find_spec('hungry_crab.licensing.path_grants') is None:\n"
+                " result={'version':hungry_crab.__version__,'capability':'unavailable',"
+                "'grants':None}\n"
+                "else:\n"
+                " from hungry_crab.licensing.path_grants import GrantResolver\n"
+                " g=GrantResolver(GitSourceReader(Path(r['repo'])),r['sha'],r['url'])\n"
+                " result={'version':hungry_crab.__version__,'capability':'selected-path',"
+                "'grants':[g.resolve(p).to_dict() for p in r['paths']]}\n"
+                "print(json.dumps(result))"
+            )
+            result = subprocess.run(
+                [str(self.commands.python), "-I", "-B", "-c", program, json.dumps(request)],
+                cwd=self.commands.cwd,
+                env=self.commands.env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=60,
+                check=True,
+            )
+            if len(result.stdout.encode()) > 65536:
+                raise RuntimeError("actual arm legal result exceeds the bounded transport")
+            receipt = {
+                "request": request,
+                "actual_arm": self.arm,
+                "interpreter": str(self.commands.python),
+                "result": json.loads(result.stdout),
+                "repository_verdict": menu["verdict"],
+            }
+            write(artifact, receipt)
+        grants = receipt["result"]["grants"]
+        if receipt["result"]["capability"] == "selected-path":
+            if len(grants) != len(request["paths"]) or {grant["path"] for grant in grants} != set(
+                request["paths"]
+            ):
+                raise RuntimeError("actual arm legal receipt does not cover the selected source")
+            if all(grant["expression"] is not None for grant in grants):
+                return False
+        elif receipt["result"]["capability"] != "unavailable":
+            raise RuntimeError("unknown actual arm licensing capability")
+        self.state.setdefault("unassessed_preparations", []).append(
+            {
+                "need": need["id"],
+                "donor": donor["id"],
+                "utility": "unassessed",
+                "reason": "Actual arm repository HUMAN verdict and unresolved selected-path grant",
+                "native_assessment_tokens": 0,
+                "legal_receipt": str(artifact),
+            }
+        )
+        self.save()
+        if self.session:
+            assert self.action and self.action["action"] == "acquire"
+            self.record(
+                {
+                    "status": "license-held",
+                    "reason": "Unresolved operative HUMAN grant; "
+                    "no transfer or utility verdict. Actual arm receipt: " + str(artifact),
+                }
+            )
+        return True
+
+    def acquire(self, lead: dict[str, Any], need: dict[str, Any]) -> dict[str, Any]:
+        donor = self.pool[lead["donor"]]
+        key = need["id"] + ":" + donor["id"]
+        meal = self.compare_meal(lead, need)
+        if "exploration" not in self.state["meals"][key]:
             plan = {
                 "scope": need["flow"],
                 "goals": need["expected"],
@@ -1999,6 +2102,8 @@ class Trial:
                 self.save()
                 if self.session:
                     self.defer_source(lead, need, {"admissible": False, "reason": "source-empty"})
+                continue
+            if self.legal_hold(lead, need, prepared):
                 continue
             planned = self.assess(
                 lead, need, {}, prepared["windows"], label + "-preview", admission_only=True

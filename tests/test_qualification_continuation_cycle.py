@@ -65,6 +65,7 @@ def test_two_requested_reads_are_assessed_or_remain_explicitly_unassessed(
         trial.state["outcomes"].append({"need": "need", "donor": "donor", "decision": answer})
 
     monkeypatch.setattr(trial, "assess", assess)
+    monkeypatch.setattr(trial, "legal_hold", lambda *_: False)
     monkeypatch.setattr(
         trial,
         "prepare_source",
@@ -180,6 +181,7 @@ def test_preparation_continues_to_a_distinct_need_in_the_invoked_host(
         pytest.fail("An unfinished first need must not starve another need's initial assessment")
 
     monkeypatch.setattr(trial, "next", next_action)
+    monkeypatch.setattr(trial, "legal_hold", lambda *_: False)
     monkeypatch.setattr(trial, "prepare_source", prepare)
     monkeypatch.setattr(trial, "assess", assess)
     monkeypatch.setattr(trial, "record", receipts.append)

@@ -158,3 +158,25 @@ It must never settle usage, reset a budget, erase cached input or override the
 30,000-actual-token guard. The revised envelope still requires actual completed
 real-project controls and independent review; smaller estimated prompts do not
 establish successful investigation or qualification.
+
+The next real control at `ac8db9b` still stopped without useful completion at
+19,312 actual tokens: the continuation estimate was 11,297 with 10,688 remaining.
+Retain that failure. Its source-relevance assessment spent tokens on the known
+NuGet repository whose actual CLI verdict and operative grant were HUMAN-held.
+The earlier hand-driven control had rejected that hold before semantic spending;
+the actual executor lacked that deterministic step. Moving it to the actual
+executor is necessary; another prompt-size estimate is not its substitute.
+
+Before semantic admission, let each actual arm compare the immutable source and
+check an operative selected-path grant when its repository verdict is HUMAN.
+An established path grant can avoid a blanket overview hold; an unknown operative
+grant stays held with **utility unassessed**, zero semantic-call cost and the
+original precharged controller attempt. No hold becomes a negative usefulness
+judgment or copy clearance. Keep distinct ordinary receiving verification,
+oversized deferral and useful continuation in the real exposed protocol.
+
+Published 0.6.8 does not contain the newer `licensing.path_grants` API. The adapter
+must record that capability as unavailable and preserve its actual CLI HUMAN
+verdict, never import the candidate resolver for it. Both real arm environments
+now retain the known NuGet hold in a deterministic component preflight. That
+component check is separate from the still-required full native controls.
