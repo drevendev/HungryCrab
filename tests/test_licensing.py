@@ -458,7 +458,7 @@ def test_two_license_files_offered_as_a_choice_stay_a_choice(tmp_path: Path) -> 
         (
             {
                 "LICENSE-APACHE": APACHE_TEXT,
-                "LICENSE-ELASTIC": "Elastic License 2.0\\n",
+                "LICENSE-ELASTIC": "Elastic License 2.0\n",
             },
             "Apache-2.0 AND Elastic-2.0",
             "split",
@@ -466,7 +466,7 @@ def test_two_license_files_offered_as_a_choice_stay_a_choice(tmp_path: Path) -> 
         (
             {
                 "LICENSE-MIT": MIT_TEXT,
-                "LICENSE-ENTERPRISE": "Enterprise subscription only; contact sales.\\n",
+                "LICENSE-ENTERPRISE": "Enterprise subscription only; contact sales.\n",
             },
             "NOASSERTION",
             "unreadable",
