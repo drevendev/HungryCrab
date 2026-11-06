@@ -6,6 +6,7 @@ an explicitly supplied inventory; this miner never fetches or runs workflows.
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -15,6 +16,7 @@ from .base import MineContext, MinerResult
 SCHEMA = "hungry-crab.ci-relations/1"
 MAX_WORKFLOWS = 64
 MAX_RELATIONS = 256
+MAX_RELATION_BYTES = 1024 * 1024
 _LOCAL_WORKFLOW = re.compile(r"\A\./\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml\Z")
 
 
@@ -43,6 +45,7 @@ def build_ci_relations(
     *,
     workflow_limit: int = MAX_WORKFLOWS,
     relation_limit: int = MAX_RELATIONS,
+    byte_limit: int = MAX_RELATION_BYTES,
 ) -> dict[str, Any]:
     """Build a bounded, deterministic callsite ledger from parsed CI rows.
 
@@ -54,12 +57,16 @@ def build_ci_relations(
         raise ValueError("workflow_limit must be between 1 and 64")
     if not 1 <= relation_limit <= MAX_RELATIONS:
         raise ValueError("relation_limit must be between 1 and 256")
+    if not 1 <= byte_limit <= MAX_RELATION_BYTES:
+        raise ValueError("byte_limit must be between 1 and 1048576")
 
     ordered = sorted(workflows, key=lambda wf: str(wf.get("path", "")))
     indexed = ordered[:workflow_limit]
     inventory = {str(wf.get("path", "")): wf for wf in indexed}
     records: list[dict[str, str | None]] = []
     truncated_relations = False
+    truncated_bytes = False
+    relation_bytes = 0
     for workflow in indexed:
         jobs = workflow.get("jobs")
         if not isinstance(jobs, list):
@@ -75,16 +82,21 @@ def build_ci_relations(
                 truncated_relations = True
                 break
             target, status = _target_status(uses, inventory)
-            records.append(
-                {
-                    "caller_path": str(workflow.get("path", "")),
-                    "caller_job": str(job.get("id", "")),
-                    "raw_uses": uses,
-                    "target_path": target,
-                    "status": status,
-                }
-            )
-        if truncated_relations:
+            record = {
+                "caller_path": str(workflow.get("path", "")),
+                "caller_job": str(job.get("id", "")),
+                "raw_uses": uses,
+                "target_path": target,
+                "status": status,
+            }
+            # Charge an upper-bound escaped representation, never a truncated raw_uses.
+            size = len(json.dumps(record, ensure_ascii=True, indent=2).encode("utf-8"))
+            if relation_bytes + size > byte_limit:
+                truncated_bytes = True
+                break
+            records.append(record)
+            relation_bytes += size
+        if truncated_relations or truncated_bytes:
             break
 
     workflows_truncated = len(ordered) > workflow_limit
@@ -94,10 +106,13 @@ def build_ci_relations(
         "indexed_workflows": len(indexed),
         "workflow_limit": workflow_limit,
         "relation_limit": relation_limit,
-        "truncated": workflows_truncated or truncated_relations,
+        "byte_limit": byte_limit,
+        "relation_bytes": relation_bytes,
+        "truncated": workflows_truncated or truncated_relations or truncated_bytes,
         "truncation": {
             "workflows": workflows_truncated,
             "relations": truncated_relations,
+            "bytes": truncated_bytes,
         },
         "relations": records,
     }
