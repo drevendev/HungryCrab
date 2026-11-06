@@ -91,3 +91,37 @@ def test_native_usage_is_reconciled_including_cached_input(tmp_path: Path) -> No
     write(tmp_path / "step/result.json", result)
     with pytest.raises(ValueError, match="actual token receipt"):
         verify_native_meter(tmp_path, model="gpt-6.1-sol", effort="medium")
+
+
+def test_dirty_public_digest_is_rejected_before_engineering_inference(tmp_path: Path) -> None:
+    view = tmp_path / "view"
+    (view / ".git").mkdir(parents=True)
+    digest = tmp_path / "digest"
+    digest.mkdir()
+    write(
+        digest / "manifest.json",
+        {
+            "prey": {
+                "label": "owned/source",
+                "url": "https://github.com/owned/source",
+                "sha": "a" * 40,
+                "worktree": "dirty-hash",
+            }
+        },
+    )
+    with pytest.raises(ValueError, match="digest is dirty"):
+        require_readiness(
+            {
+                "purpose": "engineering-control",
+                "control_data": "owned-fixtures",
+                "pool": [
+                    {
+                        "view": str(view),
+                        "repository": "owned/source",
+                        "sha": "a" * 40,
+                        "arm_digests": {"baseline": str(digest), "candidate": str(digest)},
+                    }
+                ],
+            },
+            tmp_path,
+        )

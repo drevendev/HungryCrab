@@ -162,6 +162,21 @@ def require_readiness(plan: dict[str, Any], root: Path) -> None:
         view = Path(row["view"])
         if not (view / ".git").is_dir():
             raise ValueError("both arms require compatible inert working-tree source views")
+        digests = row.get("arm_digests", {})
+        for arm in ("baseline", "candidate"):
+            if arm not in digests:
+                raise ValueError("both actual arm digests are required before inference")
+            manifest = json.loads(
+                (Path(digests[arm]) / "manifest.json").read_text(encoding="utf-8")
+            )
+            source = manifest.get("prey", {})
+            if (
+                source.get("worktree") not in {None, "", "clean"}
+                or source.get("sha") != row.get("sha")
+                or source.get("label") != row.get("repository")
+                or source.get("url") != "https://github.com/" + row["repository"]
+            ):
+                raise ValueError("arm digest is dirty or does not bind the exact public source")
     if purpose == "engineering-control":
         if plan.get("control_data") not in {"owned-fixtures", "registered-exposed-sources"}:
             raise ValueError("engineering controls require explicit non-fresh data provenance")

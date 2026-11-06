@@ -40,3 +40,19 @@ def test_inert_view_supports_old_reader_syntax_without_running_hooks(tmp_path: P
     assert record["tree"] == git(source, "rev-parse", "HEAD^{tree}").strip()
     with pytest.raises(FileExistsError):
         source_view(bare, sha, view)
+
+
+def test_gitlink_remains_an_empty_uninitialized_directory_without_dirtying_view(
+    tmp_path: Path,
+) -> None:
+    source = repository(tmp_path / "source", {"value.py": "value = 1\n"})
+    git(source, "remote", "add", "origin", "https://github.com/owned/fixture")
+    previous = git(source, "rev-parse", "HEAD").strip()
+    git(source, "update-index", "--add", "--cacheinfo", "160000", previous, "embedded")
+    git(source, "commit", "--quiet", "-m", "test: original gitlink fixture")
+    pin = git(source, "rev-parse", "HEAD").strip()
+    view = tmp_path / "view"
+    receipt = source_view(source, pin, view)
+    assert (view / "embedded").is_dir() and not any((view / "embedded").iterdir())
+    assert git(view, "status", "--porcelain", "--untracked-files=no") == ""
+    assert {"path": "embedded", "reason": "submodule-content-not-acquired"} in receipt["omissions"]

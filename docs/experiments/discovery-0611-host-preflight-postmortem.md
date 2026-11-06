@@ -180,3 +180,13 @@ must record that capability as unavailable and preserve its actual CLI HUMAN
 verdict, never import the candidate resolver for it. Both real arm environments
 now retain the known NuGet hold in a deterministic component preflight. That
 component check is separate from the still-required full native controls.
+
+The next real control at `fd2ee3f` paid 9,574 actual planner tokens before the
+actual comparison correctly refused a dirty requirementslib digest. The inert
+archive materializer had omitted empty gitlink directories, making three
+uninitialized submodules appear deleted. Preserve that failed control and its
+original manifest. Create a new source view retaining only those empty directories,
+without fetching or executing submodules, then regenerate both actual-arm digests.
+Validate every digest's clean state, public identity and immutable pin before
+any paid planning, and exercise both actual CLI comparisons before the next
+real control. Never repair an artifact by editing its manifest's dirty flag.

@@ -120,6 +120,15 @@ def source_view(source: Path, pin: str, destination: Path) -> dict[str, Any]:
             if count > MAX_VIEW_FILES or size > MAX_VIEW_BYTES or member.size > MAX_FILE_BYTES:
                 raise ValueError("inert source view allowance exhausted")
         for member in members:
+            if member.isdir():
+                # Git archives include empty gitlink directories. Keep these
+                # inert directories so an uninitialized submodule is not
+                # misrepresented as a deleted working-tree entry. Never fetch
+                # or execute its contents and never create filesystem links.
+                destination.joinpath(*PurePosixPath(member.name).parts).mkdir(
+                    parents=True, exist_ok=True
+                )
+                continue
             if not member.isfile():
                 continue
             target = destination.joinpath(*PurePosixPath(member.name).parts)
@@ -131,6 +140,16 @@ def source_view(source: Path, pin: str, destination: Path) -> dict[str, Any]:
             with stream, target.open("xb") as out:
                 out.write(stream.read())
     git(destination, "read-tree", pin)
+    listing = git(destination, "ls-tree", "-r", "-z", pin, maximum=8 * 1024 * 1024)
+    for entry in listing.split(b"\0"):
+        meta, _, name = entry.partition(b"\t")
+        if meta.startswith(b"160000 "):
+            omitted.append(
+                {
+                    "path": name.decode("utf-8", "replace"),
+                    "reason": "submodule-content-not-acquired",
+                }
+            )
     tree = git(destination, "rev-parse", "HEAD^{tree}").decode().strip()
     record = {
         "schema": "crab.qualification-source-view/1",
