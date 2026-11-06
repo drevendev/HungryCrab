@@ -7,6 +7,7 @@ from .architecture import ArchitectureMiner
 from .base import FileInfo, MineContext, Miner, MinerResult
 from .branches import BranchesMiner
 from .ci import CiMiner
+from .ci_relations import CiRelationsMiner
 from .docs import DocsMiner
 from .history import HistoryMiner
 from .inventory import InventoryMiner
@@ -32,6 +33,7 @@ ALL_MINERS: tuple[Miner, ...] = (
     LicenseMiner(),
     ProjectDepsMiner(),
     CiMiner(),
+    CiRelationsMiner(),
     ProjectTestingMiner(),
     WikiMiner(),
     DocsMiner(),

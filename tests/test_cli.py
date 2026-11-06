@@ -10,6 +10,7 @@ from helpers import copy_repo
 from hungry_crab import __version__
 from hungry_crab.cli import build_parser, detect_maw_license, main
 from hungry_crab.licensing.matrix import Relationship
+from hungry_crab.miners import MINER_NAMES
 from hungry_crab.pr_publication import nutrient_spec_path
 
 
@@ -179,7 +180,7 @@ def test_digest_of_local_fixture_prints_summary(
     stdout = capsys.readouterr().out
     assert "Digest of npm-app@" in stdout
     assert "inventory.md" in stdout
-    assert "miners: 14 ok, 0 failed" in stdout
+    assert f"miners: {len(MINER_NAMES)} ok, 0 failed" in stdout
     assert (out / "manifest.json").is_file()
 
 
