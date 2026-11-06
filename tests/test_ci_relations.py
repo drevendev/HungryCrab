@@ -144,17 +144,20 @@ def test_large_raw_uses_is_byte_bounded_without_silent_truncation() -> None:
 
 def _nested_relation_payload_bytes(rows: list[dict[str, str | None]]) -> int:
     """Actual contribution of relations[] in digest's nested UTF-8 JSON format."""
-    serialize = lambda records: len(
-        json.dumps({"relations": records}, indent=2, ensure_ascii=False).encode("utf-8")
-    )
-    return serialize(rows) - serialize([])
+
+    def serialized_size(records: list[dict[str, str | None]]) -> int:
+        return len(
+            json.dumps({"relations": records}, indent=2, ensure_ascii=False).encode("utf-8")
+        )
+
+    return serialized_size(rows) - serialized_size([])
 
 
 @pytest.mark.parametrize(
     "raw_uses",
     [
         "remote/" + ("x" * 3950),
-        "remote/" + (("\\\\\" + "\"" + "Ω") * 1500),
+        "remote/" + (("\\" + '"' + "Ω") * 1500),
     ],
 )
 def test_relation_byte_budget_bounds_nested_json(raw_uses: str) -> None:
