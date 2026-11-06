@@ -17,9 +17,7 @@ def _workflow(
     path: str, *, calls: dict[str, str] | None = None, reusable: bool = False
 ) -> dict[str, Any]:
     on = "workflow_call" if reusable else "push"
-    jobs = "\n".join(
-        f"  {job}:\n    uses: {uses}" for job, uses in (calls or {}).items()
-    )
+    jobs = "\n".join(f"  {job}:\n    uses: {uses}" for job, uses in (calls or {}).items())
     if not jobs:
         jobs = "  noop:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo safe"
     parsed = parse_workflow(f"name: x\non: {on}\njobs:\n{jobs}\n", path)
@@ -91,17 +89,13 @@ def test_bounded_emission_and_deterministic_job_order() -> None:
 
 
 def test_inventory_cap_does_not_claim_target_absence() -> None:
-    caller = _workflow(
-        ".github/workflows/a.yml", calls={"call": "./.github/workflows/z.yml"}
-    )
+    caller = _workflow(".github/workflows/a.yml", calls={"call": "./.github/workflows/z.yml"})
     target = _workflow(".github/workflows/z.yml", reusable=True)
     one = build_ci_relations([target, caller], workflow_limit=1)
     assert one["indexed_workflows"] == 1
     assert one["truncation"] == {"workflows": True, "relations": False}
     assert one["relations"][0]["status"] == "not-in-supplied-inventory"
-    all_rows = [
-        _workflow(f".github/workflows/{i:03d}.yml", reusable=True) for i in range(65)
-    ]
+    all_rows = [_workflow(f".github/workflows/{i:03d}.yml", reusable=True) for i in range(65)]
     capped = build_ci_relations(all_rows)
     assert capped["inventory_workflows"] == 65
     assert capped["indexed_workflows"] == 64
