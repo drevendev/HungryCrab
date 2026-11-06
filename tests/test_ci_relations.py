@@ -86,7 +86,7 @@ def test_bounded_emission_and_deterministic_job_order() -> None:
     result = build_ci_relations([target, caller], relation_limit=1)
     assert result["relations"][0]["caller_job"] == "a"
     assert len(result["relations"]) == 1
-    assert result["truncation"] == {"workflows": False, "relations": True}
+    assert result["truncation"] == {"workflows": False, "relations": True, "bytes": False}
     assert build_ci_relations([caller, target], relation_limit=1) == result
 
 
@@ -95,7 +95,7 @@ def test_inventory_cap_does_not_claim_target_absence() -> None:
     target = _workflow(".github/workflows/z.yml", reusable=True)
     one = build_ci_relations([target, caller], workflow_limit=1)
     assert one["indexed_workflows"] == 1
-    assert one["truncation"] == {"workflows": True, "relations": False}
+    assert one["truncation"] == {"workflows": True, "relations": False, "bytes": False}
     assert one["relations"][0]["status"] == "not-in-supplied-inventory"
     all_rows = [_workflow(f".github/workflows/{i:03d}.yml", reusable=True) for i in range(65)]
     capped = build_ci_relations(all_rows)
@@ -106,11 +106,32 @@ def test_inventory_cap_does_not_claim_target_absence() -> None:
 
 
 @pytest.mark.parametrize(
-    "kwargs", [{"workflow_limit": 0}, {"workflow_limit": 65}, {"relation_limit": 257}]
+    "kwargs", [{"workflow_limit": 0}, {"workflow_limit": 65}, {"relation_limit": 257},
+               {"byte_limit": 0}, {"byte_limit": 1_048_577}]
 )
 def test_caps_cannot_be_raised_or_disabled(kwargs: dict[str, int]) -> None:
     with pytest.raises(ValueError):
         build_ci_relations([], **kwargs)
+
+
+def test_large_raw_uses_is_byte_bounded_without_silent_truncation() -> None:
+    huge_uses = "remote/" + ("x" * 100_000)
+    caller = {
+        "path": ".github/workflows/a.yml",
+        "jobs": [{"id": f"call-{i:03d}", "uses": huge_uses} for i in range(20)],
+    }
+    original = deepcopy(caller)
+    result = build_ci_relations([caller])
+    assert caller == original
+    assert 0 < len(result["relations"]) < 20
+    assert result["truncated"] is True
+    assert result["truncation"] == {"workflows": False, "relations": False, "bytes": True}
+    assert result["relation_bytes"] <= result["byte_limit"] == 1_048_576
+    assert all(row["raw_uses"] == huge_uses for row in result["relations"])
+
+    tiny = build_ci_relations([caller], byte_limit=100)
+    assert tiny["relations"] == []
+    assert tiny["truncation"]["bytes"] is True
 
 
 def test_digest_emits_separate_versioned_relation_artifact(npm_digest: DigestResult) -> None:
