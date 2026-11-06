@@ -89,8 +89,15 @@ def build_ci_relations(
                 "target_path": target,
                 "status": status,
             }
-            # Charge an upper-bound escaped representation, never a truncated raw_uses.
-            size = len(json.dumps(record, ensure_ascii=True, indent=2).encode("utf-8"))
+            # Bound the nested relations[] bytes as written by digest._write_json.
+            # A record gains four indent spaces on each line when nested in the
+            # outer object/list. Reserve the separator/newline for every record,
+            # plus the array-opening/closing overhead for the first record.
+            # ensure_ascii=True cannot undercharge the actual UTF-8 output.
+            encoded = json.dumps(record, ensure_ascii=True, indent=2)
+            size = len(encoded.encode("utf-8")) + 4 * (encoded.count("\n") + 1) + 2
+            if not records:
+                size += 2
             if relation_bytes + size > byte_limit:
                 truncated_bytes = True
                 break
