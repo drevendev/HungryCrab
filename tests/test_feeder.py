@@ -11,7 +11,7 @@ from hungry_crab.cli import main
 from hungry_crab.errors import CrabError, UsageError
 from hungry_crab.feeder import EatOptions, eat
 from hungry_crab.ledger import Ledger
-from hungry_crab.miners import inventory
+from hungry_crab.miners import MINER_NAMES, inventory
 
 
 def test_eat_exports_complete_bundle_and_preserves_maw_and_ledger(
@@ -47,7 +47,9 @@ def test_eat_exports_complete_bundle_and_preserves_maw_and_ledger(
     } == {p.name for p in result.out_dir.iterdir()}
     for side in ("prey", "maw"):
         manifest = json.loads((result.out_dir / f"{side}-digest" / "manifest.json").read_text())
-        assert len(manifest["miners"]) == 14 and all(m["ok"] for m in manifest["miners"])
+        assert len(manifest["miners"]) == len(MINER_NAMES) and all(
+            m["ok"] for m in manifest["miners"]
+        )
     meal = json.loads((result.out_dir / "meal.json").read_text())
     assert meal["prey_digest"] == "prey-digest" and meal["maw_digest"] == "maw-digest"
 
