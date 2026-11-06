@@ -6,7 +6,6 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-
 from helpers import read_json
 
 from hungry_crab.digest import DigestResult
@@ -14,7 +13,9 @@ from hungry_crab.miners.ci import parse_workflow
 from hungry_crab.miners.ci_relations import build_ci_relations
 
 
-def _workflow(path: str, *, calls: dict[str, str] | None = None, reusable: bool = False) -> dict[str, Any]:
+def _workflow(
+    path: str, *, calls: dict[str, str] | None = None, reusable: bool = False
+) -> dict[str, Any]:
     on = "workflow_call" if reusable else "push"
     jobs = "\n".join(
         f"  {job}:\n    uses: {uses}" for job, uses in (calls or {}).items()
@@ -108,7 +109,9 @@ def test_inventory_cap_does_not_claim_target_absence() -> None:
     assert capped["relations"] == []
 
 
-@pytest.mark.parametrize("kwargs", [{"workflow_limit": 0}, {"workflow_limit": 65}, {"relation_limit": 257}])
+@pytest.mark.parametrize(
+    "kwargs", [{"workflow_limit": 0}, {"workflow_limit": 65}, {"relation_limit": 257}]
+)
 def test_caps_cannot_be_raised_or_disabled(kwargs: dict[str, int]) -> None:
     with pytest.raises(ValueError):
         build_ci_relations([], **kwargs)
