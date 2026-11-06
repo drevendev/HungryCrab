@@ -64,6 +64,8 @@ def test_local_reusable_resolution_and_source_rows_remain_unchanged() -> None:
         ("./.github/workflows/nested/wf.yml", "invalid-local-path"),
         ("./.github/workflows/a.yml?ref=main", "invalid-local-path"),
         ("../.github/workflows/a.yml", "invalid-local-path"),
+        (r"..\..\.github\workflows\a.yml", "invalid-local-path"),
+        (r".\.github\workflows\a.yml", "invalid-local-path"),
         ("/.github/workflows/a.yml", "invalid-local-path"),
     ],
 )
