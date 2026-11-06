@@ -4085,6 +4085,16 @@ _LITERAL_PR_CREATE_MESSAGE = re.compile(
     r"(?P=body_quote)[ \t]*\Z"
 )
 
+# Accept the reverse order only under the same literal, standalone constraints.
+_LITERAL_PR_CREATE_BODY_FIRST_MESSAGE = re.compile(
+    r"^[ \t]*gh[ \t]+pr[ \t]+create[ \t]+--body[ \t]+"
+    r"(?P<body_quote>[\x27\x22])"
+    r"(?P<body>[^\x27\x22\r\n$\x60\\;&|<>!]*)"
+    r"(?P=body_quote)[ \t]+--title[ \t]+(?P<title_quote>[\x27\x22])"
+    r"(?P<title>[^\x27\x22\r\n$\x60\\;&|<>!]*)"
+    r"(?P=title_quote)[ \t]*\Z"
+)
+
 
 def _mask_literal_publishing_message(command: str) -> str | None:
     """Mask by exact source span only for literal, standalone publishing text.
@@ -4095,13 +4105,15 @@ def _mask_literal_publishing_message(command: str) -> str | None:
     if match is not None:
         start, end = match.span("message")
         return command[:start] + "literal publishing message" + command[end:]
-    match = _LITERAL_PR_CREATE_MESSAGE.fullmatch(command)
+    match = _LITERAL_PR_CREATE_MESSAGE.fullmatch(
+        command
+    ) or _LITERAL_PR_CREATE_BODY_FIRST_MESSAGE.fullmatch(command)
     if match is None:
         return None
     masked = command
-    # Mask from right to left: the earlier source indexes stay unchanged.
-    for name in ("body", "title"):
-        start, end = match.span(name)
+    # Mask by descending original source offsets for either option order.
+    # Editing a left-hand span first would shift the remaining right-hand index.
+    for start, end in sorted((match.span("title"), match.span("body")), reverse=True):
         masked = masked[:start] + "literal publishing message" + masked[end:]
     return masked
 

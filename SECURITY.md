@@ -60,11 +60,11 @@ ForEach-Object`, cmd's `for /r`, `forfiles /s`), a copy or a mount of home searc
 entered counting as home; and an encoded script it cannot decode. Message text is not a general exemption: publishing text that names the cache is
 refused except when the guard recognizes a complete standalone command with inert,
 quoted literal message arguments. Narrow Git publishing-message forms are supported,
-and `gh pr create` specifically permits exactly `--title` followed by `--body`,
+and `gh pr create` permits exactly `--title` and `--body` in either order,
 each with a single- or double-quoted literal value and no additional options.
 Only those literal value spans are exempted from cache-path scanning; the
 original executable command is still checked. Shell substitutions, escapes,
-redirections, pipelines, command chaining, unsupported option orderings and
+redirections, pipelines, command chaining, additional options and
 running from the cache directory are not exempt. Such messages can still be
 dangerous if later executed; the guard does not make them safe to run or
 provide a sandbox. A command with carriage

@@ -10,8 +10,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Permit cache-path mentions in inert, quoted `gh pr create --title ... --body ...`
-  messages for a single standalone Bash command; continue refusing substitutions,
-  extra flags, redirections, pipelines and cache-root execution (#401).
+  messages for a single standalone Bash command (either exact title/body option order);
+  continue refusing substitutions, extra flags, redirections, pipelines and cache-root
+  execution (#401).
 
 ## [0.6.10] - 2026-11-04
 

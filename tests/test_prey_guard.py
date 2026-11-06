@@ -2674,6 +2674,11 @@ def test_message_exception_refuses_shell_side_channels(command: str, home: Path)
         'gh pr create --title "fix: ~/.cache/hungry-crab is protected" --body "Guard docs"',
         'gh pr create --title "Improve guard docs" --body "Cache at ~/.cache/hungry-crab"',
         "gh pr create --title 'cache ~/.cache/hungry-crab' --body 'cache ~/.cache/hungry-crab'",
+        'gh pr create --body "cache ~/.cache/hungry-crab" --title "title"',
+        (
+            'gh pr create --body "cache ~/.cache/hungry-crab" '
+            '--title "also cache ~/.cache/hungry-crab"'
+        ),
     ],
 )
 def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, home: Path) -> None:
@@ -2694,7 +2699,8 @@ def test_standalone_literal_pr_create_text_does_not_access_prey(command: str, ho
         'gh pr create --title "title" --body "cache ~/.cache/hungry-crab" > /tmp/pr.log',
         'gh pr create --title "ok" --body-file ~/.cache/hungry-crab/brief.md',
         'gh pr create --title "ok" --body "cache ~/.cache/hungry-crab" --draft',
-        'gh pr create --body "cache ~/.cache/hungry-crab" --title "title"',
+        'gh pr create --body "cache ~/.cache/hungry-crab" --title "title" --draft',
+        'gh pr create --body "cache ~/.cache/hungry-crab" --title "title" | sh',
         (
             'gh pr create --title "ok" --body "cache ~/.cache/hungry-crab" '
             "&& git -C ~/.cache/hungry-crab status"
