@@ -30,6 +30,7 @@ EXPECTED_FILES = {
     "deps.json",
     "ci.json",
     "ci.md",
+    "ci_relations.json",
     "tests.json",
     "tests.md",
     "docs.json",
