@@ -1061,13 +1061,15 @@ class Trial:
             # Treat that as a file-read request, not a literal body search for
             # the path string. This common raw read adds no baseline AST/ranker.
             eligible = set(paths(Path(donor["view"]), donor["sha"], []))
-            preferred = list(
-                dict.fromkeys(
-                    term
-                    for term in lead["terms"]
-                    if term in donor.get("catalog", []) and term in eligible
-                )
-            )[:3]
+            nominated = []
+            for term in lead["terms"]:
+                if term in donor.get("catalog", []) and term in eligible:
+                    nominated.append(term)
+                elif Path(term).name == term and Path(term).suffix:
+                    matches = [p for p in eligible if Path(p).name == term]
+                    if len(matches) == 1:
+                        nominated.append(matches[0])
+            preferred = list(dict.fromkeys(nominated))[:3]
         if preferred:
             reader = GitSourceReader(Path(donor["view"]), byte_limit=65536)
             for path in preferred:

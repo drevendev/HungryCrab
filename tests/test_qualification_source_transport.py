@@ -36,8 +36,9 @@ def test_equal_source_pages_keep_original_coordinates(tmp_path: Path, arm: str) 
 
 
 @pytest.mark.parametrize("arm", ["baseline", "candidate"])
+@pytest.mark.parametrize("anchor", ["src/adapter.py", "adapter.py"])
 def test_exact_catalog_path_is_a_raw_file_request_not_a_body_search(
-    tmp_path: Path, arm: str
+    tmp_path: Path, arm: str, anchor: str
 ) -> None:
     donor_root = repository(
         tmp_path / "owned",
@@ -56,7 +57,7 @@ def test_exact_catalog_path_is_a_raw_file_request_not_a_body_search(
         }
     }
     prepared = trial.prepare_source(
-        {"donor": "owned", "terms": ["src/adapter.py"]},
+        {"donor": "owned", "terms": [anchor]},
         {"id": "need", "source_material": "implementation", "maw_evidence": []},
     )
     assert prepared["donor"] == [{"path": "src/adapter.py", "start": 1, "end": 2}]

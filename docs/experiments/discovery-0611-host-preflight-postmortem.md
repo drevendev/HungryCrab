@@ -201,3 +201,11 @@ Check actual HUMAN holds before an empty-source deferral; an empty path list
 cannot establish operative licensing. Two owned runtime controls at that head
 completed useful investigations in 25,631 and 26,070 actual tokens. Preserve those
 results and costs, but do not use their old host fingerprint to qualify later code.
+
+At `1934172`, the real control retained an actual HUMAN hold and oversized
+deferral but could not admit its useful stage: estimate 11,124, remaining 11,030.
+It stopped at 18,970 actual tokens without useful completion. A unique catalog
+basename must also resolve to its real path; a filename is not a body-search
+identifier. Any smaller receiving projection must retain exact relevant ranges,
+full original observations and explicit omissions. Reducing an initial byte
+allowance or repeated context is not permission to reset or enlarge actual limits.
