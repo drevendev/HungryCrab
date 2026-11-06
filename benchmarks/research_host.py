@@ -153,9 +153,14 @@ class Meter:
             "transport": "native-constrained-json/v2",
         }
         # Known-control receipts observed about 4.6k native-prefix tokens.
-        # Reserve 6.5k for prefix/reply plus conservative request bytes/3.
+        # Reserve 6.5k for prefix/reply plus the repository's 3.5 ASCII-byte
+        # heuristic. Non-ASCII bytes receive a stricter two-byte allowance.
+        # Completed controls calibrate admission; they never replace actual use.
         # This remains admission only; actual overshoots invalidate the trial.
-        estimate = 6500 + (len(json.dumps(request, ensure_ascii=False).encode()) + 2) // 3
+        payload = json.dumps(request, ensure_ascii=False).encode()
+        ascii_bytes = sum(byte < 128 for byte in payload)
+        other_bytes = len(payload) - ascii_bytes
+        estimate = 6500 + (ascii_bytes * 2 + 6) // 7 + (other_bytes + 1) // 2
         left = self.seconds - (time.time() - self.data["started"])
         return {
             "estimate": estimate,

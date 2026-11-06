@@ -144,3 +144,17 @@ disabled tools, model/effort, exact skills and unchanged actual-token accounting
 Measure the resulting actual usage and repeat full-head controls before treating
 this as a fix. The [official instruction-discovery documentation](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 describes the automatically loaded files and their configurable combined limit.
+
+The isolated JSON transport preflight used 5,364 actual tokens. Isolation alone
+is not a completed budget repair. Keep the explicit matching skill, exact source
+bodies and coordinates, and remove repeated protocol/preparation metadata from
+model transport. Short receipt aliases must expand to their original donor or
+receiving read IDs before CLI validation; retain both representations and the
+alias map. Keep complete original facts for review and explicit omissions.
+
+Admission remains an estimate with a 6,500-token prefix/reply reserve: use the
+repository's 3.5-byte ASCII estimate and a stricter allowance for non-ASCII bytes.
+It must never settle usage, reset a budget, erase cached input or override the
+30,000-actual-token guard. The revised envelope still requires actual completed
+real-project controls and independent review; smaller estimated prompts do not
+establish successful investigation or qualification.
