@@ -4105,10 +4105,9 @@ def _mask_literal_publishing_message(command: str) -> str | None:
     if match is not None:
         start, end = match.span("message")
         return command[:start] + "literal publishing message" + command[end:]
-    match = (
-        _LITERAL_PR_CREATE_MESSAGE.fullmatch(command)
-        or _LITERAL_PR_CREATE_BODY_FIRST_MESSAGE.fullmatch(command)
-    )
+    match = _LITERAL_PR_CREATE_MESSAGE.fullmatch(
+        command
+    ) or _LITERAL_PR_CREATE_BODY_FIRST_MESSAGE.fullmatch(command)
     if match is None:
         return None
     masked = command
