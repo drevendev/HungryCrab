@@ -103,3 +103,25 @@ thresholds. Do not choose repeated cohorts until a favorable result appears.
 Report execution, useful unique proposals, precision denominators, coverage,
 rights and adoption separately. A technically completed but inadequately covered
 comparison is unqualified, regardless of its apparent arm score.
+
+## Repair observations, 6 November 2026
+
+The real portable-digest/object round trip now records an omitted-inventory
+source reference through both actual CLIs (0.6.8 and 0.6.11.dev0). Two earlier
+failed integration attempts are retained. The second accidentally tested local
+comparison, which does not bind an object store; component reader success did
+not establish that distinct route. Future controls use the actual portable route.
+
+The first new full-host engineering block at `1eed6a1` was still **not ready**:
+the owned candidate fixture used invalid `backlog.status: complete`, so the
+candidate CLI correctly refused configuration before any model call. Baseline
+completed original typed receiving probes, rejected present behavior and reached
+a source-supported runtime gap in 26,226 actual tokens and 196.905 seconds.
+That component result does not pass the failed two-arm block or independent
+review. No fresh cohort was selected or run. Preserve those 26,226 tokens and
+the zero-inference candidate refusal; do not reset or conceal the attempt.
+
+The control preparer must validate runtime and design plans through the actual
+candidate `discover init` before writing an executable control profile or allowing
+either arm to spend model tokens. Fixture preparation is not exempt from the
+same configuration preflight required of fresh qualification.

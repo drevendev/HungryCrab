@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,7 @@ from qualification_cycle import controller_need
 from qualification_interop import owned_donor, owned_repository
 from qualification_readiness import host_fingerprint
 from qualification_source_view import git
-from research_host import write
+from research_host import Commands, write
 
 from hungry_crab.analysis_context import installed_source_identity
 from hungry_crab.discovery_session import live_context
@@ -86,7 +87,7 @@ def prepare(root: Path, baseline_python: Path, baseline_source: Path) -> dict[st
         )
         donor["description"] = description
         pool.append(donor)
-    definitions = {}
+    definitions: dict[str, Any] = {}
     for mode, source in (("runtime", RUNTIME), ("design", DESIGN)):
         maw = owned_repository(
             root / (mode + "-receiver"),
@@ -153,7 +154,14 @@ def prepare(root: Path, baseline_python: Path, baseline_source: Path) -> dict[st
                 "target": {"path": "units.py", "qualified_name": target}
                 if mode == "runtime"
                 else {},
-                "backlog": {"status": "complete", "pending": []},
+                "backlog": {
+                    "status": "checked",
+                    "pending": [],
+                    "as_of": datetime.now(UTC).isoformat(),
+                    "default_ref": "HEAD",
+                    "default_sha": context["sha"],
+                    "method": "Original owned fixture; only selected/default source exists",
+                },
                 "novelty": {
                     "prefixes": ["units.py"],
                     "pending_collection": {
@@ -233,6 +241,22 @@ def prepare(root: Path, baseline_python: Path, baseline_source: Path) -> dict[st
         "native_cwd": str(root / "empty-worker"),
     }
     (root / "empty-worker").mkdir()
+    # Refuse invalid controller plans before ANY arm can spend native tokens.
+    # This is the actual installed CLI, not a duplicated schema validator.
+    for mode, definition in definitions.items():
+        plan_path = root / (mode + "-preflight-plan.json")
+        write(plan_path, definition["plan"])
+        Commands(root / (mode + "-preflight-cli"), Path(sys.executable), repo).json(
+            [
+                "discover",
+                "init",
+                root / (mode + "-preflight-session"),
+                "--maw",
+                definition["context"]["root"],
+                "--plan",
+                plan_path,
+            ]
+        )
     write(root / "control-profile.json", value)
     return value
 
