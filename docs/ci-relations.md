@@ -25,8 +25,14 @@ The sidecar records `caller_path`, `caller_job`, `raw_uses`,
 
 Indexing is sorted by the original workflow path and capped at **64**
 workflows. Jobs within each caller are sorted by original job ID, and emission
-is capped at **256** relations. `truncation.workflows`,
-`truncation.relations` and `truncated` distinguish partial evidence.
+is capped at **256** relations. An independent **1 MiB cumulative escaped-record
+byte budget** also bounds repeated long `uses` strings; `relation_bytes` and
+`byte_limit` report the charged size. `truncation.workflows`,
+`truncation.relations`, `truncation.bytes` and `truncated` distinguish partial
+evidence. When a callsite would exceed the budget, emission stops and sets
+`truncation.bytes`; no `raw_uses` is silently shortened or replaced. The
+original parsed `ci.json` rows are preserved. The byte budget covers emitted
+record representations, not the fixed metadata envelope.
 An optional smaller limit can be used for a bounded caller; it cannot exceed
 the default caps. If a single relation is emitted under a limit of one and
 another exists, `truncation.relations` is true.
