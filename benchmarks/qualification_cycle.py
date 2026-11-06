@@ -928,7 +928,7 @@ class Trial:
                 request["paths"]
             ):
                 raise RuntimeError("actual arm legal receipt does not cover the selected source")
-            if all(grant["expression"] is not None for grant in grants):
+            if request["paths"] and all(grant["expression"] is not None for grant in grants):
                 return False
         elif receipt["result"]["capability"] != "unavailable":
             raise RuntimeError("unknown actual arm licensing capability")
@@ -1056,6 +1056,18 @@ class Trial:
             (p for p in donor.get("catalog", []) if Path(p).name in source_names),
             key=lambda p: (source_names.index(Path(p).name), p),
         )[:3]
+        if not preferred:
+            # A worker may nominate an exact filename from its actual catalog.
+            # Treat that as a file-read request, not a literal body search for
+            # the path string. This common raw read adds no baseline AST/ranker.
+            eligible = set(paths(Path(donor["view"]), donor["sha"], []))
+            preferred = list(
+                dict.fromkeys(
+                    term
+                    for term in lead["terms"]
+                    if term in donor.get("catalog", []) and term in eligible
+                )
+            )[:3]
         if preferred:
             reader = GitSourceReader(Path(donor["view"]), byte_limit=65536)
             for path in preferred:
@@ -2089,6 +2101,8 @@ class Trial:
             if self.frozen["host"].get("defer_oversized_source"):
                 label += "-preparation-" + str(len(self.state.get("preparation_deferrals", [])))
             prepared = self.prepare_initial_source(lead, need)
+            if self.legal_hold(lead, need, prepared):
+                continue
             if not prepared["donor"]:
                 self.state.setdefault("unassessed_preparations", []).append(
                     {
@@ -2102,8 +2116,6 @@ class Trial:
                 self.save()
                 if self.session:
                     self.defer_source(lead, need, {"admissible": False, "reason": "source-empty"})
-                continue
-            if self.legal_hold(lead, need, prepared):
                 continue
             planned = self.assess(
                 lead, need, {}, prepared["windows"], label + "-preview", admission_only=True

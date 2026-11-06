@@ -33,3 +33,31 @@ def test_equal_source_pages_keep_original_coordinates(tmp_path: Path, arm: str) 
     assert len((page["content"] + "\n").encode()) <= 1024
     omitted = trial.state["source_preparations"]["need:owned"]["omissions"]
     assert omitted[0]["start"] == page["end"] + 1 and omitted[0]["end"] == 60
+
+
+@pytest.mark.parametrize("arm", ["baseline", "candidate"])
+def test_exact_catalog_path_is_a_raw_file_request_not_a_body_search(
+    tmp_path: Path, arm: str
+) -> None:
+    donor_root = repository(
+        tmp_path / "owned",
+        {"src/adapter.py": "def concrete_mechanism(value):\n    return value\n"},
+    )
+    pin = git(donor_root, "rev-parse", "HEAD").strip()
+    trial = Trial.__new__(Trial)
+    trial.arm, trial.maw = arm, donor_root
+    trial.context = {"sha": pin}
+    trial.pool = {
+        "owned": {
+            "id": "owned",
+            "sha": pin,
+            "view": str(donor_root),
+            "catalog": ["src/adapter.py"],
+        }
+    }
+    prepared = trial.prepare_source(
+        {"donor": "owned", "terms": ["src/adapter.py"]},
+        {"id": "need", "source_material": "implementation", "maw_evidence": []},
+    )
+    assert prepared["donor"] == [{"path": "src/adapter.py", "start": 1, "end": 2}]
+    assert prepared["windows"][0]["content"] == ("def concrete_mechanism(value):\n    return value")

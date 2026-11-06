@@ -190,3 +190,14 @@ without fetching or executing submodules, then regenerate both actual-arm digest
 Validate every digest's clean state, public identity and immutable pin before
 any paid planning, and exercise both actual CLI comparisons before the next
 real control. Never repair an artifact by editing its manifest's dirty flag.
+
+The next real control at `f911948` stayed within 28,976 actual tokens but still
+failed useful completion. Its worker selected exact catalog filenames; the host
+instead searched for those path strings inside file bodies and eventually read
+unrelated fallback declarations. The worker correctly refused an unsupported
+mechanism. Interpret an exact acquired catalog path as a bounded raw file request
+on both arms, preserving all source/byte guards and adding no baseline AST feature.
+Check actual HUMAN holds before an empty-source deferral; an empty path list
+cannot establish operative licensing. Two owned runtime controls at that head
+completed useful investigations in 25,631 and 26,070 actual tokens. Preserve those
+results and costs, but do not use their old host fingerprint to qualify later code.

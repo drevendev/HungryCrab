@@ -76,4 +76,7 @@ def test_actual_arm_unknown_grant_is_held_but_nested_mit_is_not(
         assert row["utility"] == "unassessed" and row["native_assessment_tokens"] == 0
     else:
         assert not trial.state.get("unassessed_preparations")
+    # An empty scope cannot establish any path's grant, even in a fixture
+    # whose broader overview has an established selected-file MIT grant.
+    assert trial.legal_hold({"donor": "owned"}, {"id": "empty"}, {"donor": []})
     assert not (trial.root / "native").exists()
