@@ -447,6 +447,53 @@ def test_two_license_files_offered_as_a_choice_stay_a_choice(tmp_path: Path) -> 
     assert verdict.mode is Mode.COPY and not verdict.notice_required
 
 
+@pytest.mark.parametrize(
+    ("files", "expected_spdx", "expected_resolution"),
+    [
+        (
+            {"LICENSE-MIT": MIT_TEXT, "LICENSE-BUSL": BUSL_TEXT},
+            "BUSL-1.1 AND MIT",
+            "split",
+        ),
+        (
+            {
+                "LICENSE-APACHE": APACHE_TEXT,
+                "LICENSE-ELASTIC": "Elastic License 2.0\\n",
+            },
+            "Apache-2.0 AND Elastic-2.0",
+            "split",
+        ),
+        (
+            {
+                "LICENSE-MIT": MIT_TEXT,
+                "LICENSE-ENTERPRISE": "Enterprise subscription only; contact sales.\\n",
+            },
+            "NOASSERTION",
+            "unreadable",
+        ),
+        (
+            {"LICENSE-AGPL": AGPL_TEXT, "LICENSE-EE": PROPRIETARY_TEXT},
+            "AGPL-3.0-only AND LicenseRef-Proprietary",
+            "split",
+        ),
+    ],
+)
+def test_named_license_files_never_make_open_core_a_copyable_choice(
+    tmp_path: Path,
+    files: dict[str, str],
+    expected_spdx: str,
+    expected_resolution: str,
+) -> None:
+    """Regression for #202: names alone cannot turn mixed grants into an OR choice."""
+    write_tree(tmp_path, files)
+    findings = detect_in_repo(tmp_path, [])
+    assert findings.resolution == expected_resolution
+    assert findings.spdx == expected_spdx
+    assert findings.human_review
+    for maw in ("MIT", "AGPL-3.0-only", None):
+        assert decide(findings.spdx, maw).mode not in {Mode.COPY, Mode.COPY_FILE}
+
+
 def test_license_files_named_after_their_license_are_found_and_are_not_a_choice(
     tmp_path: Path,
 ) -> None:
