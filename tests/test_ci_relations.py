@@ -141,7 +141,6 @@ def test_large_raw_uses_is_byte_bounded_without_silent_truncation() -> None:
     assert tiny["truncation"]["bytes"] is True
 
 
-
 def _nested_relation_payload_bytes(rows: list[dict[str, str | None]]) -> int:
     """Actual contribution of relations[] in digest's nested UTF-8 JSON format."""
 
