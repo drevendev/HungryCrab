@@ -18,9 +18,7 @@ MAX_RELATIONS = 256
 _LOCAL_WORKFLOW = re.compile(r"\A\./\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml\Z")
 
 
-def _target_status(
-    uses: str, inventory: Mapping[str, Mapping[str, Any]]
-) -> tuple[str | None, str]:
+def _target_status(uses: str, inventory: Mapping[str, Mapping[str, Any]]) -> tuple[str | None, str]:
     """Resolve only an exact local YAML target with a workflow_call trigger."""
     if "${{" in uses or "}}" in uses:
         return None, "expression-unresolved"
