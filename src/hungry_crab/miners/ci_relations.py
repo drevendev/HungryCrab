@@ -33,7 +33,7 @@ def _target_status(uses: str, inventory: Mapping[str, Mapping[str, Any]]) -> tup
         if not isinstance(triggers, list) or "workflow_call" not in triggers:
             return target, "target-not-workflow-call"
         return target, "resolved-workflow-call"
-    if uses.startswith(("../", "/", "\\")):
+    if uses.startswith(("../", "..\\", ".\\", "/", "\\")):
         return None, "invalid-local-path"
     return None, "remote-unresolved"
 
