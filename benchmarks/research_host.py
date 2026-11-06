@@ -133,7 +133,7 @@ class Meter:
         self.limit, self.seconds = token_limit, seconds
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = root / "meter.json"
-        self.data = (
+        self.data: dict[str, Any] = (
             read(self.path)
             if self.path.exists()
             else {"started": time.time(), "tokens": 0, "usage_complete": True, "stages": []}

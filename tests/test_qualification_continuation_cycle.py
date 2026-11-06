@@ -62,10 +62,14 @@ def test_two_requested_reads_are_assessed_or_remain_explicitly_unassessed(
         return []
 
     def finish(answer: dict[str, Any], *_: Any) -> None:
-        trial.state["outcomes"].append({"need": "need", "decision": answer})
+        trial.state["outcomes"].append({"need": "need", "donor": "donor", "decision": answer})
 
     monkeypatch.setattr(trial, "assess", assess)
-    monkeypatch.setattr(trial, "prepare_source", lambda *_: {"windows": []})
+    monkeypatch.setattr(
+        trial,
+        "prepare_source",
+        lambda *_: {"donor": [{"path": "owned.py", "start": 1, "end": 1}], "windows": []},
+    )
     monkeypatch.setattr(trial, "acquire", lambda *_: {"exploration": "owned"})
     monkeypatch.setattr(trial, "initial_source", lambda *_: [])
     monkeypatch.setattr(trial, "inspect", inspect)
@@ -89,7 +93,7 @@ def test_two_requested_reads_are_assessed_or_remain_explicitly_unassessed(
     assert stops
 
 
-@pytest.mark.parametrize("cause", ["oversized", "unfinished-source"])
+@pytest.mark.parametrize("cause", ["oversized", "unfinished-source", "empty-source"])
 def test_preparation_continues_to_a_distinct_need_in_the_invoked_host(
     monkeypatch: pytest.MonkeyPatch,
     cause: str,
@@ -142,7 +146,14 @@ def test_preparation_continues_to_a_distinct_need_in_the_invoked_host(
 
     def prepare(lead: dict[str, Any], *_: Any) -> dict[str, Any]:
         prepared.append(lead["donor"])
-        return {"windows": []}
+        return {
+            "donor": (
+                []
+                if cause == "empty-source" and lead["donor"] == "large"
+                else [{"path": "owned.py", "start": 1, "end": 1}]
+            ),
+            "windows": [],
+        }
 
     def assess(lead: dict[str, Any], *args: Any, **kwargs: Any) -> dict[str, Any]:
         if kwargs.get("admission_only"):
@@ -180,10 +191,12 @@ def test_preparation_continues_to_a_distinct_need_in_the_invoked_host(
     monkeypatch.setattr(trial, "stop", stops.append)
     trial.run()
     assert prepared == ["large", "small"]
-    assert assessed == (["small"] if cause == "oversized" else ["large", "small"])
-    if cause == "oversized":
+    assert assessed == (["small"] if cause in {"oversized", "empty-source"} else ["large", "small"])
+    if cause in {"oversized", "empty-source"}:
         assert receipts[0]["status"] == "budget-deferred"
         assert trial.state["preparation_deferrals"][0]["attempt"] == "first-owned"
+        if cause == "empty-source":
+            assert trial.state["unassessed_preparations"][0]["native_assessment_tokens"] == 0
     else:
         deferred = trial.state["unassessed_continuations"][0]
         assert deferred["status"] == "requested-source; neither read nor reassessed"

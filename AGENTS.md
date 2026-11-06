@@ -99,6 +99,17 @@ installation and its offline commands still use `uv sync` without extras.
 10. Skills describe the protocol, the CLI does the work: put new deterministic logic into the
     CLI and keep `SKILL.md` files short.
 
+## Discovery qualification readiness
+
+Read `docs/experiments/discovery-0611-host-preflight-postmortem.md` before changing
+or running a comparative discovery host. Qualify the actual full executor on both
+arms, including the unmodified published baseline reader/CLI, inert source view,
+original receiving verification, same-budget continuation and independent review.
+Component tests, a hand-driven control or successful accounting alone are not a
+fresh-inference readiness gate. Preserve failed studies and their costs; previously
+inspected donors remain exposed. Never substitute the current reader for a baseline
+integration check or call an incomplete comparison evidence of version superiority.
+
 ## Adding a miner
 
 1. Create `src/hungry_crab/miners/<name>.py` with a class that has `name`, `requires`,

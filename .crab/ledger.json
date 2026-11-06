@@ -1,7 +1,7 @@
 {
   "schema": "hungry-crab.ledger/1",
   "maw": "HungryCrab",
-  "updated_at": "2026-09-25T17:45:11+00:00",
+  "updated_at": "2026-11-05T19:34:26+00:00",
   "meals": [
     {
       "prey": "pypa/pipx",
@@ -1774,6 +1774,26 @@
       "decided_at": "2026-09-06T11:59:51+00:00",
       "reason": "maw already runs mypy --strict; ty is an alternative, not an addition",
       "url": null
+    },
+    {
+      "id": "crab:code:code.c1",
+      "category": "code",
+      "key": "code.c1",
+      "title": "feat(ci): resolve bounded local reusable-workflow call relations",
+      "status": "served",
+      "prey": "nektos/act",
+      "sha": "2540ba6c49dfbafe167d655e4044921cd2ed19e7",
+      "score": 0.15,
+      "serve_as": "idea",
+      "first_seen": "2026-11-05T19:34:26+00:00",
+      "last_seen": "2026-11-05T19:34:26+00:00",
+      "last_prey": "nektos/act",
+      "last_sha": "2540ba6c49dfbafe167d655e4044921cd2ed19e7",
+      "sightings": 1,
+      "decided_at": "2026-11-05T19:34:26+00:00",
+      "reason": "",
+      "url": "https://github.com/drevendev/HungryCrab/issues/619",
+      "feedback": null
     }
   ]
 }
