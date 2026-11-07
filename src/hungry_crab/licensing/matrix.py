@@ -732,6 +732,31 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
         return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
     if maw_id.upper().startswith("LGPL-") and classify(maw_id) is LicenseClass.UNKNOWN:
         return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
+    # Evaluate GPL-recipient SPDX OR alternatives before class-level early exits.
+    # Apache-2.0 is not GPL-2.0-only compatible, but an explicit MPL-2.0 branch is.
+    if maw is MawClass.GPL and prey is not None:
+        expr = parse_expression(prey)
+        if expr is not None and expr.op == "OR" and _contains_file_copyleft(expr):
+            compatible_branch = _gpl_compatible_choice(prey, maw_spdx)
+            if compatible_branch is not None:
+                return decide_for_class(compatible_branch, maw, maw_spdx)
+            if any(
+                decide_for_class(_render(child), maw, maw_spdx).mode is Mode.HUMAN
+                for child in expr.operands
+            ):
+                return Verdict(
+                    Mode.HUMAN, human_review=True, reason="unrecognised SPDX alternative"
+                )
+            return Verdict(Mode.IDEAS_ONLY, reason="no GPL-compatible SPDX alternative")
+    if maw is MawClass.GPL and prey in {
+        "MPL-1.1", "CDDL-1.1", "MPL-2.0-no-copyleft-exception"
+    }:
+        # These known variants cannot be copied into GPL maws. Other unknown IDs
+        # still require HUMAN rather than inheriting this narrowly scoped denial.
+        return Verdict(
+            Mode.IDEAS_ONLY,
+            reason=f"{prey} is incompatible with {maw_id or 'GPL maw'}",
+        )
     if cls is LicenseClass.PERMISSIVE:
         return Verdict(Mode.COPY, reason="permissive license: keep the copyright notice")
     if cls is LicenseClass.PERMISSIVE_NOTICE:
@@ -750,20 +775,6 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
         )
     if cls is LicenseClass.DOCS_RESTRICTED:
         return Verdict(Mode.IDEAS_ONLY, reason="non-commercial or no-derivatives clause")
-    if maw is MawClass.GPL and prey is not None:
-        expr = parse_expression(prey)
-        if expr is not None and expr.op == "OR" and _contains_file_copyleft(expr):
-            compatible_branch = _gpl_compatible_choice(prey, maw_spdx)
-            if compatible_branch is not None:
-                return decide_for_class(compatible_branch, maw, maw_spdx)
-            if any(
-                decide_for_class(_render(child), maw, maw_spdx).mode is Mode.HUMAN
-                for child in expr.operands
-            ):
-                return Verdict(
-                    Mode.HUMAN, human_review=True, reason="unrecognised SPDX alternative"
-                )
-            return Verdict(Mode.IDEAS_ONLY, reason="no GPL-compatible SPDX alternative")
     if cls is LicenseClass.FILE_COPYLEFT:
         if maw is MawClass.GPL and prey != "MPL-2.0":
             return Verdict(
