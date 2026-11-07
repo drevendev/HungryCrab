@@ -876,6 +876,81 @@ def test_supported_gpl_and_lgpl_helper_compatibility_is_preserved(
     assert fits_gpl_maw(prey, maw) is compatible
 
 
+# Every explicitly modelled family identifier gets the same supported prey verdict and
+# recognized maw class. This is the positive half of the exact-policy guard in #95:
+# adding a new ID should require a deliberately reviewed policy, not a prefix match.
+_SUPPORTED_FAMILY_POLICY_CONTROLS = {
+    LicenseClass.FILE_COPYLEFT: (
+        Mode.COPY_FILE,
+        MawClass.PERMISSIVE,
+        ("MPL-2.0", "EPL-1.0", "EPL-2.0", "CDDL-1.0"),
+    ),
+    LicenseClass.LGPL: (
+        Mode.REIMPLEMENT,
+        MawClass.GPL,
+        (
+            "LGPL-2.0-only",
+            "LGPL-2.0-or-later",
+            "LGPL-2.1-only",
+            "LGPL-2.1-or-later",
+            "LGPL-3.0-only",
+            "LGPL-3.0-or-later",
+        ),
+    ),
+    LicenseClass.GPL: (
+        Mode.REIMPLEMENT,
+        MawClass.GPL,
+        (
+            "GPL-2.0-only",
+            "GPL-2.0-or-later",
+            "GPL-3.0-only",
+            "GPL-3.0-or-later",
+        ),
+    ),
+    LicenseClass.AGPL: (
+        Mode.REIMPLEMENT,
+        MawClass.GPL,
+        ("AGPL-3.0-only", "AGPL-3.0-or-later"),
+    ),
+    LicenseClass.DOCS_ATTRIBUTION: (
+        Mode.COPY,
+        MawClass.PERMISSIVE,
+        ("CC-BY-3.0", "CC-BY-4.0"),
+    ),
+    LicenseClass.DOCS_SHARE_ALIKE: (
+        Mode.COPY_FILE,
+        MawClass.PERMISSIVE,
+        ("CC-BY-SA-3.0", "CC-BY-SA-4.0", "GFDL-1.3-only"),
+    ),
+    LicenseClass.DOCS_RESTRICTED: (
+        Mode.IDEAS_ONLY,
+        MawClass.PROPRIETARY,
+        ("CC-BY-NC-4.0", "CC-BY-NC-SA-4.0", "CC-BY-ND-4.0"),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("license_id", "expected_class", "expected_mode", "expected_maw"),
+    [
+        (license_id, cls, mode, maw)
+        for cls, (mode, maw, identifiers) in _SUPPORTED_FAMILY_POLICY_CONTROLS.items()
+        for license_id in identifiers
+    ],
+)
+def test_explicit_supported_family_policy_controls(
+    license_id: str,
+    expected_class: LicenseClass,
+    expected_mode: Mode,
+    expected_maw: MawClass,
+) -> None:
+    assert classify(license_id) is expected_class
+    assert maw_class(license_id) is expected_maw
+    verdict = decide(license_id, "MIT")
+    assert verdict.mode is expected_mode
+    assert not verdict.human_review
+
+
 # --- a licence is not the licence it mentions (#86) -------------------------------------------
 #
 # A source-available licence names the licence it converts to, and a custom licence names the
