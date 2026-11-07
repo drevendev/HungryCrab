@@ -486,9 +486,7 @@ def fits_gpl_maw(prey_spdx: str | None, maw_spdx: str | None) -> bool:
     # This public helper must not treat a family-shaped but unsupported maw as a GPL
     # recipient, even when a permissive prey branch would otherwise return True (#95).
     if maw_id not in _GPL_FAMILY_MAWS and not (
-        maw_id is not None
-        and maw_id.startswith("LGPL-")
-        and _lgpl_version(maw_id) is not None
+        maw_id is not None and maw_id.startswith("LGPL-") and _lgpl_version(maw_id) is not None
     ):
         return False
     if ident is None:
