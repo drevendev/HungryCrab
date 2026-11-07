@@ -328,6 +328,7 @@ GPL_FAMILY_MAWS = (
     "AGPL-3.0-only",
     "AGPL-3.0-or-later",
     "LGPL-2.1-or-later",
+    "LGPL-3.0-only",  # Explicit #204 acceptance maw; retain AGPL-3.0-or-later as extra.
 )
 
 
