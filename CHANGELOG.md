@@ -9,6 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Reject unsupported GPL/AGPL/LGPL maw identifiers in direct copyleft compatibility checks, retaining exact supported policy and SPDX choice semantics (#95).
 - Permit cache-path mentions in inert, quoted `gh pr create --title ... --body ...`
   messages for a single standalone Bash command (either exact title/body option order);
   continue refusing substitutions, extra flags, redirections, pipelines and cache-root
