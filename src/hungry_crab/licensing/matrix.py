@@ -871,7 +871,10 @@ def decide(
     if verdict.mode not in {Mode.COPY, Mode.COPY_FILE}:
         return verdict
     terms = selected_terms(prey_spdx)
-    if Relationship(str(relationship)) is Relationship.FOREIGN and maw_class(maw_spdx) is MawClass.GPL:
+    if (
+        Relationship(str(relationship)) is Relationship.FOREIGN
+        and maw_class(maw_spdx) is MawClass.GPL
+    ):
         chosen = _gpl_compatible_choice(normalize(prey_spdx) or "", maw_spdx)
         if chosen is not None:
             terms = selected_terms(chosen)
