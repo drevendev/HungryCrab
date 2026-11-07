@@ -695,23 +695,17 @@ def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     return maw_id != "GPL-2.0-only"
 
 
-def _contains_file_copyleft(expr: _Expr) -> bool:
-    """Find file-level grants inside SPDX expressions before GPL-specific choice selection."""
-    if not expr.op:
-        ident = _leaf_license_id(expr)
-        return ident is not None and _classify_id(ident) is LicenseClass.FILE_COPYLEFT
-    return any(_contains_file_copyleft(child) for child in expr.operands)
-
-
 def _gpl_compatible_choice(prey: str, maw_spdx: str | None) -> str | None:
     """Choose a copyable OR branch for this GPL maw, not the globally least strict class.
 
     The GPL branch of EPL-2.0 OR GPL-3.0-only may be usable even though EPL is
-    globally a lower-ranked class. Conversely, GPL-2.0-only cannot use either
-    branch of EPL-2.0 OR GPL-3.0-only. Keep the chosen branch for attribution.
+    globally a lower-ranked class. The GPL-2.0-only branch of Apache-2.0 OR
+    GPL-2.0-only also fits despite neither operand being file-level copyleft.
+    Conversely, GPL-2.0-only cannot use either branch of EPL-2.0 OR
+    GPL-3.0-only. Keep the chosen branch for attribution.
     """
     expr = parse_expression(prey)
-    if expr is None or expr.op != "OR" or not _contains_file_copyleft(expr):
+    if expr is None or expr.op != "OR":
         return None
     available: list[tuple[int, int, str]] = []
     for operand in expr.operands:
@@ -732,11 +726,12 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
         return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
     if maw_id.upper().startswith("LGPL-") and classify(maw_id) is LicenseClass.UNKNOWN:
         return Verdict(Mode.HUMAN, human_review=True, reason=f"unrecognised maw license {maw_id}")
-    # Evaluate GPL-recipient SPDX OR alternatives before class-level early exits.
-    # Apache-2.0 is not GPL-2.0-only compatible, but an explicit MPL-2.0 branch is.
+    # Check *every* GPL-recipient SPDX OR before global class-level early exits.
+    # An Apache-2.0 OR GPL-2.0-only choice also has a copyable branch, even
+    # though neither leaf is file-level copyleft.
     if maw is MawClass.GPL and prey is not None:
         expr = parse_expression(prey)
-        if expr is not None and expr.op == "OR" and _contains_file_copyleft(expr):
+        if expr is not None and expr.op == "OR":
             compatible_branch = _gpl_compatible_choice(prey, maw_spdx)
             if compatible_branch is not None:
                 return decide_for_class(compatible_branch, maw, maw_spdx)
