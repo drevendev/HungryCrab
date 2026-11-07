@@ -799,6 +799,83 @@ def test_supported_lgpl_aliases_keep_their_compatibility(prey: str) -> None:
     assert decide(prey, "GPL-3.0-only").mode is Mode.COPY
 
 
+# --- exact supported-policy boundary (issue #95) ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "prey",
+    [
+        "MPL-bogus",
+        "EPL-9.9",
+        "CDDL-9.9",
+        "GPL-1.0-only",
+        "GPL-4.0-only",
+        "AGPL-1.0-only",
+        "AGPL-4.0-only",
+        "LGPL-4.0-only",
+        "CC-BY-bogus",
+        "GFDL-bogus",
+        "GPL-4.0-only WITH Classpath-exception-2.0",
+    ],
+)
+def test_unsupported_family_prey_never_inherits_copy_permission(prey: str) -> None:
+    assert classify(prey) is LicenseClass.UNKNOWN
+    for maw in ("MIT", "GPL-3.0-only", "AGPL-3.0-only"):
+        verdict = decide(prey, maw)
+        assert verdict.mode is Mode.HUMAN
+        assert verdict.human_review
+
+
+@pytest.mark.parametrize(
+    "maw",
+    [
+        "GPL-1.0-only",
+        "GPL-4.0-only",
+        "GPL-3.0-bogus",
+        "AGPL-1.0-only",
+        "AGPL-3.0-bogus",
+        "LGPL-4.0-only",
+        "MPL-bogus",
+        "EPL-9.9",
+        "CC-BY-bogus",
+    ],
+)
+def test_unsupported_family_maw_cannot_select_gpl_helper_rules(maw: str) -> None:
+    assert classify(maw) is LicenseClass.UNKNOWN
+    assert maw_class(maw) is MawClass.PROPRIETARY
+    assert decide("GPL-3.0-only", maw).mode is Mode.HUMAN
+    assert decide("MIT", maw).mode is Mode.HUMAN
+    assert not fits_gpl_maw("GPL-3.0-only", maw)
+    assert not fits_gpl_maw("AGPL-3.0-only", maw)
+    assert not fits_gpl_maw("MIT", maw)
+
+
+def test_unsupported_leaf_respects_choice_vs_conjunction() -> None:
+    assert decide("MIT AND GPL-1.0-only", "GPL-3.0-only").mode is Mode.HUMAN
+    assert decide("MIT OR GPL-1.0-only", "GPL-3.0-only").mode is Mode.COPY
+    assert not fits_gpl_maw("MIT AND GPL-1.0-only", "GPL-3.0-only")
+    assert fits_gpl_maw("MIT OR GPL-1.0-only", "GPL-3.0-only")
+
+
+@pytest.mark.parametrize(
+    ("prey", "maw", "compatible"),
+    [
+        ("GPL-3.0-only", "GPL-3.0-only", True),
+        ("GPL-2.0-or-later", "GPL-3.0-only", True),
+        ("AGPL-3.0-only", "AGPL-3.0-only", True),
+        ("AGPL-3.0-only", "GPL-3.0-only", False),
+        ("GPL-3.0-only", "GPL-2.0-only", False),
+        ("LGPL-2.1-only", "GPL-3.0-only", True),
+        ("LGPL-3.0-only", "LGPL-3.0-only", True),
+        ("MIT", "GPL-3.0-only", True),
+    ],
+)
+def test_supported_gpl_and_lgpl_helper_compatibility_is_preserved(
+    prey: str, maw: str, compatible: bool
+) -> None:
+    assert fits_gpl_maw(prey, maw) is compatible
+
+
 # --- a licence is not the licence it mentions (#86) -------------------------------------------
 #
 # A source-available licence names the licence it converts to, and a custom licence names the
