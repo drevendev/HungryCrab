@@ -9,7 +9,7 @@ restrictive mode when in doubt.
 | Apache-2.0 | `COPY` + NOTICE | `COPY` + NOTICE for GPL-3.0, AGPL-3.0 and GPL-2.0-or-later; `IDEAS_ONLY` for GPL-2.0-only | `COPY` + NOTICE |
 | MPL-2.0 (ordinary grant) | `COPY_FILE` | `COPY_FILE` (keep original file license) | `COPY_FILE` |
 | EPL-1.0, EPL-2.0, CDDL-1.0 | `COPY_FILE` | `IDEAS_ONLY`: incompatible with GPL; an explicit SPDX `OR` offering a compatible GPL branch may permit `COPY` under that branch instead | `COPY_FILE` |
-| MPL-1.1, CDDL-1.1, MPL-2.0-no-copyleft-exception (unimplemented) | `HUMAN` | `HUMAN` | `HUMAN` |
+| MPL-1.1, CDDL-1.1, MPL-2.0-no-copyleft-exception (known incompatible variants) | `HUMAN` | `IDEAS_ONLY`: incompatible with GPL | `HUMAN` |
 | LGPL | `REIMPLEMENT` (linking is a separate question) | `COPY` when the versions are compatible (table below), else `IDEAS_ONLY`: LGPLv3 never fits GPL-2.0-only | `REIMPLEMENT` |
 | GPL-2.0 / GPL-3.0 | `REIMPLEMENT` (clean room) | `COPY` when the versions are compatible, else `IDEAS_ONLY` | `IDEAS_ONLY` |
 | AGPL-3.0 | `REIMPLEMENT` | `COPY` only into an AGPL-3.0 maw, else `IDEAS_ONLY` | `IDEAS_ONLY` |
@@ -25,7 +25,9 @@ An SPDX `OR` is resolved against the **actual recipient** before granting a mode
 branch is copyable into GPL-2.0-only. The selected license and its obligations must
 follow the chosen branch; global class ranking alone cannot make a GPL decision.
 MPL-2.0's explicit incompatible-with-secondary-licenses exception is not treated
-as the ordinary MPL-2.0 grant; unsupported variants need human review.
+as the ordinary MPL-2.0 grant. These three known incompatible variants are denied
+for GPL recipients; unsupported variants and their non-GPL recipient verdicts
+still need human review.
 
 ## When the table does not apply
 
