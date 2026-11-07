@@ -353,9 +353,7 @@ def test_plain_mpl_2_still_allows_whole_file_copy_into_gpl(maw: str) -> None:
     "prey",
     ("MPL-1.1", "CDDL-1.1", "MPL-2.0-no-copyleft-exception"),
 )
-def test_known_incompatible_file_copyleft_identifiers_deny_gpl_copy(
-    prey: str, maw: str
-) -> None:
+def test_known_incompatible_file_copyleft_identifiers_deny_gpl_copy(prey: str, maw: str) -> None:
     verdict = decide(prey, maw)
     assert verdict.mode is Mode.IDEAS_ONLY
     assert not verdict.human_review
