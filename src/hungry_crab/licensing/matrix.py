@@ -482,12 +482,21 @@ def _fits_gpl_maw(expr: _Expr, maw_spdx: str | None) -> bool:
 def fits_gpl_maw(prey_spdx: str | None, maw_spdx: str | None) -> bool:
     """``decide_for_class``'s copyleft-compatibility question, asked of a whole expression."""
     ident = normalize(prey_spdx)
+    maw_id = normalize(maw_spdx)
+    # This public helper must not treat a family-shaped but unsupported maw as a GPL
+    # recipient, even when a permissive prey branch would otherwise return True (#95).
+    if maw_id not in _GPL_FAMILY_MAWS and not (
+        maw_id is not None
+        and maw_id.startswith("LGPL-")
+        and _lgpl_version(maw_id) is not None
+    ):
+        return False
     if ident is None:
         return False
     expr = parse_expression(ident)
     if expr is None:
         return False
-    return _fits_gpl_maw(expr, maw_spdx)
+    return _fits_gpl_maw(expr, maw_id)
 
 
 def governing_id(spdx: str | None) -> str | None:
@@ -609,11 +618,16 @@ def _gpl_version(ident: str) -> tuple[str, bool]:
 
 def _gpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     """Can GPL code (``prey``) be copied into a maw under ``maw`` without changing it?"""
+    prey_id = normalize(prey) or ""
     maw_id = normalize(maw) or ""
-    prey_version, prey_later = _gpl_version(prey)
-    if prey.startswith("AGPL-"):
-        return maw_id.startswith("AGPL-3.0")
-    if maw_id.startswith(("AGPL-3.0", "GPL-3.0")):
+    # Only explicitly supported IDs can reach version compatibility. Prefix matching
+    # would treat GPL-3.0-bogus or AGPL-3.0-bogus as a valid recipient (#95).
+    if prey_id not in _GPL_FAMILY_MAWS or maw_id not in _GPL_FAMILY_MAWS:
+        return False
+    prey_version, prey_later = _gpl_version(prey_id)
+    if prey_id.startswith("AGPL-"):
+        return maw_id in {"AGPL-3.0-only", "AGPL-3.0-or-later"}
+    if maw_id in {"AGPL-3.0-only", "AGPL-3.0-or-later", "GPL-3.0-only", "GPL-3.0-or-later"}:
         return prey_version == "3.0" or prey_later
     if maw_id == "GPL-2.0-only":
         return prey_version == "2.0"
