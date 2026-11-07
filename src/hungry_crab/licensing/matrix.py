@@ -695,6 +695,35 @@ def _lgpl_prey_fits_gpl_maw(prey: str, maw: str | None) -> bool:
     return maw_id != "GPL-2.0-only"
 
 
+def _contains_file_copyleft(expr: _Expr) -> bool:
+    """Find file-level grants inside SPDX expressions before GPL-specific choice selection."""
+    if not expr.op:
+        ident = _leaf_license_id(expr)
+        return ident is not None and _classify_id(ident) is LicenseClass.FILE_COPYLEFT
+    return any(_contains_file_copyleft(child) for child in expr.operands)
+
+
+def _gpl_compatible_choice(prey: str, maw_spdx: str | None) -> str | None:
+    """Choose a copyable OR branch for this GPL maw, not the globally least strict class.
+
+    The GPL branch of EPL-2.0 OR GPL-3.0-only may be usable even though EPL is
+    globally a lower-ranked class. Conversely, GPL-2.0-only cannot use either
+    branch of EPL-2.0 OR GPL-3.0-only. Keep the chosen branch for attribution.
+    """
+    expr = parse_expression(prey)
+    if expr is None or expr.op != "OR" or not _contains_file_copyleft(expr):
+        return None
+    available: list[tuple[int, int, str]] = []
+    for operand in expr.operands:
+        branch = _render(operand)
+        verdict = decide_for_class(branch, MawClass.GPL, maw_spdx)
+        if verdict.mode in (Mode.COPY, Mode.COPY_FILE):
+            available.append(
+                (0 if verdict.mode is Mode.COPY else 1, _RANK.index(classify(branch)), branch)
+            )
+    return min(available)[2] if available else None
+
+
 def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None = None) -> Verdict:
     prey = normalize(prey_spdx)
     cls = classify(prey)
@@ -721,7 +750,26 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
         )
     if cls is LicenseClass.DOCS_RESTRICTED:
         return Verdict(Mode.IDEAS_ONLY, reason="non-commercial or no-derivatives clause")
+    if maw is MawClass.GPL and prey is not None:
+        expr = parse_expression(prey)
+        if expr is not None and expr.op == "OR" and _contains_file_copyleft(expr):
+            compatible_branch = _gpl_compatible_choice(prey, maw_spdx)
+            if compatible_branch is not None:
+                return decide_for_class(compatible_branch, maw, maw_spdx)
+            if any(
+                decide_for_class(_render(child), maw, maw_spdx).mode is Mode.HUMAN
+                for child in expr.operands
+            ):
+                return Verdict(
+                    Mode.HUMAN, human_review=True, reason="unrecognised SPDX alternative"
+                )
+            return Verdict(Mode.IDEAS_ONLY, reason="no GPL-compatible SPDX alternative")
     if cls is LicenseClass.FILE_COPYLEFT:
+        if maw is MawClass.GPL and prey != "MPL-2.0":
+            return Verdict(
+                Mode.IDEAS_ONLY,
+                reason=f"{prey or 'file copyleft'} is incompatible with {maw_id or 'GPL maw'}",
+            )
         return Verdict(
             Mode.COPY_FILE, reason="file-level copyleft: whole files only, each keeps its license"
         )
@@ -823,6 +871,13 @@ def decide(
     if verdict.mode not in {Mode.COPY, Mode.COPY_FILE}:
         return verdict
     terms = selected_terms(prey_spdx)
+    if (
+        Relationship(str(relationship)) is Relationship.FOREIGN
+        and maw_class(maw_spdx) is MawClass.GPL
+    ):
+        chosen = _gpl_compatible_choice(normalize(prey_spdx) or "", maw_spdx)
+        if chosen is not None:
+            terms = selected_terms(chosen)
     if Relationship(str(relationship)) is Relationship.OWN and not verdict.human_review:
         return replace(verdict, selected_licenses=terms)
     duties: set[str] = set()
