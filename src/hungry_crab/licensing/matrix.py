@@ -749,7 +749,9 @@ def decide_for_class(prey_spdx: str | None, maw: MawClass, maw_spdx: str | None 
                 )
             return Verdict(Mode.IDEAS_ONLY, reason="no GPL-compatible SPDX alternative")
     if maw is MawClass.GPL and prey in {
-        "MPL-1.1", "CDDL-1.1", "MPL-2.0-no-copyleft-exception"
+        "MPL-1.1",
+        "CDDL-1.1",
+        "MPL-2.0-no-copyleft-exception",
     }:
         # These known variants cannot be copied into GPL maws. Other unknown IDs
         # still require HUMAN rather than inheriting this narrowly scoped denial.
