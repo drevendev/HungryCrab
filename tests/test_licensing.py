@@ -348,14 +348,25 @@ def test_plain_mpl_2_still_allows_whole_file_copy_into_gpl(maw: str) -> None:
     assert verdict.obligations == ("file-license",)
 
 
+@pytest.mark.parametrize("maw", GPL_FAMILY_MAWS)
 @pytest.mark.parametrize(
     "prey",
     ("MPL-1.1", "CDDL-1.1", "MPL-2.0-no-copyleft-exception"),
 )
-def test_unimplemented_file_copyleft_identifiers_require_review(prey: str) -> None:
-    verdict = decide(prey, "GPL-3.0-only")
-    assert verdict.mode is Mode.HUMAN
-    assert verdict.human_review
+def test_known_incompatible_file_copyleft_identifiers_deny_gpl_copy(
+    prey: str, maw: str
+) -> None:
+    verdict = decide(prey, maw)
+    assert verdict.mode is Mode.IDEAS_ONLY
+    assert not verdict.human_review
+    assert verdict.selected_licenses == ()
+    assert verdict.obligations == ()
+    assert decide_for_class(prey, MawClass.GPL, maw).mode is Mode.IDEAS_ONLY
+
+
+def test_other_unknown_file_copyleft_spellings_still_need_human() -> None:
+    assert decide("MPL-2.0-future-exception", "GPL-2.0-only").mode is Mode.HUMAN
+    assert decide("MPL-1.1", "MIT").mode is Mode.HUMAN
 
 
 @pytest.mark.parametrize(
@@ -368,6 +379,9 @@ def test_unimplemented_file_copyleft_identifiers_require_review(prey: str) -> No
         ("(EPL-2.0 AND MIT) OR GPL-3.0-only", "GPL-3.0-only", Mode.COPY, ("GPL-3.0-only",)),
         ("MPL-2.0 OR GPL-3.0-only", "GPL-3.0-only", Mode.COPY, ("GPL-3.0-only",)),
         ("MPL-2.0 OR GPL-3.0-only", "GPL-2.0-only", Mode.COPY_FILE, ("MPL-2.0",)),
+        ("MPL-2.0 OR Apache-2.0", "GPL-2.0-only", Mode.COPY_FILE, ("MPL-2.0",)),
+        ("Apache-2.0 OR MPL-2.0", "GPL-2.0-only", Mode.COPY_FILE, ("MPL-2.0",)),
+        ("MPL-2.0 OR Apache-2.0", "GPL-3.0-only", Mode.COPY, ("Apache-2.0",)),
         ("EPL-2.0 AND MIT", "GPL-3.0-only", Mode.IDEAS_ONLY, ()),
     ],
 )
@@ -377,7 +391,9 @@ def test_gpl_file_copyleft_or_selects_only_compatible_branch(
     verdict = decide(prey, maw)
     assert verdict.mode is mode
     assert verdict.selected_licenses == selected
-    if selected:
+    if selected == ("Apache-2.0",):
+        assert verdict.obligations == ("copyright-notice", "modification-notice", "notice-file")
+    elif selected:
         assert verdict.obligations == ("file-license",)
     assert decide_for_class(prey, MawClass.GPL, maw).mode is mode
 
