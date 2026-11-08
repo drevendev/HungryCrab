@@ -599,7 +599,11 @@ def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> 
             (SHA, "LICENSES/MIT.txt"): MIT_TEXT,
         }
     )
-    prepared = _prepare(_maw(tmp_path), source_reader=prey)
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": "# SPDX-License-Identifier: MIT\n" + WORKFLOW},
+    )
+    prepared = _prepare(maw, source_reader=prey)
     by_path = {file.path: file.content for file in prepared.files}
     records = parse_attributions(by_path[ATTRIBUTIONS_PATH])
     assert len(records) == 1
@@ -628,7 +632,10 @@ def test_reuse_source_grant_must_be_readable_and_regular_before_publication(
         },
         modes={"LICENSES/MIT.txt": mode},
     )
-    maw = _maw(tmp_path)
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": "# SPDX-License-Identifier: MIT\n" + WORKFLOW},
+    )
     with pytest.raises(CrabError):
         _prepare(maw, source_reader=prey)
     assert not (maw / ATTRIBUTIONS_PATH).exists()
