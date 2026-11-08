@@ -611,7 +611,12 @@ def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> 
     assert [(item.path, item.text) for item in records[0].texts] == [
         ("LICENSES/MIT.txt", clean_text(MIT_TEXT))
     ]
-    assert "LICENSES/MIT.txt" in by_path["THIRD_PARTY_NOTICES.md"]
+    notice = by_path["THIRD_PARTY_NOTICES.md"]
+    source_heading = f"## pypa/pipx @ {SHA[:7]} — MIT"
+    assert source_heading in notice
+    source_section = notice.split(source_heading, 1)[1].split("\n## ", 1)[0]
+    assert "LICENSES/MIT.txt" in source_section
+    assert f"```text\n{clean_text(MIT_TEXT)}\n```" in source_section
 
 
 @pytest.mark.parametrize(
@@ -622,9 +627,9 @@ def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> 
     ],
 )
 def test_reuse_source_grant_must_be_readable_and_regular_before_publication(
-    tmp_path: Path, licence_text: str, mode: str
+    tmp_path: Path, licence_text: str, mode: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """An empty or symlinked REUSE grant is not proof of a source licence."""
+    """An invalid grant fails, and a symlink's blob is never read as a grant."""
     prey = FakePrey(
         {
             (SHA, ".github/workflows/test.yml"): "# SPDX-License-Identifier: MIT\nname: test\n",
@@ -632,12 +637,24 @@ def test_reuse_source_grant_must_be_readable_and_regular_before_publication(
         },
         modes={"LICENSES/MIT.txt": mode},
     )
+    grant_reads: list[str] = []
+    original_read = prey.read
+
+    def observe_read(sha: str, path: str) -> str | None:
+        if path == "LICENSES/MIT.txt":
+            grant_reads.append(path)
+        return original_read(sha, path)
+
+    monkeypatch.setattr(prey, "read", observe_read)
     maw = _maw(
         tmp_path,
         {".github/workflows/ci.yml": "# SPDX-License-Identifier: MIT\n" + WORKFLOW},
     )
-    with pytest.raises(CrabError):
+    with pytest.raises(CrabError, match="no licence file to carry") as exc:
         _prepare(maw, source_reader=prey)
+    assert exc.value.hint == "no bounded established root grant"
+    # A malformed regular file is checked; a symlink is rejected before its blob is read.
+    assert bool(grant_reads) is (mode == "100644")
     assert not (maw / ATTRIBUTIONS_PATH).exists()
     assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
 
