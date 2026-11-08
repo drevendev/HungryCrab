@@ -1671,11 +1671,13 @@ def prepare_copy_pull_request(
         foreign and normalize(receipt.source.license) in _NO_NOTICE_DEDICATIONS
     )
     if obligation.kind != "none" or optional_dedication_text:
+        # Optional text scans root/REUSE files; a rootless SPDX header is valid grant
+        # proof but cannot satisfy the path-scoped notice resolver's text requirement.
         texts = carried_texts(
             receipt.source.sha,
             source_reader,
             receipt.source.license,
-            paths=tuple(item.prey_path for item in receipt.taken),
+            paths=() if optional_dedication_text else tuple(item.prey_path for item in receipt.taken),
             source_url=receipt.source.url,
             selected_licenses=selected_licenses,
         )
