@@ -70,3 +70,56 @@ def test_and_duties_remain_combined_not_a_free_alternative() -> None:
     assert combined.kind == "combined"
     assert "MIT:" in combined.text
     assert "Apache-2.0:" in combined.text
+
+@pytest.mark.parametrize("prey_spdx", OR_CHOICES)
+@pytest.mark.parametrize("with_gpl_text", [True, False])
+def test_prepared_or_copy_uses_the_recipient_selected_grant(
+    tmp_path, prey_spdx: str, with_gpl_text: bool
+) -> None:
+    """Exercise the whole immutable COPY receipt, not just the two helpers.
+
+    The prey proves its original OR grant at the root, while only the selected
+    GPL licence text is allowed to discharge the resulting publication.
+    The negative case must fail before a PR payload can be produced.
+    """
+    import json
+
+    from hungry_crab.attribution import ATTRIBUTIONS_PATH, prepare_copy_pull_request
+    from hungry_crab.errors import CrabError
+    from test_attribution import MENU, PREY, SHA as PREY_SHA, FakePrey, _card, _maw, _payload
+
+    maw = _maw(tmp_path)
+    (maw / ".crab.yml").write_text("license: GPL-3.0-only\n", encoding="utf-8")
+    source = {**PREY, "license": prey_spdx}
+    verdict = decide(prey_spdx, "GPL-3.0-only")
+    files = {
+        (PREY_SHA, "LICENSE"): f"SPDX-License-Identifier: {prey_spdx}\n",
+        (PREY_SHA, ".github/workflows/test.yml"): "name: test\n",
+        (PREY_SHA, "LICENSES/EPL-2.0.txt"): "SPDX-License-Identifier: EPL-2.0\n",
+    }
+    if with_gpl_text:
+        files[(PREY_SHA, "LICENSES/GPL-3.0-only.txt")] = (
+            "SPDX-License-Identifier: GPL-3.0-only\n"
+        )
+    kwargs = {
+        "title": "test: carry synthetic GPL grant",
+        "body": "<!-- crab:ci:ci.cache -->\n\nSynthetic receipt.\n",
+        "attribution_file": "THIRD_PARTY_NOTICES.md",
+        "source_reader": FakePrey(files),
+    }
+    menu = {**MENU, "prey": source, "verdict": verdict.to_dict()}
+    if not with_gpl_text:
+        with pytest.raises(CrabError, match="source grant cannot establish"):
+            prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
+        return
+
+    prepared = prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
+    generated = {item.path: item.content for item in prepared.files}
+    record = json.loads(generated[ATTRIBUTIONS_PATH])["receipts"][0]
+    expected = obligation_for("GPL-3.0-only", verdict.to_dict())
+    assert record["source"]["license"] == prey_spdx
+    assert record["obligation"]["kind"] == expected.kind
+    assert record["obligation"]["text"] == expected.text
+    assert [item["path"] for item in record["texts"]] == ["LICENSES/GPL-3.0-only.txt"]
+    assert "LICENSES/GPL-3.0-only.txt" in generated["THIRD_PARTY_NOTICES.md"]
+    assert "LICENSES/EPL-2.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
