@@ -626,11 +626,11 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     """A pinned SPDX header proves a dedication without inventing notice duties."""
     source = {**PREY, "license": dedication}
     prey = FakePrey(
-        {(SHA, ".github/workflows/test.yml"): f"# SPDX-License-Identifier: {dedication}\\nname: test\\n"}
+        {(SHA, ".github/workflows/test.yml"): f"# SPDX-License-Identifier: {dedication}\nname: test\n"}
     )
     maw = _maw(
         tmp_path,
-        {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {dedication}\\n" + WORKFLOW},
+        {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {dedication}\n" + WORKFLOW},
     )
     prepared = prepare_copy_pull_request(
         _card(), {**MENU, "prey": source}, _payload(source=source), maw,
@@ -645,13 +645,13 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     assert f"## pypa/pipx @ {SHA[:7]} — {dedication}" in by_path["THIRD_PARTY_NOTICES.md"]
 
 
-@pytest.mark.parametrize("header", ["", "# SPDX-License-Identifier: MIT\\n"])
+@pytest.mark.parametrize("header", ["", "# SPDX-License-Identifier: MIT\n"])
 def test_unproven_or_contradictory_cc0_dedication_is_refused(
     tmp_path: Path, header: str
 ) -> None:
     """Removing a notice duty must never grant COPY rights by itself."""
     source = {**PREY, "license": "CC0-1.0"}
-    prey = FakePrey({(SHA, ".github/workflows/test.yml"): header + "name: test\\n"})
+    prey = FakePrey({(SHA, ".github/workflows/test.yml"): header + "name: test\n"})
     maw = _maw(tmp_path, {".github/workflows/ci.yml": header + WORKFLOW})
     with pytest.raises(CrabError):
         prepare_copy_pull_request(
