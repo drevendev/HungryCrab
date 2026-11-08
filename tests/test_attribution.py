@@ -620,13 +620,19 @@ def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> 
 
 
 @pytest.mark.parametrize("dedication", ["CC0-1.0", "MIT-0", "0BSD", "Unlicense", "WTFPL"])
+@pytest.mark.parametrize("licence_path", [None, "LICENSE", "LICENSES/{dedication}.txt"])
 def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
-    tmp_path: Path, dedication: str
+    tmp_path: Path, dedication: str, licence_path: str | None
 ) -> None:
-    """A pinned SPDX header proves a dedication without inventing notice duties."""
+    """Pinned SPDX proof permits absent text, but available dedication text travels."""
     source = {**PREY, "license": dedication}
     prey_text = f"# SPDX-License-Identifier: {dedication}\nname: test\n"
-    prey = FakePrey({(SHA, ".github/workflows/test.yml"): prey_text})
+    prey_files = {(SHA, ".github/workflows/test.yml"): prey_text}
+    optional_path = licence_path.format(dedication=dedication) if licence_path else None
+    dedication_text = f"# SPDX-License-Identifier: {dedication}\nOptional original dedication.\n"
+    if optional_path:
+        prey_files[(SHA, optional_path)] = dedication_text
+    prey = FakePrey(prey_files)
     maw = _maw(
         tmp_path,
         {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {dedication}\n" + WORKFLOW},
@@ -646,8 +652,21 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     records = parse_attributions(by_path[ATTRIBUTIONS_PATH])
     assert len(records) == 1
     assert records[0].obligation.kind == "none"
-    assert records[0].texts == ()
-    assert f"## pypa/pipx @ {SHA[:7]} — {dedication}" in by_path["THIRD_PARTY_NOTICES.md"]
+    heading = f"## pypa/pipx @ {SHA[:7]} — {dedication}"
+    notice = by_path["THIRD_PARTY_NOTICES.md"]
+    assert heading in notice
+    source_section = notice.split(heading, 1)[1].split("\n## ", 1)[0]
+    if optional_path is None:
+        assert records[0].texts == ()
+        assert "Optional original dedication." not in source_section
+    else:
+        expected_text = clean_text(dedication_text)
+        assert [(item.path, item.text) for item in records[0].texts] == [
+            (optional_path, expected_text)
+        ]
+        assert optional_path in source_section
+        fence = chr(96) * 3
+        assert f"{fence}text\n{expected_text}\n{fence}" in source_section
 
 
 @pytest.mark.parametrize(
