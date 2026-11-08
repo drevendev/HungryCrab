@@ -591,6 +591,50 @@ def test_source_license_reads_ignore_replacement_commits(tmp_path: Path) -> None
     assert carried_texts(original, reader)[0].text == "Original licence"
 
 
+def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> None:
+    """A rootless REUSE licence travels when the taken file establishes its grant."""
+    prey = FakePrey(
+        {
+            (SHA, ".github/workflows/test.yml"): "# SPDX-License-Identifier: MIT\nname: test\n",
+            (SHA, "LICENSES/MIT.txt"): MIT_TEXT,
+        }
+    )
+    prepared = _prepare(_maw(tmp_path), source_reader=prey)
+    by_path = {file.path: file.content for file in prepared.files}
+    records = parse_attributions(by_path[ATTRIBUTIONS_PATH])
+    assert len(records) == 1
+    assert records[0].obligation.kind == "copyright-notice"
+    assert [(item.path, item.text) for item in records[0].texts] == [
+        ("LICENSES/MIT.txt", clean_text(MIT_TEXT))
+    ]
+    assert "LICENSES/MIT.txt" in by_path["THIRD_PARTY_NOTICES.md"]
+
+
+@pytest.mark.parametrize(
+    ("licence_text", "mode"),
+    [
+        ("not a licence grant\n", "100644"),
+        (MIT_TEXT, "120000"),
+    ],
+)
+def test_reuse_source_grant_must_be_readable_and_regular_before_publication(
+    tmp_path: Path, licence_text: str, mode: str
+) -> None:
+    """An empty or symlinked REUSE grant is not proof of a source licence."""
+    prey = FakePrey(
+        {
+            (SHA, ".github/workflows/test.yml"): "# SPDX-License-Identifier: MIT\nname: test\n",
+            (SHA, "LICENSES/MIT.txt"): licence_text,
+        },
+        modes={"LICENSES/MIT.txt": mode},
+    )
+    maw = _maw(tmp_path)
+    with pytest.raises(CrabError):
+        _prepare(maw, source_reader=prey)
+    assert not (maw / ATTRIBUTIONS_PATH).exists()
+    assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+
+
 @pytest.mark.parametrize("value", [False, 42, "a", {}, None])
 @pytest.mark.parametrize("array", ["receipts", "taken", "texts"])
 def test_every_malformed_stored_array_shape_fails(array: str, value: Any) -> None:
