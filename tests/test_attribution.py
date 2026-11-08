@@ -42,6 +42,7 @@ from hungry_crab.attribution import (
     prepare_copy_pull_request,
     receipt_kind,
     render_notices,
+    upstream_records,
     verify_sources,
 )
 from hungry_crab.cli import main
@@ -311,6 +312,36 @@ def test_obligation_is_structured_not_a_generic_copyright_line(
     obligation = obligation_for(spdx, {"reason": reason})
     assert obligation.kind == kind
     assert obligation.text
+
+
+@pytest.mark.parametrize("spdx", ["MPL-2.0", "CC-BY-SA-4.0"])
+def test_upstream_file_licence_receipt_cannot_drop_its_carried_text(spdx: str) -> None:
+    """An earlier prey's COPY_FILE receipt cannot lose its required licence evidence."""
+    receipt = load_materialization_receipt(_payload())
+    upstream = replace(
+        _record(
+            sha=OTHER_SHA,
+            label="anthropics/skills",
+            taken=(TakenFile(".github/workflows/test.yml", "docs/source.md", True),),
+        ),
+        source=SourceRef(
+            "anthropics/skills", "https://github.com/anthropics/skills", OTHER_SHA, spdx
+        ),
+        obligation=obligation_for(spdx, {}),
+    )
+    missing = FakePrey({(SHA, ATTRIBUTIONS_PATH): dump_attributions([upstream])})
+    with pytest.raises(CrabError) as raised:
+        upstream_records(receipt, missing)
+    assert raised.value.hint == "matching upstream receipt has lost its licence notices"
+
+    preserved = replace(
+        upstream,
+        texts=(CarriedText(f"LICENSES/{spdx}.txt", f"{spdx} licence text"),),
+    )
+    source = FakePrey({(SHA, ATTRIBUTIONS_PATH): dump_attributions([preserved])})
+    actual = upstream_records(receipt, source)
+    assert len(actual) == 1
+    assert actual[0].texts == preserved.texts
 
 
 # --- source verification -----------------------------------------------------------------

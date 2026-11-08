@@ -1005,7 +1005,9 @@ class GitSourceReader:
 
 
 # A licence obligation that asks for the source's own notice to travel with the material.
-_NOTICE_OWED = frozenset({"copyright-notice", "notice-file", "attribution", "combined"})
+_NOTICE_OWED = frozenset(
+    {"copyright-notice", "notice-file", "attribution", "file-license", "combined"}
+)
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
 # A regular file, executable or not; a link (120000) or a submodule (160000) is not material.
