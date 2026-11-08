@@ -1034,9 +1034,7 @@ def carried_texts(
     scoped_grants: set[str] = set()
     resolver = GrantResolver(reader, sha, source_url)
     terms = _publication_terms(spdx, selected_licenses)
-    selected_branch = (
-        terms[0] if len(terms) == 1 and allows_alternative(spdx, terms[0]) else spdx
-    )
+    selected_branch = terms[0] if len(terms) == 1 and allows_alternative(spdx, terms[0]) else spdx
     for path in paths:
         scoped = resolver.resolve(path, selected_branch=selected_branch)
         if scoped.expression is None:
@@ -1679,9 +1677,7 @@ def prepare_copy_pull_request(
             ),
         )
     if foreign:
-        verify_root_grant(
-            receipt, source_reader, texts, selected_licenses=selected_licenses
-        )
+        verify_root_grant(receipt, source_reader, texts, selected_licenses=selected_licenses)
     record = AttributionRecord(
         nutrient_id=card.id,
         source=receipt.source,
