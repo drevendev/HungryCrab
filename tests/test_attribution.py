@@ -654,7 +654,10 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     ("header", "expected_error"),
     [
         ("", "source root grant contradicts the COPY receipt's expression"),
-        ("# SPDX-License-Identifier: MIT\n", "a taken file declares another licence than the source's"),
+        (
+            "# SPDX-License-Identifier: MIT\n",
+            "a taken file declares another licence than the source's",
+        ),
     ],
 )
 def test_unproven_or_contradictory_cc0_dedication_is_refused(
