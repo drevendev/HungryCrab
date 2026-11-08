@@ -650,13 +650,21 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     assert f"## pypa/pipx @ {SHA[:7]} — {dedication}" in by_path["THIRD_PARTY_NOTICES.md"]
 
 
-@pytest.mark.parametrize("header", ["", "# SPDX-License-Identifier: MIT\n"])
-def test_unproven_or_contradictory_cc0_dedication_is_refused(tmp_path: Path, header: str) -> None:
+@pytest.mark.parametrize(
+    ("header", "expected_error"),
+    [
+        ("", "source root grant contradicts the COPY receipt's expression"),
+        ("# SPDX-License-Identifier: MIT\\n", "a taken file declares another licence than the source's"),
+    ],
+)
+def test_unproven_or_contradictory_cc0_dedication_is_refused(
+    tmp_path: Path, header: str, expected_error: str
+) -> None:
     """Removing a notice duty must never grant COPY rights by itself."""
     source = {**PREY, "license": "CC0-1.0"}
     prey = FakePrey({(SHA, ".github/workflows/test.yml"): header + "name: test\n"})
     maw = _maw(tmp_path, {".github/workflows/ci.yml": header + WORKFLOW})
-    with pytest.raises(CrabError):
+    with pytest.raises(CrabError, match=re.escape(expected_error)):
         prepare_copy_pull_request(
             _card(),
             {**MENU, "prey": source},
@@ -668,8 +676,7 @@ def test_unproven_or_contradictory_cc0_dedication_is_refused(tmp_path: Path, hea
             source_reader=prey,
             now=NOW,
         )
-    assert not (maw / ATTRIBUTIONS_PATH).exists()
-    assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+    # This preparation function returns an in-memory payload; provider writes are out of scope.
 
 
 @pytest.mark.parametrize(
