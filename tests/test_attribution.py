@@ -591,6 +591,74 @@ def test_source_license_reads_ignore_replacement_commits(tmp_path: Path) -> None
     assert carried_texts(original, reader)[0].text == "Original licence"
 
 
+def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> None:
+    """A rootless REUSE licence travels when the taken file establishes its grant."""
+    prey = FakePrey(
+        {
+            (SHA, ".github/workflows/test.yml"): "# SPDX-License-Identifier: MIT\nname: test\n",
+            (SHA, "LICENSES/MIT.txt"): MIT_TEXT,
+        }
+    )
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": "# SPDX-License-Identifier: MIT\n" + WORKFLOW},
+    )
+    prepared = _prepare(maw, source_reader=prey)
+    by_path = {file.path: file.content for file in prepared.files}
+    records = parse_attributions(by_path[ATTRIBUTIONS_PATH])
+    assert len(records) == 1
+    assert records[0].obligation.kind == "copyright-notice"
+    assert [(item.path, item.text) for item in records[0].texts] == [
+        ("LICENSES/MIT.txt", clean_text(MIT_TEXT))
+    ]
+    notice = by_path["THIRD_PARTY_NOTICES.md"]
+    source_heading = f"## pypa/pipx @ {SHA[:7]} — MIT"
+    assert source_heading in notice
+    source_section = notice.split(source_heading, 1)[1].split("\n## ", 1)[0]
+    assert "LICENSES/MIT.txt" in source_section
+    assert f"```text\n{clean_text(MIT_TEXT)}\n```" in source_section
+
+
+@pytest.mark.parametrize(
+    ("licence_text", "mode"),
+    [
+        ("not a licence grant\n", "100644"),
+        (MIT_TEXT, "120000"),
+    ],
+)
+def test_reuse_source_grant_must_be_readable_and_regular_before_publication(
+    tmp_path: Path, licence_text: str, mode: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An invalid grant fails, and a symlink's blob is never read as a grant."""
+    prey = FakePrey(
+        {
+            (SHA, ".github/workflows/test.yml"): "# SPDX-License-Identifier: MIT\nname: test\n",
+            (SHA, "LICENSES/MIT.txt"): licence_text,
+        },
+        modes={"LICENSES/MIT.txt": mode},
+    )
+    grant_reads: list[str] = []
+    original_read = prey.read
+
+    def observe_read(sha: str, path: str) -> str | None:
+        if path == "LICENSES/MIT.txt":
+            grant_reads.append(path)
+        return original_read(sha, path)
+
+    monkeypatch.setattr(prey, "read", observe_read)
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": "# SPDX-License-Identifier: MIT\n" + WORKFLOW},
+    )
+    with pytest.raises(CrabError, match="no licence file to carry") as exc:
+        _prepare(maw, source_reader=prey)
+    assert exc.value.hint == "no bounded established root grant"
+    # A malformed regular file is checked; a symlink is rejected before its blob is read.
+    assert bool(grant_reads) is (mode == "100644")
+    assert not (maw / ATTRIBUTIONS_PATH).exists()
+    assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+
+
 @pytest.mark.parametrize("value", [False, 42, "a", {}, None])
 @pytest.mark.parametrize("array", ["receipts", "taken", "texts"])
 def test_every_malformed_stored_array_shape_fails(array: str, value: Any) -> None:
