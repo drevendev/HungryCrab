@@ -625,9 +625,8 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
 ) -> None:
     """A pinned SPDX header proves a dedication without inventing notice duties."""
     source = {**PREY, "license": dedication}
-    prey = FakePrey(
-        {(SHA, ".github/workflows/test.yml"): f"# SPDX-License-Identifier: {dedication}\nname: test\n"}
-    )
+    prey_text = f"# SPDX-License-Identifier: {dedication}\nname: test\n"
+    prey = FakePrey({(SHA, ".github/workflows/test.yml"): prey_text})
     maw = _maw(
         tmp_path,
         {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {dedication}\n" + WORKFLOW},
