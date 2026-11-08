@@ -1677,7 +1677,9 @@ def prepare_copy_pull_request(
             receipt.source.sha,
             source_reader,
             receipt.source.license,
-            paths=() if optional_dedication_text else tuple(item.prey_path for item in receipt.taken),
+            paths=() if optional_dedication_text else tuple(
+                item.prey_path for item in receipt.taken
+            ),
             source_url=receipt.source.url,
             selected_licenses=selected_licenses,
         )
