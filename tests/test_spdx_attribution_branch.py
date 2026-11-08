@@ -59,7 +59,9 @@ def test_gpl_maw_or_carries_the_selected_reuse_licence_only(prey_spdx: str) -> N
     assert verdict.mode is Mode.COPY
     assert verdict.selected_licenses == ("GPL-3.0-only",)
 
-    carried = carried_texts(SHA, _SyntheticPrey(), prey_spdx)
+    carried = carried_texts(
+        SHA, _SyntheticPrey(), prey_spdx, selected_licenses=verdict.selected_licenses
+    )
     assert [text.path for text in carried] == ["LICENSES/GPL-3.0-only.txt"]
 
 
