@@ -330,8 +330,9 @@ def test_upstream_file_licence_receipt_cannot_drop_its_carried_text(spdx: str) -
         obligation=obligation_for(spdx, {}),
     )
     missing = FakePrey({(SHA, ATTRIBUTIONS_PATH): dump_attributions([upstream])})
-    with pytest.raises(CrabError, match="matching upstream receipt has lost its licence notices"):
+    with pytest.raises(CrabError) as raised:
         upstream_records(receipt, missing)
+    assert raised.value.hint == "matching upstream receipt has lost its licence notices"
 
     preserved = replace(
         upstream,
