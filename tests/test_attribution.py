@@ -314,7 +314,6 @@ def test_obligation_is_structured_not_a_generic_copyright_line(
     assert obligation.text
 
 
-
 @pytest.mark.parametrize("spdx", ["MPL-2.0", "CC-BY-SA-4.0"])
 def test_upstream_file_licence_receipt_cannot_drop_its_carried_text(spdx: str) -> None:
     """An earlier prey's COPY_FILE receipt cannot lose its required licence evidence."""
@@ -325,7 +324,9 @@ def test_upstream_file_licence_receipt_cannot_drop_its_carried_text(spdx: str) -
             label="anthropics/skills",
             taken=(TakenFile(".github/workflows/test.yml", "docs/source.md", True),),
         ),
-        source=SourceRef("anthropics/skills", "https://github.com/anthropics/skills", OTHER_SHA, spdx),
+        source=SourceRef(
+            "anthropics/skills", "https://github.com/anthropics/skills", OTHER_SHA, spdx
+        ),
         obligation=obligation_for(spdx, {}),
     )
     missing = FakePrey({(SHA, ATTRIBUTIONS_PATH): dump_attributions([upstream])})
@@ -340,7 +341,6 @@ def test_upstream_file_licence_receipt_cannot_drop_its_carried_text(spdx: str) -
     actual = upstream_records(receipt, source)
     assert len(actual) == 1
     assert actual[0].texts == preserved.texts
-
 
 
 # --- source verification -----------------------------------------------------------------
