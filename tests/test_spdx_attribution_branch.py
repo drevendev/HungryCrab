@@ -71,6 +71,7 @@ def test_and_duties_remain_combined_not_a_free_alternative() -> None:
     assert "MIT:" in combined.text
     assert "Apache-2.0:" in combined.text
 
+
 @pytest.mark.parametrize("prey_spdx", OR_CHOICES)
 @pytest.mark.parametrize("with_gpl_text", [True, False])
 def test_prepared_or_copy_uses_the_recipient_selected_grant(
@@ -84,9 +85,11 @@ def test_prepared_or_copy_uses_the_recipient_selected_grant(
     """
     import json
 
+    from test_attribution import MENU, PREY, FakePrey, _card, _maw, _payload
+    from test_attribution import SHA as PREY_SHA
+
     from hungry_crab.attribution import ATTRIBUTIONS_PATH, prepare_copy_pull_request
     from hungry_crab.errors import CrabError
-    from test_attribution import MENU, PREY, SHA as PREY_SHA, FakePrey, _card, _maw, _payload
 
     maw = _maw(tmp_path)
     (maw / ".crab.yml").write_text("license: GPL-3.0-only\n", encoding="utf-8")
@@ -98,9 +101,7 @@ def test_prepared_or_copy_uses_the_recipient_selected_grant(
         (PREY_SHA, "LICENSES/EPL-2.0.txt"): "SPDX-License-Identifier: EPL-2.0\n",
     }
     if with_gpl_text:
-        files[(PREY_SHA, "LICENSES/GPL-3.0-only.txt")] = (
-            "SPDX-License-Identifier: GPL-3.0-only\n"
-        )
+        files[(PREY_SHA, "LICENSES/GPL-3.0-only.txt")] = "SPDX-License-Identifier: GPL-3.0-only\n"
     kwargs = {
         "title": "test: carry synthetic GPL grant",
         "body": "<!-- crab:ci:ci.cache -->\n\nSynthetic receipt.\n",
