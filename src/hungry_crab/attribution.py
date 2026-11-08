@@ -392,6 +392,8 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
         )
     if len(terms) == 1 and normalize(spdx) != terms[0]:
         return obligation_for(terms[0], verdict)
+    if normalize(spdx) in _NO_NOTICE_DEDICATIONS:
+        return Obligation("none", "zero-condition dedication: no licence notice is owed")
     cls = classify(normalize(spdx))
     if cls is LicenseClass.PERMISSIVE:
         return Obligation(
@@ -1008,6 +1010,8 @@ class GitSourceReader:
 _NOTICE_OWED = frozenset(
     {"copyright-notice", "notice-file", "attribution", "file-license", "combined"}
 )
+# SPDX zero-condition dedications require proof of the grant, but no carried notice.
+_NO_NOTICE_DEDICATIONS = frozenset({"0BSD", "MIT-0", "Unlicense", "CC0-1.0", "WTFPL"})
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
 # A regular file, executable or not; a link (120000) or a submodule (160000) is not material.
@@ -1217,7 +1221,10 @@ def verify_root_grant(
         term for carried in texts for term in license_terms(detect_from_text(carried.text)[0])
     }
     required = _publication_terms(receipt.source.license, selected_licenses)
-    if not set(required) <= observed:
+    # The pinned source grant was verified above. Carried texts prove notice duties,
+    # not the existence of a zero-condition dedication like CC0.
+    notice_terms = set(required) - _NO_NOTICE_DEDICATIONS
+    if not notice_terms <= observed:
         raise publication_error("source grant cannot establish the COPY receipt's selected terms")
 
 
