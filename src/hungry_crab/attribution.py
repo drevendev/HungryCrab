@@ -39,6 +39,7 @@ from .licensing.detect import (
 )
 from .licensing.matrix import (
     LicenseClass,
+    allows_alternative,
     canonical_expression,
     classify,
     decide,
@@ -344,6 +345,30 @@ class Obligation:
         return cls(kind=str(data.get("kind", "review")), text=str(data.get("text", "")))
 
 
+def _publication_terms(spdx: str | None, selected: object = None) -> tuple[str, ...]:
+    """Keep a recipient-selected OR branch without silently dropping AND duties.
+
+    A selected grant must either preserve every established duty or be a real
+    top-level OR alternative. Nested composite alternatives need separate
+    explicit support; unknown or forged subsets fail closed.
+    """
+    fallback = selected_terms(spdx)
+    if selected is None:
+        return fallback
+    if (
+        not isinstance(selected, (tuple, list))
+        or not selected
+        or not all(isinstance(term, str) and term for term in selected)
+    ):
+        raise publication_error("selected source licence branch is missing or malformed")
+    terms = tuple(sorted(set(selected)))
+    if terms == tuple(sorted(set(fallback))) or (
+        len(terms) == 1 and allows_alternative(spdx, terms[0])
+    ):
+        return terms
+    raise publication_error("selected source licence branch is not an established OR choice")
+
+
 def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
     """The structured obligation behind a COPY verdict.
 
@@ -358,7 +383,7 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
         )
     if verdict.get("relationship") == "own" and verdict.get("human_review") is not True:
         return Obligation("none", "same owner: no third-party notice is owed for one's own code")
-    terms = selected_terms(spdx)
+    terms = _publication_terms(spdx, verdict.get("selected_licenses") or None)
     if len(terms) > 1:
         duties = [obligation_for(term, {}) for term in terms]
         return Obligation(
@@ -994,6 +1019,7 @@ def carried_texts(
     *,
     paths: tuple[str, ...] = (),
     source_url: str | None = None,
+    selected_licenses: tuple[str, ...] | None = None,
 ) -> tuple[CarriedText, ...]:
     """The licence and NOTICE files at the root of the source at ``sha``, in name order."""
 
@@ -1007,8 +1033,12 @@ def carried_texts(
     scoped_names: set[str] = set()
     scoped_grants: set[str] = set()
     resolver = GrantResolver(reader, sha, source_url)
+    terms = _publication_terms(spdx, selected_licenses)
+    selected_branch = (
+        terms[0] if len(terms) == 1 and allows_alternative(spdx, terms[0]) else spdx
+    )
     for path in paths:
-        scoped = resolver.resolve(path, selected_branch=spdx)
+        scoped = resolver.resolve(path, selected_branch=selected_branch)
         if scoped.expression is None:
             raise publication_error(
                 "no licence file to carry; root grant is unreadable "
@@ -1024,7 +1054,6 @@ def carried_texts(
             names[ref] = mode
             scoped_names.add(ref)
     texts: list[CarriedText] = []
-    terms = selected_terms(spdx)
     directories: tuple[str, ...] = (
         "LICENSES",
         "licenses",
@@ -1120,7 +1149,11 @@ def _verify_upstream_notices(record: AttributionRecord) -> None:
 
 
 def verify_root_grant(
-    receipt: MaterializationReceipt, reader: SourceReader, texts: tuple[CarriedText, ...]
+    receipt: MaterializationReceipt,
+    reader: SourceReader,
+    texts: tuple[CarriedText, ...],
+    *,
+    selected_licenses: tuple[str, ...] | None = None,
 ) -> None:
     """Recheck immutable source grants so an old or edited COPY menu cannot grant rights."""
     roots = reader.entries(receipt.source.sha) or {}
@@ -1183,7 +1216,8 @@ def verify_root_grant(
     observed = {
         term for carried in texts for term in license_terms(detect_from_text(carried.text)[0])
     }
-    if not set(selected_terms(receipt.source.license)) <= observed:
+    required = _publication_terms(receipt.source.license, selected_licenses)
+    if not set(required) <= observed:
         raise publication_error("source grant cannot establish the COPY receipt's selected terms")
 
 
@@ -1608,14 +1642,21 @@ def prepare_copy_pull_request(
     verify_sources(receipt, source_reader, maw_files)
     check_taken_licences(receipt, source_reader)
 
-    obligation = obligation_for(receipt.source.license, as_dict(menu.get("verdict")))
-    if as_dict(menu.get("verdict")).get("relationship", "foreign") == "foreign":
+    menu_verdict = as_dict(menu.get("verdict"))
+    foreign = menu_verdict.get("relationship", "foreign") == "foreign"
+    selected_licenses: tuple[str, ...] | None = None
+    obligation_verdict = menu_verdict
+    if foreign:
         maw_license = MawConfig.load(maw_root).license or as_dict(menu.get("maw")).get("license")
         current = decide(receipt.source.license, maw_license)
         if current.mode.value not in COPY_MODES or (
             current.mode.value == "COPY_FILE" and any(not item.verbatim for item in receipt.taken)
         ):
             raise publication_error("current licence policy does not authorize this COPY receipt")
+        # Recompute from the current maw, never trust a stale menu's chosen OR branch.
+        selected_licenses = current.selected_licenses
+        obligation_verdict = current.to_dict()
+    obligation = obligation_for(receipt.source.license, obligation_verdict)
     texts: tuple[CarriedText, ...] = ()
     if obligation.kind != "none":
         texts = carried_texts(
@@ -1624,6 +1665,7 @@ def prepare_copy_pull_request(
             receipt.source.license,
             paths=tuple(item.prey_path for item in receipt.taken),
             source_url=receipt.source.url,
+            selected_licenses=selected_licenses,
         )
     if obligation.kind in _NOTICE_OWED and not any(
         is_license_file_name(t.path) or t.path.split("/")[0].lower() in LICENSE_DIRS for t in texts
@@ -1636,8 +1678,10 @@ def prepare_copy_pull_request(
                 "root; serve the nutrient as an issue, or carry the notice by hand"
             ),
         )
-    if as_dict(menu.get("verdict")).get("relationship", "foreign") == "foreign":
-        verify_root_grant(receipt, source_reader, texts)
+    if foreign:
+        verify_root_grant(
+            receipt, source_reader, texts, selected_licenses=selected_licenses
+        )
     record = AttributionRecord(
         nutrient_id=card.id,
         source=receipt.source,
