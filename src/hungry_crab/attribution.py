@@ -1665,7 +1665,12 @@ def prepare_copy_pull_request(
         obligation_verdict = current.to_dict()
     obligation = obligation_for(receipt.source.license, obligation_verdict)
     texts: tuple[CarriedText, ...] = ()
-    if obligation.kind != "none":
+    # A zero-condition dedication owes no notice, but preserve its pinned source text
+    # when available. Its absence must not defeat an independently proven SPDX grant.
+    optional_dedication_text = (
+        foreign and normalize(receipt.source.license) in _NO_NOTICE_DEDICATIONS
+    )
+    if obligation.kind != "none" or optional_dedication_text:
         texts = carried_texts(
             receipt.source.sha,
             source_reader,
