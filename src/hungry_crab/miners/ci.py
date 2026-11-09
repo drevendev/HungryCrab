@@ -19,7 +19,7 @@ from .ci_tools import TEST_TOOLS
 
 WORKFLOW_DIR = ".github/workflows/"
 _ACTION_RE = re.compile(r"^(?P<repo>[\w.-]+/[\w.-]+)(?P<path>/[^@\s]+)?@(?P<ref>\S+)$")
-_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 # Matches every `uses:` and swallows its reference, so the search resumes after it; the version
 # comment is optional and checked by the caller. `(\S+?)...#` had to fail at each `uses:` of a
 # long run without a `#`, rescanning the rest of the run each time.
