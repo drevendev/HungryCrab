@@ -141,7 +141,7 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     """A CC0 term needs proof but cannot invent an Apache notice or waive it."""
     import json
 
-    from test_attribution import MENU, PREY, FakePrey, _card, _maw, _payload
+    from test_attribution import MENU, PREY, WORKFLOW, FakePrey, _card, _maw, _payload
     from test_attribution import SHA as PREY_SHA
 
     from hungry_crab.attribution import ATTRIBUTIONS_PATH, prepare_copy_pull_request
@@ -155,7 +155,12 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     }
     if with_apache_text:
         files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = "SPDX-License-Identifier: Apache-2.0\n"
-    maw = _maw(tmp_path)
+    # An adapted file retains its pinned SPDX header; license notice proof
+    # remains a separate publication gate for the Apache term.
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {prey_spdx}\n{WORKFLOW}"},
+    )
     (maw / ".crab.yml").write_text(f"license: {maw_spdx}\n", encoding="utf-8")
     kwargs = {
         "title": "test: carry one Apache licence obligation",
@@ -165,7 +170,7 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     }
     menu = {**MENU, "prey": source}
     if not with_apache_text:
-        with pytest.raises(CrabError):
+        with pytest.raises(CrabError, match="source grant cannot establish"):
             prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
         assert not (maw / ATTRIBUTIONS_PATH).exists()
         assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
