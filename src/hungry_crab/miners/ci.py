@@ -204,6 +204,11 @@ _RUNNER_RE = re.compile(r"ubuntu|windows|macos", re.IGNORECASE)
 
 def parse_action(uses: str) -> dict[str, Any]:
     text = uses.strip()
+    # An unresolved workflow expression is not a literal action reference,
+    # even when it contains no whitespace and matches the marketplace regex.
+    # Keep partial expression markers unsupported instead of guessing a ref.
+    if "${{" in text or "}}" in text:
+        return {"kind": "unknown", "action": text, "ref": None, "pinned_sha": False}
     if text.startswith("./"):
         return {"kind": "local", "action": text, "ref": None, "pinned_sha": False}
     if text.startswith("docker://"):
