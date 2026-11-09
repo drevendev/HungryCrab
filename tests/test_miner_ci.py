@@ -22,6 +22,40 @@ def test_parse_action_variants() -> None:
     assert parse_action("docker://alpine:3.20")["kind"] == "docker"
 
 
+
+def test_parse_action_sha_pin_accepts_both_ascii_hex_cases() -> None:
+    lower = "11bd71901bbe5b1630ceea73d27597364c9af683"
+    for ref in (lower, lower.upper(), lower[:20].upper() + lower[20:]):
+        assert parse_action(f"actions/checkout@{ref}") == {
+            "kind": "marketplace",
+            "action": "actions/checkout",
+            "ref": ref,
+            "pinned_sha": True,
+        }
+    for ref in (lower[:-1], lower + "a", "g" + lower[1:], "Ｆ" + lower[1:], "v4"):
+        assert parse_action(f"actions/checkout@{ref}") == {
+            "kind": "marketplace",
+            "action": "actions/checkout",
+            "ref": ref,
+            "pinned_sha": False,
+        }
+    assert parse_action("./.github/actions/setup")["kind"] == "local"
+    assert parse_action("docker://alpine:3.20")["kind"] == "docker"
+
+    workflow = f"""name: Uppercase SHA
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@{lower.upper()}
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/uppercase-sha.yml")
+    assert parsed is not None
+    assert parsed["actions"][0]["pinned_sha"] is True
+    assert parsed["actions"][0]["ref"] == lower.upper()
+
+
 def test_parse_workflow_handles_yaml_on_key_and_reusable_calls() -> None:
     text = """name: Reuse
 on:
