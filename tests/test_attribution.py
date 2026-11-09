@@ -629,7 +629,7 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     prey_text = f"# SPDX-License-Identifier: {dedication}\nname: test\n"
     prey_files = {(SHA, ".github/workflows/test.yml"): prey_text}
     optional_path = licence_path.format(dedication=dedication) if licence_path else None
-    dedication_text = f"# SPDX-License-Identifier: {dedication}\nOptional original dedication.\n"
+    dedication_text = f"# SPDX-License-Identifier: {dedication}\nCopyright (c) 2026 Fixture Authors\n"
     if optional_path:
         prey_files[(SHA, optional_path)] = dedication_text
     prey = FakePrey(prey_files)
@@ -658,7 +658,7 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     source_section = notice.split(heading, 1)[1].split("\n## ", 1)[0]
     if optional_path is None:
         assert records[0].texts == ()
-        assert "Optional original dedication." not in source_section
+        assert "Fixture Authors" not in source_section
     else:
         expected_text = clean_text(dedication_text)
         assert [(item.path, item.text) for item in records[0].texts] == [
