@@ -94,6 +94,37 @@ jobs:
     assert parsed["actions"][1]["action"] == "sample-org/Checker/subaction"
 
 
+
+def test_unresolved_actions_do_not_infer_tools_or_coverage() -> None:
+    workflow = """name: Unknown action refs
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codecov/codecov-action@${{github.sha}}
+      - uses: astral-sh/ruff-action@${{inputs.ref}}
+      - uses: actions/checkout@v4
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/unknown.yml")
+    assert parsed is not None
+    assert [a["kind"] for a in parsed["actions"]] == [
+        "unknown",
+        "unknown",
+        "marketplace",
+    ]
+    assert parsed["tools"] == []
+    assert parsed["coverage"]["upload"] is None
+    assert parsed["cache"] is False
+
+    literal = workflow.replace("${{github.sha}}", "v5").replace("${{inputs.ref}}", "v1")
+    resolved = parse_workflow(literal, ".github/workflows/resolved.yml")
+    assert resolved is not None
+    assert resolved["tools"] == ["codecov", "ruff"]
+    assert resolved["coverage"]["upload"] == "codecov"
+
+
+
 def test_parse_workflow_handles_yaml_on_key_and_reusable_calls() -> None:
     text = """name: Reuse
 on:
