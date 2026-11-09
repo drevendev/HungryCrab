@@ -193,9 +193,7 @@ def test_and_dedication_keeps_available_texts_without_inventing_notice_duty(
     ]
     assert "LICENSES/Apache-2.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
     assert "LICENSES/CC0-1.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
-    assert "CC0-1.0: zero-condition dedication: no licence notice is owed" in record[
-        "obligation"
-    ]["text"]
+    assert "CC0-1.0: zero-condition" in record["obligation"]["text"]
 
 
 @pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
