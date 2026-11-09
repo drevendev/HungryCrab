@@ -89,6 +89,7 @@ jobs:
         "action": "sample-org/Checker@${{github.sha}}",
         "ref": None,
         "pinned_sha": False,
+        "job": "test",
     }
     assert parsed["actions"][1]["kind"] == "marketplace"
     assert parsed["actions"][1]["action"] == "sample-org/Checker/subaction"
