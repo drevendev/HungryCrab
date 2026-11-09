@@ -22,7 +22,6 @@ def test_parse_action_variants() -> None:
     assert parse_action("docker://alpine:3.20")["kind"] == "docker"
 
 
-
 def test_parse_action_does_not_classify_unresolved_expressions_as_literal() -> None:
     expressions = (
         "sample-org/Checker@${{github.sha}}",
