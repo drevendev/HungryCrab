@@ -152,6 +152,9 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
         (PREY_SHA, ".github/workflows/test.yml"): (
             f"# SPDX-License-Identifier: {prey_spdx}\nname: test\n"
         ),
+        # Both AND terms must have immutable grant evidence. This CC0 proof
+        # remains present even when the Apache proof is withheld below.
+        (PREY_SHA, "LICENSES/CC0-1.0.txt"): "SPDX-License-Identifier: CC0-1.0\n",
     }
     if with_apache_text:
         files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = "SPDX-License-Identifier: Apache-2.0\n"
@@ -170,7 +173,7 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     }
     menu = {**MENU, "prey": source}
     if not with_apache_text:
-        with pytest.raises(CrabError, match="source grant cannot establish"):
+        with pytest.raises(CrabError, match="no licence file to carry"):
             prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
         assert not (maw / ATTRIBUTIONS_PATH).exists()
         assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
