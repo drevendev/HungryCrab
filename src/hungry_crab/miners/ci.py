@@ -503,22 +503,25 @@ def parse_workflow(
                     parsed = parse_action(uses)
                     parsed["job"] = str(job_id)
                     actions.append(parsed)
-                    tools.update(
-                        tool
-                        for prefix, tool in ACTION_TOOLS.items()
-                        if parsed["action"].startswith(prefix)
-                    )
-                    if coverage_upload is None:
-                        coverage_upload = next(
-                            (
-                                service
-                                for prefix, service in COVERAGE_UPLOAD_ACTIONS.items()
-                                if parsed["action"].startswith(prefix)
-                            ),
-                            None,
+                    # Unknown/dynamic references are inert evidence, not proof
+                    # that a named action supplies a tool, cache, or upload.
+                    if parsed["kind"] == "marketplace":
+                        tools.update(
+                            tool
+                            for prefix, tool in ACTION_TOOLS.items()
+                            if parsed["action"].startswith(prefix)
                         )
-                    if _step_cache(parsed["action"], step.get("with")):
-                        cache = True
+                        if coverage_upload is None:
+                            coverage_upload = next(
+                                (
+                                    service
+                                    for prefix, service in COVERAGE_UPLOAD_ACTIONS.items()
+                                    if parsed["action"].startswith(prefix)
+                                ),
+                                None,
+                            )
+                        if _step_cache(parsed["action"], step.get("with")):
+                            cache = True
                 run = step.get("run")
                 if isinstance(run, str):
                     step_runs += 1
