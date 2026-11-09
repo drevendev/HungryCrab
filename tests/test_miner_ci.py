@@ -58,9 +58,7 @@ jobs:
     assert parsed["tools"] == ["codecov", "codeql", "ruff"]
     assert parsed["coverage"]["upload"] == "codecov"
 
-    nested = workflow.replace(
-        "codecov/codecov-action@v5", "codecov/codecov-action/upload@v5"
-    )
+    nested = workflow.replace("codecov/codecov-action@v5", "codecov/codecov-action/upload@v5")
     nested_parsed = parse_workflow(nested, ".github/workflows/nested.yml")
     assert nested_parsed is not None
     assert nested_parsed["tools"] == ["codecov", "codeql", "ruff"]
