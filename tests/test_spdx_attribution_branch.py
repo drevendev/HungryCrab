@@ -124,3 +124,84 @@ def test_prepared_or_copy_uses_the_recipient_selected_grant(
     assert [item["path"] for item in record["texts"]] == ["LICENSES/GPL-3.0-only.txt"]
     assert "LICENSES/GPL-3.0-only.txt" in generated["THIRD_PARTY_NOTICES.md"]
     assert "LICENSES/EPL-2.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
+
+
+@pytest.mark.parametrize(
+    "prey_spdx",
+    ("CC0-1.0 AND Apache-2.0", "Apache-2.0 AND CC0-1.0"),
+)
+@pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
+@pytest.mark.parametrize("with_apache_text", (True, False))
+def test_and_dedication_carries_only_the_notice_bearing_term(
+    tmp_path,
+    prey_spdx: str,
+    maw_spdx: str,
+    with_apache_text: bool,
+) -> None:
+    """A CC0 term needs proof but cannot invent an Apache notice or waive it."""
+    import json
+
+    from test_attribution import MENU, PREY, FakePrey, _card, _maw, _payload
+    from test_attribution import SHA as PREY_SHA
+
+    from hungry_crab.attribution import ATTRIBUTIONS_PATH, prepare_copy_pull_request
+    from hungry_crab.errors import CrabError
+
+    source = {**PREY, "license": prey_spdx}
+    files = {
+        (PREY_SHA, ".github/workflows/test.yml"): (
+            f"# SPDX-License-Identifier: {prey_spdx}\nname: test\n"
+        ),
+    }
+    if with_apache_text:
+        files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = (
+            "SPDX-License-Identifier: Apache-2.0\n"
+        )
+    maw = _maw(tmp_path)
+    (maw / ".crab.yml").write_text(f"license: {maw_spdx}\n", encoding="utf-8")
+    kwargs = {
+        "title": "test: carry one Apache licence obligation",
+        "body": "<!-- crab:ci:ci.cache -->\n\nSynthetic licence receipt.\n",
+        "attribution_file": "THIRD_PARTY_NOTICES.md",
+        "source_reader": FakePrey(files),
+    }
+    menu = {**MENU, "prey": source}
+    if not with_apache_text:
+        with pytest.raises(CrabError):
+            prepare_copy_pull_request(
+                _card(), menu, _payload(source=source), maw, **kwargs
+            )
+        assert not (maw / ATTRIBUTIONS_PATH).exists()
+        assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+        return
+
+    prepared = prepare_copy_pull_request(
+        _card(), menu, _payload(source=source), maw, **kwargs
+    )
+    generated = {item.path: item.content for item in prepared.files}
+    record = json.loads(generated[ATTRIBUTIONS_PATH])["receipts"][0]
+    assert record["obligation"]["kind"] == "combined"
+    assert "Apache-2.0:" in record["obligation"]["text"]
+    assert "CC0-1.0:" in record["obligation"]["text"]
+    assert [item["path"] for item in record["texts"]] == [
+        "LICENSES/Apache-2.0.txt"
+    ]
+    assert "LICENSES/Apache-2.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
+    assert "LICENSES/CC0-1.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
+
+
+@pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
+@pytest.mark.parametrize("relationship", ("foreign", "own"))
+def test_and_obligation_preserves_each_term_under_relationship(
+    maw_spdx: str, relationship: str
+) -> None:
+    """No natural-language ownership shortcut may silently lose AND duties."""
+    spdx = "MIT AND Apache-2.0"
+    verdict = {"relationship": relationship, "maw_license": maw_spdx}
+    obligation = obligation_for(spdx, verdict)
+    if relationship == "own":
+        assert obligation.kind == "none"
+    else:
+        assert obligation.kind == "combined"
+        assert "MIT:" in obligation.text
+        assert "Apache-2.0:" in obligation.text
