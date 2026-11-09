@@ -154,9 +154,7 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
         ),
     }
     if with_apache_text:
-        files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = (
-            "SPDX-License-Identifier: Apache-2.0\n"
-        )
+        files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = "SPDX-License-Identifier: Apache-2.0\n"
     maw = _maw(tmp_path)
     (maw / ".crab.yml").write_text(f"license: {maw_spdx}\n", encoding="utf-8")
     kwargs = {
@@ -168,24 +166,18 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     menu = {**MENU, "prey": source}
     if not with_apache_text:
         with pytest.raises(CrabError):
-            prepare_copy_pull_request(
-                _card(), menu, _payload(source=source), maw, **kwargs
-            )
+            prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
         assert not (maw / ATTRIBUTIONS_PATH).exists()
         assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
         return
 
-    prepared = prepare_copy_pull_request(
-        _card(), menu, _payload(source=source), maw, **kwargs
-    )
+    prepared = prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
     generated = {item.path: item.content for item in prepared.files}
     record = json.loads(generated[ATTRIBUTIONS_PATH])["receipts"][0]
     assert record["obligation"]["kind"] == "combined"
     assert "Apache-2.0:" in record["obligation"]["text"]
     assert "CC0-1.0:" in record["obligation"]["text"]
-    assert [item["path"] for item in record["texts"]] == [
-        "LICENSES/Apache-2.0.txt"
-    ]
+    assert [item["path"] for item in record["texts"]] == ["LICENSES/Apache-2.0.txt"]
     assert "LICENSES/Apache-2.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
     assert "LICENSES/CC0-1.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
 
