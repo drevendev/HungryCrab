@@ -22,7 +22,6 @@ def test_parse_action_variants() -> None:
     assert parse_action("docker://alpine:3.20")["kind"] == "docker"
 
 
-
 def test_parse_action_sha_pin_accepts_both_ascii_hex_cases() -> None:
     lower = "11bd71901bbe5b1630ceea73d27597364c9af683"
     for ref in (lower, lower.upper(), lower[:20].upper() + lower[20:]):
