@@ -630,8 +630,7 @@ def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
     prey_files = {(SHA, ".github/workflows/test.yml"): prey_text}
     optional_path = licence_path.format(dedication=dedication) if licence_path else None
     dedication_text = (
-        f"# SPDX-License-Identifier: {dedication}\n"
-        "Copyright (c) 2026 Fixture Authors\n"
+        f"# SPDX-License-Identifier: {dedication}\nCopyright (c) 2026 Fixture Authors\n"
     )
     if optional_path:
         prey_files[(SHA, optional_path)] = dedication_text
