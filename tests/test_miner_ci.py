@@ -94,7 +94,6 @@ jobs:
     assert parsed["actions"][1]["action"] == "sample-org/Checker/subaction"
 
 
-
 def test_unresolved_actions_do_not_infer_tools_or_coverage() -> None:
     workflow = """name: Unknown action refs
 on: push
@@ -122,7 +121,6 @@ jobs:
     assert resolved is not None
     assert resolved["tools"] == ["codecov", "ruff"]
     assert resolved["coverage"]["upload"] == "codecov"
-
 
 
 def test_parse_workflow_handles_yaml_on_key_and_reusable_calls() -> None:
