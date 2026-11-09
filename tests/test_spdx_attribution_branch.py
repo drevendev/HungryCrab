@@ -132,13 +132,13 @@ def test_prepared_or_copy_uses_the_recipient_selected_grant(
 )
 @pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
 @pytest.mark.parametrize("with_apache_text", (True, False))
-def test_and_dedication_carries_only_the_notice_bearing_term(
+def test_and_dedication_keeps_available_texts_without_inventing_notice_duty(
     tmp_path,
     prey_spdx: str,
     maw_spdx: str,
     with_apache_text: bool,
 ) -> None:
-    """A CC0 term needs proof but cannot invent an Apache notice or waive it."""
+    """CC0 requires grant proof, not a notice duty; preserve any available source text."""
     import json
 
     from test_attribution import MENU, PREY, WORKFLOW, FakePrey, _card, _maw, _payload
@@ -185,9 +185,17 @@ def test_and_dedication_carries_only_the_notice_bearing_term(
     assert record["obligation"]["kind"] == "combined"
     assert "Apache-2.0:" in record["obligation"]["text"]
     assert "CC0-1.0:" in record["obligation"]["text"]
-    assert [item["path"] for item in record["texts"]] == ["LICENSES/Apache-2.0.txt"]
+    # Source evidence is not the same as a legal notice duty: CC0 owes no
+    # mandatory notice, but its available text must still travel (#633).
+    assert [item["path"] for item in record["texts"]] == [
+        "LICENSES/Apache-2.0.txt",
+        "LICENSES/CC0-1.0.txt",
+    ]
     assert "LICENSES/Apache-2.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
-    assert "LICENSES/CC0-1.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
+    assert "LICENSES/CC0-1.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
+    assert "CC0-1.0: zero-condition dedication: no licence notice is owed" in record[
+        "obligation"
+    ]["text"]
 
 
 @pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
