@@ -619,6 +619,90 @@ def test_reuse_only_licence_dir_is_carried_under_spdx_header(tmp_path: Path) -> 
     assert f"```text\n{clean_text(MIT_TEXT)}\n```" in source_section
 
 
+@pytest.mark.parametrize("dedication", ["CC0-1.0", "MIT-0", "0BSD", "Unlicense", "WTFPL"])
+@pytest.mark.parametrize("licence_path", [None, "LICENSE", "LICENSES/{dedication}.txt"])
+def test_zero_condition_dedication_proven_by_taken_file_needs_no_licence_text(
+    tmp_path: Path, dedication: str, licence_path: str | None
+) -> None:
+    """Pinned SPDX proof permits absent text, but available dedication text travels."""
+    source = {**PREY, "license": dedication}
+    prey_text = f"# SPDX-License-Identifier: {dedication}\nname: test\n"
+    prey_files = {(SHA, ".github/workflows/test.yml"): prey_text}
+    optional_path = licence_path.format(dedication=dedication) if licence_path else None
+    dedication_text = (
+        f"# SPDX-License-Identifier: {dedication}\nCopyright (c) 2026 Fixture Authors\n"
+    )
+    if optional_path:
+        prey_files[(SHA, optional_path)] = dedication_text
+    prey = FakePrey(prey_files)
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {dedication}\n" + WORKFLOW},
+    )
+    prepared = prepare_copy_pull_request(
+        _card(),
+        {**MENU, "prey": source},
+        _payload(source=source),
+        maw,
+        title="safe",
+        body="<!-- crab:ci:ci.cache -->",
+        attribution_file="THIRD_PARTY_NOTICES.md",
+        source_reader=prey,
+        now=NOW,
+    )
+    by_path = {file.path: file.content for file in prepared.files}
+    records = parse_attributions(by_path[ATTRIBUTIONS_PATH])
+    assert len(records) == 1
+    assert records[0].obligation.kind == "none"
+    heading = f"## pypa/pipx @ {SHA[:7]} — {dedication}"
+    notice = by_path["THIRD_PARTY_NOTICES.md"]
+    assert heading in notice
+    source_section = notice.split(heading, 1)[1].split("\n## ", 1)[0]
+    if optional_path is None:
+        assert records[0].texts == ()
+        assert "Fixture Authors" not in source_section
+    else:
+        expected_text = clean_text(dedication_text)
+        assert [(item.path, item.text) for item in records[0].texts] == [
+            (optional_path, expected_text)
+        ]
+        assert optional_path in source_section
+        fence = chr(96) * 3
+        assert f"{fence}text\n{expected_text}\n{fence}" in source_section
+
+
+@pytest.mark.parametrize(
+    ("header", "expected_error"),
+    [
+        ("", "source root grant contradicts the COPY receipt's expression"),
+        (
+            "# SPDX-License-Identifier: MIT\n",
+            "a taken file declares another licence than the source's",
+        ),
+    ],
+)
+def test_unproven_or_contradictory_cc0_dedication_is_refused(
+    tmp_path: Path, header: str, expected_error: str
+) -> None:
+    """Removing a notice duty must never grant COPY rights by itself."""
+    source = {**PREY, "license": "CC0-1.0"}
+    prey = FakePrey({(SHA, ".github/workflows/test.yml"): header + "name: test\n"})
+    maw = _maw(tmp_path, {".github/workflows/ci.yml": header + WORKFLOW})
+    with pytest.raises(CrabError, match=re.escape(expected_error)):
+        prepare_copy_pull_request(
+            _card(),
+            {**MENU, "prey": source},
+            _payload(source=source),
+            maw,
+            title="safe",
+            body="<!-- crab:ci:ci.cache -->",
+            attribution_file="THIRD_PARTY_NOTICES.md",
+            source_reader=prey,
+            now=NOW,
+        )
+    # This preparation function returns an in-memory payload; provider writes are out of scope.
+
+
 @pytest.mark.parametrize(
     ("licence_text", "mode"),
     [

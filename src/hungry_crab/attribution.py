@@ -392,6 +392,8 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
         )
     if len(terms) == 1 and normalize(spdx) != terms[0]:
         return obligation_for(terms[0], verdict)
+    if normalize(spdx) in _NO_NOTICE_DEDICATIONS:
+        return Obligation("none", "zero-condition dedication: no licence notice is owed")
     cls = classify(normalize(spdx))
     if cls is LicenseClass.PERMISSIVE:
         return Obligation(
@@ -1008,6 +1010,8 @@ class GitSourceReader:
 _NOTICE_OWED = frozenset(
     {"copyright-notice", "notice-file", "attribution", "file-license", "combined"}
 )
+# SPDX zero-condition dedications require proof of the grant, but no carried notice.
+_NO_NOTICE_DEDICATIONS = frozenset({"0BSD", "MIT-0", "Unlicense", "CC0-1.0", "WTFPL"})
 _SOURCE_NOTICE_RE = re.compile(r"NOTICE(?:\.[A-Za-z0-9]+)?", re.IGNORECASE)
 _MAX_CARRIED = 100_000
 # A regular file, executable or not; a link (120000) or a submodule (160000) is not material.
@@ -1217,7 +1221,10 @@ def verify_root_grant(
         term for carried in texts for term in license_terms(detect_from_text(carried.text)[0])
     }
     required = _publication_terms(receipt.source.license, selected_licenses)
-    if not set(required) <= observed:
+    # The pinned source grant was verified above. Carried texts prove notice duties,
+    # not the existence of a zero-condition dedication like CC0.
+    notice_terms = set(required) - _NO_NOTICE_DEDICATIONS
+    if not notice_terms <= observed:
         raise publication_error("source grant cannot establish the COPY receipt's selected terms")
 
 
@@ -1658,12 +1665,21 @@ def prepare_copy_pull_request(
         obligation_verdict = current.to_dict()
     obligation = obligation_for(receipt.source.license, obligation_verdict)
     texts: tuple[CarriedText, ...] = ()
-    if obligation.kind != "none":
+    # A zero-condition dedication owes no notice, but preserve its pinned source text
+    # when available. Its absence must not defeat an independently proven SPDX grant.
+    optional_dedication_text = (
+        foreign and normalize(receipt.source.license) in _NO_NOTICE_DEDICATIONS
+    )
+    if obligation.kind != "none" or optional_dedication_text:
+        # Optional text scans root/REUSE files; a rootless SPDX header is valid grant
+        # proof but cannot satisfy the path-scoped notice resolver's text requirement.
         texts = carried_texts(
             receipt.source.sha,
             source_reader,
             receipt.source.license,
-            paths=tuple(item.prey_path for item in receipt.taken),
+            paths=()
+            if optional_dedication_text
+            else tuple(item.prey_path for item in receipt.taken),
             source_url=receipt.source.url,
             selected_licenses=selected_licenses,
         )
