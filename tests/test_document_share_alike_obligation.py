@@ -11,7 +11,6 @@ import pytest
 from hungry_crab.attribution import (
     AttributionRecord,
     CarriedText,
-    Obligation,
     SourceRef,
     TakenFile,
     add_attribution,
