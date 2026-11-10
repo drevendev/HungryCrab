@@ -31,7 +31,7 @@ def test_parse_action_sha_pin_accepts_both_ascii_hex_cases() -> None:
             "ref": ref,
             "pinned_sha": True,
         }
-    for ref in (lower[:-1], lower + "a", "g" + lower[1:], "\uFF26" + lower[1:], "v4"):
+    for ref in (lower[:-1], lower + "a", "g" + lower[1:], "\uff26" + lower[1:], "v4"):
         assert parse_action(f"actions/checkout@{ref}") == {
             "kind": "marketplace",
             "action": "actions/checkout",
