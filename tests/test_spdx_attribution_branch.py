@@ -124,3 +124,90 @@ def test_prepared_or_copy_uses_the_recipient_selected_grant(
     assert [item["path"] for item in record["texts"]] == ["LICENSES/GPL-3.0-only.txt"]
     assert "LICENSES/GPL-3.0-only.txt" in generated["THIRD_PARTY_NOTICES.md"]
     assert "LICENSES/EPL-2.0.txt" not in generated["THIRD_PARTY_NOTICES.md"]
+
+
+@pytest.mark.parametrize(
+    "prey_spdx",
+    ("CC0-1.0 AND Apache-2.0", "Apache-2.0 AND CC0-1.0"),
+)
+@pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
+@pytest.mark.parametrize("with_apache_text", (True, False))
+def test_and_dedication_keeps_available_texts_without_inventing_notice_duty(
+    tmp_path,
+    prey_spdx: str,
+    maw_spdx: str,
+    with_apache_text: bool,
+) -> None:
+    """CC0 requires grant proof, not a notice duty; preserve any available source text."""
+    import json
+
+    from test_attribution import MENU, PREY, WORKFLOW, FakePrey, _card, _maw, _payload
+    from test_attribution import SHA as PREY_SHA
+
+    from hungry_crab.attribution import ATTRIBUTIONS_PATH, prepare_copy_pull_request
+    from hungry_crab.errors import CrabError
+
+    source = {**PREY, "license": prey_spdx}
+    files = {
+        (PREY_SHA, ".github/workflows/test.yml"): (
+            f"# SPDX-License-Identifier: {prey_spdx}\nname: test\n"
+        ),
+        # Both AND terms must have immutable grant evidence. This CC0 proof
+        # remains present even when the Apache proof is withheld below.
+        (PREY_SHA, "LICENSES/CC0-1.0.txt"): "SPDX-License-Identifier: CC0-1.0\n",
+    }
+    if with_apache_text:
+        files[(PREY_SHA, "LICENSES/Apache-2.0.txt")] = "SPDX-License-Identifier: Apache-2.0\n"
+    # An adapted file retains its pinned SPDX header; license notice proof
+    # remains a separate publication gate for the Apache term.
+    maw = _maw(
+        tmp_path,
+        {".github/workflows/ci.yml": f"# SPDX-License-Identifier: {prey_spdx}\n{WORKFLOW}"},
+    )
+    (maw / ".crab.yml").write_text(f"license: {maw_spdx}\n", encoding="utf-8")
+    kwargs = {
+        "title": "test: carry one Apache licence obligation",
+        "body": "<!-- crab:ci:ci.cache -->\n\nSynthetic licence receipt.\n",
+        "attribution_file": "THIRD_PARTY_NOTICES.md",
+        "source_reader": FakePrey(files),
+    }
+    menu = {**MENU, "prey": source}
+    if not with_apache_text:
+        with pytest.raises(CrabError, match="no licence file to carry"):
+            prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
+        assert not (maw / ATTRIBUTIONS_PATH).exists()
+        assert not (maw / "THIRD_PARTY_NOTICES.md").exists()
+        return
+
+    prepared = prepare_copy_pull_request(_card(), menu, _payload(source=source), maw, **kwargs)
+    generated = {item.path: item.content for item in prepared.files}
+    record = json.loads(generated[ATTRIBUTIONS_PATH])["receipts"][0]
+    assert record["obligation"]["kind"] == "combined"
+    assert "Apache-2.0:" in record["obligation"]["text"]
+    assert "CC0-1.0:" in record["obligation"]["text"]
+    # Source evidence is not the same as a legal notice duty: CC0 owes no
+    # mandatory notice, but its available text must still travel (#633).
+    assert [item["path"] for item in record["texts"]] == [
+        "LICENSES/Apache-2.0.txt",
+        "LICENSES/CC0-1.0.txt",
+    ]
+    assert "LICENSES/Apache-2.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
+    assert "LICENSES/CC0-1.0.txt" in generated["THIRD_PARTY_NOTICES.md"]
+    assert "CC0-1.0: zero-condition" in record["obligation"]["text"]
+
+
+@pytest.mark.parametrize("maw_spdx", ("MIT", "GPL-3.0-or-later"))
+@pytest.mark.parametrize("relationship", ("foreign", "own"))
+def test_and_obligation_preserves_each_term_under_relationship(
+    maw_spdx: str, relationship: str
+) -> None:
+    """No natural-language ownership shortcut may silently lose AND duties."""
+    spdx = "MIT AND Apache-2.0"
+    verdict = {"relationship": relationship, "maw_license": maw_spdx}
+    obligation = obligation_for(spdx, verdict)
+    if relationship == "own":
+        assert obligation.kind == "none"
+    else:
+        assert obligation.kind == "combined"
+        assert "MIT:" in obligation.text
+        assert "Apache-2.0:" in obligation.text
