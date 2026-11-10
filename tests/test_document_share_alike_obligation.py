@@ -34,6 +34,13 @@ def test_document_share_alike_does_not_claim_a_file_header_is_sufficient(
     assert "each copied file keeps its own licence header" not in text
 
 
+def test_cc_by_sa_description_allows_link_instead_of_full_licence_copy() -> None:
+    # Description only: the separate COPY publication gate remains conservative.
+    obligation = obligation_for("CC-BY-SA-4.0", {"relationship": "foreign"})
+    assert "licence text or a URI/hyperlink" in obligation.text
+    assert "include the licence text" not in obligation.text
+
+
 def test_document_and_permissive_duties_remain_distinct() -> None:
     obligation = obligation_for("MIT AND CC-BY-SA-4.0", {"relationship": "foreign"})
     assert obligation.kind == "combined"
