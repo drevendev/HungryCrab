@@ -108,6 +108,6 @@ def test_existing_document_receipt_replay_does_not_silently_rewrite_its_notice(
     repeated = add_attribution(stored, revised)
     assert repeated == stored
     assert dump_attributions(repeated) == dump_attributions(stored)
-    notice = render_notices(repeated)
+    notice = " ".join(render_notices(repeated).split())
     assert original.obligation.text in notice
     assert revised.obligation.text not in notice
