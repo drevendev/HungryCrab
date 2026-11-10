@@ -423,7 +423,7 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
             "file-license",
             "CC-BY-SA: credit the creator and source, retain copyright notices, link the "
             "licence, indicate changes, and license adaptations under the applicable "
-            "ShareAlike terms; include the licence text",
+            "ShareAlike terms; provide licence text or a URI/hyperlink to it",
         )
     if cls is LicenseClass.FILE_COPYLEFT:
         return Obligation(
