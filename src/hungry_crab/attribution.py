@@ -410,7 +410,22 @@ def obligation_for(spdx: str | None, verdict: Mapping[str, Any]) -> Obligation:
         )
     if cls is LicenseClass.DOCS_ATTRIBUTION:
         return Obligation("attribution", "CC-BY: credit the source and link its licence")
-    if cls in (LicenseClass.DOCS_SHARE_ALIKE, LicenseClass.FILE_COPYLEFT):
+    if cls is LicenseClass.DOCS_SHARE_ALIKE:
+        # Documentation is not necessarily source code with a per-file SPDX header.
+        # Keep these publication duties distinct from MPL/EPL file-level copyleft.
+        if (normalize(spdx) or "").startswith("GFDL-"):
+            return Obligation(
+                "file-license",
+                "GFDL: include the full licence text and author notices, preserve applicable "
+                "invariant sections, history and cover texts, and identify modifications",
+            )
+        return Obligation(
+            "file-license",
+            "CC-BY-SA: credit the creator and source, retain copyright notices, link the "
+            "licence, indicate changes, and license adaptations under the applicable "
+            "ShareAlike terms; include the licence text",
+        )
+    if cls is LicenseClass.FILE_COPYLEFT:
         return Obligation(
             "file-license", "each copied file keeps its own licence header and stays under it"
         )
