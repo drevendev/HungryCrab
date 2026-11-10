@@ -65,6 +65,107 @@ jobs:
     assert nested_parsed["coverage"]["upload"] == "codecov"
 
 
+def test_parse_action_does_not_classify_unresolved_expressions_as_literal() -> None:
+    expressions = (
+        "sample-org/Checker@${{github.sha}}",
+        "  sample-org/Checker@${{ github.sha }}  ",
+        "sample-org/Checker/subaction@${{inputs.ref}}",
+        "sample-org/Checker@${{github.sha",
+        "sample-org/Checker@github.sha}}",
+        "./.github/actions/${{inputs.action}}",
+        "docker://${{inputs.image}}",
+    )
+    for uses in expressions:
+        assert parse_action(uses) == {
+            "kind": "unknown",
+            "action": uses.strip(),
+            "ref": None,
+            "pinned_sha": False,
+        }
+
+
+def test_parse_action_expression_guard_preserves_literal_references() -> None:
+    for uses, kind, action, ref, pinned in (
+        ("sample-org/Checker@v1", "marketplace", "sample-org/Checker", "v1", False),
+        (
+            "sample-org/Checker/subaction@main",
+            "marketplace",
+            "sample-org/Checker/subaction",
+            "main",
+            False,
+        ),
+        (
+            "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+            "marketplace",
+            "actions/checkout",
+            "11bd71901bbe5b1630ceea73d27597364c9af683",
+            True,
+        ),
+        ("./.github/actions/setup", "local", "./.github/actions/setup", None, False),
+        ("docker://alpine:3.20", "docker", "docker://alpine:3.20", None, False),
+    ):
+        assert parse_action(uses) == {
+            "kind": kind,
+            "action": action,
+            "ref": ref,
+            "pinned_sha": pinned,
+        }
+    for uses in ("sample-org/Checker", "sample-org/Checker@", "@v1"):
+        assert parse_action(uses)["kind"] == "unknown"
+
+
+def test_parse_workflow_keeps_expression_action_unknown() -> None:
+    workflow = """name: Expression
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: sample-org/Checker@${{github.sha}}
+      - uses: sample-org/Checker/subaction@v1
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/expr.yml")
+    assert parsed is not None
+    assert parsed["actions"][0] == {
+        "kind": "unknown",
+        "action": "sample-org/Checker@${{github.sha}}",
+        "ref": None,
+        "pinned_sha": False,
+        "job": "test",
+    }
+    assert parsed["actions"][1]["kind"] == "marketplace"
+    assert parsed["actions"][1]["action"] == "sample-org/Checker/subaction"
+
+
+def test_unresolved_actions_do_not_infer_tools_or_coverage() -> None:
+    workflow = """name: Unknown action refs
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codecov/codecov-action@${{github.sha}}
+      - uses: astral-sh/ruff-action@${{inputs.ref}}
+      - uses: actions/checkout@v4
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/unknown.yml")
+    assert parsed is not None
+    assert [a["kind"] for a in parsed["actions"]] == [
+        "unknown",
+        "unknown",
+        "marketplace",
+    ]
+    assert parsed["tools"] == []
+    assert parsed["coverage"]["upload"] is None
+    assert parsed["cache"] is False
+
+    literal = workflow.replace("${{github.sha}}", "v5").replace("${{inputs.ref}}", "v1")
+    resolved = parse_workflow(literal, ".github/workflows/resolved.yml")
+    assert resolved is not None
+    assert resolved["tools"] == ["codecov", "ruff"]
+    assert resolved["coverage"]["upload"] == "codecov"
+
+
 def test_parse_workflow_handles_yaml_on_key_and_reusable_calls() -> None:
     text = """name: Reuse
 on:
