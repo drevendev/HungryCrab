@@ -35,9 +35,7 @@ def test_document_share_alike_does_not_claim_a_file_header_is_sufficient(
 
 
 def test_document_and_permissive_duties_remain_distinct() -> None:
-    obligation = obligation_for(
-        "MIT AND CC-BY-SA-4.0", {"relationship": "foreign"}
-    )
+    obligation = obligation_for("MIT AND CC-BY-SA-4.0", {"relationship": "foreign"})
     assert obligation.kind == "combined"
     assert "MIT:" in obligation.text
     assert "CC-BY-SA-4.0:" in obligation.text
