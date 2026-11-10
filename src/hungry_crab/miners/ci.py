@@ -134,7 +134,7 @@ TOOL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
         ("bandit", r"\bbandit\b"),
     )
 )
-# Marketplace actions that stand for a tool (matched by prefix on the action name).
+# Marketplace action repositories that stand for a tool (including nested action paths).
 ACTION_TOOLS: dict[str, str] = {
     "codecov/codecov-action": "codecov",
     "coverallsapp/github-action": "coveralls",
@@ -153,12 +153,19 @@ ACTION_TOOLS: dict[str, str] = {
     "pypa/gh-action-pypi-publish": "pypi publish",
     "docker/build-push-action": "docker build",
 }
-# Where a workflow sends coverage (matched by prefix on the action name).
+# Where a workflow sends coverage (including nested action paths).
 COVERAGE_UPLOAD_ACTIONS: dict[str, str] = {
     "codecov/codecov-action": "codecov",
     "coverallsapp/github-action": "coveralls",
     "paambaati/codeclimate-action": "codeclimate",
 }
+
+
+def _matches_known_action(action: str, known_action: str) -> bool:
+    """Match an action repository, not a lookalike repository name prefix."""
+    return action == known_action or action.startswith(f"{known_action}/")
+
+
 # Coverage declared on the command line rather than in a file. A Go or Rust project has no
 # `.coveragerc` and no coverage package in a manifest: the flag on `go test` is the whole of
 # the declaration, and the upload action above is the other half. Word boundaries keep
@@ -509,14 +516,14 @@ def parse_workflow(
                         tools.update(
                             tool
                             for prefix, tool in ACTION_TOOLS.items()
-                            if parsed["action"].startswith(prefix)
+                            if _matches_known_action(parsed["action"], prefix)
                         )
                         if coverage_upload is None:
                             coverage_upload = next(
                                 (
                                     service
                                     for prefix, service in COVERAGE_UPLOAD_ACTIONS.items()
-                                    if parsed["action"].startswith(prefix)
+                                    if _matches_known_action(parsed["action"], prefix)
                                 ),
                                 None,
                             )
