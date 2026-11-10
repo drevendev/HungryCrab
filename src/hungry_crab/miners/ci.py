@@ -159,6 +159,8 @@ COVERAGE_UPLOAD_ACTIONS: dict[str, str] = {
     "coverallsapp/github-action": "coveralls",
     "paambaati/codeclimate-action": "codeclimate",
 }
+
+
 def _matches_known_action(action: str, known_action: str) -> bool:
     """Match an action repository, not a lookalike repository name prefix."""
     return action == known_action or action.startswith(f"{known_action}/")
