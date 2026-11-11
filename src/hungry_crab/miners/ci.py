@@ -305,7 +305,7 @@ def _matrix(strategy: object) -> dict[str, Any] | None:
             continue
         literal = isinstance(value, list) and all(
             isinstance(item, str | int | float | bool)
-            and not (isinstance(item, str) and ("\u0024{{" in item or "}}" in item))
+            and not (isinstance(item, str) and ("${{" in item or "}}" in item))
             for item in value
         )
         count = len(value) if literal else None
