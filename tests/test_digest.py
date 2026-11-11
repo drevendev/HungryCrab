@@ -344,8 +344,11 @@ def test_explicit_output_rerun_preserves_unlisted_page_family_members(
     ],
 )
 def test_digest_write_oserror_reports_failed_artifact_path(
-    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
-    os_error: int, expected_hint: str,
+    npm_app: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    os_error: int,
+    expected_hint: str,
 ) -> None:
     original_write_json = digest_module._write_json
     failed_path: str | None = None
