@@ -150,11 +150,16 @@ def serve_phase(
                 raise CrabError("GROW requires a served nutrient with a persistent ledger receipt")
             if "/issues/" in entry.url:
                 issue = loop._provider().artifact(entry.url)
-                if entry.url not in data["issues"] or not str(issue.get("body", "")).startswith(
-                    f"<!-- {nutrient_id} -->"
+                if (
+                    entry.url not in data["issues"]
+                    or not str(issue.get("body", "")).startswith(f"<!-- {nutrient_id} -->")
+                    or issue.get("state") != "open"
+                    or issue.get("merged_at")
+                    or not isinstance(issue.get("user"), dict)
+                    or issue["user"].get("login") != loop._provider().identity()
                 ):
                     raise CrabError(
-                        "GROW requires an issue served by this round for the selected nutrient"
+                        "GROW requires an open, publisher-owned issue served by this round"
                     )
                 # Issue serving is terminal for the ordinary menu protocol. Here the explicit
                 # round transition authorizes implementation, only in this in-memory ledger.
