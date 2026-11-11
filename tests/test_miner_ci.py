@@ -359,9 +359,7 @@ def test_matrix_modifiers_do_not_fabricate_exact_size() -> None:
     assert included["size_status"] == "unknown-modifiers"
 
     # Exclude removes a row, so reporting the unadjusted base as exact is wrong.
-    excluded = _matrix(
-        {"matrix": {"os": ["ubuntu", "windows"], "exclude": [{"os": "windows"}]}}
-    )
+    excluded = _matrix({"matrix": {"os": ["ubuntu", "windows"], "exclude": [{"os": "windows"}]}})
     assert excluded is not None
     assert excluded["base_size"] == 2
     assert excluded["exclude_count"] == 1
