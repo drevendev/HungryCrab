@@ -319,10 +319,12 @@ def test_dotnet_ci_gaps(dotnet_digest: DigestResult) -> None:
 
 
 def test_matrix_exact_literal_cartesian_preserves_existing_size() -> None:
-    matrix = _matrix({
-        "matrix": {"os": ["ubuntu-latest", "windows-latest"], "python": ["3.11", "3.14"]},
-        "fail-fast": False,
-    })
+    matrix = _matrix(
+        {
+            "matrix": {"os": ["ubuntu-latest", "windows-latest"], "python": ["3.11", "3.14"]},
+            "fail-fast": False,
+        }
+    )
     assert matrix is not None
     assert matrix["axes"] == {"os": 2, "python": 2}
     assert matrix["size"] == 4
@@ -342,9 +344,14 @@ def test_matrix_unresolved_axis_is_not_a_singleton() -> None:
 
 def test_matrix_modifiers_do_not_fabricate_exact_size() -> None:
     # Include may modify a base row rather than add a new one.
-    included = _matrix({
-        "matrix": {"os": ["ubuntu", "windows"], "include": [{"os": "ubuntu", "extra": "x"}]}
-    })
+    included = _matrix(
+        {
+            "matrix": {
+                "os": ["ubuntu", "windows"],
+                "include": [{"os": "ubuntu", "extra": "x"}],
+            }
+        }
+    )
     assert included is not None
     assert included["base_size"] == 2
     assert included["include_count"] == 1
@@ -352,9 +359,9 @@ def test_matrix_modifiers_do_not_fabricate_exact_size() -> None:
     assert included["size_status"] == "unknown-modifiers"
 
     # Exclude removes a row, so reporting the unadjusted base as exact is wrong.
-    excluded = _matrix({
-        "matrix": {"os": ["ubuntu", "windows"], "exclude": [{"os": "windows"}]}
-    })
+    excluded = _matrix(
+        {"matrix": {"os": ["ubuntu", "windows"], "exclude": [{"os": "windows"}]}}
+    )
     assert excluded is not None
     assert excluded["base_size"] == 2
     assert excluded["exclude_count"] == 1
@@ -363,7 +370,12 @@ def test_matrix_modifiers_do_not_fabricate_exact_size() -> None:
 
 
 def test_matrix_unsupported_values_are_unknown_not_singletons() -> None:
-    for value in ("ubuntu-latest", {"os": "ubuntu-latest"}, ["${{ fromJSON(inputs.platforms) }}"]):
+    values = (
+        "ubuntu-latest",
+        {"os": "ubuntu-latest"},
+        ["${{ fromJSON(inputs.platforms) }}"],
+    )
+    for value in values:
         matrix = _matrix({"matrix": {"os": value}})
         assert matrix is not None
         assert matrix["axes"] == {"os": None}
