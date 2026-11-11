@@ -88,6 +88,47 @@ def test_old_ledger_artifacts_cannot_be_adopted_or_closed_by_a_new_round(
     assert not loop._load()["prs"]
 
 
+@pytest.mark.parametrize(
+    ("state", "owner"),
+    [("closed", "loop-publisher"), ("open", "foreign-publisher"), ("open", None)],
+)
+def test_grow_refuses_closed_or_foreign_same_round_issue_before_publication(
+    loop: Loop,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    state: str,
+    owner: str | None,
+) -> None:
+    card = Candidate(
+        "tests", "tests.unit", "Tests", "Tests", origin="licensed", license_mode="COPY"
+    )
+    _serve_round(loop, tmp_path, card)
+    issue_url = "https://github.com/example/maw/issues/1"
+    ledger = Ledger.load(loop.config.ledger_path(), maw=loop.maw.name)
+    ledger.ensure(card)
+    ledger.mark(card.id, "served", url=issue_url)
+    ledger.save()
+    assert isinstance(loop.provider, Provider)
+    loop.provider.rows[issue_url] = {
+        "html_url": issue_url,
+        "body": f"<!-- {card.id} -->\\nA proposal",
+        "state": state,
+        "user": {"login": owner} if owner is not None else None,
+        "merged_at": None,
+    }
+    force_phase(loop, "grow", issues=[issue_url])
+    token = loop.next()["active"]["token"]
+    before, ledger_before = loop.path.read_bytes(), ledger.path.read_bytes()
+    monkeypatch.setattr(
+        "hungry_crab.loop_work.serve", lambda *_args, **_kwargs: pytest.fail("publication ran")
+    )
+    with pytest.raises(CrabError, match="open, publisher-owned issue"):
+        serve_phase(loop, token, "example/prey", card.id)
+    assert loop.path.read_bytes() == before
+    assert ledger.path.read_bytes() == ledger_before
+    assert loop._load()["prs"] == []
+
+
 def test_pause_revokes_an_already_running_lease_while_the_state_lock_is_busy(loop: Loop) -> None:
     force_phase(loop, "grow")
     ready = loop.next()
@@ -131,6 +172,7 @@ def test_live_grow_policy_withdrawal_stops_the_next_provider_effect(
         "body": f"<!-- {card.id} -->\n",
         "state": "open",
         "html_url": issue_url,
+        "user": {"login": "loop-publisher"},
     }
     force_phase(loop, "grow", issues=[issue_url])
     token = loop.next()["active"]["token"]
