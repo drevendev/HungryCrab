@@ -894,7 +894,10 @@ class CiMiner:
                         safe_name(wf["name"], "workflow"),
                         safe_name(job["name"] or job["id"], "job"),
                         safe_name(job["runs_on"], "runner"),
-                        ", ".join(f"{k}x{v if v is not None else '?'}" for k, v in job["matrix"]["axes"].items())
+                        ", ".join(
+                            f"{k}x{v if v is not None else '?'}"
+                            for k, v in job["matrix"]["axes"].items()
+                        )
                         if job["matrix"] and "axes" in job["matrix"]
                         else "",
                         job["steps"],
