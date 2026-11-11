@@ -83,9 +83,7 @@ def test_existing_document_receipt_replay_does_not_silently_rewrite_its_notice(
     nutrient_id = "crab:docs:reviewed-guide"
     revised = AttributionRecord(
         nutrient_id=nutrient_id,
-        source=SourceRef(
-            "example/docs", "https://github.com/example/docs", "a" * 40, spdx
-        ),
+        source=SourceRef("example/docs", "https://github.com/example/docs", "a" * 40, spdx),
         taken=(TakenFile("docs/guide.md", "docs/guide.md", True),),
         mode="COPY_FILE",
         obligation=obligation_for(spdx, {"relationship": "foreign"}),
