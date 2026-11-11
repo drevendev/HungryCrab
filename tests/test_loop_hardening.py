@@ -88,6 +88,38 @@ def test_old_ledger_artifacts_cannot_be_adopted_or_closed_by_a_new_round(
     assert not loop._load()["prs"]
 
 
+def test_serve_rejects_previously_served_issue_without_this_round_transaction(
+    loop: Loop, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An open, publisher-owned old issue is not this round's SERVE effect."""
+    card = Candidate(
+        "tests", "tests.unit", "Tests", "Tests", origin="licensed", license_mode="COPY"
+    )
+    token = _serve_round(loop, tmp_path, card)
+    old_issue = "https://github.com/example/maw/issues/17"
+    ledger = Ledger.load(loop.config.ledger_path(), maw=loop.maw.name)
+    ledger.ensure(card)
+    ledger.mark(card.id, "served", url=old_issue)
+    ledger.save()
+    assert isinstance(loop.provider, Provider)
+    loop.provider.rows[old_issue] = {
+        "html_url": old_issue,
+        "body": f"<!-- {card.id} -->\\nPrior SERVE\\n<!-- crab:transaction:{'a' * 32} -->",
+        "state": "open",
+        "merged_at": None,
+        "user": {"login": loop.provider.identity()},
+    }
+    monkeypatch.setattr(
+        "hungry_crab.loop_work.serve", lambda *_args, **_kwargs: pytest.fail("publication ran")
+    )
+    before, ledger_before = loop.path.read_bytes(), ledger.path.read_bytes()
+    with pytest.raises(CrabError, match="authorized transaction"):
+        serve_phase(loop, token, "example/prey", card.id)
+    assert loop.path.read_bytes() == before
+    assert ledger.path.read_bytes() == ledger_before
+    assert not loop._load()["issues"] and not loop._load()["prs"]
+
+
 @pytest.mark.parametrize(
     ("state", "owner"),
     [("closed", "loop-publisher"), ("open", "foreign-publisher"), ("open", None)],
