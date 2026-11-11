@@ -287,23 +287,50 @@ def _runs_on(raw: object) -> str:
 
 
 def _matrix(strategy: object) -> dict[str, Any] | None:
+    """Only claim exact cardinality for a literal Cartesian matrix without modifiers.
+
+    GitHub's include/exclude semantics can amend existing rows or add/remove rows;
+    their lengths are not an adjustment to the Cartesian product. Expressions and
+    unsupported axis shapes must never be counted as singleton values.
+    """
     if not isinstance(strategy, dict):
         return None
     matrix = strategy.get("matrix")
     if not isinstance(matrix, dict):
         return {"expression": str(matrix)[:80]} if matrix else None
-    axes: dict[str, int] = {}
-    size = 1
+    axes: dict[str, int | None] = {}
+    base_size: int | None = 1
     for key, value in matrix.items():
         if key in ("include", "exclude"):
             continue
-        count = len(value) if isinstance(value, list) else 1
+        literal = isinstance(value, list) and all(
+            isinstance(item, str | int | float | bool)
+            and not (isinstance(item, str) and ("\u0024{{" in item or "}}" in item))
+            for item in value
+        )
+        count = len(value) if literal else None
         axes[str(key)] = count
-        size *= count
+        if count is None:
+            base_size = None
+        elif base_size is not None:
+            base_size *= count
+
+    if not axes:
+        base_size = None
+    has_modifiers = "include" in matrix or "exclude" in matrix
+    size_status = (
+        "unknown-axes" if base_size is None else
+        "unknown-modifiers" if has_modifiers else "exact"
+    )
     include = matrix.get("include")
+    exclude = matrix.get("exclude")
     return {
         "axes": axes,
-        "size": size + (len(include) if isinstance(include, list) else 0),
+        "size": base_size if size_status == "exact" else None,
+        "base_size": base_size,
+        "size_status": size_status,
+        "include_count": len(include) if isinstance(include, list) else None,
+        "exclude_count": len(exclude) if isinstance(exclude, list) else None,
         "fail_fast": strategy.get("fail-fast"),
     }
 
@@ -865,7 +892,7 @@ class CiMiner:
                         safe_name(wf["name"], "workflow"),
                         safe_name(job["name"] or job["id"], "job"),
                         safe_name(job["runs_on"], "runner"),
-                        ", ".join(f"{k}x{v}" for k, v in job["matrix"]["axes"].items())
+                        ", ".join(f"{k}x{v if v is not None else '?'}" for k, v in job["matrix"]["axes"].items())
                         if job["matrix"] and "axes" in job["matrix"]
                         else "",
                         job["steps"],
