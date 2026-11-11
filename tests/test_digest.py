@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 from conftest import FIXED_NOW
+from fixture_builder import git as fixture_git
 from helpers import read_json, read_md, write_tree
 
 from hungry_crab import digest as digest_module
-from hungry_crab.cache import Target
+from hungry_crab.cache import Slug, Target, prey_paths
 from hungry_crab.digest import (
     MD_BUDGET,
     SCHEMA,
@@ -333,6 +334,21 @@ def test_explicit_output_rerun_preserves_unlisted_page_family_members(
     assert caller.read_bytes() == b"# Caller history\n"
     assert result.manifest["markdown_tokens_est"] == 0
     assert "history.2024.md" not in {entry["name"] for entry in result.manifest["files"]}
+
+
+def test_cached_prey_without_a_head_refuses_non_git_digest(tmp_path: Path) -> None:
+    slug = Slug("example", "incomplete-prey")
+    options = DigestOptions(cache_root=tmp_path / "cache", now=FIXED_NOW)
+    paths = prey_paths(slug, options.cache_root)
+    paths.repo.mkdir(parents=True)
+    fixture_git(paths.repo, "init", "-b", "main")
+    assert (paths.repo / ".git").is_dir()
+
+    with pytest.raises(CrabError, match="no valid Git HEAD") as exc:
+        run_digest(Target(slug=slug), options)
+    assert exc.value.hint is not None
+    assert f"crab catch {slug} --force" in exc.value.hint
+    assert not paths.digests.exists()
 
 
 def test_digest_of_a_plain_directory_without_git(tmp_path: Path) -> None:
