@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import json
 import os
 from pathlib import Path
@@ -333,6 +334,42 @@ def test_explicit_output_rerun_preserves_unlisted_page_family_members(
     assert caller.read_bytes() == b"# Caller history\n"
     assert result.manifest["markdown_tokens_est"] == 0
     assert "history.2024.md" not in {entry["name"] for entry in result.manifest["files"]}
+
+
+@pytest.mark.parametrize(
+    ("os_error", "expected_hint"),
+    [
+        (errno.EACCES, "permissions"),
+        (errno.ENAMETOOLONG, "LongPathsEnabled"),
+    ],
+)
+def test_digest_write_oserror_reports_failed_artifact_path(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    os_error: int, expected_hint: str,
+) -> None:
+    original_write_json = digest_module._write_json
+    failed_path: str | None = None
+
+    def fail_manifest_write(path: Path, value: dict[str, object]) -> None:
+        nonlocal failed_path
+        if path.name == "manifest.json":
+            failed_path = str(path)
+            raise OSError(os_error, "synthetic artifact write failure", failed_path)
+        original_write_json(path, value)
+
+    monkeypatch.setattr(digest_module, "_write_json", fail_manifest_write)
+    requested = tmp_path / "owned-output"
+    with pytest.raises(CrabError, match="cannot write digest output") as caught:
+        run_digest(Target(path=npm_app), DigestOptions(out=requested, now=FIXED_NOW))
+
+    assert failed_path is not None
+    assert failed_path in str(caught.value)
+    assert caught.value.hint is not None
+    assert expected_hint in caught.value.hint
+    if os_error == errno.ENAMETOOLONG:
+        assert "CRAB_CACHE_DIR" in caught.value.hint
+    assert isinstance(caught.value.__cause__, OSError)
+    assert not requested.exists()
 
 
 def test_digest_of_a_plain_directory_without_git(tmp_path: Path) -> None:
