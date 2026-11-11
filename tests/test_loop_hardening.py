@@ -119,6 +119,13 @@ def test_serve_rejects_previously_served_issue_without_this_round_transaction(
     assert ledger.path.read_bytes() == ledger_before
     assert not loop._load()["issues"] and not loop._load()["prs"]
 
+    # Refusing the publication is not sufficient if a stale URL can advance SERVE.
+    with pytest.raises(CrabError, match="must publish through crab loop serve"):
+        loop.record(token, "serve", "ok", receipt={"urls": [old_issue]})
+    assert loop.path.read_bytes() == before
+    assert ledger.path.read_bytes() == ledger_before
+    assert loop._load()["phase"] == "serve"
+
 
 @pytest.mark.parametrize(
     ("state", "owner"),
