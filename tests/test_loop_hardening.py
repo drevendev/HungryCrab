@@ -111,7 +111,7 @@ def test_grow_refuses_closed_or_foreign_same_round_issue_before_publication(
     assert isinstance(loop.provider, Provider)
     loop.provider.rows[issue_url] = {
         "html_url": issue_url,
-        "body": f"<!-- {card.id} -->\\nA proposal",
+        "body": f"<!-- {card.id} -->\nA proposal",
         "state": state,
         "user": {"login": owner} if owner is not None else None,
         "merged_at": None,
