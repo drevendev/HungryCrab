@@ -3,7 +3,7 @@ from __future__ import annotations
 from helpers import read_json, read_md
 
 from hungry_crab.digest import DigestResult
-from hungry_crab.miners.ci import parse_action, parse_workflow
+from hungry_crab.miners.ci import _matrix, parse_action, parse_workflow
 
 
 def test_parse_action_variants() -> None:
@@ -316,3 +316,83 @@ def test_dotnet_ci_gaps(dotnet_digest: DigestResult) -> None:
     assert features["permissions_per_job"] is False
     assert {"dotnet build", "dotnet test"} <= set(features["tools"])
     assert features["other_ci"] == []
+
+
+def test_matrix_exact_literal_cartesian_preserves_existing_size() -> None:
+    matrix = _matrix({
+        "matrix": {"os": ["ubuntu-latest", "windows-latest"], "python": ["3.11", "3.14"]},
+        "fail-fast": False,
+    })
+    assert matrix is not None
+    assert matrix["axes"] == {"os": 2, "python": 2}
+    assert matrix["size"] == 4
+    assert matrix["base_size"] == 4
+    assert matrix["size_status"] == "exact"
+    assert matrix["fail_fast"] is False
+
+
+def test_matrix_unresolved_axis_is_not_a_singleton() -> None:
+    matrix = _matrix({"matrix": {"os": "${{ inputs.platforms }}", "python": ["3.11"]}})
+    assert matrix is not None
+    assert matrix["axes"] == {"os": None, "python": 1}
+    assert matrix["base_size"] is None
+    assert matrix["size"] is None
+    assert matrix["size_status"] == "unknown-axes"
+
+
+def test_matrix_modifiers_do_not_fabricate_exact_size() -> None:
+    # Include may modify a base row rather than add a new one.
+    included = _matrix({
+        "matrix": {"os": ["ubuntu", "windows"], "include": [{"os": "ubuntu", "extra": "x"}]}
+    })
+    assert included is not None
+    assert included["base_size"] == 2
+    assert included["include_count"] == 1
+    assert included["size"] is None
+    assert included["size_status"] == "unknown-modifiers"
+
+    # Exclude removes a row, so reporting the unadjusted base as exact is wrong.
+    excluded = _matrix({
+        "matrix": {"os": ["ubuntu", "windows"], "exclude": [{"os": "windows"}]}
+    })
+    assert excluded is not None
+    assert excluded["base_size"] == 2
+    assert excluded["exclude_count"] == 1
+    assert excluded["size"] is None
+    assert excluded["size_status"] == "unknown-modifiers"
+
+
+def test_matrix_unsupported_values_are_unknown_not_singletons() -> None:
+    for value in ("ubuntu-latest", {"os": "ubuntu-latest"}, ["${{ fromJSON(inputs.platforms) }}"]):
+        matrix = _matrix({"matrix": {"os": value}})
+        assert matrix is not None
+        assert matrix["axes"] == {"os": None}
+        assert matrix["size"] is None
+        assert matrix["size_status"] == "unknown-axes"
+
+
+def test_parse_workflow_preserves_unknown_matrix_cardinality() -> None:
+    workflow = """name: Dynamic matrix
+on: push
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: '${{ fromJSON(inputs.platforms) }}'
+        python: ['3.11', '3.14']
+        exclude:
+          - python: '3.14'
+    steps:
+      - run: echo ok
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/dynamic.yml")
+    assert parsed is not None
+    matrix = parsed["jobs"][0]["matrix"]
+    assert matrix is not None
+    assert matrix["axes"] == {"os": None, "python": 2}
+    assert matrix["size"] is None
+    assert matrix["base_size"] is None
+    assert matrix["size_status"] == "unknown-axes"
+    assert matrix["exclude_count"] == 1
