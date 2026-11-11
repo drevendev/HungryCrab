@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from helpers import read_json, read_md
+from pathlib import Path
 
-from hungry_crab.digest import DigestResult
+from conftest import FIXED_NOW
+from helpers import read_json, read_md, write_tree
+
+from hungry_crab.cache import Target
+from hungry_crab.digest import DigestOptions, DigestResult, run_digest
 from hungry_crab.miners.ci import _matrix, parse_action, parse_workflow
 
 
@@ -406,3 +410,69 @@ jobs:
     assert matrix["base_size"] is None
     assert matrix["size_status"] == "unknown-axes"
     assert matrix["exclude_count"] == 1
+
+
+def test_matrix_uncertainty_survives_ci_json_and_markdown(tmp_path: Path) -> None:
+    """Exercise the actual miner outputs, including the Jobs table rendering."""
+    root = write_tree(
+        tmp_path / "matrix-prey",
+        {
+            "README.md": "# Synthetic matrix fixture\n",
+            ".github/workflows/matrix.yml": """name: Matrix bounds
+on: push
+jobs:
+  dynamic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: '${{ fromJSON(inputs.platforms) }}'
+        python: ['3.11', '3.14']
+        exclude:
+          - python: '3.14'
+    steps:
+      - run: echo ok
+  literal-modified:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            extra: yes
+    steps:
+      - run: echo ok
+""",
+        },
+    )
+    result = run_digest(
+        Target(path=root),
+        DigestOptions(
+            out=tmp_path / "digest",
+            now=FIXED_NOW,
+            miners=["ci"],
+            cache_root=tmp_path / "cache",
+        ),
+    )
+    workflow = next(
+        wf for wf in read_json(result, "ci.json")["workflows"]
+        if wf["path"] == ".github/workflows/matrix.yml"
+    )
+    jobs = {job["id"]: job["matrix"] for job in workflow["jobs"]}
+    dynamic = jobs["dynamic"]
+    assert dynamic["axes"] == {"os": None, "python": 2}
+    assert dynamic["size"] is None
+    assert dynamic["base_size"] is None
+    assert dynamic["size_status"] == "unknown-axes"
+    assert dynamic["exclude_count"] == 1
+
+    modified = jobs["literal-modified"]
+    assert modified["axes"] == {"os": 2}
+    assert modified["size"] is None
+    assert modified["base_size"] == 2
+    assert modified["size_status"] == "unknown-modifiers"
+    assert modified["include_count"] == 1
+
+    markdown = read_md(result, "ci.md")
+    assert "osx?" in markdown
+    assert "osxNone" not in markdown
+    assert "osx2" in markdown
