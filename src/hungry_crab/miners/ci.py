@@ -318,10 +318,12 @@ def _matrix(strategy: object) -> dict[str, Any] | None:
     if not axes:
         base_size = None
     has_modifiers = "include" in matrix or "exclude" in matrix
-    size_status = (
-        "unknown-axes" if base_size is None else
-        "unknown-modifiers" if has_modifiers else "exact"
-    )
+    if base_size is None:
+        size_status = "unknown-axes"
+    elif has_modifiers:
+        size_status = "unknown-modifiers"
+    else:
+        size_status = "exact"
     include = matrix.get("include")
     exclude = matrix.get("exclude")
     return {
