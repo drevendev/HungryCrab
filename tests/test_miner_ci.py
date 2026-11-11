@@ -454,7 +454,8 @@ jobs:
         ),
     )
     workflow = next(
-        wf for wf in read_json(result, "ci.json")["workflows"]
+        wf
+        for wf in read_json(result, "ci.json")["workflows"]
         if wf["path"] == ".github/workflows/matrix.yml"
     )
     jobs = {job["id"]: job["matrix"] for job in workflow["jobs"]}
