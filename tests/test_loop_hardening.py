@@ -104,7 +104,7 @@ def test_serve_rejects_previously_served_issue_without_this_round_transaction(
     assert isinstance(loop.provider, Provider)
     loop.provider.rows[old_issue] = {
         "html_url": old_issue,
-        "body": f"<!-- {card.id} -->\\nPrior SERVE\\n<!-- crab:transaction:{'a' * 32} -->",
+        "body": f"<!-- {card.id} -->\nPrior SERVE\n<!-- crab:transaction:{'a' * 32} -->",
         "state": "open",
         "merged_at": None,
         "user": {"login": loop.provider.identity()},
