@@ -130,6 +130,7 @@ CORPUS_DIRS = frozenset(
     }
 )  # fmt: skip
 EXAMPLE_DIRS = frozenset({"examples", "example", "demo", "demos", "sample"})
+TEST_PACKAGE_ROOTS = frozenset({"tests", "test", "__tests__", "spec", "specs"})
 LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/"
 LFS_POINTER_MAX = 1024
 _LFS_SIZE_RE = re.compile(rb"^size (\d+)$", re.MULTILINE)
@@ -509,6 +510,38 @@ def mark_example_trees(files: list[FileInfo]) -> None:
         info.exclusion = "examples"
 
 
+def mark_test_package_fixtures(files: list[FileInfo]) -> None:
+    """Keep nested test-package fixtures out of the reported project stack.
+
+    Projects under ``tests/packages/<case>/`` are inputs to packaging tests, not the
+    checked-out project's dependencies. Do not drop first-party test projects such
+    as ``tests/Crustacean.Tests/*.csproj`` or all test source. A repository made
+    entirely of sample packages retains them unless it declares a project elsewhere.
+    """
+    marked = [
+        info
+        for info in files
+        if not info.vendored
+        and len(parts := info.path.lower().split("/")) >= 4
+        and parts[0] in TEST_PACKAGE_ROOTS
+        and parts[1] == "packages"
+    ]
+    if not marked:
+        return
+    nested_paths = {info.path for info in marked}
+    declares_itself = any(
+        not info.vendored
+        and info.path not in nested_paths
+        and (info.manifest_kind is not None or info.lockfile)
+        for info in files
+    )
+    if not declares_itself:
+        return
+    for info in marked:
+        info.vendored = True
+        info.exclusion = "test-package-fixture"
+
+
 def exclusion_reason(info: FileInfo) -> str | None:
     """Why a file is not analysed, or ``None`` when it counts."""
     if info.counted:
@@ -828,6 +861,7 @@ class InventoryMiner:
         mark_build_outputs(files)
         mark_sample_corpora(files)
         mark_example_trees(files)
+        mark_test_package_fixtures(files)
         ignored = 0
         if ctx.ignore:
             kept = [f for f in files if not is_ignored(f.path, ctx.ignore)]
