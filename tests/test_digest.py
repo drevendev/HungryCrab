@@ -414,10 +414,12 @@ def test_git_head_spawn_failure_is_not_treated_as_non_git(
 
 
 @pytest.mark.parametrize(
-    ("os_error", "expected_hint"),
+    ("os_error", "winerror", "expected_hint"),
     [
-        (errno.EACCES, "permissions"),
-        (errno.ENAMETOOLONG, "LongPathsEnabled"),
+        (errno.EACCES, None, "permissions"),
+        (errno.ENAMETOOLONG, None, "LongPathsEnabled"),
+        (errno.EINVAL, 206, "LongPathsEnabled"),
+        (errno.EINVAL, 267, "LongPathsEnabled"),
     ],
 )
 def test_digest_write_oserror_reports_failed_artifact_path(
@@ -425,6 +427,7 @@ def test_digest_write_oserror_reports_failed_artifact_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     os_error: int,
+    winerror: int | None,
     expected_hint: str,
 ) -> None:
     original_write_json = digest_module._write_json
@@ -434,7 +437,10 @@ def test_digest_write_oserror_reports_failed_artifact_path(
         nonlocal failed_path
         if path.name == "manifest.json":
             failed_path = str(path)
-            raise OSError(os_error, "synthetic artifact write failure", failed_path)
+            failure = OSError(os_error, "synthetic artifact write failure", failed_path)
+            if winerror is not None:
+                failure.__dict__["winerror"] = winerror
+            raise failure
         original_write_json(path, value)
 
     monkeypatch.setattr(digest_module, "_write_json", fail_manifest_write)
@@ -446,7 +452,8 @@ def test_digest_write_oserror_reports_failed_artifact_path(
     assert failed_path in str(caught.value)
     assert caught.value.hint is not None
     assert expected_hint in caught.value.hint
-    if os_error == errno.ENAMETOOLONG:
+    if expected_hint == "LongPathsEnabled":
+        assert "--out" in caught.value.hint
         assert "CRAB_CACHE_DIR" in caught.value.hint
     assert isinstance(caught.value.__cause__, OSError)
     assert not requested.exists()
