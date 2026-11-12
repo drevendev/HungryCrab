@@ -446,7 +446,10 @@ class GitRunner:
     def has_commits(self, *, propagate_spawn_error: bool = False) -> bool:
         return (
             self.try_run(
-                "rev-parse", "--verify", "-q", "HEAD",
+                "rev-parse",
+                "--verify",
+                "-q",
+                "HEAD",
                 propagate_spawn_error=propagate_spawn_error,
             )
             is not None
