@@ -1,0 +1,4 @@
+[project]
+name = "test-flit"
+version = "0.0.0"
+dependencies = ["fixture-only-dependency>=1"]

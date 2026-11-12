@@ -117,6 +117,19 @@ def test_python_dependency_policy(py_digest: DigestResult) -> None:
     assert kinds["hypothesis"] == "group:dev"
     assert kinds["hatchling"] == "build"
 
+    # Real committed packaging-test inputs must not become the CLI's dependencies.
+    # Neither name contains "sample" or "examples": that would test the wrong filter.
+    assert {item["path"] for item in data["manifests"]} == {"pyproject.toml"}
+    assert "fixture-only-dependency" not in {p["name"] for p in data["packages"]}
+    assert not any(item["path"].startswith("tests/packages/") for item in data["lockfiles"])
+    inventory = read_json(py_digest, "inventory.json")
+    assert inventory["coverage"]["excluded"]["test-package-fixture"] == 2
+    assert all(
+        not item["path"].startswith("tests/packages/") for item in inventory["manifests"]
+    )
+    manifest = read_json(py_digest, "manifest.json")
+    assert not any("test-bad-syntax" in warning for warning in manifest.get("warnings", []))
+
 
 def test_dotnet_dependency_policy(dotnet_digest: DigestResult) -> None:
     data = read_json(dotnet_digest, "deps.json")
