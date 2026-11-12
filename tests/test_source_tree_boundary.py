@@ -176,9 +176,7 @@ def test_git_visibility_failure_never_falls_back_to_filesystem(
     ) -> str | None:
         if args[:2] == ("ls-files", "--cached"):
             return None
-        return original(
-            self, *args, timeout=timeout, propagate_spawn_error=propagate_spawn_error
-        )
+        return original(self, *args, timeout=timeout, propagate_spawn_error=propagate_spawn_error)
 
     monkeypatch.setattr(GitRunner, "try_run", unavailable)
     with pytest.raises(CrabError, match="analysis file set"):
