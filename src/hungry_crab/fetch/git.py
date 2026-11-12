@@ -337,14 +337,22 @@ class GitRunner:
         return stdout
 
     def try_run(
-        self, *args: str, timeout: float | None = None, stdout_limit: int | None = None
+        self,
+        *args: str,
+        timeout: float | None = None,
+        stdout_limit: int | None = None,
+        propagate_spawn_error: bool = False,
     ) -> str | None:
-        """Like ``run`` but return ``None`` instead of raising on a non-zero exit."""
+        """Return None for Git command failure, unless a requested process start failed."""
         try:
             if stdout_limit is None:
                 return self.run(*args, check=True, timeout=timeout)
             return self.run(*args, check=True, timeout=timeout, stdout_limit=stdout_limit)
-        except ExternalCommandError:
+        except ExternalCommandError as exc:
+            # A process that could not start is not evidence of a non-repository.
+            # Keep the old best-effort behavior for callers that do not opt in.
+            if propagate_spawn_error and isinstance(exc.__cause__, OSError):
+                raise
             return None
 
     def ok(self, *args: str) -> bool:
@@ -354,13 +362,15 @@ class GitRunner:
         out = self.try_run("rev-parse", "--is-inside-work-tree")
         return out is not None and out.strip() == "true"
 
-    def toplevel(self) -> Path | None:
-        out = self.try_run("rev-parse", "--show-toplevel")
+    def toplevel(self, *, propagate_spawn_error: bool = False) -> Path | None:
+        out = self.try_run(
+            "rev-parse", "--show-toplevel", propagate_spawn_error=propagate_spawn_error
+        )
         return Path(out.strip()) if out and out.strip() else None
 
-    def is_repo_root(self) -> bool:
+    def is_repo_root(self, *, propagate_spawn_error: bool = False) -> bool:
         """Whether this directory is the worktree root, including a linked worktree."""
-        top = self.toplevel()
+        top = self.toplevel(propagate_spawn_error=propagate_spawn_error)
         try:
             return top is not None and self.cwd.samefile(top)
         except OSError:
