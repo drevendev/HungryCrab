@@ -385,12 +385,21 @@ def test_git_head_spawn_failure_is_not_treated_as_non_git(
     # interpreted as a repository without commits.
     original_run = GitRunner.run
 
-    def fail_only_head_probe(self: GitRunner, *args: str, **kwargs: object) -> str:
+    def fail_only_head_probe(
+        self: GitRunner,
+        *args: str,
+        check: bool = True,
+        timeout: float | None = None,
+        cwd: Path | None = None,
+        stdout_limit: int | None = None,
+    ) -> str:
         if args == ("rev-parse", "--verify", "-q", "HEAD"):
             raise ExternalCommandError("failed to run git: [WinError 267]") from OSError(
                 "synthetic HEAD process creation failure"
             )
-        return original_run(self, *args, **kwargs)
+        return original_run(
+            self, *args, check=check, timeout=timeout, cwd=cwd, stdout_limit=stdout_limit
+        )
 
     monkeypatch.setattr(GitRunner, "run", fail_only_head_probe)
     requested = tmp_path / "digest-output"
