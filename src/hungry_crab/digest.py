@@ -1004,8 +1004,7 @@ def _digest_output_error(exc: OSError, destination: Path, *, preparing: bool) ->
     failed_path = exc.filename or exc.filename2 or str(destination)
     if exc.errno == errno.ENAMETOOLONG or getattr(exc, "winerror", None) in (206, 267):
         hint = (
-            "shorten the output path (--out or CRAB_CACHE_DIR); "
-            "on Windows, check LongPathsEnabled"
+            "shorten the output path (--out or CRAB_CACHE_DIR); on Windows, check LongPathsEnabled"
         )
     elif preparing:
         hint = "check that the destination parent is a writable directory"
