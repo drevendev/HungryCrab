@@ -378,6 +378,31 @@ def test_git_spawn_failure_is_not_misclassified_as_plain_directory(
     assert not requested.exists()
 
 
+def test_git_head_spawn_failure_is_not_treated_as_non_git(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The first Git probe succeeds; a later failed process start must not be
+    # interpreted as a repository without commits.
+    original_run = GitRunner.run
+
+    def fail_only_head_probe(self: GitRunner, *args: str, **kwargs: object) -> str:
+        if args == ("rev-parse", "--verify", "-q", "HEAD"):
+            raise ExternalCommandError("failed to run git: [WinError 267]") from OSError(
+                "synthetic HEAD process creation failure"
+            )
+        return original_run(self, *args, **kwargs)
+
+    monkeypatch.setattr(GitRunner, "run", fail_only_head_probe)
+    requested = tmp_path / "digest-output"
+    with pytest.raises(CrabError, match="cannot launch Git while verifying HEAD") as caught:
+        run_digest(Target(path=npm_app), DigestOptions(out=requested, now=FIXED_NOW))
+
+    assert "[WinError 267]" in str(caught.value)
+    assert isinstance(caught.value.__cause__, ExternalCommandError)
+    assert isinstance(caught.value.__cause__.__cause__, OSError)
+    assert not requested.exists()
+
+
 def test_digest_of_a_plain_directory_without_git(tmp_path: Path) -> None:
     root = write_tree(
         tmp_path / "plain",
