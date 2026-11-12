@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import json
 import os
 from pathlib import Path
@@ -409,6 +410,57 @@ def test_git_head_spawn_failure_is_not_treated_as_non_git(
     assert "[WinError 267]" in str(caught.value)
     assert isinstance(caught.value.__cause__, ExternalCommandError)
     assert isinstance(caught.value.__cause__.__cause__, OSError)
+    assert not requested.exists()
+
+
+@pytest.mark.parametrize(
+    ("os_error", "winerror", "expected_hint"),
+    [
+        (errno.EACCES, None, "permissions"),
+        (errno.ENAMETOOLONG, None, "LongPathsEnabled"),
+        (errno.EINVAL, 206, "LongPathsEnabled"),
+        (errno.EINVAL, 267, "LongPathsEnabled"),
+    ],
+)
+def test_digest_write_oserror_reports_failed_artifact_path(
+    npm_app: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    os_error: int,
+    winerror: int | None,
+    expected_hint: str,
+) -> None:
+    original_write_json = digest_module._write_json
+    failed_path: str | None = None
+
+    # Windows exposes OSError.winerror as a native descriptor; assigning to
+    # __dict__ does not override it. This fixture must work on both platforms.
+    class SyntheticOSError(OSError):
+        @property
+        def winerror(self) -> int | None:
+            return winerror
+
+    def fail_manifest_write(path: Path, value: dict[str, object]) -> None:
+        nonlocal failed_path
+        if path.name == "manifest.json":
+            failed_path = str(path)
+            failure = SyntheticOSError(os_error, "synthetic artifact write failure", failed_path)
+            raise failure
+        original_write_json(path, value)
+
+    monkeypatch.setattr(digest_module, "_write_json", fail_manifest_write)
+    requested = tmp_path / "owned-output"
+    with pytest.raises(CrabError, match="cannot write digest output") as caught:
+        run_digest(Target(path=npm_app), DigestOptions(out=requested, now=FIXED_NOW))
+
+    assert failed_path is not None
+    assert failed_path in str(caught.value)
+    assert caught.value.hint is not None
+    assert expected_hint in caught.value.hint
+    if expected_hint == "LongPathsEnabled":
+        assert "--out" in caught.value.hint
+        assert "CRAB_CACHE_DIR" in caught.value.hint
+    assert isinstance(caught.value.__cause__, OSError)
     assert not requested.exists()
 
 

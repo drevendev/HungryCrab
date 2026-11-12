@@ -7,6 +7,7 @@ it lists every file with a token estimate, the miners that ran, and a small summ
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import shutil
@@ -1015,6 +1016,21 @@ def validate_digest_options(opts: DigestOptions) -> list[Miner]:
         raise UsageError(str(exc)) from exc
 
 
+def _digest_output_error(exc: OSError, destination: Path, *, preparing: bool) -> CrabError:
+    """Report the actual failed path when the OS provides it, without losing the cause."""
+    failed_path = exc.filename or exc.filename2 or str(destination)
+    if exc.errno == errno.ENAMETOOLONG or getattr(exc, "winerror", None) in (206, 267):
+        hint = (
+            "shorten the output path (--out or CRAB_CACHE_DIR); on Windows, check LongPathsEnabled"
+        )
+    elif preparing:
+        hint = "check that the destination parent is a writable directory"
+    else:
+        hint = "check destination permissions and available space, then rerun crab digest"
+    phase = "prepare" if preparing else "write"
+    return CrabError(f"cannot {phase} digest output {failed_path}", hint=hint)
+
+
 def run_digest(
     target: Target, options: DigestOptions | None = None, *, log: Callable[[str], None] = _noop
 ) -> DigestResult:
@@ -1070,10 +1086,7 @@ def run_digest(
         else:
             out_dir.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
-        raise CrabError(
-            f"cannot prepare digest output {requested_out_dir}",
-            hint="check that the destination parent is a writable directory",
-        ) from exc
+        raise _digest_output_error(exc, requested_out_dir, preparing=True) from exc
 
     try:
         manifest_path = out_dir / MANIFEST_NAME
@@ -1097,10 +1110,7 @@ def run_digest(
             published_out, manifest, cached=False, reuse={"reused": False, "reasons": reuse_reasons}
         )
     except OSError as exc:
-        raise CrabError(
-            f"cannot write digest output {requested_out_dir}",
-            hint="check destination permissions and available space, then rerun crab digest",
-        ) from exc
+        raise _digest_output_error(exc, requested_out_dir, preparing=False) from exc
     finally:
         if explicit_stage is not None:
             shutil.rmtree(explicit_stage, ignore_errors=True)
