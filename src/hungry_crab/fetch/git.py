@@ -443,5 +443,11 @@ class GitRunner:
         out = self.try_run("rev-parse", "--is-shallow-repository")
         return (out or "").strip() != "false"
 
-    def has_commits(self) -> bool:
-        return self.ok("rev-parse", "--verify", "-q", "HEAD")
+    def has_commits(self, *, propagate_spawn_error: bool = False) -> bool:
+        return (
+            self.try_run(
+                "rev-parse", "--verify", "-q", "HEAD",
+                propagate_spawn_error=propagate_spawn_error,
+            )
+            is not None
+        )
