@@ -20,7 +20,8 @@ from hungry_crab.digest import (
     prepare_context,
     run_digest,
 )
-from hungry_crab.errors import CrabError
+from hungry_crab.errors import CrabError, ExternalCommandError
+from hungry_crab.fetch.git import GitRunner
 from hungry_crab.miners import ALL_MINERS, MINER_NAMES, select_miners
 from hungry_crab.tokens import estimate_tokens
 
@@ -350,6 +351,66 @@ def test_cached_prey_without_a_head_refuses_non_git_digest(tmp_path: Path) -> No
     assert exc.value.hint is not None
     assert f"crab catch {slug} --force" in exc.value.hint
     assert not paths.digests.exists()
+
+
+@pytest.mark.parametrize("has_git_marker", [False, True])
+def test_git_spawn_failure_is_not_misclassified_as_plain_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, has_git_marker: bool
+) -> None:
+    root = write_tree(tmp_path / "prey", {"README.md": "# Prey\\n"})
+    if has_git_marker:
+        (root / ".git").mkdir()
+
+    def fail_git_launch(_self: GitRunner, *_args: str, **_kwargs: object) -> str:
+        raise ExternalCommandError("failed to run git: [WinError 267]") from OSError(
+            "synthetic process creation failure"
+        )
+
+    monkeypatch.setattr(GitRunner, "run", fail_git_launch)
+    requested = tmp_path / "digest-output"
+    with pytest.raises(CrabError, match="cannot launch Git") as caught:
+        run_digest(Target(path=root), DigestOptions(out=requested, now=FIXED_NOW))
+
+    assert "[WinError 267]" in str(caught.value)
+    assert caught.value.hint is not None
+    assert "shorten long Windows paths" in caught.value.hint
+    assert isinstance(caught.value.__cause__, ExternalCommandError)
+    assert isinstance(caught.value.__cause__.__cause__, OSError)
+    assert not requested.exists()
+
+
+def test_git_head_spawn_failure_is_not_treated_as_non_git(
+    npm_app: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The first Git probe succeeds; a later failed process start must not be
+    # interpreted as a repository without commits.
+    original_run = GitRunner.run
+
+    def fail_only_head_probe(
+        self: GitRunner,
+        *args: str,
+        check: bool = True,
+        timeout: float | None = None,
+        cwd: Path | None = None,
+        stdout_limit: int | None = None,
+    ) -> str:
+        if args == ("rev-parse", "--verify", "-q", "HEAD"):
+            raise ExternalCommandError("failed to run git: [WinError 267]") from OSError(
+                "synthetic HEAD process creation failure"
+            )
+        return original_run(
+            self, *args, check=check, timeout=timeout, cwd=cwd, stdout_limit=stdout_limit
+        )
+
+    monkeypatch.setattr(GitRunner, "run", fail_only_head_probe)
+    requested = tmp_path / "digest-output"
+    with pytest.raises(CrabError, match="cannot launch Git while verifying HEAD") as caught:
+        run_digest(Target(path=npm_app), DigestOptions(out=requested, now=FIXED_NOW))
+
+    assert "[WinError 267]" in str(caught.value)
+    assert isinstance(caught.value.__cause__, ExternalCommandError)
+    assert isinstance(caught.value.__cause__.__cause__, OSError)
+    assert not requested.exists()
 
 
 @pytest.mark.parametrize(

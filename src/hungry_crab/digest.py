@@ -37,7 +37,7 @@ from .digest_publication import (
     check_digest_ref_publishable,
     publish_digest_generation,
 )
-from .errors import CrabError, UsageError
+from .errors import CrabError, ExternalCommandError, UsageError
 from .fetch.catch import CatchOptions, catch, parse_since
 from .fetch.git import GitRunner
 from .fetch.issues import read_issues
@@ -300,8 +300,15 @@ def prepare_context(
         # digest through `options.ignore`, from a caller that knows which directory is the maw.
 
     tree_git = GitRunner(root) if GitRunner.available() else None
-    if tree_git is not None and not tree_git.is_repo_root():
-        tree_git = None
+    try:
+        if tree_git is not None and not tree_git.is_repo_root(propagate_spawn_error=True):
+            tree_git = None
+    except ExternalCommandError as exc:
+        # A Git process that cannot start must not silently classify prey as a plain folder.
+        raise CrabError(
+            f"cannot launch Git while inspecting {root}: {exc}",
+            hint="check that Git can start in this directory; shorten long Windows paths",
+        ) from exc
     marker = root / ".git"
     try:
         marker.lstat()
@@ -315,7 +322,17 @@ def prepare_context(
             "cannot establish the Git repository root for analysis",
             hint="ensure Git is installed and the target is a readable worktree root",
         )
-    git = tree_git if tree_git is not None and tree_git.has_commits() else None
+    try:
+        git = (
+            tree_git
+            if tree_git is not None and tree_git.has_commits(propagate_spawn_error=True)
+            else None
+        )
+    except ExternalCommandError as exc:
+        raise CrabError(
+            f"cannot launch Git while verifying HEAD for {root}: {exc}",
+            hint="check that Git can start in this directory; shorten long Windows paths",
+        ) from exc
     if target.slug is not None and git is None:
         raise CrabError(
             f"cached prey {target.slug} has no valid Git HEAD",
