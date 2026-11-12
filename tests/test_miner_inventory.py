@@ -420,21 +420,21 @@ def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: 
     """pypa/build-style test packages are fixtures, but first-party tests stay visible."""
     tree = {
         "pyproject.toml": (
-            "[project]\\nname = 'real-project'\\ndependencies = ['click>=8']\\n"
+            "[project]\nname = 'real-project'\ndependencies = ['click>=8']\n"
         ),
-        "src/core.py": "def main():\\n    return 1\\n",
-        "tests/test_core.py": "def test_main():\\n    assert True\\n",
+        "src/core.py": "def main():\n    return 1\n",
+        "tests/test_core.py": "def test_main():\n    assert True\n",
         "tests/Crustacean.Tests/Crustacean.Tests.csproj": (
             '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>'
             '<PackageReference Include="xunit" Version="2.7.0" />'
             "</ItemGroup></Project>"
         ),
-        "tests/packages/test-bad-syntax/pyproject.toml": "[project\\n",
-        "tests/packages/test-flit/uv.lock": "version = 1\\n",
+        "tests/packages/test-bad-syntax/pyproject.toml": "[project\n",
+        "tests/packages/test-flit/uv.lock": "version = 1\n",
     }
     for number in range(45):
         tree[f"tests/packages/test-flit-{number}/pyproject.toml"] = (
-            "[project]\\nname = 'fake'\\ndependencies = ['fake_package>=1']\\n"
+            "[project]\nname = 'fake'\ndependencies = ['fake_package>=1']\n"
         )
     root = write_tree(tmp_path / "test-cases", tree)
     files, stats = walk_tree(root, max_files=MAX_FILES["normal"])
@@ -464,7 +464,7 @@ def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: 
 def test_test_package_only_repository_keeps_its_stack(tmp_path: Path) -> None:
     root = write_tree(
         tmp_path / "package-examples",
-        {"tests/packages/test-flit/pyproject.toml": "[project]\\nname = 'only-package'\\n"},
+        {"tests/packages/test-flit/pyproject.toml": "[project]\nname = 'only-package'\n"},
     )
     files, _ = walk_tree(root, max_files=MAX_FILES["normal"])
     mark_test_package_fixtures(files)
