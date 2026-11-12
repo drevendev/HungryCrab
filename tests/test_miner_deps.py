@@ -124,9 +124,7 @@ def test_python_dependency_policy(py_digest: DigestResult) -> None:
     assert not any(item["path"].startswith("tests/packages/") for item in data["lockfiles"])
     inventory = read_json(py_digest, "inventory.json")
     assert inventory["coverage"]["excluded"]["test-package-fixture"] == 2
-    assert all(
-        not item["path"].startswith("tests/packages/") for item in inventory["manifests"]
-    )
+    assert all(not item["path"].startswith("tests/packages/") for item in inventory["manifests"])
     manifest = read_json(py_digest, "manifest.json")
     assert not any("test-bad-syntax" in warning for warning in manifest.get("warnings", []))
 
