@@ -321,7 +321,17 @@ def prepare_context(
             "cannot establish the Git repository root for analysis",
             hint="ensure Git is installed and the target is a readable worktree root",
         )
-    git = tree_git if tree_git is not None and tree_git.has_commits() else None
+    try:
+        git = (
+            tree_git
+            if tree_git is not None and tree_git.has_commits(propagate_spawn_error=True)
+            else None
+        )
+    except ExternalCommandError as exc:
+        raise CrabError(
+            f"cannot launch Git while verifying HEAD for {root}: {exc}",
+            hint="check that Git can start in this directory; shorten long Windows paths",
+        ) from exc
     if target.slug is not None and git is None:
         raise CrabError(
             f"cached prey {target.slug} has no valid Git HEAD",
