@@ -419,9 +419,7 @@ def test_walk_tree_does_not_follow_a_junction_out_of_the_prey(tmp_path: Path) ->
 def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: Path) -> None:
     """pypa/build-style test packages are fixtures, but first-party tests stay visible."""
     tree = {
-        "pyproject.toml": (
-            "[project]\nname = 'real-project'\ndependencies = ['click>=8']\n"
-        ),
+        "pyproject.toml": ("[project]\nname = 'real-project'\ndependencies = ['click>=8']\n"),
         "src/core.py": "def main():\n    return 1\n",
         "tests/test_core.py": "def test_main():\n    assert True\n",
         "tests/Crustacean.Tests/Crustacean.Tests.csproj": (
