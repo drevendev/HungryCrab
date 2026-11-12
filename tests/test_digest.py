@@ -433,13 +433,18 @@ def test_digest_write_oserror_reports_failed_artifact_path(
     original_write_json = digest_module._write_json
     failed_path: str | None = None
 
+    # Windows exposes OSError.winerror as a native descriptor; assigning to
+    # __dict__ does not override it. This fixture must work on both platforms.
+    class SyntheticOSError(OSError):
+        @property
+        def winerror(self) -> int | None:
+            return winerror
+
     def fail_manifest_write(path: Path, value: dict[str, object]) -> None:
         nonlocal failed_path
         if path.name == "manifest.json":
             failed_path = str(path)
-            failure = OSError(os_error, "synthetic artifact write failure", failed_path)
-            if winerror is not None:
-                failure.__dict__["winerror"] = winerror
+            failure = SyntheticOSError(os_error, "synthetic artifact write failure", failed_path)
             raise failure
         original_write_json(path, value)
 
