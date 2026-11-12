@@ -13,12 +13,15 @@ from helpers import read_json, read_md, write_tree
 from hungry_crab.cache import Target
 from hungry_crab.digest import DigestOptions, DigestResult, run_digest
 from hungry_crab.miners import inventory
+from hungry_crab.miners.base import MineContext, MinerResult
+from hungry_crab.miners.deps import DepsMiner
 from hungry_crab.miners.inventory import (
     MAX_FILES,
     coverage_block,
     describe_coverage,
     mark_build_outputs,
     mark_example_trees,
+    mark_test_package_fixtures,
     walk_tree,
 )
 
@@ -411,3 +414,58 @@ def test_walk_tree_does_not_follow_a_junction_out_of_the_prey(tmp_path: Path) ->
     assert stats["symlinks"] == 1
     coverage = coverage_block(files, stats, 0)
     assert coverage["loss"]["symlinks_skipped"] == 1 and coverage["healthy"] is True
+
+
+def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: Path) -> None:
+    """pypa/build-style test packages are fixtures, but first-party tests stay visible."""
+    tree = {
+        "pyproject.toml": (
+            "[project]\\nname = 'real-project'\\ndependencies = ['click>=8']\\n"
+        ),
+        "src/core.py": "def main():\\n    return 1\\n",
+        "tests/test_core.py": "def test_main():\\n    assert True\\n",
+        "tests/Crustacean.Tests/Crustacean.Tests.csproj": (
+            '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>'
+            '<PackageReference Include="xunit" Version="2.7.0" />'
+            "</ItemGroup></Project>"
+        ),
+        "tests/packages/test-bad-syntax/pyproject.toml": "[project\\n",
+        "tests/packages/test-flit/uv.lock": "version = 1\\n",
+    }
+    for number in range(45):
+        tree[f"tests/packages/test-flit-{number}/pyproject.toml"] = (
+            "[project]\\nname = 'fake'\\ndependencies = ['fake_package>=1']\\n"
+        )
+    root = write_tree(tmp_path / "test-cases", tree)
+    files, stats = walk_tree(root, max_files=MAX_FILES["normal"])
+    mark_test_package_fixtures(files)
+    by_path = {info.path: info for info in files}
+    assert by_path["tests/test_core.py"].counted
+    assert by_path["tests/Crustacean.Tests/Crustacean.Tests.csproj"].counted
+    assert by_path["tests/packages/test-bad-syntax/pyproject.toml"].vendored
+    assert by_path["tests/packages/test-flit/uv.lock"].vendored
+    assert coverage_block(files, stats, 0)["excluded"]["test-package-fixture"] == 47
+
+    ctx = MineContext(root=root, sha="abc", ref="HEAD", label="test-cases")
+    ctx.results["inventory"] = MinerResult(
+        name="inventory", data={}, extra={"files": files, "root_entries": []}
+    )
+    result = DepsMiner().run(ctx)
+    data = result.data
+    assert {item["path"] for item in data["manifests"]} == {
+        "pyproject.toml",
+        "tests/Crustacean.Tests/Crustacean.Tests.csproj",
+    }
+    assert {package["name"] for package in data["packages"]} == {"click", "xunit"}
+    assert data["lockfiles"] == []
+    assert not result.warnings, "excluded fixture manifests must not parse or consume the cap"
+
+
+def test_test_package_only_repository_keeps_its_stack(tmp_path: Path) -> None:
+    root = write_tree(
+        tmp_path / "package-examples",
+        {"tests/packages/test-flit/pyproject.toml": "[project]\\nname = 'only-package'\\n"},
+    )
+    files, _ = walk_tree(root, max_files=MAX_FILES["normal"])
+    mark_test_package_fixtures(files)
+    assert len(files) == 1 and files[0].counted
