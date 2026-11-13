@@ -510,22 +510,55 @@ def mark_example_trees(files: list[FileInfo]) -> None:
         info.exclusion = "examples"
 
 
-def mark_test_package_fixtures(files: list[FileInfo]) -> None:
-    """Keep nested test-package fixtures out of the reported project stack.
+def _test_fixture_case(path: str) -> tuple[str, bool] | None:
+    """Return a nested fixture case and whether it uses the legacy tests/packages layout."""
+    parents = path.casefold().split("/")[:-1]
+    for index, part in enumerate(parents):
+        if (
+            part in TEST_PACKAGE_ROOTS
+            and index + 2 < len(parents)
+            and parents[index + 1] == "packages"
+        ):
+            return "/".join(parents[: index + 3]), True
+        if (
+            part in CORPUS_DIRS
+            and index + 1 < len(parents)
+            and (
+                part in {"testdata", "test-data", "test_data"}
+                or index == 0
+                or any(p in TEST_PACKAGE_ROOTS for p in parents[:index])
+            )
+        ):
+            return "/".join(parents[: index + 2]), False
+    return None
 
-    Projects under ``tests/packages/<case>/`` are inputs to packaging tests, not the
-    checked-out project's dependencies. Do not drop first-party test projects such
-    as ``tests/Crustacean.Tests/*.csproj`` or all test source. A repository made
-    entirely of sample packages retains them unless it declares a project elsewhere.
+
+def mark_test_package_fixtures(files: list[FileInfo]) -> None:
+    """Keep nested test fixtures out of the reported project stack.
+
+    Projects under ``tests/packages/<case>/``, ``tests/fixtures/<case>/``,
+    ``src/test/fixtures/<case>/`` and ``testdata/<case>/`` are test inputs, not
+    the checked-out project's dependencies. Keep first-party test projects such
+    as ``tests/Crustacean.Tests/*.csproj`` and non-test ``src/fixtures/``.
+    A fixture-only repository retains its stack unless it declares itself elsewhere.
     """
-    marked = [
-        info
+    candidates = [
+        (info, case)
         for info in files
-        if not info.vendored
-        and len(parts := info.path.lower().split("/")) >= 4
-        and parts[0] in TEST_PACKAGE_ROOTS
-        and parts[1] == "packages"
+        if not info.vendored and (case := _test_fixture_case(info.path)) is not None
     ]
+    # Only infer new corpus roots from an actual nested Python packaging fixture.
+    # A legitimate embedded npm app under tests/fixtures must remain visible as prey
+    # unless the caller explicitly ignores it (tests/test_ignore.py).
+    python_cases = {
+        case[0]
+        for info, case in candidates
+        if not case[1] and info.path.casefold().endswith("/pyproject.toml")
+    }
+    marked: list[FileInfo] = []
+    for info, (key, legacy) in candidates:
+        if legacy or key in python_cases:
+            marked.append(info)
     if not marked:
         return
     nested_paths = {info.path for info in marked}
