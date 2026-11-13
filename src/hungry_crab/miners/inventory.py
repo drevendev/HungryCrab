@@ -523,7 +523,11 @@ def _test_fixture_case(path: str) -> tuple[str, bool] | None:
         if (
             part in CORPUS_DIRS
             and index + 1 < len(parents)
-            and (index == 0 or any(p in TEST_PACKAGE_ROOTS for p in parents[:index]))
+            and (
+                part in {"testdata", "test-data", "test_data"}
+                or index == 0
+                or any(p in TEST_PACKAGE_ROOTS for p in parents[:index])
+            )
         ):
             return "/".join(parents[: index + 2]), False
     return None
