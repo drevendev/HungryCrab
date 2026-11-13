@@ -198,7 +198,7 @@ def _jsonc_clean(text: str) -> str:
             end = text.find("*/", index + 2)
             if end < 0:
                 return ""
-            chunks.append("\n" * text[index : end + 2].count("\n"))
+            chunks.append(" " + "\n" * text[index : end + 2].count("\n"))
             index = end + 2
             continue
         chunks.append(text[index])
