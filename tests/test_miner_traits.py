@@ -27,9 +27,7 @@ from hungry_crab.miners.traits import typescript_strict_from_jsonc
         ('{"compilerOptions": {"strict": true', None),
     ],
 )
-def test_typescript_strict_parses_jsonc_not_substrings(
-    source: str, expected: bool | None
-) -> None:
+def test_typescript_strict_parses_jsonc_not_substrings(source: str, expected: bool | None) -> None:
     assert typescript_strict_from_jsonc(source) is expected
 
 
