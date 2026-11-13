@@ -6,6 +6,7 @@ first, fully deterministic list of candidate nutrients. Keys are stable identifi
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from ..typeutil import as_dict
@@ -168,6 +169,101 @@ def _tool_names(
     }
 
 
+def _jsonc_clean(text: str) -> str:
+    """Remove JSONC comments and trailing commas, preserving quoted strings."""
+    chunks: list[str] = []
+    index = 0
+    while index < len(text):
+        if text[index] == '"':
+            start = index
+            index += 1
+            while index < len(text):
+                if text[index] == "\\":
+                    index += 2
+                elif text[index] == '"':
+                    index += 1
+                    break
+                else:
+                    index += 1
+            chunks.append(text[start:index])
+            continue
+        if text.startswith("//", index):
+            end = text.find("\n", index + 2)
+            if end < 0:
+                break
+            chunks.append("\n")
+            index = end + 1
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            if end < 0:
+                return ""
+            chunks.append(" " + "\n" * text[index : end + 2].count("\n"))
+            index = end + 2
+            continue
+        chunks.append(text[index])
+        index += 1
+
+    uncommented = "".join(chunks)
+    output: list[str] = []
+    index = 0
+    while index < len(uncommented):
+        if uncommented[index] == '"':
+            start = index
+            index += 1
+            while index < len(uncommented):
+                if uncommented[index] == "\\":
+                    index += 2
+                elif uncommented[index] == '"':
+                    index += 1
+                    break
+                else:
+                    index += 1
+            output.append(uncommented[start:index])
+            continue
+        if uncommented[index] == ",":
+            next_index = index + 1
+            while next_index < len(uncommented) and uncommented[next_index].isspace():
+                next_index += 1
+            if next_index < len(uncommented) and uncommented[next_index] in "}]":
+                index += 1
+                continue
+        output.append(uncommented[index])
+        index += 1
+    return "".join(output)
+
+
+def _reject_non_json_constant(value: str) -> None:
+    """Reject Python JSON decoder extensions absent from JSONC."""
+    raise ValueError(f"Invalid JSONC constant: {value}")
+
+
+def typescript_strict_from_jsonc(text: str) -> bool | None:
+    """Inspect the compiler option, not a textual substring or a comment."""
+    try:
+        config = json.loads(_jsonc_clean(text), parse_constant=_reject_non_json_constant)
+    except (ValueError, RecursionError, MemoryError):
+        return None
+    if not isinstance(config, dict):
+        return None
+    compiler_options = config.get("compilerOptions")
+    if compiler_options is not None and not isinstance(compiler_options, dict):
+        return None
+    if isinstance(compiler_options, dict) and "strict" in compiler_options:
+        value = compiler_options["strict"]
+        return value if isinstance(value, bool) else None
+    extends = config.get("extends")
+    if isinstance(extends, str):
+        return (
+            True
+            if extends in {"@tsconfig/strictest", "@tsconfig/strictest/tsconfig.json"}
+            else None
+        )
+    if extends is not None:
+        return None
+    return False
+
+
 class TraitsMiner:
     name = "traits"
     requires: tuple[str, ...] = (
@@ -209,8 +305,7 @@ class TraitsMiner:
 
         tsconfig_strict: bool | None = None
         if "tsconfig.json" in root_names:
-            compact = ctx.read("tsconfig.json").replace(" ", "").replace("\n", "")
-            tsconfig_strict = '"strict":true' in compact
+            tsconfig_strict = typescript_strict_from_jsonc(ctx.read("tsconfig.json"))
         npm_scripts = deps.get("npm_scripts", {})
         policies = deps.get("policies", {})
         readme = docs.get("readme") or {}
