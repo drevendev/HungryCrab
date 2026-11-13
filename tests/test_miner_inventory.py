@@ -459,6 +459,58 @@ def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: 
     assert not result.warnings, "excluded fixture manifests must not parse or consume the cap"
 
 
+@pytest.mark.parametrize(
+    "fixture_path",
+    [
+        "tests/fixtures/test-flit/pyproject.toml",
+        "spec/__fixtures__/test-flit/pyproject.toml",
+        "src/test/fixtures/test-flit/pyproject.toml",
+        "testdata/test-flit/pyproject.toml",
+    ],
+)
+def test_test_corpus_manifests_are_excluded_without_hiding_test_projects(
+    tmp_path: Path, fixture_path: str
+) -> None:
+    """Non-packages fixture roots must not leak manifests or parse failures (#374)."""
+    root = write_tree(
+        tmp_path / "test-fixture-roots",
+        {
+            "pyproject.toml": "[project]\nname = 'real-project'\ndependencies = ['click>=8']\n",
+            "tests/Crustacean.Tests/Crustacean.Tests.csproj": (
+                '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>'
+                '<PackageReference Include="xunit" Version="2.7.0" />'
+                "</ItemGroup></Project>"
+            ),
+            "src/fixtures/local-tool/pyproject.toml": (
+                "[project]\nname = 'local-tool'\ndependencies = ['local-helper>=1']\n"
+            ),
+            fixture_path: "[project\n",
+        },
+    )
+    files, stats = walk_tree(root, max_files=MAX_FILES["normal"])
+    mark_test_package_fixtures(files)
+    by_path = {item.path: item for item in files}
+    assert by_path[fixture_path].vendored
+    assert by_path["tests/Crustacean.Tests/Crustacean.Tests.csproj"].counted
+    assert by_path["src/fixtures/local-tool/pyproject.toml"].counted
+    assert coverage_block(files, stats, 0)["excluded"]["test-package-fixture"] == 1
+
+    ctx = MineContext(root=root, sha="abc", ref="HEAD", label="test-fixture-roots")
+    ctx.results["inventory"] = MinerResult(
+        name="inventory", data={}, extra={"files": files, "root_entries": []}
+    )
+    result = DepsMiner().run(ctx)
+    assert {entry["path"] for entry in result.data["manifests"]} == {
+        "pyproject.toml",
+        "tests/Crustacean.Tests/Crustacean.Tests.csproj",
+        "src/fixtures/local-tool/pyproject.toml",
+    }
+    assert {package["name"] for package in result.data["packages"]} == {
+        "click", "xunit", "local-helper"
+    }
+    assert not result.warnings
+
+
 def test_test_package_only_repository_keeps_its_stack(tmp_path: Path) -> None:
     root = write_tree(
         tmp_path / "package-examples",
