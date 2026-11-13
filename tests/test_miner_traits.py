@@ -1,8 +1,38 @@
 from __future__ import annotations
 
+import pytest
+
 from helpers import read_json
 
 from hungry_crab.digest import DigestResult
+from hungry_crab.miners.traits import typescript_strict_from_jsonc
+
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ('{"compilerOptions": {"strict": true}}', True),
+        ('{"compilerOptions": {"strict":\ttrue,}}', True),
+        ('{"compilerOptions": {"strict": false}, "note": "//, }"}', False),
+        ('{"compilerOptions": {// "strict": true\n "target": "ES2020"}}', False),
+        ('{"compilerOptions": {/* "strict": true */ "target": "ES2020"},}', False),
+        ('{"other": {"strict": true}}', False),
+        ('{"extends": "@tsconfig/strictest/tsconfig.json"}', True),
+        ('{"extends": "@tsconfig/strictest"}', True),
+        (
+            '{"extends": "@tsconfig/strictest", "compilerOptions": {"strict": false}}',
+            False,
+        ),
+        ('{"extends": "./base.json"}', None),
+        ('{"compilerOptions": {"strict": "true"}}', None),
+        ('{"compilerOptions": {"strict": true', None),
+    ],
+)
+def test_typescript_strict_parses_jsonc_not_substrings(
+    source: str, expected: bool | None
+) -> None:
+    assert typescript_strict_from_jsonc(source) is expected
 
 
 def test_npm_traits(npm_digest: DigestResult) -> None:
