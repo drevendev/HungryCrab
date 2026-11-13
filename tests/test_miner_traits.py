@@ -8,7 +8,6 @@ from hungry_crab.digest import DigestResult
 from hungry_crab.miners.traits import typescript_strict_from_jsonc
 
 
-
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
