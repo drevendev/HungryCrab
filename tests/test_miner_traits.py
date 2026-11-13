@@ -24,6 +24,9 @@ from hungry_crab.miners.traits import typescript_strict_from_jsonc
         ),
         ('{"extends": "./base.json"}', None),
         ('{"compilerOptions": {"strict": "true"}}', None),
+        ('{"compilerOptions": {"strict": tr/**/ue}}', None),
+        ('{"compilerOptions": {"strict": f/**/alse}}', None),
+        ('{"compilerOptions": {"strict":/**/true}}', True),
         ('{"compilerOptions": {"strict": true', None),
     ],
 )
