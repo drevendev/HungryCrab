@@ -27,7 +27,13 @@
       "message": "Add tests",
       "date": "2024-01-20T11:00:00+00:00",
       "author": "Evan Tide <evan@example.com>",
-      "add": ["tests/conftest.py", "tests/test_cli.py", "tests/test_core.py"]
+      "add": [
+        "tests/conftest.py",
+        "tests/test_cli.py",
+        "tests/test_core.py",
+        "tests/packages/test-bad-syntax/pyproject.toml",
+        "tests/packages/test-flit/pyproject.toml"
+      ]
     },
     {
       "message": "ci: run tests on three platforms",
