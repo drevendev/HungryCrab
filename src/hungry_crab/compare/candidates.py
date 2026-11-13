@@ -860,7 +860,9 @@ def deps_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, l
         # NuGet package IDs are case-insensitive, but PackageReference preserves manifest
         # spelling. Match against the canonical notable table without changing card text.
         if ecosystem == "dotnet":
-            notable = {package.casefold(): description for package, description in notable.items()}
+            notable = {
+                package.casefold(): description for package, description in notable.items()
+            }
         rest: list[str] = []
         for name in names:
             description = notable.get(name.casefold() if ecosystem == "dotnet" else name)
