@@ -510,17 +510,23 @@ def mark_example_trees(files: list[FileInfo]) -> None:
         info.exclusion = "examples"
 
 
-def _is_test_fixture_path(path: str) -> bool:
-    """Identify nested packaging fixtures, not every first-party test project."""
+def _test_fixture_case(path: str) -> tuple[str, bool] | None:
+    """Return a nested fixture case and whether it uses the legacy tests/packages layout."""
     parents = path.casefold().split("/")[:-1]
-    nested_test_packages = any(
-        parents[index] in TEST_PACKAGE_ROOTS and parents[index + 1] == "packages"
-        for index in range(len(parents) - 2)
-    )
-    test_corpus = any(part in TEST_PACKAGE_ROOTS for part in parents) and any(
-        part in CORPUS_DIRS for part in parents
-    )
-    return nested_test_packages or test_corpus or bool(parents and parents[0] in CORPUS_DIRS)
+    for index, part in enumerate(parents):
+        if (
+            part in TEST_PACKAGE_ROOTS
+            and index + 2 < len(parents)
+            and parents[index + 1] == "packages"
+        ):
+            return "/".join(parents[: index + 3]), True
+        if (
+            part in CORPUS_DIRS
+            and index + 1 < len(parents)
+            and (index == 0 or any(p in TEST_PACKAGE_ROOTS for p in parents[:index]))
+        ):
+            return "/".join(parents[: index + 2]), False
+    return None
 
 
 def mark_test_package_fixtures(files: list[FileInfo]) -> None:
@@ -532,7 +538,22 @@ def mark_test_package_fixtures(files: list[FileInfo]) -> None:
     as ``tests/Crustacean.Tests/*.csproj`` and non-test ``src/fixtures/``.
     A fixture-only repository retains its stack unless it declares itself elsewhere.
     """
-    marked = [info for info in files if not info.vendored and _is_test_fixture_path(info.path)]
+    candidates = [
+        (info, case)
+        for info in files
+        if not info.vendored and (case := _test_fixture_case(info.path)) is not None
+    ]
+    # Only infer new corpus roots from an actual nested Python packaging fixture.
+    # A legitimate embedded npm app under tests/fixtures must remain visible as prey
+    # unless the caller explicitly ignores it (tests/test_ignore.py).
+    python_cases = {
+        case[0]
+        for info, case in candidates
+        if not case[1] and info.path.casefold().endswith("/pyproject.toml")
+    }
+    marked = [
+        info for info, (key, legacy) in candidates if legacy or key in python_cases
+    ]
     if not marked:
         return
     nested_paths = {info.path for info in marked}
