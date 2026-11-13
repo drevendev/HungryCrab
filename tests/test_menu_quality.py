@@ -148,10 +148,11 @@ def test_nuget_case_variants_do_not_leak_into_grouped_dependencies(
 
 
 def test_nuget_case_variant_remains_a_named_card_without_its_nutrient() -> None:
+    package = {"ecosystem": "dotnet", "name": "benchmarkdotnet", "kind": "dev"}
     prey = side(
         "prey",
         {"ecosystems": ["dotnet"]},
-        deps={"packages": [{"ecosystem": "dotnet", "name": "benchmarkdotnet", "kind": "dev"}]},
+        deps={"packages": [package]},
     )
     maw = side("maw", {"ecosystems": ["dotnet"], "has_tests": True})
     candidates, _ = build_candidates(prey, maw)
