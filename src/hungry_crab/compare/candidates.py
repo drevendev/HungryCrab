@@ -857,9 +857,13 @@ def deps_candidates(prey: Side, maw: Side) -> tuple[list[Candidate], dict[str, l
             continue
         only_in_prey[ecosystem] = names
         notable = NOTABLE_DEPS.get(ecosystem, {})
+        # NuGet package IDs are case-insensitive, but PackageReference preserves manifest
+        # spelling. Match against the canonical notable table without changing card text.
+        if ecosystem == "dotnet":
+            notable = {package.casefold(): description for package, description in notable.items()}
         rest: list[str] = []
         for name in names:
-            description = notable.get(name)
+            description = notable.get(name.casefold() if ecosystem == "dotnet" else name)
             if description is None or name.lower() in maw_tools:
                 rest.append(name)
                 continue
