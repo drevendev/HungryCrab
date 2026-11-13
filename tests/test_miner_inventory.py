@@ -466,6 +466,8 @@ def test_test_package_fixtures_do_not_pollute_stack_or_manifest_limit(tmp_path: 
         "spec/__fixtures__/test-flit/pyproject.toml",
         "src/test/fixtures/test-flit/pyproject.toml",
         "testdata/test-flit/pyproject.toml",
+        "src/testdata/test-flit/pyproject.toml",
+        "packages/component/testdata/test-flit/pyproject.toml",
     ],
 )
 def test_test_corpus_manifests_are_excluded_without_hiding_test_projects(
