@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from helpers import read_json
 
 from hungry_crab.digest import DigestResult
