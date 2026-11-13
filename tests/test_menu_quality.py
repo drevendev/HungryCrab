@@ -118,6 +118,48 @@ def test_notable_test_package_is_not_a_second_card_for_its_nutrient(
     assert not any(c.category == "deps" and package in c.tags for c in candidates)
 
 
+@pytest.mark.parametrize(
+    ("package", "test_trait", "nutrient"),
+    [
+        ("benchmarkdotnet", "has_benchmarks", "tests.bench"),
+        ("VERIFY.XUNIT", "has_snapshot_tests", "tests.snapshot"),
+        ("fscheck", "has_property_tests", "tests.property"),
+        ("Coverlet.Collector", "coverage_configured", "tests.coverage"),
+    ],
+)
+def test_nuget_case_variants_do_not_leak_into_grouped_dependencies(
+    package: str, test_trait: str, nutrient: str
+) -> None:
+    """NuGet names ignore case; a duplicate must not survive in deps.dotnet.others."""
+    prey = side(
+        "prey",
+        {"ecosystems": ["dotnet"], test_trait: True},
+        deps={"packages": [{"ecosystem": "dotnet", "name": package, "kind": "dev"}]},
+    )
+    maw = side("maw", {"ecosystems": ["dotnet"], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert nutrient in {c.key for c in candidates}
+    assert not any(
+        package.casefold() in c.what.casefold()
+        or any(package.casefold() == tag.casefold() for tag in c.tags)
+        for c in candidates
+        if c.category == "deps"
+    )
+
+
+def test_nuget_case_variant_remains_a_named_card_without_its_nutrient() -> None:
+    prey = side(
+        "prey",
+        {"ecosystems": ["dotnet"]},
+        deps={"packages": [{"ecosystem": "dotnet", "name": "benchmarkdotnet", "kind": "dev"}]},
+    )
+    maw = side("maw", {"ecosystems": ["dotnet"], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert "tests.bench" not in {c.key for c in candidates}
+    assert any(c.category == "deps" and "benchmarkdotnet" in c.tags for c in candidates)
+    assert "deps.dotnet.others" not in {c.key for c in candidates}
+
+
 def test_notable_test_package_still_appears_without_the_matching_nutrient() -> None:
     prey = side(
         "prey",
