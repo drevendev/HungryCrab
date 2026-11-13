@@ -551,9 +551,10 @@ def mark_test_package_fixtures(files: list[FileInfo]) -> None:
         for info, case in candidates
         if not case[1] and info.path.casefold().endswith("/pyproject.toml")
     }
-    marked = [
-        info for info, (key, legacy) in candidates if legacy or key in python_cases
-    ]
+    marked: list[FileInfo] = []
+    for info, (key, legacy) in candidates:
+        if legacy or key in python_cases:
+            marked.append(info)
     if not marked:
         return
     nested_paths = {info.path for info in marked}
