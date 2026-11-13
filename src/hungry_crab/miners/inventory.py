@@ -510,22 +510,29 @@ def mark_example_trees(files: list[FileInfo]) -> None:
         info.exclusion = "examples"
 
 
-def mark_test_package_fixtures(files: list[FileInfo]) -> None:
-    """Keep nested test-package fixtures out of the reported project stack.
+def _is_test_fixture_path(path: str) -> bool:
+    """Identify nested packaging fixtures, not every first-party test project."""
+    parents = path.casefold().split("/")[:-1]
+    nested_test_packages = any(
+        parents[index] in TEST_PACKAGE_ROOTS and parents[index + 1] == "packages"
+        for index in range(len(parents) - 2)
+    )
+    test_corpus = any(part in TEST_PACKAGE_ROOTS for part in parents) and any(
+        part in CORPUS_DIRS for part in parents
+    )
+    return nested_test_packages or test_corpus or bool(parents and parents[0] in CORPUS_DIRS)
 
-    Projects under ``tests/packages/<case>/`` are inputs to packaging tests, not the
-    checked-out project's dependencies. Do not drop first-party test projects such
-    as ``tests/Crustacean.Tests/*.csproj`` or all test source. A repository made
-    entirely of sample packages retains them unless it declares a project elsewhere.
+
+def mark_test_package_fixtures(files: list[FileInfo]) -> None:
+    """Keep nested test fixtures out of the reported project stack.
+
+    Projects under ``tests/packages/<case>/``, ``tests/fixtures/<case>/``,
+    ``src/test/fixtures/<case>/`` and ``testdata/<case>/`` are test inputs, not
+    the checked-out project's dependencies. Keep first-party test projects such
+    as ``tests/Crustacean.Tests/*.csproj`` and non-test ``src/fixtures/``.
+    A fixture-only repository retains its stack unless it declares itself elsewhere.
     """
-    marked = [
-        info
-        for info in files
-        if not info.vendored
-        and len(parts := info.path.lower().split("/")) >= 4
-        and parts[0] in TEST_PACKAGE_ROOTS
-        and parts[1] == "packages"
-    ]
+    marked = [info for info in files if not info.vendored and _is_test_fixture_path(info.path)]
     if not marked:
         return
     nested_paths = {info.path for info in marked}
