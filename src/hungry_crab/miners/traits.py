@@ -169,7 +169,6 @@ def _tool_names(
     }
 
 
-
 def _jsonc_clean(text: str) -> str:
     """Remove JSONC comments and trailing commas, preserving quoted strings."""
     chunks: list[str] = []
