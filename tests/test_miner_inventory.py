@@ -506,7 +506,9 @@ def test_test_corpus_manifests_are_excluded_without_hiding_test_projects(
         "src/fixtures/local-tool/pyproject.toml",
     }
     assert {package["name"] for package in result.data["packages"]} == {
-        "click", "xunit", "local-helper"
+        "click",
+        "xunit",
+        "local-helper",
     }
     assert not result.warnings
 
