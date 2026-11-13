@@ -55,6 +55,15 @@ PACKAGE_IMPLEMENTS_KEY: dict[str, str] = {
     "fast-check": "tests.property",
     "pytest-benchmark": "tests.bench",
     "syrupy": "tests.snapshot",
+    # Names are matched case-insensitively against each ecosystem's notable dependencies.
+    "@playwright/test": "tests.e2e",
+    "coverlet.collector": "tests.coverage",
+    "benchmarkdotnet": "tests.bench",
+    "verify.xunit": "tests.snapshot",
+    "fscheck": "tests.property",
+    "criterion": "tests.bench",
+    "proptest": "tests.property",
+    "insta": "tests.snapshot",
     "mutmut": "tests.mutation",
 }
 
