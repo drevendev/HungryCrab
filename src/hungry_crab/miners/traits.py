@@ -241,9 +241,7 @@ def _reject_non_json_constant(value: str) -> None:
 def typescript_strict_from_jsonc(text: str) -> bool | None:
     """Inspect the compiler option, not a textual substring or a comment."""
     try:
-        config = json.loads(
-            _jsonc_clean(text), parse_constant=_reject_non_json_constant
-        )
+        config = json.loads(_jsonc_clean(text), parse_constant=_reject_non_json_constant)
     except (ValueError, RecursionError, MemoryError):
         return None
     if not isinstance(config, dict):
