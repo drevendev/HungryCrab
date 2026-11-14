@@ -144,15 +144,25 @@ def _parameter_names(tokens: list[tokenize.TokenInfo]) -> set[int]:
     return names
 
 
-def _references(
-    tokens: list[tokenize.TokenInfo], visible: str, line_starts: list[int]
-) -> list[int]:
+def _references(tokens: list[tokenize.TokenInfo]) -> list[int]:
+    """Locate executable export-name reads, including interpolated f-strings.
+
+    Python 3.11 tokenizes a full f-string as STRING; 3.12+ exposes its
+    interpolation NAME tokens. The architecture mask intentionally hides
+    interpolations, so a genuine NAME token must not be filtered by that mask.
+    For older Python, a bounded literal spelling match fails closed (and may
+    conservatively flag a non-executable f-string text occurrence).
+    """
     references: list[int] = []
     for index, token in enumerate(tokens):
-        if token.type != tokenize.NAME or token.string != "__all__":
+        if token.type == tokenize.STRING:
+            if (
+                re.match(r"(?i)^(?:fr|rf|f)['\"]", token.string)
+                and re.search(r"\b__all__\b", token.string)
+            ):
+                references.append(index)
             continue
-        start = line_starts[token.start[0] - 1] + token.start[1]
-        if visible[start : start + 7] != "__all__":
+        if token.type != tokenize.NAME or token.string != "__all__":
             continue
         if index and tokens[index - 1].string == ".":
             continue
@@ -160,11 +170,9 @@ def _references(
     return references
 
 
-def _class_body_unknown(
-    tokens: list[tokenize.TokenInfo], visible: str, line_starts: list[int]
-) -> bool:
+def _class_body_unknown(tokens: list[tokenize.TokenInfo]) -> bool:
     for statement in _statements(tokens):
-        references = _references(statement, visible, line_starts)
+        references = _references(statement)
         if references and not (
             references == [0] and len(statement) > 1 and statement[1].string == "="
         ):
@@ -180,7 +188,6 @@ def python_exports(text: str, visible: str) -> tuple[list[str] | None, str | Non
     """
     if "__all__" not in visible:
         return None, None
-    line_starts = [0, *(match.end() for match in re.finditer("\n", text))]
     scopes = ["module"]
     pending_scope: str | None = None
     line: list[tokenize.TokenInfo] = []
@@ -210,19 +217,17 @@ def python_exports(text: str, visible: str) -> tuple[list[str] | None, str | Non
                         ignored.add(binding)
                         if any(
                             index not in ignored
-                            for index in _references(line[:colon], visible, line_starts)
+                            for index in _references(line[:colon])
                         ):
                             return [], _UNKNOWN
-                        if kind == "class" and _class_body_unknown(
-                            line[colon + 1 :], visible, line_starts
-                        ):
+                        if kind == "class" and _class_body_unknown(line[colon + 1 :]):
                             return [], _UNKNOWN
                     elif scopes[-1] == "class":
-                        if _class_body_unknown(line, visible, line_starts):
+                        if _class_body_unknown(line):
                             return [], _UNKNOWN
                     else:
                         for statement in _statements(line):
-                            for index in _references(statement, visible, line_starts):
+                            for index in _references(statement):
                                 if (
                                     index != 0
                                     or len(scopes) != 1
