@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -122,6 +123,41 @@ def test_unsupported_exports_are_unknown_without_expression_text(source: str) ->
     assert names == []
     assert warning is not None
     assert "phantom" not in warning
+
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        '__all__ = ["alpha"]\nclass Probe:\n'
+        '    label = f"{__all__.append(\'beta\')}"\n',
+        '__all__ = ["alpha"]\nclass Probe:\n'
+        '    label = rf"{__all__.append(\'beta\')}"\n',
+        '__all__ = ["alpha"]\ndef probe(value=f"{__all__.append(\'beta\')}"):\n'
+        '    pass\n',
+        '__all__ = ["alpha"]\nclass Probe:\n'
+        '    def method(self, value=f"{__all__.append(\'beta\')}"):\n'
+        '        pass\n',
+    ],
+)
+def test_interpolated_export_references_fail_closed(source: str, newline: str) -> None:
+    source = source.replace("\n", newline)
+    ast.parse(source)  # Validate receiving input grammar without executing the expression.
+    visible, complete = _python_visible_code(source)
+    assert complete
+    names, warning = python_exports(source, visible)
+    assert names == []
+    assert warning is not None
+    assert "beta" not in warning
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_unrelated_class_fstring_preserves_literal_exports(newline: str) -> None:
+    source = ('__all__ = ["alpha"]\nclass Probe:\n'
+              '    label = f"count={1 + 2}"\n').replace("\n", newline)
+    ast.parse(source)
+    assert python_exports(source, _python_visible_code(source)[0]) == (["alpha"], None)
 
 
 def test_local_bindings_do_not_override_the_module_declaration() -> None:
