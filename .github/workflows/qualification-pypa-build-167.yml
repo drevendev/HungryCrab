@@ -23,6 +23,7 @@ jobs:
       PYTHONIOENCODING: utf-8
       PYTHONDONTWRITEBYTECODE: '1'
       GIT_LFS_SKIP_SMUDGE: '1'
+      SOURCE_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,6 +47,7 @@ jobs:
           test "$(git -C "$prey" rev-parse HEAD)" = \
             58c921aada7f4e03edda65545d42db0c8b000bdc
           git rev-parse HEAD > qualification-artifacts/hungrycrab.sha
+          printf '%s\n' "$SOURCE_PR_HEAD_SHA" > qualification-artifacts/pr-head.sha
           git -C "$prey" rev-parse HEAD > qualification-artifacts/prey.sha
 
       - name: Digest the prey without installing or executing its code
@@ -61,6 +63,7 @@ jobs:
         shell: python
         run: |
           import json
+          import os
           from pathlib import Path
 
           folder = Path("qualification-artifacts")
@@ -71,6 +74,14 @@ jobs:
           manifest = load("manifest.json")
 
           expected_prey = "58c921aada7f4e03edda65545d42db0c8b000bdc"
+          checkout_sha = (folder / "hungrycrab.sha").read_text().strip()
+          source_pr_head_sha = (folder / "pr-head.sha").read_text().strip()
+          assert checkout_sha == os.environ["GITHUB_SHA"]
+          if os.environ["GITHUB_EVENT_NAME"] == "pull_request":
+              assert len(source_pr_head_sha) == 40
+              assert all(ch in "0123456789abcdef" for ch in source_pr_head_sha)
+          else:
+              assert not source_pr_head_sha
           assert (folder / "prey.sha").read_text().strip() == expected_prey
           assert manifest["prey"]["sha"] == expected_prey
           assert deps["package_count"] == 53, deps["package_count"]
@@ -80,20 +91,27 @@ jobs:
               for item in deps["lockfiles"]
           )
           assert inventory["coverage"]["excluded"].get("test-package-fixture", 0) > 0
-          assert not any(
-              "tests/packages/" in str(warning)
-              for warning in manifest.get("warnings", [])
-          )
+          warnings = manifest.get("warnings", [])
+          fixture_warnings = [warning for warning in warnings if "tests/packages/" in str(warning)]
+          assert not fixture_warnings, fixture_warnings
 
           result = {
-              "trusted_hungrycrab_sha": (folder / "hungrycrab.sha").read_text().strip(),
+              "hungrycrab_checkout_sha": checkout_sha,
+              "source_pr_head_sha": source_pr_head_sha or None,
+              "checkout_kind": (
+                  "pull_request_merge_ref"
+                  if os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+                  else "workflow_dispatch_ref"
+              ),
               "prey_sha": expected_prey,
               "package_count": deps["package_count"],
               "manifest_paths": [item["path"] for item in deps["manifests"]],
               "test_package_fixture_excluded": inventory["coverage"]["excluded"].get(
                   "test-package-fixture", 0
               ),
-              "warnings": manifest.get("warnings", []),
+              "fixture_path_warnings": fixture_warnings,
+              "other_warnings": warnings,
+              "warning_scope": "No fixture-induced parse warning; unrelated warnings remain",
               "source_executed": False,
           }
           (folder / "qualification.json").write_text(
