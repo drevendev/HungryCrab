@@ -1,0 +1,111 @@
+name: Qualification pypa/build fixture isolation (#167)
+
+on:
+  # This check is deliberately opt-in outside its introducing PR.
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/qualification-pypa-build-167.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualification-pypa-build-167
+  cancel-in-progress: false
+
+jobs:
+  pinned-digest:
+    name: Pinned pypa/build re-eat (data only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_LFS_SKIP_SMUDGE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: '3.11'
+      - name: Install the trusted HungryCrab CLI only
+        run: uv sync --locked
+
+      - name: Fetch the exact untrusted prey as inert data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification-artifacts
+          prey="$RUNNER_TEMP/pypa-build-58c921a"
+          git -c core.hooksPath=/dev/null clone --no-checkout --filter=blob:none \
+            https://github.com/pypa/build.git "$prey"
+          git -C "$prey" -c core.hooksPath=/dev/null checkout --detach \
+            58c921aada7f4e03edda65545d42db0c8b000bdc
+          test "$(git -C "$prey" rev-parse HEAD)" = \
+            58c921aada7f4e03edda65545d42db0c8b000bdc
+          git rev-parse HEAD > qualification-artifacts/hungrycrab.sha
+          git -C "$prey" rev-parse HEAD > qualification-artifacts/prey.sha
+
+      - name: Digest the prey without installing or executing its code
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run --locked crab digest "$RUNNER_TEMP/pypa-build-58c921a" \
+            --maw . --out "$GITHUB_WORKSPACE/qualification-artifacts/digest" \
+            --force --fail-on-miner-error --fail-on-loss \
+            2>&1 | tee qualification-artifacts/digest.log
+
+      - name: Verify the actual digest artifacts and SHA identities
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          folder = Path("qualification-artifacts")
+          digest = folder / "digest"
+          load = lambda name: json.loads((digest / name).read_text(encoding="utf-8"))
+          deps = load("deps.json")
+          inventory = load("inventory.json")
+          manifest = load("manifest.json")
+
+          expected_prey = "58c921aada7f4e03edda65545d42db0c8b000bdc"
+          assert (folder / "prey.sha").read_text().strip() == expected_prey
+          assert manifest["prey"]["sha"] == expected_prey
+          assert deps["package_count"] == 53, deps["package_count"]
+          assert [item["path"] for item in deps["manifests"]] == ["pyproject.toml"]
+          assert all(
+              not item["path"].startswith("tests/packages/")
+              for item in deps["lockfiles"]
+          )
+          assert inventory["coverage"]["excluded"].get("test-package-fixture", 0) > 0
+          assert not any(
+              "tests/packages/" in str(warning)
+              for warning in manifest.get("warnings", [])
+          )
+
+          result = {
+              "trusted_hungrycrab_sha": (folder / "hungrycrab.sha").read_text().strip(),
+              "prey_sha": expected_prey,
+              "package_count": deps["package_count"],
+              "manifest_paths": [item["path"] for item in deps["manifests"]],
+              "test_package_fixture_excluded": inventory["coverage"]["excluded"].get(
+                  "test-package-fixture", 0
+              ),
+              "warnings": manifest.get("warnings", []),
+              "source_executed": False,
+          }
+          (folder / "qualification.json").write_text(
+              json.dumps(result, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(result, indent=2))
+
+      - name: Preserve real output and failures for independent review
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pypa-build-167-pinned-digest
+          path: qualification-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
