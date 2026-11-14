@@ -90,9 +90,7 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError("answer string bound")
         elif type(item) in (int, float) and (
             not finite_number
-            or not contract.get("minimum", -math.inf) <= item <= contract.get(
-                "maximum", math.inf
-            )
+            or not contract.get("minimum", -math.inf) <= item <= contract.get("maximum", math.inf)
         ):
             raise ValueError("answer numeric bound")
 
