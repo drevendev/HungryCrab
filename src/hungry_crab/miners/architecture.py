@@ -17,6 +17,7 @@ from typing import Any, TypeVar
 from ..mdutil import MdDoc
 from ..safety import safe_name
 from .base import FileInfo, MineContext, MinerResult
+from .python_exports import python_exports
 
 MAX_FILES = {"normal": 3000, "deep": 8000}
 READ_LIMIT = 400_000
@@ -41,9 +42,9 @@ _TS_IMPORT_RE = re.compile(
 _TS_REQUIRE_RE = re.compile(r"""require\(\s*['"]([^'"]+)['"]\s*\)""")
 _PY_DEF_RE = re.compile(r"^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)", re.MULTILINE)
 _PY_CLASS_RE = re.compile(r"^\s*class\s+([A-Za-z_]\w*)", re.MULTILINE)
-_PY_FROM_RE = re.compile(r"^\s*from\s+(\.*[\w.]*)\s+import\s+", re.MULTILINE)
-_PY_IMPORT_RE = re.compile(r"^\s*import\s+([\w.]+)", re.MULTILINE)
-_PY_ALL_RE = re.compile(r"__all__\s*=\s*[\[(]([^\])]*)[\])]", re.DOTALL)
+# Simple suites and semicolon-separated imports survive logical line joining.
+_PY_FROM_RE = re.compile(r"(?:^|[;:])\s*from\s+(\.*[\w.]*)\s+import\s+", re.MULTILINE)
+_PY_IMPORT_RE = re.compile(r"(?:^|[;:])\s*import\s+([\w.]+)", re.MULTILINE)
 _CS_TYPE_RE = re.compile(
     r"^\s*(?:\[[^\]]*\]\s*)*(?:(public|internal|private|protected)\s+)?"
     r"(?:static\s+|abstract\s+|sealed\s+|partial\s+|readonly\s+|unsafe\s+)*"
@@ -187,6 +188,16 @@ def _python_visible_code(text: str) -> tuple[str, bool]:
     return "".join(visible), True
 
 
+def _python_statement_code(visible: str) -> str:
+    """Join visible explicit continuations for regexes, preserving character offsets.
+
+    The lexical view has already hidden literal/comment backslashes. Keep its
+    physical newlines intact; statement matching needs a separate logical view
+    so a continued ``from`` statement cannot invent an ``import`` statement.
+    """
+    return re.sub(r"\\\r?\n", lambda match: " " * len(match[0]), visible)
+
+
 def _ts_import_specs(code: str, module_literals: str) -> list[str]:
     """Only accept imported modules whose keyword survives the lexical mask."""
     specs: list[str] = []
@@ -327,6 +338,7 @@ class ArchitectureMiner:
         file_namespaces: dict[str, list[str]] = defaultdict(list)
         import_specs: dict[str, list[str]] = {}
         lexical_uncertain_files = 0
+        export_warnings: list[str] = []
         symbols: dict[str, dict[str, Any]] = {}
         for info in code:
             text = ctx.read(info.path, limit=READ_LIMIT)
@@ -350,25 +362,22 @@ class ArchitectureMiner:
             elif info.ext == ".py":
                 visible, complete = _python_visible_code(text)
                 lexical_uncertain_files += int(not complete)
-                import_specs[info.path] = _PY_FROM_RE.findall(visible) + _PY_IMPORT_RE.findall(
-                    visible
+                statements = _python_statement_code(visible)
+                import_specs[info.path] = _PY_FROM_RE.findall(statements) + _PY_IMPORT_RE.findall(
+                    statements
                 )
-                entry["functions"] = len(_PY_DEF_RE.findall(visible))
-                entry["classes"] = len(_PY_CLASS_RE.findall(visible))
-                all_match = next(
-                    (
-                        match
-                        for match in _PY_ALL_RE.finditer(text)
-                        if visible[match.start() : match.start() + len("__all__")] == "__all__"
-                    ),
-                    None,
-                )
-                if all_match:
-                    entry["public"] = sorted(
-                        {n.strip().strip("'\"") for n in all_match.group(1).split(",") if n.strip()}
-                    )[:60]
+                entry["functions"] = len(_PY_DEF_RE.findall(statements))
+                entry["classes"] = len(_PY_CLASS_RE.findall(statements))
+                exports, export_error = python_exports(text, visible)
+                if export_error:
+                    export_warnings.append(
+                        f"Python __all__ in {safe_name(info.path, 'path')}: "
+                        f"{export_error}; public names omitted"
+                    )
+                if exports is not None:
+                    entry["public"] = sorted(set(exports))[:60]
                 else:
-                    found = _PY_DEF_RE.findall(visible) + _PY_CLASS_RE.findall(visible)
+                    found = _PY_DEF_RE.findall(statements) + _PY_CLASS_RE.findall(statements)
                     entry["public"] = sorted({n for n in found if not n.startswith("_")})[:60]
             elif info.ext == ".cs":
                 lexical_uncertain_files += 1  # C# remains a regex-only approximation.
@@ -495,6 +504,7 @@ class ArchitectureMiner:
             "edges": [list(edge) for edge in sorted(edges)[:2000]],
         }
         warnings = ["symbol index truncated; use --depth deep"] if truncated else []
+        warnings.extend(export_warnings)
         if lexical_uncertain_files:
             warnings.append(
                 f"lexical coverage partial in {lexical_uncertain_files} code file(s); "
