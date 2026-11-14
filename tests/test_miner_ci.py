@@ -26,6 +26,53 @@ def test_parse_action_variants() -> None:
     assert parse_action("docker://alpine:3.20")["kind"] == "docker"
 
 
+def test_multiple_delimiter_marketplace_refs_are_unknown() -> None:
+    for uses in (
+        "Acme/Build@v1@extra",
+        "Acme/Build/subaction@releases/Stable@extra",
+        "codecov/codecov-action@v5@extra",
+        "  Acme/Build@@v1  ",
+    ):
+        assert parse_action(uses) == {
+            "kind": "unknown",
+            "action": uses.strip(),
+            "ref": None,
+            "pinned_sha": False,
+        }
+
+    assert parse_action("Acme/Build/subaction@releases/Stable") == {
+        "kind": "marketplace",
+        "action": "Acme/Build/subaction",
+        "ref": "releases/Stable",
+        "pinned_sha": False,
+    }
+    assert parse_action("docker://ghcr.io/acme/image@sha256:abc")["kind"] == "docker"
+    assert parse_action("./.github/actions/setup@v1")["kind"] == "local"
+
+
+def test_invalid_marketplace_delimiter_does_not_prove_ci_tools() -> None:
+    workflow = """name: Invalid marketplace selectors
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: codecov/codecov-action@v5@extra
+      - uses: astral-sh/ruff-action@v1@extra
+"""
+    parsed = parse_workflow(workflow, ".github/workflows/multidelimiter.yml")
+    assert parsed is not None
+    assert [action["kind"] for action in parsed["actions"]] == ["unknown", "unknown"]
+    assert parsed["tools"] == []
+    assert parsed["coverage"]["upload"] is None
+
+    literal = workflow.replace("@v5@extra", "@v5").replace("@v1@extra", "@v1")
+    valid = parse_workflow(literal, ".github/workflows/valid-delimiters.yml")
+    assert valid is not None
+    assert valid["tools"] == ["codecov", "ruff"]
+    assert valid["coverage"]["upload"] == "codecov"
+
+
 def test_lookalike_marketplace_repositories_do_not_imply_ci_evidence() -> None:
     workflow = """name: Lookalike action names
 on: push
