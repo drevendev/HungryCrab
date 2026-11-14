@@ -156,9 +156,8 @@ def _references(tokens: list[tokenize.TokenInfo]) -> list[int]:
     references: list[int] = []
     for index, token in enumerate(tokens):
         if token.type == tokenize.STRING:
-            if (
-                re.match(r"(?i)^(?:fr|rf|f)['\"]", token.string)
-                and re.search(r"\b__all__\b", token.string)
+            if re.match(r"(?i)^(?:fr|rf|f)['\"]", token.string) and re.search(
+                r"\b__all__\b", token.string
             ):
                 references.append(index)
             continue
@@ -215,10 +214,7 @@ def python_exports(text: str, visible: str) -> tuple[list[str] | None, str | Non
                             return [], _UNKNOWN
                         ignored = _parameter_names(line[:colon]) if kind == "function" else set()
                         ignored.add(binding)
-                        if any(
-                            index not in ignored
-                            for index in _references(line[:colon])
-                        ):
+                        if any(index not in ignored for index in _references(line[:colon])):
                             return [], _UNKNOWN
                         if kind == "class" and _class_body_unknown(line[colon + 1 :]):
                             return [], _UNKNOWN
