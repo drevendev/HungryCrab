@@ -130,15 +130,23 @@ def test_unsupported_exports_are_unknown_without_expression_text(source: str) ->
 @pytest.mark.parametrize(
     "source",
     [
-        '__all__ = ["alpha"]\nclass Probe:\n'
-        '    label = f"{__all__.append(\'beta\')}"\n',
-        '__all__ = ["alpha"]\nclass Probe:\n'
-        '    label = rf"{__all__.append(\'beta\')}"\n',
-        '__all__ = ["alpha"]\ndef probe(value=f"{__all__.append(\'beta\')}"):\n'
-        '    pass\n',
-        '__all__ = ["alpha"]\nclass Probe:\n'
-        '    def method(self, value=f"{__all__.append(\'beta\')}"):\n'
-        '        pass\n',
+        (
+            '__all__ = ["alpha"]\nclass Probe:\n'
+            '    label = f"{__all__.append(\'beta\')}"\n'
+        ),
+        (
+            '__all__ = ["alpha"]\nclass Probe:\n'
+            '    label = rf"{__all__.append(\'beta\')}"\n'
+        ),
+        (
+            '__all__ = ["alpha"]\ndef probe(value=f"{__all__.append(\'beta\')}"):\n'
+            '    pass\n'
+        ),
+        (
+            '__all__ = ["alpha"]\nclass Probe:\n'
+            '    def method(self, value=f"{__all__.append(\'beta\')}"):\n'
+            '        pass\n'
+        ),
     ],
 )
 def test_interpolated_export_references_fail_closed(source: str, newline: str) -> None:
