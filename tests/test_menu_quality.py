@@ -91,6 +91,88 @@ def test_the_implementing_dependency_survives_when_the_nutrient_is_not_on_the_me
     assert "deps.python.hypothesis" in keys
 
 
+@pytest.mark.parametrize(
+    ("ecosystem", "package", "test_trait", "nutrient"),
+    [
+        ("npm", "@playwright/test", "has_e2e_tests", "tests.e2e"),
+        ("dotnet", "coverlet.collector", "coverage_configured", "tests.coverage"),
+        ("dotnet", "BenchmarkDotNet", "has_benchmarks", "tests.bench"),
+        ("dotnet", "Verify.Xunit", "has_snapshot_tests", "tests.snapshot"),
+        ("dotnet", "FsCheck", "has_property_tests", "tests.property"),
+        ("rust", "criterion", "has_benchmarks", "tests.bench"),
+        ("rust", "proptest", "has_property_tests", "tests.property"),
+        ("rust", "insta", "has_snapshot_tests", "tests.snapshot"),
+    ],
+)
+def test_notable_test_package_is_not_a_second_card_for_its_nutrient(
+    ecosystem: str, package: str, test_trait: str, nutrient: str
+) -> None:
+    prey = side(
+        "prey",
+        {"ecosystems": [ecosystem], test_trait: True},
+        deps={"packages": [{"ecosystem": ecosystem, "name": package, "kind": "dev"}]},
+    )
+    maw = side("maw", {"ecosystems": [ecosystem], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert nutrient in {c.key for c in candidates}
+    assert not any(c.category == "deps" and package in c.tags for c in candidates)
+
+
+@pytest.mark.parametrize(
+    ("package", "test_trait", "nutrient"),
+    [
+        ("benchmarkdotnet", "has_benchmarks", "tests.bench"),
+        ("VERIFY.XUNIT", "has_snapshot_tests", "tests.snapshot"),
+        ("fscheck", "has_property_tests", "tests.property"),
+        ("Coverlet.Collector", "coverage_configured", "tests.coverage"),
+    ],
+)
+def test_nuget_case_variants_do_not_leak_into_grouped_dependencies(
+    package: str, test_trait: str, nutrient: str
+) -> None:
+    """NuGet names ignore case; a duplicate must not survive in deps.dotnet.others."""
+    prey = side(
+        "prey",
+        {"ecosystems": ["dotnet"], test_trait: True},
+        deps={"packages": [{"ecosystem": "dotnet", "name": package, "kind": "dev"}]},
+    )
+    maw = side("maw", {"ecosystems": ["dotnet"], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert nutrient in {c.key for c in candidates}
+    assert not any(
+        package.casefold() in c.what.casefold()
+        or any(package.casefold() == tag.casefold() for tag in c.tags)
+        for c in candidates
+        if c.category == "deps"
+    )
+
+
+def test_nuget_case_variant_remains_a_named_card_without_its_nutrient() -> None:
+    package = {"ecosystem": "dotnet", "name": "benchmarkdotnet", "kind": "dev"}
+    prey = side(
+        "prey",
+        {"ecosystems": ["dotnet"]},
+        deps={"packages": [package]},
+    )
+    maw = side("maw", {"ecosystems": ["dotnet"], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert "tests.bench" not in {c.key for c in candidates}
+    assert any(c.category == "deps" and "benchmarkdotnet" in c.tags for c in candidates)
+    assert "deps.dotnet.others" not in {c.key for c in candidates}
+
+
+def test_notable_test_package_still_appears_without_the_matching_nutrient() -> None:
+    prey = side(
+        "prey",
+        {"ecosystems": ["npm"]},
+        deps={"packages": [{"ecosystem": "npm", "name": "@playwright/test", "kind": "dev"}]},
+    )
+    maw = side("maw", {"ecosystems": ["npm"], "has_tests": True})
+    candidates, _ = build_candidates(prey, maw)
+    assert "tests.e2e" not in {c.key for c in candidates}
+    assert any(c.category == "deps" and "@playwright/test" in c.tags for c in candidates)
+
+
 def test_a_wider_skills_corpus_is_a_candidate_even_though_the_maw_has_skills() -> None:
     """Eating anthropics/skills produced no ai-config card: every rule was a boolean."""
     prey = side("anthropics/skills", {"has_skills": True, "skills_count": 20})
