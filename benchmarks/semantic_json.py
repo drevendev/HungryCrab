@@ -88,11 +88,11 @@ def parse_answer(content: str, schema: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(item, str):
             if not contract.get("minLength", 0) <= len(item) <= contract.get("maxLength", 96000):
                 raise ValueError("answer string bound")
-        elif type(item) in (int, float):
-            if not finite_number or not contract.get("minimum", -math.inf) <= item <= contract.get(
-                "maximum", math.inf
-            ):
-                raise ValueError("answer numeric bound")
+        elif type(item) in (int, float) and (
+            not finite_number
+            or not contract.get("minimum", -math.inf) <= item <= contract.get("maximum", math.inf)
+        ):
+            raise ValueError("answer numeric bound")
 
     check(value, schema)
     if not isinstance(value, dict):
