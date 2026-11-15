@@ -214,6 +214,17 @@ def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
         sessions.authorize_request(directory, action["attempt"], "legacy-provider-call")
     assert (directory / "session.json").read_bytes() == before
 
+    # Even an explicitly supplied "reconcile" handler must not execute through
+    # drive(): a legacy/uncertain attempt is settlement-only, not fresh work.
+    executed: list[str] = []
+    pending = sessions.drive(
+        directory, {"reconcile": lambda row: executed.append(row["attempt"])}
+    )
+    assert pending["status"] == "reconciliation-required"
+    assert pending["pending"]["attempt"] == action["attempt"]
+    assert executed == []
+    assert (directory / "session.json").read_bytes() == before
+
     # The exact old charge still belongs to the original attempt and is allowed
     # to settle without opening any new search or leasing a replacement.
     charged = sessions.record_usage(directory, usage(action, 31), now=now)
