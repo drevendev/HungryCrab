@@ -669,6 +669,21 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         wall_compliant = 0 <= elapsed <= value["limits"]["seconds"]
     elif value["stop_reason"] == "wall-time-budget-or-clock-invalid":
         wall_compliant = False
+    try:
+        _require_host_metering(value.get("plan"))
+    except CrabError:
+        metering_admission = "legacy-unqualified"
+    else:
+        # The declaration is not independent native provider-meter proof.
+        metering_admission = "declared-unverified"
+    numerical_budget_within_limits = (
+        wall_compliant is not False
+        and value.get("model_usage_complete", True)
+        and all(
+            value["spent"][name] <= value["limits"][name]
+            for name in ("requests", "donors", "model_tokens")
+        )
+    )
     return {
         "schema": SCHEMA,
         "context": value["context"],
@@ -676,6 +691,7 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         "limits": value["limits"],
         "spent": value["spent"],
         "model_usage_complete": value.get("model_usage_complete", True),
+        "host_metering_admission": metering_admission,
         "actual_model_tokens": (
             value["spent"]["model_tokens"] if value.get("model_usage_complete", True) else None
         ),
@@ -701,11 +717,12 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         "published": False,
         "publication_scope": "controller-has-no-publication-effect; consult-per-meal-phase-records",
         "acceptance_learning_written": False,
-        "budget_within_limits": wall_compliant is not False
-        and value.get("model_usage_complete", True)
-        and all(
-            value["spent"][name] <= value["limits"][name]
-            for name in ("requests", "donors", "model_tokens")
+        # Do not certify a legacy session that never passed strict admission.
+        # Actual native meter qualification remains outside this self-declared gate.
+        "budget_within_limits": (
+            numerical_budget_within_limits
+            if metering_admission != "legacy-unqualified"
+            else None
         ),
     }
 
