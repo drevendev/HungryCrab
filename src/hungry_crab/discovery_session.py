@@ -845,6 +845,10 @@ def drive(
         action = next_action(directory)
         if action.get("finished"):
             return action
+        # A reconcile-only lease is not an executable provider action. Host
+        # settlement must use record_usage() for the original attempt instead.
+        if action["action"] == "reconcile":
+            return {"status": "reconciliation-required", "pending": action}
         handler = handlers.get(action["action"])
         if handler is None:
             return {"status": "host-handler-required", "pending": action}
