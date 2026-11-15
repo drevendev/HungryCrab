@@ -185,7 +185,10 @@ def python_exports(text: str, visible: str) -> tuple[list[str] | None, str | Non
     A diagnosed declaration returns empty names, never the definition fallback.
     ``visible`` is the original-offset lexical mask, excluding interpolation text.
     """
-    if "__all__" not in visible:
+    # The lexical mask hides f-string interpolations. A module-level
+    # f-string may bind __all__ through a walrus expression, so absence
+    # from the visible view alone cannot justify the definition fallback.
+    if "__all__" not in visible and "__all__" not in text:
         return None, None
     scopes = ["module"]
     pending_scope: str | None = None
