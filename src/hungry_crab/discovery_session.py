@@ -720,9 +720,7 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         # Do not certify a legacy session that never passed strict admission.
         # Actual native meter qualification remains outside this self-declared gate.
         "budget_within_limits": (
-            numerical_budget_within_limits
-            if metering_admission != "legacy-unqualified"
-            else None
+            numerical_budget_within_limits if metering_admission != "legacy-unqualified" else None
         ),
     }
 
