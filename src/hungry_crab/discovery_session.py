@@ -26,6 +26,10 @@ from .ledger import Ledger
 from .maw import MawConfig
 
 SCHEMA = "hungry-crab.discovery-session/1"
+METERING_SCHEMA = "hungry-crab.host-usage-capability/1"
+METERING_FIELDS = frozenset(
+    {"schema", "route", "actual_model_usage", "reporting_source", "preflight_confirmed"}
+)
 LIMITS = {
     "requests": 16,
     "donors": 6,
@@ -95,12 +99,37 @@ def _references(refs: object, context: dict[str, Any]) -> None:
             raise CrabError("receiving need range is unavailable")
 
 
+def _require_host_metering(plan: object) -> None:
+    """Fail closed on absent or malformed strict-host metering declarations.
+
+    This validates a host's *claim* of capability, not its native provider API.
+    Only later per-operation receipts can establish measured usage. Supervised
+    fixed-pair inspections deliberately do not open this discovery controller.
+    """
+    capability = plan.get("host_metering") if isinstance(plan, dict) else None
+    if not isinstance(capability, dict) or set(capability) != METERING_FIELDS:
+        raise CrabError("discovery requires explicit strict host metering preflight")
+    if (
+        capability.get("schema") != METERING_SCHEMA
+        or capability.get("route") != "strict-metered"
+        or capability.get("actual_model_usage") != "per-operation"
+        or capability.get("preflight_confirmed") is not True
+    ):
+        raise CrabError("discovery host metering preflight is unsupported or unconfirmed")
+    source = capability.get("reporting_source")
+    if not isinstance(source, str) or not source.strip() or len(source) > 200:
+        raise CrabError("discovery host metering needs a named actual usage source")
+    if source.strip().casefold() in {"unknown", "unavailable", "none"}:
+        raise CrabError("discovery host metering cannot use an unknown source")
+
+
 def initialize(
     directory: Path, maw: Path, plan: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
     if len(json.dumps(plan, ensure_ascii=False).encode()) > 256_000:
         raise CrabError("discovery plan exceeds its byte budget")
+    _require_host_metering(plan)
     context = live_context(maw)
     if directory.resolve().is_relative_to(maw.resolve()):
         raise CrabError("discovery state must be outside the receiving worktree")
@@ -305,6 +334,16 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
         value = _load(directory)
         if value["finished"]:
             return summary(value)
+        try:
+            _require_host_metering(value.get("plan"))
+        except CrabError:
+            if not isinstance(value.get("lease"), dict):
+                raise
+            # Preserve the original uncertain attempt for settlement, not replay.
+            pending = dict(value["lease"])
+            pending["action"] = "reconcile"
+            pending["reason"] = "host metering not qualified; reconcile original attempt only"
+            return pending
         reason = _exhausted(value, instant)
         if reason:
             _finish(value, reason, instant)
@@ -732,6 +771,7 @@ def authorize_request(directory: Path, attempt: str, operation: str) -> None:
         raise CrabError("provider operation identity must be bounded")
     with state_lock(directory / "session.json"):
         value = _load(directory)
+        _require_host_metering(value.get("plan"))
         lease = value.get("lease")
         if not isinstance(lease, dict) or lease["attempt"] != attempt:
             raise CrabError("provider request does not own the active discovery attempt")
