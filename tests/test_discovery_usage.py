@@ -37,7 +37,7 @@ def usage(
 
 
 def test_host_self_attestation_never_certifies_strict_budget(tmp_path: Path) -> None:
-    maw = repository(tmp_path / "maw", {"app.py": "def read():\\n    return True\\n"})
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
     directory = tmp_path / "session"
     now = datetime.now(UTC)
     initial = sessions.initialize(directory, maw, plan(maw), now=now)
