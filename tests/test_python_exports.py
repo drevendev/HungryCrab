@@ -159,6 +159,22 @@ def test_unrelated_class_fstring_preserves_literal_exports(newline: str) -> None
     assert python_exports(source, _python_visible_code(source)[0]) == (["alpha"], None)
 
 
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_module_fstring_only_export_binding_is_unknown(newline: str) -> None:
+    # The f-string expression writes to the module namespace on execution.
+    # Its __all__ token is intentionally masked in the architecture view.
+    source = (
+        'f"{(__all__ := [\'hidden\'])}"\n'
+        "def visible_function(): pass\n"
+    ).replace("\n", newline)
+    ast.parse(source)  # Confirm valid Python without executing receiving input.
+    visible, complete = _python_visible_code(source)
+    assert complete
+    assert "__all__" not in visible
+    names, warning = python_exports(source, visible)
+    assert names == []
+    assert warning is not None
+
 def test_local_bindings_do_not_override_the_module_declaration() -> None:
     source = (
         '__all__ = ["actual"]\n'
