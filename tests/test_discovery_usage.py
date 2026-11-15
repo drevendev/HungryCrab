@@ -36,6 +36,27 @@ def usage(
     }
 
 
+def test_host_self_attestation_never_certifies_strict_budget(tmp_path: Path) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\\n    return True\\n"})
+    directory = tmp_path / "session"
+    now = datetime.now(UTC)
+    initial = sessions.initialize(directory, maw, plan(maw), now=now)
+    assert initial["host_metering_admission"] == "declared-unverified"
+    assert initial["budget_arithmetic_within_limits"] is True
+    assert initial["budget_within_limits"] is None
+
+    action = sessions.next_action(directory, now=now)
+    charged = sessions.record_usage(directory, usage(action, 31), now=now)
+    assert charged["actual_model_tokens"] == 31
+    assert charged["budget_arithmetic_within_limits"] is True
+    assert charged["budget_within_limits"] is None
+    assert sessions.report(directory)["budget_within_limits"] is None
+
+    unknown = sessions.record_usage(directory, usage(action, None, "late-unknown"), now=now)
+    assert unknown["budget_arithmetic_within_limits"] is None
+    assert unknown["budget_within_limits"] is None
+
+
 def test_refused_action_still_has_exact_cost_without_advancing(tmp_path: Path) -> None:
     directory, _, action, now = setup_session(tmp_path)
     invalid = receipt(action, {"requests": 2})
@@ -134,7 +155,9 @@ def test_public_reserve_stop_keeps_unused_budget_and_late_costs(
     assert main(["discover", "stop", str(directory), "--reason", "model-budget-reserve"]) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["finished"] and result["stop_reason"] == "model-budget-reserve"
-    assert result["actual_model_tokens"] == 71 and result["budget_within_limits"]
+    assert result["actual_model_tokens"] == 71
+    assert result["budget_arithmetic_within_limits"] is True
+    assert result["budget_within_limits"] is None
     assert not result["scope_complete"] and result["needs"][0]["phase"] == "search"
     raw = (directory / "session.json").read_bytes()
     assert sessions.stop(directory, "model-budget-reserve")["actual_model_tokens"] == 71
