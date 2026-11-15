@@ -125,7 +125,6 @@ def test_unsupported_exports_are_unknown_without_expression_text(source: str) ->
     assert "phantom" not in warning
 
 
-
 @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
 @pytest.mark.parametrize(
     "source",
