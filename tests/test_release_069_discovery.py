@@ -285,6 +285,13 @@ def plan(maw: Path) -> dict[str, Any]:
     return {
         "goal": "improve owned flow",
         "receiving_context": context,
+        "host_metering": {
+            "schema": "hungry-crab.host-usage-capability/1",
+            "route": "strict-metered",
+            "actual_model_usage": "per-operation",
+            "reporting_source": "synthetic native pytest usage fixture",
+            "preflight_confirmed": True,
+        },
         "needs": [
             {
                 "id": "bounded-input",
