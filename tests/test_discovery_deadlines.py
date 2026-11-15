@@ -36,7 +36,8 @@ def test_deadline_stops_cached_lease_and_keeps_actual_cost_settlement(
     assert result["finished"] and result["stop_reason"] == "wall-time-budget-or-clock-invalid"
     assert result["wall_time_seconds"] == elapsed
     assert result["wall_time_within_limits"] is (elapsed == 1)
-    assert result["budget_within_limits"] is (elapsed == 1)
+    assert result["budget_arithmetic_within_limits"] is (elapsed == 1)
+    assert result["budget_within_limits"] is (False if elapsed != 1 else None)
     assert sessions._load(directory)["lease"]["attempt"] == action["attempt"]
     charged = sessions.record_usage(directory, usage(action, 17), now=end + timedelta(days=1))
     assert charged["actual_model_tokens"] == 17
@@ -79,7 +80,9 @@ def test_late_accounting_does_not_extend_a_finished_investigation(tmp_path: Path
     later = sessions.record_usage(directory, usage(action, 29), now=start + timedelta(days=1))
     assert later["finished_at"] == result["finished_at"]
     assert later["wall_time_seconds"] == 2 and later["wall_time_within_limits"]
-    assert later["stop_reason"] == "external-dependency" and later["budget_within_limits"]
+    assert later["stop_reason"] == "external-dependency"
+    assert later["budget_arithmetic_within_limits"] is True
+    assert later["budget_within_limits"] is None
 
 
 def test_legacy_terminal_duration_stays_unknown_after_late_accounting(tmp_path: Path) -> None:
@@ -102,5 +105,7 @@ def test_late_actual_result_preserves_terminal_time_without_granting_work(tmp_pa
     result = sessions.record(directory, entry, now=start + timedelta(days=1))
     assert result["actual_model_tokens"] == 37
     assert result["wall_time_seconds"] == 2 and result["finished_at"] == ended["finished_at"]
-    assert result["stop_reason"] == "external-dependency" and result["budget_within_limits"]
+    assert result["stop_reason"] == "external-dependency"
+    assert result["budget_arithmetic_within_limits"] is True
+    assert result["budget_within_limits"] is None
     assert sessions.next_action(directory, now=start + timedelta(days=2))["finished"]
