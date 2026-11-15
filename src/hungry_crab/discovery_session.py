@@ -682,9 +682,13 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         value["spent"][name] > value["limits"][name]
         for name in ("requests", "donors", "model_tokens")
     )
-    numerical_budget_within_limits: bool | None = (
-        False if known_overrun else None if not value.get("model_usage_complete", True) else True
-    )
+    numerical_budget_within_limits: bool | None
+    if known_overrun:
+        numerical_budget_within_limits = False
+    elif not value.get("model_usage_complete", True):
+        numerical_budget_within_limits = None
+    else:
+        numerical_budget_within_limits = True
     # Proven numeric overruns are failures; otherwise compliance is UNKNOWN
     # until a separately qualified native metering source is implemented.
     strict_budget_compliance: bool | None = False if known_overrun else None
