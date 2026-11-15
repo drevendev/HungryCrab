@@ -155,6 +155,7 @@ def test_public_reserve_stop_keeps_unused_budget_and_late_costs(
         {"preflight_confirmed": "yes"},
         {"actual_model_usage": "estimated"},
         {"reporting_source": "unknown"},
+        {"reporting_source": "ACTUAL_HOST_METER"},
         {"route": "supervised"},
         {"extra": "unexpected"},
     ],
