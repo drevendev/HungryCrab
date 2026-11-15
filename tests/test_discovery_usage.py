@@ -145,3 +145,54 @@ def test_public_reserve_stop_keeps_unused_budget_and_late_costs(
     effects = []
     sessions.drive(directory, {"search": lambda value: effects.append(value)})
     assert effects == [] and sessions._load(directory)["lease"]["attempt"] == action["attempt"]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"missing": True},
+        {"preflight_confirmed": False},
+        {"preflight_confirmed": "yes"},
+        {"actual_model_usage": "estimated"},
+        {"reporting_source": "unknown"},
+        {"route": "supervised"},
+        {"extra": "unexpected"},
+    ],
+)
+def test_missing_or_invalid_host_metering_refuses_session_before_effects(
+    tmp_path: Path, change: dict[str, Any]
+) -> None:
+    maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
+    proposal = plan(maw)
+    if change.pop("missing", False):
+        proposal.pop("host_metering")
+    else:
+        proposal["host_metering"].update(change)
+    directory = tmp_path / "session"
+    with pytest.raises(CrabError, match="host metering"):
+        sessions.initialize(directory, maw, proposal)
+    assert not directory.exists()
+
+
+def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
+    tmp_path: Path,
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    original = sessions._load(directory)
+    original["plan"].pop("host_metering")
+    sessions._save(directory, original)
+    before = (directory / "session.json").read_bytes()
+
+    pending = sessions.next_action(directory, now=now)
+    assert pending["action"] == "reconcile"
+    assert pending["attempt"] == action["attempt"]
+    with pytest.raises(CrabError, match="host metering"):
+        sessions.authorize_request(directory, action["attempt"], "legacy-provider-call")
+    assert (directory / "session.json").read_bytes() == before
+
+    # The exact old charge still belongs to the original attempt and is allowed
+    # to settle without opening any new search or leasing a replacement.
+    charged = sessions.record_usage(directory, usage(action, 31), now=now)
+    assert charged["actual_model_tokens"] == 31
+    assert charged["spent"]["requests"] == 1
+    assert sessions.next_action(directory, now=now)["action"] == "reconcile"
