@@ -676,14 +676,18 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
     else:
         # The declaration is not independent native provider-meter proof.
         metering_admission = "declared-unverified"
-    numerical_budget_within_limits = (
-        wall_compliant is not False
-        and value.get("model_usage_complete", True)
-        and all(
-            value["spent"][name] <= value["limits"][name]
-            for name in ("requests", "donors", "model_tokens")
-        )
+    # Arithmetic is observational; a caller-controlled host claim can never
+    # independently qualify a native provider meter or certify strict budgets.
+    known_overrun = wall_compliant is False or any(
+        value["spent"][name] > value["limits"][name]
+        for name in ("requests", "donors", "model_tokens")
     )
+    numerical_budget_within_limits: bool | None = (
+        False if known_overrun else None if not value.get("model_usage_complete", True) else True
+    )
+    # Proven numeric overruns are failures; otherwise compliance is UNKNOWN
+    # until a separately qualified native metering source is implemented.
+    strict_budget_compliance: bool | None = False if known_overrun else None
     return {
         "schema": SCHEMA,
         "context": value["context"],
@@ -717,11 +721,8 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         "published": False,
         "publication_scope": "controller-has-no-publication-effect; consult-per-meal-phase-records",
         "acceptance_learning_written": False,
-        # Do not certify a legacy session that never passed strict admission.
-        # Actual native meter qualification remains outside this self-declared gate.
-        "budget_within_limits": (
-            numerical_budget_within_limits if metering_admission != "legacy-unqualified" else None
-        ),
+        "budget_arithmetic_within_limits": numerical_budget_within_limits,
+        "budget_within_limits": strict_budget_compliance,
     }
 
 
