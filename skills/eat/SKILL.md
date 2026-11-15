@@ -35,6 +35,16 @@ precedence over the shortcut for a named pair.
   and charges. Never silently resume the same attempt through the supervised
   route or report the stopped strict session as completed.
 
+The strict `discover init` plan must provide an explicit `host_metering` declaration:
+`{"schema":"hungry-crab.host-usage-capability/1","route":"strict-metered",
+"actual_model_usage":"per-operation","reporting_source":"ACTUAL_HOST_METER",
+"preflight_confirmed":true}`. Replace the source placeholder with the named native
+host usage meter only after actually checking its availability. The CLI rejects a
+missing, invalid or unconfirmed declaration before creating a session. This is
+**host-attested preflight, not independent proof** of provider usage; actual
+per-operation receipts remain necessary. Unqualified older leases may only be
+reconciled, never used to authorize a new provider operation.
+
 The routes share licensing, source-origin, receiving-verification and publication
 guards below. Selecting supervision does not grant donor execution or publication.
 
