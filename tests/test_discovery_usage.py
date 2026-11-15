@@ -217,9 +217,12 @@ def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
     # Even an explicitly supplied "reconcile" handler must not execute through
     # drive(): a legacy/uncertain attempt is settlement-only, not fresh work.
     executed: list[str] = []
-    pending = sessions.drive(
-        directory, {"reconcile": lambda row: executed.append(row["attempt"])}
-    )
+
+    def forbidden_handler(row: dict[str, Any]) -> dict[str, Any]:
+        executed.append(row["attempt"])
+        return receipt(row, {"requests": 0, "candidates": []})
+
+    pending = sessions.drive(directory, {"reconcile": forbidden_handler})
     assert pending["status"] == "reconciliation-required"
     assert pending["pending"]["attempt"] == action["attempt"]
     assert executed == []
