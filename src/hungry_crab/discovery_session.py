@@ -119,7 +119,7 @@ def _require_host_metering(plan: object) -> None:
     source = capability.get("reporting_source")
     if not isinstance(source, str) or not source.strip() or len(source) > 200:
         raise CrabError("discovery host metering needs a named actual usage source")
-    if source.strip().casefold() in {"unknown", "unavailable", "none"}:
+    if source.strip().casefold() in {"unknown", "unavailable", "none", "actual_host_meter"}:
         raise CrabError("discovery host metering cannot use an unknown source")
 
 
