@@ -196,4 +196,10 @@ def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
     charged = sessions.record_usage(directory, usage(action, 31), now=now)
     assert charged["actual_model_tokens"] == 31
     assert charged["spent"]["requests"] == 1
+    assert charged["host_metering_admission"] == "legacy-unqualified"
+    assert charged["budget_within_limits"] is None
+    reread = sessions.report(directory)
+    assert reread["host_metering_admission"] == "legacy-unqualified"
+    assert reread["budget_within_limits"] is None
+    assert reread["actual_model_tokens"] == 31
     assert sessions.next_action(directory, now=now)["action"] == "reconcile"
