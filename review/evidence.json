@@ -1,0 +1,130 @@
+{
+  "scope": "All two open PRs in drevendev/HungryCrab as of 2026-11-16",
+  "subjects": [
+    {
+      "number": 687,
+      "head": "1785044d5cd787c693410420a7c04079964d4815",
+      "base": "9e7341986217fdca02a101d225ba4354bfe6480c",
+      "draft": true
+    },
+    {
+      "number": 677,
+      "head": "31956b47fb9b280da83a72f4bc666552fe7b7851",
+      "base": "9e7341986217fdca02a101d225ba4354bfe6480c",
+      "draft": true
+    }
+  ],
+  "run": {
+    "id": 43949515206,
+    "head": "4721f977e8853b8d7b85265826d8ca823529fec9",
+    "url": "https://github.com/drevendev/HungryCrab/actions/runs/43949515206",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "results": [
+    {
+      "id": 133587960416,
+      "name": "Review PR 687 (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_live_scope_connects_and_disposes_owned_upstream",
+        "FAILED tests/test_open_pr_review.py::test_scope_exit_must_prevent_a_new_upstream_connect - AssertionError: [('github.com', 443)]",
+        "1 failed, 1 passed, 6 skipped in 1.05s"
+      ]
+    },
+    {
+      "id": 133587960784,
+      "name": "Review PR 687 (windows-latest, Python 3.11)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_live_scope_connects_and_disposes_owned_upstream\r",
+        "FAILED tests/test_open_pr_review.py::test_scope_exit_must_prevent_a_new_upstream_connect - AssertionError: [('github.com', 443)]\r",
+        "1 failed, 1 passed, 6 skipped in 1.41s\r"
+      ]
+    },
+    {
+      "id": 133587960843,
+      "name": "Review PR 677 (windows-latest, Python 3.11)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_known_model_use_and_known_cap_violation\r",
+        "FAILED tests/test_open_pr_review.py::test_late_actual_usage_must_enforce_the_original_operation_cap - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_stopped_in_flight_model_cost_must_be_unknown - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_orphaned_model_cost_must_not_be_reported_as_zero - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_successful_begin_with_none_ticket_must_still_finish - assert [] == [None]\r",
+        "FAILED tests/test_open_pr_review.py::test_expiry_during_meter_preflight_must_refuse_dispatch - AssertionError: {'effects': [0], 'clock': datetime.datetime(2026, 11, 16, 20, 36, 35, 405284, tzinfo=datetime.timezone.utc), 'expires': '2026-11-16T20:35:35.405284+00:00'}\r",
+        "5 failed, 1 passed, 2 skipped in 14.59s\r"
+      ]
+    },
+    {
+      "id": 133587960875,
+      "name": "Review PR 677 (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_known_model_use_and_known_cap_violation",
+        "FAILED tests/test_open_pr_review.py::test_late_actual_usage_must_enforce_the_original_operation_cap - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_late_actual_usa...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_stopped_in_flight_model_cost_must_be_unknown - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_stopped_in_flig...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_orphaned_model_cost_must_not_be_reported_as_zero - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_orphaned_model_...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_successful_begin_with_none_ticket_must_still_finish - assert [] == [None]",
+        "FAILED tests/test_open_pr_review.py::test_expiry_during_meter_preflight_must_refuse_dispatch - AssertionError: {'effects': [0], 'clock': datetime.datetime(2026, 11, 16, 20, 36, 2, 854779, tzinfo=datetime.timezone.utc), 'expires': '2026-11-16T20:35:02.854779+00:00'}",
+        "5 failed, 1 passed, 2 skipped in 0.99s"
+      ]
+    },
+    {
+      "id": 133587960888,
+      "name": "Review PR 687 (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_live_scope_connects_and_disposes_owned_upstream",
+        "FAILED tests/test_open_pr_review.py::test_scope_exit_must_prevent_a_new_upstream_connect - AssertionError: [('github.com', 443)]",
+        "1 failed, 1 passed, 6 skipped in 1.06s"
+      ]
+    },
+    {
+      "id": 133587960944,
+      "name": "Review PR 677 (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_known_model_use_and_known_cap_violation",
+        "FAILED tests/test_open_pr_review.py::test_late_actual_usage_must_enforce_the_original_operation_cap - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_late_actual_usa...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_stopped_in_flight_model_cost_must_be_unknown - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_stopped_in_flig...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_orphaned_model_cost_must_not_be_reported_as_zero - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': '/tmp/pytest-of-runner/pytest-0/test_orphaned_model_...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}",
+        "FAILED tests/test_open_pr_review.py::test_successful_begin_with_none_ticket_must_still_finish - assert [] == [None]",
+        "FAILED tests/test_open_pr_review.py::test_expiry_during_meter_preflight_must_refuse_dispatch - AssertionError: {'effects': [0], 'clock': datetime.datetime(2026, 11, 16, 20, 36, 4, 110655, tzinfo=datetime.timezone.utc), 'expires': '2026-11-16T20:35:04.110655+00:00'}",
+        "5 failed, 1 passed, 2 skipped in 1.12s"
+      ]
+    },
+    {
+      "id": 133587961036,
+      "name": "Review PR 677 (windows-latest, Python 3.14)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_known_model_use_and_known_cap_violation\r",
+        "FAILED tests/test_open_pr_review.py::test_late_actual_usage_must_enforce_the_original_operation_cap - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_stopped_in_flight_model_cost_must_be_unknown - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_orphaned_model_cost_must_not_be_reported_as_zero - AssertionError: {'schema': 'hungry-crab.discovery-session/1', 'context': {'root': 'C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\pytes...e16f6e0866ac69db49f482'}, 'limits': {'requests': 16, 'donors': 6, 'hypotheses': 12, 'replacement_rounds': 2, ...}, ...}\r",
+        "FAILED tests/test_open_pr_review.py::test_successful_begin_with_none_ticket_must_still_finish - assert [] == [None]\r",
+        "FAILED tests/test_open_pr_review.py::test_expiry_during_meter_preflight_must_refuse_dispatch - AssertionError: {'effects': [0], 'clock': datetime.datetime(2026, 11, 16, 20, 36, 34, 346962, tzinfo=datetime.timezone.utc), 'expires': '2026-11-16T20:35:34.346962+00:00'}\r",
+        "5 failed, 1 passed, 2 skipped in 15.44s\r"
+      ]
+    },
+    {
+      "id": 133587961224,
+      "name": "Review PR 687 (windows-latest, Python 3.14)",
+      "lines": [
+        "PASSED tests/test_open_pr_review.py::test_control_live_scope_connects_and_disposes_owned_upstream\r",
+        "FAILED tests/test_open_pr_review.py::test_scope_exit_must_prevent_a_new_upstream_connect - AssertionError: [('github.com', 443)]\r",
+        "1 failed, 1 passed, 6 skipped in 1.31s\r"
+      ]
+    }
+  ],
+  "interpretation": "Failures reproduce expected safety behavior violations. All ordinary controls pass. Different-PR probes are intentionally skipped.",
+  "unique_findings": 5,
+  "pr677": {
+    "failing_probes_per_environment": 5,
+    "unique_findings": 4,
+    "control_passed": true
+  },
+  "pr687": {
+    "failing_probes_per_environment": 1,
+    "unique_findings": 1,
+    "control_passed": true
+  },
+  "independent_approval": "NOT PROVIDED; this is an author re-audit",
+  "local_checks": "NOT_RUN",
+  "paid_model_runs": 0,
+  "publication": "No GitHub review/comment, merge, release, or change to reviewed PR branches"
+}
