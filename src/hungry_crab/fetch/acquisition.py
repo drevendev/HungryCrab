@@ -372,11 +372,13 @@ class AcquisitionBudget:
             block_on_close = False
 
             def verify_request(
-                self, request: socket.socket, client_address: tuple[str, int]
+                self,
+                request: socket.socket | tuple[bytes, socket.socket],
+                client_address: tuple[str, int],
             ) -> bool:
                 # TCPServer calls this on acceptance, before starting the handler.
                 # Rejected requests are closed by the server without dispatch.
-                return connections.register(request)
+                return isinstance(request, socket.socket) and connections.register(request)
 
         with Server(("127.0.0.1", 0), Relay) as server:
             self._server = server
