@@ -104,7 +104,9 @@ def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_pat
     entry = receipt(action, {"requests": 0, "candidates": []})
     entry["model_tokens"] = 37
     original = (directory / "session.json").read_bytes()
-    with pytest.raises(CrabError, match="finished discovery session cannot accept semantic results"):
+    with pytest.raises(
+        CrabError, match="finished discovery session cannot accept semantic results"
+    ):
         sessions.record(directory, entry, now=start + timedelta(days=1))
     assert (directory / "session.json").read_bytes() == original
     result = sessions.record_usage(directory, usage(action, 37), now=start + timedelta(days=1))
