@@ -89,6 +89,7 @@ jobs:
 
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: lint
     runs-on: ${{ matrix.os }}
     # The 0.6.9 diagnostic Windows suite took 43 minutes; retain smoke-test headroom.
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 60 || 30 }}

@@ -362,10 +362,13 @@ class AcquisitionBudget:
                     if not connections.stopped:
                         raise
                 finally:
-                    connections.discard(client)
-                    if upstream is not None:
-                        connections.discard(upstream)
-                        upstream.close()
+                    # Stay registered until closed, so concurrent teardown cannot
+                    # miss a stream between unregistering and closing it.
+                    for stream in (client, upstream):
+                        if stream is not None:
+                            with suppress(OSError):
+                                stream.close()
+                            connections.discard(stream)
 
         class Server(socketserver.ThreadingTCPServer):
             daemon_threads = True
