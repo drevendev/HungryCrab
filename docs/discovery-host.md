@@ -36,6 +36,8 @@ stop, expiry or a changed receiving worktree. Unknown usage stops the original
 session. A native per-operation overrun is retained and fails budget compliance.
 There is no automatic retry or switch to supervision. A crash leaves its original
 operation pending: reconcile accounting, do not repeat the effect.
+Only operations in the current live call stack can own nested dispatch. A pending
+operation left on disk cannot admit replacement effects after a host restart.
 
 Phase handlers in `drive` are trusted orchestration code and use these wrapped
 ports; they are not a Python sandbox. Arbitrary callbacks, direct native SDK

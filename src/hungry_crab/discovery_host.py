@@ -56,6 +56,20 @@ class UsageMeter(Protocol):
 
 
 _METER: ContextVar[UsageMeter | None] = ContextVar("crab_discovery_meter", default=None)
+_OPERATIONS: ContextVar[tuple[str, ...]] = ContextVar("crab_discovery_operations", default=())
+
+
+def active_operations() -> tuple[str, ...]:
+    return _OPERATIONS.get()
+
+
+@contextmanager
+def operation_scope(identity: str) -> Iterator[None]:
+    token = _OPERATIONS.set((*_OPERATIONS.get(), identity))
+    try:
+        yield
+    finally:
+        _OPERATIONS.reset(token)
 
 
 @contextmanager
