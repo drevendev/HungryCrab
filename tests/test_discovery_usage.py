@@ -250,9 +250,9 @@ def test_drive_authorizes_host_dispatch_and_blocks_uncertain_replay(tmp_path: Pa
         dispatched.append(row["attempt"])
         current = sessions._load(directory)
         assert any(
-            event["record"].get("kind") == "provider-request-authorized"
+            event["record"].get("kind") == "host-handler-dispatch-authorized"
             and event["record"].get("attempt") == row["attempt"]
-            and event["record"].get("operation") == "host-handler:search"
+            and event["record"].get("phase") == "search"
             for event in current["events"]
         )
         raise RuntimeError("original host effect uncertain")
@@ -260,8 +260,9 @@ def test_drive_authorizes_host_dispatch_and_blocks_uncertain_replay(tmp_path: Pa
     with pytest.raises(RuntimeError, match="original host effect uncertain"):
         sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
     assert dispatched == [action["attempt"]]
+    assert sessions.report(directory)["spent"]["requests"] == 1
     after_first = (directory / "session.json").read_bytes()
-    with pytest.raises(CrabError, match="already charged; reconcile"):
+    with pytest.raises(CrabError, match="already dispatched; reconcile"):
         sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
     assert dispatched == [action["attempt"]]
     assert (directory / "session.json").read_bytes() == after_first
