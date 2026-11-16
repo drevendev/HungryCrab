@@ -543,9 +543,13 @@ def record(
         if reason:
             _finish(value, reason, instant)
             _save(directory, value)
-            raise CrabError("discovery budget expired before semantic receipt; reconcile usage only")
+            raise CrabError(
+                "discovery budget expired before semantic receipt; reconcile usage only"
+            )
         if instant >= datetime.fromisoformat(lease["expires_at"]):
-            raise CrabError("discovery attempt expired before semantic receipt; reconcile original attempt")
+            raise CrabError(
+                "discovery attempt expired before semantic receipt; reconcile original attempt"
+            )
         _require_live_meter(value)
         _text(receipt.get("author"), "receipt.author", 200)
         _text(receipt.get("tool"), "receipt.tool", 200)
