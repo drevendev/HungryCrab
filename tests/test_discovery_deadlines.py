@@ -119,3 +119,44 @@ def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_pat
     assert result["budget_arithmetic_within_limits"] is True
     assert result["budget_within_limits"] is None
     assert sessions.next_action(directory, now=start + timedelta(days=2))["finished"]
+
+@pytest.mark.parametrize("elapsed", [1, 2])
+def test_record_rejects_semantic_receipt_after_budget_or_lease_expiry(
+    tmp_path: Path, elapsed: int
+) -> None:
+    directory, action, start = setup(tmp_path)
+    entry = receipt(action, {"requests": 0, "candidates": []})
+    instant = start + timedelta(seconds=elapsed)
+    with pytest.raises(CrabError, match="budget expired before semantic receipt"):
+        sessions.record(directory, entry, now=instant)
+
+    state = sessions._load(directory)
+    assert state["finished"] is True
+    assert state["stop_reason"] == "wall-time-budget-or-clock-invalid"
+    assert state["finished_at"] == instant.isoformat()
+    assert state["lease"]["attempt"] == action["attempt"]
+    assert state["needs"][0]["phase"] == "search"
+    assert not any(event["record"]["kind"] == "action-result" for event in state["events"])
+    assert state["spent"]["model_tokens"] == 0
+
+    settled = sessions.record_usage(
+        directory, usage(action, 23), now=start + timedelta(days=1)
+    )
+    assert settled["actual_model_tokens"] == 23
+    assert settled["stop_reason"] == "wall-time-budget-or-clock-invalid"
+    assert settled["finished_at"] == instant.isoformat()
+
+
+def test_record_rejects_expired_lease_before_session_budget_without_writing(
+    tmp_path: Path,
+) -> None:
+    directory, action, start = setup(tmp_path, seconds=2700)
+    entry = receipt(action, {"requests": 0, "candidates": []})
+    instant = start + timedelta(minutes=11)
+    previous = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="attempt expired before semantic receipt"):
+        sessions.record(directory, entry, now=instant)
+    assert (directory / "session.json").read_bytes() == previous
+    pending = sessions.next_action(directory, now=instant)
+    assert pending["action"] == "reconcile"
+    assert pending["attempt"] == action["attempt"]
