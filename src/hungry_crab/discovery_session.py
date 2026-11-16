@@ -536,6 +536,16 @@ def record(
             # A stopped lease survives for late cost settlement only. Never
             # accept a new semantic result from that original attempt.
             raise CrabError("finished discovery session cannot accept semantic results")
+        # A callback may return after its dispatch permit or the session budget
+        # expires. Refuse its semantic effect even when dispatch was in time;
+        # actual provider/model costs still reconcile through record_usage().
+        reason = _exhausted(value, instant)
+        if reason:
+            _finish(value, reason, instant)
+            _save(directory, value)
+            raise CrabError("discovery budget expired before semantic receipt; reconcile usage only")
+        if instant >= datetime.fromisoformat(lease["expires_at"]):
+            raise CrabError("discovery attempt expired before semantic receipt; reconcile original attempt")
         _require_live_meter(value)
         _text(receipt.get("author"), "receipt.author", 200)
         _text(receipt.get("tool"), "receipt.tool", 200)
