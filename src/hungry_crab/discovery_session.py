@@ -837,11 +837,7 @@ def authorize_host_dispatch(directory: Path, attempt: str, phase: str) -> None:
         value = _load(directory)
         _require_host_metering(value.get("plan"))
         lease = value.get("lease")
-        if (
-            not isinstance(lease, dict)
-            or lease["attempt"] != attempt
-            or lease["action"] != phase
-        ):
+        if not isinstance(lease, dict) or lease["attempt"] != attempt or lease["action"] != phase:
             raise CrabError("host callback does not own the active discovery attempt")
         if any(
             event["record"].get("attempt") == attempt
@@ -851,9 +847,7 @@ def authorize_host_dispatch(directory: Path, attempt: str, phase: str) -> None:
         ):
             raise CrabError("host handler already dispatched; reconcile before retrying")
         instant = datetime.now(UTC)
-        if _exhausted(value, instant) or instant >= datetime.fromisoformat(
-            lease["expires_at"]
-        ):
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
             raise CrabError("discovery attempt expired before host callback")
         _event(
             value,
