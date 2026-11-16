@@ -322,9 +322,7 @@ def test_non_search_receipt_reconciles_all_authorized_provider_calls(tmp_path: P
 
     # Once an external request was authorized, omitting or underreporting it
     # must not complete the leased acquire action as if it were local-only.
-    sessions.authorize_request(
-        directory, acquire["attempt"], "fixture-acquire", now=now
-    )
+    sessions.authorize_request(directory, acquire["attempt"], "fixture-acquire", now=now)
     authorized = (directory / "session.json").read_bytes()
     for declared in ({}, {"requests": 0}, {"requests": True}):
         with pytest.raises(CrabError, match="non-search provider request count"):
