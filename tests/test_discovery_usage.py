@@ -319,6 +319,7 @@ def test_drive_does_not_accept_unqualified_search_callback_result(tmp_path: Path
         sessions.drive(directory, {"search": bare_host}, max_actions=1)
     assert invoked == [action["attempt"]]
 
+
 @pytest.mark.parametrize("reason", ["model-budget-reserve", "external-dependency"])
 def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
     tmp_path: Path, reason: str
