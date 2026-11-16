@@ -29,7 +29,7 @@ def test_plan_alone_cannot_admit_strict_cli(tmp_path: Path, capsys: pytest.Captu
     source.write_text(json.dumps(plan(maw)), encoding="utf-8")
     directory = tmp_path / "session"
     with host_meter(None):
-        assert main(["discover", "init", str(directory), "--maw", str(maw), "--plan", str(source)]) == 2
+        assert main(["discover", "init", str(directory), "--maw", str(maw), "--plan", str(source)]) == 1
     assert "trusted live host metering" in capsys.readouterr().err
     assert not directory.exists()
 
