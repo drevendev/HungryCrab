@@ -8,20 +8,22 @@ from typing import Any
 
 import pytest
 from discovery_host_fixture import OwnedMeter, provider_call
+from test_discovery_inputs import repository
 from test_discovery_usage import setup_session, usage
 from test_release_069_discovery import plan, receipt
-from test_discovery_inputs import repository
 
 from hungry_crab import discovery_session as sessions
 from hungry_crab.cli import main
-from hungry_crab.discovery_host import host_meter
+from hungry_crab.discovery_host import MeterIdentity, host_meter
 from hungry_crab.discovery_search import budget_for_plan, search
 from hungry_crab.errors import CrabError
 
 pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 
 
-def test_plan_alone_cannot_admit_strict_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_plan_alone_cannot_admit_strict_cli(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     import json
 
     maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})
@@ -29,7 +31,10 @@ def test_plan_alone_cannot_admit_strict_cli(tmp_path: Path, capsys: pytest.Captu
     source.write_text(json.dumps(plan(maw)), encoding="utf-8")
     directory = tmp_path / "session"
     with host_meter(None):
-        assert main(["discover", "init", str(directory), "--maw", str(maw), "--plan", str(source)]) == 1
+        assert (
+            main(["discover", "init", str(directory), "--maw", str(maw), "--plan", str(source)])
+            == 1
+        )
     assert "trusted live host metering" in capsys.readouterr().err
     assert not directory.exists()
 
@@ -60,7 +65,10 @@ def test_provider_effect_sees_admission_and_cannot_replay(tmp_path: Path) -> Non
         effects.append("sent")
         return "response"
 
-    assert sessions.execute_operation(directory, action["attempt"], "search", invoke, now=now) == "response"
+    assert (
+        sessions.execute_operation(directory, action["attempt"], "search", invoke, now=now)
+        == "response"
+    )
     with pytest.raises(CrabError, match="already admitted"):
         sessions.execute_operation(directory, action["attempt"], "search", invoke, now=now)
     assert effects == ["sent"]
@@ -92,8 +100,15 @@ def test_model_meter_accounts_exception_before_semantic_interpretation(tmp_path:
         raise RuntimeError("owned invocation failed after usage")
 
     with host_meter(meter), pytest.raises(RuntimeError, match="after usage"):
-        sessions.execute_operation(directory, action["attempt"], "model", fail,
-            kind="model", model_token_limit=100, now=now)
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "model",
+            fail,
+            kind="model",
+            model_token_limit=100,
+            now=now,
+        )
     result = sessions.report(directory)
     assert result["actual_model_tokens"] == 23
     assert result["needs"][0]["phase"] == "search"
@@ -104,20 +119,43 @@ def test_model_meter_accounts_exception_before_semantic_interpretation(tmp_path:
 def test_nested_model_reservations_share_cap_and_provider_dispatch(tmp_path: Path) -> None:
     directory, _, search_action, now = setup_session(tmp_path)
     provider_call(directory, search_action["attempt"], "search", now=now)
-    sessions.record(directory, receipt(search_action, {"candidates": [{"repository": "one/tool"}]}), now=now)
+    sessions.record(
+        directory, receipt(search_action, {"candidates": [{"repository": "one/tool"}]}), now=now
+    )
     action = sessions.next_action(directory, now=now)
     effects: list[str] = []
 
     def outer(_: int) -> None:
         with pytest.raises(CrabError, match="shared discovery model token allowance"):
-            sessions.execute_operation(directory, action["attempt"], "too-large", lambda _: effects.append("denied"),
-                kind="model", model_token_limit=15001, now=now)
-        sessions.execute_operation(directory, action["attempt"], "nested-provider", lambda _: effects.append("provider"), now=now)
-        sessions.execute_operation(directory, action["attempt"], "nested-model", lambda _: effects.append("model"),
-            kind="model", model_token_limit=15000, now=now)
+            sessions.execute_operation(
+                directory,
+                action["attempt"],
+                "too-large",
+                lambda _: effects.append("denied"),
+                kind="model",
+                model_token_limit=15001,
+                now=now,
+            )
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "nested-provider",
+            lambda _: effects.append("provider"),
+            now=now,
+        )
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "nested-model",
+            lambda _: effects.append("model"),
+            kind="model",
+            model_token_limit=15000,
+            now=now,
+        )
 
-    sessions.execute_operation(directory, action["attempt"], "outer", outer,
-        kind="model", model_token_limit=15000, now=now)
+    sessions.execute_operation(
+        directory, action["attempt"], "outer", outer, kind="model", model_token_limit=15000, now=now
+    )
     assert effects == ["provider", "model"]
     assert sessions.report(directory)["spent"]["requests"] == 2
 
@@ -127,18 +165,27 @@ def test_unknown_then_late_actual_cost_is_append_only_and_never_resumes(tmp_path
     meter = OwnedMeter()
     meter.tokens = None
     with host_meter(meter):
-        sessions.execute_operation(directory, action["attempt"], "uncertain", lambda _: None,
-            kind="model", model_token_limit=100, now=now)
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "uncertain",
+            lambda _: None,
+            kind="model",
+            model_token_limit=100,
+            now=now,
+        )
     stopped = sessions.report(directory)
     assert stopped["finished"] and stopped["actual_model_tokens"] is None
     events = sessions._load(directory)["events"]
-    original = next(row["record"]["receipt"] for row in events if row["record"]["kind"] == "model-usage")
+    original = next(
+        row["record"]["receipt"] for row in events if row["record"]["kind"] == "model-usage"
+    )
     actual = {**original, "model_tokens": 37}
     reconciled = sessions.record_usage(directory, actual, now=now + timedelta(days=1))
     assert reconciled["actual_model_tokens"] == 37
     assert reconciled["finished_at"] == stopped["finished_at"]
     assert reconciled["stop_reason"] == "usage-unavailable"
-    assert sessions._load(directory)["events"][:len(events)] == events
+    assert sessions._load(directory)["events"][: len(events)] == events
     before = (directory / "session.json").read_bytes()
     assert sessions.record_usage(directory, actual)["actual_model_tokens"] == 37
     assert (directory / "session.json").read_bytes() == before
@@ -155,12 +202,21 @@ def test_late_stop_and_stale_receiving_keep_cost_but_block_nested_effect(tmp_pat
     def invoke(_: int) -> None:
         sessions.stop(directory, "external-dependency", now=now)
         with pytest.raises(CrabError, match="finished discovery session"):
-            sessions.execute_operation(directory, action["attempt"], "nested", effects.append, now=now)
+            sessions.execute_operation(
+                directory, action["attempt"], "nested", effects.append, now=now
+            )
         (maw / "app.py").write_text("changed\n", encoding="utf-8")
 
     with host_meter(meter):
-        sessions.execute_operation(directory, action["attempt"], "late", invoke,
-            kind="model", model_token_limit=100, now=now)
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "late",
+            invoke,
+            kind="model",
+            model_token_limit=100,
+            now=now,
+        )
     assert not effects
     result = sessions.report(directory)
     assert result["finished"] and result["actual_model_tokens"] == 19
@@ -171,13 +227,22 @@ def test_expired_port_and_native_overrun_fail_closed(tmp_path: Path) -> None:
     directory, _, action, now = setup_session(tmp_path)
     effects: list[int] = []
     with pytest.raises(CrabError, match="expired before host operation"):
-        sessions.execute_operation(directory, action["attempt"], "expired", effects.append, now=now + timedelta(minutes=11))
+        sessions.execute_operation(
+            directory, action["attempt"], "expired", effects.append, now=now + timedelta(minutes=11)
+        )
     assert not effects
     meter = OwnedMeter()
     meter.tokens = 101
     with host_meter(meter):
-        sessions.execute_operation(directory, action["attempt"], "overrun", lambda _: None,
-            kind="model", model_token_limit=100, now=now)
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "overrun",
+            lambda _: None,
+            kind="model",
+            model_token_limit=100,
+            now=now,
+        )
     result = sessions.report(directory)
     assert result["actual_model_tokens"] == 101 and result["finished"]
     assert result["budget_within_limits"] is False
@@ -193,9 +258,106 @@ def test_session_search_wraps_actual_provider_port(tmp_path: Path) -> None:
             assert sessions._load(directory)["events"][-1]["record"]["kind"] == "operation-started"
             return {"items": []}
 
-    budget = budget_for_plan({"session": str(directory), "attempt": action["attempt"], "operation": "search"})
+    budget = budget_for_plan(
+        {"session": str(directory), "attempt": action["attempt"], "operation": "search"}
+    )
     assert search("owned", client=Client(), budget=budget)["requests"] == 1
     assert len(calls) == 1
     with pytest.raises(CrabError, match="one leased search"):
         search("second", client=Client(), budget=budget)
     assert len(calls) == 1
+
+
+def test_in_flight_model_cannot_advance_and_missing_runtime_cannot_record(tmp_path: Path) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    entry = receipt(action, {"requests": 0, "candidates": []})
+
+    def model(_: int) -> None:
+        with pytest.raises(CrabError, match="trusted host settlement"):
+            sessions.record(directory, entry, now=now)
+
+    sessions.execute_operation(
+        directory,
+        action["attempt"],
+        "in-flight",
+        model,
+        kind="model",
+        model_token_limit=100,
+        now=now,
+    )
+    before = (directory / "session.json").read_bytes()
+    with host_meter(None), pytest.raises(CrabError, match="trusted live host metering"):
+        sessions.record(directory, entry, now=now)
+    assert (directory / "session.json").read_bytes() == before
+    sessions.record(directory, entry, now=now)
+
+
+@pytest.mark.parametrize("failure", ["begin", "finish", "invalid-usage"])
+def test_native_meter_failures_stop_without_inventing_zero(tmp_path: Path, failure: str) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    effects: list[int] = []
+
+    class BrokenMeter(OwnedMeter):
+        def begin(self, operation: str, token_limit: int) -> object:
+            if failure == "begin":
+                raise RuntimeError("native meter failed before dispatch")
+            return operation
+
+        def finish(self, ticket: object) -> int | None:
+            if failure == "finish":
+                raise RuntimeError("native usage channel lost")
+            return True
+
+    with host_meter(BrokenMeter()):
+        if failure == "begin":
+            with pytest.raises(RuntimeError, match="before dispatch"):
+                sessions.execute_operation(
+                    directory,
+                    action["attempt"],
+                    "failed",
+                    effects.append,
+                    kind="model",
+                    model_token_limit=100,
+                    now=now,
+                )
+        else:
+            sessions.execute_operation(
+                directory,
+                action["attempt"],
+                "failed",
+                effects.append,
+                kind="model",
+                model_token_limit=100,
+                now=now,
+            )
+    assert effects == ([] if failure == "begin" else [100])
+    result = sessions.report(directory)
+    assert result["finished"] and result["actual_model_tokens"] is None
+    assert result["stop_reason"] == "usage-unavailable"
+
+
+def test_changed_meter_and_event_exhaustion_refuse_before_effect(tmp_path: Path) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    effects: list[int] = []
+
+    class ChangedMeter(OwnedMeter):
+        def preflight(self) -> MeterIdentity:
+            return MeterIdentity("different source", "b" * 64, "owned-fixture")
+
+    before = (directory / "session.json").read_bytes()
+    with host_meter(ChangedMeter()):
+        assert sessions.next_action(directory, now=now)["action"] == "reconcile"
+        with pytest.raises(CrabError, match="identity changed"):
+            sessions.execute_operation(
+                directory, action["attempt"], "changed", effects.append, now=now
+            )
+    assert (directory / "session.json").read_bytes() == before
+    value = sessions._load(directory)
+    while len(value["events"]) < 498:
+        sessions._event(value, {"kind": "owned-capacity-fixture"})
+    sessions._save(directory, value)
+    before = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="event budget exhausted before host operation"):
+        sessions.execute_operation(directory, action["attempt"], "full", effects.append, now=now)
+    assert (directory / "session.json").read_bytes() == before
+    assert not effects

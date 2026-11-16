@@ -9,15 +9,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from fixture_builder import git
 from discovery_host_fixture import provider_call
+from fixture_builder import git
 from test_discovery_inputs import repository
 
 from hungry_crab import discovery_session as sessions
 from hungry_crab.cli import main
 from hungry_crab.discovery_search import SearchBudget, rank_cohort, search, verified_frontier
 from hungry_crab.errors import CrabError
-
 from hungry_crab.receiving_probe import run_probe, verify_receipt
 from hungry_crab.source_inspection import source_packet, syntax_query
 
@@ -600,10 +599,16 @@ def test_actual_overspend_and_unavailable_usage_are_honest_stops(tmp_path: Path)
         sessions.initialize(directory, maw, plan(maw))
         action = sessions.next_action(directory)
         if label == "overrun":
-            result = sessions.record_usage(directory, {
-                "attempt": action["attempt"], "operation": "late-model-use",
-                "author": "fixture host", "tool": "usage fixture", "model_tokens": 30_001,
-            })
+            result = sessions.record_usage(
+                directory,
+                {
+                    "attempt": action["attempt"],
+                    "operation": "late-model-use",
+                    "author": "fixture host",
+                    "tool": "usage fixture",
+                    "model_tokens": 30_001,
+                },
+            )
             assert result["actual_model_tokens"] == 30_001
             assert result["stop_reason"] == "model-token-budget"
         else:
