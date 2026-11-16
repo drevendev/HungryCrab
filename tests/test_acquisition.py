@@ -157,6 +157,7 @@ def test_main_and_wiki_connections_share_one_real_stream_limit(
         socketserver.ThreadingTCPServer(("127.0.0.1", 0), Remote) as remote,
         _serving(remote),
     ):
+
         def connect(address: tuple[str, int], **kwargs: object) -> socket.socket:
             return actual_connect(
                 remote.server_address if address[1] == 443 else address, timeout=3
