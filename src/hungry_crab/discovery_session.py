@@ -827,6 +827,46 @@ def authorize_request(directory: Path, attempt: str, operation: str) -> None:
         _save(directory, value)
 
 
+def authorize_host_dispatch(directory: Path, attempt: str, phase: str) -> None:
+    """Persist a no-replay callback permit without inventing provider usage.
+
+    A host phase is not necessarily an external provider request. The host must
+    separately call authorize_request() for each real provider operation.
+    """
+    with state_lock(directory / "session.json"):
+        value = _load(directory)
+        _require_host_metering(value.get("plan"))
+        lease = value.get("lease")
+        if (
+            not isinstance(lease, dict)
+            or lease["attempt"] != attempt
+            or lease["action"] != phase
+        ):
+            raise CrabError("host callback does not own the active discovery attempt")
+        if any(
+            event["record"].get("attempt") == attempt
+            and event["record"].get("kind")
+            in {"host-handler-dispatch-authorized", "provider-request-authorized"}
+            for event in value["events"]
+        ):
+            raise CrabError("host handler already dispatched; reconcile before retrying")
+        instant = datetime.now(UTC)
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(
+            lease["expires_at"]
+        ):
+            raise CrabError("discovery attempt expired before host callback")
+        _event(
+            value,
+            {
+                "kind": "host-handler-dispatch-authorized",
+                "attempt": attempt,
+                "phase": phase,
+                "at": instant.isoformat(),
+            },
+        )
+        _save(directory, value)
+
+
 def drive(
     directory: Path,
     handlers: Mapping[str, Callable[[dict[str, Any]], dict[str, Any]]],
@@ -852,10 +892,10 @@ def drive(
         handler = handlers.get(action["action"])
         if handler is None:
             return {"status": "host-handler-required", "pending": action}
-        # Reserve a stable, attempt-bound provider dispatch before any host callback.
-        # An interrupted callback must reconcile its original operation; a
-        # second drive() invocation cannot silently replay it.
-        authorize_request(directory, action["attempt"], f"host-handler:{action['action']}")
+        # Reserve only the callback invocation, not a fictitious provider request.
+        # A failed handler must reconcile; its actual provider calls require
+        # separate operation-specific authorize_request() receipts.
+        authorize_host_dispatch(directory, action["attempt"], action["action"])
         receipt = handler(action)
         record(directory, receipt)
     return {"status": "host-action-limit", "report": report(directory)}
