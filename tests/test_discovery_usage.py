@@ -344,9 +344,7 @@ def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
     ):
         sessions.record(
             directory,
-            receipt(
-                action, {"requests": 0, "candidates": [{"repository": "post-stop/illicit"}]}
-            ),
+            receipt(action, {"requests": 0, "candidates": [{"repository": "post-stop/illicit"}]}),
             now=now + timedelta(seconds=2),
         )
     assert (directory / "session.json").read_bytes() == before
