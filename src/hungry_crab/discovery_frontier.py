@@ -10,7 +10,7 @@ from urllib.parse import quote
 from .attribution import GitSourceReader
 from .cache import Slug
 from .compare.candidates import _evidence_path
-from .discovery_search import SearchBudget, SearchClient, verified_frontier
+from .discovery_search import ProviderChannelError, SearchBudget, SearchClient, verified_frontier
 from .errors import CrabError
 from .typeutil import as_dict
 
@@ -77,9 +77,8 @@ def frontier(
             if provider == "github"
             else "projects/" + quote(f"{target.owner}/{target.repo}", safe="")
         )
-        budget.charge()
         try:
-            metadata = as_dict(client.get(endpoint))
+            metadata = as_dict(budget.get(client, endpoint))
             native = metadata.get("full_name" if provider == "github" else "path_with_namespace")
             if str(native).casefold() != f"{target.owner}/{target.repo}".casefold():
                 return None
@@ -91,15 +90,15 @@ def frontier(
             ref = metadata.get("default_branch")
             if not public or not isinstance(ref, str) or not 0 < len(ref) <= 200:
                 return None
-            budget.charge()
             revision = as_dict(
-                client.get(
+                budget.get(
+                    client,
                     endpoint
                     + ("/commits/" if provider == "github" else "/repository/commits/")
                     + quote(ref, safe="")
                 )
             )
-        except CrabError:
+        except ProviderChannelError:
             return None
         pin = revision.get("sha" if provider == "github" else "id")
         return {

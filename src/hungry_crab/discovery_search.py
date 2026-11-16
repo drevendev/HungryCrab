@@ -17,6 +17,10 @@ class SearchClient(Protocol):
     def get(self, path: str, *, allow_missing: bool = False) -> Any: ...
 
 
+class ProviderChannelError(CrabError):
+    """Provider failure after dispatch; admission failures must propagate."""
+
+
 @dataclass
 class SearchBudget:
     maximum: int = 16
@@ -42,6 +46,15 @@ class SearchBudget:
         if self.invoke is not None:
             return self.invoke(self.used - 1, invoke)
         return invoke()
+
+    def get(self, client: SearchClient, path: str) -> Any:
+        def request() -> Any:
+            try:
+                return client.get(path)
+            except CrabError as exc:
+                raise ProviderChannelError(exc.message) from exc
+
+        return self.call(request)
 
 
 def budget_for_plan(plan: dict[str, Any]) -> SearchBudget:
@@ -124,20 +137,10 @@ def search(
         if provider == "github"
         else "projects"
     )
-    provider_client = client
-    dispatched = False
-
-    def request() -> Any:
-        nonlocal dispatched
-        dispatched = True
-        return provider_client.get(endpoint + "?" + urlencode(params))
-
     try:
-        raw = owned_budget.call(request)
+        raw = owned_budget.get(client, endpoint + "?" + urlencode(params))
         result["requests"] = 1
-    except CrabError as exc:
-        if not dispatched:
-            raise
+    except ProviderChannelError as exc:
         from .hunt import _provider_diagnostic
 
         result.update(

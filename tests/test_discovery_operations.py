@@ -13,7 +13,10 @@ from test_discovery_usage import setup_session, usage
 from test_release_069_discovery import plan, receipt
 
 from hungry_crab import discovery_session as sessions
+from hungry_crab.cache import Slug
 from hungry_crab.cli import main
+from hungry_crab.discovery_frontier import frontier
+from hungry_crab.discovery_history import targeted_issues
 from hungry_crab.discovery_host import MeterIdentity, host_meter
 from hungry_crab.discovery_search import budget_for_plan, search
 from hungry_crab.errors import CrabError
@@ -361,3 +364,84 @@ def test_changed_meter_and_event_exhaustion_refuse_before_effect(tmp_path: Path)
         sessions.execute_operation(directory, action["attempt"], "full", effects.append, now=now)
     assert (directory / "session.json").read_bytes() == before
     assert not effects
+
+
+@pytest.mark.parametrize("channel", ["frontier", "issues"])
+@pytest.mark.parametrize("requests", [2, 3])
+def test_multi_request_channels_admit_each_actual_port(
+    tmp_path: Path, channel: str, requests: int
+) -> None:
+    maw = repository(
+        tmp_path / "maw",
+        {"app.py": "def read():\n    return True\n", "links.txt": "https://github.com/one/tool\n"},
+    )
+    definition = plan(maw)
+    definition["limits"] = {"requests": requests}
+    directory = tmp_path / "session"
+    sessions.initialize(directory, maw, definition)
+    initial = sessions.next_action(directory)
+    provider_call(directory, initial["attempt"], "search")
+    sessions.record(directory, receipt(initial, {"candidates": [{"repository": "one/tool"}]}))
+    action = sessions.next_action(directory)
+    calls: list[str] = []
+
+    class Client:
+        def get(self, path: str, *, allow_missing: bool = False) -> Any:
+            assert sessions._load(directory)["events"][-1]["record"]["kind"] == "operation-started"
+            calls.append(path)
+            if "/issues/" in path:
+                return {"number": int(path.rsplit("/", 1)[1]), "title": "Owned issue"}
+            if "/commits/" in path:
+                return {"sha": "b" * 40}
+            return {"full_name": "one/tool", "private": False, "default_branch": "main"}
+
+    budget = budget_for_plan(
+        {"session": str(directory), "attempt": action["attempt"], "operation": channel}
+    )
+
+    def acquire() -> dict[str, Any]:
+        if channel == "issues":
+            return targeted_issues(
+                Slug.parse("one/tool"),
+                [1, 2],
+                hypothesis="owned",
+                reason="owned evidence",
+                budget=budget,
+                client=Client(),
+            )
+        return frontier(
+            [
+                {
+                    "from": "one/source",
+                    "from_sha": action["context"]["sha"],
+                    "source_repo": str(maw),
+                    "path": "links.txt",
+                    "start": 1,
+                    "end": 1,
+                    "target": "one/tool",
+                    "relationship": "adjacent-tool",
+                }
+            ],
+            budget=budget,
+            clients={"github": Client()},
+        )
+
+    if requests == 2:
+        with pytest.raises(CrabError, match="global discovery request budget"):
+            acquire()
+        assert len(calls) == 1
+    else:
+        assert acquire()["requests"] == 2
+        assert len(calls) == 2
+    assert sessions.report(directory)["spent"]["requests"] == requests
+
+
+def test_reconciled_operation_cannot_clear_unattributed_unknown_stop(tmp_path: Path) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    sessions.stop(directory, "usage-unavailable", now=now)
+    unknown = usage(action, None)
+    sessions.record_usage(directory, unknown, now=now)
+    result = sessions.record_usage(directory, {**unknown, "model_tokens": 13}, now=now)
+    assert result["spent"]["model_tokens"] == 13
+    assert result["actual_model_tokens"] is None
+    assert result["finished"] and result["stop_reason"] == "usage-unavailable"
