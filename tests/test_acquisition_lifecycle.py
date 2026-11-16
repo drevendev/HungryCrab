@@ -3,7 +3,7 @@ from __future__ import annotations
 import socket
 import socketserver
 import threading
-from contextlib import ExitStack, nullcontext
+from contextlib import ExitStack, nullcontext, suppress
 from pathlib import Path
 from typing import Any
 
@@ -20,10 +20,8 @@ def quota(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> AcquisitionBudget:
 
 
 def _closed(client: socket.socket) -> None:
-    try:
+    with suppress(ConnectionResetError):
         assert client.recv(1) == b""
-    except ConnectionResetError:
-        pass
 
 
 @pytest.mark.parametrize("cancelled", [False, True])
@@ -44,7 +42,9 @@ def test_partial_connect_is_disconnected_at_scope_exit(
         )
         with expected, quota.scope():
             assert quota._server is not None
-            client = cleanup.enter_context(socket.create_connection(quota._server.server_address, 3))
+            client = cleanup.enter_context(
+                socket.create_connection(quota._server.server_address, 3)
+            )
             client.sendall(b"CONNECT github.com")
             assert accepted.wait(3)
             if cancelled:

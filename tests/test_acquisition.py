@@ -182,7 +182,9 @@ def test_main_and_wiki_connections_share_one_real_stream_limit(
 
 
 def test_remote_fixture_stops_before_socket_close_on_assertion_failure() -> None:
-    with socketserver.ThreadingTCPServer(("127.0.0.1", 0), socketserver.BaseRequestHandler) as remote:
+    with socketserver.ThreadingTCPServer(
+        ("127.0.0.1", 0), socketserver.BaseRequestHandler
+    ) as remote:
         with (
             pytest.raises(AssertionError, match="owned failing assertion"),
             _serving(remote) as worker,
