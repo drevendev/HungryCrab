@@ -240,3 +240,28 @@ def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
     assert reread["budget_within_limits"] is None
     assert reread["actual_model_tokens"] == 31
     assert sessions.next_action(directory, now=now)["action"] == "reconcile"
+
+
+def test_drive_authorizes_host_dispatch_and_blocks_uncertain_replay(tmp_path: Path) -> None:
+    directory, _, action, _ = setup_session(tmp_path)
+    dispatched: list[str] = []
+
+    def uncertain_host(row: dict[str, Any]) -> dict[str, Any]:
+        dispatched.append(row["attempt"])
+        current = sessions._load(directory)
+        assert any(
+            event["record"].get("kind") == "provider-request-authorized"
+            and event["record"].get("attempt") == row["attempt"]
+            and event["record"].get("operation") == "host-handler:search"
+            for event in current["events"]
+        )
+        raise RuntimeError("original host effect uncertain")
+
+    with pytest.raises(RuntimeError, match="original host effect uncertain"):
+        sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
+    assert dispatched == [action["attempt"]]
+    after_first = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="already charged; reconcile"):
+        sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
+    assert dispatched == [action["attempt"]]
+    assert (directory / "session.json").read_bytes() == after_first
