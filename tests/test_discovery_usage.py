@@ -8,12 +8,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from discovery_host_fixture import provider_call
 from test_discovery_inputs import repository
 from test_release_069_discovery import plan, receipt
 
 from hungry_crab import discovery_session as sessions
 from hungry_crab.cli import main
 from hungry_crab.errors import CrabError
+
+pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 
 
 def setup_session(tmp_path: Path) -> tuple[Path, Path, dict[str, Any], datetime]:
@@ -41,7 +44,7 @@ def test_host_self_attestation_never_certifies_strict_budget(tmp_path: Path) -> 
     directory = tmp_path / "session"
     now = datetime.now(UTC)
     initial = sessions.initialize(directory, maw, plan(maw), now=now)
-    assert initial["host_metering_admission"] == "declared-unverified"
+    assert initial["host_metering_admission"] == "runtime-admitted-owned-fixture"
     assert initial["budget_arithmetic_within_limits"] is True
     assert initial["budget_within_limits"] is None
 
@@ -211,7 +214,7 @@ def test_legacy_unqualified_lease_only_reconciles_without_new_provider_effects(
     assert pending["action"] == "reconcile"
     assert pending["attempt"] == action["attempt"]
     with pytest.raises(CrabError, match="host metering"):
-        sessions.authorize_request(directory, action["attempt"], "legacy-provider-call")
+        provider_call(directory, action["attempt"], "legacy-provider-call")
     assert (directory / "session.json").read_bytes() == before
 
     # Even an explicitly supplied "reconcile" handler must not execute through
@@ -278,7 +281,7 @@ def test_search_receipt_needs_prior_provider_operation_authorization(tmp_path: P
     assert sessions.report(directory)["needs"][0]["phase"] == "search"
 
     # The single prepaid search operation is authorized before its effect.
-    sessions.authorize_request(directory, action["attempt"], "fixture-provider-search", now=now)
+    provider_call(directory, action["attempt"], "fixture-provider-search", now=now)
     result = sessions.record(directory, receipt_without_auth, now=now)
     assert result["spent"]["requests"] == 1
     assert result["needs"][0]["phase"] == "acquire"
@@ -289,7 +292,7 @@ def test_zero_request_search_cannot_hide_previously_authorized_provider_call(
     tmp_path: Path,
 ) -> None:
     directory, _, action, now = setup_session(tmp_path)
-    sessions.authorize_request(directory, action["attempt"], "fixture-provider-search", now=now)
+    provider_call(directory, action["attempt"], "fixture-provider-search", now=now)
     before = (directory / "session.json").read_bytes()
     with pytest.raises(CrabError, match="cannot be reported as zero requests"):
         sessions.record(
@@ -303,7 +306,7 @@ def test_zero_request_search_cannot_hide_previously_authorized_provider_call(
 
 def test_non_search_receipt_reconciles_all_authorized_provider_calls(tmp_path: Path) -> None:
     directory, _, search, now = setup_session(tmp_path)
-    sessions.authorize_request(directory, search["attempt"], "fixture-search", now=now)
+    provider_call(directory, search["attempt"], "fixture-search", now=now)
     sessions.record(
         directory,
         receipt(search, {"candidates": [{"repository": "one/tool"}]}),
@@ -322,7 +325,7 @@ def test_non_search_receipt_reconciles_all_authorized_provider_calls(tmp_path: P
 
     # Once an external request was authorized, omitting or underreporting it
     # must not complete the leased acquire action as if it were local-only.
-    sessions.authorize_request(directory, acquire["attempt"], "fixture-acquire", now=now)
+    provider_call(directory, acquire["attempt"], "fixture-acquire", now=now)
     authorized = (directory / "session.json").read_bytes()
     for declared in ({}, {"requests": 0}, {"requests": True}):
         with pytest.raises(CrabError, match="non-search provider request count"):
@@ -365,7 +368,7 @@ def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
     before = (directory / "session.json").read_bytes()
 
     with pytest.raises(CrabError, match="finished discovery session"):
-        sessions.authorize_request(
+        provider_call(
             directory,
             action["attempt"],
             "post-stop-provider-request",

@@ -20,6 +20,24 @@ env:
   PYTHONIOENCODING: utf-8
 
 jobs:
+  discovery-operations:
+    name: Discovery operation gates (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --all-extras
+      - run: uv run pytest tests/test_discovery_operations.py tests/test_discovery_usage.py tests/test_discovery_deadlines.py tests/test_release_069_discovery.py -q
   acquisition-quota:
     name: Hard acquisition quota (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -63,14 +81,28 @@ jobs:
       - run: uv sync --locked --all-extras
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+        if: success() || failure()
       - run: uv run mypy
+        if: success() || failure()
       - run: uv run python scripts/check_supply_chain.py
       - run: uv build
       - run: uv run python scripts/check_sdist.py
+      - name: Prepare formatting corrections for review
+        if: failure()
+        run: |
+          uv run ruff check --fix .
+          uv run ruff format .
+          git diff --output=formatting.patch
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: formatting-corrections
+          path: formatting.patch
 
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
+    needs: [lint, discovery-operations]
     # The 0.6.9 diagnostic Windows suite took 43 minutes; retain smoke-test headroom.
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 60 || 30 }}
     strategy:
