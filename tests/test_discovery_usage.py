@@ -318,3 +318,33 @@ def test_drive_does_not_accept_unqualified_search_callback_result(tmp_path: Path
     with pytest.raises(CrabError, match="already dispatched; reconcile"):
         sessions.drive(directory, {"search": bare_host}, max_actions=1)
     assert invoked == [action["attempt"]]
+
+@pytest.mark.parametrize("reason", ["model-budget-reserve", "external-dependency"])
+def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
+    tmp_path: Path, reason: str
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    stopped = sessions.stop(directory, reason, now=now + timedelta(seconds=1))
+    assert stopped["finished"] and stopped["stop_reason"] == reason
+    assert stopped["spent"]["requests"] == 1
+    before = (directory / "session.json").read_bytes()
+
+    with pytest.raises(CrabError, match="finished discovery session"):
+        sessions.authorize_request(
+            directory,
+            action["attempt"],
+            "post-stop-provider-request",
+            now=now + timedelta(seconds=2),
+        )
+    with pytest.raises(CrabError, match="finished discovery session"):
+        sessions.authorize_host_dispatch(directory, action["attempt"], "search")
+    assert (directory / "session.json").read_bytes() == before
+
+    # Late original usage is accounting only; it cannot reopen the stopped lease.
+    late = sessions.record_usage(
+        directory, usage(action, 41), now=now + timedelta(seconds=3)
+    )
+    assert late["finished"] and late["stop_reason"] == reason
+    assert late["actual_model_tokens"] == 41
+    assert late["spent"]["requests"] == 1
+    assert sessions.next_action(directory, now=now + timedelta(seconds=4))["finished"]
