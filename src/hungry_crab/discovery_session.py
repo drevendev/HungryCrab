@@ -504,6 +504,19 @@ def record(
         result = receipt.get("result")
         if not isinstance(result, dict):
             raise CrabError("discovery result must be an object")
+        # A host callback is not an external provider permit. For non-search
+        # phases, reconcile claimed provider calls with their original
+        # pre-effect authorization events. Local-only callbacks may omit the
+        # field; an authorized operation cannot disappear from the receipt.
+        if action != "search":
+            authorized_calls = sum(
+                event["record"].get("kind") == "provider-request-authorized"
+                and event["record"].get("attempt") == lease["attempt"]
+                for event in value["events"]
+            )
+            reported_calls = result.get("requests", 0)
+            if type(reported_calls) is not int or reported_calls != authorized_calls:
+                raise CrabError("non-search provider request count lacks matching prior authorization")
         if action == "search":
             if type(result.get("requests", 1)) is not int or result.get("requests", 1) not in {
                 0,
