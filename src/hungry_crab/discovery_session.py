@@ -104,8 +104,8 @@ def _references(refs: object, context: dict[str, Any]) -> None:
 def _require_host_metering(plan: object) -> None:
     """Fail closed on absent or malformed strict-host metering declarations.
 
-    This validates a host's *claim* of capability, not its native provider API.
-    Only later per-operation receipts can establish measured usage. Supervised
+    This validates a plan declaration, never its native provider API. A live
+    trusted adapter is required separately before admission. Supervised
     fixed-pair inspections deliberately do not open this discovery controller.
     """
     capability = plan.get("host_metering") if isinstance(plan, dict) else None
@@ -485,8 +485,10 @@ def record_usage(
         else:
             value["spent"]["model_tokens"] += tokens
             if reconciliation:
-                value["unresolved_usage"].remove(operation)
-                value["model_usage_complete"] = not value["unresolved_usage"]
+                unresolved = value.get("unresolved_usage")
+                if isinstance(unresolved, list) and operation in unresolved:
+                    unresolved.remove(operation)
+                    value["model_usage_complete"] = not unresolved
             reason = _exhausted(value, instant)
             if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
                 _finish(value, "model-token-budget", instant)
@@ -568,7 +570,9 @@ def record(
                 raise CrabError("authorized provider search cannot be reported as zero requests")
         _require_settled_operations(value, lease["attempt"])
         if tokens != 0:
-            raise CrabError("semantic receipts must charge zero; settle actual host model usage separately")
+            raise CrabError(
+                "semantic receipts must charge zero; settle actual host model usage separately"
+            )
         if action == "search":
             candidates = result.get("candidates", [])
             if not isinstance(candidates, list) or len(candidates) > 100:
@@ -866,7 +870,9 @@ def _require_settled_operations(value: dict[str, Any], attempt: str) -> None:
         and row["operation"] not in settled
         for row in records
     ):
-        raise CrabError("operation lacks trusted host settlement; reconcile before semantic recording")
+        raise CrabError(
+            "operation lacks trusted host settlement; reconcile before semantic recording"
+        )
 
 
 def execute_operation(

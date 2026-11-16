@@ -18,9 +18,10 @@ from hungry_crab.cli import main
 from hungry_crab.discovery_search import SearchBudget, rank_cohort, search, verified_frontier
 from hungry_crab.errors import CrabError
 
-pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 from hungry_crab.receiving_probe import run_probe, verify_receipt
 from hungry_crab.source_inspection import source_packet, syntax_query
+
+pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 
 
 @pytest.mark.parametrize("receiving_name", ["reader-one", "reader-two", "reader-three"])
