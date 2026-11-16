@@ -95,7 +95,7 @@ def frontier(
                     client,
                     endpoint
                     + ("/commits/" if provider == "github" else "/repository/commits/")
-                    + quote(ref, safe="")
+                    + quote(ref, safe=""),
                 )
             )
         except ProviderChannelError:
