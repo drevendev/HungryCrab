@@ -10,7 +10,7 @@ from typing import Any
 from .analysis_context import fingerprint
 from .cache import Slug
 from .compare.candidates import _evidence_path
-from .discovery_search import SearchBudget, SearchClient
+from .discovery_search import ProviderChannelError, SearchBudget, SearchClient
 from .errors import CrabError
 from .fetch.git import GitRunner
 from .fetch.issues import slim_issue
@@ -136,11 +136,11 @@ def targeted_issues(
     rows, omissions = [], []
     before = budget.used
     for number in dict.fromkeys(numbers):
-        budget.charge()
         try:
-            raw = as_dict(client.get(f"repos/{slug}/issues/{number}"))
+            raw = as_dict(budget.get(client, f"repos/{slug}/issues/{number}"))
             if raw.get("number") != number:
-                raise CrabError("issue identity differs from requested issue")
+                omissions.append({"number": number, "reason": "issue-identity-mismatch"})
+                continue
             rows.append(
                 {
                     **slim_issue(raw, via="targeted-hypothesis"),
@@ -148,7 +148,7 @@ def targeted_issues(
                     "license_ceiling": "IDEAS_ONLY",
                 }
             )
-        except CrabError:
+        except ProviderChannelError:
             omissions.append({"number": number, "reason": "issue-channel-unavailable"})
     result: dict[str, Any] = {
         "schema": "hungry-crab.targeted-issues/1",

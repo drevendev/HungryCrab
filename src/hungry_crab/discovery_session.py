@@ -493,7 +493,9 @@ def record_usage(
                 unresolved = value.get("unresolved_usage")
                 if isinstance(unresolved, list) and operation in unresolved:
                     unresolved.remove(operation)
-                    value["model_usage_complete"] = not unresolved
+                    value["model_usage_complete"] = not unresolved and not value.get(
+                        "unattributed_usage_unknown", False
+                    )
             reason = _exhausted(value, instant)
             if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
                 _finish(value, "model-token-budget", instant)
@@ -865,6 +867,7 @@ def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[s
             _finish(value, reason, now or datetime.now(UTC))
             if reason == "usage-unavailable":
                 value["model_usage_complete"] = False
+                value["unattributed_usage_unknown"] = True
             _event(value, {"kind": "explicit-stop", "reason": reason})
             _save(directory, value)
         return summary(value)
