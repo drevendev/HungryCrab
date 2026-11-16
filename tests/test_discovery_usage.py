@@ -339,10 +339,14 @@ def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
         )
     with pytest.raises(CrabError, match="finished discovery session"):
         sessions.authorize_host_dispatch(directory, action["attempt"], "search")
-    with pytest.raises(CrabError, match="finished discovery session cannot accept semantic results"):
+    with pytest.raises(
+        CrabError, match="finished discovery session cannot accept semantic results"
+    ):
         sessions.record(
             directory,
-            receipt(action, {"requests": 0, "candidates": [{"repository": "post-stop/illicit"}]}),
+            receipt(
+                action, {"requests": 0, "candidates": [{"repository": "post-stop/illicit"}]}
+            ),
             now=now + timedelta(seconds=2),
         )
     assert (directory / "session.json").read_bytes() == before
