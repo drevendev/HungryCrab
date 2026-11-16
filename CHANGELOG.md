@@ -7,6 +7,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Documentation
+
+- Record the owner-amended 0.6.11 reliability/Actions foundation scope and the
+  0.7 local-Codex/Actions goal, including no local prey repository acquisition.
+  Preserve the previous unpassed discovery specification as historical evidence;
+  no new execution, effectiveness or release success is claimed.
+
 ### Fixed
 
 - Reject unsupported GPL/AGPL/LGPL maw identifiers in direct copyleft compatibility checks, retaining exact supported policy and SPDX choice semantics (#95).

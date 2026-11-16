@@ -1,5 +1,12 @@
 # Feeder: a menu without an agent
 
+The owner-selected [0.7 direction](releases/0.7.0-scope.md) builds on this Feeder:
+local Codex orders and reviews, all processing runs on Actions, and the prey
+repository is never acquired locally. [Design 09](design/09-actions-local-codex.md)
+specifies the planned contract; [0.6.11](releases/0.6.11-scope.md) prepares its
+foundations. The local commands below remain current supported modes, not an
+implementation of that future artifact-only route.
+
 `crab eat <prey> --deterministic --maw .` runs reconnaissance, acquisition, all fifteen
 miners and maw-aware comparison. It calls no model, executes no prey code, creates no issues
 or pull requests and leaves the ledger untouched. Existing ledger decisions are read to hide

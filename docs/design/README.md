@@ -15,6 +15,7 @@ useful for your own repository without violating licenses) and for its overlay
 | [06-benchmark.md](06-benchmark.md) | Specification of the two benchmarks: B1 the deterministic menu benchmark in CI, B2 the judged meal benchmark across crab versions and Claude models |
 | [07-scheduled-crab.md](07-scheduled-crab.md) | The local sibling of the evolving crab: crave → hunt → eat → serve → grow → trial → taste → molt → harden, one phase per wake-up, on this repository or on any target it is pointed at |
 | [08-budgets-and-feeder.md](08-budgets-and-feeder.md) | Two policies that decide who the crab is for: what a token budget is allowed to do to a digest, and how a repository digests prey in CI with no model and no agent at all |
+| [09-actions-local-codex.md](09-actions-local-codex.md) | Owner-selected 0.7 direction: local Codex ordering/judgment/delivery, all Crab processing on Actions, no local prey repository, versioned evidence and recovery |
 
 ## Key decisions (TL;DR)
 

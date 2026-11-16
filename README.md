@@ -60,10 +60,14 @@ maintenance issues to their fixes and checks under the [scope](docs/releases/0.6
 [tracker #587](https://github.com/drevendev/HungryCrab/issues/587).
 The earlier [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers MIT/path-licence,
 source-reading, evidence-integrity and host-safety fixes.
-Complete useful-change discovery and its unchanged independent comparative acceptance
-belong to [0.6.11](docs/releases/0.6.11-scope.md) under [#585](https://github.com/drevendev/HungryCrab/issues/585).
-Search remains experimental: the latest comparison confirmed zero useful changes
-in either arm. Development continues at 0.6.11.dev0.
+The owner-amended [0.6.11 scope](docs/releases/0.6.11-scope.md) covers reliability
+repairs and Actions foundations. [0.7](docs/releases/0.7.0-scope.md) targets local
+Codex ordering, nutrient judgment and final issue/PR delivery, with all Crab
+processing on GitHub Actions and no local prey repository download. This is a
+planned route, not the behavior of the current local-cache commands below.
+Complete discovery and independent effectiveness acceptance (#585/#540) remain
+open and move to that line; failed studies are not upgraded by the scope change.
+Development continues at 0.6.11.dev0.
 
 ## The metaphor, in five words
 

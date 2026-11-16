@@ -5,7 +5,7 @@ has deterministic benchmarks (after 0.3), and the fork kit as soon as the Evolvi
 few clean cycles.
 
 ```
-Track A · Hungry Crab        0.1 ─ 0.2 ─ 0.3 ═══ 0.4 ─ 0.5 ─ 0.6 ─ 1.0
+Track A · Hungry Crab        0.1 ─ 0.2 ─ 0.3 ═══ 0.4 ─ 0.5 ─ 0.6 ─ 0.7 ─ 1.0
 Track B · Evolving Crab                  E0 ─ E1 ─ E2 ─ E3 ─ E4
 Track C · Forks                                        F0 ─ F1 ─ F2
 ```
@@ -24,6 +24,8 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.4 | Deep Bite | Discussions (GraphQL), PR reviews, CI durations and explicit flaky-rerun report evidence; eight dependency ecosystems and GitLab.com acquisition; a ranking pressure report and the B2 experiment pipeline ([guide](../deep-bite.md)) | Implementation covers eight ecosystems and provider signals. The optional tree-sitter symbol index remains postponed; supervised source-linked `code` registration is implemented under #447 without that dependency. Unreleased milestone criteria remain; the first live B2 sweep is [#250](https://github.com/drevendev/HungryCrab/issues/250). |
 | 0.5 | Taste Memory | scorer learning from the ledger (accepted/rejected by category and maw), `crab hunt --for .` (finding prey for a maw via `gh search` + similarity signals), multi-prey (`eat a b c` → merged menu), hunger profiles by repository type | share of accepted issues grows between iterations on the same maw |
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
+| 0.6.11 | Reliability and remote foundations | [Bounded technical repairs](../releases/0.6.11-scope.md), portable Actions evidence and artifact-only local review | Exact-head technical/hosted controls and no local prey acquisition in the supported handoff; complete discovery/effectiveness remains deferred |
+| 0.7 | Local Codex + Actions | [Stable full route](../releases/0.7.0-scope.md): scripts on Actions; order, nutrient judgment and final issue/PR delivery in local Codex; no local prey repository | Full remote continuation and local delivery, reliable recovery, independent usefulness/efficiency evidence; no implicit model campaign or scheduler |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
 Released: **0.6.10** (2026-11-04), a bounded maintenance patch, after **0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
@@ -48,13 +50,13 @@ The release tree precedes the reopened **0.6.10.dev0** development tree.
 [its scope](../releases/0.6.10-scope.md) and
 [implementation/validation map](../releases/0.6.10-maintenance.md).
 The release tree precedes the reopened **0.6.11.dev0** development tree.
-The complete useful-change search/verification/replanning cycle and independent
-comparative acceptance move to **0.6.11** under
-[specification #585](../releases/0.6.11-scope.md).
-[#540](https://github.com/drevendev/HungryCrab/issues/540) remains open there.
-The [latest comparison](../experiments/release-069-breadth-qualification.md)
-confirmed zero useful changes in either arm. Its failed gates are transferred,
-not passed; search remains experimental.
+**Owner amendment, 2026-11-16:** [0.6.11](../releases/0.6.11-scope.md) now repairs
+technical debt and prepares the Actions handoff. [0.7](../releases/0.7.0-scope.md)
+owns stable local-Codex ordering/review/delivery with remote processing and no
+local prey repository download. See [the execution contract](09-actions-local-codex.md).
+The complete discovery cycle and unpassed #585/#540 acceptance move to that line;
+historical failures, costs and licence holds remain unchanged. Older broad plans
+do not take priority over this selected route or authorize new paid runs.
 
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
