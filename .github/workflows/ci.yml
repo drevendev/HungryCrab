@@ -23,7 +23,7 @@ jobs:
   discovery-operations:
     name: Discovery operation gates (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --all-extras
-      - run: uv run pytest tests/test_discovery_operations.py tests/test_discovery_usage.py tests/test_discovery_deadlines.py tests/test_release_069_discovery.py -q
+      - run: uv run pytest tests/test_discovery_operations.py tests/test_discovery_usage.py tests/test_discovery_deadlines.py tests/test_release_069_discovery.py tests/test_research_cycle.py::test_second_need_preserves_first_registered_menu -q
   acquisition-quota:
     name: Hard acquisition quota (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
