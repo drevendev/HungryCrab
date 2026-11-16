@@ -120,6 +120,36 @@ def test_overrun_is_retained_and_unknown_use_is_not_zero(tmp_path: Path) -> None
     assert not unknown["budget_within_limits"]
 
 
+@pytest.mark.parametrize("reason", ["external-dependency", "model-budget-reserve"])
+def test_late_actual_budget_overrun_preserves_original_terminal_reason(
+    tmp_path: Path, reason: str
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    stopped = sessions.stop(directory, reason, now=now + timedelta(seconds=1))
+    assert stopped["finished"] and stopped["stop_reason"] == reason
+    original_finished_at = stopped["finished_at"]
+    original_duration = stopped["wall_time_seconds"]
+
+    # The original attempt's actual cost arrives after an explicit stop.
+    original_usage = usage(action, 30007, "late-budget-overrun")
+    late = sessions.record_usage(
+        directory, original_usage, now=now + timedelta(seconds=2)
+    )
+    assert late["actual_model_tokens"] == 30007
+    assert late["budget_arithmetic_within_limits"] is False
+    assert late["budget_within_limits"] is False
+    assert late["finished"] and late["stop_reason"] == reason
+    assert late["finished_at"] == original_finished_at
+    assert late["wall_time_seconds"] == original_duration
+    assert late["needs"][0]["phase"] == "search"
+    assert sessions.next_action(directory, now=now + timedelta(seconds=3))["finished"]
+
+    # Exact receipt replay is idempotent even after the overrun.
+    original_bytes = (directory / "session.json").read_bytes()
+    sessions.record_usage(directory, original_usage, now=now + timedelta(seconds=4))
+    assert (directory / "session.json").read_bytes() == original_bytes
+
+
 def test_public_usage_command_and_event_budget_leave_readable_state(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
