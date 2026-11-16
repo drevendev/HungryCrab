@@ -301,6 +301,46 @@ def test_zero_request_search_cannot_hide_previously_authorized_provider_call(
     assert sessions.report(directory)["spent"]["requests"] == 1
 
 
+
+def test_non_search_receipt_reconciles_all_authorized_provider_calls(tmp_path: Path) -> None:
+    directory, _, search, now = setup_session(tmp_path)
+    sessions.authorize_request(directory, search["attempt"], "fixture-search", now=now)
+    sessions.record(
+        directory,
+        receipt(search, {"candidates": [{"repository": "one/tool"}]}),
+        now=now,
+    )
+    acquire = sessions.next_action(directory, now=now)
+    assert acquire["action"] == "acquire"
+    assert sessions.report(directory)["spent"]["requests"] == 1
+
+    # An invented provider request cannot be backfilled by a semantic receipt.
+    without_auth = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="non-search provider request count"):
+        sessions.record(
+            directory, receipt(acquire, {"status": "unavailable", "requests": 1}), now=now
+        )
+    assert (directory / "session.json").read_bytes() == without_auth
+
+    # Once an external request was authorized, omitting or underreporting it
+    # must not complete the leased acquire action as if it were local-only.
+    sessions.authorize_request(directory, acquire["attempt"], "fixture-acquire", now=now)
+    authorized = (directory / "session.json").read_bytes()
+    for declared in ({}, {"requests": 0}, {"requests": True}):
+        with pytest.raises(CrabError, match="non-search provider request count"):
+            sessions.record(
+                directory, receipt(acquire, {"status": "unavailable", **declared}), now=now
+            )
+        assert (directory / "session.json").read_bytes() == authorized
+
+    valid = sessions.record(
+        directory, receipt(acquire, {"status": "unavailable", "requests": 1}), now=now
+    )
+    assert valid["spent"]["requests"] == 2
+    assert valid["needs"][0]["phase"] == "search"
+
+
+
 def test_drive_does_not_accept_unqualified_search_callback_result(tmp_path: Path) -> None:
     directory, _, action, _ = setup_session(tmp_path)
     invoked: list[str] = []
