@@ -461,14 +461,19 @@ def record_usage(
         reconciliation = False
         for event in value["events"]:
             row = event["record"]
-            if row.get("kind") not in {"model-usage", "model-usage-reconciled"} or row["receipt"]["operation"] != operation:
+            if (
+                row.get("kind") not in {"model-usage", "model-usage-reconciled"}
+                or row["receipt"]["operation"] != operation
+            ):
                 continue
             previous = row["receipt"]
             if previous == receipt:
                 return summary(value)
-            if previous["model_tokens"] is None and tokens is not None and {
-                **previous, "model_tokens": tokens
-            } == receipt:
+            if (
+                previous["model_tokens"] is None
+                and tokens is not None
+                and {**previous, "model_tokens": tokens} == receipt
+            ):
                 reconciliation = True
                 continue
             raise CrabError("model usage operation already exists with a different receipt")
@@ -494,10 +499,14 @@ def record_usage(
                 _finish(value, "model-token-budget", instant)
             elif not value["finished"] and reason:
                 _finish(value, reason, instant)
-        _event(value, {
-            "kind": "model-usage-reconciled" if reconciliation else "model-usage",
-            "receipt": receipt, "at": instant.isoformat(),
-        })
+        _event(
+            value,
+            {
+                "kind": "model-usage-reconciled" if reconciliation else "model-usage",
+                "receipt": receipt,
+                "at": instant.isoformat(),
+            },
+        )
         _save(directory, value)
         return summary(value)
 
@@ -750,9 +759,13 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         )
     # Arithmetic is observational; a caller-controlled host claim can never
     # independently qualify a native provider meter or certify strict budgets.
-    known_overrun = value.get("meter_cap_violated", False) or wall_compliant is False or any(
-        value["spent"][name] > value["limits"][name]
-        for name in ("requests", "donors", "model_tokens")
+    known_overrun = (
+        value.get("meter_cap_violated", False)
+        or wall_compliant is False
+        or any(
+            value["spent"][name] > value["limits"][name]
+            for name in ("requests", "donors", "model_tokens")
+        )
     )
     numerical_budget_within_limits: bool | None
     if known_overrun:
@@ -917,11 +930,15 @@ def execute_operation(
             raise CrabError("host operation already admitted; reconcile before retrying")
         settled = {row["operation"] for row in records if row.get("kind") == "operation-settled"}
         pending = [
-            row for row in records
+            row
+            for row in records
             if row.get("kind") == "operation-started" and row["operation"] not in settled
         ]
         reserved = sum(row["model_token_limit"] for row in pending)
-        if value["spent"]["model_tokens"] + reserved + model_token_limit > value["limits"]["model_tokens"]:
+        if (
+            value["spent"]["model_tokens"] + reserved + model_token_limit
+            > value["limits"]["model_tokens"]
+        ):
             raise CrabError("shared discovery model token allowance exhausted")
         # Leave room for all in-flight terminal usage/settlement records, even
         # if nested calls or a host crash occur after admission.
@@ -929,11 +946,17 @@ def execute_operation(
             raise CrabError("discovery event budget exhausted before host operation")
         if kind == "provider":
             _authorize_provider(value, attempt, identity, instant)
-        _event(value, {
-            "kind": "operation-started", "attempt": attempt, "operation": identity,
-            "operation_kind": kind, "model_token_limit": model_token_limit,
-            "at": instant.isoformat(),
-        })
+        _event(
+            value,
+            {
+                "kind": "operation-started",
+                "attempt": attempt,
+                "operation": identity,
+                "operation_kind": kind,
+                "model_token_limit": model_token_limit,
+                "at": instant.isoformat(),
+            },
+        )
         _save(directory, value)
     ticket: object = None
     tokens: int | None = 0 if kind == "provider" else None
@@ -953,25 +976,44 @@ def execute_operation(
 
 
 def _settle_operation(
-    directory: Path, attempt: str, operation: str, tokens: int | None,
-    *, now: datetime | None = None,
+    directory: Path,
+    attempt: str,
+    operation: str,
+    tokens: int | None,
+    *,
+    now: datetime | None = None,
 ) -> None:
     """The broker's terminal path; semantic JSON cannot create this event."""
     # Accounting intentionally tolerates expired/stopped/stale receiving state.
-    record_usage(directory, {
-        "attempt": attempt, "operation": operation, "author": "trusted host operation broker",
-        "tool": "native meter boundary", "model_tokens": tokens,
-    }, now=now)
+    record_usage(
+        directory,
+        {
+            "attempt": attempt,
+            "operation": operation,
+            "author": "trusted host operation broker",
+            "tool": "native meter boundary",
+            "model_tokens": tokens,
+        },
+        now=now,
+    )
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
-        _event(value, {
-            "kind": "operation-settled", "attempt": attempt, "operation": operation,
-            "usage_available": tokens is not None,
-        })
+        _event(
+            value,
+            {
+                "kind": "operation-settled",
+                "attempt": attempt,
+                "operation": operation,
+                "usage_available": tokens is not None,
+            },
+        )
         if tokens is not None:
-            started = next(event["record"] for event in value["events"] if
-                event["record"].get("kind") == "operation-started"
-                and event["record"].get("operation") == operation)
+            started = next(
+                event["record"]
+                for event in value["events"]
+                if event["record"].get("kind") == "operation-started"
+                and event["record"].get("operation") == operation
+            )
             if tokens > started["model_token_limit"]:
                 value["meter_cap_violated"] = True
                 _finish(value, "model-token-budget", now or datetime.now(UTC))
@@ -983,7 +1025,8 @@ def _authorize_provider(
 ) -> None:
     lease = value["lease"]
     calls = [
-        event["record"] for event in value["events"]
+        event["record"]
+        for event in value["events"]
         if event["record"].get("kind") == "provider-request-authorized"
         and event["record"].get("attempt") == attempt
     ]
@@ -996,10 +1039,16 @@ def _authorize_provider(
         if value["spent"]["requests"] >= value["limits"]["requests"]:
             raise CrabError("global discovery request budget exhausted")
         value["spent"]["requests"] += 1
-    _event(value, {
-        "kind": "provider-request-authorized", "attempt": attempt,
-        "operation": operation, "prepaid": prepaid, "at": instant.isoformat(),
-    })
+    _event(
+        value,
+        {
+            "kind": "provider-request-authorized",
+            "attempt": attempt,
+            "operation": operation,
+            "prepaid": prepaid,
+            "at": instant.isoformat(),
+        },
+    )
 
 
 def authorize_request(
