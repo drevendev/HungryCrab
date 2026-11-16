@@ -12,6 +12,7 @@ from test_discovery_usage import usage
 from test_release_069_discovery import plan, receipt
 
 from hungry_crab import discovery_session as sessions
+from hungry_crab.errors import CrabError
 
 
 def setup(tmp_path: Path, *, seconds: int = 1) -> tuple[Path, dict[str, Any], datetime]:
@@ -97,12 +98,16 @@ def test_legacy_terminal_duration_stays_unknown_after_late_accounting(tmp_path: 
     assert result["wall_time_seconds"] is result["wall_time_within_limits"] is None
 
 
-def test_late_actual_result_preserves_terminal_time_without_granting_work(tmp_path: Path) -> None:
+def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_path: Path) -> None:
     directory, action, start = setup(tmp_path, seconds=2700)
     ended = sessions.stop(directory, "external-dependency", now=start + timedelta(seconds=2))
     entry = receipt(action, {"requests": 0, "candidates": []})
     entry["model_tokens"] = 37
-    result = sessions.record(directory, entry, now=start + timedelta(days=1))
+    original = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="finished discovery session cannot accept semantic results"):
+        sessions.record(directory, entry, now=start + timedelta(days=1))
+    assert (directory / "session.json").read_bytes() == original
+    result = sessions.record_usage(directory, usage(action, 37), now=start + timedelta(days=1))
     assert result["actual_model_tokens"] == 37
     assert result["wall_time_seconds"] == 2 and result["finished_at"] == ended["finished_at"]
     assert result["stop_reason"] == "external-dependency"
