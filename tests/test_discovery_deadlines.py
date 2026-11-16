@@ -14,6 +14,8 @@ from test_release_069_discovery import plan, receipt
 from hungry_crab import discovery_session as sessions
 from hungry_crab.errors import CrabError
 
+pytestmark = pytest.mark.usefixtures("owned_discovery_host")
+
 
 def setup(tmp_path: Path, *, seconds: int = 1) -> tuple[Path, dict[str, Any], datetime]:
     maw = repository(tmp_path / "maw", {"app.py": "def read():\n    return True\n"})

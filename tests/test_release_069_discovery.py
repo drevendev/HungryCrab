@@ -10,12 +10,15 @@ from typing import Any
 
 import pytest
 from fixture_builder import git
+from discovery_host_fixture import provider_call
 from test_discovery_inputs import repository
 
 from hungry_crab import discovery_session as sessions
 from hungry_crab.cli import main
 from hungry_crab.discovery_search import SearchBudget, rank_cohort, search, verified_frontier
 from hungry_crab.errors import CrabError
+
+pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 from hungry_crab.receiving_probe import run_probe, verify_receipt
 from hungry_crab.source_inspection import source_packet, syntax_query
 
@@ -59,7 +62,7 @@ def test_invoked_host_executes_replacements_and_an_original_probe(
     executed: list[str] = []
 
     def search_handler(action: dict[str, Any]) -> dict[str, Any]:
-        sessions.authorize_request(directory, action["attempt"], "fixture-search")
+        provider_call(directory, action["attempt"], "fixture-search")
         return receipt(action, {"candidates": [{"repository": name} for name in donors]})
 
     def acquire(action: dict[str, Any]) -> dict[str, Any]:
@@ -357,7 +360,7 @@ def test_session_charges_once_reconciles_and_replaces_held_leads(tmp_path: Path)
     sessions.initialize(directory, maw, plan(maw), now=instant)
     action = sessions.next_action(directory, now=instant)
     assert sessions.next_action(directory, now=instant) == action
-    sessions.authorize_request(directory, action["attempt"], "fixture-search", now=instant)
+    provider_call(directory, action["attempt"], "fixture-search", now=instant)
     expired = sessions.next_action(directory, now=instant + timedelta(minutes=11))
     assert expired["action"] == "reconcile" and expired["attempt"] == action["attempt"]
     entry = receipt(
@@ -403,7 +406,7 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
 
     first = sessions.next_action(directory, now=instant)
     assert first["need"] == "bounded-input" and first["action"] == "search"
-    sessions.authorize_request(directory, first["attempt"], "fixture-first-search", now=instant)
+    provider_call(directory, first["attempt"], "fixture-first-search", now=instant)
     sessions.record(
         directory, receipt(first, {"candidates": [{"repository": "one/tool"}]}), now=instant
     )
@@ -417,7 +420,7 @@ def test_distinct_receiving_needs_get_a_turn_after_failed_donor_and_empty_search
 
     second = sessions.next_action(directory, now=instant)
     assert second["need"] == "second-receiving-need" and second["action"] == "search"
-    sessions.authorize_request(directory, second["attempt"], "fixture-second-search", now=instant)
+    provider_call(directory, second["attempt"], "fixture-second-search", now=instant)
     sessions.record(directory, receipt(second, {"candidates": []}), now=instant)
 
     resumed = sessions.next_action(directory, now=instant)
@@ -439,7 +442,7 @@ def test_preparation_deferrals_consume_the_shared_donor_cap_without_native_work(
     instant = datetime.now(UTC)
     sessions.initialize(directory, maw, definition, now=instant)
     action = sessions.next_action(directory, now=instant)
-    sessions.authorize_request(directory, action["attempt"], "fixture-search", now=instant)
+    provider_call(directory, action["attempt"], "fixture-search", now=instant)
     sessions.record(
         directory,
         receipt(
@@ -546,7 +549,7 @@ def test_cli_packet_and_explicit_budget_stop(
 
     def handler(action: dict[str, Any]) -> dict[str, Any]:
         calls.append(action["action"])
-        sessions.authorize_request(directory, action["attempt"], "fixture-search")
+        provider_call(directory, action["attempt"], "fixture-search")
         return receipt(action, {"candidates": []})
 
     result = sessions.drive(directory, {"search": handler})
@@ -578,14 +581,14 @@ def test_cross_channel_requests_are_precharged_and_uncertain_replay_is_refused(
     directory = tmp_path / "session"
     sessions.initialize(directory, maw, data)
     action = sessions.next_action(directory)
-    sessions.authorize_request(directory, action["attempt"], "provider-search")
+    provider_call(directory, action["attempt"], "provider-search")
     with pytest.raises(CrabError, match="reconcile"):
-        sessions.authorize_request(directory, action["attempt"], "provider-search")
+        provider_call(directory, action["attempt"], "provider-search")
     sessions.record(directory, receipt(action, {"candidates": [{"repository": "one/tool"}]}))
     action = sessions.next_action(directory)
-    sessions.authorize_request(directory, action["attempt"], "targeted-issue")
+    provider_call(directory, action["attempt"], "targeted-issue")
     with pytest.raises(CrabError, match="global discovery request budget"):
-        sessions.authorize_request(directory, action["attempt"], "frontier-identity")
+        provider_call(directory, action["attempt"], "frontier-identity")
     assert sessions.report(directory)["spent"]["requests"] == 2
 
 
@@ -596,10 +599,10 @@ def test_actual_overspend_and_unavailable_usage_are_honest_stops(tmp_path: Path)
         sessions.initialize(directory, maw, plan(maw))
         action = sessions.next_action(directory)
         if label == "overrun":
-            sessions.authorize_request(directory, action["attempt"], "fixture-search")
-            entry = receipt(action, {"candidates": []})
-            entry["model_tokens"] = 30_001
-            result = sessions.record(directory, entry)
+            result = sessions.record_usage(directory, {
+                "attempt": action["attempt"], "operation": "late-model-use",
+                "author": "fixture host", "tool": "usage fixture", "model_tokens": 30_001,
+            })
             assert result["actual_model_tokens"] == 30_001
             assert result["stop_reason"] == "model-token-budget"
         else:

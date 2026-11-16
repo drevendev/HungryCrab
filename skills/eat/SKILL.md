@@ -39,11 +39,13 @@ The strict `discover init` plan must provide an explicit `host_metering` declara
 `{"schema":"hungry-crab.host-usage-capability/1","route":"strict-metered",
 "actual_model_usage":"per-operation","reporting_source":"ACTUAL_HOST_METER",
 "preflight_confirmed":true}`. Replace the source placeholder with the named native
-host usage meter only after actually checking its availability. The CLI rejects a
-missing, invalid or unconfirmed declaration before creating a session. This is
-**host-attested preflight, not independent proof** of provider usage; actual
-per-operation receipts remain necessary. Unqualified older leases may only be
-reconciled, never used to authorize a new provider operation.
+host usage meter only after actually checking its availability. This declaration
+alone never admits a session: the invoking trusted host must bind a live usage
+adapter and wrap each real provider/model port with `execute_operation`, including
+nested calls. No production native meter is shipped, so standalone strict init
+refuses before creating state. Owned-fixture meters prove mechanics only; native
+qualification remains separate. See `docs/discovery-host.md` for the adapter and
+recovery contract. Unqualified older leases are reconciliation-only.
 
 The routes share licensing, source-origin, receiving-verification and publication
 guards below. Selecting supervision does not grant donor execution or publication.
@@ -56,9 +58,10 @@ guards below. Selecting supervision does not grant donor execution or publicatio
    implemented request can leave a useful distinct gap. Do not demand global historical absence.
 2. **Drive bounded research (metered discovery route only).** `crab discover init SESSION --maw . --plan PLAN.json` freezes
    needs and shared limits. Consume `discover next`, perform its owned action, then `discover
-   record`; do not merely print suggestions. Settle each completed model stage through
-   `discover usage` before interpreting it: unique operation, owned attempt, author/tool,
-   actual tokens (null if unknown). Deterministic records then charge zero. Persist charges
+   record`; do not merely print suggestions. The trusted operation broker settles native
+   usage before interpreting each model result; deterministic records charge zero.
+   `discover usage` is accounting-only recovery, never operation admission or completion.
+   Preserve unique operation, owned attempt, author/tool and actual tokens (null if unknown). Persist charges
    before effects and reconcile interruption before retry. Present/duplicate/disproved/held
    leads require a distinct supported alternative under the same limits. Retain unfinished
    needs; stop for actual exhaustion/dependency, unknown usage, or `model-budget-reserve`
