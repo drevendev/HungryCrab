@@ -48,7 +48,8 @@ def test_deadline_stops_cached_lease_and_keeps_actual_cost_settlement(
     assert charged["needs"][0]["phase"] == "search"
     assert sessions.record_usage(directory, usage(action, 17))["actual_model_tokens"] == 17
     overrun = sessions.record_usage(directory, usage(action, 30000, "late-overrun"))
-    assert overrun["stop_reason"] == "model-token-budget"
+    assert overrun["stop_reason"] == result["stop_reason"]
+    assert overrun["actual_model_tokens"] == 30017
     assert overrun["wall_time_seconds"] == elapsed
     assert not overrun["budget_within_limits"]
 
