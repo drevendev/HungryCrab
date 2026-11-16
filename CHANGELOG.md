@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Own accepted acquisition relay connections before blocking reads, reject late
+  upstream connections after scope teardown and isolate reused scopes (#678).
+  Always stop the owned test listener on assertion failures before closing its
+  socket, preserving the original failure rather than a live listener (#679).
+
+### Fixed
+
 - Reject unsupported GPL/AGPL/LGPL maw identifiers in direct copyleft compatibility checks, retaining exact supported policy and SPDX choice semantics (#95).
 - Permit cache-path mentions in inert, quoted `gh pr create --title ... --body ...`
   messages for a single standalone Bash command (either exact title/body option order);

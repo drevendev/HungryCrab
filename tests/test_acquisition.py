@@ -8,6 +8,8 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,19 @@ from hungry_crab.fetch.bounded import run_bounded
 from hungry_crab.fetch.catch import CatchOptions
 from hungry_crab.fetch.git import git_env
 from hungry_crab.sniff import build_report
+
+
+@contextmanager
+def _serving(server: socketserver.BaseServer) -> Iterator[threading.Thread]:
+    """Stop the listener before its socket closes, including on failed assertions."""
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        yield worker
+    finally:
+        server.shutdown()
+        worker.join(timeout=2)
+        assert not worker.is_alive()
 
 
 @pytest.fixture
@@ -138,10 +153,10 @@ def test_main_and_wiki_connections_share_one_real_stream_limit(
             self.request.sendall(b"123456")
 
     actual_connect = socket.create_connection
-    with socketserver.ThreadingTCPServer(("127.0.0.1", 0), Remote) as remote:
-        worker = threading.Thread(target=remote.serve_forever, daemon=True)
-        worker.start()
-
+    with (
+        socketserver.ThreadingTCPServer(("127.0.0.1", 0), Remote) as remote,
+        _serving(remote),
+    ):
         def connect(address: tuple[str, int], **kwargs: object) -> socket.socket:
             return actual_connect(
                 remote.server_address if address[1] == 443 else address, timeout=3
@@ -164,8 +179,16 @@ def test_main_and_wiki_connections_share_one_real_stream_limit(
             assert received == [b"123456", b""]
             assert quota.downloaded == 6
             quota.check()
-        remote.shutdown()
-        worker.join(timeout=2)
+
+
+def test_remote_fixture_stops_before_socket_close_on_assertion_failure() -> None:
+    with socketserver.ThreadingTCPServer(("127.0.0.1", 0), socketserver.BaseRequestHandler) as remote:
+        with (
+            pytest.raises(AssertionError, match="owned failing assertion"),
+            _serving(remote) as worker,
+        ):
+            raise AssertionError("owned failing assertion")
+        assert not worker.is_alive()
 
 
 def test_concurrent_reads_cannot_each_spend_the_remaining_allowance(
