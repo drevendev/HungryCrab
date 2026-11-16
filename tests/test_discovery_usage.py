@@ -270,9 +270,7 @@ def test_drive_authorizes_host_dispatch_and_blocks_uncertain_replay(tmp_path: Pa
 
 def test_search_receipt_needs_prior_provider_operation_authorization(tmp_path: Path) -> None:
     directory, _, action, now = setup_session(tmp_path)
-    receipt_without_auth = receipt(
-        action, {"candidates": [{"repository": "one/tool"}]}
-    )
+    receipt_without_auth = receipt(action, {"candidates": [{"repository": "one/tool"}]})
     before = (directory / "session.json").read_bytes()
     with pytest.raises(CrabError, match="prior operation authorization"):
         sessions.record(directory, receipt_without_auth, now=now)
@@ -280,24 +278,18 @@ def test_search_receipt_needs_prior_provider_operation_authorization(tmp_path: P
     assert sessions.report(directory)["needs"][0]["phase"] == "search"
 
     # The single prepaid search operation is authorized before its effect.
-    sessions.authorize_request(
-        directory, action["attempt"], "fixture-provider-search", now=now
-    )
+    sessions.authorize_request(directory, action["attempt"], "fixture-provider-search", now=now)
     result = sessions.record(directory, receipt_without_auth, now=now)
     assert result["spent"]["requests"] == 1
     assert result["needs"][0]["phase"] == "acquire"
-    assert (
-        sessions.record(directory, receipt_without_auth, now=now)["spent"]["requests"] == 1
-    )
+    assert sessions.record(directory, receipt_without_auth, now=now)["spent"]["requests"] == 1
 
 
 def test_zero_request_search_cannot_hide_previously_authorized_provider_call(
     tmp_path: Path,
 ) -> None:
     directory, _, action, now = setup_session(tmp_path)
-    sessions.authorize_request(
-        directory, action["attempt"], "fixture-provider-search", now=now
-    )
+    sessions.authorize_request(directory, action["attempt"], "fixture-provider-search", now=now)
     before = (directory / "session.json").read_bytes()
     with pytest.raises(CrabError, match="cannot be reported as zero requests"):
         sessions.record(
