@@ -132,9 +132,7 @@ def test_late_actual_budget_overrun_preserves_original_terminal_reason(
 
     # The original attempt's actual cost arrives after an explicit stop.
     original_usage = usage(action, 30007, "late-budget-overrun")
-    late = sessions.record_usage(
-        directory, original_usage, now=now + timedelta(seconds=2)
-    )
+    late = sessions.record_usage(directory, original_usage, now=now + timedelta(seconds=2))
     assert late["actual_model_tokens"] == 30007
     assert late["budget_arithmetic_within_limits"] is False
     assert late["budget_within_limits"] is False
