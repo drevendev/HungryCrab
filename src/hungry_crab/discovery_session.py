@@ -18,7 +18,7 @@ from .artifact_read import read_object
 from .attribution import GitSourceReader
 from .config_edit import atomic_text
 from .digest import worktree_fingerprint
-from .discovery_host import require_meter
+from .discovery_host import active_operations, operation_scope, require_meter
 from .errors import CrabError
 from .exploration import report as exploration_report
 from .fetch.git import GitRunner
@@ -371,7 +371,7 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                 0, value["limits"]["model_tokens"] - value["spent"]["model_tokens"]
             )
             lease["remaining_seconds"] = (deadline - instant).total_seconds()
-            if instant >= datetime.fromisoformat(lease["expires_at"]):
+            if _pending_operations(value) or instant >= datetime.fromisoformat(lease["expires_at"]):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
                     "previous attempt may have consumed provider effects; do not repeat blindly"
@@ -873,19 +873,23 @@ def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[s
         return summary(value)
 
 
-def _require_settled_operations(value: dict[str, Any], attempt: str) -> None:
+def _pending_operations(value: dict[str, Any]) -> list[dict[str, Any]]:
     records = [event["record"] for event in value["events"]]
     settled = {
         row["operation"]
         for row in records
-        if row.get("kind") == "operation-settled" and row.get("attempt") == attempt
+        if row.get("kind") == "operation-settled"
     }
-    if any(
-        row.get("attempt") == attempt
-        and row.get("kind") in {"provider-request-authorized", "operation-started"}
-        and row["operation"] not in settled
+    return [
+        row
         for row in records
-    ):
+        if row.get("kind") in {"provider-request-authorized", "operation-started"}
+        and row["operation"] not in settled
+    ]
+
+
+def _require_settled_operations(value: dict[str, Any], attempt: str) -> None:
+    if any(row.get("attempt") == attempt for row in _pending_operations(value)):
         raise CrabError(
             "operation lacks trusted host settlement; reconcile before semantic recording"
         )
@@ -931,6 +935,12 @@ def execute_operation(
         records = [event["record"] for event in value["events"]]
         if any(row.get("operation") == identity for row in records):
             raise CrabError("host operation already admitted; reconcile before retrying")
+        session_key = str(directory.resolve()) + ":"
+        if any(
+            session_key + row["operation"] not in active_operations()
+            for row in _pending_operations(value)
+        ):
+            raise CrabError("uncertain original host operation must reconcile before new effects")
         settled = {row["operation"] for row in records if row.get("kind") == "operation-settled"}
         pending = [
             row
@@ -961,21 +971,22 @@ def execute_operation(
             },
         )
         _save(directory, value)
-    ticket: object = None
-    tokens: int | None = 0 if kind == "provider" else None
-    try:
-        if kind == "model":
-            ticket = meter.begin(identity, model_token_limit)
-        return invoke(model_token_limit)
-    finally:
-        if kind == "model" and ticket is not None:
-            try:
-                tokens = meter.finish(ticket)
-            except Exception:
+    with operation_scope(session_key + identity):
+        ticket: object = None
+        tokens: int | None = 0 if kind == "provider" else None
+        try:
+            if kind == "model":
+                ticket = meter.begin(identity, model_token_limit)
+            return invoke(model_token_limit)
+        finally:
+            if kind == "model" and ticket is not None:
+                try:
+                    tokens = meter.finish(ticket)
+                except Exception:
+                    tokens = None
+            if tokens is not None and (type(tokens) is not int or tokens < 0):
                 tokens = None
-        if tokens is not None and (type(tokens) is not int or tokens < 0):
-            tokens = None
-        _settle_operation(directory, attempt, identity, tokens, now=now)
+            _settle_operation(directory, attempt, identity, tokens, now=now)
 
 
 def _settle_operation(

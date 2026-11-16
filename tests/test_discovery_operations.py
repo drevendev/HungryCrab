@@ -129,6 +129,7 @@ def test_nested_model_reservations_share_cap_and_provider_dispatch(tmp_path: Pat
     effects: list[str] = []
 
     def outer(_: int) -> None:
+        assert sessions.next_action(directory, now=now)["action"] == "reconcile"
         with pytest.raises(CrabError, match="shared discovery model token allowance"):
             sessions.execute_operation(
                 directory,
@@ -445,3 +446,21 @@ def test_reconciled_operation_cannot_clear_unattributed_unknown_stop(tmp_path: P
     assert result["spent"]["model_tokens"] == 13
     assert result["actual_model_tokens"] is None
     assert result["finished"] and result["stop_reason"] == "usage-unavailable"
+
+
+def test_orphaned_operation_cannot_grant_new_effects_after_host_restart(tmp_path: Path) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    sessions.authorize_request(directory, action["attempt"], "interrupted-original", now=now)
+    before = (directory / "session.json").read_bytes()
+    pending = sessions.next_action(directory, now=now)
+    assert pending["action"] == "reconcile" and pending["attempt"] == action["attempt"]
+    effects: list[int] = []
+    with pytest.raises(CrabError, match="uncertain original host operation"):
+        sessions.execute_operation(
+            directory, action["attempt"], "replacement", effects.append, now=now
+        )
+    assert not effects and (directory / "session.json").read_bytes() == before
+    # Late accounting cannot manufacture the missing trusted terminal event.
+    sessions.record_usage(directory, usage(action, 17, "interrupted-original"), now=now)
+    assert sessions.next_action(directory, now=now)["action"] == "reconcile"
+    assert sessions._load(directory)["lease"]["attempt"] == action["attempt"]
