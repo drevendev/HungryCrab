@@ -1,145 +1,51 @@
-name: CI
-
+name: Open PR adversarial review
 on:
-  push:
-    branches: [master]
-    tags: ["v*"]
-  pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
-# A newer push to a pull request makes the older run moot; a push to master never does: every
-# master commit keeps its own finished run, so "master is green" can be checked per commit.
-concurrency:
-  group: ci-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
 env:
   PYTHONIOENCODING: utf-8
-
 jobs:
-  acquisition-quota:
-    name: Hard acquisition quota (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          python-version: "3.11"
-      - run: uv sync --locked --all-extras
-      - name: Prepare the disposable 64 MiB filesystem
-        id: volume
-        run: uv run python scripts/acquisition_volume.py prepare 67108864
-      - name: Exercise real HTTPS Git and kernel-enforced disk exhaustion
-        env:
-          CRAB_TEST_QUOTA_VOLUME: ${{ steps.volume.outputs.volume }}
-        run: uv run pytest tests/test_acquisition_live.py tests/test_acquisition_transaction.py -q
-      - name: Remove the disposable filesystem
-        if: always() && steps.volume.outputs.root != ''
-        env:
-          CRAB_QUOTA_ROOT: ${{ steps.volume.outputs.root }}
-        run: uv run python scripts/acquisition_volume.py cleanup
-  lint:
-    name: Lint and type-check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          enable-cache: true
-          python-version: "3.13"
-      - run: uv sync --locked --all-extras
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - run: uv run python scripts/check_supply_chain.py
-      - run: uv build
-      - run: uv run python scripts/check_sdist.py
-
-  test:
-    name: Test (${{ matrix.os }}, Python ${{ matrix.python }})
-    runs-on: ${{ matrix.os }}
-    # The 0.6.9 diagnostic Windows suite took 43 minutes; retain smoke-test headroom.
-    timeout-minutes: ${{ matrix.os == 'windows-latest' && 60 || 30 }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python: ["3.11", "3.14"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          enable-cache: true
-          python-version: ${{ matrix.python }}
-      - run: uv sync --locked --all-extras
-      - name: Tests with coverage (one matrix leg)
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
-        run: uv run pytest --cov --cov-report=term
-      - name: Tests
-        if: matrix.os != 'ubuntu-latest' || matrix.python != '3.14'
-        run: uv run pytest
-      - name: Menu benchmark (B1)
-        run: uv run python benchmarks/menu_benchmark.py
-      # Unknown agent-host adoption has transferable uptake, without key-specific weights.
-      - name: Ranking pressure benchmark
-        run: uv run python benchmarks/ranking_benchmark.py
-      - name: Digest this repository (smoke test)
-        run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error --fail-on-loss
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
-        with:
-          name: self-digest
-          path: digest-out
-
-  minimal:
-    name: Base installation without optional extras
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          python-version: "3.11"
-      - run: uv sync --locked
-      - name: Without the extra, crab mcp --check refuses with exit code 2
-        run: uv run python -c "import subprocess, sys; sys.exit(subprocess.run(['crab', 'mcp', '--check']).returncode != 2)"
-      - run: uv run pytest tests/test_deep_channels.py tests/test_deep_manifests.py
-      - run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error --fail-on-loss
-
-  install:
-    name: Clean installation (${{ matrix.os }})
+  probes:
+    name: Review PR ${{ matrix.pr }} (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+        pr: ["677", "687"]
+        include:
+          - pr: "677"
+            subject: "31956b47fb9b280da83a72f4bc666552fe7b7851"
+          - pr: "687"
+            subject: "1785044d5cd787c693410420a7c04079964d4815"
+    env:
+      REVIEW_PR: ${{ matrix.pr }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          path: harness
           persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          python-version: "3.11"
-          enable-cache: true
+          ref: ${{ matrix.subject }}
+          path: subject
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          python-version: ${{ matrix.python }}
       - run: uv sync --locked --all-extras
-      - name: Install source/wheel, exercise stdio MCP and portable skills
-        run: uv run python scripts/install_smoke.py --skills
+        working-directory: subject
+      - name: Install the owned review probes
+        working-directory: subject
+        run: uv run python -c "import shutil; shutil.copyfile('../harness/review/probes.py', 'tests/test_open_pr_review.py')"
+      - name: Exercise expected safety behavior on the pinned source
+        working-directory: subject
+        run: uv run pytest tests/test_open_pr_review.py -q -rA --junitxml=review-results.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: review-pr-${{ matrix.pr }}-${{ matrix.os }}-py${{ matrix.python }}
+          path: subject/review-results.xml
