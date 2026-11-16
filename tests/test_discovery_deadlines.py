@@ -120,6 +120,7 @@ def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_pat
     assert result["budget_within_limits"] is None
     assert sessions.next_action(directory, now=start + timedelta(days=2))["finished"]
 
+
 @pytest.mark.parametrize("elapsed", [1, 2])
 def test_record_rejects_semantic_receipt_at_session_deadline(tmp_path: Path, elapsed: int) -> None:
     directory, action, start = setup(tmp_path)
