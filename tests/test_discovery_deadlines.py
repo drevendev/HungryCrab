@@ -121,7 +121,7 @@ def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_pat
     assert sessions.next_action(directory, now=start + timedelta(days=2))["finished"]
 
 @pytest.mark.parametrize("elapsed", [1, 2])
-def test_record_rejects_semantic_receipt_after_budget_or_lease_expiry(
+def test_record_rejects_semantic_receipt_at_session_deadline(
     tmp_path: Path, elapsed: int
 ) -> None:
     directory, action, start = setup(tmp_path)
@@ -136,7 +136,9 @@ def test_record_rejects_semantic_receipt_after_budget_or_lease_expiry(
     assert state["finished_at"] == instant.isoformat()
     assert state["lease"]["attempt"] == action["attempt"]
     assert state["needs"][0]["phase"] == "search"
-    assert not any(event["record"]["kind"] == "action-result" for event in state["events"])
+    assert not any(
+        event["record"]["kind"] == "action-result" for event in state["events"]
+    )
     assert state["spent"]["model_tokens"] == 0
 
     settled = sessions.record_usage(
