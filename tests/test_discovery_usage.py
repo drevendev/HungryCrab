@@ -342,9 +342,7 @@ def test_stopped_discovery_lease_cannot_authorize_new_host_or_provider_effects(
     assert (directory / "session.json").read_bytes() == before
 
     # Late original usage is accounting only; it cannot reopen the stopped lease.
-    late = sessions.record_usage(
-        directory, usage(action, 41), now=now + timedelta(seconds=3)
-    )
+    late = sessions.record_usage(directory, usage(action, 41), now=now + timedelta(seconds=3))
     assert late["finished"] and late["stop_reason"] == reason
     assert late["actual_model_tokens"] == 41
     assert late["spent"]["requests"] == 1
