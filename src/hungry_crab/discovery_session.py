@@ -281,13 +281,14 @@ def _exhausted(value: dict[str, Any], now: datetime) -> str | None:
 
 
 def _finish(value: dict[str, Any], reason: str, instant: datetime) -> None:
-    # Late accounting can change the cost verdict, never the duration of a
-    # finished investigation. Legacy terminal sessions retain unknown duration.
-    if not value["finished"]:
-        value["finished_at"] = instant.isoformat()
-        value["wall_time_seconds"] = (
-            instant - datetime.fromisoformat(value["created_at"])
-        ).total_seconds()
+    # Late accounting may change the cost verdict, but never the original
+    # terminal reason or duration. Legacy terminal sessions remain unchanged.
+    if value["finished"]:
+        return
+    value["finished_at"] = instant.isoformat()
+    value["wall_time_seconds"] = (
+        instant - datetime.fromisoformat(value["created_at"])
+    ).total_seconds()
     value.update(finished=True, stop_reason=reason)
 
 
