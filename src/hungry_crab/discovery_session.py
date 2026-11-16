@@ -875,11 +875,7 @@ def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[s
 
 def _pending_operations(value: dict[str, Any]) -> list[dict[str, Any]]:
     records = [event["record"] for event in value["events"]]
-    settled = {
-        row["operation"]
-        for row in records
-        if row.get("kind") == "operation-settled"
-    }
+    settled = {row["operation"] for row in records if row.get("kind") == "operation-settled"}
     return [
         row
         for row in records
