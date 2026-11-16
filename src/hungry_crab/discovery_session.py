@@ -820,9 +820,7 @@ def authorize_request(
             raise CrabError("provider operation already charged; reconcile before retrying")
         if lease["action"] == "search" and calls:
             raise CrabError("one leased search permits only one provider request")
-        if _exhausted(value, instant) or instant >= datetime.fromisoformat(
-            lease["expires_at"]
-        ):
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
             raise CrabError("discovery attempt expired before the provider effect")
         prepaid = lease["action"] == "search" and not calls
         if not prepaid:
