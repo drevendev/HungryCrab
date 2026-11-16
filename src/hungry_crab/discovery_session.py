@@ -806,6 +806,8 @@ def authorize_request(
     instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
         value = _load(directory)
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot authorize new provider requests")
         _require_host_metering(value.get("plan"))
         lease = value.get("lease")
         if not isinstance(lease, dict) or lease["attempt"] != attempt:
@@ -848,6 +850,8 @@ def authorize_host_dispatch(directory: Path, attempt: str, phase: str) -> None:
     """
     with state_lock(directory / "session.json"):
         value = _load(directory)
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot dispatch host callbacks")
         _require_host_metering(value.get("plan"))
         lease = value.get("lease")
         if not isinstance(lease, dict) or lease["attempt"] != attempt or lease["action"] != phase:
