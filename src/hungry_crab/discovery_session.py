@@ -490,6 +490,10 @@ def record(
             ):
                 return summary(value)
             raise CrabError("discovery receipt does not own the pending attempt")
+        if value["finished"]:
+            # A stopped lease survives for late cost settlement only. Never
+            # accept a new semantic result from that original attempt.
+            raise CrabError("finished discovery session cannot accept semantic results")
         _text(receipt.get("author"), "receipt.author", 200)
         _text(receipt.get("tool"), "receipt.tool", 200)
         tokens = receipt.get("model_tokens")
