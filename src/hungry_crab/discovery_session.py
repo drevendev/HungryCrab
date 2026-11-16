@@ -506,6 +506,18 @@ def record(
                 1,
             }:
                 raise CrabError("one leased search may consume at most one provider request")
+            # A prepaid search reservation is NOT proof that the host actually
+            # authorized an external provider operation before its effect.
+            authorized = [
+                event["record"]
+                for event in value["events"]
+                if event["record"].get("kind") == "provider-request-authorized"
+                and event["record"].get("attempt") == lease["attempt"]
+            ]
+            if result.get("requests", 1) == 1 and len(authorized) != 1:
+                raise CrabError("search provider request lacks prior operation authorization")
+            if result.get("requests", 1) == 0 and authorized:
+                raise CrabError("authorized provider search cannot be reported as zero requests")
             candidates = result.get("candidates", [])
             if not isinstance(candidates, list) or len(candidates) > 100:
                 raise CrabError("search result candidate limit exceeded")
@@ -785,10 +797,13 @@ def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[s
         return summary(value)
 
 
-def authorize_request(directory: Path, attempt: str, operation: str) -> None:
+def authorize_request(
+    directory: Path, attempt: str, operation: str, *, now: datetime | None = None
+) -> None:
     """Charge before a provider call; replay of an uncertain operation must reconcile."""
     if not operation or len(operation) > 200:
         raise CrabError("provider operation identity must be bounded")
+    instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
         value = _load(directory)
         _require_host_metering(value.get("plan"))
@@ -805,7 +820,7 @@ def authorize_request(directory: Path, attempt: str, operation: str) -> None:
             raise CrabError("provider operation already charged; reconcile before retrying")
         if lease["action"] == "search" and calls:
             raise CrabError("one leased search permits only one provider request")
-        if _exhausted(value, datetime.now(UTC)) or datetime.now(UTC) >= datetime.fromisoformat(
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(
             lease["expires_at"]
         ):
             raise CrabError("discovery attempt expired before the provider effect")
@@ -821,7 +836,7 @@ def authorize_request(directory: Path, attempt: str, operation: str) -> None:
                 "attempt": attempt,
                 "operation": operation,
                 "prepaid": prepaid,
-                "at": datetime.now(UTC).isoformat(),
+                "at": instant.isoformat(),
             },
         )
         _save(directory, value)
