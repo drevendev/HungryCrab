@@ -30,7 +30,7 @@ Forbidden locally: clone, bare repo, Git objects/packs, source archive, checkout
 mirrored file tree, prey cache, submodule/LFS payload or lazy blob fetch. Review,
 errors and serving checks must never silently acquire one.
 
-The proposed default evidence profile permits **bounded inert derivatives**:
+The owner-clarified evidence profile permits **bounded inert derivatives**:
 nutrients, complete structured analysis facts/pages, selected source excerpts,
 source links/coordinates/hashes, operative licence/notice texts and receiving-only
 probe results. They are data, never executable attachments, and must not reconstruct
@@ -39,6 +39,34 @@ or export the repository. Required licence/notice texts are not replaced by hash
 This distinguishes repository acquisition from evidence needed for judgment.
 A source-free profile may omit excerpts; it cannot claim source inspection or
 COPY authority when necessary evidence is unavailable.
+
+### Clickable provenance for every nutrient
+
+Owner clarification, 2026-11-16: the essential requirement is a link showing where
+each proposed improvement came from, so the user can open the source repository
+and assess it directly. Bounded evidence artifacts are permitted; links are mandatory.
+Opening the GitHub source page for inspection does not authorize repository acquisition.
+
+Every nutrient card and final issue/PR draft must expose:
+
+- A short explanation of the source mechanism and what is proposed for this maw.
+- Clickable source permalinks to the exact repository, full commit, file and
+  relevant line range, in the form `https://github.com/OWNER/REPO/blob/FULL_SHA/PATH#LSTART-LEND`.
+  Generate them from the recorded source identity, never from a guessed branch URL.
+- The relevant receiving location and applicable licence/notice evidence links,
+  when those support the claimed gap or transfer authority.
+
+Keep every source occurrence in structured evidence and preserve the main links
+in the readable card and publication trace. Repository homepages, mutable branch
+links, hashes alone, summaries or excerpts without an openable source link cannot
+replace exact provenance. Discussion-derived ideas retain original issue/comment
+permalinks and their origin ceiling; do not fabricate a source-file citation.
+
+The Actions producer validates source path/range existence and correspondence to
+the excerpt at the pinned revision. Wrong commit/path/range, missing source or
+inaccessible evidence remains explicitly unresolved; it cannot certify a supported
+nutrient. Mechanical tests cover mismatched evidence and link preservation through
+artifact transport, local review and final issue/PR preparation.
 
 ## Bounded request cycle
 
