@@ -852,6 +852,10 @@ def drive(
         handler = handlers.get(action["action"])
         if handler is None:
             return {"status": "host-handler-required", "pending": action}
+        # Reserve a stable, attempt-bound provider dispatch before any host callback.
+        # An interrupted callback must reconcile its original operation; a
+        # second drive() invocation cannot silently replay it.
+        authorize_request(directory, action["attempt"], f"host-handler:{action['action']}")
         receipt = handler(action)
         record(directory, receipt)
     return {"status": "host-action-limit", "report": report(directory)}
