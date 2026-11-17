@@ -1115,7 +1115,7 @@ def reconcile_trusted_operation(
     }
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
-        require_meter(value.get("meter_identity"))
+        _require_live_meter(value)
         started = [
             event["record"]
             for event in value["events"]
