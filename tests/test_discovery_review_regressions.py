@@ -10,7 +10,6 @@ from typing import Any
 import pytest
 
 
-
 @pytest.fixture
 def owned_session(tmp_path: Path) -> Iterator[Any]:
     from discovery_host_fixture import OwnedMeter
@@ -30,8 +29,13 @@ def test_control_known_model_use_and_known_cap_violation(owned_session: Any) -> 
     directory, action, instant, meter = owned_session
     meter.tokens = 101
     sessions.execute_operation(
-        directory, action["attempt"], "known-overrun", lambda _: None,
-        kind="model", model_token_limit=100, now=instant,
+        directory,
+        action["attempt"],
+        "known-overrun",
+        lambda _: None,
+        kind="model",
+        model_token_limit=100,
+        now=instant,
     )
     result = sessions.report(directory)
     assert result["actual_model_tokens"] == 101
@@ -44,11 +48,17 @@ def test_late_actual_usage_must_enforce_the_original_operation_cap(owned_session
     directory, action, instant, meter = owned_session
     meter.tokens = None
     sessions.execute_operation(
-        directory, action["attempt"], "late-overrun", lambda _: None,
-        kind="model", model_token_limit=100, now=instant,
+        directory,
+        action["attempt"],
+        "late-overrun",
+        lambda _: None,
+        kind="model",
+        model_token_limit=100,
+        now=instant,
     )
     original = next(
-        event["record"]["receipt"] for event in sessions._load(directory)["events"]
+        event["record"]["receipt"]
+        for event in sessions._load(directory)["events"]
         if event["record"]["kind"] == "model-usage"
     )
     result = sessions.record_usage(directory, {**original, "model_tokens": 101})
@@ -68,8 +78,13 @@ def test_stopped_in_flight_model_cost_must_be_unknown(owned_session: Any) -> Non
         observed.update(sessions.report(directory))
 
     sessions.execute_operation(
-        directory, action["attempt"], "in-flight", invoke,
-        kind="model", model_token_limit=100, now=instant,
+        directory,
+        action["attempt"],
+        "in-flight",
+        invoke,
+        kind="model",
+        model_token_limit=100,
+        now=instant,
     )
     assert sessions.report(directory)["actual_model_tokens"] == 23
     assert observed["actual_model_tokens"] is None, observed
@@ -90,8 +105,13 @@ def test_orphaned_model_cost_must_not_be_reported_as_zero(owned_session: Any) ->
 
     with host_meter(InterruptedMeter()), pytest.raises(KeyboardInterrupt):
         sessions.execute_operation(
-            directory, action["attempt"], "orphan", lambda _: None,
-            kind="model", model_token_limit=100, now=instant,
+            directory,
+            action["attempt"],
+            "orphan",
+            lambda _: None,
+            kind="model",
+            model_token_limit=100,
+            now=instant,
         )
     assert sessions.next_action(directory, now=instant)["action"] == "reconcile"
     report = sessions.report(directory)
@@ -118,8 +138,13 @@ def test_successful_begin_with_none_ticket_must_still_finish(owned_session: Any)
 
     with host_meter(StatelessMeter()):
         sessions.execute_operation(
-            directory, action["attempt"], "stateless", lambda _: None,
-            kind="model", model_token_limit=100, now=instant,
+            directory,
+            action["attempt"],
+            "stateless",
+            lambda _: None,
+            kind="model",
+            model_token_limit=100,
+            now=instant,
         )
     assert finished == [None]
     assert sessions.report(directory)["actual_model_tokens"] == 23
@@ -149,11 +174,8 @@ def test_expiry_during_meter_preflight_must_refuse_dispatch(
             return super().preflight()
 
     monkeypatch.setattr(sessions, "datetime", Clock)
-    with host_meter(SlowPreflight()):
-        try:
-            sessions.execute_operation(directory, action["attempt"], "expired", effects.append)
-        except CrabError:
-            pass
+    with host_meter(SlowPreflight()), pytest.raises(CrabError, match="expired"):
+        sessions.execute_operation(directory, action["attempt"], "expired", effects.append)
     assert effects == [], {"effects": effects, "clock": clock[0], "expires": action["expires_at"]}
 
 
