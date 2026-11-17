@@ -69,6 +69,12 @@ discovered it. It remains possible to read the original result in the report.
 Effectful serving checks these holds and current frozen refs/context again
 before issue or PR creation, alongside the existing fresh provider marker
 reconciliation, licensing, path grants, receipt scanning and publication guards.
+For scoped findings, the provider must also supply current default and declared
+pending heads. The built-in GitHub client reads only that bounded metadata under
+a shared 60-second deadline, with no source fetch. Changed/closed pending heads,
+a changed default, unavailable metadata or a client without this capability hold
+new creation. Already existing marked artifacts can still reconcile without a
+new publication. Provider identity is never inferred from stale local refs.
 Unknown scope or unavailable/moved refs hold publication; there is no implicit
 fetch or automatic equivalence judgement. A dry-run preview grants no effect.
 

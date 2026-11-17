@@ -21,7 +21,7 @@ from hungry_crab.errors import CrabError
 from hungry_crab.ledger import Ledger
 from hungry_crab.maw import MawConfig
 from hungry_crab.novelty_exclusions import BASIS_SCHEMA, reconcile
-from hungry_crab.serve import ServeOptions, serve
+from hungry_crab.serve import GhIssueClient, ServeOptions, serve
 from hungry_crab.source_lines import physical_lines
 
 PENDING = "refs/crab/qualification/pr-17"
@@ -358,3 +358,67 @@ def test_provider_marker_control_and_ref_movement_before_effect(tmp_path: Path) 
             slug_lookup=lambda _: MAW_SLUG,
         )
     assert not moving.created and not moving.labels
+
+
+@pytest.mark.parametrize("provider_state", ["current", "changed", "unavailable"])
+def test_fresh_provider_heads_are_required_even_when_local_refs_did_not_move(
+    tmp_path: Path, provider_state: str
+) -> None:
+    directory, donor, maw, finding = setup(tmp_path)
+    finding["source_behavior"] = "reads bounded chunks"
+    card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
+
+    class Provider(FakeIssues):
+        def novelty_heads(self, slug: Any, targets: list[dict[str, Any]]) -> dict[str, str]:
+            if provider_state == "unavailable":
+                raise CrabError("provider head metadata unavailable")
+            return {
+                target["ref"]: ("f" * 40 if provider_state == "changed" else target["sha"])
+                for target in targets if target["role"] != "receiving-selected"
+            }
+
+    client = Provider()
+    def publish() -> Any:
+        return serve(
+            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+
+    if provider_state == "current":
+        assert len(publish().served) == 1 and len(client.created) == 1
+    else:
+        with pytest.raises(CrabError, match="provider"):
+            publish()
+        assert not client.created and not client.labels
+
+
+@pytest.mark.parametrize("pending_state", ["open", "closed"])
+def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_state: str) -> None:
+    class Client(GhIssueClient):
+        def __init__(self) -> None:
+            self.timeout = 120.0
+            self.paths: list[str] = []
+
+        def _run(self, *args: str, timeout: float | None = None) -> str:
+            assert timeout is not None and 0 < timeout <= 60
+            self.paths.append(args[1])
+            if args[1].endswith("/pulls/17"):
+                return json.dumps({"sha": "b" * 40, "state": pending_state})
+            if "/git/ref/" in args[1]:
+                return json.dumps({"sha": "a" * 40})
+            return json.dumps({"default_branch": "main"})
+
+    client = Client()
+    targets = [
+        {"role": "receiving-default", "ref": "main", "sha": "a" * 40},
+        {"role": "receiving-pending", "ref": PENDING, "sha": "b" * 40},
+    ]
+    if pending_state == "open":
+        assert client.novelty_heads(MAW_SLUG, targets) == {"main": "a" * 40, PENDING: "b" * 40}
+    else:
+        with pytest.raises(CrabError, match="no longer open"):
+            client.novelty_heads(MAW_SLUG, targets)
+    assert client.paths == [
+        f"repos/{MAW_SLUG}", f"repos/{MAW_SLUG}/git/ref/heads/main", f"repos/{MAW_SLUG}/pulls/17"
+    ]
