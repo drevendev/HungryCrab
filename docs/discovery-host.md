@@ -62,6 +62,20 @@ under the same operation/attempt/author/tool identity. Both events remain in the
 append-only chain; known tokens are added once. A changed known cost is refused.
 Reconciliation never renews the lease, clears a stop or starts a replacement.
 
+The normal trusted broker now writes `model-usage` and `operation-settled`
+together under one session lock and one durable state save. This eliminates
+the previous crash window between those two writes. For **older split-save
+states** where the original broker usage was committed but settlement was not,
+reviewed in-process host code may call
+`reconcile_trusted_operation(directory, attempt, operation, actual_tokens)`
+with the exact original operation and an independently verified native usage
+value. The bound live meter identity and persisted original broker receipt
+must match; missing/mismatched evidence refuses completion. An exact retry
+is idempotent. This recovery does not dispatch a provider/model call or
+accept a user-supplied semantic result. It is not exposed through the CLI.
+The host, not this API, remains responsible for authenticating the original
+native cost: an owned fixture or raw JSON is not production attestation.
+
 Supervised fixed-pair work does not use this strict controller. It starts from
 the supplied pair without repository search, retains finite source/provider/time
 bounds and reports unavailable inference usage as unknown. See
