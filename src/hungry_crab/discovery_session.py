@@ -775,6 +775,17 @@ def record(
             ]
             if not decisions:
                 raise CrabError("decision needs a matching actual exploration observation")
+            if outcome in {"already-present", "duplicate"} and not any(
+                row.get("reviewed")
+                and row.get("novelty_status") == "frozen-implementation-supported"
+                for row in decisions
+            ):
+                raise CrabError("discovery exclusion needs a resolved immutable implementation basis")
+            if outcome in {"verified-gap", "already-present", "duplicate"} and any(
+                row.get("hypothesis") == hypothesis and row.get("publication_held")
+                for row in child.get("novelty_reconciliations", [])
+            ):
+                raise CrabError("later implementation supersedes this hypothesis; retain its history")
             if outcome == "verified-gap" and not any(row.get("reviewed") for row in decisions):
                 raise CrabError("a proposed gap is not a reviewed finding")
             if outcome == "verified-gap":

@@ -453,3 +453,58 @@ def test_unscoped_original_proposal_cannot_bypass_novelty_publication_hold(tmp_p
             slug_lookup=lambda _: MAW_SLUG,
         )
     assert not client.created and not client.labels
+
+
+@pytest.mark.parametrize(
+    ("outcome", "status", "reviewed", "later", "allowed"),
+    [
+        ("duplicate", "frozen-implementation-supported", True, False, True),
+        ("already-present", "frozen-implementation-supported", True, False, True),
+        ("duplicate", None, False, False, False),
+        ("duplicate", "legacy-analyst-assertion", True, False, False),
+        ("already-present", "unresolved-implementation-basis", True, False, False),
+        ("verified-gap", "not-an-exclusion", True, True, False),
+    ],
+)
+def test_discovery_cannot_bypass_unresolved_or_later_exploration_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, outcome: str, status: str | None,
+    reviewed: bool, later: bool, allowed: bool,
+) -> None:
+    from discovery_host_fixture import OwnedMeter
+    from test_discovery_usage import setup_session
+    from test_release_069_discovery import receipt
+
+    from hungry_crab import discovery_session as sessions
+    from hungry_crab.discovery_host import host_meter
+
+    with host_meter(OwnedMeter()):
+        directory, _, action, instant = setup_session(tmp_path)
+        state = sessions._load(directory)
+        state["lease"]["action"] = "decide"
+        state["needs"][0].update(
+            phase="decide", exploration="owned-child", lead={"repository": "owned/repo"},
+            verification={"evidence_level": "source-supported"},
+        )
+        sessions._save(directory, state)
+        child = {
+            "decisions": [{
+                "disposition": outcome, "hypothesis": "bounded reads",
+                "reviewed": reviewed, "novelty_status": status,
+            }],
+            "novelty_reconciliations": (
+                [{"hypothesis": "bounded reads", "publication_held": True}] if later else []
+            ),
+        }
+        monkeypatch.setattr(sessions, "exploration_report", lambda _: child)
+        before = (directory / "session.json").read_bytes()
+        entry = receipt(action, {
+            "disposition": outcome, "hypothesis": "bounded reads", "reason": "owned control",
+        })
+        if allowed:
+            result = sessions.record(directory, entry, now=instant)
+            assert result["needs"][0]["status"] == "pending"
+            assert result["needs"][0]["outcomes"][0]["disposition"] == outcome
+        else:
+            with pytest.raises(CrabError, match="implementation"):
+                sessions.record(directory, entry, now=instant)
+            assert (directory / "session.json").read_bytes() == before
