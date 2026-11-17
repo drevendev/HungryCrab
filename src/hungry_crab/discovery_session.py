@@ -619,6 +619,15 @@ def record(
             candidates = result.get("candidates", [])
             if not isinstance(candidates, list) or len(candidates) > 100:
                 raise CrabError("search result candidate limit exceeded")
+            # A synthetic, provider-free lead is legal only in an explicitly
+            # bound owned fixture. Reviewed-native sessions need a real search
+            # operation before promoting provider candidates to acquisition.
+            if (
+                result.get("requests", 1) == 0
+                and candidates
+                and value["meter_identity"]["scope"] != "owned-fixture"
+            ):
+                raise CrabError("zero-request search leads require owned-fixture provenance")
             need["leads"] = [
                 row
                 for row in candidates
