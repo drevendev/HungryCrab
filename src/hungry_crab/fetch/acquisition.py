@@ -67,6 +67,27 @@ class _RelayScope:
         with self._lock:
             return not self._stopped and client in self._sockets
 
+    def acknowledge_connect(self, client: socket.socket, upstream: socket.socket) -> bool:
+        """Linearize the short CONNECT reply with stop without blocking teardown."""
+        reply = b"HTTP/1.1 200 Connection established\r\n\r\n"
+        with self._lock:
+            if (
+                self._stopped
+                or client not in self._sockets
+                or upstream not in self._sockets
+            ):
+                return False
+            # A blocking sendall while holding the stop lock could stall cancellation.
+            # The new local connection has no queued response bytes: use one
+            # nonblocking send and refuse a short write instead.
+            timeout = client.gettimeout()
+            try:
+                client.setblocking(False)
+                written = client.send(reply)
+            finally:
+                client.settimeout(timeout)
+            return written == len(reply)
+
     @property
     def stopped(self) -> bool:
         with self._lock:
@@ -353,7 +374,8 @@ class AcquisitionBudget:
                     upstream = socket.create_connection((host, 443), timeout=30)
                     if not connections.register(upstream):
                         return
-                    client.sendall(b"HTTP/1.1 200 Connection established\r\n\r\n")
+                    if not connections.acknowledge_connect(client, upstream):
+                        return
                     while True:
                         ready, _, _ = select.select([client, upstream], [], [], 30)
                         if not ready:

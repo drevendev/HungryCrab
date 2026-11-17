@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from hungry_crab.fetch.acquisition import AcquisitionBudget
+from hungry_crab.fetch.acquisition import AcquisitionBudget, _RelayScope
 
 
 @pytest.fixture
@@ -147,3 +147,57 @@ def test_active_tunnel_closes_without_waiting_for_a_blocked_byte_reader(
         assert finished.wait(3)
         assert not timed_out.is_set()
         assert quota.downloaded == 0
+
+
+def test_scope_stop_between_registration_and_connect_ack_is_refused() -> None:
+    scope = _RelayScope()
+    started = threading.Event()
+    resume = threading.Event()
+    accepted: list[bool] = []
+    with ExitStack() as cleanup:
+        client, peer = socket.socketpair()
+        upstream, remote = socket.socketpair()
+        for stream in (client, peer, upstream, remote):
+            cleanup.enter_context(stream)
+        peer.settimeout(3)
+        assert scope.register(client)
+        assert scope.register(upstream)
+
+        def delayed_ack() -> None:
+            started.set()
+            assert resume.wait(3)
+            accepted.append(scope.acknowledge_connect(client, upstream))
+
+        worker = threading.Thread(target=delayed_ack)
+        worker.start()
+        try:
+            assert started.wait(3)
+            scope.stop()
+            resume.set()
+            worker.join(timeout=3)
+            assert not worker.is_alive()
+            assert accepted == [False]
+            assert peer.recv(1) == b""
+        finally:
+            resume.set()
+            worker.join(timeout=3)
+            scope.stop()
+
+
+def test_live_connect_ack_preserves_client_timeout() -> None:
+    scope = _RelayScope()
+    with ExitStack() as cleanup:
+        client, peer = socket.socketpair()
+        upstream, remote = socket.socketpair()
+        for stream in (client, peer, upstream, remote):
+            cleanup.enter_context(stream)
+        client.settimeout(3)
+        peer.settimeout(3)
+        try:
+            assert scope.register(client)
+            assert scope.register(upstream)
+            assert scope.acknowledge_connect(client, upstream)
+            assert peer.recv(128) == b"HTTP/1.1 200 Connection established\r\n\r\n"
+            assert client.gettimeout() == 3
+        finally:
+            scope.stop()
