@@ -125,9 +125,7 @@ def test_trusted_usage_only_recovery_retains_its_terminal_slot(tmp_path: Path) -
         sessions._save(directory, value)
         for index in range(10):
             try:
-                sessions.record_usage(
-                    directory, usage(action, 0, f"recovery-{index}"), now=instant
-                )
+                sessions.record_usage(directory, usage(action, 0, f"recovery-{index}"), now=instant)
             except CrabError:
                 break
         sessions.reconcile_trusted_operation(
@@ -165,3 +163,29 @@ def test_state_byte_capacity_is_reserved_before_native_begin(tmp_path: Path) -> 
             )
         assert not calls
         assert (directory / "session.json").read_bytes() == before
+
+
+@pytest.mark.parametrize("attributed", [False, True])
+def test_legacy_recovery_distinguishes_attributed_and_unattributed_unknown(
+    tmp_path: Path, attributed: bool
+) -> None:
+    with host_meter(OwnedMeter()):
+        directory, _, action, instant = setup_session(tmp_path)
+    original = usage(action, None, "legacy-original")
+    if attributed:
+        sessions.record_usage(directory, original, now=instant)
+    else:
+        sessions.stop(directory, "usage-unavailable", now=instant)
+    value = sessions._load(directory)
+    value.pop("unresolved_usage", None)
+    value.pop("unattributed_usage_unknown", None)
+    value.pop("meter_identity")
+    value["plan"].pop("host_metering")
+    sessions._save(directory, value)
+    if not attributed:
+        sessions.record_usage(directory, original, now=instant)
+    result = sessions.record_usage(directory, {**original, "model_tokens": 13}, now=instant)
+    assert result["spent"]["model_tokens"] == 13
+    assert result["actual_model_tokens"] == (13 if attributed else None)
+    assert result["model_usage_complete"] is attributed
+    assert result["finished"] and result["stop_reason"] == "usage-unavailable"
