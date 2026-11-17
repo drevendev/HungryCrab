@@ -204,7 +204,11 @@ def reconciliations(directory: Path, history: list[dict[str, Any]]) -> list[dict
 
 
 def require_publication_novelty(
-    meal: Path, cards: Sequence[Candidate], *, provider: object | None = None, slug: Slug | None = None
+    meal: Path,
+    cards: Sequence[Candidate],
+    *,
+    provider: object | None = None,
+    slug: Slug | None = None,
 ) -> None:
     """A historical proposal never clears a known later implementation hold."""
     from .attribution import GitSourceReader
@@ -255,6 +259,7 @@ def require_publication_novelty(
         current = probe(slug, scope["targets"])
         if not isinstance(current, dict) or any(
             current.get(target["ref"]) != target["sha"]
-            for target in scope["targets"] if target["role"] != "receiving-selected"
+            for target in scope["targets"]
+            if target["role"] != "receiving-selected"
         ):
             raise CrabError("provider implementation changed; reconcile novelty before publication")
