@@ -1,6 +1,6 @@
 {
   "owner_instruction": "Natively merge PR677/687 after exact-head Actions and review; update tasks; begin P0 T2/671. Checks only in Actions; no paid model runs.",
-  "recorded_at_utc": "2026-11-17 22:29:31 UTC",
+  "recorded_at_utc": "2026-11-17 22:35:54 UTC",
   "repository": "drevendev/HungryCrab",
   "master": "9fb6f1b8af1bef9e4b224c99bf289952ebcbe246",
   "pr677": {
@@ -53,7 +53,8 @@
     "archive_branch": "codex/archive/pr-687-b221583",
     "master_ci": {
       "run": 44183162178,
-      "result": "IN_PROGRESS",
+      "result": "SUCCESS",
+      "successful_jobs": 18,
       "jobs": [
         {
           "id": 134392560333,
@@ -168,6 +169,28 @@
     "master_codeql": {
       "run": 44183162117,
       "result": "SUCCESS"
+    },
+    "full_master_suites": {
+      "ubuntu311": {
+        "job": 134397419928,
+        "passed": 5183,
+        "skipped": 44
+      },
+      "ubuntu314": {
+        "job": 134397419869,
+        "passed": 5184,
+        "skipped": 43
+      },
+      "windows311": {
+        "job": 134397419855,
+        "passed": 5219,
+        "skipped": 8
+      },
+      "windows314": {
+        "job": 134397419852,
+        "passed": 5220,
+        "skipped": 7
+      }
     }
   },
   "t2": {
@@ -364,13 +387,25 @@
     "full_linux_jobs": [
       134415784634,
       134415784696
-    ]
+    ],
+    "full_linux": {
+      "python311": {
+        "job": 134415784696,
+        "passed": 5215,
+        "skipped": 44
+      },
+      "python314": {
+        "job": 134415784634,
+        "passed": 5216,
+        "skipped": 43
+      }
+    }
   },
   "task_states": {
     "670": "OPEN: bounded677merged; production native meter and supervised fixed-pair qualification remain open",
     "671": "OPEN: draft690implemented; exact-head matrix and independent review pending",
     "675": "OPEN: release not complete",
-    "678": "OPEN pending final landed-master Windows suites; source checked and merged",
+    "678": "CLOSED/completed: bounded relay lifecycle independently reviewed, exact-source checked, natively merged, landed master18/18 and CodeQL succeeded",
     "679": "OPEN: historical managed-local0xc0000008 cause unconfirmed; hosted success is not diagnosis"
   },
   "constraints": {
@@ -382,10 +417,10 @@
     "tag_release": "NOT_RUN"
   },
   "next_steps": [
-    "Complete landed-master44183162178 and current PR690CI44188458091; fix any real failures through Actions",
-    "Read actual final full suite logs; record exact counts and head/base",
-    "Update statuses and close bounded678 after landed checks; keep670/679/671/675 broader gates open",
-    "Mark690ready only after exact-head check completion, independent review remains pending; do not merge690",
-    "Read back remote heads/statuses; save/push final receipt; keep local worktrees clean"
+    "Wait for current PR690CI44188458091 Windows jobs134415784611/134415784624; investigate any failure with Actions-only checks",
+    "Record final exact-head CI and suite counts; keep original failures/cancellations as history",
+    "Update PR690/issues671/675 from actual final results; keep670/679/671/675 broader acceptance open",
+    "Mark690ready only after check completion; independent source review remains pending; do not merge690",
+    "Read back remote heads/statuses; save/push final evidence; keep local worktrees clean"
   ]
 }
