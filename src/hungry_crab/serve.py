@@ -230,6 +230,22 @@ class GhIssueClient:
                 raise CrabError("novelty provider returned invalid head metadata") from exc
 
         default = query(f"repos/{slug}", "{default_branch: .default_branch}").get("default_branch")
+        current_pending = query(
+            f"repos/{slug}/pulls?state=open&per_page=51", "{numbers: map(.number)}"
+        ).get("numbers")
+        expected_pending = {
+            int(match[1])
+            for target in targets
+            if target["role"] == "receiving-pending"
+            and (match := re.fullmatch(r"refs/crab/qualification/pr-(\d+)", str(target.get("ref"))))
+        }
+        if (
+            not isinstance(current_pending, list)
+            or len(current_pending) > 50
+            or any(type(number) is not int or number < 1 for number in current_pending)
+            or set(current_pending) != expected_pending
+        ):
+            raise CrabError("provider pending collection changed or is not fully confirmed")
         result = {}
         for target in targets:
             role, ref = target["role"], target.get("ref")
@@ -238,7 +254,7 @@ class GhIssueClient:
             if not isinstance(ref, str):
                 raise CrabError("novelty provider reference is unavailable")
             if role == "receiving-default":
-                if not isinstance(default, str) or ref not in {
+                if not isinstance(default, str) or not 0 < len(default) <= 200 or ref not in {
                     default, "refs/heads/" + default, "refs/remotes/origin/" + default
                 }:
                     raise CrabError("frozen novelty default differs from the provider default")
