@@ -28,6 +28,9 @@ positive token allowance against both spent tokens and all in-flight allowances.
 The adapter's `begin` applies that cap to the native invocation. Its `finish`
 reads actual usage independently of semantic output, including on exceptions.
 Nested model scopes must be measured exclusively to avoid double accounting.
+Every successful `begin` is paired with `finish`, including a stateless `None`
+ticket. Preflight and native setup do not extend admission: the controller checks
+fresh time after preflight and rechecks the original lease before invoking a port.
 Provider ports must perform no hidden model work. Retries and pagination are
 separate operations, each admitted before dispatch.
 
@@ -61,6 +64,11 @@ semantic completion. An unknown receipt can later be reconciled to actual tokens
 under the same operation/attempt/author/tool identity. Both events remain in the
 append-only chain; known tokens are added once. A changed known cost is refused.
 Reconciliation never renews the lease, clears a stop or starts a replacement.
+Reports classify an unfinished model operation as unknown even if its host died
+before any usage event could be written. Known accounting alone is not trusted
+terminal settlement. A late actual receipt is checked against its original
+operation allowance as well as the shared budget; a proven violation remains
+false without changing the original stop reason or rewriting historical events.
 
 The normal trusted broker now writes `model-usage` and `operation-settled`
 together under one session lock and one durable state save. This eliminates
