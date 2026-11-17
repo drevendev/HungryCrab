@@ -1,0 +1,94 @@
+{
+  "reviewed": "d6ba132c81bbad940030fca8ae36702ca227e372",
+  "candidate": "e1466b3cd8951e8f433ef5a3d0a2a0a4940436e2",
+  "base": "9e7341986217fdca02a101d225ba4354bfe6480c",
+  "harness": "f96394986a9a7071935df5b07874c62e2fd2ec7e",
+  "baseline_run": 44159053060,
+  "baseline_jobs": [
+    134307614580,
+    134307614917,
+    134307615124,
+    134307615153
+  ],
+  "baseline_results": "4 failed, 1 passed in each supported environment",
+  "ci_run": 44159771397,
+  "codeql_run": 44159771326,
+  "author_reaudit": true,
+  "independent_approval": false,
+  "local_checks": "NOT_RUN",
+  "paid_model_runs": "NOT_RUN",
+  "correction_commits": [
+    "b5cc0f3eec0829bb8c587738bed60bd096482ff1",
+    "e1466b3cd8951e8f433ef5a3d0a2a0a4940436e2"
+  ],
+  "required_checks": [
+    "Lint and type-check",
+    "Test (ubuntu-latest, Python 3.11)",
+    "Test (ubuntu-latest, Python 3.14)",
+    "Test (windows-latest, Python 3.11)",
+    "Test (windows-latest, Python 3.14)"
+  ],
+  "required_approvals": null,
+  "checks": [
+    {
+      "id": 134310196105,
+      "name": "Hard acquisition quota (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196438,
+      "name": "Discovery operation gates (windows-latest, Python 3.11)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 134310196558,
+      "name": "Base installation without optional extras",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196607,
+      "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196631,
+      "name": "Hard acquisition quota (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196636,
+      "name": "Lint and type-check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196720,
+      "name": "Clean installation (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196755,
+      "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134310196936,
+      "name": "Discovery operation gates (windows-latest, Python 3.14)",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 134310197519,
+      "name": "Clean installation (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}
