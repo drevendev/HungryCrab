@@ -56,7 +56,8 @@ def test_scope_exit_must_prevent_a_new_upstream_connect(
         try:
             expected = (
                 pytest.raises(RuntimeError, match="owned cancellation")
-                if cancelled else nullcontext()
+                if cancelled
+                else nullcontext()
             )
             with expected, quota.scope():
                 assert quota._server is not None
