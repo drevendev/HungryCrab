@@ -71,11 +71,7 @@ class _RelayScope:
         """Linearize the short CONNECT reply with stop without blocking teardown."""
         reply = b"HTTP/1.1 200 Connection established\r\n\r\n"
         with self._lock:
-            if (
-                self._stopped
-                or client not in self._sockets
-                or upstream not in self._sockets
-            ):
+            if self._stopped or client not in self._sockets or upstream not in self._sockets:
                 return False
             # A blocking sendall while holding the stop lock could stall cancellation.
             # The new local connection has no queued response bytes: use one
