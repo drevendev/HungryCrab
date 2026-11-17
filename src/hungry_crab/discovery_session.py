@@ -438,9 +438,7 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
         return lease
 
 
-def _record_usage_locked(
-    value: dict[str, Any], receipt: dict[str, Any], instant: datetime
-) -> bool:
+def _record_usage_locked(value: dict[str, Any], receipt: dict[str, Any], instant: datetime) -> bool:
     """Apply a validated usage receipt in memory while the session lock is held.
 
     Return False for an identical retry. The caller owns the single durable
@@ -1102,9 +1100,7 @@ def reconcile_trusted_operation(
     supply its actual tokens. The public usage JSON command is NOT a completion
     permit. No callback/provider/model invocation or new operation is performed.
     """
-    if actual_tokens is not None and (
-        type(actual_tokens) is not int or actual_tokens < 0
-    ):
+    if actual_tokens is not None and (type(actual_tokens) is not int or actual_tokens < 0):
         raise CrabError("recovery requires native actual nonnegative tokens or unknown")
     expected_receipt = {
         "attempt": attempt,
