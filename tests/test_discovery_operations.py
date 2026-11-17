@@ -111,7 +111,6 @@ def test_zero_request_leads_require_owned_fixture_provenance(tmp_path: Path) -> 
     assert sessions.next_action(directory, now=now)["action"] == "acquire"
 
 
-
 def test_raw_authorization_and_semantic_usage_cannot_replace_broker(tmp_path: Path) -> None:
     directory, _, action, now = setup_session(tmp_path)
     sessions.authorize_request(directory, action["attempt"], "raw-permit", now=now)
