@@ -69,6 +69,13 @@ before any usage event could be written. Known accounting alone is not trusted
 terminal settlement. A late actual receipt is checked against its original
 operation allowance as well as the shared budget; a proven violation remains
 false without changing the original stop reason or rewriting historical events.
+Legacy unknown receipts remain unknown until each original receipt is reconciled;
+settling a newer operation cannot make an older missing charge disappear.
+
+Every session mutation preserves event and byte capacity for the usage and
+terminal records of admitted operations. New accounting receipts refuse before
+consuming that reserve. Older usage-only crash states retain a terminal slot;
+new operations refuse before native setup if their settlement cannot fit.
 
 The normal trusted broker now writes `model-usage` and `operation-settled`
 together under one session lock and one durable state save. This eliminates

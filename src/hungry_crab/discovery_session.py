@@ -31,6 +31,10 @@ METERING_SCHEMA = "hungry-crab.host-usage-capability/1"
 METERING_FIELDS = frozenset(
     {"schema", "route", "actual_model_usage", "reporting_source", "preflight_confirmed"}
 )
+EVENT_LIMIT = 500
+STATE_BYTE_LIMIT = 7 * 1024 * 1024
+# A broker usage/terminal record fits within the public usage ingress bound.
+SETTLEMENT_EVENT_BYTES = 16_384
 LIMITS = {
     "requests": 16,
     "donors": 6,
@@ -231,7 +235,7 @@ def _load(directory: Path, *, require_current: bool = True) -> dict[str, Any]:
     value = read_object(directory / "session.json")
     if value.get("schema") != SCHEMA or not isinstance(value.get("events"), list):
         raise CrabError("invalid discovery session")
-    if len(value["events"]) > 500:
+    if len(value["events"]) > EVENT_LIMIT:
         raise CrabError("discovery event budget exceeded")
     expected = value.pop("state_sha256", None)
     if expected != fingerprint(value):
@@ -258,13 +262,39 @@ def _save(directory: Path, value: dict[str, Any]) -> None:
     value.pop("state_sha256", None)
     value["state_sha256"] = fingerprint(value)
     encoded = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
-    if len(encoded.encode()) > 7 * 1024 * 1024:
+    reserved_bytes = SETTLEMENT_EVENT_BYTES * _settlement_events(
+        [event["record"] for event in value["events"]]
+    )
+    if len(encoded.encode()) + reserved_bytes > STATE_BYTE_LIMIT:
         raise CrabError("discovery state byte budget exhausted; retain the pending attempt")
     atomic_text(directory / "session.json", encoded)
 
 
+def _settlement_events(records: list[dict[str, Any]]) -> int:
+    """Retain space for every admitted broker's usage and terminal event."""
+    started = {
+        (row["attempt"], row["operation"])
+        for row in records
+        if row.get("kind") == "operation-started"
+    }
+    settled = {
+        (row["attempt"], row["operation"])
+        for row in records
+        if row.get("kind") == "operation-settled"
+    }
+    accounted = {
+        (row["receipt"]["attempt"], row["receipt"]["operation"])
+        for row in records
+        if row.get("kind") in {"model-usage", "model-usage-reconciled"}
+        and row["receipt"].get("author") == "trusted host operation broker"
+        and row["receipt"].get("tool") == "native meter boundary"
+    }
+    return sum(1 + (operation not in accounted) for operation in started - settled)
+
+
 def _event(value: dict[str, Any], entry: dict[str, Any]) -> None:
-    if len(value["events"]) >= 500:
+    records = [event["record"] for event in value["events"]]
+    if len(records) + 1 + _settlement_events([*records, entry]) > EVENT_LIMIT:
         raise CrabError("discovery event budget exhausted; retain the pending attempt")
     previous = value["events"][-1]["sha256"] if value["events"] else None
     row = {"previous": previous, "index": len(value["events"]), "record": entry}
@@ -796,7 +826,9 @@ def _model_usage_complete(value: dict[str, Any]) -> bool:
         for row in records
         if row.get("kind") in {"model-usage", "model-usage-reconciled"}
     }
-    return all(
+    # Legacy unknown receipts may predate the unresolved-usage list and broker
+    # admission events. A newer reconciliation cannot erase their missing cost.
+    return all(tokens is not None for tokens in usage.values()) and all(
         (row["attempt"], row["operation"]) in settled
         and usage.get((row["attempt"], row["operation"])) is not None
         for row in records
@@ -1032,7 +1064,7 @@ def execute_operation(
             raise CrabError("shared discovery model token allowance exhausted")
         # Leave room for all in-flight terminal usage/settlement records, even
         # if nested calls or a host crash occur after admission.
-        if len(value["events"]) + 4 * (len(pending) + 1) + 2 > 500:
+        if len(value["events"]) + 4 * (len(pending) + 1) + 2 > EVENT_LIMIT:
             raise CrabError("discovery event budget exhausted before host operation")
         if kind == "provider":
             _authorize_provider(value, attempt, identity, instant)
