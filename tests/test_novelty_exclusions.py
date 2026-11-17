@@ -467,8 +467,13 @@ def test_unscoped_original_proposal_cannot_bypass_novelty_publication_hold(tmp_p
     ],
 )
 def test_discovery_cannot_bypass_unresolved_or_later_exploration_evidence(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, outcome: str, status: str | None,
-    reviewed: bool, later: bool, allowed: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    outcome: str,
+    status: str | None,
+    reviewed: bool,
+    later: bool,
+    allowed: bool,
 ) -> None:
     from discovery_host_fixture import OwnedMeter
     from test_discovery_usage import setup_session
@@ -482,24 +487,35 @@ def test_discovery_cannot_bypass_unresolved_or_later_exploration_evidence(
         state = sessions._load(directory)
         state["lease"]["action"] = "decide"
         state["needs"][0].update(
-            phase="decide", exploration="owned-child", lead={"repository": "owned/repo"},
+            phase="decide",
+            exploration="owned-child",
+            lead={"repository": "owned/repo"},
             verification={"evidence_level": "source-supported"},
         )
         sessions._save(directory, state)
         child = {
-            "decisions": [{
-                "disposition": outcome, "hypothesis": "bounded reads",
-                "reviewed": reviewed, "novelty_status": status,
-            }],
+            "decisions": [
+                {
+                    "disposition": outcome,
+                    "hypothesis": "bounded reads",
+                    "reviewed": reviewed,
+                    "novelty_status": status,
+                }
+            ],
             "novelty_reconciliations": (
                 [{"hypothesis": "bounded reads", "publication_held": True}] if later else []
             ),
         }
         monkeypatch.setattr(sessions, "exploration_report", lambda _: child)
         before = (directory / "session.json").read_bytes()
-        entry = receipt(action, {
-            "disposition": outcome, "hypothesis": "bounded reads", "reason": "owned control",
-        })
+        entry = receipt(
+            action,
+            {
+                "disposition": outcome,
+                "hypothesis": "bounded reads",
+                "reason": "owned control",
+            },
+        )
         if allowed:
             result = sessions.record(directory, entry, now=instant)
             assert result["needs"][0]["status"] == "pending"
