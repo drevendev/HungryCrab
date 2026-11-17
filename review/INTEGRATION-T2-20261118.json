@@ -1,6 +1,6 @@
 {
   "owner_instruction": "Natively merge PR677/687 after exact-head Actions and review; update tasks; begin P0 T2/671. Checks only in Actions; no paid model runs.",
-  "recorded_at_utc": "2026-11-17 22:35:54 UTC",
+  "recorded_at_utc": "2026-11-17 22:44:23 UTC",
   "repository": "drevendev/HungryCrab",
   "master": "9fb6f1b8af1bef9e4b224c99bf289952ebcbe246",
   "pr677": {
@@ -205,7 +205,9 @@
     "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t2-671",
     "ci": {
       "run": 44188458091,
-      "result": "IN_PROGRESS",
+      "result": "IN_PROGRESS_AT_PAUSE",
+      "successful_jobs": 20,
+      "total_jobs": 22,
       "jobs": [
         {
           "id": 134411208917,
@@ -403,7 +405,7 @@
   },
   "task_states": {
     "670": "OPEN: bounded677merged; production native meter and supervised fixed-pair qualification remain open",
-    "671": "OPEN: draft690implemented; exact-head matrix and independent review pending",
+    "671": "OPEN / PAUSED at owner request; draft PR690 a0479fd; CI20/22, two Windows suites still running; independent review pending",
     "675": "OPEN: release not complete",
     "678": "CLOSED/completed: bounded relay lifecycle independently reviewed, exact-source checked, natively merged, landed master18/18 and CodeQL succeeded",
     "679": "OPEN: historical managed-local0xc0000008 cause unconfirmed; hosted success is not diagnosis"
@@ -417,10 +419,20 @@
     "tag_release": "NOT_RUN"
   },
   "next_steps": [
-    "Wait for current PR690CI44188458091 Windows jobs134415784611/134415784624; investigate any failure with Actions-only checks",
-    "Record final exact-head CI and suite counts; keep original failures/cancellations as history",
-    "Update PR690/issues671/675 from actual final results; keep670/679/671/675 broader acceptance open",
-    "Mark690ready only after check completion; independent source review remains pending; do not merge690",
-    "Read back remote heads/statuses; save/push final evidence; keep local worktrees clean"
-  ]
+    "Resume only on owner's instruction; first read existing CI44188458091 and CodeQL44188458110, exact PR690head/base and current master",
+    "If head is still a0479fd, inspect original Windows jobs134415784611 and134415784624; pending is not success",
+    "If failures exist, preserve first failure/log/source, correct only bounded T2 defects and validate only in Actions; no new paid model run",
+    "If all22jobs andCodeQL succeed, read final logs/counts, update PR690/issues671/675 and preserve evidence; no needless rerun",
+    "Keep #670/#679/#671/#675 OPEN for remaining gates; #678 is CLOSED/completed",
+    "Independent T2 source review remains pending; keep draft unless deliberately advancing to review; do not mergeT2/tag/release without authorization",
+    "Preserve archive branches, all source history and worktrees; do not download or execute donor locally"
+  ],
+  "owner_pause": {
+    "requested": true,
+    "local_date": "2026-11-18",
+    "recorded_at_utc": "2026-11-17 22:44:23 UTC",
+    "actions": "Existing jobs left running; no cancel, rerun or new dispatch",
+    "monitor": "Stopped on owner instruction",
+    "resume": "Read existing run results and actual HEAD first"
+  }
 }
