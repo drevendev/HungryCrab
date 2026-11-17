@@ -90,9 +90,7 @@ def test_zero_request_leads_require_owned_fixture_provenance(tmp_path: Path) -> 
     with host_meter(NativeShapedMeter()):
         directory, _, action, now = setup_session(tmp_path / "native-shaped")
         before = (directory / "session.json").read_bytes()
-        unsupported = receipt(
-            action, {"requests": 0, "candidates": [{"repository": "one/tool"}]}
-        )
+        unsupported = receipt(action, {"requests": 0, "candidates": [{"repository": "one/tool"}]})
         with pytest.raises(CrabError, match="zero-request search leads"):
             sessions.record(directory, unsupported, now=now)
         assert (directory / "session.json").read_bytes() == before
