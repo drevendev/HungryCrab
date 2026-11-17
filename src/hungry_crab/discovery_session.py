@@ -1085,7 +1085,6 @@ def _settle_operation(
         _save(directory, value)
 
 
-
 def reconcile_trusted_operation(
     directory: Path,
     attempt: str,
