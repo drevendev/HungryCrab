@@ -1,0 +1,663 @@
+{
+  "date": "2026-11-17",
+  "status": "Resumed at owner request; all saved CI jobs completed successfully; no failing current-head jobs remain.",
+  "current_heads": {
+    "pr677": "d6ba132c81bbad940030fca8ae36702ca227e372",
+    "pr687": "b8439609b60e2b9a20f6abadba7f63b7a907951d"
+  },
+  "paused_heads": {
+    "pr677": "958112fa55725170d6c576b993d619f2e9dc8c32",
+    "pr687": "b8439609b60e2b9a20f6abadba7f63b7a907951d"
+  },
+  "runs": [
+    {
+      "id": 44092372492,
+      "head": "d6ba132c81bbad940030fca8ae36702ca227e372",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44092372492"
+    },
+    {
+      "id": 44092372512,
+      "head": "d6ba132c81bbad940030fca8ae36702ca227e372",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44092372512"
+    },
+    {
+      "id": 44031156340,
+      "head": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44031156340"
+    },
+    {
+      "id": 44031156434,
+      "head": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44031156434"
+    },
+    {
+      "id": 44030024972,
+      "head": "958112fa55725170d6c576b993d619f2e9dc8c32",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44030024972"
+    },
+    {
+      "id": 44031356400,
+      "head": "c5b47c6a3845d871b0f857a7512a431968b89161",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/drevendev/HungryCrab/actions/runs/44031356400"
+    }
+  ],
+  "jobs": {
+    "latest677CI": [
+      {
+        "id": 134070600274,
+        "name": "Clean installation (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600561,
+        "name": "Hard acquisition quota (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600603,
+        "name": "Lint and type-check",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600709,
+        "name": "Discovery operation gates (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600716,
+        "name": "Base installation without optional extras",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600769,
+        "name": "Clean installation (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600932,
+        "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600940,
+        "name": "Hard acquisition quota (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070600995,
+        "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134070601077,
+        "name": "Discovery operation gates (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134074754702,
+        "name": "Test (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134074754756,
+        "name": "Test (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134074754793,
+        "name": "Test (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 134074754877,
+        "name": "Test (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "latest677CodeQL": [
+      {
+        "id": 134070534835,
+        "name": "Analyze Python",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "latest687CI": [
+      {
+        "id": 133863183461,
+        "name": "Base installation without optional extras",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183604,
+        "name": "Hard acquisition quota (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183638,
+        "name": "Clean installation (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183690,
+        "name": "Test (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183715,
+        "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183725,
+        "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183746,
+        "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183747,
+        "name": "Clean installation (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183807,
+        "name": "Test (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183846,
+        "name": "Test (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863183936,
+        "name": "Test (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863184048,
+        "name": "Lint and type-check",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863184072,
+        "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863184251,
+        "name": "Hard acquisition quota (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "latest687CodeQL": [
+      {
+        "id": 133863152886,
+        "name": "Analyze Python",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "paused677CI": [
+      {
+        "id": 133859472551,
+        "name": "Lint and type-check",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859472831,
+        "name": "Hard acquisition quota (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859472971,
+        "name": "Discovery operation gates (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859472972,
+        "name": "Base installation without optional extras",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473018,
+        "name": "Discovery operation gates (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473039,
+        "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473048,
+        "name": "Clean installation (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473064,
+        "name": "Clean installation (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473139,
+        "name": "Hard acquisition quota (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133859473275,
+        "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133862155392,
+        "name": "Test (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133862155399,
+        "name": "Test (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133862155406,
+        "name": "Test (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133862155416,
+        "name": "Test (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "proof": [
+      {
+        "id": 133863823257,
+        "name": "Verify combined CI without merging a branch",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823440,
+        "name": "Review PR 677 (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823457,
+        "name": "Review PR 677 (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823476,
+        "name": "Review PR 687 (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823478,
+        "name": "Review PR 677 (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823559,
+        "name": "Review PR 687 (ubuntu-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823597,
+        "name": "Review PR 677 (windows-latest, Python 3.14)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823630,
+        "name": "Review PR 687 (ubuntu-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 133863823700,
+        "name": "Review PR 687 (windows-latest, Python 3.11)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "log_summaries": [
+    {
+      "key": "latest677CI",
+      "id": 134070600709,
+      "name": "Discovery operation gates (windows-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T13:31:26.9852799Z 95 passed in 401.33s (0:06:41)"
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134070600932,
+      "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T13:24:57.7723732Z 95 passed in 25.71s"
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134070600995,
+      "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T13:24:59.0294009Z 95 passed in 26.20s"
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134070601077,
+      "name": "Discovery operation gates (windows-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T13:28:51.4258709Z 95 passed in 252.41s (0:04:12)"
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134074754702,
+      "name": "Test (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T13:33:39.1304001Z ================= 5161 passed, 43 skipped in 116.01s (0:01:56) ================="
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134074754756,
+      "name": "Test (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T13:34:00.7448169Z ================= 5160 passed, 44 skipped in 139.35s (0:02:19) ================="
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134074754793,
+      "name": "Test (windows-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T14:03:37.4065407Z ================ 5196 passed, 8 skipped in 1898.11s (0:31:38) ================="
+      ]
+    },
+    {
+      "key": "latest677CI",
+      "id": 134074754877,
+      "name": "Test (windows-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T14:09:33.5819157Z ================ 5197 passed, 7 skipped in 2259.91s (0:37:39) ================="
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183690,
+      "name": "Test (windows-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T07:00:56.8525025Z ================ 5152 passed, 8 skipped in 2074.79s (0:34:34) ================="
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183715,
+      "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T06:26:24.2674082Z 30 passed in 17.62s"
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183725,
+      "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T06:26:50.7471677Z 30 passed in 28.29s"
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183746,
+      "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T06:26:27.5925205Z 30 passed in 17.68s"
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183807,
+      "name": "Test (ubuntu-latest, Python 3.11)",
+      "lines": [
+        "2026-11-17T06:28:12.7114983Z ================= 5116 passed, 44 skipped in 117.41s (0:01:57) ================="
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183846,
+      "name": "Test (ubuntu-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T06:28:18.9940316Z ================= 5117 passed, 43 skipped in 131.57s (0:02:11) ================="
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863183936,
+      "name": "Test (windows-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T07:03:27.7281754Z ================ 5153 passed, 7 skipped in 2228.02s (0:37:08) ================="
+      ]
+    },
+    {
+      "key": "latest687CI",
+      "id": 133863184072,
+      "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+      "lines": [
+        "2026-11-17T06:26:50.6675943Z 30 passed in 28.08s"
+      ]
+    },
+    {
+      "key": "paused677CI",
+      "id": 133862155399,
+      "name": "Paused Windows suite",
+      "lines": [
+        "2026-11-17T07:03:46.4987462Z ================ 5195 passed, 8 skipped in 2396.57s (0:39:56) ================="
+      ]
+    },
+    {
+      "key": "paused677CI",
+      "id": 133862155406,
+      "name": "Paused Windows suite",
+      "lines": [
+        "2026-11-17T06:59:15.8314427Z ================ 5196 passed, 7 skipped in 2124.06s (0:35:24) ================="
+      ]
+    },
+    {
+      "key": "compatibilityProof",
+      "id": 133863823257,
+      "name": "Combined CI proof",
+      "lines": [
+        "2026-11-17T06:27:43.1015493Z PASS: 958112fa55725170d6c576b993d619f2e9dc8c32 + b8439609b60e2b9a20f6abadba7f63b7a907951d -> a8348e74d34bc02f2060e839b0d29cab06e1c154",
+        "2026-11-17T06:27:43.1016057Z Both focused matrices and full-suite dependencies retained; no conflicts or duplicate keys."
+      ]
+    }
+  ],
+  "reviews": {
+    "pr677": {
+      "state": "COMMENTED",
+      "commit": "958112fa55725170d6c576b993d619f2e9dc8c32",
+      "id": 5936724810,
+      "reviewer": "andy-zen-dev",
+      "full_current_head_approval": false
+    },
+    "pr687": {
+      "state": "APPROVED",
+      "commit": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+      "id": 5935072959,
+      "reviewer": "andy-zen-dev",
+      "scope": "bounded relay lifecycle; not Windows crash root cause or release acceptance"
+    }
+  },
+  "compatibility": {
+    "proof_run": 44031356400,
+    "subjects": [
+      "958112fa55725170d6c576b993d619f2e9dc8c32",
+      "b8439609b60e2b9a20f6abadba7f63b7a907951d"
+    ],
+    "current_677_workflow_blob": "21ac50628432200b1c1bfdf3605085998aa8f41f",
+    "paused_677_workflow_blob": "21ac50628432200b1c1bfdf3605085998aa8f41f",
+    "boundary": "Historical 9-job probe on those subjects; latest full CI covers current source. Current 677 CI YAML is byte-identical, no new merged runtime claim."
+  },
+  "execution": {
+    "new_workflow_dispatches": 0,
+    "new_paid_model_runs": 0,
+    "local_tests_lint_build": "NOT_RUN",
+    "local_donor_acquisition": "NOT_RUN",
+    "merge_tag_release": "NOT_RUN"
+  },
+  "remaining": {
+    "issue670": "Production-native meter and supervised fixed-pair acceptance not supplied; full current-head approval absent.",
+    "issue678": "Separately authorized integration pending.",
+    "issue679": "Historical managed-local 0xc0000008 cause unconfirmed.",
+    "issue675": "Remaining release packages and release gate open."
+  },
+  "status_updates": [
+    {
+      "kind": "pull_request",
+      "number": 677,
+      "url": "https://github.com/drevendev/HungryCrab/pull/677",
+      "head": "d6ba132c81bbad940030fca8ae36702ca227e372",
+      "state": "open",
+      "draft": false
+    },
+    {
+      "kind": "pull_request",
+      "number": 687,
+      "url": "https://github.com/drevendev/HungryCrab/pull/687",
+      "head": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+      "state": "open",
+      "draft": false
+    },
+    {
+      "kind": "issue",
+      "number": 670,
+      "state": "update confirmed",
+      "url": "https://github.com/drevendev/HungryCrab/issues/670"
+    },
+    {
+      "kind": "issue",
+      "number": 678,
+      "state": "update confirmed",
+      "url": "https://github.com/drevendev/HungryCrab/issues/678"
+    },
+    {
+      "kind": "issue",
+      "number": 679,
+      "state": "update confirmed",
+      "url": "https://github.com/drevendev/HungryCrab/issues/679"
+    },
+    {
+      "kind": "issue",
+      "number": 675,
+      "state": "update confirmed",
+      "url": "https://github.com/drevendev/HungryCrab/issues/675"
+    }
+  ],
+  "readback": [
+    {
+      "path": "pulls/677",
+      "state": "open",
+      "head": "d6ba132c81bbad940030fca8ae36702ca227e372",
+      "draft": false,
+      "body_matches": true
+    },
+    {
+      "path": "pulls/687",
+      "state": "open",
+      "head": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+      "draft": false,
+      "body_matches": true
+    },
+    {
+      "path": "issues/670",
+      "state": "open",
+      "body_matches": true
+    },
+    {
+      "path": "issues/678",
+      "state": "open",
+      "body_matches": true
+    },
+    {
+      "path": "issues/679",
+      "state": "open",
+      "body_matches": true
+    },
+    {
+      "path": "issues/675",
+      "state": "open",
+      "body_matches": true
+    }
+  ],
+  "recorded_at": {
+    "current_time": "2026-11-17 17:55:34 UTC"
+  }
+}
