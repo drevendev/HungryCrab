@@ -272,14 +272,15 @@ def test_later_fix_is_an_append_only_supersession_and_holds_publication(
 def test_reconciliation_cannot_be_forged_or_silently_use_changed_artifact(tmp_path: Path) -> None:
     directory, _, maw, finding = setup(tmp_path, pending=False)
     with pytest.raises(CrabError, match="use explore reconcile-novelty"):
-        exploration.record(
-            directory, observation(finding, kind="novelty-reconciliation")
-        )
+        exploration.record(directory, observation(finding, kind="novelty-reconciliation"))
     original = exploration.record(
         directory,
         observation(
-            finding, kind="decision", hypothesis="bounded reads",
-            disposition="not-investigated", reviewed=False,
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            disposition="not-investigated",
+            reviewed=False,
         ),
     )
     request = reconciliation_plan(directory, maw, original)
@@ -374,14 +375,20 @@ def test_fresh_provider_heads_are_required_even_when_local_refs_did_not_move(
                 raise CrabError("provider head metadata unavailable")
             return {
                 target["ref"]: ("f" * 40 if provider_state == "changed" else target["sha"])
-                for target in targets if target["role"] != "receiving-selected"
+                for target in targets
+                if target["role"] != "receiving-selected"
             }
 
     client = Provider()
+
     def publish() -> Any:
         return serve(
-            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            directory.parent.parent,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
 
@@ -437,8 +444,12 @@ def test_unscoped_original_proposal_cannot_bypass_novelty_publication_hold(tmp_p
     client = FakeIssues()
     with pytest.raises(CrabError, match="scope is unknown"):
         serve(
-            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            directory.parent.parent,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
     assert not client.created and not client.labels
