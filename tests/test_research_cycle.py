@@ -10,10 +10,13 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from discovery_host_fixture import OwnedMeter
 from test_discovery_inputs import repository
 from test_release_069_discovery import plan
 
+from hungry_crab import discovery_session as sessions
 from hungry_crab.analysis_context import installed_source_identity
+from hungry_crab.discovery_host import host_meter
 from hungry_crab.discovery_session import live_context
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
@@ -321,7 +324,9 @@ def test_design_format_hint_does_not_replace_implementation_inspection(
     )
 
 
-def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:
+def test_second_need_preserves_first_registered_menu(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     root = Path(__file__).resolve().parents[1]
     maw = repository(
         tmp_path / "maw", {"app.py": "def consume(stream):\n    return stream.read()\n"}
@@ -361,6 +366,37 @@ def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:
             }
         },
     }
+    # The archived subprocess host cannot qualify strict discovery by JSON.
+    with pytest.raises(RuntimeError, match="trusted live host metering adapter"):
+        Trial("control-candidate-1", frozen)
+    trial_root = tmp_path / "trials" / "control-candidate-1"
+    assert not (trial_root / "session").exists()
+    assert not (trial_root / "native").exists()
+
+    class OwnedSessionCommands(Commands):
+        """Use a trusted in-process fixture adapter, never a native model worker."""
+
+        def json(
+            self, arguments: list[object], payload: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
+            command = list(map(str, arguments))
+            if command[:2] not in (
+                ["discover", "init"],
+                ["discover", "next"],
+                ["discover", "record"],
+            ):
+                return super().json(arguments, payload)
+            with host_meter(OwnedMeter()):
+                directory = Path(command[2])
+                if command[1] == "init":
+                    definition = json.loads(Path(command[6]).read_text(encoding="utf-8"))
+                    return sessions.initialize(directory, Path(command[4]), definition)
+                if command[1] == "next":
+                    return sessions.next_action(directory)
+                assert payload is not None
+                return sessions.record(directory, payload)
+
+    monkeypatch.setattr("qualification_cycle.Commands", OwnedSessionCommands)
     trial = Trial("control-candidate-1", frozen)
     trial.next()
     trial.record({"requests": 0, "candidates": [{"repository": "donor"}]})
@@ -418,3 +454,4 @@ def test_second_need_preserves_first_registered_menu(tmp_path: Path) -> None:
     assert Path(following["meal"]) != Path(original["meal"])
     assert json.loads((Path(original["meal"]) / "menu.json").read_text()) == before
     assert trial.meter.data["tokens"] == 0  # Controlled deterministic fixture, never a model trial.
+    assert sessions.report(trial_root / "session")["budget_within_limits"] is None

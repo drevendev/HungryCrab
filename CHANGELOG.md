@@ -14,8 +14,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Always stop the owned test listener on assertion failures before closing its
   socket, preserving the original failure rather than a live listener (#679).
 
-### Fixed
-
+- Require a live bound host meter and per-operation authorization for strict
+  discovery, settling original late charges without replay or route fallback.
+  Preserve legacy unknown costs and reserve state capacity for admitted-operation
+  settlement. Standalone strict initialization refuses without an adapter; no
+  production native meter or positive budget qualification is shipped (#670).
 - Reject unsupported GPL/AGPL/LGPL maw identifiers in direct copyleft compatibility checks, retaining exact supported policy and SPDX choice semantics (#95).
 - Permit cache-path mentions in inert, quoted `gh pr create --title ... --body ...`
   messages for a single standalone Bash command (either exact title/body option order);

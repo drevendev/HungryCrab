@@ -11,13 +11,14 @@ import re
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from .analysis_context import fingerprint, installed_source_identity, receiving_context
 from .artifact_read import read_object
 from .attribution import GitSourceReader
 from .config_edit import atomic_text
 from .digest import worktree_fingerprint
+from .discovery_host import active_operations, operation_scope, require_meter
 from .errors import CrabError
 from .exploration import report as exploration_report
 from .fetch.git import GitRunner
@@ -26,6 +27,14 @@ from .ledger import Ledger
 from .maw import MawConfig
 
 SCHEMA = "hungry-crab.discovery-session/1"
+METERING_SCHEMA = "hungry-crab.host-usage-capability/1"
+METERING_FIELDS = frozenset(
+    {"schema", "route", "actual_model_usage", "reporting_source", "preflight_confirmed"}
+)
+EVENT_LIMIT = 500
+STATE_BYTE_LIMIT = 7 * 1024 * 1024
+# A broker usage/terminal record fits within the public usage ingress bound.
+SETTLEMENT_EVENT_BYTES = 16_384
 LIMITS = {
     "requests": 16,
     "donors": 6,
@@ -44,6 +53,7 @@ OUTCOMES = {
     "budget-deferred",
 }
 ACQUISITION_DEFERRALS = frozenset({"unavailable", "license-held", "unsupported", "budget-deferred"})
+T = TypeVar("T")
 
 
 def _text(value: object, field: str, limit: int = 2000) -> str:
@@ -95,12 +105,47 @@ def _references(refs: object, context: dict[str, Any]) -> None:
             raise CrabError("receiving need range is unavailable")
 
 
+def _require_host_metering(plan: object) -> None:
+    """Fail closed on absent or malformed strict-host metering declarations.
+
+    This validates a plan declaration, never its native provider API. A live
+    trusted adapter is required separately before admission. Supervised
+    fixed-pair inspections deliberately do not open this discovery controller.
+    """
+    capability = plan.get("host_metering") if isinstance(plan, dict) else None
+    if not isinstance(capability, dict) or set(capability) != METERING_FIELDS:
+        raise CrabError("discovery requires explicit strict host metering preflight")
+    if (
+        capability.get("schema") != METERING_SCHEMA
+        or capability.get("route") != "strict-metered"
+        or capability.get("actual_model_usage") != "per-operation"
+        or capability.get("preflight_confirmed") is not True
+    ):
+        raise CrabError("discovery host metering preflight is unsupported or unconfirmed")
+    source = capability.get("reporting_source")
+    if not isinstance(source, str) or not source.strip() or len(source) > 200:
+        raise CrabError("discovery host metering needs a named actual usage source")
+    if source.strip().casefold() in {"unknown", "unavailable", "none", "actual_host_meter"}:
+        raise CrabError("discovery host metering cannot use an unknown source")
+
+
+def _require_live_meter(value: dict[str, Any]) -> None:
+    _require_host_metering(value.get("plan"))
+    if not isinstance(value.get("meter_identity"), dict):
+        raise CrabError("legacy host metering is unqualified; reconcile original session")
+    require_meter(value["meter_identity"])
+
+
 def initialize(
     directory: Path, maw: Path, plan: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
     instant = now or datetime.now(UTC)
     if len(json.dumps(plan, ensure_ascii=False).encode()) > 256_000:
         raise CrabError("discovery plan exceeds its byte budget")
+    _require_host_metering(plan)
+    _, meter_identity = require_meter()
+    if meter_identity["source"] != plan["host_metering"]["reporting_source"]:
+        raise CrabError("plan host metering source differs from trusted live adapter")
     context = live_context(maw)
     if directory.resolve().is_relative_to(maw.resolve()):
         raise CrabError("discovery state must be outside the receiving worktree")
@@ -170,6 +215,7 @@ def initialize(
         "created_at": instant.isoformat(),
         "context": context,
         "plan": plan,
+        "meter_identity": meter_identity,
         "limits": limits,
         "needs": rows,
         "spent": {"requests": 0, "donors": 0, "model_tokens": 0},
@@ -189,7 +235,7 @@ def _load(directory: Path, *, require_current: bool = True) -> dict[str, Any]:
     value = read_object(directory / "session.json")
     if value.get("schema") != SCHEMA or not isinstance(value.get("events"), list):
         raise CrabError("invalid discovery session")
-    if len(value["events"]) > 500:
+    if len(value["events"]) > EVENT_LIMIT:
         raise CrabError("discovery event budget exceeded")
     expected = value.pop("state_sha256", None)
     if expected != fingerprint(value):
@@ -216,13 +262,39 @@ def _save(directory: Path, value: dict[str, Any]) -> None:
     value.pop("state_sha256", None)
     value["state_sha256"] = fingerprint(value)
     encoded = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
-    if len(encoded.encode()) > 7 * 1024 * 1024:
+    reserved_bytes = SETTLEMENT_EVENT_BYTES * _settlement_events(
+        [event["record"] for event in value["events"]]
+    )
+    if len(encoded.encode()) + reserved_bytes > STATE_BYTE_LIMIT:
         raise CrabError("discovery state byte budget exhausted; retain the pending attempt")
     atomic_text(directory / "session.json", encoded)
 
 
+def _settlement_events(records: list[dict[str, Any]]) -> int:
+    """Retain space for every admitted broker's usage and terminal event."""
+    started = {
+        (row["attempt"], row["operation"])
+        for row in records
+        if row.get("kind") == "operation-started"
+    }
+    settled = {
+        (row["attempt"], row["operation"])
+        for row in records
+        if row.get("kind") == "operation-settled"
+    }
+    accounted = {
+        (row["receipt"]["attempt"], row["receipt"]["operation"])
+        for row in records
+        if row.get("kind") in {"model-usage", "model-usage-reconciled"}
+        and row["receipt"].get("author") == "trusted host operation broker"
+        and row["receipt"].get("tool") == "native meter boundary"
+    }
+    return sum(1 + (operation not in accounted) for operation in started - settled)
+
+
 def _event(value: dict[str, Any], entry: dict[str, Any]) -> None:
-    if len(value["events"]) >= 500:
+    records = [event["record"] for event in value["events"]]
+    if len(records) + 1 + _settlement_events([*records, entry]) > EVENT_LIMIT:
         raise CrabError("discovery event budget exhausted; retain the pending attempt")
     previous = value["events"][-1]["sha256"] if value["events"] else None
     row = {"previous": previous, "index": len(value["events"]), "record": entry}
@@ -239,13 +311,14 @@ def _exhausted(value: dict[str, Any], now: datetime) -> str | None:
 
 
 def _finish(value: dict[str, Any], reason: str, instant: datetime) -> None:
-    # Late accounting can change the cost verdict, never the duration of a
-    # finished investigation. Legacy terminal sessions retain unknown duration.
-    if not value["finished"]:
-        value["finished_at"] = instant.isoformat()
-        value["wall_time_seconds"] = (
-            instant - datetime.fromisoformat(value["created_at"])
-        ).total_seconds()
+    # Late accounting may change the cost verdict, but never the original
+    # terminal reason or duration. Legacy terminal sessions remain unchanged.
+    if value["finished"]:
+        return
+    value["finished_at"] = instant.isoformat()
+    value["wall_time_seconds"] = (
+        instant - datetime.fromisoformat(value["created_at"])
+    ).total_seconds()
     value.update(finished=True, stop_reason=reason)
 
 
@@ -300,11 +373,21 @@ def _pending_need(value: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, Any]:
-    instant = now or datetime.now(UTC)
     with state_lock(directory / "session.json"):
         value = _load(directory)
         if value["finished"]:
             return summary(value)
+        try:
+            _require_live_meter(value)
+        except CrabError:
+            if not isinstance(value.get("lease"), dict):
+                raise
+            # Preserve the original uncertain attempt for settlement, not replay.
+            pending = dict(value["lease"])
+            pending["action"] = "reconcile"
+            pending["reason"] = "host metering not qualified; reconcile original attempt only"
+            return pending
+        instant = now or datetime.now(UTC)
         reason = _exhausted(value, instant)
         if reason:
             _finish(value, reason, instant)
@@ -319,7 +402,7 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                 0, value["limits"]["model_tokens"] - value["spent"]["model_tokens"]
             )
             lease["remaining_seconds"] = (deadline - instant).total_seconds()
-            if instant >= datetime.fromisoformat(lease["expires_at"]):
+            if _pending_operations(value) or instant >= datetime.fromisoformat(lease["expires_at"]):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
                     "previous attempt may have consumed provider effects; do not repeat blindly"
@@ -385,6 +468,83 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
         return lease
 
 
+def _record_usage_locked(value: dict[str, Any], receipt: dict[str, Any], instant: datetime) -> bool:
+    """Apply a validated usage receipt in memory while the session lock is held.
+
+    Return False for an identical retry. The caller owns the single durable
+    save; a broker settlement must commit usage and completion together.
+    """
+    operation = receipt["operation"]
+    attempt = receipt["attempt"]
+    tokens = receipt["model_tokens"]
+    reconciliation = False
+    for event in value["events"]:
+        row = event["record"]
+        if (
+            row.get("kind") not in {"model-usage", "model-usage-reconciled"}
+            or row["receipt"]["operation"] != operation
+        ):
+            continue
+        previous = row["receipt"]
+        if previous == receipt:
+            return False
+        if (
+            previous["model_tokens"] is None
+            and tokens is not None
+            and {**previous, "model_tokens": tokens} == receipt
+        ):
+            reconciliation = True
+            continue
+        raise CrabError("model usage operation already exists with a different receipt")
+    if not any(
+        event["record"].get("kind") == "reserved-action"
+        and event["record"].get("attempt") == attempt
+        for event in value["events"]
+    ):
+        raise CrabError("model usage does not belong to a known discovery attempt")
+    latest_usage = {
+        event["record"]["receipt"]["operation"]: event["record"]["receipt"]["model_tokens"]
+        for event in value["events"]
+        if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+    }
+    if tokens is None:
+        # Older explicit unknown stops have no operation identity to reconcile.
+        # Preserve that uncertainty before attributing a newer unknown charge.
+        if not value.get("model_usage_complete", True) and all(
+            actual is not None for actual in latest_usage.values()
+        ):
+            value["unattributed_usage_unknown"] = True
+        _finish(value, "usage-unavailable", instant)
+        value["model_usage_complete"] = False
+        value.setdefault("unresolved_usage", []).append(operation)
+    else:
+        value["spent"]["model_tokens"] += tokens
+        if reconciliation:
+            latest_usage[operation] = tokens
+            unresolved = [key for key, actual in latest_usage.items() if actual is None]
+            value["unresolved_usage"] = unresolved
+            value["model_usage_complete"] = not unresolved and not value.get(
+                "unattributed_usage_unknown", False
+            )
+        reason = _exhausted(value, instant)
+        if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
+            _finish(value, "model-token-budget", instant)
+        elif not value["finished"] and reason:
+            _finish(value, reason, instant)
+    _event(
+        value,
+        {
+            "kind": "model-usage-reconciled" if reconciliation else "model-usage",
+            "receipt": receipt,
+            "at": instant.isoformat(),
+        },
+    )
+    if _operation_cap_violated(value):
+        value["meter_cap_violated"] = True
+        _finish(value, "model-token-budget", instant)
+    return True
+
+
 def record_usage(
     directory: Path, receipt: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
@@ -397,8 +557,8 @@ def record_usage(
     fields = {"operation", "attempt", "author", "tool", "model_tokens"}
     if set(receipt) != fields or len(json.dumps(receipt).encode()) > 16_000:
         raise CrabError("model usage requires only bounded operation/attempt/author/tool/tokens")
-    operation = _text(receipt["operation"], "usage.operation", 200)
-    attempt = _text(receipt["attempt"], "usage.attempt", 200)
+    _text(receipt["operation"], "usage.operation", 200)
+    _text(receipt["attempt"], "usage.attempt", 200)
     _text(receipt["author"], "usage.author", 200)
     _text(receipt["tool"], "usage.tool", 200)
     tokens = receipt["model_tokens"]
@@ -406,37 +566,14 @@ def record_usage(
         raise CrabError("usage needs actual nonnegative model_tokens or null for unknown use")
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
-        for event in value["events"]:
-            row = event["record"]
-            if row.get("kind") == "model-usage" and row["receipt"]["operation"] == operation:
-                if row["receipt"] != receipt:
-                    raise CrabError("model usage operation already exists with a different receipt")
-                return summary(value)
-        if not any(
-            event["record"].get("kind") == "reserved-action"
-            and event["record"].get("attempt") == attempt
-            for event in value["events"]
-        ):
-            raise CrabError("model usage does not belong to a known discovery attempt")
-        if tokens is None:
-            _finish(value, "usage-unavailable", instant)
-            value["model_usage_complete"] = False
-        else:
-            value["spent"]["model_tokens"] += tokens
-            reason = _exhausted(value, instant)
-            if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
-                _finish(value, "model-token-budget", instant)
-            elif not value["finished"] and reason:
-                _finish(value, reason, instant)
-        _event(value, {"kind": "model-usage", "receipt": receipt, "at": instant.isoformat()})
-        _save(directory, value)
+        if _record_usage_locked(value, receipt, instant):
+            _save(directory, value)
         return summary(value)
 
 
 def record(
     directory: Path, receipt: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
-    instant = now or datetime.now(UTC)
     if len(json.dumps(receipt, ensure_ascii=False).encode()) > 256_000:
         raise CrabError("discovery receipt exceeds its byte budget")
     with state_lock(directory / "session.json"):
@@ -451,6 +588,26 @@ def record(
             ):
                 return summary(value)
             raise CrabError("discovery receipt does not own the pending attempt")
+        if value["finished"]:
+            # A stopped lease survives for late cost settlement only. Never
+            # accept a new semantic result from that original attempt.
+            raise CrabError("finished discovery session cannot accept semantic results")
+        _require_live_meter(value)
+        instant = now or datetime.now(UTC)
+        # A callback may return after its dispatch permit or the session budget
+        # expires. Refuse its semantic effect even when dispatch was in time;
+        # actual provider/model costs still reconcile through record_usage().
+        reason = _exhausted(value, instant)
+        if reason:
+            _finish(value, reason, instant)
+            _save(directory, value)
+            raise CrabError(
+                "discovery budget expired before semantic receipt; reconcile usage only"
+            )
+        if instant >= datetime.fromisoformat(lease["expires_at"]):
+            raise CrabError(
+                "discovery attempt expired before semantic receipt; reconcile original attempt"
+            )
         _text(receipt.get("author"), "receipt.author", 200)
         _text(receipt.get("tool"), "receipt.tool", 200)
         tokens = receipt.get("model_tokens")
@@ -461,15 +618,57 @@ def record(
         result = receipt.get("result")
         if not isinstance(result, dict):
             raise CrabError("discovery result must be an object")
+        # A host callback is not an external provider permit. For non-search
+        # phases, reconcile claimed provider calls with their original
+        # pre-effect authorization events. Local-only callbacks may omit the
+        # field; an authorized operation cannot disappear from the receipt.
+        if action != "search":
+            authorized_calls = sum(
+                event["record"].get("kind") == "provider-request-authorized"
+                and event["record"].get("attempt") == lease["attempt"]
+                for event in value["events"]
+            )
+            reported_calls = result.get("requests", 0)
+            if type(reported_calls) is not int or reported_calls != authorized_calls:
+                raise CrabError(
+                    "non-search provider request count lacks matching prior authorization"
+                )
         if action == "search":
             if type(result.get("requests", 1)) is not int or result.get("requests", 1) not in {
                 0,
                 1,
             }:
                 raise CrabError("one leased search may consume at most one provider request")
+            # A prepaid search reservation is NOT proof that the host actually
+            # authorized an external provider operation before its effect.
+            authorized = [
+                event["record"]
+                for event in value["events"]
+                if event["record"].get("kind") == "provider-request-authorized"
+                and event["record"].get("attempt") == lease["attempt"]
+            ]
+            if result.get("requests", 1) == 1 and len(authorized) != 1:
+                raise CrabError("search provider request lacks prior operation authorization")
+            if result.get("requests", 1) == 0 and authorized:
+                raise CrabError("authorized provider search cannot be reported as zero requests")
+        _require_settled_operations(value, lease["attempt"])
+        if tokens != 0:
+            raise CrabError(
+                "semantic receipts must charge zero; settle actual host model usage separately"
+            )
+        if action == "search":
             candidates = result.get("candidates", [])
             if not isinstance(candidates, list) or len(candidates) > 100:
                 raise CrabError("search result candidate limit exceeded")
+            # A synthetic, provider-free lead is legal only in an explicitly
+            # bound owned fixture. Reviewed-native sessions need a real search
+            # operation before promoting provider candidates to acquisition.
+            if (
+                result.get("requests", 1) == 0
+                and candidates
+                and value["meter_identity"]["scope"] != "owned-fixture"
+            ):
+                raise CrabError("zero-request search leads require owned-fixture provenance")
             need["leads"] = [
                 row
                 for row in candidates
@@ -623,23 +822,98 @@ def _replace(need: dict[str, Any], value: dict[str, Any]) -> None:
         need["status"] = "frontier-exhausted"
 
 
+def _model_usage_complete(value: dict[str, Any]) -> bool:
+    """Unfinished model work has unknown final usage, including after a crash."""
+    if not value.get("model_usage_complete", True):
+        return False
+    records = [event["record"] for event in value["events"]]
+    settled = {
+        (row["attempt"], row["operation"])
+        for row in records
+        if row.get("kind") == "operation-settled"
+    }
+    usage = {
+        (row["receipt"]["attempt"], row["receipt"]["operation"]): row["receipt"]["model_tokens"]
+        for row in records
+        if row.get("kind") in {"model-usage", "model-usage-reconciled"}
+    }
+    # Legacy unknown receipts may predate the unresolved-usage list and broker
+    # admission events. A newer reconciliation cannot erase their missing cost.
+    return all(tokens is not None for tokens in usage.values()) and all(
+        (row["attempt"], row["operation"]) in settled
+        and usage.get((row["attempt"], row["operation"])) is not None
+        for row in records
+        if row.get("kind") == "operation-started" and row.get("operation_kind") == "model"
+    )
+
+
+def _operation_cap_violated(value: dict[str, Any]) -> bool:
+    """Late and historical receipts retain the original per-operation ceiling."""
+    limits: dict[tuple[str, str], int] = {}
+    records = [event["record"] for event in value["events"]]
+    for row in records:
+        if row.get("kind") == "operation-started":
+            limits[(row["attempt"], row["operation"])] = row["model_token_limit"]
+    for row in records:
+        if row.get("kind") not in {"model-usage", "model-usage-reconciled"}:
+            continue
+        receipt = row["receipt"]
+        allowance = limits.get((receipt["attempt"], receipt["operation"]))
+        tokens = receipt["model_tokens"]
+        if allowance is not None and tokens is not None and tokens > allowance:
+            return True
+    return False
+
+
 def summary(value: dict[str, Any]) -> dict[str, Any]:
+    usage_complete = _model_usage_complete(value)
     elapsed = value.get("wall_time_seconds")
     wall_compliant: bool | None = None
     if isinstance(elapsed, int | float) and not isinstance(elapsed, bool):
         wall_compliant = 0 <= elapsed <= value["limits"]["seconds"]
     elif value["stop_reason"] == "wall-time-budget-or-clock-invalid":
         wall_compliant = False
+    try:
+        _require_host_metering(value.get("plan"))
+    except CrabError:
+        metering_admission = "legacy-unqualified"
+    else:
+        # The declaration is not independent native provider-meter proof.
+        metering_admission = (
+            "runtime-admitted-" + value["meter_identity"]["scope"]
+            if isinstance(value.get("meter_identity"), dict)
+            else "declared-unverified"
+        )
+    # Arithmetic is observational; a caller-controlled host claim can never
+    # independently qualify a native provider meter or certify strict budgets.
+    known_overrun = (
+        value.get("meter_cap_violated", False)
+        or _operation_cap_violated(value)
+        or wall_compliant is False
+        or any(
+            value["spent"][name] > value["limits"][name]
+            for name in ("requests", "donors", "model_tokens")
+        )
+    )
+    numerical_budget_within_limits: bool | None
+    if known_overrun:
+        numerical_budget_within_limits = False
+    elif not usage_complete:
+        numerical_budget_within_limits = None
+    else:
+        numerical_budget_within_limits = True
+    # Proven numeric overruns are failures; otherwise compliance is UNKNOWN
+    # until a separately qualified native metering source is implemented.
+    strict_budget_compliance: bool | None = False if known_overrun else None
     return {
         "schema": SCHEMA,
         "context": value["context"],
         "tool": value.get("tool"),
         "limits": value["limits"],
         "spent": value["spent"],
-        "model_usage_complete": value.get("model_usage_complete", True),
-        "actual_model_tokens": (
-            value["spent"]["model_tokens"] if value.get("model_usage_complete", True) else None
-        ),
+        "model_usage_complete": usage_complete,
+        "host_metering_admission": metering_admission,
+        "actual_model_tokens": value["spent"]["model_tokens"] if usage_complete else None,
         "finished": value["finished"],
         "stop_reason": value["stop_reason"],
         "finished_at": value.get("finished_at"),
@@ -662,12 +936,8 @@ def summary(value: dict[str, Any]) -> dict[str, Any]:
         "published": False,
         "publication_scope": "controller-has-no-publication-effect; consult-per-meal-phase-records",
         "acceptance_learning_written": False,
-        "budget_within_limits": wall_compliant is not False
-        and value.get("model_usage_complete", True)
-        and all(
-            value["spent"][name] <= value["limits"][name]
-            for name in ("requests", "donors", "model_tokens")
-        ),
+        "budget_arithmetic_within_limits": numerical_budget_within_limits,
+        "budget_within_limits": strict_budget_compliance,
     }
 
 
@@ -721,47 +991,341 @@ def stop(directory: Path, reason: str, *, now: datetime | None = None) -> dict[s
             _finish(value, reason, now or datetime.now(UTC))
             if reason == "usage-unavailable":
                 value["model_usage_complete"] = False
+                value["unattributed_usage_unknown"] = True
             _event(value, {"kind": "explicit-stop", "reason": reason})
             _save(directory, value)
         return summary(value)
 
 
-def authorize_request(directory: Path, attempt: str, operation: str) -> None:
+def _pending_operations(value: dict[str, Any]) -> list[dict[str, Any]]:
+    records = [event["record"] for event in value["events"]]
+    settled = {row["operation"] for row in records if row.get("kind") == "operation-settled"}
+    return [
+        row
+        for row in records
+        if row.get("kind") in {"provider-request-authorized", "operation-started"}
+        and row["operation"] not in settled
+    ]
+
+
+def _require_settled_operations(value: dict[str, Any], attempt: str) -> None:
+    if any(row.get("attempt") == attempt for row in _pending_operations(value)):
+        raise CrabError(
+            "operation lacks trusted host settlement; reconcile before semantic recording"
+        )
+
+
+def execute_operation(
+    directory: Path,
+    attempt: str,
+    operation: str,
+    invoke: Callable[[int], T],
+    *,
+    kind: str = "provider",
+    model_token_limit: int = 0,
+    now: datetime | None = None,
+) -> T:
+    """Admit the real host port before calling it and settle before returning.
+
+    Trusted hosts must wrap every external port, including nested operations.
+    The allowance is enforced by the meter's native adapter, not semantic JSON.
+    An interrupted/failed/late call retains its original lease and usage. There
+    is deliberately no automatic retry, new lease, route fallback or model SDK.
+    """
+    _text(operation, "operation", 100)
+    if kind not in {"provider", "model"} or type(model_token_limit) is not int:
+        raise CrabError("invalid host operation kind or token allowance")
+    if (kind == "provider" and model_token_limit != 0) or (
+        kind == "model" and not 1 <= model_token_limit <= LIMITS["model_tokens"]
+    ):
+        raise CrabError("model operations require a bounded positive native token allowance")
+    identity = attempt + ":" + operation
+    with state_lock(directory / "session.json"):
+        value = _load(directory)
+        _require_live_meter(value)
+        meter, _ = require_meter(value["meter_identity"])
+        instant = now or datetime.now(UTC)
+        lease = value.get("lease")
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot dispatch host operations")
+        if not isinstance(lease, dict) or lease["attempt"] != attempt:
+            raise CrabError("host operation does not own an active discovery attempt")
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
+            raise CrabError("discovery attempt expired before host operation")
+        records = [event["record"] for event in value["events"]]
+        if any(row.get("operation") == identity for row in records):
+            raise CrabError("host operation already admitted; reconcile before retrying")
+        session_key = str(directory.resolve()) + ":"
+        if any(
+            session_key + row["operation"] not in active_operations()
+            for row in _pending_operations(value)
+        ):
+            raise CrabError("uncertain original host operation must reconcile before new effects")
+        settled = {row["operation"] for row in records if row.get("kind") == "operation-settled"}
+        pending = [
+            row
+            for row in records
+            if row.get("kind") == "operation-started" and row["operation"] not in settled
+        ]
+        reserved = sum(row["model_token_limit"] for row in pending)
+        if (
+            value["spent"]["model_tokens"] + reserved + model_token_limit
+            > value["limits"]["model_tokens"]
+        ):
+            raise CrabError("shared discovery model token allowance exhausted")
+        # Leave room for all in-flight terminal usage/settlement records, even
+        # if nested calls or a host crash occur after admission.
+        if len(value["events"]) + 4 * (len(pending) + 1) + 2 > EVENT_LIMIT:
+            raise CrabError("discovery event budget exhausted before host operation")
+        if kind == "provider":
+            _authorize_provider(value, attempt, identity, instant)
+        _event(
+            value,
+            {
+                "kind": "operation-started",
+                "attempt": attempt,
+                "operation": identity,
+                "operation_kind": kind,
+                "model_token_limit": model_token_limit,
+                "at": instant.isoformat(),
+            },
+        )
+        _save(directory, value)
+    with operation_scope(session_key + identity):
+        ticket: object = None
+        begun = False
+        tokens: int | None = 0 if kind == "provider" else None
+        try:
+            if kind == "model":
+                ticket = meter.begin(identity, model_token_limit)
+                begun = True
+            _require_operation_dispatch(directory, attempt, now=now)
+            return invoke(model_token_limit)
+        finally:
+            if begun:
+                try:
+                    tokens = meter.finish(ticket)
+                except Exception:
+                    tokens = None
+            if tokens is not None and (type(tokens) is not int or tokens < 0):
+                tokens = None
+            _settle_operation(directory, attempt, identity, tokens, now=now)
+
+
+def _require_operation_dispatch(
+    directory: Path, attempt: str, *, now: datetime | None = None
+) -> None:
+    """Recheck after native begin; preflight/setup cannot extend a lease."""
+    with state_lock(directory / "session.json"):
+        value = _load(directory)
+        lease = value.get("lease")
+        instant = now or datetime.now(UTC)
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot dispatch host operations")
+        if not isinstance(lease, dict) or lease["attempt"] != attempt:
+            raise CrabError("host operation lost its discovery attempt before dispatch")
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
+            raise CrabError("discovery attempt expired before host operation dispatch")
+
+
+def _settle_operation(
+    directory: Path,
+    attempt: str,
+    operation: str,
+    tokens: int | None,
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Commit native usage and broker completion in ONE state transaction.
+
+    The live trusted-host path can also finish a previously interrupted
+    usage-only write of this same original operation without recharging it.
+    Untrusted public usage receipts never create operation-settled records.
+    """
+    instant = now or datetime.now(UTC)
+    if tokens is not None and (type(tokens) is not int or tokens < 0):
+        raise CrabError("trusted settlement requires actual nonnegative tokens or unknown")
+    receipt = {
+        "attempt": attempt,
+        "operation": operation,
+        "author": "trusted host operation broker",
+        "tool": "native meter boundary",
+        "model_tokens": tokens,
+    }
+    with state_lock(directory / "session.json"):
+        value = _load(directory, require_current=False)
+        started = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-started"
+            and event["record"].get("operation") == operation
+            and event["record"].get("attempt") == attempt
+        ]
+        if len(started) != 1:
+            raise CrabError("trusted operation settlement lacks exact original admission")
+        completed = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-settled"
+            and event["record"].get("operation") == operation
+        ]
+        if completed:
+            recorded = [
+                event["record"]["receipt"]
+                for event in value["events"]
+                if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+                and event["record"]["receipt"]["operation"] == operation
+            ]
+            if (
+                len(completed) != 1
+                or completed[0].get("attempt") != attempt
+                or completed[0].get("usage_available") != (tokens is not None)
+                or receipt not in recorded
+            ):
+                raise CrabError("trusted operation already settled with different evidence")
+            return
+        _record_usage_locked(value, receipt, instant)
+        _event(
+            value,
+            {
+                "kind": "operation-settled",
+                "attempt": attempt,
+                "operation": operation,
+                "usage_available": tokens is not None,
+            },
+        )
+        _save(directory, value)
+
+
+def reconcile_trusted_operation(
+    directory: Path,
+    attempt: str,
+    operation: str,
+    actual_tokens: int | None,
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Trusted-host crash recovery for an original, already-accounted operation.
+
+    A reviewed host must independently verify the original native result and
+    supply its actual tokens. The public usage JSON command is NOT a completion
+    permit. No callback/provider/model invocation or new operation is performed.
+    """
+    if actual_tokens is not None and (type(actual_tokens) is not int or actual_tokens < 0):
+        raise CrabError("recovery requires native actual nonnegative tokens or unknown")
+    expected_receipt = {
+        "attempt": attempt,
+        "operation": operation,
+        "author": "trusted host operation broker",
+        "tool": "native meter boundary",
+        "model_tokens": actual_tokens,
+    }
+    with state_lock(directory / "session.json"):
+        value = _load(directory, require_current=False)
+        _require_live_meter(value)
+        started = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-started"
+            and event["record"].get("operation") == operation
+            and event["record"].get("attempt") == attempt
+        ]
+        usage = [
+            event["record"]["receipt"]
+            for event in value["events"]
+            if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+            and event["record"]["receipt"]["operation"] == operation
+        ]
+        if len(started) != 1 or expected_receipt not in usage:
+            raise CrabError("original broker operation and native usage must already be persisted")
+    # A fresh trusted-host preflight and exact original receipt are required,
+    # but the host is responsible for independently verifying the native usage.
+    _settle_operation(directory, attempt, operation, actual_tokens, now=now)
+
+
+def _authorize_provider(
+    value: dict[str, Any], attempt: str, operation: str, instant: datetime
+) -> None:
+    lease = value["lease"]
+    calls = [
+        event["record"]
+        for event in value["events"]
+        if event["record"].get("kind") == "provider-request-authorized"
+        and event["record"].get("attempt") == attempt
+    ]
+    if any(row["operation"] == operation for row in calls):
+        raise CrabError("provider operation already charged; reconcile before retrying")
+    if lease["action"] == "search" and calls:
+        raise CrabError("one leased search permits only one provider request")
+    prepaid = lease["action"] == "search" and not calls
+    if not prepaid:
+        if value["spent"]["requests"] >= value["limits"]["requests"]:
+            raise CrabError("global discovery request budget exhausted")
+        value["spent"]["requests"] += 1
+    _event(
+        value,
+        {
+            "kind": "provider-request-authorized",
+            "attempt": attempt,
+            "operation": operation,
+            "prepaid": prepaid,
+            "at": instant.isoformat(),
+        },
+    )
+
+
+def authorize_request(
+    directory: Path, attempt: str, operation: str, *, now: datetime | None = None
+) -> None:
     """Charge before a provider call; replay of an uncertain operation must reconcile."""
     if not operation or len(operation) > 200:
         raise CrabError("provider operation identity must be bounded")
     with state_lock(directory / "session.json"):
         value = _load(directory)
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot authorize new provider requests")
+        _require_live_meter(value)
+        instant = now or datetime.now(UTC)
         lease = value.get("lease")
         if not isinstance(lease, dict) or lease["attempt"] != attempt:
             raise CrabError("provider request does not own the active discovery attempt")
-        calls = [
-            event["record"]
-            for event in value["events"]
-            if event["record"].get("kind") == "provider-request-authorized"
-            and event["record"].get("attempt") == attempt
-        ]
-        if any(row["operation"] == operation for row in calls):
-            raise CrabError("provider operation already charged; reconcile before retrying")
-        if lease["action"] == "search" and calls:
-            raise CrabError("one leased search permits only one provider request")
-        if _exhausted(value, datetime.now(UTC)) or datetime.now(UTC) >= datetime.fromisoformat(
-            lease["expires_at"]
-        ):
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
             raise CrabError("discovery attempt expired before the provider effect")
-        prepaid = lease["action"] == "search" and not calls
-        if not prepaid:
-            if value["spent"]["requests"] >= value["limits"]["requests"]:
-                raise CrabError("global discovery request budget exhausted")
-            value["spent"]["requests"] += 1
+        _authorize_provider(value, attempt, operation, instant)
+        _save(directory, value)
+
+
+def authorize_host_dispatch(directory: Path, attempt: str, phase: str) -> None:
+    """Persist a no-replay callback permit without inventing provider usage.
+
+    A host phase is not necessarily an external provider request. The host must
+    separately call authorize_request() for each real provider operation.
+    """
+    with state_lock(directory / "session.json"):
+        value = _load(directory)
+        if value["finished"]:
+            raise CrabError("finished discovery session cannot dispatch host callbacks")
+        _require_live_meter(value)
+        lease = value.get("lease")
+        if not isinstance(lease, dict) or lease["attempt"] != attempt or lease["action"] != phase:
+            raise CrabError("host callback does not own the active discovery attempt")
+        if any(
+            event["record"].get("attempt") == attempt
+            and event["record"].get("kind")
+            in {"host-handler-dispatch-authorized", "provider-request-authorized"}
+            for event in value["events"]
+        ):
+            raise CrabError("host handler already dispatched; reconcile before retrying")
+        instant = datetime.now(UTC)
+        if _exhausted(value, instant) or instant >= datetime.fromisoformat(lease["expires_at"]):
+            raise CrabError("discovery attempt expired before host callback")
         _event(
             value,
             {
-                "kind": "provider-request-authorized",
+                "kind": "host-handler-dispatch-authorized",
                 "attempt": attempt,
-                "operation": operation,
-                "prepaid": prepaid,
-                "at": datetime.now(UTC).isoformat(),
+                "phase": phase,
+                "at": instant.isoformat(),
             },
         )
         _save(directory, value)
@@ -785,9 +1349,17 @@ def drive(
         action = next_action(directory)
         if action.get("finished"):
             return action
+        # A reconcile-only lease is not an executable provider action. Host
+        # settlement must use record_usage() for the original attempt instead.
+        if action["action"] == "reconcile":
+            return {"status": "reconciliation-required", "pending": action}
         handler = handlers.get(action["action"])
         if handler is None:
             return {"status": "host-handler-required", "pending": action}
+        # Reserve only the callback invocation, not a fictitious provider request.
+        # A failed handler must reconcile; its actual provider calls require
+        # separate operation-specific authorize_request() receipts.
+        authorize_host_dispatch(directory, action["attempt"], action["action"])
         receipt = handler(action)
         record(directory, receipt)
     return {"status": "host-action-limit", "report": report(directory)}
