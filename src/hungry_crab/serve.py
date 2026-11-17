@@ -15,12 +15,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol, TextIO, cast
+from urllib.parse import quote
 
 from .artifact_read import read_object
 from .attribution import (
@@ -179,7 +181,7 @@ class GhIssueClient:
         self.timeout = timeout
         self.token_env = token_env
 
-    def _run(self, *args: str) -> str:
+    def _run(self, *args: str, timeout: float | None = None) -> str:
         env = dict(os.environ)
         # A maw is a github.com repository. Without a host, gh asks `GH_HOST`, or the only host
         # it is logged in to, for `api` calls and for every `--repo owner/repo`; both are pinned.
@@ -196,7 +198,8 @@ class GhIssueClient:
             command[2:2] = ["--hostname", GH_HOSTNAME]
         try:
             proc = subprocess.run(
-                command, capture_output=True, env=env, timeout=self.timeout, check=False
+                command, capture_output=True, env=env,
+                timeout=self.timeout if timeout is None else timeout, check=False
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ExternalCommandError(f"failed to run gh {args[0]}: {exc}") from exc
@@ -208,6 +211,55 @@ class GhIssueClient:
     def run_gh(self, *args: str) -> str:
         """Expose the same authenticated gh runner to the guarded PR effect adapter."""
         return self._run(*args)
+
+    def novelty_heads(self, slug: Slug, targets: list[dict[str, Any]]) -> dict[str, str]:
+        """Read only the declared default/pending provider heads; acquire no code."""
+        if len(targets) > 52:
+            raise CrabError("novelty provider head budget exceeded")
+        deadline = time.monotonic() + 60
+
+        def query(path: str, projection: str) -> dict[str, Any]:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise CrabError("novelty provider observation deadline exhausted")
+            try:
+                return as_dict(json.loads(self._run(
+                    "api", path, "--jq", projection, timeout=min(self.timeout, remaining)
+                )))
+            except ValueError as exc:
+                raise CrabError("novelty provider returned invalid head metadata") from exc
+
+        default = query(f"repos/{slug}", "{default_branch: .default_branch}").get("default_branch")
+        result = {}
+        for target in targets:
+            role, ref = target["role"], target.get("ref")
+            if role == "receiving-selected":
+                continue
+            if not isinstance(ref, str):
+                raise CrabError("novelty provider reference is unavailable")
+            if role == "receiving-default":
+                if not isinstance(default, str) or ref not in {
+                    default, "refs/heads/" + default, "refs/remotes/origin/" + default
+                }:
+                    raise CrabError("frozen novelty default differs from the provider default")
+                data = query(
+                    f"repos/{slug}/git/ref/heads/{quote(default, safe='')}", "{sha: .object.sha}"
+                )
+            elif role == "receiving-pending" and (
+                match := re.fullmatch(r"refs/crab/qualification/pr-(\d+)", ref)
+            ):
+                data = query(
+                    f"repos/{slug}/pulls/{match[1]}", "{sha: .head.sha, state: .state}"
+                )
+                if data.get("state") != "open":
+                    raise CrabError("confirmed pending implementation is no longer open")
+            else:
+                raise CrabError("unsupported novelty provider reference")
+            sha = data.get("sha")
+            if not isinstance(sha, str) or re.fullmatch(r"[a-f0-9]{40}|[a-f0-9]{64}", sha) is None:
+                raise CrabError("novelty provider head is unavailable")
+            result[ref] = sha
+        return result
 
     def list_marked(self, slug: Slug, label: str) -> dict[str, dict[str, Any]]:
         """Markers in every issue of the repository, whatever its label, however many."""
@@ -824,7 +876,7 @@ def _serve_pull_requests(
         if before_publication is not None:
             before_publication()
         def recheck_base(read: Callable[[str], str | None]) -> None:
-            require_publication_novelty(meal_dir, [card])
+            require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
             if card.license_mode in COPY_MODES:
                 base_receipts_kept(prepared, attribution_file=config.attribution_file)(read)
 
@@ -1076,7 +1128,7 @@ def serve(
                     ledger.save(now=now)
                 raise
         if not label_ready:
-            require_publication_novelty(meal_dir, [card])
+            require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
             if not client.ensure_label(slug, label):
                 labels = []
                 log(
@@ -1085,7 +1137,7 @@ def serve(
                     "crab:<id> marker in the issue body."
                 )
             label_ready = True
-        require_publication_novelty(meal_dir, [card])
+        require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
         url = client.create(slug, title, body, labels, config.serve.assignees)
         ledger.ensure(card, now=now)
         ledger.mark(card.id, "served", url=url or None, now=now)

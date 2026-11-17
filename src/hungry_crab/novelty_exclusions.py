@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .analysis_context import fingerprint, installed_source_identity
+from .cache import Slug
 from .errors import CrabError
 from .nutrients import Candidate
 from .source_lines import physical_lines
@@ -202,7 +203,9 @@ def reconciliations(directory: Path, history: list[dict[str, Any]]) -> list[dict
     return result
 
 
-def require_publication_novelty(meal: Path, cards: Sequence[Candidate]) -> None:
+def require_publication_novelty(
+    meal: Path, cards: Sequence[Candidate], *, provider: object | None = None, slug: Slug | None = None
+) -> None:
     """A historical proposal never clears a known later implementation hold."""
     from .attribution import GitSourceReader
     from .discovery_session import _same_context, live_context
@@ -225,7 +228,7 @@ def require_publication_novelty(meal: Path, cards: Sequence[Candidate]) -> None:
         scope = data.get("novelty_scope")
         if scope is None:
             continue
-        if not scope.get("implementation_scope_complete"):
+        if scope.get("implementation_scope_complete") is not True:
             raise CrabError("novelty implementation scope is unresolved; publication held")
         if not _same_context(live_context(Path(data["maw_root"])), data["receiving_context"]):
             raise CrabError("receiving context changed; reconcile novelty before publication")
@@ -246,3 +249,12 @@ def require_publication_novelty(meal: Path, cards: Sequence[Candidate]) -> None:
             )
             if resolved is None or resolved.strip() != target["sha"]:
                 raise CrabError("implementation ref changed or is unavailable; publication held")
+        probe = getattr(provider, "novelty_heads", None)
+        if not callable(probe) or slug is None:
+            raise CrabError("current provider implementation heads unavailable; publication held")
+        current = probe(slug, scope["targets"])
+        if not isinstance(current, dict) or any(
+            current.get(target["ref"]) != target["sha"]
+            for target in scope["targets"] if target["role"] != "receiving-selected"
+        ):
+            raise CrabError("provider implementation changed; reconcile novelty before publication")
