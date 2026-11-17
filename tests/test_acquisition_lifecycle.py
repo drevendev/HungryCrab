@@ -228,18 +228,14 @@ def test_relay_handler_exits_after_delayed_connect_is_released(
         finally:
             completed.set()
 
-    monkeypatch.setattr(
-        socketserver.ThreadingTCPServer, "process_request_thread", observe_handler
-    )
+    monkeypatch.setattr(socketserver.ThreadingTCPServer, "process_request_thread", observe_handler)
     with ExitStack() as cleanup:
         upstream, peer = socket.socketpair()
         cleanup.enter_context(upstream)
         cleanup.enter_context(peer)
         peer.settimeout(3)
 
-        def delayed_connect(
-            address: tuple[str, int], *, timeout: float
-        ) -> socket.socket:
+        def delayed_connect(address: tuple[str, int], *, timeout: float) -> socket.socket:
             assert address == ("github.com", 443)
             connecting.set()
             assert release.wait(10), "test did not release the owned connector"
@@ -257,9 +253,7 @@ def test_relay_handler_exits_after_delayed_connect_is_released(
         try:
             with expected, quota.scope():
                 assert quota._server is not None
-                client = cleanup.enter_context(
-                    original_connect(quota._server.server_address, 3)
-                )
+                client = cleanup.enter_context(original_connect(quota._server.server_address, 3))
                 client.settimeout(3)
                 client.sendall(b"CONNECT github.com:443 HTTP/1.1\r\n\r\n")
                 assert entered.wait(3)
