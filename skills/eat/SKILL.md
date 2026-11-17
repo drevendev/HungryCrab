@@ -87,7 +87,10 @@ guards below. Selecting supervision does not grant donor execution or publicatio
    serve. Require a readable fresh meal and its manifests. Never reuse an older meal or
    describe partial/blocked evidence as success; repair the gate and rerun first.
 4. **Inspect actual source.** `crab explore init --meal-dir MEAL --maw . --plan PLAN.json`
-   names scope, flows, facets, author and attempt. A menu is an index, not a search ceiling.
+   names scope, flows, facets, author and attempt. Include `novelty_scope` in this initial
+   plan using explicitly acquired selected/default/confirmed-pending receiving objects;
+   freeze it before inspection or judgement. Unknown coverage remains unresolved.
+   A menu is an index, not a search ceiling.
    Use `discover index`/`find` for real filenames/declarations/literal locations before
    selecting windows. `packet` supports immutable source/test/import windows and Python AST
    queries; continue clipped declarations and page large artifacts with `view`. Associations
@@ -98,7 +101,7 @@ guards below. Selecting supervision does not grant donor execution or publicatio
    `history`/`issues` require a concrete deeper question. Preserve missing channels and budgets.
 5. **Verify the receiving flow and novelty.** Read selected/default/confirmed pending
    implementation; `discover novelty --maw .` reads explicitly acquired scoped objects with
-   retained role bindings. Freeze `novelty_scope` before judging exclusions. Reviewed
+   retained role bindings. Use the scope frozen by `explore init` for exclusions. Reviewed
    `already-present`/`duplicate` decisions need the exact typed role/ref/SHA/range basis.
    Record later implementations through `explore reconcile-novelty`; preserve the original
    observation and current publication holds. See `docs/novelty-exclusions.md`.
