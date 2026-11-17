@@ -1,12 +1,60 @@
 name: Open PR adversarial review
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Pinned owned probe group
+        type: choice
+        options: [full677, historic]
+        default: full677
+        required: true
+      subject:
+        description: Exact PR 677 source commit for the full review
+        default: d6ba132c81bbad940030fca8ae36702ca227e372
+        required: true
 permissions:
   contents: read
 env:
   PYTHONIOENCODING: utf-8
 jobs:
+  full677:
+    if: inputs.mode == 'full677'
+    name: Full PR 677 review (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.subject }}
+          path: subject
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --all-extras
+        working-directory: subject
+      - name: Install the owned full-review probes
+        working-directory: subject
+        run: uv run python -c "import shutil; shutil.copyfile('../harness/review/full677_probes.py', 'tests/test_full677_review.py')"
+      - name: Exercise the pinned candidate without model/provider calls
+        working-directory: subject
+        run: uv run pytest tests/test_full677_review.py -q -rA --junitxml=full677-results.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: full677-${{ matrix.os }}-py${{ matrix.python }}
+          path: subject/full677-results.xml
   probes:
+    if: inputs.mode == 'historic'
     name: Review PR ${{ matrix.pr }} (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -50,6 +98,7 @@ jobs:
           name: review-pr-${{ matrix.pr }}-${{ matrix.os }}-py${{ matrix.python }}
           path: subject/review-results.xml
   compatibility:
+    if: inputs.mode == 'historic'
     name: Verify combined CI without merging a branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
