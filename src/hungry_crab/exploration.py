@@ -38,6 +38,7 @@ from .licensing.path_grants import GrantResolver
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
 from .nutrients import Candidate, require_nutrient_id
+from .novelty_exclusions import EXCLUSIONS, capture_scope, exclusion_basis, exclusion_status
 from .source_lines import physical_lines
 from .typeutil import as_dict, as_list
 
@@ -239,6 +240,29 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
             "exploration_writes_learning": False,
         },
     }
+    if "novelty_scope" in plan:
+        # A repeated initialization of the same original inputs reuses its first
+        # observation, rather than turning a later ref movement into baseline fact.
+        root = meal_dir / "exploration"
+        if root.exists():
+            if is_link_stat(root.lstat()):
+                raise CrabError("exploration directory must not be linked")
+            previous = list(root.iterdir())
+            if len(previous) > 64:
+                raise CrabError("exploration snapshot read budget exceeded")
+            for candidate in previous:
+                if re.fullmatch(r"[a-f0-9]{64}", candidate.name) is None:
+                    continue
+                if is_link_stat(candidate.lstat()):
+                    raise CrabError("exploration snapshot must not be linked")
+                frozen = _snapshot(candidate)
+                if frozen.get("novelty_scope") is not None and {
+                    k: v for k, v in frozen.items() if k != "novelty_scope"
+                } == data:
+                    return candidate
+        data["novelty_scope"] = capture_scope(maw, plan["novelty_scope"], observed_context)
+    else:
+        data["novelty_scope"] = None
     identity = fingerprint(data)
     destination = meal_dir / "exploration" / identity
     with state_lock(destination / "snapshot.json"):
@@ -379,6 +403,12 @@ def _validate_record(
             "license-unresolved",
         }:
             raise CrabError("an unresolved disposition cannot claim individual semantic review")
+        if record["disposition"] in EXCLUSIONS and (
+            record["reviewed"] or "novelty_basis" in record
+        ):
+            record["novelty_basis"] = exclusion_basis(
+                data.get("novelty_scope"), record.get("novelty_basis")
+            )
     elif kind == "phase":
         if record.get("phase") not in PHASES or record.get("state") not in {
             "PASS",
@@ -399,11 +429,14 @@ def _validate_record(
         raise CrabError("use explore register for validated nutrient registration")
     elif kind == "inspection":
         raise CrabError("use discover inspect for actual inspected evidence")
+    elif kind == "novelty-reconciliation":
+        raise CrabError("use explore reconcile-novelty for a later implementation observation")
     else:
         raise CrabError("unsupported exploration event kind")
 
 
 def record(directory: Path, payload: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(payload)
     with state_lock(directory / "events.json"):
         snapshot = _snapshot(directory)
         registered_ids = {
@@ -441,6 +474,8 @@ def _append(directory: Path, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def report(directory: Path) -> dict[str, Any]:
+    from .novelty_exclusions import reconciliations
+
     data = _snapshot(directory)
     history = events(directory)
     facets = dict.fromkeys(data["plan"]["facets"], "unexplored")
@@ -457,9 +492,12 @@ def report(directory: Path) -> dict[str, Any]:
                 observed_hypotheses.setdefault(entry["hypothesis"], None)
                 examined.add(entry["hypothesis"])
         elif entry["kind"] == "decision":
+            entry = {**entry, "novelty_status": exclusion_status(data, entry)}
             observed_hypotheses.setdefault(entry["hypothesis"], None)
             hypotheses[entry["hypothesis"]] = entry
-            if entry.get("reviewed"):
+            if entry.get("reviewed") and entry["novelty_status"] not in {
+                "legacy-analyst-assertion", "unresolved-implementation-basis"
+            }:
                 examined.add(entry["hypothesis"])
             if entry.get("candidate_id"):
                 decisions[entry["candidate_id"]] = entry
@@ -474,6 +512,9 @@ def report(directory: Path) -> dict[str, Any]:
         c["id"]
         for c in data["initial_candidates"]
         if not decisions.get(c["id"], {}).get("reviewed")
+        or decisions.get(c["id"], {}).get("novelty_status") in {
+            "legacy-analyst-assertion", "unresolved-implementation-basis"
+        }
     ]
     # Facet transitions and newer hypotheses must not hide earlier unresolved work.
     # A later explicit review of the same hypothesis is the only resolution.
@@ -481,6 +522,9 @@ def report(directory: Path) -> dict[str, Any]:
         hypothesis
         for hypothesis in observed_hypotheses
         if not hypotheses.get(hypothesis, {}).get("reviewed")
+        or hypotheses.get(hypothesis, {}).get("novelty_status") in {
+            "legacy-analyst-assertion", "unresolved-implementation-basis"
+        }
     ]
     return {
         "schema": SCHEMA,
@@ -489,6 +533,18 @@ def report(directory: Path) -> dict[str, Any]:
         "receiving_context": data.get("receiving_context"),
         "legacy_context_unknown": data.get("legacy_context_unknown", True),
         "decisions": list(hypotheses.values()),
+        "novelty_scope": (
+            {
+                "scope_sha256": fingerprint(data["novelty_scope"]),
+                **{
+                    key: data["novelty_scope"][key]
+                    for key in ("observed_at", "targets", "omissions", "pending_collection")
+                },
+            }
+            if data.get("novelty_scope") is not None
+            else None
+        ),
+        "novelty_reconciliations": reconciliations(directory, history),
         "examined_hypotheses": sorted(examined),
         "registrations": [
             event["record"] for event in history if event["record"]["kind"] == "registration"

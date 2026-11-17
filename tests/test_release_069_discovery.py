@@ -34,6 +34,8 @@ def test_invoked_host_executes_replacements_and_an_original_probe(
     from hungry_crab.digest import DigestOptions
     from hungry_crab.exploration import initialize as explore_init
     from hungry_crab.exploration import record as explore_record
+    from hungry_crab.exploration import _snapshot, fingerprint
+    from hungry_crab.novelty_exclusions import BASIS_SCHEMA
     from hungry_crab.licensing.path_grants import GrantResolver
 
     maw = repository(
@@ -101,17 +103,37 @@ def test_invoked_host_executes_replacements_and_an_original_probe(
                 "facets": ["performance-streaming"],
                 "author": "fixture host",
                 "attempt": name,
+                "novelty_scope": {
+                    "prefixes": ["app.py"],
+                    "default_ref": git(maw, "symbolic-ref", "--short", "HEAD").strip(),
+                    "default_sha": action["context"]["sha"],
+                    "pending_collection": {"complete": True, "as_of": "owned fixture"},
+                },
             },
             maw=maw,
         )
         children[name] = child
         menu = menus[name]
+        frozen = _snapshot(child)["novelty_scope"]
+        selected = frozen["targets"][0]
+        exclusion = {
+            "schema": BASIS_SCHEMA,
+            "scope_sha256": fingerprint(frozen),
+            **{key: selected[key] for key in ("role", "ref", "sha")},
+            "evidence": [{
+                "path": "app.py", "start": 3, "end": 4,
+                "content_sha256": hashlib.sha256(
+                    b"def safe(stream):\n    return stream.read(4)\n"
+                ).hexdigest(),
+            }],
+        }
         explore_record(
             child,
             {
                 "kind": "decision",
                 "hypothesis": "bounded input",
                 "disposition": outcomes[name],
+                **({"novelty_basis": exclusion} if name != "gap" else {}),
                 "reviewed": True,
                 "author": "fixture host",
                 "tool": "controlled host fixture",

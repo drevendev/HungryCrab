@@ -43,6 +43,7 @@ from .ledger import Ledger
 from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
 from .nutrients import Candidate, merge_notes, require_nutrient_id
+from .novelty_exclusions import require_publication_novelty
 from .pr_publication import (
     PreparedPullRequest,
     PullRequestPublication,
@@ -727,6 +728,7 @@ def _serve_pull_requests(
     receipts: Mapping[str, str],
     *,
     menu: dict[str, Any],
+    meal_dir: Path,
     maw_root: Path,
     config: MawConfig,
     ledger: Ledger,
@@ -821,6 +823,13 @@ def _serve_pull_requests(
             announced = True
         if before_publication is not None:
             before_publication()
+        require_publication_novelty(meal_dir, [card])
+
+        def recheck_base(read: Callable[[str], str | None]) -> None:
+            require_publication_novelty(meal_dir, [card])
+            if card.license_mode in COPY_MODES:
+                base_receipts_kept(prepared, attribution_file=config.attribution_file)(read)
+
         return publish_prepared_cleanroom_git_pull_request(
             card.id,
             prepared,
@@ -829,11 +838,7 @@ def _serve_pull_requests(
             list_marked_prs=lambda: client.list_marked_prs(slug),
             run_gh=client.run_gh,
             allow_create=allow_create,
-            base_guard=(
-                base_receipts_kept(prepared, attribution_file=config.attribution_file)
-                if card.license_mode in COPY_MODES
-                else None
-            ),
+            base_guard=recheck_base,
         )
 
     plan = prepare_pull_request_plan(
@@ -917,6 +922,8 @@ def serve(
     cards, skipped = select_cards(menu, options, ledger)
     for card in cards:
         _check_publication_identity(card, menu)
+    if options.mode != "dry-run":
+        require_publication_novelty(meal_dir, cards)
     if options.notes is not None:
         notes = load_notes(options.notes)
         for card in cards:
@@ -956,6 +963,7 @@ def serve(
             cards,
             receipts,
             menu=menu,
+            meal_dir=meal_dir,
             maw_root=maw_root,
             config=config,
             ledger=ledger,
@@ -1072,6 +1080,7 @@ def serve(
                     ledger.save(now=now)
                 raise
         if not label_ready:
+            require_publication_novelty(meal_dir, [card])
             if not client.ensure_label(slug, label):
                 labels = []
                 log(
@@ -1080,6 +1089,7 @@ def serve(
                     "crab:<id> marker in the issue body."
                 )
             label_ready = True
+        require_publication_novelty(meal_dir, [card])
         url = client.create(slug, title, body, labels, config.serve.assignees)
         ledger.ensure(card, now=now)
         ledger.mark(card.id, "served", url=url or None, now=now)
