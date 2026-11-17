@@ -438,6 +438,71 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
         return lease
 
 
+def _record_usage_locked(
+    value: dict[str, Any], receipt: dict[str, Any], instant: datetime
+) -> bool:
+    """Apply a validated usage receipt in memory while the session lock is held.
+
+    Return False for an identical retry. The caller owns the single durable
+    save; a broker settlement must commit usage and completion together.
+    """
+    operation = receipt["operation"]
+    attempt = receipt["attempt"]
+    tokens = receipt["model_tokens"]
+    reconciliation = False
+    for event in value["events"]:
+        row = event["record"]
+        if (
+            row.get("kind") not in {"model-usage", "model-usage-reconciled"}
+            or row["receipt"]["operation"] != operation
+        ):
+            continue
+        previous = row["receipt"]
+        if previous == receipt:
+            return False
+        if (
+            previous["model_tokens"] is None
+            and tokens is not None
+            and {**previous, "model_tokens": tokens} == receipt
+        ):
+            reconciliation = True
+            continue
+        raise CrabError("model usage operation already exists with a different receipt")
+    if not any(
+        event["record"].get("kind") == "reserved-action"
+        and event["record"].get("attempt") == attempt
+        for event in value["events"]
+    ):
+        raise CrabError("model usage does not belong to a known discovery attempt")
+    if tokens is None:
+        _finish(value, "usage-unavailable", instant)
+        value["model_usage_complete"] = False
+        value.setdefault("unresolved_usage", []).append(operation)
+    else:
+        value["spent"]["model_tokens"] += tokens
+        if reconciliation:
+            unresolved = value.get("unresolved_usage")
+            if isinstance(unresolved, list) and operation in unresolved:
+                unresolved.remove(operation)
+                value["model_usage_complete"] = not unresolved and not value.get(
+                    "unattributed_usage_unknown", False
+                )
+        reason = _exhausted(value, instant)
+        if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
+            _finish(value, "model-token-budget", instant)
+        elif not value["finished"] and reason:
+            _finish(value, reason, instant)
+    _event(
+        value,
+        {
+            "kind": "model-usage-reconciled" if reconciliation else "model-usage",
+            "receipt": receipt,
+            "at": instant.isoformat(),
+        },
+    )
+    return True
+
+
 def record_usage(
     directory: Path, receipt: dict[str, Any], *, now: datetime | None = None
 ) -> dict[str, Any]:
@@ -450,8 +515,8 @@ def record_usage(
     fields = {"operation", "attempt", "author", "tool", "model_tokens"}
     if set(receipt) != fields or len(json.dumps(receipt).encode()) > 16_000:
         raise CrabError("model usage requires only bounded operation/attempt/author/tool/tokens")
-    operation = _text(receipt["operation"], "usage.operation", 200)
-    attempt = _text(receipt["attempt"], "usage.attempt", 200)
+    _text(receipt["operation"], "usage.operation", 200)
+    _text(receipt["attempt"], "usage.attempt", 200)
     _text(receipt["author"], "usage.author", 200)
     _text(receipt["tool"], "usage.tool", 200)
     tokens = receipt["model_tokens"]
@@ -459,58 +524,8 @@ def record_usage(
         raise CrabError("usage needs actual nonnegative model_tokens or null for unknown use")
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
-        reconciliation = False
-        for event in value["events"]:
-            row = event["record"]
-            if (
-                row.get("kind") not in {"model-usage", "model-usage-reconciled"}
-                or row["receipt"]["operation"] != operation
-            ):
-                continue
-            previous = row["receipt"]
-            if previous == receipt:
-                return summary(value)
-            if (
-                previous["model_tokens"] is None
-                and tokens is not None
-                and {**previous, "model_tokens": tokens} == receipt
-            ):
-                reconciliation = True
-                continue
-            raise CrabError("model usage operation already exists with a different receipt")
-        if not any(
-            event["record"].get("kind") == "reserved-action"
-            and event["record"].get("attempt") == attempt
-            for event in value["events"]
-        ):
-            raise CrabError("model usage does not belong to a known discovery attempt")
-        if tokens is None:
-            _finish(value, "usage-unavailable", instant)
-            value["model_usage_complete"] = False
-            value.setdefault("unresolved_usage", []).append(operation)
-        else:
-            value["spent"]["model_tokens"] += tokens
-            if reconciliation:
-                unresolved = value.get("unresolved_usage")
-                if isinstance(unresolved, list) and operation in unresolved:
-                    unresolved.remove(operation)
-                    value["model_usage_complete"] = not unresolved and not value.get(
-                        "unattributed_usage_unknown", False
-                    )
-            reason = _exhausted(value, instant)
-            if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
-                _finish(value, "model-token-budget", instant)
-            elif not value["finished"] and reason:
-                _finish(value, reason, instant)
-        _event(
-            value,
-            {
-                "kind": "model-usage-reconciled" if reconciliation else "model-usage",
-                "receipt": receipt,
-                "at": instant.isoformat(),
-            },
-        )
-        _save(directory, value)
+        if _record_usage_locked(value, receipt, instant):
+            _save(directory, value)
         return summary(value)
 
 
@@ -1008,21 +1023,55 @@ def _settle_operation(
     *,
     now: datetime | None = None,
 ) -> None:
-    """The broker's terminal path; semantic JSON cannot create this event."""
-    # Accounting intentionally tolerates expired/stopped/stale receiving state.
-    record_usage(
-        directory,
-        {
-            "attempt": attempt,
-            "operation": operation,
-            "author": "trusted host operation broker",
-            "tool": "native meter boundary",
-            "model_tokens": tokens,
-        },
-        now=now,
-    )
+    """Commit native usage and broker completion in ONE state transaction.
+
+    The live trusted-host path can also finish a previously interrupted
+    usage-only write of this same original operation without recharging it.
+    Untrusted public usage receipts never create operation-settled records.
+    """
+    instant = now or datetime.now(UTC)
+    if tokens is not None and (type(tokens) is not int or tokens < 0):
+        raise CrabError("trusted settlement requires actual nonnegative tokens or unknown")
+    receipt = {
+        "attempt": attempt,
+        "operation": operation,
+        "author": "trusted host operation broker",
+        "tool": "native meter boundary",
+        "model_tokens": tokens,
+    }
     with state_lock(directory / "session.json"):
         value = _load(directory, require_current=False)
+        started = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-started"
+            and event["record"].get("operation") == operation
+            and event["record"].get("attempt") == attempt
+        ]
+        if len(started) != 1:
+            raise CrabError("trusted operation settlement lacks exact original admission")
+        completed = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-settled"
+            and event["record"].get("operation") == operation
+        ]
+        if completed:
+            recorded = [
+                event["record"]["receipt"]
+                for event in value["events"]
+                if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+                and event["record"]["receipt"]["operation"] == operation
+            ]
+            if (
+                len(completed) != 1
+                or completed[0].get("attempt") != attempt
+                or completed[0].get("usage_available") != (tokens is not None)
+                or receipt not in recorded
+            ):
+                raise CrabError("trusted operation already settled with different evidence")
+            return
+        _record_usage_locked(value, receipt, instant)
         _event(
             value,
             {
@@ -1032,16 +1081,9 @@ def _settle_operation(
                 "usage_available": tokens is not None,
             },
         )
-        if tokens is not None:
-            started = next(
-                event["record"]
-                for event in value["events"]
-                if event["record"].get("kind") == "operation-started"
-                and event["record"].get("operation") == operation
-            )
-            if tokens > started["model_token_limit"]:
-                value["meter_cap_violated"] = True
-                _finish(value, "model-token-budget", now or datetime.now(UTC))
+        if tokens is not None and tokens > started[0]["model_token_limit"]:
+            value["meter_cap_violated"] = True
+            _finish(value, "model-token-budget", instant)
         _save(directory, value)
 
 
