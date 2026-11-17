@@ -1087,6 +1087,55 @@ def _settle_operation(
         _save(directory, value)
 
 
+
+def reconcile_trusted_operation(
+    directory: Path,
+    attempt: str,
+    operation: str,
+    actual_tokens: int | None,
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Trusted-host crash recovery for an original, already-accounted operation.
+
+    A reviewed host must independently verify the original native result and
+    supply its actual tokens. The public usage JSON command is NOT a completion
+    permit. No callback/provider/model invocation or new operation is performed.
+    """
+    if actual_tokens is not None and (
+        type(actual_tokens) is not int or actual_tokens < 0
+    ):
+        raise CrabError("recovery requires native actual nonnegative tokens or unknown")
+    expected_receipt = {
+        "attempt": attempt,
+        "operation": operation,
+        "author": "trusted host operation broker",
+        "tool": "native meter boundary",
+        "model_tokens": actual_tokens,
+    }
+    with state_lock(directory / "session.json"):
+        value = _load(directory, require_current=False)
+        require_meter(value.get("meter_identity"))
+        started = [
+            event["record"]
+            for event in value["events"]
+            if event["record"].get("kind") == "operation-started"
+            and event["record"].get("operation") == operation
+            and event["record"].get("attempt") == attempt
+        ]
+        usage = [
+            event["record"]["receipt"]
+            for event in value["events"]
+            if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+            and event["record"]["receipt"]["operation"] == operation
+        ]
+        if len(started) != 1 or expected_receipt not in usage:
+            raise CrabError("original broker operation and native usage must already be persisted")
+    # A fresh trusted-host preflight and exact original receipt are required,
+    # but the host is responsible for independently verifying the native usage.
+    _settle_operation(directory, attempt, operation, actual_tokens, now=now)
+
+
 def _authorize_provider(
     value: dict[str, Any], attempt: str, operation: str, instant: datetime
 ) -> None:
