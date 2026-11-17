@@ -63,7 +63,11 @@ def exclusion_basis(scope: object, requested: object) -> dict[str, Any]:
     evidence = []
     for ref in refs:
         if not isinstance(ref, dict) or set(ref) - {
-            "path", "start", "end", "content_sha256", "file_sha256"
+            "path",
+            "start",
+            "end",
+            "content_sha256",
+            "file_sha256",
         }:
             raise CrabError("invalid novelty implementation range")
         path, start, end = ref.get("path"), ref.get("start"), ref.get("end")
@@ -107,10 +111,21 @@ def reconcile(directory: Path, plan: dict[str, Any]) -> dict[str, Any]:
     from .exploration import _append, _snapshot, _text, _write_new, events
     from .file_lock import state_lock
 
-    if set(plan) != {
-        "operation", "original_event", "scope", "novelty_basis", "author", "tool", "attempt", "reason"
-    } or len(json.dumps(plan).encode()) > 32_000:
-        raise CrabError("novelty reconciliation requires bounded original-event and scope inputs")
+    if (
+        set(plan)
+        != {
+            "operation",
+            "original_event",
+            "scope",
+            "novelty_basis",
+            "author",
+            "tool",
+            "attempt",
+            "reason",
+        }
+        or len(json.dumps(plan).encode()) > 32_000
+    ):
+        raise CrabError("novelty reconciliation needs bounded original-event and scope inputs")
     for key in ("author", "tool", "attempt", "reason"):
         _text(plan, key)
     operation = plan["operation"]
@@ -219,7 +234,11 @@ def require_publication_novelty(meal: Path, cards: Sequence[Candidate]) -> None:
             ref = target.get("ref")
             resolved = (
                 reader._bounded_read(
-                    "--no-replace-objects", "rev-parse", "--verify", "--end-of-options", ref,
+                    "--no-replace-objects",
+                    "rev-parse",
+                    "--verify",
+                    "--end-of-options",
+                    ref,
                     stdout_limit=128,
                 )
                 if isinstance(ref, str)

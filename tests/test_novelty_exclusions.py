@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from fixture_builder import git
 from test_exploration import PLAN, STREAMING, observation, pair
-from test_serve import FakeIssues, MAW_SLUG
+from test_serve import MAW_SLUG, FakeIssues
 
 from hungry_crab import exploration as exploration
 from hungry_crab.analysis_context import fingerprint
@@ -68,8 +68,14 @@ def basis(scope: dict[str, Any], role: str = "receiving-pending") -> dict[str, A
         "schema": BASIS_SCHEMA,
         "scope_sha256": fingerprint(scope),
         **{key: target[key] for key in ("role", "ref", "sha")},
-        "evidence": [{"path": "app.py", "start": 1, "end": 2,
-                      "content_sha256": hashlib.sha256(window.encode()).hexdigest()}],
+        "evidence": [
+            {
+                "path": "app.py",
+                "start": 1,
+                "end": 2,
+                "content_sha256": hashlib.sha256(window.encode()).hexdigest(),
+            }
+        ],
     }
 
 
@@ -79,8 +85,14 @@ def test_reviewed_exclusion_keeps_actual_role_pin_ranges_and_observation(
 ) -> None:
     directory, _, _, finding = setup(tmp_path)
     scope = exploration._snapshot(directory)["novelty_scope"]
-    entry = observation(finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-                        disposition="duplicate", novelty_basis=basis(scope, role))
+    entry = observation(
+        finding,
+        kind="decision",
+        hypothesis="bounded reads",
+        reviewed=True,
+        disposition="duplicate",
+        novelty_basis=basis(scope, role),
+    )
     event = exploration.record(directory, entry)
     actual = event["record"]["novelty_basis"]
     assert actual["observed_at"] == scope["observed_at"]
@@ -91,7 +103,9 @@ def test_reviewed_exclusion_keeps_actual_role_pin_ranges_and_observation(
     assert exploration.record(directory, entry) == event
 
 
-@pytest.mark.parametrize("change", ["role", "ref", "sha", "path", "range", "bytes", "scope", "time"])
+@pytest.mark.parametrize(
+    "change", ["role", "ref", "sha", "path", "range", "bytes", "scope", "time"]
+)
 def test_old_unrelated_or_changed_evidence_cannot_verify_pending_equivalence(
     tmp_path: Path, change: str
 ) -> None:
@@ -115,17 +129,27 @@ def test_old_unrelated_or_changed_evidence_cannot_verify_pending_equivalence(
     else:
         claimed["observed_at"] = "2000-01-01T00:00:00Z"
     with pytest.raises(CrabError, match="novelty"):
-        exploration.record(directory, observation(
-            finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-            disposition="duplicate", novelty_basis=claimed,
-        ))
+        exploration.record(
+            directory,
+            observation(
+                finding,
+                kind="decision",
+                hypothesis="bounded reads",
+                reviewed=True,
+                disposition="duplicate",
+                novelty_basis=claimed,
+            ),
+        )
     assert not exploration.events(directory)
 
 
-def test_plain_duplicate_prose_remains_unresolved_and_legacy_is_not_upgraded(tmp_path: Path) -> None:
+def test_plain_duplicate_prose_remains_unresolved_and_legacy_is_not_upgraded(
+    tmp_path: Path,
+) -> None:
     directory, _, _, finding = pair(tmp_path)
-    entry = observation(finding, kind="decision", hypothesis="bounded reads",
-                        reviewed=True, disposition="duplicate")
+    entry = observation(
+        finding, kind="decision", hypothesis="bounded reads", reviewed=True, disposition="duplicate"
+    )
     with pytest.raises(CrabError, match="frozen novelty scope"):
         exploration.record(directory, entry)
     frozen = exploration._snapshot(directory)
@@ -154,14 +178,26 @@ def reconciliation_plan(directory: Path, maw: Path, original: dict[str, Any]) ->
     pin = pending_commit(maw)
     content = "".join(physical_lines(STREAMING, keepends=True)[:2])
     return {
-        "operation": "later-pending", "original_event": original["sha256"],
+        "operation": "later-pending",
+        "original_event": original["sha256"],
         "scope": scope_plan(maw, pin),
         "novelty_basis": {
-            "schema": BASIS_SCHEMA, "role": "receiving-pending", "ref": PENDING, "sha": pin,
-            "evidence": [{"path": "app.py", "start": 1, "end": 2,
-                          "content_sha256": hashlib.sha256(content.encode()).hexdigest()}],
+            "schema": BASIS_SCHEMA,
+            "role": "receiving-pending",
+            "ref": PENDING,
+            "sha": pin,
+            "evidence": [
+                {
+                    "path": "app.py",
+                    "start": 1,
+                    "end": 2,
+                    "content_sha256": hashlib.sha256(content.encode()).hexdigest(),
+                }
+            ],
         },
-        "author": "owned analyst", "tool": "owned fixture", "attempt": "later-1",
+        "author": "owned analyst",
+        "tool": "owned fixture",
+        "attempt": "later-1",
         "reason": "a separately observed implementation supersedes this proposal now",
     }
 
@@ -173,10 +209,18 @@ def test_later_fix_is_an_append_only_supersession_and_holds_publication(
     finding["source_behavior"] = "reads bounded chunks"
     registered = exploration.register(directory, finding, source_repo=donor)
     identity = registered["record"]["card"]["id"]
-    original = exploration.record(directory, observation(
-        finding, kind="decision", hypothesis="bounded reads", disposition="verified-gap",
-        reviewed=True, candidate_id=identity, selected=True,
-    ))
+    original = exploration.record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            disposition="verified-gap",
+            reviewed=True,
+            candidate_id=identity,
+            selected=True,
+        ),
+    )
     snapshot_bytes = (directory / "snapshot.json").read_bytes()
     old_events = exploration.events(directory)
     request = reconciliation_plan(directory, maw, original)
@@ -186,7 +230,7 @@ def test_later_fix_is_an_append_only_supersession_and_holds_publication(
     event = json.loads(capsys.readouterr().out)
     assert event["record"]["original_disposition"] == "verified-gap"
     assert not event["record"]["baseline_presence_proven"]
-    assert exploration.events(directory)[:len(old_events)] == old_events
+    assert exploration.events(directory)[: len(old_events)] == old_events
     assert (directory / "snapshot.json").read_bytes() == snapshot_bytes
     result = exploration.report(directory)
     assert result["decisions"][0]["disposition"] == "verified-gap"
@@ -197,14 +241,55 @@ def test_later_fix_is_an_append_only_supersession_and_holds_publication(
     assert menu is not None and identity in {c.id for c in menu_candidates(menu)}
     client = FakeIssues()
     with pytest.raises(CrabError, match="supersedes"):
-        serve(directory.parent.parent, maw, ServeOptions(ids=[identity], mode="issue"),
-              config=MawConfig.load(maw), ledger=Ledger(None), client=client,
-              slug_lookup=lambda _: MAW_SLUG)
+        serve(
+            directory.parent.parent,
+            maw,
+            ServeOptions(ids=[identity], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
     assert not client.created and not client.labels
+    known = FakeIssues({identity: {"number": 17, "state": "open"}})
+    reconciled = serve(
+        directory.parent.parent,
+        maw,
+        ServeOptions(ids=[identity], mode="issue"),
+        config=MawConfig.load(maw),
+        ledger=Ledger(None),
+        client=known,
+        slug_lookup=lambda _: MAW_SLUG,
+    )
+    assert not known.created and not reconciled.served
+    assert any("issue #17 exists" in row["reason"] for row in reconciled.skipped)
     changed = copy.deepcopy(request)
     changed["reason"] = "changed original interpretation"
     with pytest.raises(CrabError, match="different plan"):
         reconcile(directory, changed)
+
+
+def test_reconciliation_cannot_be_forged_or_silently_use_changed_artifact(tmp_path: Path) -> None:
+    directory, _, maw, finding = setup(tmp_path, pending=False)
+    with pytest.raises(CrabError, match="use explore reconcile-novelty"):
+        exploration.record(
+            directory, observation(finding, kind="novelty-reconciliation")
+        )
+    original = exploration.record(
+        directory,
+        observation(
+            finding, kind="decision", hypothesis="bounded reads",
+            disposition="not-investigated", reviewed=False,
+        ),
+    )
+    request = reconciliation_plan(directory, maw, original)
+    event = reconcile(directory, request)
+    artifact = directory / event["record"]["artifact"]
+    artifact.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(CrabError, match="artifact changed"):
+        exploration.report(directory)
+    with pytest.raises(CrabError, match="artifact changed"):
+        reconcile(directory, request)
 
 
 @pytest.mark.parametrize("missing", ["ref", "commit"])
@@ -221,10 +306,17 @@ def test_unknown_pending_scope_never_resolves_exclusion(tmp_path: Path, missing:
     fake = basis(scope, "receiving-selected")
     fake.update(role="receiving-pending", ref=PENDING, sha=pin)
     with pytest.raises(CrabError, match="unavailable"):
-        exploration.record(directory, observation(
-            finding, kind="decision", hypothesis="bounded reads", disposition="already-present",
-            reviewed=True, novelty_basis=fake,
-        ))
+        exploration.record(
+            directory,
+            observation(
+                finding,
+                kind="decision",
+                hypothesis="bounded reads",
+                disposition="already-present",
+                reviewed=True,
+                novelty_basis=fake,
+            ),
+        )
     assert not exploration.events(directory)
 
 
@@ -234,9 +326,18 @@ def test_provider_marker_control_and_ref_movement_before_effect(tmp_path: Path) 
     registered = exploration.register(directory, finding, source_repo=donor)
     identity = registered["record"]["card"]["id"]
     options = ServeOptions(ids=[identity], mode="issue")
-    client = FakeIssues({identity: {"number": 17, "url": "https://github.com/owned/maw/issues/17", "state": "open"}})
-    report = serve(directory.parent.parent, maw, options, config=MawConfig.load(maw),
-                   ledger=Ledger(None), client=client, slug_lookup=lambda _: MAW_SLUG)
+    client = FakeIssues(
+        {identity: {"number": 17, "url": "https://github.com/owned/maw/issues/17", "state": "open"}}
+    )
+    report = serve(
+        directory.parent.parent,
+        maw,
+        options,
+        config=MawConfig.load(maw),
+        ledger=Ledger(None),
+        client=client,
+        slug_lookup=lambda _: MAW_SLUG,
+    )
     assert not client.created
     assert any("issue #17 exists" in row["reason"] for row in report.skipped)
 
@@ -247,6 +348,13 @@ def test_provider_marker_control_and_ref_movement_before_effect(tmp_path: Path) 
 
     moving = MovingProvider()
     with pytest.raises(CrabError, match="ref changed"):
-        serve(directory.parent.parent, maw, options, config=MawConfig.load(maw),
-              ledger=Ledger(None), client=moving, slug_lookup=lambda _: MAW_SLUG)
+        serve(
+            directory.parent.parent,
+            maw,
+            options,
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=moving,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
     assert not moving.created and not moving.labels
