@@ -227,7 +227,7 @@ def require_publication_novelty(
                 raise CrabError("later implementation supersedes this proposal; publication held")
         scope = data.get("novelty_scope")
         if scope is None:
-            continue
+            raise CrabError("novelty implementation scope is unknown; publication held")
         if scope.get("implementation_scope_complete") is not True:
             raise CrabError("novelty implementation scope is unresolved; publication held")
         if not _same_context(live_context(Path(data["maw_root"])), data["receiving_context"]):

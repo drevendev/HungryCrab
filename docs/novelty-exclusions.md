@@ -72,6 +72,7 @@ reconciliation, licensing, path grants, receipt scanning and publication guards.
 For scoped findings, the provider must also supply current default and declared
 pending heads. The built-in GitHub client reads only that bounded metadata under
 a shared 60-second deadline, with no source fetch. Changed/closed pending heads,
+a newly opened or unconfirmed pending PR (at most fifty are supported),
 a changed default, unavailable metadata or a client without this capability hold
 new creation. Already existing marked artifacts can still reconcile without a
 new publication. Provider identity is never inferred from stale local refs.
@@ -84,6 +85,10 @@ Older snapshots and events remain readable. A legacy duplicate claim is an
 analyst assertion with unknown implementation authority; it is not upgraded to
 verified pending equivalence. Reports retain the original records and keep
 unresolved hypotheses visible. Unreviewed new assertions may also remain pending.
+An original behavior proposal with no frozen novelty scope can still be prepared
+and previewed, but cannot create a new external artifact using unknown scope as
+authority. Existing provider artifacts remain reconcilable. Freeze a fresh
+explicit exploration for new effects instead of rewriting a legacy snapshot.
 The exploration event chain is the only judgement history; this adds no second
 ledger and changes no stable nutrient key. Deterministic fixtures and Actions
 checks establish these mechanics, not useful-change yield or model qualification.
