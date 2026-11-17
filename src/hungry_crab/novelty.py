@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -161,6 +162,7 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
     no implicit fetch, branch switch, provider call or assertion of global absence.
     """
     context = live_context(maw)
+    observed_at = datetime.now(UTC).isoformat()
     prefixes = plan.get("prefixes")
     pending = plan.get("pending", [])
     if (
@@ -176,7 +178,11 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
     if type(include_differences) is not bool:
         raise CrabError("include_differences must be a boolean")
     targets = [
-        {"role": "receiving-selected", "sha": context["sha"], "ref": None},
+        {
+            "role": "receiving-selected",
+            "sha": context["sha"],
+            "ref": context["selected_ref"] or "HEAD",
+        },
         {
             "role": "receiving-default",
             "sha": plan.get("default_sha"),
@@ -253,6 +259,7 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
         bindings.append(
             {
                 **target,
+                "observed_at": observed_at,
                 "files": selected,
                 "scope_files_observed": len(eligible),
                 "scope_complete": len(omissions) == omissions_before,
@@ -276,6 +283,7 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
     )
     result = {
         "schema": "hungry-crab.implementation-scope/1",
+        "observed_at": observed_at,
         "receiving_context": context,
         "prefixes": prefixes,
         "targets": bindings,
