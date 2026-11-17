@@ -493,10 +493,11 @@ def report(directory: Path) -> dict[str, Any]:
                 observed_hypotheses.setdefault(entry["hypothesis"], None)
                 examined.add(entry["hypothesis"])
         elif entry["kind"] == "decision":
-            entry = {**entry, "novelty_status": exclusion_status(data, entry)}
+            if entry["disposition"] in EXCLUSIONS:
+                entry = {**entry, "novelty_status": exclusion_status(data, entry)}
             observed_hypotheses.setdefault(entry["hypothesis"], None)
             hypotheses[entry["hypothesis"]] = entry
-            if entry.get("reviewed") and entry["novelty_status"] not in {
+            if entry.get("reviewed") and entry.get("novelty_status") not in {
                 "legacy-analyst-assertion",
                 "unresolved-implementation-basis",
             }:
