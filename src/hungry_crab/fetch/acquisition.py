@@ -57,6 +57,16 @@ class _RelayScope:
         with self._lock:
             self._sockets.discard(stream)
 
+    def admit_connect(self, client: socket.socket) -> bool:
+        """Linearize upstream admission with stop, before calling the connector.
+
+        A client accepted earlier is not a permit to start upstream work after
+        teardown. Already-admitted connects retain their original scope and
+        their late results still have to pass register().
+        """
+        with self._lock:
+            return not self._stopped and client in self._sockets
+
     @property
     def stopped(self) -> bool:
         with self._lock:
@@ -338,6 +348,8 @@ class AcquisitionBudget:
                     }:
                         return
                     host = first.split()[1].split(b":")[0].decode("ascii")
+                    if not connections.admit_connect(client):
+                        return
                     upstream = socket.create_connection((host, 443), timeout=30)
                     if not connections.register(upstream):
                         return
