@@ -162,7 +162,7 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
     no implicit fetch, branch switch, provider call or assertion of global absence.
     """
     context = live_context(maw)
-    observed_at = datetime.now(UTC).isoformat()
+    observation_started_at = datetime.now(UTC).isoformat()
     prefixes = plan.get("prefixes")
     pending = plan.get("pending", [])
     if (
@@ -259,7 +259,6 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
         bindings.append(
             {
                 **target,
-                "observed_at": observed_at,
                 "files": selected,
                 "scope_files_observed": len(eligible),
                 "scope_complete": len(omissions) == omissions_before,
@@ -281,8 +280,12 @@ def implementation_scope(maw: Path, plan: dict[str, Any]) -> dict[str, Any]:
         and isinstance(collection.get("as_of"), str)
         and 0 < len(collection["as_of"]) <= 60
     )
+    observed_at = datetime.now(UTC).isoformat()
+    for binding in bindings:
+        binding["observed_at"] = observed_at
     result = {
         "schema": "hungry-crab.implementation-scope/1",
+        "observation_started_at": observation_started_at,
         "observed_at": observed_at,
         "receiving_context": context,
         "prefixes": prefixes,

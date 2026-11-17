@@ -42,8 +42,8 @@ from .fs import is_link_stat
 from .ledger import Ledger
 from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
-from .nutrients import Candidate, merge_notes, require_nutrient_id
 from .novelty_exclusions import require_publication_novelty
+from .nutrients import Candidate, merge_notes, require_nutrient_id
 from .pr_publication import (
     PreparedPullRequest,
     PullRequestPublication,
@@ -823,8 +823,6 @@ def _serve_pull_requests(
             announced = True
         if before_publication is not None:
             before_publication()
-        require_publication_novelty(meal_dir, [card])
-
         def recheck_base(read: Callable[[str], str | None]) -> None:
             require_publication_novelty(meal_dir, [card])
             if card.license_mode in COPY_MODES:
@@ -922,8 +920,6 @@ def serve(
     cards, skipped = select_cards(menu, options, ledger)
     for card in cards:
         _check_publication_identity(card, menu)
-    if options.mode != "dry-run":
-        require_publication_novelty(meal_dir, cards)
     if options.notes is not None:
         notes = load_notes(options.notes)
         for card in cards:
