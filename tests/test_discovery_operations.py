@@ -464,3 +464,87 @@ def test_orphaned_operation_cannot_grant_new_effects_after_host_restart(tmp_path
     sessions.record_usage(directory, usage(action, 17, "interrupted-original"), now=now)
     assert sessions.next_action(directory, now=now)["action"] == "reconcile"
     assert sessions._load(directory)["lease"]["attempt"] == action["attempt"]
+
+
+def test_broker_usage_and_completion_are_saved_atomically(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    meter = OwnedMeter()
+    meter.tokens = 29
+    writes: list[list[str]] = []
+    save_original = sessions._save
+
+    def observe_save(path: Path, value: dict[str, Any]) -> None:
+        writes.append([event["record"]["kind"] for event in value["events"]])
+        save_original(path, value)
+
+    monkeypatch.setattr(sessions, "_save", observe_save)
+    with host_meter(meter):
+        sessions.execute_operation(
+            directory,
+            action["attempt"],
+            "atomic-native",
+            lambda _: None,
+            kind="model",
+            model_token_limit=100,
+            now=now,
+        )
+
+    assert len(writes) == 2  # admission, then ONE settlement commit
+    assert writes[0][-1] == "operation-started"
+    assert writes[1][-2:] == ["model-usage", "operation-settled"]
+    assert sessions.report(directory)["actual_model_tokens"] == 29
+
+
+def test_trusted_recovery_closes_existing_usage_only_crash_without_replay(
+    tmp_path: Path,
+) -> None:
+    directory, _, action, now = setup_session(tmp_path)
+    operation = action["attempt"] + ":crashed-original"
+    value = sessions._load(directory)
+    sessions._event(
+        value,
+        {
+            "kind": "operation-started",
+            "attempt": action["attempt"],
+            "operation": operation,
+            "operation_kind": "model",
+            "model_token_limit": 100,
+            "at": now.isoformat(),
+        },
+    )
+    sessions._save(directory, value)
+    original_usage = {
+        "attempt": action["attempt"],
+        "operation": operation,
+        "author": "trusted host operation broker",
+        "tool": "native meter boundary",
+        "model_tokens": 37,
+    }
+    sessions.record_usage(directory, original_usage, now=now)
+    assert sessions.next_action(directory, now=now)["action"] == "reconcile"
+    before = (directory / "session.json").read_bytes()
+
+    with host_meter(None), pytest.raises(CrabError, match="trusted live host"):
+        sessions.reconcile_trusted_operation(directory, action["attempt"], operation, 37, now=now)
+    assert (directory / "session.json").read_bytes() == before
+    with host_meter(OwnedMeter()), pytest.raises(CrabError, match="already be persisted"):
+        sessions.reconcile_trusted_operation(directory, action["attempt"], operation, 38, now=now)
+    assert (directory / "session.json").read_bytes() == before
+
+    # Trusted host has independently verified the original native receipt.
+    # This path never dispatches the original operation a second time.
+    with host_meter(OwnedMeter()):
+        sessions.reconcile_trusted_operation(directory, action["attempt"], operation, 37, now=now)
+        settled_bytes = (directory / "session.json").read_bytes()
+        sessions.reconcile_trusted_operation(directory, action["attempt"], operation, 37, now=now)
+        assert (directory / "session.json").read_bytes() == settled_bytes
+        result = sessions.record(
+            directory, receipt(action, {"requests": 0, "candidates": []}), now=now
+        )
+    events = [item["record"] for item in sessions._load(directory)["events"]]
+    assert sum(row["kind"] == "model-usage" for row in events) == 1
+    assert sum(row["kind"] == "operation-settled" for row in events) == 1
+    assert result["actual_model_tokens"] == 37
+    assert not sessions._pending_operations(sessions._load(directory))
