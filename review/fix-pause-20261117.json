@@ -1,0 +1,216 @@
+{
+  "date": "2026-11-17",
+  "paused_at_utc": "2026-11-17 06:55:48 UTC",
+  "paused_at_client": "2026-11-17 08:55:48 Asia/Nicosia",
+  "status": "Paused at explicit owner request; do not resume without the owner.",
+  "heads": {
+    "pr677": "958112fa55725170d6c576b993d619f2e9dc8c32",
+    "pr687": "b8439609b60e2b9a20f6abadba7f63b7a907951d",
+    "harness": "c5b47c6a3845d871b0f857a7512a431968b89161"
+  },
+  "snapshots": [
+    {
+      "pr": 677,
+      "run": 44030024972,
+      "jobs": [
+        {
+          "id": 133859472551,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859472831,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859472971,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859472972,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473018,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473039,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473048,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473064,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473139,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133859473275,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133862155392,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133862155399,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 133862155406,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 133862155416,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "pr": 687,
+      "run": 44031156340,
+      "jobs": [
+        {
+          "id": 133863183461,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183604,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183638,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183690,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 133863183715,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183725,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183746,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183747,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183807,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183846,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863183936,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 133863184048,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863184072,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 133863184251,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "passed": {
+    "codeql677": "https://github.com/drevendev/HungryCrab/actions/runs/44030024998",
+    "codeql687": "https://github.com/drevendev/HungryCrab/actions/runs/44031156434",
+    "original_review_probes_and_ci_compatibility": {
+      "run": "https://github.com/drevendev/HungryCrab/actions/runs/44031356400",
+      "jobs": "9/9 success"
+    },
+    "focused_discovery": "94 passed in each Ubuntu/Windows x Python 3.11/3.14 environment",
+    "focused_acquisition": "30 passed in each Ubuntu/Windows x Python 3.11/3.14 environment"
+  },
+  "constraints": {
+    "local_tests_lint_build": "NOT_RUN; keep checks in Actions",
+    "new_paid_model_runs": 0,
+    "local_donor_download": "NOT_RUN",
+    "merge_tag_release": "NOT_RUN",
+    "native_meter_qualification": "NOT_RUN"
+  },
+  "pending": [
+    "Read final results and Windows logs of the two existing CI runs; jobs were left running.",
+    "Reconcile current remote PR heads before any update; preserve concurrent commits.",
+    "Save final verification receipts and update PR bodies/issues #670/#678/#675.",
+    "Keep broader native-meter, independent-review and historical Windows-diagnosis acceptance separate."
+  ]
+}
