@@ -198,8 +198,11 @@ class GhIssueClient:
             command[2:2] = ["--hostname", GH_HOSTNAME]
         try:
             proc = subprocess.run(
-                command, capture_output=True, env=env,
-                timeout=self.timeout if timeout is None else timeout, check=False
+                command,
+                capture_output=True,
+                env=env,
+                timeout=self.timeout if timeout is None else timeout,
+                check=False,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ExternalCommandError(f"failed to run gh {args[0]}: {exc}") from exc
@@ -223,9 +226,13 @@ class GhIssueClient:
             if remaining <= 0:
                 raise CrabError("novelty provider observation deadline exhausted")
             try:
-                return as_dict(json.loads(self._run(
-                    "api", path, "--jq", projection, timeout=min(self.timeout, remaining)
-                )))
+                return as_dict(
+                    json.loads(
+                        self._run(
+                            "api", path, "--jq", projection, timeout=min(self.timeout, remaining)
+                        )
+                    )
+                )
             except ValueError as exc:
                 raise CrabError("novelty provider returned invalid head metadata") from exc
 
@@ -254,9 +261,12 @@ class GhIssueClient:
             if not isinstance(ref, str):
                 raise CrabError("novelty provider reference is unavailable")
             if role == "receiving-default":
-                if not isinstance(default, str) or not 0 < len(default) <= 200 or ref not in {
-                    default, "refs/heads/" + default, "refs/remotes/origin/" + default
-                }:
+                if (
+                    not isinstance(default, str)
+                    or not 0 < len(default) <= 200
+                    or ref
+                    not in {default, "refs/heads/" + default, "refs/remotes/origin/" + default}
+                ):
                     raise CrabError("frozen novelty default differs from the provider default")
                 data = query(
                     f"repos/{slug}/git/ref/heads/{quote(default, safe='')}", "{sha: .object.sha}"
@@ -264,9 +274,7 @@ class GhIssueClient:
             elif role == "receiving-pending" and (
                 match := re.fullmatch(r"refs/crab/qualification/pr-(\d+)", ref)
             ):
-                data = query(
-                    f"repos/{slug}/pulls/{match[1]}", "{sha: .head.sha, state: .state}"
-                )
+                data = query(f"repos/{slug}/pulls/{match[1]}", "{sha: .head.sha, state: .state}")
                 if data.get("state") != "open":
                     raise CrabError("confirmed pending implementation is no longer open")
             else:
@@ -891,6 +899,7 @@ def _serve_pull_requests(
             announced = True
         if before_publication is not None:
             before_publication()
+
         def recheck_base(read: Callable[[str], str | None]) -> None:
             require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
             if card.license_mode in COPY_MODES:
