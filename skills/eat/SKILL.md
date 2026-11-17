@@ -98,7 +98,11 @@ guards below. Selecting supervision does not grant donor execution or publicatio
    `history`/`issues` require a concrete deeper question. Preserve missing channels and budgets.
 5. **Verify the receiving flow and novelty.** Read selected/default/confirmed pending
    implementation; `discover novelty --maw .` reads explicitly acquired scoped objects with
-   retained role bindings. Declare `verification_mode: design` or `runtime` before original
+   retained role bindings. Freeze `novelty_scope` before judging exclusions. Reviewed
+   `already-present`/`duplicate` decisions need the exact typed role/ref/SHA/range basis.
+   Record later implementations through `explore reconcile-novelty`; preserve the original
+   observation and current publication holds. See `docs/novelty-exclusions.md`.
+   Declare `verification_mode: design` or `runtime` before original
    cases; additive designs need no invented runtime failure or giant literal fixture.
    Execute original receiving probes with meaningful correct controls:
    `discover cases` accepts JSON fixtures/arguments/predicates through a fixed trusted runner;
