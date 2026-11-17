@@ -502,19 +502,30 @@ def _record_usage_locked(value: dict[str, Any], receipt: dict[str, Any], instant
         for event in value["events"]
     ):
         raise CrabError("model usage does not belong to a known discovery attempt")
+    latest_usage = {
+        event["record"]["receipt"]["operation"]: event["record"]["receipt"]["model_tokens"]
+        for event in value["events"]
+        if event["record"].get("kind") in {"model-usage", "model-usage-reconciled"}
+    }
     if tokens is None:
+        # Older explicit unknown stops have no operation identity to reconcile.
+        # Preserve that uncertainty before attributing a newer unknown charge.
+        if not value.get("model_usage_complete", True) and all(
+            actual is not None for actual in latest_usage.values()
+        ):
+            value["unattributed_usage_unknown"] = True
         _finish(value, "usage-unavailable", instant)
         value["model_usage_complete"] = False
         value.setdefault("unresolved_usage", []).append(operation)
     else:
         value["spent"]["model_tokens"] += tokens
         if reconciliation:
-            unresolved = value.get("unresolved_usage")
-            if isinstance(unresolved, list) and operation in unresolved:
-                unresolved.remove(operation)
-                value["model_usage_complete"] = not unresolved and not value.get(
-                    "unattributed_usage_unknown", False
-                )
+            latest_usage[operation] = tokens
+            unresolved = [key for key, actual in latest_usage.items() if actual is None]
+            value["unresolved_usage"] = unresolved
+            value["model_usage_complete"] = not unresolved and not value.get(
+                "unattributed_usage_unknown", False
+            )
         reason = _exhausted(value, instant)
         if value["spent"]["model_tokens"] >= value["limits"]["model_tokens"]:
             _finish(value, "model-token-budget", instant)
