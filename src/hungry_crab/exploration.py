@@ -37,8 +37,8 @@ from .licensing.matrix import decide
 from .licensing.path_grants import GrantResolver
 from .licensing.policy import apply_maw_policy
 from .maw import MawConfig
-from .nutrients import Candidate, require_nutrient_id
 from .novelty_exclusions import EXCLUSIONS, capture_scope, exclusion_basis, exclusion_status
+from .nutrients import Candidate, require_nutrient_id
 from .source_lines import physical_lines
 from .typeutil import as_dict, as_list
 
@@ -256,9 +256,10 @@ def initialize(meal_dir: Path, plan: dict[str, Any], *, maw: Path) -> Path:
                 if is_link_stat(candidate.lstat()):
                     raise CrabError("exploration snapshot must not be linked")
                 frozen = _snapshot(candidate)
-                if frozen.get("novelty_scope") is not None and {
-                    k: v for k, v in frozen.items() if k != "novelty_scope"
-                } == data:
+                if (
+                    frozen.get("novelty_scope") is not None
+                    and {k: v for k, v in frozen.items() if k != "novelty_scope"} == data
+                ):
                     return candidate
         data["novelty_scope"] = capture_scope(maw, plan["novelty_scope"], observed_context)
     else:
@@ -496,7 +497,8 @@ def report(directory: Path) -> dict[str, Any]:
             observed_hypotheses.setdefault(entry["hypothesis"], None)
             hypotheses[entry["hypothesis"]] = entry
             if entry.get("reviewed") and entry["novelty_status"] not in {
-                "legacy-analyst-assertion", "unresolved-implementation-basis"
+                "legacy-analyst-assertion",
+                "unresolved-implementation-basis",
             }:
                 examined.add(entry["hypothesis"])
             if entry.get("candidate_id"):
@@ -512,9 +514,8 @@ def report(directory: Path) -> dict[str, Any]:
         c["id"]
         for c in data["initial_candidates"]
         if not decisions.get(c["id"], {}).get("reviewed")
-        or decisions.get(c["id"], {}).get("novelty_status") in {
-            "legacy-analyst-assertion", "unresolved-implementation-basis"
-        }
+        or decisions.get(c["id"], {}).get("novelty_status")
+        in {"legacy-analyst-assertion", "unresolved-implementation-basis"}
     ]
     # Facet transitions and newer hypotheses must not hide earlier unresolved work.
     # A later explicit review of the same hypothesis is the only resolution.
@@ -522,9 +523,8 @@ def report(directory: Path) -> dict[str, Any]:
         hypothesis
         for hypothesis in observed_hypotheses
         if not hypotheses.get(hypothesis, {}).get("reviewed")
-        or hypotheses.get(hypothesis, {}).get("novelty_status") in {
-            "legacy-analyst-assertion", "unresolved-implementation-basis"
-        }
+        or hypotheses.get(hypothesis, {}).get("novelty_status")
+        in {"legacy-analyst-assertion", "unresolved-implementation-basis"}
     ]
     return {
         "schema": SCHEMA,

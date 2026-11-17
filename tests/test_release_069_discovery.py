@@ -32,11 +32,11 @@ def test_invoked_host_executes_replacements_and_an_original_probe(
     from hungry_crab.cache import Target
     from hungry_crab.compare import compare_for_maw
     from hungry_crab.digest import DigestOptions
+    from hungry_crab.exploration import _snapshot, fingerprint
     from hungry_crab.exploration import initialize as explore_init
     from hungry_crab.exploration import record as explore_record
-    from hungry_crab.exploration import _snapshot, fingerprint
-    from hungry_crab.novelty_exclusions import BASIS_SCHEMA
     from hungry_crab.licensing.path_grants import GrantResolver
+    from hungry_crab.novelty_exclusions import BASIS_SCHEMA
 
     maw = repository(
         tmp_path / receiving_name,
@@ -120,12 +120,16 @@ def test_invoked_host_executes_replacements_and_an_original_probe(
             "schema": BASIS_SCHEMA,
             "scope_sha256": fingerprint(frozen),
             **{key: selected[key] for key in ("role", "ref", "sha")},
-            "evidence": [{
-                "path": "app.py", "start": 3, "end": 4,
-                "content_sha256": hashlib.sha256(
-                    b"def safe(stream):\n    return stream.read(4)\n"
-                ).hexdigest(),
-            }],
+            "evidence": [
+                {
+                    "path": "app.py",
+                    "start": 3,
+                    "end": 4,
+                    "content_sha256": hashlib.sha256(
+                        b"def safe(stream):\n    return stream.read(4)\n"
+                    ).hexdigest(),
+                }
+            ],
         }
         explore_record(
             child,
