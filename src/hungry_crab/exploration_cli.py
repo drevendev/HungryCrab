@@ -32,6 +32,7 @@ def add_exploration_parser(sub: argparse._SubParsersAction[argparse.ArgumentPars
         ("record", "append one validated facet, decision or phase observation"),
         ("register", "register a verified source-linked behavior nutrient in its meal"),
         ("report", "report coverage, pending work and phase-specific observations"),
+        ("reconcile-novelty", "retain a later immutable implementation as supersession"),
     ):
         command = commands.add_parser(name, help=help_text)
         command.add_argument(
@@ -64,6 +65,10 @@ def cmd_explore(args: argparse.Namespace) -> int:
         result = record(args.directory, read_object(args.input))
     elif args.explore_command == "register":
         result = register(args.directory, read_object(args.input), source_repo=args.source_repo)
+    elif args.explore_command == "reconcile-novelty":
+        from .novelty_exclusions import reconcile
+
+        result = reconcile(args.directory, read_object(args.input))
     else:
         result = report(args.directory)
     print(json.dumps(result, indent=2, ensure_ascii=False))
