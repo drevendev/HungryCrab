@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Own accepted acquisition relay connections before blocking reads, reject late
+  upstream connections after scope teardown and isolate reused scopes (#678).
+  Always stop the owned test listener on assertion failures before closing its
+  socket, preserving the original failure rather than a live listener (#679).
+
 - Require a live bound host meter and per-operation authorization for strict
   discovery, settling original late charges without replay or route fallback.
   Preserve legacy unknown costs and reserve state capacity for admitted-operation

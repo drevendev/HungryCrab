@@ -38,6 +38,71 @@ class AcquisitionLimitError(CrabError):
     """A hard boundary refused acquisition; never treat this as an absent wiki."""
 
 
+class _RelayScope:
+    """Own accepted sockets before blocking work, independently of byte accounting."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._stopped = False
+        self._sockets: set[socket.socket] = set()
+
+    def register(self, stream: socket.socket) -> bool:
+        with self._lock:
+            if self._stopped:
+                return False
+            self._sockets.add(stream)
+            return True
+
+    def discard(self, stream: socket.socket) -> None:
+        with self._lock:
+            self._sockets.discard(stream)
+
+    def admit_connect(self, client: socket.socket) -> bool:
+        """Linearize upstream admission with stop, before calling the connector.
+
+        A client accepted earlier is not a permit to start upstream work after
+        teardown. Already-admitted connects retain their original scope and
+        their late results still have to pass register().
+        """
+        with self._lock:
+            return not self._stopped and client in self._sockets
+
+    def acknowledge_connect(self, client: socket.socket, upstream: socket.socket) -> bool:
+        """Linearize the short CONNECT reply with stop without blocking teardown."""
+        reply = b"HTTP/1.1 200 Connection established\r\n\r\n"
+        with self._lock:
+            if self._stopped or client not in self._sockets or upstream not in self._sockets:
+                return False
+            # A blocking sendall while holding the stop lock could stall cancellation.
+            # The new local connection has no queued response bytes: use one
+            # nonblocking send and refuse a short write instead.
+            timeout = client.gettimeout()
+            try:
+                client.setblocking(False)
+                written = client.send(reply)
+            finally:
+                client.settimeout(timeout)
+            return written == len(reply)
+
+    @property
+    def stopped(self) -> bool:
+        with self._lock:
+            return self._stopped
+
+    def stop(self) -> None:
+        with self._lock:
+            self._stopped = True
+            streams = tuple(self._sockets)
+            self._sockets.clear()
+        # A reader can hold the byte-accounting lock while waiting on recv().
+        # Closing sockets must not wait for that lock, or cancellation stalls.
+        for stream in streams:
+            with suppress(OSError):
+                stream.shutdown(socket.SHUT_RDWR)
+            with suppress(OSError):
+                stream.close()
+
+
 def volume_capacity(volume: Path) -> int:
     """Use kernel block-device capacity, not free space or metadata-excluding statvfs totals."""
     if sys.platform == "linux":
@@ -83,7 +148,6 @@ class AcquisitionBudget:
         self.staging = False
         self.recovery_required = False
         self._lock = threading.Lock()
-        self._sockets: set[socket.socket] = set()
         self._server: socketserver.ThreadingTCPServer | None = None
         self.require_path(self.cache)
         capacity = volume_capacity(self.volume)
@@ -280,6 +344,7 @@ class AcquisitionBudget:
     @contextmanager
     def _scope(self) -> Iterator[AcquisitionBudget]:
         budget = self
+        connections = _RelayScope()
 
         class Relay(socketserver.BaseRequestHandler):
             def handle(self) -> None:
@@ -300,10 +365,13 @@ class AcquisitionBudget:
                     }:
                         return
                     host = first.split()[1].split(b":")[0].decode("ascii")
+                    if not connections.admit_connect(client):
+                        return
                     upstream = socket.create_connection((host, 443), timeout=30)
-                    with budget._lock:
-                        budget._sockets.update((client, upstream))
-                    client.sendall(b"HTTP/1.1 200 Connection established\r\n\r\n")
+                    if not connections.register(upstream):
+                        return
+                    if not connections.acknowledge_connect(client, upstream):
+                        return
                     while True:
                         ready, _, _ = select.select([client, upstream], [], [], 30)
                         if not ready:
@@ -319,17 +387,31 @@ class AcquisitionBudget:
                             target.sendall(chunk)
                 except (OSError, AcquisitionLimitError):
                     return
+                except ValueError:
+                    # Teardown can close a socket before select() reads its fd.
+                    if not connections.stopped:
+                        raise
                 finally:
-                    with budget._lock:
-                        budget._sockets.discard(client)
-                        if upstream is not None:
-                            budget._sockets.discard(upstream)
-                    if upstream is not None:
-                        upstream.close()
+                    # Stay registered until closed, so concurrent teardown cannot
+                    # miss a stream between unregistering and closing it.
+                    for stream in (client, upstream):
+                        if stream is not None:
+                            with suppress(OSError):
+                                stream.close()
+                            connections.discard(stream)
 
         class Server(socketserver.ThreadingTCPServer):
             daemon_threads = True
             block_on_close = False
+
+            def verify_request(
+                self,
+                request: socket.socket | tuple[bytes, socket.socket],
+                client_address: tuple[str, int],
+            ) -> bool:
+                # TCPServer calls this on acceptance, before starting the handler.
+                # Rejected requests are closed by the server without dispatch.
+                return isinstance(request, socket.socket) and connections.register(request)
 
         with Server(("127.0.0.1", 0), Relay) as server:
             self._server = server
@@ -349,11 +431,7 @@ class AcquisitionBudget:
                 raise
             finally:
                 CURRENT.reset(token)
+                connections.stop()
                 server.shutdown()
-                with self._lock:
-                    for stream in self._sockets:
-                        with suppress(OSError):
-                            stream.shutdown(socket.SHUT_RDWR)
-                        stream.close()
                 thread.join(timeout=2)
                 self._server = None
