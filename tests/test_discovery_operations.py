@@ -79,6 +79,39 @@ def test_provider_effect_sees_admission_and_cannot_replay(tmp_path: Path) -> Non
     assert result["spent"]["requests"] == 1
 
 
+def test_zero_request_leads_require_owned_fixture_provenance(tmp_path: Path) -> None:
+    # This is a synthetic shape of a reviewed-native meter, not a production
+    # adapter or proof of qualification. No provider/model call is made.
+    class NativeShapedMeter(OwnedMeter):
+        def preflight(self) -> MeterIdentity:
+            identity = super().preflight()
+            return MeterIdentity(identity.source, identity.evidence_sha256, "reviewed-native")
+
+    with host_meter(NativeShapedMeter()):
+        directory, _, action, now = setup_session(tmp_path / "native-shaped")
+        before = (directory / "session.json").read_bytes()
+        unsupported = receipt(
+            action, {"requests": 0, "candidates": [{"repository": "one/tool"}]}
+        )
+        with pytest.raises(CrabError, match="zero-request search leads"):
+            sessions.record(directory, unsupported, now=now)
+        assert (directory / "session.json").read_bytes() == before
+        # A genuinely empty unsupported/offline search is still legitimate.
+        sessions.record(directory, receipt(action, {"requests": 0, "candidates": []}), now=now)
+        assert sessions.report(directory)["needs"][0]["phase"] == "search"
+
+    # Controlled test-fixture leads remain legal for existing model-free
+    # receiving regression tests, without pretending provider search occurred.
+    directory, _, action, now = setup_session(tmp_path / "owned")
+    sessions.record(
+        directory,
+        receipt(action, {"requests": 0, "candidates": [{"repository": "one/tool"}]}),
+        now=now,
+    )
+    assert sessions.next_action(directory, now=now)["action"] == "acquire"
+
+
+
 def test_raw_authorization_and_semantic_usage_cannot_replace_broker(tmp_path: Path) -> None:
     directory, _, action, now = setup_session(tmp_path)
     sessions.authorize_request(directory, action["attempt"], "raw-permit", now=now)
