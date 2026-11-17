@@ -393,7 +393,7 @@ def test_fresh_provider_heads_are_required_even_when_local_refs_did_not_move(
         assert not client.created and not client.labels
 
 
-@pytest.mark.parametrize("pending_state", ["open", "closed"])
+@pytest.mark.parametrize("pending_state", ["open", "closed", "new-open"])
 def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_state: str) -> None:
     class Client(GhIssueClient):
         def __init__(self) -> None:
@@ -403,6 +403,8 @@ def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_sta
         def _run(self, *args: str, timeout: float | None = None) -> str:
             assert timeout is not None and 0 < timeout <= 60
             self.paths.append(args[1])
+            if "?state=open" in args[1]:
+                return json.dumps({"numbers": [17, 18] if pending_state == "new-open" else [17]})
             if args[1].endswith("/pulls/17"):
                 return json.dumps({"sha": "b" * 40, "state": pending_state})
             if "/git/ref/" in args[1]:
@@ -416,9 +418,27 @@ def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_sta
     ]
     if pending_state == "open":
         assert client.novelty_heads(MAW_SLUG, targets) == {"main": "a" * 40, PENDING: "b" * 40}
-    else:
+    elif pending_state == "closed":
         with pytest.raises(CrabError, match="no longer open"):
             client.novelty_heads(MAW_SLUG, targets)
-    assert client.paths == [
-        f"repos/{MAW_SLUG}", f"repos/{MAW_SLUG}/git/ref/heads/main", f"repos/{MAW_SLUG}/pulls/17"
-    ]
+    else:
+        with pytest.raises(CrabError, match="pending collection changed"):
+            client.novelty_heads(MAW_SLUG, targets)
+    expected = [f"repos/{MAW_SLUG}", f"repos/{MAW_SLUG}/pulls?state=open&per_page=51"]
+    if pending_state != "new-open":
+        expected.extend([f"repos/{MAW_SLUG}/git/ref/heads/main", f"repos/{MAW_SLUG}/pulls/17"])
+    assert client.paths == expected
+
+
+def test_unscoped_original_proposal_cannot_bypass_novelty_publication_hold(tmp_path: Path) -> None:
+    directory, donor, maw, finding = pair(tmp_path, hunger="issues-only")
+    finding["source_behavior"] = "reads bounded chunks"
+    card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
+    client = FakeIssues()
+    with pytest.raises(CrabError, match="scope is unknown"):
+        serve(
+            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+    assert not client.created and not client.labels
