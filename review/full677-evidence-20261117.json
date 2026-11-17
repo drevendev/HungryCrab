@@ -39,8 +39,8 @@
     {
       "id": 134310196438,
       "name": "Discovery operation gates (windows-latest, Python 3.11)",
-      "status": "in_progress",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "success"
     },
     {
       "id": 134310196558,
@@ -81,14 +81,149 @@
     {
       "id": 134310196936,
       "name": "Discovery operation gates (windows-latest, Python 3.14)",
-      "status": "in_progress",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "success"
     },
     {
       "id": 134310197519,
       "name": "Clean installation (ubuntu-latest)",
       "status": "completed",
       "conclusion": "success"
+    },
+    {
+      "id": 134314497394,
+      "name": "Test (ubuntu-latest, Python 3.11)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134314497496,
+      "name": "Test (windows-latest, Python 3.14)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134314497527,
+      "name": "Test (windows-latest, Python 3.11)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 134314497862,
+      "name": "Test (ubuntu-latest, Python 3.14)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "ci": {
+    "id": 44159771397,
+    "head_sha": "e1466b3cd8951e8f433ef5a3d0a2a0a4940436e2",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "codeql": {
+    "id": 44159771326,
+    "head_sha": "e1466b3cd8951e8f433ef5a3d0a2a0a4940436e2",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "full_suites": [
+    {
+      "id": 134314497394,
+      "summary": [
+        "2026-11-17T19:42:38.6513039Z ================= 5168 passed, 44 skipped in 150.91s (0:02:30) ================="
+      ],
+      "extra": [
+        "2026-11-17T19:40:02.3857933Z Successfully installed uv version 0.13.9",
+        "2026-11-17T19:40:04.3744196Z Cache restored successfully",
+        "2026-11-17T19:40:24.0534934Z tests/test_budget_config.py ......                                       [  4%]",
+        "2026-11-17T19:40:24.2693586Z tests/test_budget_policy.py .....                                        [  4%]",
+        "2026-11-17T19:40:24.9617273Z tests/test_budget_policy_cli.py ..                                       [  4%]",
+        "2026-11-17T19:40:39.9891203Z tests/test_digest_budget_policy_boundary.py ..                           [ 12%]",
+        "2026-11-17T19:42:38.6513039Z ================= 5168 passed, 44 skipped in 150.91s (0:02:30) ================="
+      ]
+    },
+    {
+      "id": 134314497862,
+      "summary": [
+        "2026-11-17T19:42:08.7103212Z ================= 5169 passed, 43 skipped in 123.73s (0:02:03) ================="
+      ],
+      "extra": [
+        "2026-11-17T19:40:19.7991047Z tests/test_budget_config.py ......                                       [  4%]",
+        "2026-11-17T19:40:19.9723651Z tests/test_budget_policy.py .....                                        [  4%]",
+        "2026-11-17T19:40:20.4268836Z tests/test_budget_policy_cli.py ..                                       [  4%]",
+        "2026-11-17T19:40:32.0396895Z tests/test_digest_budget_policy_boundary.py ..                           [ 12%]",
+        "2026-11-17T19:42:08.7013254Z src/hungry_crab/budget.py                     122      2     58      4    97%   93, 123->125, 160->159, 220",
+        "2026-11-17T19:42:08.7103212Z ================= 5169 passed, 43 skipped in 123.73s (0:02:03) =================",
+        "2026-11-17T19:42:12.0800633Z Artifact self-digest successfully finalized. Artifact ID 14362234285",
+        "2026-11-17T19:42:12.0801171Z Artifact self-digest has been successfully uploaded! Final size is 51063 bytes. Artifact ID is 14362234285"
+      ]
+    },
+    {
+      "id": 134314497527,
+      "summary": [
+        "2026-11-17T20:12:39.5703382Z ================ 5204 passed, 8 skipped in 1936.72s (0:32:16) =================\r"
+      ]
+    },
+    {
+      "id": 134314497496,
+      "summary": [
+        "2026-11-17T20:16:27.9161867Z ================ 5205 passed, 7 skipped in 2168.39s (0:36:08) =================\r"
+      ]
+    }
+  ],
+  "focused_tests_per_environment": 103,
+  "remaining_findings": [],
+  "mergeable": true,
+  "mergeable_state": "clean",
+  "review_threads": {
+    "review_threads": []
+  },
+  "reviews": [
+    {
+      "id": 5936724810,
+      "state": "COMMENTED",
+      "commit_id": "958112fa55725170d6c576b993d619f2e9dc8c32",
+      "reviewer": "andy-zen-dev"
+    },
+    {
+      "id": 5944968633,
+      "state": "COMMENTED",
+      "commit_id": "d6ba132c81bbad940030fca8ae36702ca227e372",
+      "reviewer": "andy-zen-dev"
+    }
+  ],
+  "scope_limits": [
+    "No production native meter supplied",
+    "Supervised fixed-pair acceptance not run",
+    "Full independent current-head APPROVED absent",
+    "No merge, tag or release performed"
+  ],
+  "status_updates": [
+    {
+      "key": "pr",
+      "url": "https://github.com/drevendev/HungryCrab/pull/677",
+      "body_verified": true,
+      "updated_at": "2026-11-17T20:20:11Z",
+      "state": "open",
+      "head": "e1466b3cd8951e8f433ef5a3d0a2a0a4940436e2",
+      "draft": false,
+      "mergeable": true,
+      "mergeable_state": "clean"
+    },
+    {
+      "key": "issue670",
+      "url": "https://github.com/drevendev/HungryCrab/issues/670",
+      "body_verified": true,
+      "updated_at": "2026-11-17T20:20:16Z",
+      "state": "open"
+    },
+    {
+      "key": "issue675",
+      "url": "https://github.com/drevendev/HungryCrab/issues/675",
+      "body_verified": true,
+      "updated_at": "2026-11-17T20:20:21Z",
+      "state": "open"
     }
   ]
 }
