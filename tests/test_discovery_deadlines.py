@@ -12,6 +12,9 @@ from test_discovery_usage import usage
 from test_release_069_discovery import plan, receipt
 
 from hungry_crab import discovery_session as sessions
+from hungry_crab.errors import CrabError
+
+pytestmark = pytest.mark.usefixtures("owned_discovery_host")
 
 
 def setup(tmp_path: Path, *, seconds: int = 1) -> tuple[Path, dict[str, Any], datetime]:
@@ -36,7 +39,8 @@ def test_deadline_stops_cached_lease_and_keeps_actual_cost_settlement(
     assert result["finished"] and result["stop_reason"] == "wall-time-budget-or-clock-invalid"
     assert result["wall_time_seconds"] == elapsed
     assert result["wall_time_within_limits"] is (elapsed == 1)
-    assert result["budget_within_limits"] is (elapsed == 1)
+    assert result["budget_arithmetic_within_limits"] is (elapsed == 1)
+    assert result["budget_within_limits"] is (False if elapsed != 1 else None)
     assert sessions._load(directory)["lease"]["attempt"] == action["attempt"]
     charged = sessions.record_usage(directory, usage(action, 17), now=end + timedelta(days=1))
     assert charged["actual_model_tokens"] == 17
@@ -44,7 +48,8 @@ def test_deadline_stops_cached_lease_and_keeps_actual_cost_settlement(
     assert charged["needs"][0]["phase"] == "search"
     assert sessions.record_usage(directory, usage(action, 17))["actual_model_tokens"] == 17
     overrun = sessions.record_usage(directory, usage(action, 30000, "late-overrun"))
-    assert overrun["stop_reason"] == "model-token-budget"
+    assert overrun["stop_reason"] == result["stop_reason"]
+    assert overrun["actual_model_tokens"] == 30017
     assert overrun["wall_time_seconds"] == elapsed
     assert not overrun["budget_within_limits"]
 
@@ -79,7 +84,9 @@ def test_late_accounting_does_not_extend_a_finished_investigation(tmp_path: Path
     later = sessions.record_usage(directory, usage(action, 29), now=start + timedelta(days=1))
     assert later["finished_at"] == result["finished_at"]
     assert later["wall_time_seconds"] == 2 and later["wall_time_within_limits"]
-    assert later["stop_reason"] == "external-dependency" and later["budget_within_limits"]
+    assert later["stop_reason"] == "external-dependency"
+    assert later["budget_arithmetic_within_limits"] is True
+    assert later["budget_within_limits"] is None
 
 
 def test_legacy_terminal_duration_stays_unknown_after_late_accounting(tmp_path: Path) -> None:
@@ -94,13 +101,59 @@ def test_legacy_terminal_duration_stays_unknown_after_late_accounting(tmp_path: 
     assert result["wall_time_seconds"] is result["wall_time_within_limits"] is None
 
 
-def test_late_actual_result_preserves_terminal_time_without_granting_work(tmp_path: Path) -> None:
+def test_late_actual_result_is_rejected_but_original_usage_still_settles(tmp_path: Path) -> None:
     directory, action, start = setup(tmp_path, seconds=2700)
     ended = sessions.stop(directory, "external-dependency", now=start + timedelta(seconds=2))
     entry = receipt(action, {"requests": 0, "candidates": []})
     entry["model_tokens"] = 37
-    result = sessions.record(directory, entry, now=start + timedelta(days=1))
+    original = (directory / "session.json").read_bytes()
+    with pytest.raises(
+        CrabError, match="finished discovery session cannot accept semantic results"
+    ):
+        sessions.record(directory, entry, now=start + timedelta(days=1))
+    assert (directory / "session.json").read_bytes() == original
+    result = sessions.record_usage(directory, usage(action, 37), now=start + timedelta(days=1))
     assert result["actual_model_tokens"] == 37
     assert result["wall_time_seconds"] == 2 and result["finished_at"] == ended["finished_at"]
-    assert result["stop_reason"] == "external-dependency" and result["budget_within_limits"]
+    assert result["stop_reason"] == "external-dependency"
+    assert result["budget_arithmetic_within_limits"] is True
+    assert result["budget_within_limits"] is None
     assert sessions.next_action(directory, now=start + timedelta(days=2))["finished"]
+
+
+@pytest.mark.parametrize("elapsed", [1, 2])
+def test_record_rejects_semantic_receipt_at_session_deadline(tmp_path: Path, elapsed: int) -> None:
+    directory, action, start = setup(tmp_path)
+    entry = receipt(action, {"requests": 0, "candidates": []})
+    instant = start + timedelta(seconds=elapsed)
+    with pytest.raises(CrabError, match="budget expired before semantic receipt"):
+        sessions.record(directory, entry, now=instant)
+
+    state = sessions._load(directory)
+    assert state["finished"] is True
+    assert state["stop_reason"] == "wall-time-budget-or-clock-invalid"
+    assert state["finished_at"] == instant.isoformat()
+    assert state["lease"]["attempt"] == action["attempt"]
+    assert state["needs"][0]["phase"] == "search"
+    assert not any(event["record"]["kind"] == "action-result" for event in state["events"])
+    assert state["spent"]["model_tokens"] == 0
+
+    settled = sessions.record_usage(directory, usage(action, 23), now=start + timedelta(days=1))
+    assert settled["actual_model_tokens"] == 23
+    assert settled["stop_reason"] == "wall-time-budget-or-clock-invalid"
+    assert settled["finished_at"] == instant.isoformat()
+
+
+def test_record_rejects_expired_lease_before_session_budget_without_writing(
+    tmp_path: Path,
+) -> None:
+    directory, action, start = setup(tmp_path, seconds=2700)
+    entry = receipt(action, {"requests": 0, "candidates": []})
+    instant = start + timedelta(minutes=11)
+    previous = (directory / "session.json").read_bytes()
+    with pytest.raises(CrabError, match="attempt expired before semantic receipt"):
+        sessions.record(directory, entry, now=instant)
+    assert (directory / "session.json").read_bytes() == previous
+    pending = sessions.next_action(directory, now=instant)
+    assert pending["action"] == "reconcile"
+    assert pending["attempt"] == action["attempt"]

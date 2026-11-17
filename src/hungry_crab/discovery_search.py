@@ -17,11 +17,16 @@ class SearchClient(Protocol):
     def get(self, path: str, *, allow_missing: bool = False) -> Any: ...
 
 
+class ProviderChannelError(CrabError):
+    """Provider failure after dispatch; admission failures must propagate."""
+
+
 @dataclass
 class SearchBudget:
     maximum: int = 16
     used: int = 0
     authorize: Callable[[int], None] | None = None
+    invoke: Callable[[int, Callable[[], Any]], Any] | None = None
 
     def charge(self) -> None:
         if (
@@ -36,15 +41,30 @@ class SearchBudget:
             self.authorize(self.used)
         self.used += 1
 
+    def call(self, invoke: Callable[[], Any]) -> Any:
+        self.charge()
+        if self.invoke is not None:
+            return self.invoke(self.used - 1, invoke)
+        return invoke()
+
+    def get(self, client: SearchClient, path: str) -> Any:
+        def request() -> Any:
+            try:
+                return client.get(path)
+            except CrabError as exc:
+                raise ProviderChannelError(exc.message) from exc
+
+        return self.call(request)
+
 
 def budget_for_plan(plan: dict[str, Any]) -> SearchBudget:
     """Join optional public provider tools to the same persisted invoked session."""
     session = plan.get("session")
-    callback: Callable[[int], None] | None = None
+    callback: Callable[[int, Callable[[], Any]], Any] | None = None
     if session is not None:
         from pathlib import Path
 
-        from .discovery_session import authorize_request
+        from .discovery_session import execute_operation
 
         attempt, operation = plan.get("attempt"), plan.get("operation")
         if (
@@ -54,11 +74,13 @@ def budget_for_plan(plan: dict[str, Any]) -> SearchBudget:
         ):
             raise CrabError("session provider plan needs session, attempt and operation identities")
 
-        def authorize(index: int) -> None:
-            authorize_request(Path(session), attempt, f"{operation}:{index}")
+        def authorize(index: int, invoke: Callable[[], Any]) -> Any:
+            return execute_operation(
+                Path(session), attempt, f"{operation}:{index}", lambda _: invoke()
+            )
 
         callback = authorize
-    return SearchBudget(maximum=plan.get("request_budget", 16), authorize=callback)
+    return SearchBudget(maximum=plan.get("request_budget", 16), invoke=callback)
 
 
 def search(
@@ -105,8 +127,6 @@ def search(
 
             client = GitLabClient()
     owned_budget = budget or SearchBudget()
-    owned_budget.charge()
-    result["requests"] = 1
     params = (
         {"q": query, "per_page": limit}
         if provider == "github"
@@ -118,11 +138,13 @@ def search(
         else "projects"
     )
     try:
-        raw = client.get(endpoint + "?" + urlencode(params))
-    except CrabError as exc:
+        raw = owned_budget.get(client, endpoint + "?" + urlencode(params))
+        result["requests"] = 1
+    except ProviderChannelError as exc:
         from .hunt import _provider_diagnostic
 
         result.update(
+            requests=1,
             status="unavailable",
             reason="authentication-rate-limit-or-provider-error",
             error=_provider_diagnostic(exc.message),

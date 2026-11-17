@@ -7,6 +7,7 @@ so both happen once per session. Tests read the resulting JSON files.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,9 +16,18 @@ from fixture_builder import FIXTURE_NAMES, build_fixture
 
 from hungry_crab.cache import Target
 from hungry_crab.digest import DigestOptions, DigestResult, run_digest
+from hungry_crab.discovery_host import host_meter
 
 # Every fixture history ends before this date; "now" must be stable for staleness metrics.
 FIXED_NOW = datetime(2025, 6, 1, 12, 0, tzinfo=UTC)
+
+
+@pytest.fixture
+def owned_discovery_host() -> Iterator[None]:
+    from discovery_host_fixture import OwnedMeter
+
+    with host_meter(OwnedMeter()):
+        yield
 
 
 @pytest.fixture(scope="session")
