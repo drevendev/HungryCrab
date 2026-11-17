@@ -248,15 +248,12 @@ def test_relay_handler_exits_after_delayed_connect_is_released(
         monkeypatch.setattr(
             "hungry_crab.fetch.acquisition.socket.create_connection", delayed_connect
         )
-        expected = (
-            pytest.raises(RuntimeError, match="owned cancellation")
-            if exit_mode == "cancel"
-            else (
-                pytest.raises(AssertionError, match="owned assertion failure")
-                if exit_mode == "assertion"
-                else nullcontext()
-            )
-        )
+        if exit_mode == "cancel":
+            expected = pytest.raises(RuntimeError, match="owned cancellation")
+        elif exit_mode == "assertion":
+            expected = pytest.raises(AssertionError, match="owned assertion failure")
+        else:
+            expected = nullcontext()
         try:
             with expected, quota.scope():
                 assert quota._server is not None
@@ -264,7 +261,7 @@ def test_relay_handler_exits_after_delayed_connect_is_released(
                     original_connect(quota._server.server_address, 3)
                 )
                 client.settimeout(3)
-                client.sendall(b"CONNECT github.com:443 HTTP/1.1\\r\\n\\r\\n")
+                client.sendall(b"CONNECT github.com:443 HTTP/1.1\r\n\r\n")
                 assert entered.wait(3)
                 assert connecting.wait(3)
                 if exit_mode == "cancel":
