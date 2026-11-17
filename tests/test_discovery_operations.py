@@ -523,6 +523,10 @@ def test_trusted_recovery_closes_existing_usage_only_crash_without_replay(
         "model_tokens": 37,
     }
     sessions.record_usage(directory, original_usage, now=now)
+    accounting_only = sessions.report(directory)
+    assert accounting_only["spent"]["model_tokens"] == 37
+    assert accounting_only["actual_model_tokens"] is None
+    assert accounting_only["model_usage_complete"] is False
     assert sessions.next_action(directory, now=now)["action"] == "reconcile"
     before = (directory / "session.json").read_bytes()
 
@@ -547,4 +551,5 @@ def test_trusted_recovery_closes_existing_usage_only_crash_without_replay(
     assert sum(row["kind"] == "model-usage" for row in events) == 1
     assert sum(row["kind"] == "operation-settled" for row in events) == 1
     assert result["actual_model_tokens"] == 37
+    assert result["model_usage_complete"] is True
     assert not sessions._pending_operations(sessions._load(directory))
