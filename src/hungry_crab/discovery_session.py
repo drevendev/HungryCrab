@@ -414,10 +414,12 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
             ):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
-                    "host callback already dispatched; reconcile original attempt without replay"
-                    if callback_dispatched
-                    else "previous attempt may have consumed provider effects; do not repeat blindly"
+                    "previous attempt may have consumed provider effects; do not repeat blindly"
                 )
+                if callback_dispatched:
+                    lease["reason"] = (
+                        "host callback already dispatched; reconcile original attempt without replay"
+                    )
             return lease
         need = _pending_need(value)
         if need is None:
