@@ -32,7 +32,11 @@ PID, deadlines, return code and its unsigned 32-bit projection, stream completen
 stream lengths/hashes. The source role explicitly says this is the current checkout, not
 the established original failing snapshot. No tokens or unrestricted environment dump are
 recorded. Schema two separates subject and harness revisions/hashes and records the
-actual pytest/plugin versions, lock hash, interpreter binary hash and compiler. A clean
+actual pytest/plugin versions, lock hash, interpreter binary hash and compiler. For PR
+workflows, `GITHUB_SHA` can identify the synthetic merge ref rather than the source PR
+head. The manifest separately records the validated event PR head, actual subject and
+harness checkout SHAs and tree SHAs, and GitHub event/ref metadata. Never attribute
+an observed run to the PR head without comparing these identities. A clean
 bounded series means **NOT_REPRODUCED**, never historical-root-cause closure.
 
 ## Historical-runtime comparison
