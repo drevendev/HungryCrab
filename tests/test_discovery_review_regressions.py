@@ -395,10 +395,7 @@ def test_completed_host_callback_receipt_does_not_leave_reconcile_lease(
     assert state["lease"] is None
     assert state["spent"]["requests"] == 1
     assert invoked == [action["attempt"]]
-    assert any(
-        event["record"].get("kind") == "action-result"
-        for event in state["events"]
-    )
+    assert any(event["record"].get("kind") == "action-result" for event in state["events"])
 
     later = sessions.next_action(directory, now=instant)
     assert later.get("action") != "reconcile"
