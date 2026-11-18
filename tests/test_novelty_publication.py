@@ -641,7 +641,7 @@ def test_exploration_children_must_be_real_directories(tmp_path: Path, linked: b
         )
 
     if linked:
-        with pytest.raises(CrabError, match="symlink|junction|directory"):
+        with pytest.raises(CrabError, match=r"symlink|junction|directory"):
             publish()
         assert not client.created and not client.labels
     else:
