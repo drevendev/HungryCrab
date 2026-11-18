@@ -129,6 +129,9 @@ def test_clean_bounded_series_retains_all_streams_without_claiming_historical_fi
     assert "first_anomalous_attempt" not in report
     stored = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     assert len(stored["attempts"]) == stored["attempt_limit"] == 8
+    assert stored["provenance"]["harness_sha"] == stored["provenance"]["subject_sha"]
+    assert stored["provenance"]["historical_failure_snapshot_reconstructed"] is False
+    assert stored["provenance"]["package_versions"]["pytest"]
     for attempt in stored["attempts"]:
         assert attempt["returncode"] == 0
         assert attempt["observations"] == []

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import importlib.metadata
 import json
 import os
 import platform
@@ -16,6 +18,7 @@ TARGET = "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_re
 ATTEMPTS = 8
 TIMEOUT_SECONDS = 45
 POST_KILL_DRAIN_SECONDS = 2
+SOURCE_ROLES = ("current_checkout", "historical_acquisition_reference")
 
 
 def drain_killed_child(
@@ -72,25 +75,40 @@ def _git(root: Path, *arguments: str) -> str:
     ).stdout.strip()
 
 
-def _provenance(root: Path) -> dict[str, object]:
+def _provenance(root: Path, source_role: str) -> dict[str, object]:
+    harness = Path(__file__).resolve().parents[1]
     tracked_changes = _git(root, "status", "--porcelain", "--untracked-files=no")
     return {
         "subject_sha": _git(root, "rev-parse", "HEAD"),
         "tracked_changes": tracked_changes,
-        "source_role": "current_checkout_not_established_historical_failure_snapshot",
+        "source_role": source_role,
+        "historical_failure_snapshot_reconstructed": False,
         "source_sha256": {
             name: hashlib.sha256((root / name).read_bytes()).hexdigest()
             for name in (
-                "tests/relay_forensics.py",
-                "tests/test_acquisition_windows_forensics.py",
                 "tests/test_acquisition.py",
                 "src/hungry_crab/fetch/acquisition.py",
             )
         },
+        "harness_sha": _git(harness, "rev-parse", "HEAD"),
+        "harness_tracked_changes": _git(harness, "status", "--porcelain", "--untracked-files=no"),
+        "harness_source_sha256": {
+            name: hashlib.sha256((harness / name).read_bytes()).hexdigest()
+            for name in (
+                "tests/relay_forensics.py",
+                "tests/test_acquisition_windows_forensics.py",
+            )
+        },
+        "uv_lock_sha256": hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest(),
+        "package_versions": {
+            name: importlib.metadata.version(name) for name in ("pytest", "pluggy", "pytest-cov")
+        },
         "python": sys.version,
         "python_executable": sys.executable,
+        "python_executable_sha256": hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest(),
         "python_implementation": platform.python_implementation(),
         "python_build": platform.python_build(),
+        "python_compiler": platform.python_compiler(),
         "platform": platform.platform(),
         "windows": platform.win32_ver(),
         "actions": {
@@ -113,9 +131,16 @@ def _provenance(root: Path) -> dict[str, object]:
 
 
 def capture_series(
-    root: Path, directory: Path, *, command: list[str] | None = None
+    root: Path,
+    directory: Path,
+    *,
+    command: list[str] | None = None,
+    capture_mode: str = "no",
+    source_role: str = "current_checkout",
 ) -> dict[str, object]:
     """Retain every observation, stop at the first anomaly, and never retry it away."""
+    if capture_mode not in ("no", "sys") or source_role not in SOURCE_ROLES:
+        raise ValueError("unsupported bounded relay diagnostic profile")
     directory.mkdir(parents=True, exist_ok=False)
     command = command or [
         sys.executable,
@@ -124,16 +149,18 @@ def capture_series(
         "-m",
         "pytest",
         "-q",
-        "-s",
+        f"--capture={capture_mode}",
         "--color=no",
         "--maxfail=1",
+        "--tb=short",
         TARGET,
     ]
     attempts: list[dict[str, object]] = []
     report: dict[str, object] = {
-        "schema": 1,
-        "provenance": _provenance(root),
+        "schema": 2,
+        "provenance": _provenance(root, source_role),
         "command": command,
+        "capture_mode": capture_mode,
         "attempt_limit": ATTEMPTS,
         "timeout_seconds": TIMEOUT_SECONDS,
         "post_kill_drain_seconds": POST_KILL_DRAIN_SECONDS,
@@ -190,3 +217,25 @@ def capture_series(
     report["outcome"] = "NOT_REPRODUCED"
     _write_json(directory / "manifest.json", report)
     return report
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run only the owned quota target against an explicit own-repository checkout."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--subject", required=True, type=Path)
+    parser.add_argument("--evidence", required=True, type=Path)
+    parser.add_argument("--capture", choices=("no", "sys"), default="sys")
+    parser.add_argument("--source-role", choices=SOURCE_ROLES, required=True)
+    arguments = parser.parse_args(argv)
+    report = capture_series(
+        arguments.subject.resolve(strict=True),
+        arguments.evidence.resolve(),
+        capture_mode=arguments.capture,
+        source_role=arguments.source_role,
+    )
+    print(json.dumps(report, indent=2))
+    return 0 if report["outcome"] == "NOT_REPRODUCED" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

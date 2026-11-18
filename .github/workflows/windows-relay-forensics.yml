@@ -1,0 +1,62 @@
+name: Windows relay attribution
+
+on:
+  push:
+    branches: [codex/t6-679-reference]
+  pull_request:
+    paths:
+      - .github/workflows/windows-relay-forensics.yml
+      - tests/relay_forensics.py
+      - tests/test_acquisition_windows_forensics.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: utf-8
+  UV_PYTHON_PREFERENCE: only-managed
+
+jobs:
+  reference:
+    name: Relay (${{ matrix.subject }}, managed Python ${{ matrix.python }})
+    runs-on: windows-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        subject: [current_checkout, historical_acquisition_reference]
+        python: ["3.11.16", "3.14.10"]
+    defaults:
+      run:
+        working-directory: subject
+    steps:
+      - name: Check out the current trusted diagnostic harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Check out the bounded own-repository subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The old target and acquisition blobs match recovered local HEAD9942f2f.
+          # This is not a reconstruction of its dirty tree, lock or sandbox.
+          ref: ${{ matrix.subject == 'historical_acquisition_reference' && '9e7341986217fdca02a101d225ba4354bfe6480c' || github.sha }}
+          path: subject
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.12"
+          python-version: ${{ matrix.python }}
+      - name: Require the exact managed Python patch, never the runner's system fallback
+        run: uv python install
+      - run: uv sync --locked --all-extras
+      - name: Retain the first observation with historical sys capture
+        run: uv run python ../harness/tests/relay_forensics.py --subject . --evidence "${{ runner.temp }}/relay-attribution" --capture sys --source-role "${{ matrix.subject }}"
+      - name: Upload raw observations even when the first anomaly failed the job
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relay-attribution-${{ matrix.subject }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/relay-attribution
+          if-no-files-found: error
