@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import urllib.request
@@ -20,6 +21,27 @@ SYMBOLS = (
     ("ws2_32.pdb", "9DC73321ED08893007DF02E641F44B871"),
 )
 MAX_PDB_BYTES = 64 * 1024 * 1024
+
+
+def classify_identity(summary: str, expected: str) -> dict[str, object]:
+    """A successful download does not qualify an unmatched public symbol file."""
+    guid = re.search(r"(?mi)^\s*GUID:\s*\{([0-9a-f-]{36})\}\s*$", summary)
+    age = re.search(r"(?m)^\s*Age:\s*([0-9]+)\s*$", summary)
+    actual_guid = None if guid is None else guid[1].replace("-", "").upper()
+    actual_age = None if age is None else int(age[1])
+    expected_age = int(expected[32:], 16)
+    if actual_guid is None or actual_age is None:
+        status = "IDENTITY_UNAVAILABLE_HELD"
+    elif actual_guid == expected[:32] and actual_age == expected_age:
+        status = "MATCHED"
+    else:
+        status = "IDENTITY_MISMATCH_HELD"
+    return {
+        "identity_status": status,
+        "actual_guid": actual_guid,
+        "actual_age": actual_age,
+        "expected_age": expected_age,
+    }
 
 
 def main() -> None:
@@ -80,10 +102,15 @@ def main() -> None:
                     "source": url,
                     "bytes": len(data),
                     "sha256": hashlib.sha256(data).hexdigest(),
+                    **classify_identity(result.stdout.decode("utf-8", errors="replace"), identity),
                 }
             )
             save()
-        manifest["status"] = "PUBLIC_RECORDS_CAPTURED"
+        manifest["status"] = (
+            "PUBLIC_RECORDS_CAPTURED_WITH_IDENTITY_HOLDS"
+            if any(record["identity_status"] != "MATCHED" for record in records)
+            else "PUBLIC_RECORDS_CAPTURED"
+        )
     except Exception as error:
         manifest["status"] = "FAILED"
         manifest["error"] = str(error)

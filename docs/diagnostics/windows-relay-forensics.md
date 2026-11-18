@@ -75,6 +75,10 @@ URL/command, caps downloads at64MiB per file, bounds tool waits, and retains LLV
 records and section headers. Resolve an RVA only against the matching GUID/age and image
 section layout; nearest public symbols alone cannot establish a call chain or cause. The
 source, tool output and downloaded-file hashes remain evidence alongside the unresolved gate.
+The first public responses had the recorded GUIDs but ages4/3 rather than the recorded1.
+These identities remain explicitly **HELD**. Successful capture is not a matched-symbol
+finding. The helper records actual/expected ages, and its Actions controls reject wrong
+or unavailable binding keys. See [Microsoft's binding-key definition](https://github.com/microsoft/pdb-rs/blob/main/docs/terminology.md).
 
 CI uploads `relay-forensics-*` artifacts on both success and failure for focused lifecycle
 jobs and the full Windows suites. The artifact directory must be fresh: reuse fails rather
