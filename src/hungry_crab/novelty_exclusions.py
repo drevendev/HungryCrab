@@ -22,9 +22,9 @@ EXCLUSIONS = frozenset({"duplicate", "already-present"})
 def capture_scope(
     maw: Path, plan: object, expected: dict[str, Any] | None = None
 ) -> dict[str, Any]:
+    from .discovery_session import _same_context, live_context
     from .novelty import implementation_scope
     from .novelty_publication import worktree_projection
-    from .discovery_session import _same_context, live_context
 
     if not isinstance(plan, dict) or len(json.dumps(plan).encode()) > 16_000:
         raise CrabError("novelty scope needs a bounded explicit implementation plan")
@@ -246,7 +246,11 @@ def _publication_explorations(
         associated = traced or any(
             row.get("candidate_id") == card.id
             or (row["kind"] == "registration" and row["card"]["id"] == card.id)
-            or (initial and row["kind"] == "novelty-reconciliation" and row.get("candidate_id") is None)
+            or (
+                initial
+                and row["kind"] == "novelty-reconciliation"
+                and row.get("candidate_id") is None
+            )
             for row in records
         )
         if associated:
@@ -280,7 +284,9 @@ def require_publication_novelty(
                 raise CrabError("implementation exclusion still applies; publication held")
             for row in reconciliations(directory, history):
                 if row["candidate_id"] in {None, card.id}:
-                    raise CrabError("later implementation supersedes this proposal; publication held")
+                    raise CrabError(
+                        "later implementation supersedes this proposal; publication held"
+                    )
             scope = data.get("novelty_scope")
             if scope is None:
                 raise CrabError("novelty implementation scope is unknown; publication held")
@@ -295,19 +301,31 @@ def require_publication_novelty(
                 ref = target.get("ref")
                 resolved = (
                     reader._bounded_read(
-                        "--no-replace-objects", "rev-parse", "--verify",
-                        "--end-of-options", ref, stdout_limit=128,
+                        "--no-replace-objects",
+                        "rev-parse",
+                        "--verify",
+                        "--end-of-options",
+                        ref,
+                        stdout_limit=128,
                     )
-                    if isinstance(ref, str) else None
+                    if isinstance(ref, str)
+                    else None
                 )
                 if resolved is None or resolved.strip() != target["sha"]:
-                    raise CrabError("implementation ref changed or is unavailable; publication held")
+                    raise CrabError(
+                        "implementation ref changed or is unavailable; publication held"
+                    )
             probe = getattr(provider, "novelty_heads", None)
             if not callable(probe) or slug is None:
-                raise CrabError("current provider implementation heads unavailable; publication held")
+                raise CrabError(
+                    "current provider implementation heads unavailable; publication held"
+                )
             current = probe(slug, scope["targets"])
             if not isinstance(current, dict) or any(
                 current.get(target["ref"]) != target["sha"]
-                for target in scope["targets"] if target["role"] != "receiving-selected"
+                for target in scope["targets"]
+                if target["role"] != "receiving-selected"
             ):
-                raise CrabError("provider implementation changed; reconcile novelty before publication")
+                raise CrabError(
+                    "provider implementation changed; reconcile novelty before publication"
+                )

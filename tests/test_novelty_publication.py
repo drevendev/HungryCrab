@@ -36,8 +36,10 @@ class CurrentIssues(FakeIssues):
 
 
 @pytest.mark.parametrize("disposition", ["duplicate", "already-present"])
+@pytest.mark.parametrize("trace_present", [False, True])
+@pytest.mark.parametrize("other_hypothesis", [False, True])
 def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
-    tmp_path: Path, disposition: str
+    tmp_path: Path, disposition: str, trace_present: bool, other_hypothesis: bool
 ) -> None:
     directory, donor, maw, finding = setup(tmp_path)
     finding["source_behavior"] = "reads bounded chunks"
@@ -46,16 +48,38 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
     exploration.record(
         directory,
         observation(
-            finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-            disposition=disposition, candidate_id=card["id"], novelty_basis=basis(scope),
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            reviewed=True,
+            disposition=disposition,
+            candidate_id=card["id"],
+            novelty_basis=basis(scope),
         ),
     )
+    if other_hypothesis:
+        exploration.record(directory, observation(
+            finding, kind="decision", hypothesis="another flow", reviewed=True,
+            disposition="verified-gap", candidate_id=card["id"], selected=True,
+        ))
+    if not trace_present:
+        meal = directory.parent.parent
+        menu = load_menu(meal)
+        assert menu is not None
+        for row in menu["candidates"]:
+            if row["id"] == card["id"]:
+                row["trace"].pop("exploration_snapshot")
+        (meal / "menu.json").write_text(json.dumps(menu), encoding="utf-8")
     before = exploration.events(directory)
     client = CurrentIssues()
     try:
         serve(
-            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            directory.parent.parent,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
     except CrabError:
@@ -65,8 +89,12 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
     assert exploration.events(directory) == before
     known = CurrentIssues({card["id"]: {"number": 19, "state": "open"}})
     result = serve(
-        directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-        config=MawConfig.load(maw), ledger=Ledger(None), client=known,
+        directory.parent.parent,
+        maw,
+        ServeOptions(ids=[card["id"]], mode="issue"),
+        config=MawConfig.load(maw),
+        ledger=Ledger(None),
+        client=known,
         slug_lookup=lambda _: MAW_SLUG,
     )
     assert result.skipped and not known.created
@@ -78,14 +106,14 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 ) -> None:
     maw = tmp_path / "maw"
     shutil.copytree(pyproject_cli, maw)
-    (maw / ".crab.yml").write_text(
-        "ledger: none\nhunger:\n  ci: issues-only\n", encoding="utf-8"
-    )
+    (maw / ".crab.yml").write_text("ledger: none\nhunger:\n  ci: issues-only\n", encoding="utf-8")
     git(maw, "add", ".crab.yml")
     git(maw, "commit", "-m", "test: own indexed publication policy")
     result, _, _, _ = compare_for_maw(
-        Target(path=npm_app), maw,
-        digest_options=DigestOptions(cache_root=tmp_path / "cache"), record_ledger=False,
+        Target(path=npm_app),
+        maw,
+        digest_options=DigestOptions(cache_root=tmp_path / "cache"),
+        record_ledger=False,
     )
     assert result.meal_dir is not None
     meal = result.meal_dir
@@ -99,21 +127,34 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 
     def plan(pending: str | None = None) -> dict[str, Any]:
         return {
-            "prefixes": [workflow], "default_ref": selected, "default_sha": pin,
+            "prefixes": [workflow],
+            "default_ref": selected,
+            "default_sha": pin,
             "pending": [{"ref": PENDING, "sha": pending}] if pending else [],
             "pending_collection": {"complete": True, "as_of": "owned provider observation"},
         }
 
     directory = exploration.initialize(meal, {**PLAN, "novelty_scope": plan()}, maw=maw)
     denominator = exploration.report(directory)["denominator"]
-    original = exploration.record(directory, {
-        "kind": "decision", "candidate_id": card.id, "hypothesis": "dependency cache",
-        "reviewed": True, "selected": True, "disposition": "verified-gap",
-        "author": "owned reviewer", "tool": "owned fixture", "attempt": "indexed-1",
-        "reason": "receiving pipeline lacks dependency caching",
-        "source_evidence": [{"sha": menu["prey"]["sha"], "path": workflow, "start": 1, "end": 1}],
-        "maw_evidence": [{"sha": pin, "path": workflow, "start": 1, "end": 1}],
-    })
+    original = exploration.record(
+        directory,
+        {
+            "kind": "decision",
+            "candidate_id": card.id,
+            "hypothesis": "dependency cache",
+            "reviewed": True,
+            "selected": True,
+            "disposition": "verified-gap",
+            "author": "owned reviewer",
+            "tool": "owned fixture",
+            "attempt": "indexed-1",
+            "reason": "receiving pipeline lacks dependency caching",
+            "source_evidence": [
+                {"sha": menu["prey"]["sha"], "path": workflow, "start": 1, "end": 1}
+            ],
+            "maw_evidence": [{"sha": pin, "path": workflow, "start": 1, "end": 1}],
+        },
+    )
     git(maw, "checkout", "--detach", pin)
     target = maw / workflow
     original_text = target.read_text(encoding="utf-8")
@@ -125,21 +166,42 @@ def test_indexed_candidate_later_supersession_is_not_lost(
     git(maw, "update-ref", PENDING, pending)
     git(maw, "checkout", selected)
     start = len(original_text.splitlines()) + 1
-    reconcile(directory, {
-        "operation": "indexed-later", "original_event": original["sha256"], "scope": plan(pending),
-        "novelty_basis": {
-            "schema": BASIS_SCHEMA, "role": "receiving-pending", "ref": PENDING, "sha": pending,
-            "evidence": [{"path": workflow, "start": start, "end": start + 3,
-                          "content_sha256": hashlib.sha256(addition.encode()).hexdigest()}],
+    reconcile(
+        directory,
+        {
+            "operation": "indexed-later",
+            "original_event": original["sha256"],
+            "scope": plan(pending),
+            "novelty_basis": {
+                "schema": BASIS_SCHEMA,
+                "role": "receiving-pending",
+                "ref": PENDING,
+                "sha": pending,
+                "evidence": [
+                    {
+                        "path": workflow,
+                        "start": start,
+                        "end": start + 3,
+                        "content_sha256": hashlib.sha256(addition.encode()).hexdigest(),
+                    }
+                ],
+            },
+            "author": "owned reviewer",
+            "tool": "owned fixture",
+            "attempt": "indexed-2",
+            "reason": "later cache implementation supersedes the original need now",
         },
-        "author": "owned reviewer", "tool": "owned fixture", "attempt": "indexed-2",
-        "reason": "later cache implementation supersedes the original need now",
-    })
+    )
     client = CurrentIssues({card.id: {"number": 21, "state": "open"}} if existing else {})
     try:
         served = serve(
-            meal, maw, ServeOptions(ids=[card.id], mode="issue"), config=MawConfig.load(maw),
-            ledger=Ledger(None), client=client, slug_lookup=lambda _: MAW_SLUG,
+            meal,
+            maw,
+            ServeOptions(ids=[card.id], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
+            slug_lookup=lambda _: MAW_SLUG,
         )
     except CrabError:
         assert not existing, "existing provider marker must remain reconcilable"
@@ -156,11 +218,13 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 
 
 @pytest.mark.parametrize("mode", ["COPY", "REIMPLEMENT"])
-@pytest.mark.parametrize("tamper", ["none", "unrelated", "payload", "policy", "ref"])
+@pytest.mark.parametrize("tamper", ["none", "unrelated", "payload", "policy", "ref", "exclusion"])
 def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     tmp_path: Path, mode: str, tamper: str
 ) -> None:
     initial, donor, maw, finding = pair(tmp_path, hunger="true")
+    git(maw, "config", "user.name", "Owned Publisher")
+    git(maw, "config", "user.email", "owned@example.invalid")
     directory = exploration.initialize(
         initial.parent.parent, {**PLAN, "novelty_scope": scope_plan(maw)}, maw=maw
     )
@@ -192,11 +256,18 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     else:
         spec = maw / nutrient_spec_path(card["id"])
         spec.parent.mkdir(parents=True, exist_ok=True)
-        spec.write_text("# Behavior\nRead bounded chunks while preserving output.\n", encoding="utf-8")
-        payload = json.dumps({
-            "version": 1, "nutrient_id": card["id"], "changed_paths": ["app.py"],
-            "summary": TRACE, "checks": ["owned fixture; no producer execution claimed"],
-        })
+        spec.write_text(
+            "# Behavior\nRead bounded chunks while preserving output.\n", encoding="utf-8"
+        )
+        payload = json.dumps(
+            {
+                "version": 1,
+                "nutrient_id": card["id"],
+                "changed_paths": ["app.py"],
+                "summary": TRACE,
+                "checks": ["owned fixture; no producer execution claimed"],
+            }
+        )
 
     class Client(GhIssueClient):
         def __init__(self) -> None:
@@ -219,6 +290,13 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
                 elif tamper == "ref":
                     git(maw, "add", "app.py")
                     git(maw, "commit", "-m", "test: external receiving commit")
+                elif tamper == "exclusion":
+                    scope = exploration._snapshot(directory)["novelty_scope"]
+                    exploration.record(directory, observation(
+                        finding, kind="decision", hypothesis="bounded reads", reviewed=True,
+                        disposition="duplicate", candidate_id=card["id"],
+                        novelty_basis=basis(scope, "receiving-selected"),
+                    ))
             return {}
 
         def novelty_heads(self, slug: Any, targets: list[dict[str, Any]]) -> dict[str, str]:
@@ -230,13 +308,20 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
             return self.effects(*args)
 
     client = Client()
+
     def publish() -> Any:
         return serve(
-            meal, maw, ServeOptions(ids=[card["id"]], mode="pr-branch"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
-            receipt_payloads={card["id"]: payload}, prey_repo=donor,
+            meal,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="pr-branch"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
+            receipt_payloads={card["id"]: payload},
+            prey_repo=donor,
             slug_lookup=lambda _: MAW_SLUG,
         )
+
     branch = nutrient_branch_name(card["id"])
     if tamper == "none":
         assert len(publish().served) == 1
@@ -253,14 +338,26 @@ def test_scoped_ordinary_gap_remains_publishable(tmp_path: Path) -> None:
     directory, donor, maw, finding = setup(tmp_path)
     finding["source_behavior"] = "reads bounded chunks"
     card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
-    exploration.record(directory, observation(
-        finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-        disposition="verified-gap", candidate_id=card["id"], selected=True,
-    ))
+    exploration.record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            reviewed=True,
+            disposition="verified-gap",
+            candidate_id=card["id"],
+            selected=True,
+        ),
+    )
     client = CurrentIssues()
     result = serve(
-        directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-        config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+        directory.parent.parent,
+        maw,
+        ServeOptions(ids=[card["id"]], mode="issue"),
+        config=MawConfig.load(maw),
+        ledger=Ledger(None),
+        client=client,
         slug_lookup=lambda _: MAW_SLUG,
     )
     assert len(result.served) == len(client.created) == 1
@@ -276,9 +373,7 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
     from hungry_crab.nutrients import Candidate
 
     _, first, maw, initial_finding = pair(tmp_path / "initial", hunger="issues-only")
-    (maw / ".crab.yml").write_text(
-        "ledger: repo\nhunger:\n  code: issues-only\n", encoding="utf-8"
-    )
+    (maw / ".crab.yml").write_text("ledger: repo\nhunger:\n  code: issues-only\n", encoding="utf-8")
     (maw / ".gitignore").write_text(".crab/\n", encoding="utf-8")
     git(maw, "add", ".crab.yml", ".gitignore")
     git(maw, "commit", "-m", "test: own persisted publication receipts")
@@ -291,7 +386,8 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
     source_menu = None
     for index, donor in enumerate(roots):
         result, _, _, _ = compare_for_maw(
-            Target(path=donor), maw,
+            Target(path=donor),
+            maw,
             digest_options=DigestOptions(cache_root=tmp_path / "cache"),
             record_ledger=False,
         )
@@ -302,14 +398,25 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
         source_menu = load_menu(result.meal_dir)
         assert source_menu is not None
         finding = {
-            **initial_finding, "key": f"code.scoped-flow-{index}",
+            **initial_finding,
+            "key": f"code.scoped-flow-{index}",
             "source_behavior": "owned bounded input",
-            "source_evidence": [{
-                "sha": source_menu["prey"]["sha"], "path": "reader.py", "start": 1, "end": 2,
-            }],
-            "maw_evidence": [{
-                "sha": source_menu["maw"]["sha"], "path": "app.py", "start": 1, "end": 2,
-            }],
+            "source_evidence": [
+                {
+                    "sha": source_menu["prey"]["sha"],
+                    "path": "reader.py",
+                    "start": 1,
+                    "end": 2,
+                }
+            ],
+            "maw_evidence": [
+                {
+                    "sha": source_menu["maw"]["sha"],
+                    "path": "app.py",
+                    "start": 1,
+                    "end": 2,
+                }
+            ],
         }
         registered = exploration.register(directory, finding, source_repo=donor)
         card = Candidate.from_dict(registered["record"]["card"])
@@ -320,14 +427,13 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
         targets[key] = Target(path=donor)
     assert source_menu is not None
     aggregate = {
-        **source_menu, "candidates": [card.to_dict() for card in cards],
+        **source_menu,
+        "candidates": [card.to_dict() for card in cards],
         "receiving_context_status": "observed",
         "receiving_context": exploration._snapshot(directory)["receiving_context"],
     }
     # The owned transport supplies actual meals; serving and freshness guards stay real.
-    monkeypatch.setattr(
-        "hungry_crab.multiserve.load_multi", lambda _: (aggregate, paths, targets)
-    )
+    monkeypatch.setattr("hungry_crab.multiserve.load_multi", lambda _: (aggregate, paths, targets))
     config = MawConfig.load(maw)
     ledger = Ledger.load(config.ledger_path(), maw=maw.name)
     save = ledger.save
@@ -350,8 +456,12 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
 
     def publish() -> Any:
         return serve_many(
-            tmp_path / "owned-bundle", maw, ServeOptions(ids=[c.id for c in cards], mode="issue"),
-            config=config, ledger=ledger, client=client,
+            tmp_path / "owned-bundle",
+            maw,
+            ServeOptions(ids=[c.id for c in cards], mode="issue"),
+            config=config,
+            ledger=ledger,
+            client=client,
         )
 
     if tamper == "none":
