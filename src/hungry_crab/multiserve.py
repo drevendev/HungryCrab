@@ -247,7 +247,7 @@ def serve_many(
         else None
     )
     report = ServeReport(options.mode, str(maw), skipped=skipped)
-    novelty_context = PublicationContext(ledger)
+    novelty_context = PublicationContext(ledger, maw)
     groups: dict[str, list[str]] = {}
     plans: list[PullRequestServePlan] | None = [] if options.mode == "pr-branch" else None
     for card in cards:

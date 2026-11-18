@@ -234,6 +234,9 @@ def _publication_explorations(
             raise CrabError("novelty publication exploration read budget exceeded")
         if re.fullmatch(r"[a-f0-9]{64}", directory.name) is None:
             continue
+        require_real_state_path(directory / "snapshot.json")
+        if not directory.is_dir():
+            raise CrabError("publication exploration is not a real directory")
         data = _snapshot(directory)
         history = events(directory)
         event_count += len(history)
@@ -275,12 +278,18 @@ def require_publication_novelty(
 
     for card in cards:
         for directory, data, history in _publication_explorations(meal, card):
-            decisions = {}
+            exclusions = {}
             for event in history:
                 row = event["record"]
                 if row["kind"] == "decision" and row.get("candidate_id") == card.id:
-                    decisions[row["hypothesis"]] = row
-            if any(row["disposition"] in EXCLUSIONS for row in decisions.values()):
+                    hypothesis = row["hypothesis"]
+                    if row["disposition"] in EXCLUSIONS:
+                        exclusions[hypothesis] = True
+                    elif hypothesis in exclusions:
+                        exclusions[hypothesis] = not (
+                            row.get("reviewed") is True and row["disposition"] == "verified-gap"
+                        )
+            if any(exclusions.values()):
                 raise CrabError("implementation exclusion still applies; publication held")
             for row in reconciliations(directory, history):
                 if row["candidate_id"] in {None, card.id}:
