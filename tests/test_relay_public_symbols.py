@@ -37,7 +37,9 @@ def test_actual_downloaded_guid_matches_but_age_mismatch_is_held(
 def test_only_complete_matching_guid_and_age_qualify() -> None:
     guid = "44294CBD-55E8-CD67-B3D5-6B689F03152D"
     expected = guid.replace("-", "") + "1"
-    assert classify_identity(f"GUID: {{{guid}}}\nAge: 1\n", expected)["identity_status"] == "MATCHED"
+    assert (
+        classify_identity(f"GUID: {{{guid}}}\nAge: 1\n", expected)["identity_status"] == "MATCHED"
+    )
     assert classify_identity(f"GUID: {{{guid}}}\n", expected)["identity_status"] == (
         "IDENTITY_UNAVAILABLE_HELD"
     )
