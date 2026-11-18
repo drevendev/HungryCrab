@@ -5,7 +5,7 @@ on:
       mode:
         description: Pinned owned probe group
         type: choice
-        options: [full677, historic, novelty]
+        options: [full677, historic, novelty, ind690]
         default: full677
         required: true
       subject:
@@ -17,6 +17,42 @@ permissions:
 env:
   PYTHONIOENCODING: utf-8
 jobs:
+  independent690:
+    if: inputs.mode == 'ind690'
+    name: PR690 independent findings (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: harness
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.subject }}
+          path: subject
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --all-extras
+        working-directory: subject
+      - name: Install the owned independent-review controls
+        working-directory: subject
+        run: uv run python -c "import shutil; shutil.copyfile('../harness/review/ind690_probes.py', 'tests/test_ind690_review.py')"
+      - name: Exercise exact reviewed source without models or donor execution
+        working-directory: subject
+        run: uv run pytest tests/test_ind690_review.py -q -rA --junitxml=ind690-results.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: ind690-${{ matrix.os }}-py${{ matrix.python }}
+          path: subject/ind690-results.xml
   novelty:
     if: inputs.mode == 'novelty'
     name: T2 novelty preflight (${{ matrix.os }}, Python ${{ matrix.python }})
