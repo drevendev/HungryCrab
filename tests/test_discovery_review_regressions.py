@@ -328,3 +328,75 @@ def test_historical_late_cap_violation_is_reported_without_rewriting(owned_sessi
     assert repeated["actual_model_tokens"] == 101
     assert repeated["budget_within_limits"] is False
     assert (directory / "session.json").read_bytes() == before
+
+
+def test_interrupted_host_callback_requires_original_attempt_reconciliation(
+    owned_session: Any,
+) -> None:
+    from hungry_crab import discovery_session as sessions
+    from hungry_crab.errors import CrabError
+
+    directory, action, instant, _ = owned_session
+    assert sessions.next_action(directory, now=instant)["action"] == "search"
+    invoked: list[str] = []
+
+    def interrupted(row: dict[str, Any]) -> dict[str, Any]:
+        invoked.append(row["attempt"])
+        raise RuntimeError("synthetic callback interruption")
+
+    with pytest.raises(RuntimeError, match="synthetic callback interruption"):
+        sessions.drive(directory, {"search": interrupted}, max_actions=1)
+
+    state = sessions._load(directory)
+    assert state["lease"]["attempt"] == action["attempt"]
+    assert state["spent"]["requests"] == 1
+    permits = [
+        event["record"]
+        for event in state["events"]
+        if event["record"].get("kind") == "host-handler-dispatch-authorized"
+    ]
+    assert len(permits) == 1 and permits[0]["attempt"] == action["attempt"]
+    assert not any(
+        event["record"].get("kind") == "provider-request-authorized" for event in state["events"]
+    )
+    before = (directory / "session.json").read_bytes()
+
+    pending = sessions.next_action(directory, now=instant)
+    assert pending["action"] == "reconcile"
+    assert pending["attempt"] == action["attempt"]
+    assert "host callback already dispatched" in pending["reason"]
+    resumed = sessions.drive(directory, {"search": interrupted}, max_actions=1)
+    assert resumed["status"] == "reconciliation-required"
+    assert resumed["pending"]["attempt"] == action["attempt"]
+    assert invoked == [action["attempt"]]
+    with pytest.raises(CrabError, match="already dispatched"):
+        sessions.authorize_host_dispatch(directory, action["attempt"], "search")
+    assert (directory / "session.json").read_bytes() == before
+
+
+def test_completed_host_callback_receipt_does_not_leave_reconcile_lease(
+    owned_session: Any,
+) -> None:
+    from test_release_069_discovery import receipt
+
+    from hungry_crab import discovery_session as sessions
+
+    directory, action, instant, _ = owned_session
+    invoked: list[str] = []
+
+    def completed(row: dict[str, Any]) -> dict[str, Any]:
+        invoked.append(row["attempt"])
+        return receipt(row, {"requests": 0, "candidates": []})
+
+    result = sessions.drive(directory, {"search": completed}, max_actions=1)
+    assert result["status"] == "host-action-limit"
+    state = sessions._load(directory)
+    assert state["lease"] is None
+    assert state["spent"]["requests"] == 1
+    assert invoked == [action["attempt"]]
+    assert any(event["record"].get("kind") == "action-result" for event in state["events"])
+
+    later = sessions.next_action(directory, now=instant)
+    assert later.get("action") != "reconcile"
+    if not later.get("finished"):
+        assert later["attempt"] != action["attempt"]
