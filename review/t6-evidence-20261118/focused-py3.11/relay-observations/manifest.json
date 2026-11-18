@@ -1,0 +1,250 @@
+{
+  "attempt_limit": 8,
+  "attempts": [
+    {
+      "attempt": 1,
+      "finished_at": "2026-11-18T17:37:58.539853+00:00",
+      "observations": [],
+      "pid": 1784,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:37:56.903912+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-01.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-01.stdout.bin",
+          "sha256": "8ac6119e668724de251fc28d134222f08435577be14e0e52b0b56d1aef9a46a4"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 2,
+      "finished_at": "2026-11-18T17:37:59.685990+00:00",
+      "observations": [],
+      "pid": 7528,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:37:58.539853+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-02.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-02.stdout.bin",
+          "sha256": "59b1af5f1969c4e668ba7a6a64d3172f5c25c37783f10e2094a29d3e6d50775d"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 3,
+      "finished_at": "2026-11-18T17:38:00.822511+00:00",
+      "observations": [],
+      "pid": 1340,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:37:59.685990+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-03.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-03.stdout.bin",
+          "sha256": "342007629df3f0b00ba15a0faf737fd438ed263a9937e122fbdc226127f58bf7"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 4,
+      "finished_at": "2026-11-18T17:38:01.955236+00:00",
+      "observations": [],
+      "pid": 5784,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:00.822848+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-04.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-04.stdout.bin",
+          "sha256": "342007629df3f0b00ba15a0faf737fd438ed263a9937e122fbdc226127f58bf7"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 5,
+      "finished_at": "2026-11-18T17:38:03.591151+00:00",
+      "observations": [],
+      "pid": 9100,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:01.956456+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-05.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-05.stdout.bin",
+          "sha256": "8ac6119e668724de251fc28d134222f08435577be14e0e52b0b56d1aef9a46a4"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 6,
+      "finished_at": "2026-11-18T17:38:04.725481+00:00",
+      "observations": [],
+      "pid": 4576,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:03.591151+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-06.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-06.stdout.bin",
+          "sha256": "342007629df3f0b00ba15a0faf737fd438ed263a9937e122fbdc226127f58bf7"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 7,
+      "finished_at": "2026-11-18T17:38:06.360742+00:00",
+      "observations": [],
+      "pid": 5576,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:04.725481+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-07.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-07.stdout.bin",
+          "sha256": "8ac6119e668724de251fc28d134222f08435577be14e0e52b0b56d1aef9a46a4"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 8,
+      "finished_at": "2026-11-18T17:38:08.033531+00:00",
+      "observations": [],
+      "pid": 528,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:06.362360+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-08.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-08.stdout.bin",
+          "sha256": "ffe78d120e0f36f1d74928e92f1420566b4f9f16c4e825f27a6044c4957162aa"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    }
+  ],
+  "command": [
+    "D:\\a\\HungryCrab\\HungryCrab\\.venv\\Scripts\\python.exe",
+    "-X",
+    "faulthandler",
+    "-m",
+    "pytest",
+    "-q",
+    "-s",
+    "--color=no",
+    "--maxfail=1",
+    "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
+  ],
+  "outcome": "NOT_REPRODUCED",
+  "post_kill_drain_seconds": 2,
+  "provenance": {
+    "actions": {
+      "GITHUB_JOB": "acquisition-lifecycle",
+      "GITHUB_REPOSITORY": "drevendev/HungryCrab",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_RUN_ID": "44360635222",
+      "GITHUB_SHA": "98434748750df49f20dbbab604539bf4b1f650d0",
+      "GITHUB_WORKFLOW_REF": "drevendev/HungryCrab/.github/workflows/ci.yml@refs/pull/693/merge",
+      "GITHUB_WORKFLOW_SHA": "98434748750df49f20dbbab604539bf4b1f650d0",
+      "ImageOS": "win25-vs2026",
+      "ImageVersion": "20261103.298.1",
+      "RUNNER_OS": "Windows"
+    },
+    "platform": "Windows-10-10.0.26100-SP0",
+    "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "python_build": [
+      "tags/v3.11.9:de54cf5",
+      "Apr  2 2024 10:12:12"
+    ],
+    "python_executable": "D:\\a\\HungryCrab\\HungryCrab\\.venv\\Scripts\\python.exe",
+    "python_implementation": "CPython",
+    "source_role": "current_checkout_not_established_historical_failure_snapshot",
+    "source_sha256": {
+      "src/hungry_crab/fetch/acquisition.py": "e5e14f694d492b6fbaa5dfb8f26b7a1111900aa2d68446bb66ee94c95528d199",
+      "tests/relay_forensics.py": "cbb6a735dbd1bfef1b37afc32213e58ed8b4f55c7c3ec7a13ec3fd40033dd9bc",
+      "tests/test_acquisition.py": "d69a7ea562427e733b2dbe5b0d97c652ee7f0012119f9d9c735af67fe5d95ddc",
+      "tests/test_acquisition_windows_forensics.py": "09f613e1c71063898682aae3bfbec6064060b8bdbcf6ead195f94be16701103d"
+    },
+    "subject_sha": "98434748750df49f20dbbab604539bf4b1f650d0",
+    "tracked_changes": "",
+    "windows": [
+      "10",
+      "10.0.26100",
+      "SP0",
+      "Multiprocessor Free"
+    ]
+  },
+  "schema": 1,
+  "timeout_seconds": 45
+}

@@ -1,0 +1,250 @@
+{
+  "attempt_limit": 8,
+  "attempts": [
+    {
+      "attempt": 1,
+      "finished_at": "2026-11-18T17:38:06.931079+00:00",
+      "observations": [],
+      "pid": 6036,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:05.681450+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-01.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-01.stdout.bin",
+          "sha256": "c11555b7624e0228191044c9c8f06ffc6d797106ac71bd7fb1efcbba3655cee5"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 2,
+      "finished_at": "2026-11-18T17:38:08.674138+00:00",
+      "observations": [],
+      "pid": 2824,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:06.931647+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-02.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-02.stdout.bin",
+          "sha256": "754ee2f9cfa98429e2576413a3e0f9e32ef5cda485f072abfd9751060be8aa78"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 3,
+      "finished_at": "2026-11-18T17:38:09.916124+00:00",
+      "observations": [],
+      "pid": 7484,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:08.674753+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-03.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-03.stdout.bin",
+          "sha256": "c8cb67dd1c97149a0a8f20307a2f914816e538648ec6143739a68ecb58268bc0"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 4,
+      "finished_at": "2026-11-18T17:38:11.169361+00:00",
+      "observations": [],
+      "pid": 8352,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:09.916764+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-04.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-04.stdout.bin",
+          "sha256": "c8cb67dd1c97149a0a8f20307a2f914816e538648ec6143739a68ecb58268bc0"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 5,
+      "finished_at": "2026-11-18T17:38:12.898651+00:00",
+      "observations": [],
+      "pid": 3576,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:11.170005+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-05.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-05.stdout.bin",
+          "sha256": "754ee2f9cfa98429e2576413a3e0f9e32ef5cda485f072abfd9751060be8aa78"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 6,
+      "finished_at": "2026-11-18T17:38:14.159578+00:00",
+      "observations": [],
+      "pid": 4864,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:12.899257+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-06.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-06.stdout.bin",
+          "sha256": "9619d4eb034701f112bdaa46764b6421ad72fa156587c634c6334123a73da3d2"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 7,
+      "finished_at": "2026-11-18T17:38:15.915193+00:00",
+      "observations": [],
+      "pid": 8476,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:14.160191+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-07.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-07.stdout.bin",
+          "sha256": "ed18e2898d8d3a9eb38134b7b833e8a1f3aec8fc4f79bd4668c2924078d7e705"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 8,
+      "finished_at": "2026-11-18T17:38:17.153389+00:00",
+      "observations": [],
+      "pid": 6608,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T17:38:15.915799+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-08.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 22,
+          "file": "attempt-08.stdout.bin",
+          "sha256": "59b1af5f1969c4e668ba7a6a64d3172f5c25c37783f10e2094a29d3e6d50775d"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    }
+  ],
+  "command": [
+    "D:\\a\\HungryCrab\\HungryCrab\\.venv\\Scripts\\python.exe",
+    "-X",
+    "faulthandler",
+    "-m",
+    "pytest",
+    "-q",
+    "-s",
+    "--color=no",
+    "--maxfail=1",
+    "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
+  ],
+  "outcome": "NOT_REPRODUCED",
+  "post_kill_drain_seconds": 2,
+  "provenance": {
+    "actions": {
+      "GITHUB_JOB": "acquisition-lifecycle",
+      "GITHUB_REPOSITORY": "drevendev/HungryCrab",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_RUN_ID": "44360635222",
+      "GITHUB_SHA": "98434748750df49f20dbbab604539bf4b1f650d0",
+      "GITHUB_WORKFLOW_REF": "drevendev/HungryCrab/.github/workflows/ci.yml@refs/pull/693/merge",
+      "GITHUB_WORKFLOW_SHA": "98434748750df49f20dbbab604539bf4b1f650d0",
+      "ImageOS": "win25-vs2026",
+      "ImageVersion": "20261116.315.1",
+      "RUNNER_OS": "Windows"
+    },
+    "platform": "Windows-2025Server-10.0.26100-SP0",
+    "python": "3.14.10 (tags/v3.14.10:b703b2c, Oct 25 2026, 17:36:52) [MSC v.1944 64 bit (AMD64)]",
+    "python_build": [
+      "tags/v3.14.10:b703b2c",
+      "Oct 25 2026 17:36:52"
+    ],
+    "python_executable": "D:\\a\\HungryCrab\\HungryCrab\\.venv\\Scripts\\python.exe",
+    "python_implementation": "CPython",
+    "source_role": "current_checkout_not_established_historical_failure_snapshot",
+    "source_sha256": {
+      "src/hungry_crab/fetch/acquisition.py": "e5e14f694d492b6fbaa5dfb8f26b7a1111900aa2d68446bb66ee94c95528d199",
+      "tests/relay_forensics.py": "cbb6a735dbd1bfef1b37afc32213e58ed8b4f55c7c3ec7a13ec3fd40033dd9bc",
+      "tests/test_acquisition.py": "d69a7ea562427e733b2dbe5b0d97c652ee7f0012119f9d9c735af67fe5d95ddc",
+      "tests/test_acquisition_windows_forensics.py": "09f613e1c71063898682aae3bfbec6064060b8bdbcf6ead195f94be16701103d"
+    },
+    "subject_sha": "98434748750df49f20dbbab604539bf4b1f650d0",
+    "tracked_changes": "",
+    "windows": [
+      "2025Server",
+      "10.0.26100",
+      "SP0",
+      "Multiprocessor Free"
+    ]
+  },
+  "schema": 1,
+  "timeout_seconds": 45
+}
