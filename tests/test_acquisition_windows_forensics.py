@@ -56,8 +56,6 @@ def test_post_kill_pipe_drain_is_bounded_when_descendant_keeps_pipe_open() -> No
     child.communicate.assert_called_once_with(timeout=_POST_KILL_DRAIN_SECONDS)
 
 
-
-
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows native-handle diagnostic only")
 def test_relay_select_teardown_preserves_first_native_process_failure() -> None:
     root = Path(__file__).resolve().parents[1]
