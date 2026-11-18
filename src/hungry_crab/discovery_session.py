@@ -402,11 +402,25 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                 0, value["limits"]["model_tokens"] - value["spent"]["model_tokens"]
             )
             lease["remaining_seconds"] = (deadline - instant).total_seconds()
-            if _pending_operations(value) or instant >= datetime.fromisoformat(lease["expires_at"]):
+            callback_dispatched = any(
+                event["record"].get("kind") == "host-handler-dispatch-authorized"
+                and event["record"].get("attempt") == lease["attempt"]
+                for event in value["events"]
+            )
+            if (
+                callback_dispatched
+                or _pending_operations(value)
+                or instant >= datetime.fromisoformat(lease["expires_at"])
+            ):
                 lease["action"] = "reconcile"
                 lease["reason"] = (
                     "previous attempt may have consumed provider effects; do not repeat blindly"
                 )
+                if callback_dispatched:
+                    lease["reason"] = (
+                        "host callback already dispatched; "
+                        "reconcile original attempt without replay"
+                    )
             return lease
         need = _pending_need(value)
         if need is None:

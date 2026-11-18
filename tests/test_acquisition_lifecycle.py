@@ -201,3 +201,81 @@ def test_live_connect_ack_preserves_client_timeout() -> None:
             assert client.gettimeout() == 3
         finally:
             scope.stop()
+
+
+@pytest.mark.parametrize("exit_mode", ["normal", "cancel", "assertion"])
+def test_relay_handler_exits_after_delayed_connect_is_released(
+    quota: AcquisitionBudget, monkeypatch: pytest.MonkeyPatch, exit_mode: str
+) -> None:
+    """Measure the handler lifetime across scope teardown without a live network."""
+    entered = threading.Event()
+    connecting = threading.Event()
+    release = threading.Event()
+    completed = threading.Event()
+    workers: list[threading.Thread] = []
+    original_connect = socket.create_connection
+    original_process = socketserver.ThreadingTCPServer.process_request_thread
+
+    def observe_handler(
+        server: socketserver.ThreadingTCPServer,
+        request: socket.socket,
+        address: tuple[str, int],
+    ) -> None:
+        workers.append(threading.current_thread())
+        entered.set()
+        try:
+            original_process(server, request, address)
+        finally:
+            completed.set()
+
+    monkeypatch.setattr(socketserver.ThreadingTCPServer, "process_request_thread", observe_handler)
+    with ExitStack() as cleanup:
+        upstream, peer = socket.socketpair()
+        cleanup.enter_context(upstream)
+        cleanup.enter_context(peer)
+        peer.settimeout(3)
+
+        def delayed_connect(address: tuple[str, int], *, timeout: float) -> socket.socket:
+            assert address == ("github.com", 443)
+            connecting.set()
+            assert release.wait(10), "test did not release the owned connector"
+            return upstream
+
+        monkeypatch.setattr(
+            "hungry_crab.fetch.acquisition.socket.create_connection", delayed_connect
+        )
+        if exit_mode == "cancel":
+            expected = pytest.raises(RuntimeError, match="owned cancellation")
+        elif exit_mode == "assertion":
+            expected = pytest.raises(AssertionError, match="owned assertion failure")
+        else:
+            expected = nullcontext()
+        try:
+            with expected, quota.scope():
+                assert quota._server is not None
+                client = cleanup.enter_context(original_connect(quota._server.server_address, 3))
+                client.settimeout(3)
+                client.sendall(b"CONNECT github.com:443 HTTP/1.1\r\n\r\n")
+                assert entered.wait(3)
+                assert connecting.wait(3)
+                if exit_mode == "cancel":
+                    raise RuntimeError("owned cancellation")
+                if exit_mode == "assertion":
+                    raise AssertionError("owned assertion failure")
+
+            # A blocked upstream connect may legitimately outlive scope return.
+            # The captured handler must still be observable, not forgotten.
+            assert len(workers) == 1
+            assert workers[0].is_alive()
+            assert not completed.is_set()
+            _closed(client)
+            release.set()
+            assert completed.wait(3)
+            workers[0].join(timeout=3)
+            assert not workers[0].is_alive()
+            assert peer.recv(1) == b""
+            assert quota.downloaded == 0
+        finally:
+            release.set()
+            for worker in workers:
+                worker.join(timeout=3)

@@ -293,8 +293,10 @@ def test_drive_authorizes_host_dispatch_and_blocks_uncertain_replay(tmp_path: Pa
     assert dispatched == [action["attempt"]]
     assert sessions.report(directory)["spent"]["requests"] == 1
     after_first = (directory / "session.json").read_bytes()
-    with pytest.raises(CrabError, match="already dispatched; reconcile"):
-        sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
+    resumed = sessions.drive(directory, {"search": uncertain_host}, max_actions=1)
+    assert resumed["status"] == "reconciliation-required"
+    assert resumed["pending"]["attempt"] == action["attempt"]
+    assert resumed["pending"]["action"] == "reconcile"
     assert dispatched == [action["attempt"]]
     assert (directory / "session.json").read_bytes() == after_first
 
@@ -380,9 +382,13 @@ def test_drive_does_not_accept_unqualified_search_callback_result(tmp_path: Path
     state = sessions._load(directory)
     assert state["lease"]["attempt"] == action["attempt"]
     assert not any(event["record"].get("kind") == "action-result" for event in state["events"])
-    with pytest.raises(CrabError, match="already dispatched; reconcile"):
-        sessions.drive(directory, {"search": bare_host}, max_actions=1)
+    before_resume = (directory / "session.json").read_bytes()
+    resumed = sessions.drive(directory, {"search": bare_host}, max_actions=1)
+    assert resumed["status"] == "reconciliation-required"
+    assert resumed["pending"]["attempt"] == action["attempt"]
+    assert resumed["pending"]["action"] == "reconcile"
     assert invoked == [action["attempt"]]
+    assert (directory / "session.json").read_bytes() == before_resume
 
 
 @pytest.mark.parametrize("reason", ["model-budget-reserve", "external-dependency"])
