@@ -6,6 +6,11 @@ nearby Git status with HEAD9942f2f and five tracked dirty paths, and two aggrega
 exception outputs. The outer PowerShell invocation exited one; the direct Python
 status, full build and original byte-exact separated streams were not captured.
 Its complete dirty tree/environment have not been reconstructed.
+Two existing local crash dumps were subsequently recovered at the exact recorded times.
+Their exception thread IDs match the Python trace records (0x49C8 /0xA104), both contain
+0xC0000008 at ntdll.dll+0x16A4FA, and both record Windows10.0.26200 with ntdll10.0.26100.9974.
+This establishes actual native exception evidence. It does not identify the invalid
+handle's owner, the first ordinary assertion failure or a causal source fix.
 Hosted passing tests do not prove that observation fixed. No speculative runtime fix is
 introduced by this diagnostic.
 
@@ -56,6 +61,20 @@ managed-local sandbox or an identical historical interpreter binary/build. Retai
 those limits even when every job passes. The workflow runs on its explicit diagnostic
 branch during development, relevant PR changes, or manual dispatch after integration.
 The original PR693 full checks are left running while the diagnostic branch is tested.
+
+## Public native-address attribution
+
+Raw historical dumps remain local. Read-only extraction retains exception/system/module
+metadata and module-relative code-pointer candidates from the exception thread's stack.
+Non-code values, raw memory, module paths and register contents are omitted. Scanned code
+pointers are **not an unwound stack**, and must never be presented as verified callers.
+
+`scripts/relay_public_symbols.py` runs only in Actions and reads two fixed public Microsoft
+PDB identities recovered from these module records. It accepts no private dump or arbitrary
+URL/command, caps downloads at64MiB per file, bounds tool waits, and retains LLVM's public
+records and section headers. Resolve an RVA only against the matching GUID/age and image
+section layout; nearest public symbols alone cannot establish a call chain or cause. The
+source, tool output and downloaded-file hashes remain evidence alongside the unresolved gate.
 
 CI uploads `relay-forensics-*` artifacts on both success and failure for focused lifecycle
 jobs and the full Windows suites. The artifact directory must be fresh: reuse fails rather

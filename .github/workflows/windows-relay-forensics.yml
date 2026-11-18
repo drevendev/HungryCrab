@@ -8,6 +8,7 @@ on:
       - .github/workflows/windows-relay-forensics.yml
       - tests/relay_forensics.py
       - tests/test_acquisition_windows_forensics.py
+      - scripts/relay_public_symbols.py
   workflow_dispatch:
 
 permissions:
@@ -18,6 +19,26 @@ env:
   UV_PYTHON_PREFERENCE: only-managed
 
 jobs:
+  symbols:
+    name: Recovered public module symbols
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.9"
+          python-version: "3.11.16"
+      - name: Read two exact public PDB identities, without private dump data
+        run: uv run --no-project python scripts/relay_public_symbols.py --out public-symbols
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: relay-public-symbols
+          path: public-symbols
+          if-no-files-found: error
   harness:
     name: Diagnostic harness checks
     runs-on: ubuntu-latest
