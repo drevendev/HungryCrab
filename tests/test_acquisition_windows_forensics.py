@@ -14,10 +14,23 @@ import pytest
 from relay_forensics import (
     POST_KILL_DRAIN_SECONDS,
     TIMEOUT_SECONDS,
+    _event_pr_head_sha,
     capture_series,
     classify,
     drain_killed_child,
 )
+
+
+def test_event_pr_head_sha_is_validated_not_confused_with_merge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CRAB_RELAY_PR_HEAD_SHA", "A" * 40)
+    assert _event_pr_head_sha() == "a" * 40
+    monkeypatch.setenv("CRAB_RELAY_PR_HEAD_SHA", "not-a-commit")
+    with pytest.raises(ValueError, match="invalid GitHub PR source SHA"):
+        _event_pr_head_sha()
+    monkeypatch.delenv("CRAB_RELAY_PR_HEAD_SHA", raising=False)
+    assert _event_pr_head_sha() is None
 
 
 @pytest.mark.parametrize("stream", ["stdout", "stderr"])
@@ -124,6 +137,8 @@ def test_first_anomaly_preserves_raw_bytes_and_never_runs_another_attempt(
     )
     assert not (directory / "attempt-02.json").exists()
     assert stored["provenance"]["subject_sha"]
+    assert stored["provenance"]["subject_tree_sha"]
+    assert stored["provenance"]["harness_tree_sha"]
     assert stored["provenance"]["source_sha256"]["src/hungry_crab/fetch/acquisition.py"]
 
 
