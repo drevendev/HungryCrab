@@ -231,7 +231,16 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 @pytest.mark.parametrize("mode", ["COPY", "REIMPLEMENT"])
 @pytest.mark.parametrize(
     "tamper",
-    ["none", "unrelated", "payload", "policy", "ref", "exclusion", "baseline-preserved", "baseline-changed"],
+    [
+        "none",
+        "unrelated",
+        "payload",
+        "policy",
+        "ref",
+        "exclusion",
+        "baseline-preserved",
+        "baseline-changed",
+    ],
 )
 def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     tmp_path: Path, mode: str, tamper: str
@@ -246,8 +255,10 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
         git(maw, "commit", "-m", "test: owned tracked maintainer input")
         note.write_text("maintainer baseline\n", encoding="utf-8")
         compared, _, _, _ = compare_for_maw(
-            Target(path=donor), maw,
-            digest_options=DigestOptions(cache_root=tmp_path / "dirty-cache"), record_ledger=False,
+            Target(path=donor),
+            maw,
+            digest_options=DigestOptions(cache_root=tmp_path / "dirty-cache"),
+            record_ledger=False,
         )
         assert compared.meal_dir is not None
         initial = exploration.initialize(compared.meal_dir, PLAN, maw=maw)
@@ -367,7 +378,8 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
         assert git(remote, "show", f"refs/heads/{branch}:app.py") == STREAMING
         assert (maw / "app.py").read_text(encoding="utf-8") == STREAMING
         if tamper == "baseline-preserved":
-            assert (maw / "maintainer.txt").read_text(encoding="utf-8") == "maintainer baseline\n"
+            note_text = (maw / "maintainer.txt").read_text(encoding="utf-8")
+            assert note_text == "maintainer baseline\n"
             changed = git(remote, "diff", "--name-only", f"{selected}...{branch}").splitlines()
             assert "maintainer.txt" not in changed
     else:
