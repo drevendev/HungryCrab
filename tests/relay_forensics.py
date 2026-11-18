@@ -61,9 +61,7 @@ def classify(
     ):
         observations.append("faulthandler_diagnostic")
     summary = (
-        rb"(?m)^1 passed(?: in |\r?$)"
-        if single_target
-        else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
+        rb"(?m)^1 passed(?: in |\r?$)" if single_target else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
     )
     if re.search(summary, stdout) is None:
         observations.append("expected_test_summary_missing")

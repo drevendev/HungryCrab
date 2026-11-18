@@ -55,9 +55,9 @@ def test_file_context_summary_does_not_weaken_the_single_target_requirement() ->
         "expected_test_summary_missing"
     ]
     assert classify(0, summary, b"", timed_out=False, pipe_open=False, single_target=False) == []
-    assert classify(0, b"no tests ran", b"", timed_out=False, pipe_open=False, single_target=False) == [
-        "expected_test_summary_missing"
-    ]
+    assert classify(
+        0, b"no tests ran", b"", timed_out=False, pipe_open=False, single_target=False
+    ) == ["expected_test_summary_missing"]
 
 
 def test_post_kill_pipe_drain_is_bounded_when_descendant_keeps_pipe_open() -> None:
