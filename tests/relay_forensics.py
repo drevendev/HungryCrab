@@ -22,6 +22,16 @@ SOURCE_ROLES = ("current_checkout", "historical_acquisition_reference")
 PROFILES = ("quota_target", "acquisition_file")
 
 
+def _event_pr_head_sha() -> str | None:
+    """Keep the validated PR source revision distinct from a synthetic merge checkout."""
+    value = os.environ.get("CRAB_RELAY_PR_HEAD_SHA", "")
+    if not value:
+        return None
+    if re.fullmatch(r"[0-9a-fA-F]{40}", value) is None:
+        raise ValueError("invalid GitHub PR source SHA")
+    return value.lower()
+
+
 def drain_killed_child(
     child: subprocess.Popen[bytes], first_timeout: subprocess.TimeoutExpired
 ) -> tuple[bytes, bytes, bool]:
@@ -90,6 +100,8 @@ def _provenance(root: Path, source_role: str) -> dict[str, object]:
     tracked_changes = _git(root, "status", "--porcelain", "--untracked-files=no")
     return {
         "subject_sha": _git(root, "rev-parse", "HEAD"),
+        "subject_tree_sha": _git(root, "rev-parse", "HEAD^{tree}"),
+        "event_pr_head_sha": _event_pr_head_sha(),
         "tracked_changes": tracked_changes,
         "source_role": source_role,
         "historical_failure_snapshot_reconstructed": False,
@@ -101,6 +113,7 @@ def _provenance(root: Path, source_role: str) -> dict[str, object]:
             )
         },
         "harness_sha": _git(harness, "rev-parse", "HEAD"),
+        "harness_tree_sha": _git(harness, "rev-parse", "HEAD^{tree}"),
         "harness_tracked_changes": _git(harness, "status", "--porcelain", "--untracked-files=no"),
         "harness_source_sha256": {
             name: hashlib.sha256((harness / name).read_bytes()).hexdigest()
@@ -125,6 +138,9 @@ def _provenance(root: Path, source_role: str) -> dict[str, object]:
             name: os.environ[name]
             for name in (
                 "GITHUB_REPOSITORY",
+                "GITHUB_EVENT_NAME",
+                "GITHUB_HEAD_REF",
+                "GITHUB_BASE_REF",
                 "GITHUB_SHA",
                 "GITHUB_WORKFLOW_REF",
                 "GITHUB_WORKFLOW_SHA",
