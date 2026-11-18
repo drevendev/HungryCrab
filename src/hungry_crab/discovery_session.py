@@ -418,7 +418,8 @@ def next_action(directory: Path, *, now: datetime | None = None) -> dict[str, An
                 )
                 if callback_dispatched:
                     lease["reason"] = (
-                        "host callback already dispatched; reconcile original attempt without replay"
+                        "host callback already dispatched; "
+                        "reconcile original attempt without replay"
                     )
             return lease
         need = _pending_need(value)
