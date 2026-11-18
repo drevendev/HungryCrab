@@ -69,6 +69,18 @@ discovered it. It remains possible to read the original result in the report.
 Effectful serving checks these holds and current frozen refs/context again
 before issue or PR creation, alongside the existing fresh provider marker
 reconciliation, licensing, path grants, receipt scanning and publication guards.
+It resolves validated exploration history by candidate ID as well as the card's
+registration trace, so initial indexed cards retain their exclusions and later
+holds. Effective candidate-bound exclusions are evaluated per hypothesis.
+Genuinely uninvestigated structural cards keep their ordinary serving path.
+
+The initial scope also freezes a per-path receiving worktree projection, bounded
+to 128 changed paths and 512 KiB of diff data. At publication, only the typed
+receipt's immutable prepared input bytes and this invocation's exact saved ledger
+receipts may differ. Other source, input-byte, policy, ref, ledger or lock changes
+still refuse. The same invocation shares its ledger admission across sources;
+old scopes without this projection gain no retroactive preparation allowance.
+
 For scoped findings, the provider must also supply current default and declared
 pending heads. The built-in GitHub client reads only that bounded metadata under
 a shared 60-second deadline, with no source fetch. Changed/closed pending heads,
