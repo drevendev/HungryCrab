@@ -18,6 +18,8 @@ permissions:
 env:
   PYTHONIOENCODING: utf-8
   UV_PYTHON_PREFERENCE: only-managed
+  # The PR source differs from GITHUB_SHA when GitHub checks out refs/pull/*/merge.
+  CRAB_RELAY_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
 
 jobs:
   symbols:
