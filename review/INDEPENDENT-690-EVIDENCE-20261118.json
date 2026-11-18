@@ -1,0 +1,252 @@
+{
+  "owner_request": "Independent separate-agent review of current PR690 head; fix findings; Actions-only validation; no paid model runs.",
+  "recorded_at_utc": "2026-11-18 06:39:00 UTC",
+  "repository": "drevendev/HungryCrab",
+  "original_review": {
+    "reviewer": "/root/independent_review_690",
+    "fresh_context": true,
+    "head": "a0479fd90fe7b0fc1b5a5904f71935bb3d79615f",
+    "base": "9fb6f1b8af1bef9e4b224c99bf289952ebcbe246",
+    "files": 12,
+    "verdict": "REQUEST_CHANGES",
+    "report": "INDEPENDENT-690-20261118.md",
+    "findings": [
+      "P1: indexed candidates/removed traces and ordinary candidate-bound exclusions bypass publication holds",
+      "P1: full context rejects its own prepared inputs and saved ledger receipts"
+    ]
+  },
+  "original_reproduction": {
+    "run": 44249292106,
+    "source": "a0479fd90fe7b0fc1b5a5904f71935bb3d79615f",
+    "matrix": "Ubuntu/Windows x Python3.11/3.14",
+    "result": "Expected failure in each environment",
+    "product_failures_per_environment": 5,
+    "ordinary_controls_passed_per_environment": 2,
+    "jobs": [
+      134615757099,
+      134615757428,
+      134615757459,
+      134615757675
+    ],
+    "prior_fixture_errors_preserved": [
+      44247982478,
+      44248679671
+    ]
+  },
+  "correction_reviews": [
+    {
+      "source": "f8d251053a799856c2f0f9289ba6279ebe53b9d0",
+      "equivalent_production_source": "cefa63549378b025acd229915d1dcb8570fec2bb",
+      "verdict": "REQUEST_CHANGES",
+      "findings": [
+        "P1: unresolved update could clear a supported exclusion",
+        "P1: context was not bound to actual receiving root",
+        "P2: child exploration alias guard missing"
+      ],
+      "withdrawn": "Non-primary-source late-event scenario is not an actionable current-CLI finding: bundle fingerprints include exploration history"
+    },
+    {
+      "source": "83e3fc1e46ead90b60f901f72b6311b34ae6d413",
+      "verdict": "No remaining actionable product-source findings; CI still required",
+      "preflight": {
+        "run": 44251018650,
+        "linux_passed": 103,
+        "linux_skipped": 1,
+        "mypy": "SUCCESS",
+        "overall": "Ruff/style failure retained; not a green run"
+      },
+      "coverage_limit": "Pre-existing unrelated tracked dirty baseline had no direct proof yet; controls added subsequently"
+    },
+    {
+      "source": "acb3d50fd1af765e756952d3e4833277fe4cfe5f",
+      "base": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
+      "files": 16,
+      "verdict": "No remaining product-source findings; RUF043 required-check blocker",
+      "ci": 44252051525,
+      "codeql": 44252051513,
+      "blocker": "test_novelty_publication.py regex match must be raw",
+      "dirty_baseline_controls": "Added COPY/REIMPLEMENT preserve/reject cases; both native Linux novelty legs97passed"
+    }
+  ],
+  "final_review": {
+    "reviewer": "/root/independent_review_690",
+    "head": "dba4d976073d96f2e3dd105dd22635f34f4c9f90",
+    "base": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
+    "files": 16,
+    "verdict": "No actionable findings",
+    "source_review_complete": true,
+    "formal_github_account_approval": false,
+    "original_and_followup_findings_corrected": true,
+    "report": "INDEPENDENT-690-FINAL-20261118.md",
+    "ci_pass_not_claimed_by_reviewer": true
+  },
+  "implementation": {
+    "branch": "codex/t2-immutable-novelty-671-integration",
+    "preserved_candidate_branch": "codex/independent-690-corrections",
+    "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t2-671",
+    "scope": [
+      "Resolve validated history for initial/registered cards even when trace is removed",
+      "Enforce exclusions per hypothesis until reviewed gap resolution; unresolved updates cannot lift holds",
+      "Exact prepared receipt inputs and per-path frozen worktree projection; preserve baseline dirt and reject new drift",
+      "Shared actual loaded/saved Ledger byte receipts across source dispatches",
+      "Bind guard to actual receiving root and retain all current ref/SHA/policy/provider checks",
+      "Restore real state child directory checks, including Windows junction",
+      "Merge current master d01f7b2 without conflict; no force push"
+    ],
+    "source_pushes": "Fast-forwarded original PR from a0479fd to acb3d50, then dba4d97 raw-regex correction"
+  },
+  "final_actions": {
+    "head": "dba4d976073d96f2e3dd105dd22635f34f4c9f90",
+    "base": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
+    "ci": {
+      "run": 44252351512,
+      "result": "IN_PROGRESS",
+      "expected_jobs": 22,
+      "jobs": [
+        {
+          "id": 134625849797,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850098,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134625850130,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850143,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850155,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850178,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850180,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850188,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850193,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850194,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134625850195,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134625850196,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134625850200,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850210,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850222,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850242,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850260,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850365,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "codeql": {
+      "run": 44252351574,
+      "result": "SUCCESS",
+      "successful_jobs": 1
+    },
+    "linux_novelty_cases": 97,
+    "linux_novelty_jobs": [
+      134625850188,
+      134625850180
+    ],
+    "actual_checkout": "02fa079 merging exact dba4d97 into d01f7b2",
+    "complete_required_ci": false
+  },
+  "state": {
+    "pr690": "OPEN / DRAFT while required CI completes",
+    "issue671": "OPEN: source review complete, final Actions/integration pending",
+    "issue675": "OPEN: broader release acceptance",
+    "pr677": "MERGED",
+    "pr687": "MERGED",
+    "issue678": "CLOSED/completed",
+    "issue670": "OPEN: broader native/supervised acceptance",
+    "issue679": "OPEN: historical crash cause unconfirmed"
+  },
+  "constraints": {
+    "local_tests_lint_type_build_install_runtime_probes": "NOT_RUN",
+    "paid_model_runs": "NOT_RUN",
+    "local_donor_acquisition": "NOT_RUN",
+    "donor_execution": "NOT_RUN",
+    "t2_merge_tag_release": "NOT_RUN/NOT_AUTHORIZED"
+  },
+  "next_steps": [
+    "Complete exact-head nativeCI44252351512; preserve and fix any genuine failures only through Actions",
+    "Read final full-suite and Windows novelty logs; record exact counts and source checkout",
+    "Only after required checks pass, update PR690/#671/#675 and mark ready; do not merge T2",
+    "Refresh head/base/master before final handoff; preserve original verdicts/failures/history and worktrees"
+  ]
+}
