@@ -58,10 +58,18 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
         ),
     )
     if other_hypothesis:
-        exploration.record(directory, observation(
-            finding, kind="decision", hypothesis="another flow", reviewed=True,
-            disposition="verified-gap", candidate_id=card["id"], selected=True,
-        ))
+        exploration.record(
+            directory,
+            observation(
+                finding,
+                kind="decision",
+                hypothesis="another flow",
+                reviewed=True,
+                disposition="verified-gap",
+                candidate_id=card["id"],
+                selected=True,
+            ),
+        )
     if not trace_present:
         meal = directory.parent.parent
         menu = load_menu(meal)
@@ -72,7 +80,7 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
         (meal / "menu.json").write_text(json.dumps(menu), encoding="utf-8")
     before = exploration.events(directory)
     client = CurrentIssues()
-    try:
+    with pytest.raises(CrabError, match="exclusion"):
         serve(
             directory.parent.parent,
             maw,
@@ -82,8 +90,6 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
             client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
-    except CrabError:
-        pass
     assert not client.created, "a resolved implementation exclusion created a new issue"
     assert not client.labels
     assert exploration.events(directory) == before
@@ -158,7 +164,12 @@ def test_indexed_candidate_later_supersession_is_not_lost(
     git(maw, "checkout", "--detach", pin)
     target = maw / workflow
     original_text = target.read_text(encoding="utf-8")
-    addition = "      - uses: actions/cache@v4\n        with:\n          path: .cache\n          key: owned-cache\n"
+    addition = (
+        "      - uses: actions/cache@v4\n"
+        "        with:\n"
+        "          path: .cache\n"
+        "          key: owned-cache\n"
+    )
     target.write_text(original_text + addition, encoding="utf-8", newline="\n")
     git(maw, "add", workflow)
     git(maw, "commit", "-m", "test: separately observed cache implementation")
@@ -292,11 +303,18 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
                     git(maw, "commit", "-m", "test: external receiving commit")
                 elif tamper == "exclusion":
                     scope = exploration._snapshot(directory)["novelty_scope"]
-                    exploration.record(directory, observation(
-                        finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-                        disposition="duplicate", candidate_id=card["id"],
-                        novelty_basis=basis(scope, "receiving-selected"),
-                    ))
+                    exploration.record(
+                        directory,
+                        observation(
+                            finding,
+                            kind="decision",
+                            hypothesis="bounded reads",
+                            reviewed=True,
+                            disposition="duplicate",
+                            candidate_id=card["id"],
+                            novelty_basis=basis(scope, "receiving-selected"),
+                        ),
+                    )
             return {}
 
         def novelty_heads(self, slug: Any, targets: list[dict[str, Any]]) -> dict[str, str]:
