@@ -1,6 +1,6 @@
 {
   "owner_instruction": "Natively merge PR677/687 after exact-head Actions and review; update tasks; begin P0 T2/671. Checks only in Actions; no paid model runs.",
-  "recorded_at_utc": "2026-11-18 05:38:20 UTC",
+  "recorded_at_utc": "2026-11-18 07:32:33 UTC",
   "repository": "drevendev/HungryCrab",
   "master": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
   "pr677": {
@@ -198,163 +198,159 @@
     "pr": 690,
     "draft": false,
     "branch": "codex/t2-immutable-novelty-671-integration",
-    "source": "a0479fd90fe7b0fc1b5a5904f71935bb3d79615f",
-    "base": "9fb6f1b8af1bef9e4b224c99bf289952ebcbe246",
+    "source": "dba4d976073d96f2e3dd105dd22635f34f4c9f90",
+    "base": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
     "recovery_branch": "codex/t2-immutable-novelty-671",
     "recovery_source": "cf6512658ae52cbe9687b68f220ecda0f761cb27",
     "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t2-671",
     "ci": {
-      "run": 44188458091,
+      "run": 44252351512,
       "result": "SUCCESS",
-      "successful_jobs": 22,
-      "total_jobs": 22,
-      "source": "a0479fd90fe7b0fc1b5a5904f71935bb3d79615f",
-      "base": "9fb6f1b8af1bef9e4b224c99bf289952ebcbe246",
-      "completed_at": "2026-11-17T23:10:57Z",
+      "expected_jobs": 22,
       "jobs": [
         {
-          "id": 134411208917,
-          "name": "Hard acquisition quota (ubuntu-latest)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209301,
-          "name": "Hard acquisition quota (windows-latest)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209350,
+          "id": 134625849797,
           "name": "Lint and type-check",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134411209365,
+          "id": 134625850098,
           "name": "Immutable novelty (windows-latest, Python 3.11)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134411209402,
-          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "id": 134625850130,
+          "name": "Hard acquisition quota (windows-latest)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134411209404,
-          "name": "Discovery operation gates (windows-latest, Python 3.11)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209417,
-          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209418,
-          "name": "Base installation without optional extras",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209432,
-          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209477,
-          "name": "Discovery operation gates (windows-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209479,
-          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209496,
-          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209578,
-          "name": "Immutable novelty (windows-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209594,
-          "name": "Clean installation (windows-latest)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209622,
+          "id": 134625850143,
           "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134411209771,
-          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "id": 134625850155,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134411209853,
-          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134411209858,
+          "id": 134625850178,
           "name": "Clean installation (ubuntu-latest)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134415784611,
+          "id": 134625850180,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850188,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850193,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850194,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850195,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850196,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850200,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850210,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850222,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850242,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850260,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134625850365,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134629917607,
           "name": "Test (windows-latest, Python 3.11)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134415784624,
-          "name": "Test (windows-latest, Python 3.14)",
-          "status": "completed",
-          "conclusion": "success"
-        },
-        {
-          "id": 134415784634,
+          "id": 134629917609,
           "name": "Test (ubuntu-latest, Python 3.14)",
           "status": "completed",
           "conclusion": "success"
         },
         {
-          "id": 134415784696,
+          "id": 134629917629,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134629917680,
           "name": "Test (ubuntu-latest, Python 3.11)",
           "status": "completed",
           "conclusion": "success"
         }
-      ]
+      ],
+      "successful_jobs": 22
     },
     "codeql": {
-      "run": 44188458110,
+      "run": 44252351574,
       "result": "SUCCESS",
-      "successful_jobs": 1,
-      "source": "a0479fd90fe7b0fc1b5a5904f71935bb3d79615f"
+      "successful_jobs": 1
     },
-    "linux_novelty_focused_tests": 60,
-    "linux_focused_job": 134411209402,
-    "source_review": "Author audit performed; READY for independent source review, which remains PENDING; no GitHub reviews/inline findings at resumption",
+    "linux_novelty_focused_tests": 97,
+    "linux_focused_job": 134625850188,
+    "source_review": "Independent fresh separate-agent full16-file source review complete on exactdba4d97 vsd01f7b2: no actionable findings; no formal account approval",
     "implementation": [
       "Freeze selected/default/pending role-ref-SHA plus actual source/range bytes and CLI observation identity",
       "Typed reviewed exclusion basis; unknown/legacy claims remain unresolved",
@@ -386,10 +382,10 @@
       }
     },
     "latest_focused_jobs": [
-      134411209402,
-      134411209479,
-      134411209365,
-      134411209578
+      134625850188,
+      134625850180,
+      134625850098,
+      134625850195
     ],
     "full_linux_jobs": [
       134415784634,
@@ -397,36 +393,48 @@
     ],
     "full_linux": {
       "python311": {
-        "job": 134415784696,
-        "passed": 5215,
+        "job": 134629917680,
+        "passed": 5257,
         "skipped": 44
       },
       "python314": {
-        "job": 134415784634,
-        "passed": 5216,
+        "job": 134629917609,
+        "passed": 5258,
         "skipped": 43
       }
     },
     "full_windows": {
       "python311": {
-        "job": 134415784611,
-        "passed": 5251,
+        "job": 134629917607,
+        "passed": 5293,
         "skipped": 8
       },
       "python314": {
-        "job": 134415784624,
-        "passed": 5252,
+        "job": 134629917629,
+        "passed": 5294,
         "skipped": 7
       }
     },
-    "status": "OPEN / READY FOR INDEPENDENT REVIEW / UNMERGED",
-    "new_dispatch_on_resume": false,
-    "source_changes_on_resume": false
+    "status": "OPEN / READY / UNMERGED",
+    "new_dispatch_on_resume": "No rerun for earlier owner resume; subsequent explicit independent-review task added owned repro/preflight runs and native PR pushes",
+    "source_changes_on_resume": true,
+    "independent_review": {
+      "reviewer": "/root/independent_review_690",
+      "head": "dba4d976073d96f2e3dd105dd22635f34f4c9f90",
+      "base": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
+      "files": 16,
+      "verdict": "No actionable findings",
+      "source_review_complete": true,
+      "formal_github_account_approval": false,
+      "original_and_followup_findings_corrected": true,
+      "report": "INDEPENDENT-690-FINAL-20261118.md",
+      "ci_pass_not_claimed_by_reviewer": true
+    }
   },
   "task_states": {
     "670": "OPEN: bounded677merged; production native meter and supervised fixed-pair qualification remain open",
-    "671": "OPEN: implementation verified on a0479fd vs9fb6f1b; originalCI22/22 +CodeQL1/1; ready for independent review; integration pending",
-    "675": "OPEN: T2 source now verified and review-ready; release/other package acceptance incomplete",
+    "671": "OPEN: independent source review and all22Actions checks +CodeQL complete; bounded acceptance checked, native integration pending",
+    "675": "OPEN: T2 ready/unmerged; wider release gates remain open",
     "678": "CLOSED/completed: bounded relay lifecycle independently reviewed, exact-source checked, natively merged, landed master18/18 and CodeQL succeeded",
     "679": "OPEN: historical managed-local0xc0000008 cause unconfirmed; hosted success is not diagnosis"
   },
@@ -439,11 +447,10 @@
     "tag_release": "NOT_RUN"
   },
   "next_steps": [
-    "Independent review of exact PR690head a0479fd against its checked base9fb6f1b remains pending; do not impersonate an approval",
-    "Before any authorized T2 integration, refresh actual PRhead/current master and reconcile changes since9fb6f1b, including #688/#691; source checks are not combined-master checks",
-    "Keep #670/#679/#671/#675 open for remaining gates; #678 remains completed",
-    "Keep all validation in Actions, no new paid model runs and no local donor acquisition/execution",
-    "No T2 default merge, tag or release is authorized by this resumption; preserve source branches and evidence"
+    "No required correction or validation work remains for this independent-review task on unchanged dba4d97",
+    "Await owner-authorized native integration; before merging refresh exact PRhead/current master/required checks",
+    "Keep #671 open until native merge, and #670/#679/#675 open for broader outstanding gates",
+    "No paid model runs, local checks, donor acquisition/execution, T2 merge, tag or release; preserve history"
   ],
   "owner_pause": {
     "requested": true,
@@ -455,7 +462,7 @@
     "resumed_at_utc": "2026-11-18 05:38:20 UTC",
     "current_status": "RESUMED by owner instruction; original pause history retained"
   },
-  "work_status": "RESUMED: T2 implementation Actions-verified and ready for independent source review",
+  "work_status": "T2 independent source review and integrated exact-head Actions complete; PR690 ready/unmerged",
   "current_master_after_pause": {
     "sha": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
     "commits": [
@@ -484,6 +491,6 @@
       "result": "SUCCESS"
     },
     "inspection": "Inspected relay diagnostic and callback-resume deltas; no combined T2/current-master execution is claimed",
-    "combined_T2_master_checks": "NOT_RUN; reconcile current default before integration"
+    "combined_T2_master_checks": "SUCCESS: final PR690 dba4d97 includes d01f7b2; nativeCI44252351512 22/22 +CodeQL44252351574"
   }
 }
