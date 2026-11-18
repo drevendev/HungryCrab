@@ -47,7 +47,7 @@ jobs:
           name: relay-harness-formatting
           path: formatting.patch
   reference:
-    name: Relay (${{ matrix.subject }}, managed Python ${{ matrix.python }})
+    name: Relay (${{ matrix.subject }}, Python ${{ matrix.python }}, ${{ matrix.profile }})
     runs-on: windows-latest
     timeout-minutes: 12
     strategy:
@@ -55,6 +55,14 @@ jobs:
       matrix:
         subject: [current_checkout, historical_acquisition_reference]
         python: ["3.11.16", "3.14.10"]
+        profile: [quota_target]
+        include:
+          - subject: current_checkout
+            python: "3.11.16"
+            profile: acquisition_file
+          - subject: historical_acquisition_reference
+            python: "3.11.16"
+            profile: acquisition_file
     defaults:
       run:
         working-directory: subject
@@ -80,11 +88,11 @@ jobs:
         run: uv python install
       - run: uv sync --locked --all-extras
       - name: Retain the first observation with historical sys capture
-        run: uv run python ../harness/tests/relay_forensics.py --subject . --evidence "${{ runner.temp }}/relay-attribution" --capture sys --source-role "${{ matrix.subject }}"
+        run: uv run python ../harness/tests/relay_forensics.py --subject . --evidence "${{ runner.temp }}/relay-attribution" --capture sys --source-role "${{ matrix.subject }}" --profile "${{ matrix.profile }}"
       - name: Upload raw observations even when the first anomaly failed the job
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: relay-attribution-${{ matrix.subject }}-py${{ matrix.python }}
+          name: relay-attribution-${{ matrix.subject }}-py${{ matrix.python }}-${{ matrix.profile }}
           path: ${{ runner.temp }}/relay-attribution
           if-no-files-found: error

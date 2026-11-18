@@ -38,7 +38,7 @@ Windows3.11 jobs actually used system **3.11.9**. These are different runtimes. 
 using uv0.13.9 and [only-managed discovery](https://docs.astral.sh/uv/concepts/python-versions/#requiring-or-disabling-managed-python-versions).
 Missing distributions fail visibly; no older system interpreter is substituted.
 
-The four bounded legs compare the current checkout with public reference
+The four single-target legs compare the current checkout with public reference
 9e7341986217fdca02a101d225ba4354bfe6480c. Its acquisition and target-test Git blobs
 match recovered local HEAD9942f2f4715d2e58180eaac608390421930b28c2 exactly:
 `781c15f6fcae747669d78dcd6d59b06626de0cb8` and
@@ -47,11 +47,13 @@ configuration also match, but its lock differs. The historical record's five tra
 dirty paths do not include these files. This establishes a useful acquisition reference,
 not an exact original failing checkout. No unpublished experimental history is needed.
 
-Each leg uses `--capture=sys`, matching the recorded diagnostic invocation, with the
-same exact single quota-test target and first-anomaly stop. The historical invocation
-ran the entire fifteen-case file; this comparison does not recreate that preceding
-state, the managed-local sandbox or an identical interpreter binary/build. Retain
-those limits even when all four jobs pass. The workflow runs on its explicit diagnostic
+Each leg uses `--capture=sys`, matching the recorded diagnostic invocation, and
+first-anomaly stopping. Two additional3.11.16 legs run the entire acquisition file
+with `-vv`, preserving the preceding cases from the fifteen-case historical invocation.
+The file profile accepts a nonempty passed summary; it does not relax the separate
+one-test requirement for the single quota target. Neither profile reconstructs the
+managed-local sandbox or an identical historical interpreter binary/build. Retain
+those limits even when every job passes. The workflow runs on its explicit diagnostic
 branch during development, relevant PR changes, or manual dispatch after integration.
 The original PR693 full checks are left running while the diagnostic branch is tested.
 

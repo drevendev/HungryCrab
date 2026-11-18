@@ -19,6 +19,7 @@ ATTEMPTS = 8
 TIMEOUT_SECONDS = 45
 POST_KILL_DRAIN_SECONDS = 2
 SOURCE_ROLES = ("current_checkout", "historical_acquisition_reference")
+PROFILES = ("quota_target", "acquisition_file")
 
 
 def drain_killed_child(
@@ -35,7 +36,13 @@ def drain_killed_child(
 
 
 def classify(
-    returncode: int | None, stdout: bytes, stderr: bytes, *, timed_out: bool, pipe_open: bool
+    returncode: int | None,
+    stdout: bytes,
+    stderr: bytes,
+    *,
+    timed_out: bool,
+    pipe_open: bool,
+    single_target: bool = True,
 ) -> list[str]:
     """Report observations independently; a diagnostic alone is not a process exit."""
     observations: list[str] = []
@@ -53,7 +60,12 @@ def classify(
         for stream in (stdout, stderr)
     ):
         observations.append("faulthandler_diagnostic")
-    if re.search(rb"(?m)^1 passed(?: in |\r?$)", stdout) is None:
+    summary = (
+        rb"(?m)^1 passed(?: in |\r?$)"
+        if single_target
+        else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
+    )
+    if re.search(summary, stdout) is None:
         observations.append("expected_test_summary_missing")
     return observations
 
@@ -137,9 +149,14 @@ def capture_series(
     command: list[str] | None = None,
     capture_mode: str = "no",
     source_role: str = "current_checkout",
+    profile: str = "quota_target",
 ) -> dict[str, object]:
     """Retain every observation, stop at the first anomaly, and never retry it away."""
-    if capture_mode not in ("no", "sys") or source_role not in SOURCE_ROLES:
+    if (
+        capture_mode not in ("no", "sys")
+        or source_role not in SOURCE_ROLES
+        or profile not in PROFILES
+    ):
         raise ValueError("unsupported bounded relay diagnostic profile")
     directory.mkdir(parents=True, exist_ok=False)
     command = command or [
@@ -148,12 +165,12 @@ def capture_series(
         "faulthandler",
         "-m",
         "pytest",
-        "-q",
+        "-q" if profile == "quota_target" else "-vv",
         f"--capture={capture_mode}",
         "--color=no",
         "--maxfail=1",
         "--tb=short",
-        TARGET,
+        TARGET if profile == "quota_target" else "tests/test_acquisition.py",
     ]
     attempts: list[dict[str, object]] = []
     report: dict[str, object] = {
@@ -161,6 +178,7 @@ def capture_series(
         "provenance": _provenance(root, source_role),
         "command": command,
         "capture_mode": capture_mode,
+        "profile": profile,
         "attempt_limit": ATTEMPTS,
         "timeout_seconds": TIMEOUT_SECONDS,
         "post_kill_drain_seconds": POST_KILL_DRAIN_SECONDS,
@@ -180,7 +198,12 @@ def capture_series(
             child.kill()
             stdout, stderr, pipe_open = drain_killed_child(child, first_timeout)
         observations = classify(
-            child.returncode, stdout, stderr, timed_out=timed_out, pipe_open=pipe_open
+            child.returncode,
+            stdout,
+            stderr,
+            timed_out=timed_out,
+            pipe_open=pipe_open,
+            single_target=profile == "quota_target",
         )
         streams: dict[str, object] = {}
         for name, data in (("stdout", stdout), ("stderr", stderr)):
@@ -226,12 +249,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--evidence", required=True, type=Path)
     parser.add_argument("--capture", choices=("no", "sys"), default="sys")
     parser.add_argument("--source-role", choices=SOURCE_ROLES, required=True)
+    parser.add_argument("--profile", choices=PROFILES, default="quota_target")
     arguments = parser.parse_args(argv)
     report = capture_series(
         arguments.subject.resolve(strict=True),
         arguments.evidence.resolve(),
         capture_mode=arguments.capture,
         source_role=arguments.source_role,
+        profile=arguments.profile,
     )
     print(json.dumps(report, indent=2))
     return 0 if report["outcome"] == "NOT_REPRODUCED" else 1
