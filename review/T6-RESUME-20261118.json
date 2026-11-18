@@ -1,0 +1,136 @@
+{
+  "recorded_at_utc": "2026-11-18 18:20:35 UTC",
+  "owner_instruction": "Check landed690 and PR693 Actions, fix failures and continue T6; checks only in Actions; no paid model runs.",
+  "original_recovery": {
+    "source": "Own existing Codex chat01a1e2d5-3c59-7761-8b1a-1d0376ecb120; read_thread could not return oversized older turn, so read only its known local rollout records",
+    "extracted_records": [
+      {
+        "ordinal": 19,
+        "time": "2026-11-16T05:29:59.381Z",
+        "name": "initial-git-status"
+      },
+      {
+        "ordinal": 74,
+        "time": "2026-11-16T05:31:14.716Z",
+        "name": "full-pytest"
+      },
+      {
+        "ordinal": 132,
+        "time": "2026-11-16T05:33:52.927Z",
+        "name": "acquisition-pytest"
+      }
+    ],
+    "nearby_head": "9942f2f4715d2e58180eaac608390421930b28c2",
+    "tracked_dirty_paths": [
+      "AGENTS.md",
+      "benchmarks/qualification_native.py",
+      "docs/releases/0.6.11-scope.md",
+      "src/hungry_crab/cli.py",
+      "src/hungry_crab/miners/architecture.py"
+    ],
+    "observed_python": "3.11.16",
+    "pytest": "9.2.0",
+    "plugin_versions": [
+      "anyio4.15.1",
+      "cov7.1.0"
+    ],
+    "original_commands": [
+      ".venv/Scripts/python.exe -m pytest -q",
+      ".venv/Scripts/python.exe -m pytest tests/test_acquisition.py -vv --capture=sys --tb=short"
+    ],
+    "outer_shell_returncodes": [
+      1,
+      1
+    ],
+    "direct_python_returncode": "UNKNOWN; native exception text and outer PowerShell status do not establish direct child exit",
+    "output_kind": "Recovered decoded aggregated tool output, not original byte-exact separated stdout/stderr",
+    "traceback": "Selectors._select/select and socketserver.serve_forever in worker; focused command main thread was formatting a pytest failure",
+    "causal_claim": "NONE: first ordinary test failure, native attribution, full dirty tree, original interpreter binary/build and sandbox remain unestablished",
+    "extraction_directory": "t6-original-observations-20261118"
+  },
+  "reference": {
+    "public_sha": "9e7341986217fdca02a101d225ba4354bfe6480c",
+    "role": "historical_acquisition_reference; not exact original failing checkout",
+    "matching_git_blobs": {
+      "tests/test_acquisition.py": "5dea750435fabc5f8f992159624c6524eb844b98",
+      "src/hungry_crab/fetch/acquisition.py": "781c15f6fcae747669d78dcd6d59b06626de0cb8"
+    },
+    "conftest_and_pyproject": "Also unchanged vs recorded nearby local HEAD",
+    "uv_lock": "DIFFERENT; pytest9.2.0 in both",
+    "unpublished_experimental_history": "Not pushed for this comparison"
+  },
+  "actions": {
+    "landed690": {
+      "head": "e3eb3594217b100a8cfabf598502195926f71828",
+      "ci": 44357088154,
+      "status": "IN_PROGRESS; Windows3.11 finished successfully; Windows3.14 still running at last read",
+      "codeql": 44357088264,
+      "codeql_status": "SUCCESS"
+    },
+    "original_pr693": {
+      "head": "ab77dce56a78943edf04bb5601235cd71f09482d",
+      "ci": 44360635222,
+      "status": "IN_PROGRESS; four full suites created, Linux passed, Windows pending at last read",
+      "codeql": 44360636343,
+      "codeql_status": "SUCCESS",
+      "preservation": "Left untouched; no manual cancellation or rerun"
+    },
+    "diagnostic_runs": [
+      {
+        "head": "2de6eccba25b4a027a40ae478dfa5fd4cb8adc8d",
+        "run": 44366773453,
+        "result": "FAILURE 2/4",
+        "cause": "uv0.12.12 has no managed3.14.10 download. Both3.11.16 legs succeeded; eight children each, NOT_REPRODUCED; artifacts14458030155/14456821650 retained",
+        "native_crash": "NOT_REPRODUCED",
+        "python311_build": "Sep1 2026 MSC1944"
+      },
+      {
+        "head": "839e1a8580586cbcba09d21e48878fa59245f1fa",
+        "run": 44367195973,
+        "result": "SUCCESS5/5",
+        "scope": "Harness checks and four subject/runtime legs; eight single-target children each; no historical attribution",
+        "artifacts": [
+          14458470389,
+          14457875668,
+          14457760657,
+          14457635775
+        ],
+        "python311_build": "Sep29 2026 MSC1944",
+        "python314_build": "Nov11 2026 MSC1944"
+      },
+      {
+        "head": "cd2f5040529c822cbe21bc7e58303570e5b60f99",
+        "run": 44367847625,
+        "result": "IN_PROGRESS with failed lint",
+        "cause": "E501104>100 and formatting in new file-context control. Exact hosted patch applied; no native anomaly seen at last read; two full-file context legs still pending",
+        "formatting_artifact": 14458955711
+      },
+      {
+        "head": "94eaa6ce4d3de68fd30b44b2cef87301ccb8fe95",
+        "run": 44368182120,
+        "result": "IN_PROGRESS",
+        "scope": "Six bounded subject/runtime/context legs plus harness check; first anomaly stops, raw streams retained"
+      }
+    ]
+  },
+  "implementation": {
+    "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t6-679",
+    "local_branch": "codex/t6-windows-forensics-679",
+    "published_diagnostic_branch": "codex/t6-679-reference",
+    "diagnostic_head": "94eaa6ce4d3de68fd30b44b2cef87301ccb8fe95",
+    "pull_request_head": "ab77dce56a78943edf04bb5601235cd71f09482d",
+    "pending_cutover": "Push corrected continuation to original PR693 after its existing full suite finishes, retaining actual old-head results"
+  },
+  "task_status": {
+    "671": "CLOSED / native T2 integration complete",
+    "675": "OPEN / broader release gates unchanged",
+    "679": "OPEN / diagnosis in progress; recovered context is useful but native cause unconfirmed"
+  },
+  "constraints": {
+    "new_local_tests_lint_mypy_build_install_runtime_probes": "NOT_RUN",
+    "new_paid_model_runs": "NOT_RUN",
+    "new_donor_download_execution": "NOT_RUN",
+    "new_p0_merge_release": "NOT_RUN"
+  },
+  "next_discriminator": "Inspect acquisition-file profile (preceding test state) separately from single-target controls. Do not infer a cause or close679 from clean reference/current runs."
+}

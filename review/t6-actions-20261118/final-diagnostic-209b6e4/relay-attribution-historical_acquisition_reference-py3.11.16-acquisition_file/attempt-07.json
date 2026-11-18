@@ -1,0 +1,24 @@
+{
+  "attempt": 7,
+  "finished_at": "2026-11-18T18:37:01.294756+00:00",
+  "observations": [],
+  "pid": 5196,
+  "pipe_open": false,
+  "returncode": 0,
+  "returncode_u32_hex": "0x00000000",
+  "started_at": "2026-11-18T18:36:40.153281+00:00",
+  "streams": {
+    "stderr": {
+      "bytes": 0,
+      "file": "attempt-07.stderr.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 2139,
+      "file": "attempt-07.stdout.bin",
+      "sha256": "4c279d6bc399f61106149c8fb40f73b7b7ae7346f3efbf7fd2690316b3814ac4"
+    }
+  },
+  "streams_complete": true,
+  "timed_out": false
+}

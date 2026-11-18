@@ -1,0 +1,32 @@
+diff --git a/tests/relay_forensics.py b/tests/relay_forensics.py
+index c62fbea..761d68c 100644
+--- a/tests/relay_forensics.py
++++ b/tests/relay_forensics.py
+@@ -61,9 +61,7 @@ def classify(
+     ):
+         observations.append("faulthandler_diagnostic")
+     summary = (
+-        rb"(?m)^1 passed(?: in |\r?$)"
+-        if single_target
+-        else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
++        rb"(?m)^1 passed(?: in |\r?$)" if single_target else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
+     )
+     if re.search(summary, stdout) is None:
+         observations.append("expected_test_summary_missing")
+diff --git a/tests/test_acquisition_windows_forensics.py b/tests/test_acquisition_windows_forensics.py
+index 7c90872..2734966 100644
+--- a/tests/test_acquisition_windows_forensics.py
++++ b/tests/test_acquisition_windows_forensics.py
+@@ -55,9 +55,9 @@ def test_file_context_summary_does_not_weaken_the_single_target_requirement() ->
+         "expected_test_summary_missing"
+     ]
+     assert classify(0, summary, b"", timed_out=False, pipe_open=False, single_target=False) == []
+-    assert classify(0, b"no tests ran", b"", timed_out=False, pipe_open=False, single_target=False) == [
+-        "expected_test_summary_missing"
+-    ]
++    assert classify(
++        0, b"no tests ran", b"", timed_out=False, pipe_open=False, single_target=False
++    ) == ["expected_test_summary_missing"]
+ 
+ 
+ def test_post_kill_pipe_drain_is_bounded_when_descendant_keeps_pipe_open() -> None:

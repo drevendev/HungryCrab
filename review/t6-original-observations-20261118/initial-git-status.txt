@@ -1,0 +1,65 @@
+## codex/discovery-0611-experiment...origin/codex/discovery-0611-experiment [ahead 31]
+ M AGENTS.md
+ M benchmarks/qualification_native.py
+ M docs/releases/0.6.11-scope.md
+ M src/hungry_crab/cli.py
+ M src/hungry_crab/miners/architecture.py
+?? benchmarks/crabbing_exposed_profile.py
+?? benchmarks/crabbing_pair_autonomous.py
+?? benchmarks/crabbing_pair_autonomous_qualify.py
+?? benchmarks/crabbing_pair_inputs.py
+?? benchmarks/crabbing_pair_operator_usage.py
+?? benchmarks/crabbing_pair_parent_call.py
+?? benchmarks/crabbing_pair_parent_host.mjs
+?? benchmarks/crabbing_pair_parent_observer.py
+?? benchmarks/crabbing_pair_parent_worker.py
+?? benchmarks/crabbing_pair_provider.py
+?? benchmarks/crabbing_pair_qualify.py
+?? benchmarks/crabbing_pair_real.py
+?? benchmarks/crabbing_pair_session.py
+?? benchmarks/crabbing_pilot.py
+?? benchmarks/crabbing_run.py
+?? benchmarks/h11_pair.py
+?? benchmarks/h11_pair_inputs.py
+?? benchmarks/h11_pair_prepare_job.py
+?? benchmarks/h11_pair_qualify.py
+?? benchmarks/pairs/
+?? docs/agent-development-reference.md
+?? docs/experiments/AGENT-PROTOCOL.md
+?? docs/experiments/crabbing-autonomous-pilot.md
+?? docs/experiments/crabbing-effectiveness-pilot-02.md
+?? docs/experiments/crabbing-main-plan.json
+?? docs/experiments/crabbing-main-plan.md
+?? docs/experiments/crabbing-pair-autonomous.md
+?? docs/experiments/crabbing-pair-real-preparation.md
+?? docs/experiments/crabbing-pair-scripted.md
+?? docs/experiments/h11-hungrycrab-preparation.md
+?? docs/releases/0.6.11-workflow-issues/
+?? docs/releases/0.6.11-workflow-patch-scope.md
+?? docs/research/
+?? src/hungry_crab/miners/python_exports.py
+?? src/hungry_crab/pair_preparation.py
+?? src/hungry_crab/pair_trial.py
+?? tests/test_architecture_continuations.py
+?? tests/test_crabbing_pilot.py
+?? tests/test_crabbing_run.py
+?? tests/test_h11_pair.py
+?? tests/test_pair_autonomous.py
+?? tests/test_pair_inputs.py
+?? tests/test_pair_parent_host.mjs
+?? tests/test_pair_parent_host.py
+?? tests/test_pair_preparation.py
+?? tests/test_pair_session.py
+?? tests/test_pair_trial.py
+?? tests/test_pair_usage_fresh.py
+?? tests/test_python_exports.py
+9942f2f fix(qualification): bind explicit CLI sources to the host
+be907e9 fix(qualification): preserve explicit proposal lifecycles
+1e3d77c fix(qualification): separate audit coverage from study adequacy
+731be60 fix(qualification): bind precision to original claim events
+9cc6dd2 fix(discovery): retain read evidence and bound completion dispatch
+5ef28e2 fix(discovery): sequence evidence and defer backlog checks
+5478631 fix: recover scoped novelty and continuation schema failures
+a8b46d9 fix: scale engineering budget controls to sealed limits
+origin	https://github.com/drevendev/HungryCrab.git (fetch)
+origin	https://github.com/drevendev/HungryCrab.git (push)

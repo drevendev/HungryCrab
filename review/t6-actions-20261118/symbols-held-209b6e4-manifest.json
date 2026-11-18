@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "status": "PUBLIC_RECORDS_CAPTURED_WITH_IDENTITY_HOLDS",
+  "run_id": "44371124725",
+  "workflow_sha": "209b6e4ad1d645813baca8e5922c29fff0150577",
+  "records": [
+    {
+      "pdb": "ntdll.pdb",
+      "expected_symbol_id": "44294CBD55E8CD67B3D56B689F03152D1",
+      "source": "https://msdl.microsoft.com/download/symbols/ntdll.pdb/44294CBD55E8CD67B3D56B689F03152D1/ntdll.pdb",
+      "bytes": 1921024,
+      "sha256": "26d65ee88992ad9c3b258142f7dd3aac3b56f9e271587d9043d01dab3552163c",
+      "identity_status": "IDENTITY_MISMATCH_HELD",
+      "actual_guid": "44294CBD55E8CD67B3D56B689F03152D",
+      "actual_age": 4,
+      "expected_age": 1
+    },
+    {
+      "pdb": "ws2_32.pdb",
+      "expected_symbol_id": "9DC73321ED08893007DF02E641F44B871",
+      "source": "https://msdl.microsoft.com/download/symbols/ws2_32.pdb/9DC73321ED08893007DF02E641F44B871/ws2_32.pdb",
+      "bytes": 528384,
+      "sha256": "9feee371ece7e9542762eac7528e5eac108593d6da15a51a8eb8b31378bdf038",
+      "identity_status": "IDENTITY_MISMATCH_HELD",
+      "actual_guid": "9DC73321ED08893007DF02E641F44B87",
+      "actual_age": 3,
+      "expected_age": 1
+    }
+  ],
+  "interpretation": "Public symbol records only; no unwound stack or causal finding",
+  "tool": "Ubuntu LLVM version 22.1.2\n  Optimized build.\n"
+}

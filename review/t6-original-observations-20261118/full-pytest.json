@@ -1,0 +1,32 @@
+{
+  "source_thread": "01a1e2d5-3c59-7761-8b1a-1d0376ecb120",
+  "source_record_timestamp": "2026-11-16T05:31:14.716Z",
+  "source_record_ordinal": 74,
+  "source_item": {
+    "type": "CommandExecution",
+    "id": "exec-c350f52a-c09d-4574-b94a-a2a038c2e0fd",
+    "process_id": "49707",
+    "command": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1112-611-0_26.1112.611.0_x64__3k8sg7r9htsxt\\dependencies\\native\\powershell\\pwsh.exe",
+      "-Command",
+      ".venv/Scripts/python.exe -m pytest -q"
+    ],
+    "cwd": "file:///C:/MyProjects/Codex/HungryCrab",
+    "parsed_cmd": [
+      {
+        "type": "unknown",
+        "cmd": ".venv/Scripts/python.exe -m pytest -q"
+      }
+    ],
+    "source": "unified_exec_startup",
+    "status": "failed",
+    "aggregated_output": "..........Windows fatal exception: code 0xc0000008\n\nCurrent thread 0x000049c8 (most recent call first):\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\selectors.py\", line 314 in _select\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\selectors.py\", line 323 in select\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\socketserver.py\", line 233 in serve_forever\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\threading.py\", line 982 in run\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\threading.py\", line 1045 in _bootstrap_inner\n  File \"C:\\Users\\Dreven\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\threading.py\", line 1002 in _bootstrap\n\nThread 0x0001034c (most recent call first):\n  File \"C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Lib\\site-packages\\_pytest\\capture.py\", line 595 in snap\n  File \"C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Lib\\site-packages\\_pytest\\capture.py\", line 713 in readouterr\n  File \"C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Lib\\site-packages\\_pytest\\capture.py\", line 809 in read_global_capture\n  File \"C:\\MyProjects\\Codex\\HungryCrab\\.venv\\Lib\\site-packages\\_pytest\\capture.py\", line 875 in item_capture\n",
+    "exit_code": 1,
+    "duration": {
+      "secs": 14,
+      "nanos": 894571900
+    }
+  },
+  "recovery": "Read-only extraction of an existing historical record; no local execution",
+  "limitations": "Recorded output is decoded/aggregated, not byte-exact separated stdout/stderr. Exit code belongs to outer PowerShell invocation; direct Python exit was not captured."
+}

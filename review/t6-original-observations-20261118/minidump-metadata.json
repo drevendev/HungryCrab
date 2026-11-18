@@ -1,0 +1,1081 @@
+{
+  "schema": 1,
+  "extraction": "Read-only structural metadata from existing historical dumps; no target execution, debugger, local test or reproduction",
+  "dumps": [
+    {
+      "dump_name": "python.exe.44424.dmp",
+      "bytes": 2371012,
+      "sha256": "a28f0ae454f8f6548829e1148728da36d370076424bd0b786651b1eb7de384d4",
+      "timestamp_utc": "2026-11-16T05:31:14.0000000+00:00",
+      "exception_thread": "0x49C8",
+      "exception_code": "0xC0000008",
+      "exception_module": "ntdll.dll",
+      "exception_rva": "0x16A4FA",
+      "architecture": 9,
+      "windows": "10.0.26200",
+      "modules": [
+        {
+          "name": "python.exe",
+          "file_version": "0.0.0.0",
+          "size": 106496,
+          "pdb": null
+        },
+        {
+          "name": "ntdll.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 2539520,
+          "pdb": {
+            "name": "ntdll.pdb",
+            "guid": "44294CBD55E8CD67B3D56B689F03152D",
+            "age": 1,
+            "symbol_id": "44294CBD55E8CD67B3D56B689F03152D1"
+          }
+        },
+        {
+          "name": "kernel32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 831488,
+          "pdb": {
+            "name": "kernel32.pdb",
+            "guid": "E7D59A8480CEC3B15C62A36AD505637E",
+            "age": 1,
+            "symbol_id": "E7D59A8480CEC3B15C62A36AD505637E1"
+          }
+        },
+        {
+          "name": "KERNELBASE.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 4231168,
+          "pdb": {
+            "name": "kernelbase.pdb",
+            "guid": "4957D45FC8F739B95DE0ABE1EAE2BC1C",
+            "age": 1,
+            "symbol_id": "4957D45FC8F739B95DE0ABE1EAE2BC1C1"
+          }
+        },
+        {
+          "name": "ucrtbase.dll",
+          "file_version": "10.0.26100.9711",
+          "size": 1359872,
+          "pdb": {
+            "name": "ucrtbase.pdb",
+            "guid": "66A3E8DFB8B886146544529E6A6DD4F4",
+            "age": 1,
+            "symbol_id": "66A3E8DFB8B886146544529E6A6DD4F41"
+          }
+        },
+        {
+          "name": "python311.dll",
+          "file_version": "0.0.0.0",
+          "size": 6172672,
+          "pdb": null
+        },
+        {
+          "name": "VCRUNTIME140.dll",
+          "file_version": "0.0.0.0",
+          "size": 122880,
+          "pdb": null
+        },
+        {
+          "name": "ws2_32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 524288,
+          "pdb": {
+            "name": "ws2_32.pdb",
+            "guid": "9DC73321ED08893007DF02E641F44B87",
+            "age": 1,
+            "symbol_id": "9DC73321ED08893007DF02E641F44B871"
+          }
+        },
+        {
+          "name": "rpcrt4.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1146880,
+          "pdb": {
+            "name": "rpcrt4.pdb",
+            "guid": "E9DD14015C33891F220822884DBE17FA",
+            "age": 1,
+            "symbol_id": "E9DD14015C33891F220822884DBE17FA1"
+          }
+        },
+        {
+          "name": "advapi32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 770048,
+          "pdb": {
+            "name": "advapi32.pdb",
+            "guid": "A36693ABD3A3B7ECE7365FD5A9FF531B",
+            "age": 1,
+            "symbol_id": "A36693ABD3A3B7ECE7365FD5A9FF531B1"
+          }
+        },
+        {
+          "name": "msvcrt.dll",
+          "file_version": "7.0.26100.9711",
+          "size": 692224,
+          "pdb": {
+            "name": "msvcrt.pdb",
+            "guid": "FC0417B8DF754857A6826A24039CC49D",
+            "age": 1,
+            "symbol_id": "FC0417B8DF754857A6826A24039CC49D1"
+          }
+        },
+        {
+          "name": "sechost.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 688128,
+          "pdb": {
+            "name": "sechost.pdb",
+            "guid": "FA3AB214FE0194CDBF6785D4A73C1738",
+            "age": 1,
+            "symbol_id": "FA3AB214FE0194CDBF6785D4A73C17381"
+          }
+        },
+        {
+          "name": "version.dll",
+          "file_version": "10.0.26100.1150",
+          "size": 45056,
+          "pdb": {
+            "name": "version.pdb",
+            "guid": "440DD63BE2B021F80FD0C78EF0AECEF2",
+            "age": 1,
+            "symbol_id": "440DD63BE2B021F80FD0C78EF0AECEF21"
+          }
+        },
+        {
+          "name": "bcrypt.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 172032,
+          "pdb": {
+            "name": "bcrypt.pdb",
+            "guid": "B2E73112BF2F2067A955A45AEFAEE205",
+            "age": 1,
+            "symbol_id": "B2E73112BF2F2067A955A45AEFAEE2051"
+          }
+        },
+        {
+          "name": "bcryptprimitives.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 704512,
+          "pdb": {
+            "name": "bcryptprimitives.pdb",
+            "guid": "6734B4B733DF510B9EB297344D59C601",
+            "age": 1,
+            "symbol_id": "6734B4B733DF510B9EB297344D59C6011"
+          }
+        },
+        {
+          "name": "python3.DLL",
+          "file_version": "0.0.0.0",
+          "size": 61440,
+          "pdb": null
+        },
+        {
+          "name": "_bz2.pyd",
+          "file_version": "0.0.0.0",
+          "size": 86016,
+          "pdb": null
+        },
+        {
+          "name": "_lzma.pyd",
+          "file_version": "0.0.0.0",
+          "size": 172032,
+          "pdb": null
+        },
+        {
+          "name": "_uuid.pyd",
+          "file_version": "0.0.0.0",
+          "size": 32768,
+          "pdb": null
+        },
+        {
+          "name": "unicodedata.pyd",
+          "file_version": "0.0.0.0",
+          "size": 1150976,
+          "pdb": null
+        },
+        {
+          "name": "_decimal.pyd",
+          "file_version": "0.0.0.0",
+          "size": 258048,
+          "pdb": null
+        },
+        {
+          "name": "_socket.pyd",
+          "file_version": "0.0.0.0",
+          "size": 86016,
+          "pdb": null
+        },
+        {
+          "name": "IPHLPAPI.DLL",
+          "file_version": "10.0.26100.9818",
+          "size": 208896,
+          "pdb": {
+            "name": "iphlpapi.pdb",
+            "guid": "A54ABF8930D416B69DA0226D39E8284E",
+            "age": 1,
+            "symbol_id": "A54ABF8930D416B69DA0226D39E8284E1"
+          }
+        },
+        {
+          "name": "select.pyd",
+          "file_version": "0.0.0.0",
+          "size": 36864,
+          "pdb": null
+        },
+        {
+          "name": "_hashlib.pyd",
+          "file_version": "0.0.0.0",
+          "size": 73728,
+          "pdb": null
+        },
+        {
+          "name": "libcrypto-3-x64.dll",
+          "file_version": "0.0.0.0",
+          "size": 8024064,
+          "pdb": null
+        },
+        {
+          "name": "crypt32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 1564672,
+          "pdb": {
+            "name": "crypt32.pdb",
+            "guid": "720A22CD63853E4143C3038CE3983FA1",
+            "age": 1,
+            "symbol_id": "720A22CD63853E4143C3038CE3983FA11"
+          }
+        },
+        {
+          "name": "user32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 1957888,
+          "pdb": {
+            "name": "user32.pdb",
+            "guid": "8AA9427308F6A365E0A10363D99DF815",
+            "age": 1,
+            "symbol_id": "8AA9427308F6A365E0A10363D99DF8151"
+          }
+        },
+        {
+          "name": "win32u.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 159744,
+          "pdb": {
+            "name": "win32u.pdb",
+            "guid": "6BB731435D65BDE0EFB4D135F5BEBBF1",
+            "age": 1,
+            "symbol_id": "6BB731435D65BDE0EFB4D135F5BEBBF11"
+          }
+        },
+        {
+          "name": "gdi32.dll",
+          "file_version": "10.0.26100.8328",
+          "size": 176128,
+          "pdb": {
+            "name": "gdi32.pdb",
+            "guid": "92C6EC2ABE478836C99BC83C2F3AE355",
+            "age": 1,
+            "symbol_id": "92C6EC2ABE478836C99BC83C2F3AE3551"
+          }
+        },
+        {
+          "name": "gdi32full.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1216512,
+          "pdb": {
+            "name": "gdi32full.pdb",
+            "guid": "16AA0F4FB68827D59A6EA797CEA35D4C",
+            "age": 1,
+            "symbol_id": "16AA0F4FB68827D59A6EA797CEA35D4C1"
+          }
+        },
+        {
+          "name": "msvcp_win.dll",
+          "file_version": "10.0.26100.9711",
+          "size": 667648,
+          "pdb": {
+            "name": "msvcp_win.pdb",
+            "guid": "E690ABC4E4A0A67042936D5CB65C760C",
+            "age": 1,
+            "symbol_id": "E690ABC4E4A0A67042936D5CB65C760C1"
+          }
+        },
+        {
+          "name": "imm32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 200704,
+          "pdb": {
+            "name": "imm32.pdb",
+            "guid": "9948D719A6F5F6AFA591212BD2AFF746",
+            "age": 1,
+            "symbol_id": "9948D719A6F5F6AFA591212BD2AFF7461"
+          }
+        },
+        {
+          "name": "_elementtree.pyd",
+          "file_version": "0.0.0.0",
+          "size": 131072,
+          "pdb": null
+        },
+        {
+          "name": "pyexpat.pyd",
+          "file_version": "0.0.0.0",
+          "size": 225280,
+          "pdb": null
+        },
+        {
+          "name": "_ssl.pyd",
+          "file_version": "0.0.0.0",
+          "size": 184320,
+          "pdb": null
+        },
+        {
+          "name": "libssl-3-x64.dll",
+          "file_version": "0.0.0.0",
+          "size": 1605632,
+          "pdb": null
+        },
+        {
+          "name": "_asyncio.pyd",
+          "file_version": "0.0.0.0",
+          "size": 69632,
+          "pdb": null
+        },
+        {
+          "name": "_overlapped.pyd",
+          "file_version": "0.0.0.0",
+          "size": 57344,
+          "pdb": null
+        },
+        {
+          "name": "mswsock.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 438272,
+          "pdb": {
+            "name": "mswsock.pdb",
+            "guid": "19AE02FDC62D8D0A2EB4C8AB1647DEED",
+            "age": 1,
+            "symbol_id": "19AE02FDC62D8D0A2EB4C8AB1647DEED1"
+          }
+        },
+        {
+          "name": "_queue.pyd",
+          "file_version": "0.0.0.0",
+          "size": 36864,
+          "pdb": null
+        },
+        {
+          "name": "_ctypes.pyd",
+          "file_version": "0.0.0.0",
+          "size": 139264,
+          "pdb": null
+        },
+        {
+          "name": "ole32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1675264,
+          "pdb": {
+            "name": "ole32.pdb",
+            "guid": "2991407693791DF9037745B9ABFDB207",
+            "age": 1,
+            "symbol_id": "2991407693791DF9037745B9ABFDB2071"
+          }
+        },
+        {
+          "name": "combase.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 3821568,
+          "pdb": {
+            "name": "combase.pdb",
+            "guid": "F4CDE3B963B0A1B415267C4BCD8A989A",
+            "age": 1,
+            "symbol_id": "F4CDE3B963B0A1B415267C4BCD8A989A1"
+          }
+        },
+        {
+          "name": "oleaut32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 892928,
+          "pdb": {
+            "name": "oleaut32.pdb",
+            "guid": "60417C3EE386C45C0576FE3F5A842299",
+            "age": 1,
+            "symbol_id": "60417C3EE386C45C0576FE3F5A8422991"
+          }
+        },
+        {
+          "name": "libffi-8.dll",
+          "file_version": "0.0.0.0",
+          "size": 45056,
+          "pdb": null
+        },
+        {
+          "name": "_yaml.cp311-win_amd64.pyd",
+          "file_version": "0.0.0.0",
+          "size": 282624,
+          "pdb": null
+        },
+        {
+          "name": "kernel.appcore.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 110592,
+          "pdb": {
+            "name": "Kernel.Appcore.pdb",
+            "guid": "D68755BF091B0C3DD4FFC0C745379F97",
+            "age": 1,
+            "symbol_id": "D68755BF091B0C3DD4FFC0C745379F971"
+          }
+        }
+      ],
+      "stack_code_pointer_candidates": [
+        {
+          "offset_from_rsp": 48,
+          "module": "ntdll.dll",
+          "rva": "0x16A4FA"
+        },
+        {
+          "offset_from_rsp": 72,
+          "module": "ucrtbase.dll",
+          "rva": "0x7ACD"
+        },
+        {
+          "offset_from_rsp": 152,
+          "module": "python311.dll",
+          "rva": "0x17B7A"
+        },
+        {
+          "offset_from_rsp": 184,
+          "module": "python311.dll",
+          "rva": "0x5F426"
+        },
+        {
+          "offset_from_rsp": 200,
+          "module": "KERNELBASE.dll",
+          "rva": "0xF13AE"
+        },
+        {
+          "offset_from_rsp": 232,
+          "module": "python311.dll",
+          "rva": "0x5CDA2"
+        },
+        {
+          "offset_from_rsp": 248,
+          "module": "ws2_32.dll",
+          "rva": "0x2566A"
+        },
+        {
+          "offset_from_rsp": 264,
+          "module": "ws2_32.dll",
+          "rva": "0x1FCCD"
+        },
+        {
+          "offset_from_rsp": 312,
+          "module": "ws2_32.dll",
+          "rva": "0x21DC8"
+        },
+        {
+          "offset_from_rsp": 360,
+          "module": "python311.dll",
+          "rva": "0x39FB7"
+        },
+        {
+          "offset_from_rsp": 384,
+          "module": "python311.dll",
+          "rva": "0x5A4308"
+        },
+        {
+          "offset_from_rsp": 408,
+          "module": "python311.dll",
+          "rva": "0x6E556"
+        },
+        {
+          "offset_from_rsp": 440,
+          "module": "python311.dll",
+          "rva": "0x17B7A"
+        },
+        {
+          "offset_from_rsp": 488,
+          "module": "python311.dll",
+          "rva": "0xCEEE4"
+        },
+        {
+          "offset_from_rsp": 504,
+          "module": "python311.dll",
+          "rva": "0x8FA90"
+        },
+        {
+          "offset_from_rsp": 520,
+          "module": "KERNELBASE.dll",
+          "rva": "0x1CFEB"
+        },
+        {
+          "offset_from_rsp": 536,
+          "module": "python311.dll",
+          "rva": "0x1C619"
+        },
+        {
+          "offset_from_rsp": 568,
+          "module": "python311.dll",
+          "rva": "0x1FA47"
+        },
+        {
+          "offset_from_rsp": 592,
+          "module": "python311.dll",
+          "rva": "0x5B25F8"
+        },
+        {
+          "offset_from_rsp": 600,
+          "module": "ucrtbase.dll",
+          "rva": "0x7ACD"
+        },
+        {
+          "offset_from_rsp": 616,
+          "module": "python311.dll",
+          "rva": "0x1F9BD"
+        },
+        {
+          "offset_from_rsp": 664,
+          "module": "select.pyd",
+          "rva": "0x25FF"
+        }
+      ],
+      "interpretation": "Candidate module-relative pointers scanned from 2 KiB at exception RSP; NOT an unwound stack or causal attribution. Raw memory, non-code values, module paths and register contents omitted."
+    },
+    {
+      "dump_name": "python.exe.18580.dmp",
+      "bytes": 2370000,
+      "sha256": "2c1892b95cf4a5eeac1d46660c5ae734e32bf66db4198b955aadd810867c975f",
+      "timestamp_utc": "2026-11-16T05:33:52.0000000+00:00",
+      "exception_thread": "0xA104",
+      "exception_code": "0xC0000008",
+      "exception_module": "ntdll.dll",
+      "exception_rva": "0x16A4FA",
+      "architecture": 9,
+      "windows": "10.0.26200",
+      "modules": [
+        {
+          "name": "python.exe",
+          "file_version": "0.0.0.0",
+          "size": 106496,
+          "pdb": null
+        },
+        {
+          "name": "ntdll.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 2539520,
+          "pdb": {
+            "name": "ntdll.pdb",
+            "guid": "44294CBD55E8CD67B3D56B689F03152D",
+            "age": 1,
+            "symbol_id": "44294CBD55E8CD67B3D56B689F03152D1"
+          }
+        },
+        {
+          "name": "kernel32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 831488,
+          "pdb": {
+            "name": "kernel32.pdb",
+            "guid": "E7D59A8480CEC3B15C62A36AD505637E",
+            "age": 1,
+            "symbol_id": "E7D59A8480CEC3B15C62A36AD505637E1"
+          }
+        },
+        {
+          "name": "KERNELBASE.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 4231168,
+          "pdb": {
+            "name": "kernelbase.pdb",
+            "guid": "4957D45FC8F739B95DE0ABE1EAE2BC1C",
+            "age": 1,
+            "symbol_id": "4957D45FC8F739B95DE0ABE1EAE2BC1C1"
+          }
+        },
+        {
+          "name": "ucrtbase.dll",
+          "file_version": "10.0.26100.9711",
+          "size": 1359872,
+          "pdb": {
+            "name": "ucrtbase.pdb",
+            "guid": "66A3E8DFB8B886146544529E6A6DD4F4",
+            "age": 1,
+            "symbol_id": "66A3E8DFB8B886146544529E6A6DD4F41"
+          }
+        },
+        {
+          "name": "VCRUNTIME140.dll",
+          "file_version": "0.0.0.0",
+          "size": 122880,
+          "pdb": null
+        },
+        {
+          "name": "python311.dll",
+          "file_version": "0.0.0.0",
+          "size": 6172672,
+          "pdb": null
+        },
+        {
+          "name": "ws2_32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 524288,
+          "pdb": {
+            "name": "ws2_32.pdb",
+            "guid": "9DC73321ED08893007DF02E641F44B87",
+            "age": 1,
+            "symbol_id": "9DC73321ED08893007DF02E641F44B871"
+          }
+        },
+        {
+          "name": "rpcrt4.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1146880,
+          "pdb": {
+            "name": "rpcrt4.pdb",
+            "guid": "E9DD14015C33891F220822884DBE17FA",
+            "age": 1,
+            "symbol_id": "E9DD14015C33891F220822884DBE17FA1"
+          }
+        },
+        {
+          "name": "advapi32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 770048,
+          "pdb": {
+            "name": "advapi32.pdb",
+            "guid": "A36693ABD3A3B7ECE7365FD5A9FF531B",
+            "age": 1,
+            "symbol_id": "A36693ABD3A3B7ECE7365FD5A9FF531B1"
+          }
+        },
+        {
+          "name": "msvcrt.dll",
+          "file_version": "7.0.26100.9711",
+          "size": 692224,
+          "pdb": {
+            "name": "msvcrt.pdb",
+            "guid": "FC0417B8DF754857A6826A24039CC49D",
+            "age": 1,
+            "symbol_id": "FC0417B8DF754857A6826A24039CC49D1"
+          }
+        },
+        {
+          "name": "sechost.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 688128,
+          "pdb": {
+            "name": "sechost.pdb",
+            "guid": "FA3AB214FE0194CDBF6785D4A73C1738",
+            "age": 1,
+            "symbol_id": "FA3AB214FE0194CDBF6785D4A73C17381"
+          }
+        },
+        {
+          "name": "version.dll",
+          "file_version": "10.0.26100.1150",
+          "size": 45056,
+          "pdb": {
+            "name": "version.pdb",
+            "guid": "440DD63BE2B021F80FD0C78EF0AECEF2",
+            "age": 1,
+            "symbol_id": "440DD63BE2B021F80FD0C78EF0AECEF21"
+          }
+        },
+        {
+          "name": "bcrypt.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 172032,
+          "pdb": {
+            "name": "bcrypt.pdb",
+            "guid": "B2E73112BF2F2067A955A45AEFAEE205",
+            "age": 1,
+            "symbol_id": "B2E73112BF2F2067A955A45AEFAEE2051"
+          }
+        },
+        {
+          "name": "bcryptprimitives.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 704512,
+          "pdb": {
+            "name": "bcryptprimitives.pdb",
+            "guid": "6734B4B733DF510B9EB297344D59C601",
+            "age": 1,
+            "symbol_id": "6734B4B733DF510B9EB297344D59C6011"
+          }
+        },
+        {
+          "name": "python3.DLL",
+          "file_version": "0.0.0.0",
+          "size": 61440,
+          "pdb": null
+        },
+        {
+          "name": "_bz2.pyd",
+          "file_version": "0.0.0.0",
+          "size": 86016,
+          "pdb": null
+        },
+        {
+          "name": "_lzma.pyd",
+          "file_version": "0.0.0.0",
+          "size": 172032,
+          "pdb": null
+        },
+        {
+          "name": "_uuid.pyd",
+          "file_version": "0.0.0.0",
+          "size": 32768,
+          "pdb": null
+        },
+        {
+          "name": "unicodedata.pyd",
+          "file_version": "0.0.0.0",
+          "size": 1150976,
+          "pdb": null
+        },
+        {
+          "name": "_decimal.pyd",
+          "file_version": "0.0.0.0",
+          "size": 258048,
+          "pdb": null
+        },
+        {
+          "name": "_socket.pyd",
+          "file_version": "0.0.0.0",
+          "size": 86016,
+          "pdb": null
+        },
+        {
+          "name": "IPHLPAPI.DLL",
+          "file_version": "10.0.26100.9818",
+          "size": 208896,
+          "pdb": {
+            "name": "iphlpapi.pdb",
+            "guid": "A54ABF8930D416B69DA0226D39E8284E",
+            "age": 1,
+            "symbol_id": "A54ABF8930D416B69DA0226D39E8284E1"
+          }
+        },
+        {
+          "name": "select.pyd",
+          "file_version": "0.0.0.0",
+          "size": 36864,
+          "pdb": null
+        },
+        {
+          "name": "_hashlib.pyd",
+          "file_version": "0.0.0.0",
+          "size": 73728,
+          "pdb": null
+        },
+        {
+          "name": "libcrypto-3-x64.dll",
+          "file_version": "0.0.0.0",
+          "size": 8024064,
+          "pdb": null
+        },
+        {
+          "name": "crypt32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 1564672,
+          "pdb": {
+            "name": "crypt32.pdb",
+            "guid": "720A22CD63853E4143C3038CE3983FA1",
+            "age": 1,
+            "symbol_id": "720A22CD63853E4143C3038CE3983FA11"
+          }
+        },
+        {
+          "name": "user32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 1957888,
+          "pdb": {
+            "name": "user32.pdb",
+            "guid": "8AA9427308F6A365E0A10363D99DF815",
+            "age": 1,
+            "symbol_id": "8AA9427308F6A365E0A10363D99DF8151"
+          }
+        },
+        {
+          "name": "win32u.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 159744,
+          "pdb": {
+            "name": "win32u.pdb",
+            "guid": "6BB731435D65BDE0EFB4D135F5BEBBF1",
+            "age": 1,
+            "symbol_id": "6BB731435D65BDE0EFB4D135F5BEBBF11"
+          }
+        },
+        {
+          "name": "gdi32.dll",
+          "file_version": "10.0.26100.8328",
+          "size": 176128,
+          "pdb": {
+            "name": "gdi32.pdb",
+            "guid": "92C6EC2ABE478836C99BC83C2F3AE355",
+            "age": 1,
+            "symbol_id": "92C6EC2ABE478836C99BC83C2F3AE3551"
+          }
+        },
+        {
+          "name": "gdi32full.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1216512,
+          "pdb": {
+            "name": "gdi32full.pdb",
+            "guid": "16AA0F4FB68827D59A6EA797CEA35D4C",
+            "age": 1,
+            "symbol_id": "16AA0F4FB68827D59A6EA797CEA35D4C1"
+          }
+        },
+        {
+          "name": "msvcp_win.dll",
+          "file_version": "10.0.26100.9711",
+          "size": 667648,
+          "pdb": {
+            "name": "msvcp_win.pdb",
+            "guid": "E690ABC4E4A0A67042936D5CB65C760C",
+            "age": 1,
+            "symbol_id": "E690ABC4E4A0A67042936D5CB65C760C1"
+          }
+        },
+        {
+          "name": "imm32.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 200704,
+          "pdb": {
+            "name": "imm32.pdb",
+            "guid": "9948D719A6F5F6AFA591212BD2AFF746",
+            "age": 1,
+            "symbol_id": "9948D719A6F5F6AFA591212BD2AFF7461"
+          }
+        },
+        {
+          "name": "_elementtree.pyd",
+          "file_version": "0.0.0.0",
+          "size": 131072,
+          "pdb": null
+        },
+        {
+          "name": "pyexpat.pyd",
+          "file_version": "0.0.0.0",
+          "size": 225280,
+          "pdb": null
+        },
+        {
+          "name": "_ssl.pyd",
+          "file_version": "0.0.0.0",
+          "size": 184320,
+          "pdb": null
+        },
+        {
+          "name": "libssl-3-x64.dll",
+          "file_version": "0.0.0.0",
+          "size": 1605632,
+          "pdb": null
+        },
+        {
+          "name": "_asyncio.pyd",
+          "file_version": "0.0.0.0",
+          "size": 69632,
+          "pdb": null
+        },
+        {
+          "name": "_overlapped.pyd",
+          "file_version": "0.0.0.0",
+          "size": 57344,
+          "pdb": null
+        },
+        {
+          "name": "mswsock.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 438272,
+          "pdb": {
+            "name": "mswsock.pdb",
+            "guid": "19AE02FDC62D8D0A2EB4C8AB1647DEED",
+            "age": 1,
+            "symbol_id": "19AE02FDC62D8D0A2EB4C8AB1647DEED1"
+          }
+        },
+        {
+          "name": "_queue.pyd",
+          "file_version": "0.0.0.0",
+          "size": 36864,
+          "pdb": null
+        },
+        {
+          "name": "_ctypes.pyd",
+          "file_version": "0.0.0.0",
+          "size": 139264,
+          "pdb": null
+        },
+        {
+          "name": "ole32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 1675264,
+          "pdb": {
+            "name": "ole32.pdb",
+            "guid": "2991407693791DF9037745B9ABFDB207",
+            "age": 1,
+            "symbol_id": "2991407693791DF9037745B9ABFDB2071"
+          }
+        },
+        {
+          "name": "combase.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 3821568,
+          "pdb": {
+            "name": "combase.pdb",
+            "guid": "F4CDE3B963B0A1B415267C4BCD8A989A",
+            "age": 1,
+            "symbol_id": "F4CDE3B963B0A1B415267C4BCD8A989A1"
+          }
+        },
+        {
+          "name": "oleaut32.dll",
+          "file_version": "10.0.26100.9974",
+          "size": 892928,
+          "pdb": {
+            "name": "oleaut32.pdb",
+            "guid": "60417C3EE386C45C0576FE3F5A842299",
+            "age": 1,
+            "symbol_id": "60417C3EE386C45C0576FE3F5A8422991"
+          }
+        },
+        {
+          "name": "libffi-8.dll",
+          "file_version": "0.0.0.0",
+          "size": 45056,
+          "pdb": null
+        },
+        {
+          "name": "_yaml.cp311-win_amd64.pyd",
+          "file_version": "0.0.0.0",
+          "size": 282624,
+          "pdb": null
+        },
+        {
+          "name": "kernel.appcore.dll",
+          "file_version": "10.0.26100.9818",
+          "size": 110592,
+          "pdb": {
+            "name": "Kernel.Appcore.pdb",
+            "guid": "D68755BF091B0C3DD4FFC0C745379F97",
+            "age": 1,
+            "symbol_id": "D68755BF091B0C3DD4FFC0C745379F971"
+          }
+        }
+      ],
+      "stack_code_pointer_candidates": [
+        {
+          "offset_from_rsp": 48,
+          "module": "ntdll.dll",
+          "rva": "0x16A4FA"
+        },
+        {
+          "offset_from_rsp": 72,
+          "module": "ucrtbase.dll",
+          "rva": "0x7ACD"
+        },
+        {
+          "offset_from_rsp": 152,
+          "module": "python311.dll",
+          "rva": "0x17B7A"
+        },
+        {
+          "offset_from_rsp": 184,
+          "module": "python311.dll",
+          "rva": "0x5F426"
+        },
+        {
+          "offset_from_rsp": 200,
+          "module": "KERNELBASE.dll",
+          "rva": "0xF13AE"
+        },
+        {
+          "offset_from_rsp": 232,
+          "module": "python311.dll",
+          "rva": "0x5CDA2"
+        },
+        {
+          "offset_from_rsp": 248,
+          "module": "ws2_32.dll",
+          "rva": "0x2566A"
+        },
+        {
+          "offset_from_rsp": 264,
+          "module": "ws2_32.dll",
+          "rva": "0x1FCCD"
+        },
+        {
+          "offset_from_rsp": 312,
+          "module": "ws2_32.dll",
+          "rva": "0x21DC8"
+        },
+        {
+          "offset_from_rsp": 360,
+          "module": "python311.dll",
+          "rva": "0x39FB7"
+        },
+        {
+          "offset_from_rsp": 384,
+          "module": "python311.dll",
+          "rva": "0x5A4308"
+        },
+        {
+          "offset_from_rsp": 408,
+          "module": "python311.dll",
+          "rva": "0x6E556"
+        },
+        {
+          "offset_from_rsp": 440,
+          "module": "python311.dll",
+          "rva": "0x17B7A"
+        },
+        {
+          "offset_from_rsp": 488,
+          "module": "python311.dll",
+          "rva": "0xCEEE4"
+        },
+        {
+          "offset_from_rsp": 504,
+          "module": "python311.dll",
+          "rva": "0x8FA90"
+        },
+        {
+          "offset_from_rsp": 536,
+          "module": "python311.dll",
+          "rva": "0x1C619"
+        },
+        {
+          "offset_from_rsp": 568,
+          "module": "python311.dll",
+          "rva": "0x8F837"
+        },
+        {
+          "offset_from_rsp": 592,
+          "module": "python311.dll",
+          "rva": "0x5B25F8"
+        },
+        {
+          "offset_from_rsp": 600,
+          "module": "ucrtbase.dll",
+          "rva": "0x7ACD"
+        },
+        {
+          "offset_from_rsp": 616,
+          "module": "python311.dll",
+          "rva": "0x1F9BD"
+        },
+        {
+          "offset_from_rsp": 664,
+          "module": "select.pyd",
+          "rva": "0x25FF"
+        }
+      ],
+      "interpretation": "Candidate module-relative pointers scanned from 2 KiB at exception RSP; NOT an unwound stack or causal attribution. Raw memory, non-code values, module paths and register contents omitted."
+    }
+  ]
+}

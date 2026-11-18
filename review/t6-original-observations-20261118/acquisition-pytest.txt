@@ -1,0 +1,66 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.16, pytest-9.2.0, pluggy-1.6.0 -- C:\MyProjects\Codex\HungryCrab\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\MyProjects\Codex\HungryCrab
+configfile: pyproject.toml
+plugins: anyio-4.15.1, cov-7.1.0
+collecting ... collected 15 items
+
+tests/test_acquisition.py::test_remote_feeder_refuses_an_unbounded_filesystem_before_network PASSED [  6%]
+tests/test_acquisition.py::test_capacity_and_path_are_real_boundaries PASSED [ 13%]
+tests/test_acquisition.py::test_concurrent_acquisitions_of_one_volume_fail_before_network PASSED [ 20%]
+tests/test_acquisition.py::test_feeder_never_exports_a_success_bundle_after_a_quota_refusal[download budget exceeded] PASSED [ 26%]
+tests/test_acquisition.py::test_feeder_never_exports_a_success_bundle_after_a_quota_refusal[disk capacity exhausted] PASSED [ 33%]
+tests/test_acquisition.py::test_git_cannot_bypass_the_relay_or_write_to_inherited_directories PASSED [ 40%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[file:///repo] PASSED [ 46%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[ssh://github.com/a/b] PASSED [ 53%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[https://other.test/a] PASSED [ 60%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[https://user:secret@github.com/a/b] PASSED [ 66%]
+tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit Windows fatal exception: code 0xc0000008
+
+Current thread 0x0000a104 (most recent call first):
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\selectors.py", line 314 in _select
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\selectors.py", line 323 in select
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 233 in serve_forever
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 982 in run
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 1045 in _bootstrap_inner
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 1002 in _bootstrap
+
+Thread 0x00008a98 (most recent call first):
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py", line 1013 in stat
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\pathlib.py", line 1235 in exists
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\_code\code.py", line 96 in path
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\python.py", line 1806 in _traceback_filter
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\_code\code.py", line 1651 in filter_excinfo_traceback
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\_code\code.py", line 1141 in repr_traceback
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\_code\code.py", line 1243 in repr_excinfo
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\_code\code.py", line 784 in getrepr
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\nodes.py", line 477 in _repr_failure_py
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\python.py", line 1840 in repr_failure
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\reports.py", line 282 in _format_failed_longrepr
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\reports.py", line 465 in from_item_and_call
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\runner.py", line 385 in pytest_runtest_makereport
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\runner.py", line 254 in call_and_report
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\runner.py", line 139 in runtestprotocol
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\runner.py", line 118 in pytest_runtest_protocol
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\main.py", line 411 in pytest_runtestloop
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\main.py", line 387 in _main
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\main.py", line 333 in wrap_session
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\main.py", line 380 in pytest_cmdline_main
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\config\__init__.py", line 262 in _main
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\config\__init__.py", line 286 in _console_main
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\pytest\__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main

@@ -1,6 +1,6 @@
 {
-  "owner_instruction": "Natively merge #690 after exact-head Actions; update #671/#675; start the next 0.6.11 P0. Checks only in Actions; no paid model runs.",
-  "recorded_at_utc": "2026-11-18T17:40:34Z",
+  "owner_instruction": "Check Actions after native690 and for693, fix remaining failures and continue T6. All execution checks in Actions; no paid model runs.",
+  "recorded_at_utc": "2026-11-18 18:43:18 UTC",
   "repository": "drevendev/HungryCrab",
   "master": "e3eb3594217b100a8cfabf598502195926f71828",
   "pr677": {
@@ -415,7 +415,7 @@
         "skipped": 7
       }
     },
-    "status": "MERGED / bounded T2 complete; separate landed CI in progress",
+    "status": "MERGED / bounded T2 delivered; landed CI22/22 and CodeQL verified",
     "new_dispatch_on_resume": "No rerun for earlier owner resume; subsequent explicit independent-review task added owned repro/preflight runs and native PR pushes",
     "source_changes_on_resume": true,
     "independent_review": {
@@ -462,35 +462,43 @@
       "archive_branch": "codex/archive/pr-690-dba4d97",
       "landed_ci": {
         "run": 44357088154,
-        "result": "IN_PROGRESS",
-        "successful_jobs": 20,
-        "expected_jobs": 22,
-        "pending": "Two Windows full suites; Linux suites and all other jobs passed",
-        "linux_suites": {
-          "python311": {
-            "passed": 5258,
-            "skipped": 45,
-            "job": 134997766997
-          },
-          "python314": {
-            "passed": 5259,
-            "skipped": 44,
-            "job": 134997766928
-          }
-        }
+        "result": "SUCCESS",
+        "successful_jobs": 22
       },
       "landed_codeql": {
         "run": 44357088264,
         "result": "SUCCESS"
+      },
+      "landed_full_suites": {
+        "ubuntu311": {
+          "job": 134997766997,
+          "passed": 5258,
+          "skipped": 45
+        },
+        "ubuntu314": {
+          "job": 134997766928,
+          "passed": 5259,
+          "skipped": 44
+        },
+        "windows311": {
+          "job": 134997768254,
+          "passed": 5295,
+          "skipped": 8
+        },
+        "windows314": {
+          "job": 134997773048,
+          "passed": 5296,
+          "skipped": 7
+        }
       }
     }
   },
   "task_states": {
     "670": "OPEN: bounded677merged; production native meter and supervised fixed-pair qualification remain open",
-    "671": "CLOSED/completed after native merge",
-    "675": "OPEN; bounded T2 delivered, T6 in progress; broader release gates retained",
+    "671": "CLOSED/completed; native690 delivered and landed CI22/22+CodeQL verified",
+    "675": "OPEN; T6 evidence progressed, wider0.6.11 gates retained",
     "678": "CLOSED/completed: bounded relay lifecycle independently reviewed, exact-source checked, natively merged, landed master18/18 and CodeQL succeeded",
-    "679": "OPEN; evidence capture in draft #693, original attribution unresolved"
+    "679": "OPEN; actual historical native exception confirmed, root cause and first forensic acceptance incomplete"
   },
   "constraints": {
     "local_tests_lint_type_build_install_runtime_probes": "NOT_RUN",
@@ -502,10 +510,10 @@
     "next_p0_merge": "NOT_RUN/NOT_AUTHORIZED"
   },
   "next_steps": [
-    "Read remaining landed-master CI44357088154 and exact-head PR693 CI44360635222; correct genuine failures without masking first anomalies",
-    "Keep source/landed checks and superseded attempts distinct; inspect uploaded full-suite evidence when available",
-    "Continue T6 diagnosis from attributable raw original or new evidence; current eight-child series NOT_REPRODUCED cannot close historical attribution",
-    "Keep #675/#679 and wider release gates open; no new-P0 merge, paid model run, local checks, donor acquisition/execution, tag or release"
+    "Read fresh209b6e4 native PR Actions; do not promote old ab77dce or diagnostic-only checks into new full-suite success",
+    "Retain matching-symbol requirement; do not use the held ages as causal evidence",
+    "Continue native cause/first ordinary failure attribution from preserved original evidence within the owner execution boundary",
+    "Keep #679/#675 open and PR693 draft; no paid model runs, local tests/probes, raw-dump upload or merge/release"
   ],
   "owner_pause": {
     "requested": true,
@@ -517,7 +525,7 @@
     "resumed_at_utc": "2026-11-18 05:38:20 UTC",
     "current_status": "RESUMED by owner instruction; original pause history retained"
   },
-  "work_status": "PR690 natively merged, #671 completed; next P0 T6/#679 in draft693 ab77dce; focused Actions and CodeQL succeeded, full checks pending",
+  "work_status": "Landed690 and original693 ab77dce CI22/22+CodeQL succeeded. Current693209b6e4 has exact-source diagnostic8/8 and CodeQL; fresh full CI pending. Historical native exception confirmed from preserved dumps; cause unconfirmed, symbol ages held.",
   "current_master_after_pause": {
     "sha": "d01f7b2f3c3f9cee9439d22cecbc645219fc4c82",
     "commits": [
@@ -550,6 +558,119 @@
   },
   "prior_owner_instruction_before_690_merge": "Natively merge PR677/687 after exact-head Actions and review; update tasks; begin P0 T2/671. Checks only in Actions; no paid model runs.",
   "next_p0_t6": {
+    "head": "209b6e4ad1d645813baca8e5922c29fff0150577",
+    "branch": "codex/t6-windows-forensics-679",
+    "base": "e3eb3594217b100a8cfabf598502195926f71828",
+    "draft": true,
+    "merged": false,
+    "ci": {
+      "run": 44371991509,
+      "result": "IN_PROGRESS"
+    },
+    "codeql": {
+      "run": 44371991440,
+      "result": "SUCCESS"
+    },
+    "pull_request_diagnostic": {
+      "run": 44371991355,
+      "result": "IN_PROGRESS"
+    },
+    "same_head_diagnostic_branch": {
+      "branch": "codex/t6-679-reference",
+      "run": 44371124725,
+      "result": "SUCCESS",
+      "successful_jobs": 8
+    },
+    "changes": "Two fixed capture profiles, explicit managed3.11.16/3.14.10, subject/harness/package/binary provenance, public-symbol binding holds and controls; no shipped CLI changes",
+    "issue": 679,
+    "package": "T6-windows",
+    "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t6-679",
+    "prior_full_validation": {
+      "head": "ab77dce56a78943edf04bb5601235cd71f09482d",
+      "ci": {
+        "run": 44360635222,
+        "result": "SUCCESS",
+        "successful_jobs": 22
+      },
+      "codeql": {
+        "run": 44360636343,
+        "result": "SUCCESS"
+      },
+      "full_suites": {
+        "ubuntu311": {
+          "job": 135008721650,
+          "passed": 5269,
+          "skipped": 45
+        },
+        "ubuntu314": {
+          "job": 135008721683,
+          "passed": 5270,
+          "skipped": 44
+        },
+        "windows311": {
+          "job": 135008721675,
+          "passed": 5306,
+          "skipped": 8
+        },
+        "windows314": {
+          "job": 135008721744,
+          "passed": 5307,
+          "skipped": 7
+        }
+      },
+      "raw_full_windows_evidence": "t6-actions-20261118/original-pr693-full-ab77dce",
+      "preserved_without_cancellation": true
+    },
+    "native_recovery": {
+      "original_records": "t6-original-observations-20261118; exact selected historical command records, not the full chat",
+      "nearby_source": "9942f2f4715d2e58180eaac608390421930b28c2 plus recorded five dirty tracked paths; not fully reconstructed",
+      "native_exception_confirmed": true,
+      "dump_metadata": "t6-original-observations-20261118/minidump-metadata.json",
+      "matching_original_dumps": [
+        {
+          "name": "python.exe.44424.dmp",
+          "timestamp": "2026-11-16T05:31:14Z",
+          "thread": "0x49C8",
+          "sha256": "a28f0ae454f8f6548829e1148728da36d370076424bd0b786651b1eb7de384d4"
+        },
+        {
+          "name": "python.exe.18580.dmp",
+          "timestamp": "2026-11-16T05:33:52Z",
+          "thread": "0xA104"
+        }
+      ],
+      "shared_exception": {
+        "code": "0xC0000008",
+        "module": "ntdll.dll",
+        "rva": "0x16A4FA",
+        "windows": "10.0.26200",
+        "ntdll_version": "10.0.26100.9974"
+      },
+      "private_preservation": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\experiments\\t6-679-native-dumps-20261118; ignored, raw memory not committed/uploaded",
+      "public_extraction": "Only exception/system/module metadata, hashes, and module-relative code pointer candidates. No raw stack/register/non-code memory/module paths. Candidate scan is NOT an unwound stack.",
+      "direct_python_exit": "Not captured in historical command records; outer PowerShell1 remains distinct from native exception identity",
+      "cause": "UNCONFIRMED: invalid handle owner, first ordinary assertion failure and causal fix not established"
+    },
+    "symbol_holds": {
+      "capture": "Actions only; LLVM22.1.2 reads fixed public Microsoft PDB identities; no raw dump uploaded",
+      "manifest": "t6-actions-20261118/symbols-held-209b6e4-manifest.json",
+      "status": "PUBLIC_RECORDS_CAPTURED_WITH_IDENTITY_HOLDS",
+      "ntdll": {
+        "guid": "44294CBD55E8CD67B3D56B689F03152D",
+        "expected_age": 1,
+        "actual_age": 4,
+        "status": "IDENTITY_MISMATCH_HELD"
+      },
+      "ws2_32": {
+        "guid": "9DC73321ED08893007DF02E641F44B87",
+        "expected_age": 1,
+        "actual_age": 3,
+        "status": "IDENTITY_MISMATCH_HELD"
+      },
+      "conclusion": "No qualified symbol attribution, native stack or causal finding inferred from these public responses"
+    }
+  },
+  "previous_t6_start_checkpoint": {
     "issue": 679,
     "package": "T6-windows",
     "selection_basis": "Specification implementation order explicitly retains T1/T6 controls/Windows diagnosis before downstream artifact packages",

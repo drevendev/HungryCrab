@@ -1,0 +1,15 @@
+..........Windows fatal exception: code 0xc0000008
+
+Current thread 0x000049c8 (most recent call first):
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\selectors.py", line 314 in _select
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\selectors.py", line 323 in select
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\socketserver.py", line 233 in serve_forever
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 982 in run
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 1045 in _bootstrap_inner
+  File "C:\Users\Dreven\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\threading.py", line 1002 in _bootstrap
+
+Thread 0x0001034c (most recent call first):
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\capture.py", line 595 in snap
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\capture.py", line 713 in readouterr
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\capture.py", line 809 in read_global_capture
+  File "C:\MyProjects\Codex\HungryCrab\.venv\Lib\site-packages\_pytest\capture.py", line 875 in item_capture

@@ -1,0 +1,25 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.16, pytest-9.2.0, pluggy-1.6.0 -- D:\a\HungryCrab\HungryCrab\subject\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\a\HungryCrab\HungryCrab\subject
+configfile: pyproject.toml
+plugins: anyio-4.15.1, cov-7.1.0
+collecting ... collected 15 items
+
+tests/test_acquisition.py::test_remote_feeder_refuses_an_unbounded_filesystem_before_network PASSED [  6%]
+tests/test_acquisition.py::test_capacity_and_path_are_real_boundaries PASSED [ 13%]
+tests/test_acquisition.py::test_concurrent_acquisitions_of_one_volume_fail_before_network PASSED [ 20%]
+tests/test_acquisition.py::test_feeder_never_exports_a_success_bundle_after_a_quota_refusal[download budget exceeded] PASSED [ 26%]
+tests/test_acquisition.py::test_feeder_never_exports_a_success_bundle_after_a_quota_refusal[disk capacity exhausted] PASSED [ 33%]
+tests/test_acquisition.py::test_git_cannot_bypass_the_relay_or_write_to_inherited_directories PASSED [ 40%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[file:///repo] PASSED [ 46%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[ssh://github.com/a/b] PASSED [ 53%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[https://other.test/a] PASSED [ 60%]
+tests/test_acquisition.py::test_only_audited_https_transports_are_accepted[https://user:secret@github.com/a/b] PASSED [ 66%]
+tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit PASSED [ 73%]
+tests/test_acquisition.py::test_concurrent_reads_cannot_each_spend_the_remaining_allowance PASSED [ 80%]
+tests/test_acquisition.py::test_timeout_reaps_git_style_descendants_before_staging_cleanup PASSED [ 86%]
+tests/test_acquisition.py::test_wiki_failure_or_cancellation_preserves_the_whole_previous_cache[failure0] PASSED [ 93%]
+tests/test_acquisition.py::test_wiki_failure_or_cancellation_preserves_the_whole_previous_cache[failure1] PASSED [100%]
+
+============================= 15 passed in 19.61s =============================

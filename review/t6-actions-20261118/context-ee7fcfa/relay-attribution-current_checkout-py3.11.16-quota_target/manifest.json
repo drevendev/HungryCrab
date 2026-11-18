@@ -1,0 +1,266 @@
+{
+  "attempt_limit": 8,
+  "attempts": [
+    {
+      "attempt": 1,
+      "finished_at": "2026-11-18T18:28:35.211956+00:00",
+      "observations": [],
+      "pid": 6188,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:32.592013+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-01.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-01.stdout.bin",
+          "sha256": "dd050e4f4fa7fa968db04cc03025f0d2d7105483b361d48bcfed6646359dc5d8"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 2,
+      "finished_at": "2026-11-18T18:28:36.893997+00:00",
+      "observations": [],
+      "pid": 3080,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:35.213166+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-02.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-02.stdout.bin",
+          "sha256": "10a9efc0e4f046af1f97c5a0072a9edff680bcfaa7c784d8a64ced9ea08432a4"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 3,
+      "finished_at": "2026-11-18T18:28:38.092508+00:00",
+      "observations": [],
+      "pid": 2364,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:36.893997+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-03.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-03.stdout.bin",
+          "sha256": "be95d3efbd114c091262ab73a1ecafd2cd6fbd6cd68261b942e1f74c72f397a7"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 4,
+      "finished_at": "2026-11-18T18:28:39.270901+00:00",
+      "observations": [],
+      "pid": 8316,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:38.094522+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-04.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-04.stdout.bin",
+          "sha256": "4cd578acaa79d6dfc8b52c71635309430e39428f946de9981a53003e6e3e2c86"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 5,
+      "finished_at": "2026-11-18T18:28:40.952568+00:00",
+      "observations": [],
+      "pid": 5216,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:39.272667+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-05.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-05.stdout.bin",
+          "sha256": "10a9efc0e4f046af1f97c5a0072a9edff680bcfaa7c784d8a64ced9ea08432a4"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 6,
+      "finished_at": "2026-11-18T18:28:42.132880+00:00",
+      "observations": [],
+      "pid": 3448,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:40.954127+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-06.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-06.stdout.bin",
+          "sha256": "201f5a20b2fed2d18981a2cf094a90cbd230f4e0c22d666d1e0e2af3e8aef27a"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 7,
+      "finished_at": "2026-11-18T18:28:43.815653+00:00",
+      "observations": [],
+      "pid": 4120,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:42.133709+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-07.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-07.stdout.bin",
+          "sha256": "936793caac84be357db848b75f3be3513b56d85341baa2d15ba24d2e43f3122a"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    },
+    {
+      "attempt": 8,
+      "finished_at": "2026-11-18T18:28:45.000157+00:00",
+      "observations": [],
+      "pid": 6172,
+      "pipe_open": false,
+      "returncode": 0,
+      "returncode_u32_hex": "0x00000000",
+      "started_at": "2026-11-18T18:28:43.817419+00:00",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "file": "attempt-08.stderr.bin",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 100,
+          "file": "attempt-08.stdout.bin",
+          "sha256": "be95d3efbd114c091262ab73a1ecafd2cd6fbd6cd68261b942e1f74c72f397a7"
+        }
+      },
+      "streams_complete": true,
+      "timed_out": false
+    }
+  ],
+  "capture_mode": "sys",
+  "command": [
+    "D:\\a\\HungryCrab\\HungryCrab\\subject\\.venv\\Scripts\\python.exe",
+    "-X",
+    "faulthandler",
+    "-m",
+    "pytest",
+    "-q",
+    "--capture=sys",
+    "--color=no",
+    "--maxfail=1",
+    "--tb=short",
+    "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
+  ],
+  "outcome": "NOT_REPRODUCED",
+  "post_kill_drain_seconds": 2,
+  "profile": "quota_target",
+  "provenance": {
+    "actions": {
+      "GITHUB_JOB": "reference",
+      "GITHUB_REPOSITORY": "drevendev/HungryCrab",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_RUN_ID": "44370014338",
+      "GITHUB_SHA": "ee7fcfa9369c7cdd09356ab61d3b18ebe9c1cc80",
+      "GITHUB_WORKFLOW_REF": "drevendev/HungryCrab/.github/workflows/windows-relay-forensics.yml@refs/heads/codex/t6-679-reference",
+      "GITHUB_WORKFLOW_SHA": "ee7fcfa9369c7cdd09356ab61d3b18ebe9c1cc80",
+      "ImageOS": "win25-vs2026",
+      "ImageVersion": "20261103.298.1",
+      "RUNNER_OS": "Windows"
+    },
+    "harness_sha": "ee7fcfa9369c7cdd09356ab61d3b18ebe9c1cc80",
+    "harness_source_sha256": {
+      "tests/relay_forensics.py": "356a22f95cd074fa4c79f57dd461b05f7a50e0e5e3808f164f15606b53871880",
+      "tests/test_acquisition_windows_forensics.py": "7480607dc880271430a9cb2c20ed7b380eed4ca9478a8b2168c67d2dda5d69c5"
+    },
+    "harness_tracked_changes": "",
+    "historical_failure_snapshot_reconstructed": false,
+    "package_versions": {
+      "pluggy": "1.6.0",
+      "pytest": "9.2.0",
+      "pytest-cov": "7.1.0"
+    },
+    "platform": "Windows-10-10.0.26100-SP0",
+    "python": "3.11.16 (main, Sep 29 2026, 14:58:48) [MSC v.1944 64 bit (AMD64)]",
+    "python_build": [
+      "main",
+      "Sep 29 2026 14:58:48"
+    ],
+    "python_compiler": "MSC v.1944 64 bit (AMD64)",
+    "python_executable": "D:\\a\\HungryCrab\\HungryCrab\\subject\\.venv\\Scripts\\python.exe",
+    "python_executable_sha256": "a36de12e507bf71dfc272f290a4e4831dc59185f3d0a2e2132138132a070c6bd",
+    "python_implementation": "CPython",
+    "source_role": "current_checkout",
+    "source_sha256": {
+      "src/hungry_crab/fetch/acquisition.py": "e5e14f694d492b6fbaa5dfb8f26b7a1111900aa2d68446bb66ee94c95528d199",
+      "tests/test_acquisition.py": "d69a7ea562427e733b2dbe5b0d97c652ee7f0012119f9d9c735af67fe5d95ddc"
+    },
+    "subject_sha": "ee7fcfa9369c7cdd09356ab61d3b18ebe9c1cc80",
+    "tracked_changes": "",
+    "uv_lock_sha256": "74cfca33cf6df7c0e918faddc87d6e528bf97b980c551ace5579ecb7667571d8",
+    "windows": [
+      "10",
+      "10.0.26100",
+      "SP0",
+      "Multiprocessor Free"
+    ]
+  },
+  "schema": 2,
+  "timeout_seconds": 45
+}

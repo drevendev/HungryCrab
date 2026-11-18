@@ -1,0 +1,32 @@
+{
+  "source_thread": "01a1e2d5-3c59-7761-8b1a-1d0376ecb120",
+  "source_record_timestamp": "2026-11-16T05:29:59.381Z",
+  "source_record_ordinal": 19,
+  "source_item": {
+    "type": "CommandExecution",
+    "id": "exec-9adeae0f-54c3-4880-8004-42f9a3182b52",
+    "process_id": "5626",
+    "command": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1112-611-0_26.1112.611.0_x64__3k8sg7r9htsxt\\dependencies\\native\\powershell\\pwsh.exe",
+      "-Command",
+      "git status --short --branch; git log -8 --oneline; git remote -v"
+    ],
+    "cwd": "file:///C:/MyProjects/Codex/HungryCrab",
+    "parsed_cmd": [
+      {
+        "type": "unknown",
+        "cmd": "git status --short --branch; git log -8 --oneline; git remote -v"
+      }
+    ],
+    "source": "unified_exec_startup",
+    "status": "completed",
+    "aggregated_output": "## codex/discovery-0611-experiment...origin/codex/discovery-0611-experiment [ahead 31]\n M AGENTS.md\n M benchmarks/qualification_native.py\n M docs/releases/0.6.11-scope.md\n M src/hungry_crab/cli.py\n M src/hungry_crab/miners/architecture.py\n?? benchmarks/crabbing_exposed_profile.py\n?? benchmarks/crabbing_pair_autonomous.py\n?? benchmarks/crabbing_pair_autonomous_qualify.py\n?? benchmarks/crabbing_pair_inputs.py\n?? benchmarks/crabbing_pair_operator_usage.py\n?? benchmarks/crabbing_pair_parent_call.py\n?? benchmarks/crabbing_pair_parent_host.mjs\n?? benchmarks/crabbing_pair_parent_observer.py\n?? benchmarks/crabbing_pair_parent_worker.py\n?? benchmarks/crabbing_pair_provider.py\n?? benchmarks/crabbing_pair_qualify.py\n?? benchmarks/crabbing_pair_real.py\n?? benchmarks/crabbing_pair_session.py\n?? benchmarks/crabbing_pilot.py\n?? benchmarks/crabbing_run.py\n?? benchmarks/h11_pair.py\n?? benchmarks/h11_pair_inputs.py\n?? benchmarks/h11_pair_prepare_job.py\n?? benchmarks/h11_pair_qualify.py\n?? benchmarks/pairs/\n?? docs/agent-development-reference.md\n?? docs/experiments/AGENT-PROTOCOL.md\n?? docs/experiments/crabbing-autonomous-pilot.md\n?? docs/experiments/crabbing-effectiveness-pilot-02.md\n?? docs/experiments/crabbing-main-plan.json\n?? docs/experiments/crabbing-main-plan.md\n?? docs/experiments/crabbing-pair-autonomous.md\n?? docs/experiments/crabbing-pair-real-preparation.md\n?? docs/experiments/crabbing-pair-scripted.md\n?? docs/experiments/h11-hungrycrab-preparation.md\n?? docs/releases/0.6.11-workflow-issues/\n?? docs/releases/0.6.11-workflow-patch-scope.md\n?? docs/research/\n?? src/hungry_crab/miners/python_exports.py\n?? src/hungry_crab/pair_preparation.py\n?? src/hungry_crab/pair_trial.py\n?? tests/test_architecture_continuations.py\n?? tests/test_crabbing_pilot.py\n?? tests/test_crabbing_run.py\n?? tests/test_h11_pair.py\n?? tests/test_pair_autonomous.py\n?? tests/test_pair_inputs.py\n?? tests/test_pair_parent_host.mjs\n?? tests/test_pair_parent_host.py\n?? tests/test_pair_preparation.py\n?? tests/test_pair_session.py\n?? tests/test_pair_trial.py\n?? tests/test_pair_usage_fresh.py\n?? tests/test_python_exports.py\n9942f2f fix(qualification): bind explicit CLI sources to the host\nbe907e9 fix(qualification): preserve explicit proposal lifecycles\n1e3d77c fix(qualification): separate audit coverage from study adequacy\n731be60 fix(qualification): bind precision to original claim events\n9cc6dd2 fix(discovery): retain read evidence and bound completion dispatch\n5ef28e2 fix(discovery): sequence evidence and defer backlog checks\n5478631 fix: recover scoped novelty and continuation schema failures\na8b46d9 fix: scale engineering budget controls to sealed limits\norigin\thttps://github.com/drevendev/HungryCrab.git (fetch)\norigin\thttps://github.com/drevendev/HungryCrab.git (push)\n",
+    "exit_code": 0,
+    "duration": {
+      "secs": 0,
+      "nanos": 532286000
+    }
+  },
+  "recovery": "Read-only extraction of an existing historical record; no local execution",
+  "limitations": "Recorded output is decoded/aggregated, not byte-exact separated stdout/stderr. Exit code belongs to outer PowerShell invocation; direct Python exit was not captured."
+}
