@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -74,7 +75,8 @@ def test_bound_exclusion_refuses_new_effect_without_later_reconciliation(
 def test_indexed_candidate_later_supersession_is_not_lost(
     tmp_path: Path, npm_app: Path, pyproject_cli: Path, existing: bool
 ) -> None:
-    maw = pyproject_cli
+    maw = tmp_path / "maw"
+    shutil.copytree(pyproject_cli, maw)
     (maw / ".crab.yml").write_text(
         "ledger: none\nhunger:\n  ci: issues-only\n", encoding="utf-8"
     )
@@ -156,7 +158,7 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     tmp_path: Path, mode: str
 ) -> None:
-    initial, donor, maw, finding = pair(tmp_path, hunger="auto")
+    initial, donor, maw, finding = pair(tmp_path, hunger="true")
     directory = exploration.initialize(
         initial.parent.parent, {**PLAN, "novelty_scope": scope_plan(maw)}, maw=maw
     )
