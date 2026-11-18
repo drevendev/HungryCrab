@@ -152,7 +152,7 @@ jobs:
         with:
           name: relay-forensics-full-${{ matrix.os }}-py${{ matrix.python }}
           path: ${{ runner.temp }}/relay-full
-          if-no-files-found: warn
+          if-no-files-found: error
       - name: Menu benchmark (B1)
         run: uv run python benchmarks/menu_benchmark.py
       # Unknown agent-host adoption has transferable uptake, without key-specific weights.
@@ -230,4 +230,4 @@ jobs:
         with:
           name: relay-forensics-focused-${{ matrix.os }}-py${{ matrix.python }}
           path: ${{ runner.temp }}/relay-focused
-          if-no-files-found: warn
+          if-no-files-found: error

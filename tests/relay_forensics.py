@@ -125,6 +125,7 @@ def capture_series(
         "pytest",
         "-q",
         "-s",
+        "--color=no",
         "--maxfail=1",
         TARGET,
     ]
