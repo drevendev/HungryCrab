@@ -31,7 +31,9 @@ def worktree_projection(root: Path, excluded: frozenset[str] = frozenset()) -> d
         "ls-files", "--others", "--exclude-standard", "-z", stdout_limit=65_536
     )
     if (
-        index is None or names is None or untracked is None
+        index is None
+        or names is None
+        or untracked is None
         or _has_occupied_gitlink(index, root)
         or any(path and path not in excluded for path in untracked.split("\0"))
     ):
@@ -43,7 +45,11 @@ def worktree_projection(root: Path, excluded: frozenset[str] = frozenset()) -> d
     remaining = 512 * 1024
     for path in paths:
         diff = reader._bounded_read(
-            "diff", "--no-renames", "HEAD", "--", ":(literal)" + path,
+            "diff",
+            "--no-renames",
+            "HEAD",
+            "--",
+            ":(literal)" + path,
             stdout_limit=remaining,
         )
         if diff is None:
@@ -105,19 +111,22 @@ class PublicationContext:
         current = receiving_context(
             root, {"prey": {"sha": git.head_sha()}}, config.raw, disk.to_dict()
         )
-        if any(current.get(key) != expected.get(key) for key in ("root", "sha", "selected_ref", "policy")):
+        if any(
+            current.get(key) != expected.get(key)
+            for key in ("root", "sha", "selected_ref", "policy")
+        ):
             raise CrabError("receiving context changed; reconcile novelty before publication")
         excluded = self._prepared_paths(root)
         configured_path = config.ledger_path()
         owned_ledger = (
-            configured_path is not None and self.ledger.path is not None
+            configured_path is not None
+            and self.ledger.path is not None
             and configured_path.absolute() == self.ledger.path.absolute()
         )
         if owned_ledger:
-            if (
-                self.ledger_baseline != expected.get("ledger")
-                or not _ledger_matches_loaded_snapshot(self.ledger)
-            ):
+            if self.ledger_baseline != expected.get(
+                "ledger"
+            ) or not _ledger_matches_loaded_snapshot(self.ledger):
                 raise CrabError("receiving ledger changed; publication held")
             if _repo_ledger_is_own_receipt(self.ledger, root):
                 lock = root / ".crab/ledger.lock"

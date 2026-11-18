@@ -16,8 +16,8 @@ from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
 from .maw import MawConfig
-from .novelty_publication import PublicationContext
 from .multifeed import load_multi
+from .novelty_publication import PublicationContext
 from .pr_serving import PullRequestServePlan
 from .serve import (
     IssueClient,
