@@ -994,7 +994,9 @@ def serve(
     novelty_context: PublicationContext | None = None,
 ) -> ServeReport:
     require_positive_top(options)
-    novelty_context = novelty_context or PublicationContext(ledger)
+    novelty_context = novelty_context or PublicationContext(ledger, maw_root)
+    if novelty_context.resolved_root != maw_root.resolve():
+        raise CrabError("novelty context belongs to a different receiving root")
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
             f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch"

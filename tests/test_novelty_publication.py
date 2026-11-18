@@ -488,3 +488,99 @@ def test_scoped_multi_issue_accepts_only_its_own_saved_receipts(
         with pytest.raises(CrabError, match="receiving"):
             publish()
         assert len(client.created) == saved == 1
+
+
+@pytest.mark.parametrize("replacement", ["not-investigated", "unsupported", "verified-gap"])
+def test_only_a_reviewed_gap_replacement_can_resolve_an_exclusion(
+    tmp_path: Path, replacement: str
+) -> None:
+    directory, donor, maw, finding = setup(tmp_path)
+    finding["source_behavior"] = "reads bounded chunks"
+    card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
+    scope = exploration._snapshot(directory)["novelty_scope"]
+    exploration.record(directory, observation(
+        finding, kind="decision", hypothesis="bounded reads", reviewed=True,
+        disposition="duplicate", candidate_id=card["id"], novelty_basis=basis(scope),
+    ))
+    reviewed = replacement == "verified-gap"
+    exploration.record(directory, observation(
+        finding, kind="decision", hypothesis="bounded reads", reviewed=reviewed,
+        disposition=replacement, candidate_id=card["id"],
+    ))
+    client = CurrentIssues()
+
+    def publish() -> Any:
+        return serve(
+            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+
+    if reviewed:
+        assert len(publish().served) == len(client.created) == 1
+    else:
+        with pytest.raises(CrabError, match="exclusion"):
+            publish()
+        assert not client.created and not client.labels
+        assert "bounded reads" in exploration.report(directory)["unresolved_hypotheses"]
+
+
+@pytest.mark.parametrize("dirty", [False, True])
+def test_copied_meal_cannot_validate_the_original_receiving_checkout(
+    tmp_path: Path, dirty: bool
+) -> None:
+    directory, donor, original, finding = setup(tmp_path / "original")
+    finding["source_behavior"] = "reads bounded chunks"
+    card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
+    target = tmp_path / "other-maw"
+    shutil.copytree(original, target)
+    meal = tmp_path / "copied-meal"
+    shutil.copytree(directory.parent.parent, meal)
+    if dirty:
+        (target / "app.py").write_text("outside receiving edit\n", encoding="utf-8")
+    client = CurrentIssues()
+    with pytest.raises(CrabError, match="receiving root"):
+        serve(
+            meal, target, ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(target), ledger=Ledger(None), client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+    assert not client.created and not client.labels
+
+
+@pytest.mark.parametrize("linked", [False, True])
+def test_exploration_children_must_be_real_directories(
+    tmp_path: Path, linked: bool
+) -> None:
+    import sys
+
+    directory, donor, maw, finding = setup(tmp_path)
+    finding["source_behavior"] = "reads bounded chunks"
+    card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
+    meal = directory.parent.parent
+    if linked:
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        relocated = outside / directory.name
+        directory.rename(relocated)
+        if sys.platform == "win32":
+            import _winapi
+
+            _winapi.CreateJunction(str(relocated), str(directory))
+        else:
+            directory.symlink_to(relocated, target_is_directory=True)
+    client = CurrentIssues()
+
+    def publish() -> Any:
+        return serve(
+            meal, maw, ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            slug_lookup=lambda _: MAW_SLUG,
+        )
+
+    if linked:
+        with pytest.raises(CrabError, match="symlink|junction|directory"):
+            publish()
+        assert not client.created and not client.labels
+    else:
+        assert len(publish().served) == len(client.created) == 1

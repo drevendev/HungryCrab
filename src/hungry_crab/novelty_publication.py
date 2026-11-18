@@ -64,7 +64,9 @@ def worktree_projection(root: Path, excluded: frozenset[str] = frozenset()) -> d
 class PublicationContext:
     """One invocation's exact prepared inputs and Ledger.load/save byte receipts."""
 
-    def __init__(self, ledger: Ledger) -> None:
+    def __init__(self, ledger: Ledger, maw_root: Path) -> None:
+        self.root = maw_root.absolute()
+        self.resolved_root = maw_root.resolve()
         self.ledger = ledger
         self.ledger_baseline = ledger_identity(ledger.to_dict())
         self.inputs: dict[str, dict[str, tuple[str, int]]] = {}
@@ -95,7 +97,12 @@ class PublicationContext:
         from .discovery_session import _same_context, live_context
         from .multiserve import _ledger_matches_loaded_snapshot, _repo_ledger_is_own_receipt
 
-        root = Path(data["maw_root"])
+        if (
+            Path(data["maw_root"]).resolve() != self.resolved_root
+            or self.root.resolve() != self.resolved_root
+        ):
+            raise CrabError("receiving root changed; publication held")
+        root = self.resolved_root
         expected = data["receiving_context"]
         baseline = data.get("novelty_scope", {}).get("worktree_projection")
         if not isinstance(baseline, dict):
