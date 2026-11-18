@@ -14,10 +14,7 @@ from pathlib import Path
 
 import pytest
 
-_TARGET = (
-    "tests/test_acquisition.py::"
-    "test_main_and_wiki_connections_share_one_real_stream_limit"
-)
+_TARGET = "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
 _ATTEMPTS = 8
 _TIMEOUT_SECONDS = 45
 
