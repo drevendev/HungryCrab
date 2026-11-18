@@ -35,7 +35,7 @@ bounded series means **NOT_REPRODUCED**, never historical-root-cause closure.
 The recovered exception records used Python **3.11.16**, whereas the first #693 ordinary
 Windows3.11 jobs actually used system **3.11.9**. These are different runtimes. The
 `Windows relay attribution` workflow explicitly requires managed3.11.16/3.14.10,
-using uv0.12.12 and [only-managed discovery](https://docs.astral.sh/uv/concepts/python-versions/#requiring-or-disabling-managed-python-versions).
+using uv0.13.9 and [only-managed discovery](https://docs.astral.sh/uv/concepts/python-versions/#requiring-or-disabling-managed-python-versions).
 Missing distributions fail visibly; no older system interpreter is substituted.
 
 The four bounded legs compare the current checkout with public reference

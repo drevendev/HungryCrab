@@ -18,6 +18,34 @@ env:
   UV_PYTHON_PREFERENCE: only-managed
 
 jobs:
+  harness:
+    name: Diagnostic harness checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.9"
+          python-version: "3.11.16"
+      - run: uv sync --locked --all-extras
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest tests/test_acquisition_windows_forensics.py -q
+      - name: Prepare hosted formatting corrections
+        if: failure()
+        run: |
+          uv run ruff check --fix . || true
+          uv run ruff format .
+          git diff --output=formatting.patch
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: relay-harness-formatting
+          path: formatting.patch
   reference:
     name: Relay (${{ matrix.subject }}, managed Python ${{ matrix.python }})
     runs-on: windows-latest
@@ -46,7 +74,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          version: "0.12.12"
+          version: "0.13.9"
           python-version: ${{ matrix.python }}
       - name: Require the exact managed Python patch, never the runner's system fallback
         run: uv python install
