@@ -88,7 +88,8 @@
     },
     "pull_request_diagnostic": {
       "run": 44371991355,
-      "result": "IN_PROGRESS"
+      "result": "SUCCESS",
+      "successful_jobs": 8
     },
     "same_head_diagnostic_branch": {
       "branch": "codex/t6-679-reference",
@@ -214,5 +215,6 @@
     "Retain matching-symbol requirement; do not use the held ages as causal evidence",
     "Continue native cause/first ordinary failure attribution from preserved original evidence within the owner execution boundary",
     "Keep #679/#675 open and PR693 draft; no paid model runs, local tests/probes, raw-dump upload or merge/release"
-  ]
+  ],
+  "last_status_read_utc": "2026-11-18T18:47:05Z"
 }

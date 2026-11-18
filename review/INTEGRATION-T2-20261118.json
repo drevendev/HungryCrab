@@ -573,7 +573,8 @@
     },
     "pull_request_diagnostic": {
       "run": 44371991355,
-      "result": "IN_PROGRESS"
+      "result": "SUCCESS",
+      "successful_jobs": 8
     },
     "same_head_diagnostic_branch": {
       "branch": "codex/t6-679-reference",
@@ -668,7 +669,8 @@
         "status": "IDENTITY_MISMATCH_HELD"
       },
       "conclusion": "No qualified symbol attribution, native stack or causal finding inferred from these public responses"
-    }
+    },
+    "last_status_read_utc": "2026-11-18T18:47:05Z"
   },
   "previous_t6_start_checkpoint": {
     "issue": 679,
