@@ -89,7 +89,7 @@ jobs:
       - name: Exercise owned immutable novelty and ordinary discovery controls
         if: success() || failure()
         working-directory: subject
-        run: uv run pytest tests/test_novelty_exclusions.py tests/test_release_069_discovery.py::test_invoked_host_executes_replacements_and_an_original_probe -q --junitxml=t2-results.xml
+        run: uv run python -c "import pathlib, subprocess, sys; paths=['tests/test_novelty_exclusions.py', 'tests/test_release_069_discovery.py::test_invoked_host_executes_replacements_and_an_original_probe']; extra=pathlib.Path('tests/test_novelty_publication.py'); paths += [str(extra), 'tests/test_multiserve_authority.py', 'tests/test_serve_copy_leftovers.py'] if extra.exists() else []; sys.exit(subprocess.call([sys.executable, '-m', 'pytest', *paths, '-q', '--junitxml=t2-results.xml']))"
       - name: Prepare hosted formatting corrections
         if: failure() && matrix.os == 'ubuntu-latest'
         working-directory: subject

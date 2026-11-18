@@ -183,7 +183,8 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     (maw / "app.py").write_text(STREAMING, encoding="utf-8", newline="\n")
     if mode == "COPY":
         payload = _payload(
-            nutrient_id=card["id"], source=menu["prey"],
+            nutrient_id=card["id"],
+            source={key: menu["prey"][key] for key in ("label", "url", "sha", "license")},
             taken=[{"maw_path": "app.py", "prey_path": "reader.py", "verbatim": False}],
         )
     else:
