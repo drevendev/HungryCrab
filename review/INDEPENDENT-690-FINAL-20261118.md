@@ -73,3 +73,12 @@ campaign or local donor acquisition/execution. Semantic equivalence/usefulness
 and broader native-meter qualification remain outside these mechanical proofs.
 
 [Machine-readable current evidence](INDEPENDENT-690-EVIDENCE-20261118.json).
+
+## Verification checkpoint — 2026-11-18 07:06:40 UTC
+
+Final head dba4d97 is unchanged. Native CI has 20/22 successful jobs;
+both full Windows suites remain running. All four novelty environments passed
+97 cases, with actual Windows logs inspected. Full Linux suites passed:
+Python 3.11: 5257 passed/44 skipped; Python 3.14: 5258 passed/43 skipped.
+The Windows suites started at 06:44:50/06:44:51 UTC. No failed final-head job
+or new source change; no replacement run was dispatched.

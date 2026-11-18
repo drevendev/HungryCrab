@@ -1,6 +1,6 @@
 {
   "owner_request": "Independent separate-agent review of current PR690 head; fix findings; Actions-only validation; no paid model runs.",
-  "recorded_at_utc": "2026-11-18 06:39:00 UTC",
+  "recorded_at_utc": "2026-11-18 07:06:40 UTC",
   "repository": "drevendev/HungryCrab",
   "original_review": {
     "reviewer": "/root/independent_review_690",
@@ -53,7 +53,11 @@
         "linux_passed": 103,
         "linux_skipped": 1,
         "mypy": "SUCCESS",
-        "overall": "Ruff/style failure retained; not a green run"
+        "overall": "Ruff/style failure retained; not a green run",
+        "windows": {
+          "job": 134621446955,
+          "result": "SUCCESS"
+        }
       },
       "coverage_limit": "Pre-existing unrelated tracked dirty baseline had no direct proof yet; controls added subsequently"
     },
@@ -112,8 +116,8 @@
         {
           "id": 134625850098,
           "name": "Immutable novelty (windows-latest, Python 3.11)",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "id": 134625850130,
@@ -160,20 +164,20 @@
         {
           "id": 134625850194,
           "name": "Discovery operation gates (windows-latest, Python 3.14)",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "id": 134625850195,
           "name": "Immutable novelty (windows-latest, Python 3.14)",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "id": 134625850196,
           "name": "Discovery operation gates (windows-latest, Python 3.11)",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "id": 134625850200,
@@ -210,8 +214,33 @@
           "name": "Base installation without optional extras",
           "status": "completed",
           "conclusion": "success"
+        },
+        {
+          "id": 134629917607,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134629917609,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 134629917629,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 134629917680,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
         }
-      ]
+      ],
+      "successful_jobs": 20
     },
     "codeql": {
       "run": 44252351574,
@@ -224,7 +253,41 @@
       134625850180
     ],
     "actual_checkout": "02fa079 merging exact dba4d97 into d01f7b2",
-    "complete_required_ci": false
+    "complete_required_ci": false,
+    "novelty_matrix": {
+      "cases_per_environment": 97,
+      "jobs": [
+        134625850188,
+        134625850180,
+        134625850098,
+        134625850195
+      ],
+      "result": "SUCCESS in all four supported environments; actual logs read"
+    },
+    "full_suites": {
+      "ubuntu311": {
+        "job": 134629917680,
+        "passed": 5257,
+        "skipped": 44,
+        "result": "SUCCESS"
+      },
+      "ubuntu314": {
+        "job": 134629917609,
+        "passed": 5258,
+        "skipped": 43,
+        "result": "SUCCESS"
+      },
+      "windows311": {
+        "job": 134629917607,
+        "result": "IN_PROGRESS",
+        "started_at": "2026-11-18T06:44:50Z"
+      },
+      "windows314": {
+        "job": 134629917629,
+        "result": "IN_PROGRESS",
+        "started_at": "2026-11-18T06:44:51Z"
+      }
+    }
   },
   "state": {
     "pr690": "OPEN / DRAFT while required CI completes",
