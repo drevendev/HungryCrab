@@ -357,8 +357,7 @@ def test_interrupted_host_callback_requires_original_attempt_reconciliation(
     ]
     assert len(permits) == 1 and permits[0]["attempt"] == action["attempt"]
     assert not any(
-        event["record"].get("kind") == "provider-request-authorized"
-        for event in state["events"]
+        event["record"].get("kind") == "provider-request-authorized" for event in state["events"]
     )
     before = (directory / "session.json").read_bytes()
 
