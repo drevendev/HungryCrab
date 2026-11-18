@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --all-extras
-      - run: uv run pytest tests/test_novelty_exclusions.py tests/test_novelty_scope.py -q
+      - run: uv run pytest tests/test_novelty_exclusions.py tests/test_novelty_scope.py tests/test_novelty_publication.py -q
   discovery-operations:
     name: Discovery operation gates (${{ matrix.os }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}

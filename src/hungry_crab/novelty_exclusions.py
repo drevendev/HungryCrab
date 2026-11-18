@@ -23,10 +23,15 @@ def capture_scope(
     maw: Path, plan: object, expected: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     from .novelty import implementation_scope
+    from .novelty_publication import worktree_projection
+    from .discovery_session import _same_context, live_context
 
     if not isinstance(plan, dict) or len(json.dumps(plan).encode()) > 16_000:
         raise CrabError("novelty scope needs a bounded explicit implementation plan")
     scope = implementation_scope(maw, plan)
+    scope["worktree_projection"] = worktree_projection(maw)
+    if not _same_context(live_context(maw), scope["receiving_context"]):
+        raise CrabError("receiving context changed while freezing novelty scope")
     if expected is not None and any(
         scope["receiving_context"].get(key) != expected.get(key)
         for key in ("root", "sha", "selected_ref", "worktree", "policy", "ledger")
@@ -203,63 +208,106 @@ def reconciliations(directory: Path, history: list[dict[str, Any]]) -> list[dict
     return result
 
 
+def _publication_explorations(
+    meal: Path, card: Candidate
+) -> list[tuple[Path, dict[str, Any], list[dict[str, Any]]]]:
+    """Resolve validated history by candidate identity, not a removable menu trace."""
+    from .exploration import _snapshot, events
+    from .file_lock import require_real_state_path
+
+    identity = card.trace.get("exploration_snapshot")
+    if identity is not None and (
+        not isinstance(identity, str) or re.fullmatch(r"[a-f0-9]{64}", identity) is None
+    ):
+        raise CrabError("publication exploration identity is unavailable")
+    root = meal / "exploration"
+    require_real_state_path(root / "index.json")
+    if not root.exists():
+        if identity is not None:
+            raise CrabError("publication exploration is unavailable")
+        return []
+    result = []
+    found_identity = identity is None
+    event_count = 0
+    for index, directory in enumerate(root.iterdir()):
+        if index >= 64:
+            raise CrabError("novelty publication exploration read budget exceeded")
+        if re.fullmatch(r"[a-f0-9]{64}", directory.name) is None:
+            continue
+        data = _snapshot(directory)
+        history = events(directory)
+        event_count += len(history)
+        if event_count > 10_000:
+            raise CrabError("novelty publication event read budget exceeded")
+        records = [event["record"] for event in history]
+        traced = directory.name == identity
+        found_identity |= traced
+        initial = card.id in {row["id"] for row in data["initial_candidates"]}
+        associated = traced or any(
+            row.get("candidate_id") == card.id
+            or (row["kind"] == "registration" and row["card"]["id"] == card.id)
+            or (initial and row["kind"] == "novelty-reconciliation" and row.get("candidate_id") is None)
+            for row in records
+        )
+        if associated:
+            result.append((directory, data, history))
+    if not found_identity:
+        raise CrabError("publication exploration is unavailable")
+    return result
+
+
 def require_publication_novelty(
     meal: Path,
     cards: Sequence[Candidate],
     *,
     provider: object | None = None,
     slug: Slug | None = None,
+    publication_context: object | None = None,
 ) -> None:
-    """A historical proposal never clears a known later implementation hold."""
+    """A known implementation exclusion cannot authorize a new external effect."""
     from .attribution import GitSourceReader
     from .discovery_session import _same_context, live_context
-    from .exploration import _snapshot, events
-    from .file_lock import require_real_state_path
+    from .novelty_publication import PublicationContext
 
     for card in cards:
-        identity = card.trace.get("exploration_snapshot")
-        if not identity:
-            continue
-        if not isinstance(identity, str) or re.fullmatch(r"[a-f0-9]{64}", identity) is None:
-            raise CrabError("publication exploration identity is unavailable")
-        directory = meal / "exploration" / identity
-        require_real_state_path(directory / "snapshot.json")
-        data = _snapshot(directory)
-        history = events(directory)
-        for row in reconciliations(directory, history):
-            if row["candidate_id"] in {None, card.id}:
-                raise CrabError("later implementation supersedes this proposal; publication held")
-        scope = data.get("novelty_scope")
-        if scope is None:
-            raise CrabError("novelty implementation scope is unknown; publication held")
-        if scope.get("implementation_scope_complete") is not True:
-            raise CrabError("novelty implementation scope is unresolved; publication held")
-        if not _same_context(live_context(Path(data["maw_root"])), data["receiving_context"]):
-            raise CrabError("receiving context changed; reconcile novelty before publication")
-        reader = GitSourceReader(Path(data["maw_root"]))
-        for target in scope["targets"]:
-            ref = target.get("ref")
-            resolved = (
-                reader._bounded_read(
-                    "--no-replace-objects",
-                    "rev-parse",
-                    "--verify",
-                    "--end-of-options",
-                    ref,
-                    stdout_limit=128,
+        for directory, data, history in _publication_explorations(meal, card):
+            decisions = {}
+            for event in history:
+                row = event["record"]
+                if row["kind"] == "decision" and row.get("candidate_id") == card.id:
+                    decisions[row["hypothesis"]] = row
+            if any(row["disposition"] in EXCLUSIONS for row in decisions.values()):
+                raise CrabError("implementation exclusion still applies; publication held")
+            for row in reconciliations(directory, history):
+                if row["candidate_id"] in {None, card.id}:
+                    raise CrabError("later implementation supersedes this proposal; publication held")
+            scope = data.get("novelty_scope")
+            if scope is None:
+                raise CrabError("novelty implementation scope is unknown; publication held")
+            if scope.get("implementation_scope_complete") is not True:
+                raise CrabError("novelty implementation scope is unresolved; publication held")
+            if isinstance(publication_context, PublicationContext):
+                publication_context.require(data)
+            elif not _same_context(live_context(Path(data["maw_root"])), data["receiving_context"]):
+                raise CrabError("receiving context changed; reconcile novelty before publication")
+            reader = GitSourceReader(Path(data["maw_root"]))
+            for target in scope["targets"]:
+                ref = target.get("ref")
+                resolved = (
+                    reader._bounded_read(
+                        "--no-replace-objects", "rev-parse", "--verify",
+                        "--end-of-options", ref, stdout_limit=128,
+                    )
+                    if isinstance(ref, str) else None
                 )
-                if isinstance(ref, str)
-                else None
-            )
-            if resolved is None or resolved.strip() != target["sha"]:
-                raise CrabError("implementation ref changed or is unavailable; publication held")
-        probe = getattr(provider, "novelty_heads", None)
-        if not callable(probe) or slug is None:
-            raise CrabError("current provider implementation heads unavailable; publication held")
-        current = probe(slug, scope["targets"])
-        if not isinstance(current, dict) or any(
-            current.get(target["ref"]) != target["sha"]
-            for target in scope["targets"]
-            if target["role"] != "receiving-selected"
-        ):
-            raise CrabError("provider implementation changed; reconcile novelty before publication")
+                if resolved is None or resolved.strip() != target["sha"]:
+                    raise CrabError("implementation ref changed or is unavailable; publication held")
+            probe = getattr(provider, "novelty_heads", None)
+            if not callable(probe) or slug is None:
+                raise CrabError("current provider implementation heads unavailable; publication held")
+            current = probe(slug, scope["targets"])
+            if not isinstance(current, dict) or any(
+                current.get(target["ref"]) != target["sha"]
+                for target in scope["targets"] if target["role"] != "receiving-selected"
+            ):
+                raise CrabError("provider implementation changed; reconcile novelty before publication")

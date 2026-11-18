@@ -45,11 +45,13 @@ from .ledger import Ledger
 from .licensing.origin import ContentOrigin
 from .maw import MawConfig, maw_slug
 from .novelty_exclusions import require_publication_novelty
+from .novelty_publication import PublicationContext
 from .nutrients import Candidate, merge_notes, require_nutrient_id
 from .pr_publication import (
     PreparedPullRequest,
     PullRequestPublication,
     load_cleanroom_implementation_receipt,
+    nutrient_spec_path,
 )
 from .pr_serve import prepare_cleanroom_pull_request, publish_prepared_cleanroom_git_pull_request
 from .pr_serving import (
@@ -819,6 +821,7 @@ def _serve_pull_requests(
     publication_plans: list[PullRequestServePlan] | None = None,
     transaction_marker: str = "",
     before_publication: Callable[[], None] | None = None,
+    novelty_context: PublicationContext,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     def recheck_path_grants(card: Candidate) -> None:
         if card.category != "code" and not any(
@@ -883,6 +886,14 @@ def _serve_pull_requests(
         prepared = prepare_payload(card, receipt_payload)
         if publication_guard is not None:
             publication_guard(prepared)
+        if card.license_mode in COPY_MODES:
+            inputs = [item.maw_path for item in load_materialization_receipt(receipt_payload).taken]
+        else:
+            inputs = [
+                *load_cleanroom_implementation_receipt(receipt_payload).changed_paths,
+                nutrient_spec_path(card.id),
+            ]
+        novelty_context.authorize(card.id, prepared, inputs)
         return prepared
 
     announced = False
@@ -901,7 +912,9 @@ def _serve_pull_requests(
             before_publication()
 
         def recheck_base(read: Callable[[str], str | None]) -> None:
-            require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
+            require_publication_novelty(
+                meal_dir, [card], provider=client, slug=slug, publication_context=novelty_context
+            )
             if card.license_mode in COPY_MODES:
                 base_receipts_kept(prepared, attribution_file=config.attribution_file)(read)
 
@@ -978,8 +991,10 @@ def serve(
     publication_guard: Callable[[PreparedPullRequest], None] | None = None,
     publication_plans: list[PullRequestServePlan] | None = None,
     before_publication: Callable[[], None] | None = None,
+    novelty_context: PublicationContext | None = None,
 ) -> ServeReport:
     require_positive_top(options)
+    novelty_context = novelty_context or PublicationContext(ledger)
     if options.mode not in ("dry-run", "issue", "pr-branch"):
         raise UsageError(
             f"unknown serve mode {options.mode!r}", hint="use dry-run, issue, or pr-branch"
@@ -1051,6 +1066,7 @@ def serve(
             transaction_marker=options.transaction_marker,
             publication_plans=publication_plans,
             before_publication=before_publication,
+            novelty_context=novelty_context,
         )
         report.served.extend(served)
         report.skipped.extend(pr_skipped)
@@ -1153,7 +1169,9 @@ def serve(
                     ledger.save(now=now)
                 raise
         if not label_ready:
-            require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
+            require_publication_novelty(
+                meal_dir, [card], provider=client, slug=slug, publication_context=novelty_context
+            )
             if not client.ensure_label(slug, label):
                 labels = []
                 log(
@@ -1162,7 +1180,9 @@ def serve(
                     "crab:<id> marker in the issue body."
                 )
             label_ready = True
-        require_publication_novelty(meal_dir, [card], provider=client, slug=slug)
+        require_publication_novelty(
+            meal_dir, [card], provider=client, slug=slug, publication_context=novelty_context
+        )
         url = client.create(slug, title, body, labels, config.serve.assignees)
         ledger.ensure(card, now=now)
         ledger.mark(card.id, "served", url=url or None, now=now)

@@ -16,6 +16,7 @@ from .errors import CrabError
 from .fetch.git import GitRunner
 from .ledger import Ledger
 from .maw import MawConfig
+from .novelty_publication import PublicationContext
 from .multifeed import load_multi
 from .pr_serving import PullRequestServePlan
 from .serve import (
@@ -246,6 +247,7 @@ def serve_many(
         else None
     )
     report = ServeReport(options.mode, str(maw), skipped=skipped)
+    novelty_context = PublicationContext(ledger)
     groups: dict[str, list[str]] = {}
     plans: list[PullRequestServePlan] | None = [] if options.mode == "pr-branch" else None
     for card in cards:
@@ -271,6 +273,7 @@ def serve_many(
             prey_repo=repo,
             publication_plans=plans,
             before_publication=before_publication,
+            novelty_context=novelty_context,
         )
         report.served.extend(part.served)
         report.skipped.extend(part.skipped)

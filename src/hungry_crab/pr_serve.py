@@ -37,7 +37,7 @@ class _CreationDeferredError(Exception):
     """Internal signal: reconciliation found no PR, but this run has no creation budget left."""
 
 
-def read_maw_text(maw_root: Path, path: str) -> str:
+def read_maw_text(maw_root: Path, path: str, *, max_chars: int | None = None) -> str:
     """Read one handoff path only after proving its resolved target stays inside the maw."""
 
     try:
@@ -88,7 +88,11 @@ def read_maw_text(maw_root: Path, path: str) -> str:
             hint=f"declared path is not a regular file: {path}",
         )
     try:
-        return target.read_text(encoding="utf-8")
+        with target.open(encoding="utf-8") as stream:
+            text = stream.read() if max_chars is None else stream.read(max_chars + 1)
+        if max_chars is not None and len(text) > max_chars:
+            raise publication_error("publication handoff grew after preparation", hint=path)
+        return text
     except UnicodeError:
         raise publication_error(
             "publication handoff changed after clean-room implementation",
