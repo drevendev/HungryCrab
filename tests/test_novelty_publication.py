@@ -229,13 +229,32 @@ def test_indexed_candidate_later_supersession_is_not_lost(
 
 
 @pytest.mark.parametrize("mode", ["COPY", "REIMPLEMENT"])
-@pytest.mark.parametrize("tamper", ["none", "unrelated", "payload", "policy", "ref", "exclusion"])
+@pytest.mark.parametrize(
+    "tamper",
+    ["none", "unrelated", "payload", "policy", "ref", "exclusion", "baseline-preserved", "baseline-changed"],
+)
 def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
     tmp_path: Path, mode: str, tamper: str
 ) -> None:
     initial, donor, maw, finding = pair(tmp_path, hunger="true")
     git(maw, "config", "user.name", "Owned Publisher")
     git(maw, "config", "user.email", "owned@example.invalid")
+    if tamper.startswith("baseline-"):
+        note = maw / "maintainer.txt"
+        note.write_text("committed notes\n", encoding="utf-8")
+        git(maw, "add", "maintainer.txt")
+        git(maw, "commit", "-m", "test: owned tracked maintainer input")
+        note.write_text("maintainer baseline\n", encoding="utf-8")
+        compared, _, _, _ = compare_for_maw(
+            Target(path=donor), maw,
+            digest_options=DigestOptions(cache_root=tmp_path / "dirty-cache"), record_ledger=False,
+        )
+        assert compared.meal_dir is not None
+        initial = exploration.initialize(compared.meal_dir, PLAN, maw=maw)
+        finding["maw_evidence"] = [
+            {**reference, "sha": compared.menu["maw"]["sha"]}
+            for reference in finding["maw_evidence"]
+        ]
     directory = exploration.initialize(
         initial.parent.parent, {**PLAN, "novelty_scope": scope_plan(maw)}, maw=maw
     )
@@ -315,6 +334,8 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
                             novelty_basis=basis(scope, "receiving-selected"),
                         ),
                     )
+                elif tamper == "baseline-changed":
+                    (maw / "maintainer.txt").write_text("later outside edit\n", encoding="utf-8")
             return {}
 
         def novelty_heads(self, slug: Any, targets: list[dict[str, Any]]) -> dict[str, str]:
@@ -341,10 +362,14 @@ def test_scoped_pr_allows_its_exact_prepared_tracked_implementation(
         )
 
     branch = nutrient_branch_name(card["id"])
-    if tamper == "none":
+    if tamper in {"none", "baseline-preserved"}:
         assert len(publish().served) == 1
         assert git(remote, "show", f"refs/heads/{branch}:app.py") == STREAMING
         assert (maw / "app.py").read_text(encoding="utf-8") == STREAMING
+        if tamper == "baseline-preserved":
+            assert (maw / "maintainer.txt").read_text(encoding="utf-8") == "maintainer baseline\n"
+            changed = git(remote, "diff", "--name-only", f"{selected}...{branch}").splitlines()
+            assert "maintainer.txt" not in changed
     else:
         with pytest.raises(CrabError):
             publish()
@@ -498,21 +523,40 @@ def test_only_a_reviewed_gap_replacement_can_resolve_an_exclusion(
     finding["source_behavior"] = "reads bounded chunks"
     card = exploration.register(directory, finding, source_repo=donor)["record"]["card"]
     scope = exploration._snapshot(directory)["novelty_scope"]
-    exploration.record(directory, observation(
-        finding, kind="decision", hypothesis="bounded reads", reviewed=True,
-        disposition="duplicate", candidate_id=card["id"], novelty_basis=basis(scope),
-    ))
+    exploration.record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            reviewed=True,
+            disposition="duplicate",
+            candidate_id=card["id"],
+            novelty_basis=basis(scope),
+        ),
+    )
     reviewed = replacement == "verified-gap"
-    exploration.record(directory, observation(
-        finding, kind="decision", hypothesis="bounded reads", reviewed=reviewed,
-        disposition=replacement, candidate_id=card["id"],
-    ))
+    exploration.record(
+        directory,
+        observation(
+            finding,
+            kind="decision",
+            hypothesis="bounded reads",
+            reviewed=reviewed,
+            disposition=replacement,
+            candidate_id=card["id"],
+        ),
+    )
     client = CurrentIssues()
 
     def publish() -> Any:
         return serve(
-            directory.parent.parent, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            directory.parent.parent,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
 
@@ -541,17 +585,19 @@ def test_copied_meal_cannot_validate_the_original_receiving_checkout(
     client = CurrentIssues()
     with pytest.raises(CrabError, match="receiving root"):
         serve(
-            meal, target, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(target), ledger=Ledger(None), client=client,
+            meal,
+            target,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(target),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
     assert not client.created and not client.labels
 
 
 @pytest.mark.parametrize("linked", [False, True])
-def test_exploration_children_must_be_real_directories(
-    tmp_path: Path, linked: bool
-) -> None:
+def test_exploration_children_must_be_real_directories(tmp_path: Path, linked: bool) -> None:
     import sys
 
     directory, donor, maw, finding = setup(tmp_path)
@@ -573,8 +619,12 @@ def test_exploration_children_must_be_real_directories(
 
     def publish() -> Any:
         return serve(
-            meal, maw, ServeOptions(ids=[card["id"]], mode="issue"),
-            config=MawConfig.load(maw), ledger=Ledger(None), client=client,
+            meal,
+            maw,
+            ServeOptions(ids=[card["id"]], mode="issue"),
+            config=MawConfig.load(maw),
+            ledger=Ledger(None),
+            client=client,
             slug_lookup=lambda _: MAW_SLUG,
         )
 
