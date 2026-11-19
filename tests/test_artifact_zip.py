@@ -82,7 +82,7 @@ def test_refuse_same_name_duplicate_archive_members() -> None:
 
 
 def test_refuse_hash_mismatch_even_for_self_consistent_archive() -> None:
-    blob = _zip(("manifest.json", b'{"ok":false}'))
+    blob = _zip(("manifest.json", b'{"ok":null}'))
     with pytest.raises(CrabError, match="hash mismatch"):
         check_zip_members(blob, (_expect("manifest.json", b'{"ok":true}'),))
 
