@@ -14,9 +14,9 @@ import stat
 import unicodedata
 import zipfile
 import zlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import Sequence
 
 from .errors import CrabError
 
