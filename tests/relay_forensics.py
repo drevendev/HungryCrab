@@ -70,6 +70,13 @@ def classify(
         for stream in (stdout, stderr)
     ):
         observations.append("faulthandler_diagnostic")
+    # pytest faulthandler_timeout emits a timed stack even when the test later passes.
+    # A recovered stall is still the first anomaly, not proof of a native crash.
+    if any(
+        re.search(rb"(?m)^Timeout \([0-9]+:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?\)!", stream)
+        for stream in (stdout, stderr)
+    ):
+        observations.append("faulthandler_timeout_diagnostic")
     summary = (
         rb"(?m)^1 passed(?: in |\r?$)" if single_target else rb"(?m)^(?:=+ )?[1-9][0-9]* passed\b"
     )
