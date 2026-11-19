@@ -159,9 +159,7 @@ def _provenance(root: Path, source_role: str) -> dict[str, object]:
 def _pytest_command(*, capture_mode: str, profile: str) -> list[str]:
     """Keep fixture-phase evidence and a Python stack before the outer child timeout."""
     phase_evidence = (
-        ["--setup-show", "-o", "faulthandler_timeout=30"]
-        if profile == "acquisition_file"
-        else []
+        ["--setup-show", "-o", "faulthandler_timeout=30"] if profile == "acquisition_file" else []
     )
     return [
         sys.executable,
