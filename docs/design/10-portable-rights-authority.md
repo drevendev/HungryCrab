@@ -1,6 +1,6 @@
 # Portable rights authority — T8 / A2 / A3 (review proposal)
 
-Status: **PROPOSED, NOT IMPLEMENTED**. Parent: [T8 #681](https://github.com/drevendev/HungryCrab/issues/681); [A2 #682](https://github.com/drevendev/HungryCrab/issues/682), [A3 #683](https://github.com/drevendev/HungryCrab/issues/683) are workstream references to reconcile against their actual issue identities before implementation. This proposal must not be presented as a working attestation protocol.
+Status: **PROPOSED, NOT IMPLEMENTED**. Parent: [T8 #681](https://github.com/drevendev/HungryCrab/issues/681); [A2 #684](https://github.com/drevendev/HungryCrab/issues/684) and [A3 #685](https://github.com/drevendev/HungryCrab/issues/685) define the adjacent artifact/admission and local-review workstreams. This proposal must not be presented as a working attestation protocol.
 
 The existing source-backed `crab serve` must remain intact. The portable route adds a separately gated **artifact-only** entry point; an imported receipt, verdict, checksum or local override is not authority to copy, reimplement or publish.
 
