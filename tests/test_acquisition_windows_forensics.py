@@ -15,6 +15,7 @@ from relay_forensics import (
     POST_KILL_DRAIN_SECONDS,
     TIMEOUT_SECONDS,
     _event_pr_head_sha,
+    _pytest_command,
     capture_series,
     classify,
     drain_killed_child,
@@ -31,6 +32,22 @@ def test_event_pr_head_sha_is_validated_not_confused_with_merge(
         _event_pr_head_sha()
     monkeypatch.delenv("CRAB_RELAY_PR_HEAD_SHA", raising=False)
     assert _event_pr_head_sha() is None
+
+
+def test_full_acquisition_profile_marks_fixture_phase_and_timed_stack() -> None:
+    command = _pytest_command(capture_mode="sys", profile="acquisition_file")
+    assert command[-1] == "tests/test_acquisition.py"
+    assert "--setup-show" in command
+    option = command.index("-o")
+    assert command[option + 1] == "faulthandler_timeout=30"
+    assert command.index("--setup-show") < command.index("tests/test_acquisition.py")
+
+    single = _pytest_command(capture_mode="sys", profile="quota_target")
+    assert "--setup-show" not in single
+    assert "faulthandler_timeout=30" not in single
+    assert single[-1].endswith(
+        "::test_main_and_wiki_connections_share_one_real_stream_limit"
+    )
 
 
 @pytest.mark.parametrize("stream", ["stdout", "stderr"])
