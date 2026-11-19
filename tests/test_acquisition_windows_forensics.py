@@ -62,6 +62,42 @@ def test_zero_exit_keeps_native_diagnostic_separate_from_process_exit(stream: st
     ]
 
 
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_recovered_faulthandler_timeout_is_anomaly_even_after_pass(stream: str) -> None:
+    clean_stdout = b"1 passed in 32.0s\n"
+    timed_stack = b"Timeout (0:00:30)!\nThread 0x123 (most recent call first):\n"
+    stdout = clean_stdout + timed_stack if stream == "stdout" else clean_stdout
+    stderr = timed_stack if stream == "stderr" else b""
+    assert classify(0, stdout, stderr, timed_out=False, pipe_open=False) == [
+        "faulthandler_timeout_diagnostic"
+    ]
+    assert classify(0, clean_stdout, b"", timed_out=False, pipe_open=False) == []
+
+
+def test_recovered_timeout_keeps_first_attempt_even_on_zero_exit(tmp_path: Path) -> None:
+    command = [
+        sys.executable,
+        "-c",
+        "import sys; "
+        "sys.stdout.buffer.write(b'1 passed in 32.0s\\n'); "
+        "sys.stderr.buffer.write(b'Timeout (0:00:30)!\\nThread 0x123\\n')",
+    ]
+    directory = tmp_path / "timed-stack"
+    report = capture_series(
+        Path(__file__).resolve().parents[1],
+        directory,
+        command=command,
+        profile="acquisition_file",
+    )
+    assert report["outcome"] == "FIRST_ANOMALY_RETAINED"
+    assert report["first_anomalous_attempt"] == 1
+    attempt = report["attempts"][0]
+    assert attempt["returncode"] == 0
+    assert attempt["observations"] == ["faulthandler_timeout_diagnostic"]
+    assert not (directory / "attempt-02.json").exists()
+    assert (directory / "attempt-01.stderr.bin").read_bytes().startswith(b"Timeout (0:00:30)!")
+
+
 @pytest.mark.parametrize("stdout", [b"11 passed in 0.1s\n", b"1 passed, 1 skipped\n", b""])
 def test_only_the_exact_target_summary_is_accepted(stdout: bytes) -> None:
     assert classify(0, stdout, b"", timed_out=False, pipe_open=False) == [
