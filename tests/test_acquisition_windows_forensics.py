@@ -1,13 +1,9 @@
-"""Capture the first native Windows relay failure in an isolated Python process.
-
-The historical managed-local 0xC0000008 is unconfirmed. This diagnostic
-re-executes the exact former failing quota test, preserving its first nonzero
-process exit and stderr rather than hiding failures behind a passing rerun.
-"""
+"""Keep native diagnostics and actual exits distinct while retaining the first anomaly."""
 
 from __future__ import annotations
 
-import platform
+import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,100 +11,223 @@ from typing import cast
 from unittest.mock import Mock
 
 import pytest
-
-_TARGET = "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
-_ATTEMPTS = 8
-_TIMEOUT_SECONDS = 45
-_POST_KILL_DRAIN_SECONDS = 2
-
-
-def _as_text(output: bytes | str | None) -> str:
-    if isinstance(output, bytes):
-        return output.decode("utf-8", errors="replace")
-    return output or ""
+from relay_forensics import (
+    POST_KILL_DRAIN_SECONDS,
+    TIMEOUT_SECONDS,
+    _event_pr_head_sha,
+    _pytest_command,
+    capture_series,
+    classify,
+    drain_killed_child,
+)
 
 
-def _drain_killed_child(
-    child: subprocess.Popen[str], first_timeout: subprocess.TimeoutExpired
-) -> tuple[str, str, bool]:
-    """Bound pipe draining after kill even when an escaped descendant holds EOF open."""
-    try:
-        stdout, stderr = child.communicate(timeout=_POST_KILL_DRAIN_SECONDS)
-        return stdout, stderr, False
-    except subprocess.TimeoutExpired as drain_timeout:
-        stdout = drain_timeout.stdout if drain_timeout.stdout is not None else first_timeout.stdout
-        stderr = drain_timeout.stderr if drain_timeout.stderr is not None else first_timeout.stderr
-        return _as_text(stdout), _as_text(stderr), True
+def test_event_pr_head_sha_is_validated_not_confused_with_merge(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CRAB_RELAY_PR_HEAD_SHA", "A" * 40)
+    assert _event_pr_head_sha() == "a" * 40
+    monkeypatch.setenv("CRAB_RELAY_PR_HEAD_SHA", "not-a-commit")
+    with pytest.raises(ValueError, match="invalid GitHub PR source SHA"):
+        _event_pr_head_sha()
+    monkeypatch.delenv("CRAB_RELAY_PR_HEAD_SHA", raising=False)
+    assert _event_pr_head_sha() is None
+
+
+def test_full_acquisition_profile_marks_fixture_phase_and_timed_stack() -> None:
+    command = _pytest_command(capture_mode="sys", profile="acquisition_file")
+    assert command[-1] == "tests/test_acquisition.py"
+    assert "--setup-show" in command
+    option = command.index("-o")
+    assert command[option + 1] == "faulthandler_timeout=30"
+    assert command.index("--setup-show") < command.index("tests/test_acquisition.py")
+
+    single = _pytest_command(capture_mode="sys", profile="quota_target")
+    assert "--setup-show" not in single
+    assert "faulthandler_timeout=30" not in single
+    assert single[-1].endswith("::test_main_and_wiki_connections_share_one_real_stream_limit")
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_zero_exit_keeps_native_diagnostic_separate_from_process_exit(stream: str) -> None:
+    stdout = b"1 passed in 0.1s\n"
+    stderr = b""
+    diagnostic = b"Windows fatal exception: code 0xc0000008\n"
+    if stream == "stdout":
+        stdout += diagnostic
+    else:
+        stderr = diagnostic
+    assert classify(0, stdout, stderr, timed_out=False, pipe_open=False) == [
+        "faulthandler_diagnostic"
+    ]
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_recovered_faulthandler_timeout_is_anomaly_even_after_pass(stream: str) -> None:
+    clean_stdout = b"1 passed in 32.0s\n"
+    timed_stack = b"Timeout (0:00:30)!\nThread 0x123 (most recent call first):\n"
+    stdout = clean_stdout + timed_stack if stream == "stdout" else clean_stdout
+    stderr = timed_stack if stream == "stderr" else b""
+    assert classify(0, stdout, stderr, timed_out=False, pipe_open=False) == [
+        "faulthandler_timeout_diagnostic"
+    ]
+    assert classify(0, clean_stdout, b"", timed_out=False, pipe_open=False) == []
+
+
+def test_recovered_timeout_keeps_first_attempt_even_on_zero_exit(tmp_path: Path) -> None:
+    command = [
+        sys.executable,
+        "-c",
+        (
+            "import sys; "
+            "sys.stdout.buffer.write(b'1 passed in 32.0s\\n'); "
+            "sys.stderr.buffer.write(b'Timeout (0:00:30)!\\nThread 0x123\\n')"
+        ),
+    ]
+    directory = tmp_path / "timed-stack"
+    report = capture_series(
+        Path(__file__).resolve().parents[1],
+        directory,
+        command=command,
+        profile="acquisition_file",
+    )
+    assert report["outcome"] == "FIRST_ANOMALY_RETAINED"
+    assert report["first_anomalous_attempt"] == 1
+    attempt = report["attempts"][0]
+    assert attempt["returncode"] == 0
+    assert attempt["observations"] == ["faulthandler_timeout_diagnostic"]
+    assert not (directory / "attempt-02.json").exists()
+    assert (directory / "attempt-01.stderr.bin").read_bytes().startswith(b"Timeout (0:00:30)!")
+
+
+@pytest.mark.parametrize("stdout", [b"11 passed in 0.1s\n", b"1 passed, 1 skipped\n", b""])
+def test_only_the_exact_target_summary_is_accepted(stdout: bytes) -> None:
+    assert classify(0, stdout, b"", timed_out=False, pipe_open=False) == [
+        "expected_test_summary_missing"
+    ]
+
+
+def test_timeout_and_unavailable_exit_remain_incomplete_observations() -> None:
+    assert classify(None, b"1 passed in 0.1s\n", b"", timed_out=True, pipe_open=True) == [
+        "timeout",
+        "post_kill_pipe_open",
+        "exit_unavailable",
+    ]
+
+
+def test_file_context_summary_does_not_weaken_the_single_target_requirement() -> None:
+    summary = b"========================= 15 passed in 8.0s =========================\n"
+    assert classify(0, summary, b"", timed_out=False, pipe_open=False) == [
+        "expected_test_summary_missing"
+    ]
+    assert classify(0, summary, b"", timed_out=False, pipe_open=False, single_target=False) == []
+    assert classify(
+        0, b"no tests ran", b"", timed_out=False, pipe_open=False, single_target=False
+    ) == ["expected_test_summary_missing"]
 
 
 def test_post_kill_pipe_drain_is_bounded_when_descendant_keeps_pipe_open() -> None:
     child = Mock(spec=subprocess.Popen)
-    original_timeout = subprocess.TimeoutExpired(["pytest"], _TIMEOUT_SECONDS, output=b"early")
+    original_timeout = subprocess.TimeoutExpired(["pytest"], TIMEOUT_SECONDS, output=b"early")
     child.communicate.side_effect = subprocess.TimeoutExpired(
-        ["pytest"], _POST_KILL_DRAIN_SECONDS, output=b"partial", stderr=b"open stderr"
+        ["pytest"], POST_KILL_DRAIN_SECONDS, output=b"partial", stderr=b"open stderr"
+    )
+    assert drain_killed_child(cast(subprocess.Popen[bytes], child), original_timeout) == (
+        b"partial",
+        b"open stderr",
+        True,
+    )
+    child.communicate.assert_called_once_with(timeout=POST_KILL_DRAIN_SECONDS)
+
+
+def test_post_kill_pipe_drain_keeps_first_timeout_bytes_when_drain_has_none() -> None:
+    child = Mock(spec=subprocess.Popen)
+    original_timeout = subprocess.TimeoutExpired(
+        ["pytest"], TIMEOUT_SECONDS, output=b"first\xff", stderr=b"first stderr"
+    )
+    child.communicate.side_effect = subprocess.TimeoutExpired(["pytest"], POST_KILL_DRAIN_SECONDS)
+    assert drain_killed_child(cast(subprocess.Popen[bytes], child), original_timeout) == (
+        b"first\xff",
+        b"first stderr",
+        True,
     )
 
-    stdout, stderr, blocked = _drain_killed_child(
-        cast(subprocess.Popen[str], child), original_timeout
-    )
 
-    assert (stdout, stderr, blocked) == ("partial", "open stderr", True)
-    child.communicate.assert_called_once_with(timeout=_POST_KILL_DRAIN_SECONDS)
+@pytest.mark.parametrize("exit_code", [0, 7])
+def test_first_anomaly_preserves_raw_bytes_and_never_runs_another_attempt(
+    tmp_path: Path, exit_code: int
+) -> None:
+    # This owned child emits a synthetic message; it does not raise a native exception.
+    marker = tmp_path / "executions.txt"
+    script = (
+        "import pathlib, sys; "
+        f"p = pathlib.Path({str(marker)!r}); "
+        "p.write_text(p.read_text() + 'x' if p.exists() else 'x'); "
+        "sys.stdout.buffer.write(b'1 passed in 0.1s\\n'); "
+        "sys.stderr.buffer.write(b'Windows fatal exception: synthetic\\xff\\r\\n'); "
+        f"sys.exit({exit_code})"
+    )
+    directory = tmp_path / "evidence"
+    report = capture_series(
+        Path(__file__).resolve().parents[1],
+        directory,
+        command=[sys.executable, "-c", script],
+    )
+    assert marker.read_text() == "x"
+    assert report["outcome"] == "FIRST_ANOMALY_RETAINED"
+    assert report["first_anomalous_attempt"] == 1
+    stored = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    assert len(stored["attempts"]) == 1
+    attempt = stored["attempts"][0]
+    assert attempt["returncode"] == exit_code
+    assert attempt["returncode_u32_hex"] == f"0x{exit_code:08X}"
+    assert ("nonzero_exit" in attempt["observations"]) == (exit_code != 0)
+    assert "faulthandler_diagnostic" in attempt["observations"]
+    assert attempt["streams_complete"] is True
+    assert (directory / "attempt-01.stdout.bin").read_bytes() == b"1 passed in 0.1s\n"
+    assert (directory / "attempt-01.stderr.bin").read_bytes() == (
+        b"Windows fatal exception: synthetic\xff\r\n"
+    )
+    assert not (directory / "attempt-02.json").exists()
+    assert stored["provenance"]["subject_sha"]
+    assert stored["provenance"]["subject_tree_sha"]
+    assert stored["provenance"]["harness_tree_sha"]
+    assert stored["provenance"]["source_sha256"]["src/hungry_crab/fetch/acquisition.py"]
+
+
+def test_clean_bounded_series_retains_all_streams_without_claiming_historical_fix(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "clean-evidence"
+    report = capture_series(
+        Path(__file__).resolve().parents[1],
+        directory,
+        command=[sys.executable, "-c", "print('1 passed in 0.1s')"],
+    )
+    assert report["outcome"] == "NOT_REPRODUCED"
+    assert "first_anomalous_attempt" not in report
+    stored = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    assert len(stored["attempts"]) == stored["attempt_limit"] == 8
+    assert stored["provenance"]["harness_sha"] == stored["provenance"]["subject_sha"]
+    assert stored["provenance"]["historical_failure_snapshot_reconstructed"] is False
+    assert stored["provenance"]["package_versions"]["pytest"]
+    for attempt in stored["attempts"]:
+        assert attempt["returncode"] == 0
+        assert attempt["observations"] == []
+        for name in ("stdout", "stderr"):
+            stream = attempt["streams"][name]
+            assert len((directory / stream["file"]).read_bytes()) == stream["bytes"]
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows native-handle diagnostic only")
-def test_relay_select_teardown_preserves_first_native_process_failure() -> None:
-    root = Path(__file__).resolve().parents[1]
-    command = [
-        sys.executable,
-        "-X",
-        "faulthandler",
-        "-m",
-        "pytest",
-        "-q",
-        "-s",
-        "--maxfail=1",
-        _TARGET,
-    ]
-    environment = (
-        f"Python={sys.version}; executable={sys.executable}; "
-        f"Windows={platform.win32_ver()!r}; platform={platform.platform()}"
-    )
-
-    for attempt in range(1, _ATTEMPTS + 1):
-        child = subprocess.Popen(
-            command,
-            cwd=root,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
+def test_relay_select_teardown_preserves_first_native_process_failure(tmp_path: Path) -> None:
+    parent = Path(os.environ.get("CRAB_RELAY_FORENSICS_DIR", str(tmp_path)))
+    directory = parent / "relay-observations"
+    report = capture_series(Path(__file__).resolve().parents[1], directory)
+    if report["outcome"] != "NOT_REPRODUCED":
+        pytest.fail(
+            f"Relay FIRST anomaly retained at {directory}; "
+            "diagnostic text and process exit are separate observations.\n"
+            + json.dumps(report, indent=2),
+            pytrace=False,
         )
-        try:
-            stdout, stderr = child.communicate(timeout=_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired as first_timeout:
-            child.kill()
-            stdout, stderr, pipe_open = _drain_killed_child(child, first_timeout)
-            drain_status = (
-                "post-kill pipe EOF unavailable; possible escaped descendant"
-                if pipe_open
-                else "post-kill pipe drain completed"
-            )
-            pytest.fail(
-                f"Relay child timed out on FIRST failing attempt {attempt}/{_ATTEMPTS}; "
-                f"pid={child.pid}; timeout={_TIMEOUT_SECONDS}s; "
-                f"post_kill_drain_timeout={_POST_KILL_DRAIN_SECONDS}s\n"
-                f"{environment}\n{drain_status}\n"
-                f"stdout:\n{stdout}\nstderr:\n{stderr}",
-                pytrace=False,
-            )
-
-        if child.returncode != 0 or "1 passed" not in stdout:
-            exit_code = child.returncode
-            native_code = (exit_code or 0) & 0xFFFFFFFF
-            pytest.fail(
-                f"Relay child FIRST failure at attempt {attempt}/{_ATTEMPTS}; "
-                f"pid={child.pid}; exit={exit_code} (0x{native_code:08X})\n"
-                f"{environment}\ncommand={command!r}\n"
-                f"stdout:\n{stdout}\nstderr:\n{stderr}",
-                pytrace=False,
-            )

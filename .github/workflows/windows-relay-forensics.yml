@@ -1,0 +1,122 @@
+name: Windows relay attribution
+
+on:
+  push:
+    branches: [codex/t6-679-reference]
+  pull_request:
+    paths:
+      - .github/workflows/windows-relay-forensics.yml
+      - tests/relay_forensics.py
+      - tests/test_acquisition_windows_forensics.py
+      - scripts/relay_public_symbols.py
+      - tests/test_relay_public_symbols.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: utf-8
+  UV_PYTHON_PREFERENCE: only-managed
+  # The PR source differs from GITHUB_SHA when GitHub checks out refs/pull/*/merge.
+  CRAB_RELAY_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+
+jobs:
+  symbols:
+    name: Recovered public module symbols
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.9"
+          python-version: "3.11.16"
+      - name: Read two exact public PDB identities, without private dump data
+        run: uv run --no-project python scripts/relay_public_symbols.py --out public-symbols
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: relay-public-symbols
+          path: public-symbols
+          if-no-files-found: error
+  harness:
+    name: Diagnostic harness checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.9"
+          python-version: "3.11.16"
+      - run: uv sync --locked --all-extras
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest tests/test_acquisition_windows_forensics.py tests/test_relay_public_symbols.py -q
+      - name: Prepare hosted formatting corrections
+        if: failure()
+        run: |
+          uv run ruff check --fix . || true
+          uv run ruff format .
+          git diff --output=formatting.patch
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: relay-harness-formatting
+          path: formatting.patch
+  reference:
+    name: Relay (${{ matrix.subject }}, Python ${{ matrix.python }}, ${{ matrix.profile }})
+    runs-on: windows-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        subject: [current_checkout, historical_acquisition_reference]
+        python: ["3.11.16", "3.14.10"]
+        profile: [quota_target]
+        include:
+          - subject: current_checkout
+            python: "3.11.16"
+            profile: acquisition_file
+          - subject: historical_acquisition_reference
+            python: "3.11.16"
+            profile: acquisition_file
+    defaults:
+      run:
+        working-directory: subject
+    steps:
+      - name: Check out the current trusted diagnostic harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Check out the bounded own-repository subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The old target and acquisition blobs match recovered local HEAD9942f2f.
+          # This is not a reconstruction of its dirty tree, lock or sandbox.
+          ref: ${{ matrix.subject == 'historical_acquisition_reference' && '9e7341986217fdca02a101d225ba4354bfe6480c' || github.sha }}
+          path: subject
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.9"
+          python-version: ${{ matrix.python }}
+      - name: Require the exact managed Python patch, never the runner's system fallback
+        run: uv python install
+      - run: uv sync --locked --all-extras
+      - name: Retain the first observation with historical sys capture
+        run: uv run python ../harness/tests/relay_forensics.py --subject . --evidence "${{ runner.temp }}/relay-attribution" --capture sys --source-role "${{ matrix.subject }}" --profile "${{ matrix.profile }}"
+      - name: Upload raw observations even when the first anomaly failed the job
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relay-attribution-${{ matrix.subject }}-py${{ matrix.python }}-${{ matrix.profile }}
+          path: ${{ runner.temp }}/relay-attribution
+          if-no-files-found: error
