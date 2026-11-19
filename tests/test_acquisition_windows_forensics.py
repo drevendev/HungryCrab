@@ -78,9 +78,11 @@ def test_recovered_timeout_keeps_first_attempt_even_on_zero_exit(tmp_path: Path)
     command = [
         sys.executable,
         "-c",
-        "import sys; "
-        "sys.stdout.buffer.write(b'1 passed in 32.0s\\n'); "
-        "sys.stderr.buffer.write(b'Timeout (0:00:30)!\\nThread 0x123\\n')",
+        (
+            "import sys; "
+            "sys.stdout.buffer.write(b'1 passed in 32.0s\\n'); "
+            "sys.stderr.buffer.write(b'Timeout (0:00:30)!\\nThread 0x123\\n')"
+        ),
     ]
     directory = tmp_path / "timed-stack"
     report = capture_series(
