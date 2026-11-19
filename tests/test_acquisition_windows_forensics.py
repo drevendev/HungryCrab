@@ -34,18 +34,19 @@ def test_event_pr_head_sha_is_validated_not_confused_with_merge(
     assert _event_pr_head_sha() is None
 
 
-def test_full_acquisition_profile_marks_fixture_phase_and_timed_stack() -> None:
-    command = _pytest_command(capture_mode="sys", profile="acquisition_file")
-    assert command[-1] == "tests/test_acquisition.py"
+@pytest.mark.parametrize("profile", ["quota_target", "acquisition_file"])
+def test_both_profiles_mark_fixture_phase_and_timed_stack(profile: str) -> None:
+    command = _pytest_command(capture_mode="sys", profile=profile)
+    assert command[:4] == [sys.executable, "-X", "faulthandler", "-m"]
     assert "--setup-show" in command
     option = command.index("-o")
     assert command[option + 1] == "faulthandler_timeout=30"
-    assert command.index("--setup-show") < command.index("tests/test_acquisition.py")
-
-    single = _pytest_command(capture_mode="sys", profile="quota_target")
-    assert "--setup-show" not in single
-    assert "faulthandler_timeout=30" not in single
-    assert single[-1].endswith("::test_main_and_wiki_connections_share_one_real_stream_limit")
+    assert command.index("--setup-show") < len(command) - 1
+    assert command[-1] == (
+        "tests/test_acquisition.py::test_main_and_wiki_connections_share_one_real_stream_limit"
+        if profile == "quota_target"
+        else "tests/test_acquisition.py"
+    )
 
 
 @pytest.mark.parametrize("stream", ["stdout", "stderr"])
