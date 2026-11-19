@@ -156,6 +156,29 @@ def _provenance(root: Path, source_role: str) -> dict[str, object]:
     }
 
 
+def _pytest_command(*, capture_mode: str, profile: str) -> list[str]:
+    """Keep fixture-phase evidence and a Python stack before the outer child timeout."""
+    phase_evidence = (
+        ["--setup-show", "-o", "faulthandler_timeout=30"]
+        if profile == "acquisition_file"
+        else []
+    )
+    return [
+        sys.executable,
+        "-X",
+        "faulthandler",
+        "-m",
+        "pytest",
+        "-q" if profile == "quota_target" else "-vv",
+        f"--capture={capture_mode}",
+        "--color=no",
+        "--maxfail=1",
+        "--tb=short",
+        *phase_evidence,
+        TARGET if profile == "quota_target" else "tests/test_acquisition.py",
+    ]
+
+
 def capture_series(
     root: Path,
     directory: Path,
@@ -173,19 +196,7 @@ def capture_series(
     ):
         raise ValueError("unsupported bounded relay diagnostic profile")
     directory.mkdir(parents=True, exist_ok=False)
-    command = command or [
-        sys.executable,
-        "-X",
-        "faulthandler",
-        "-m",
-        "pytest",
-        "-q" if profile == "quota_target" else "-vv",
-        f"--capture={capture_mode}",
-        "--color=no",
-        "--maxfail=1",
-        "--tb=short",
-        TARGET if profile == "quota_target" else "tests/test_acquisition.py",
-    ]
+    command = command or _pytest_command(capture_mode=capture_mode, profile=profile)
     attempts: list[dict[str, object]] = []
     report: dict[str, object] = {
         "schema": 2,
