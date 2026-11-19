@@ -70,7 +70,9 @@ def test_refuse_missing_or_extra_member() -> None:
 def test_refuse_casefold_collision_in_archive() -> None:
     blob = _zip(("a.json", b"first"), ("A.JSON", b"second"))
     with pytest.raises(CrabError):
-        check_zip_members(blob, (_expect("a.json", b"first"), _expect("A.JSON", b"second")))
+        check_zip_members(
+            blob, (_expect("a.json", b"first"), _expect("A.JSON", b"second"))
+        )
 
 
 def test_refuse_same_name_duplicate_archive_members() -> None:
@@ -114,7 +116,9 @@ def test_refuse_bad_manifest_digest_and_bool_size() -> None:
     with pytest.raises(CrabError):
         check_zip_members(blob, (ExpectedMember("manifest.json", 2, "f" * 64, ""),))
     with pytest.raises(CrabError):
-        check_zip_members(blob, (ExpectedMember("manifest.json", True, "f" * 64, "evidence"),))
+        check_zip_members(
+            blob, (ExpectedMember("manifest.json", True, "f" * 64, "evidence"),)
+        )
 
 
 def test_refuse_zip_that_is_not_an_archive() -> None:
