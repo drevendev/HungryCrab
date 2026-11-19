@@ -107,7 +107,7 @@ def test_refuse_unix_symlink_even_if_named_json() -> None:
 def test_refuse_high_compression_ratio() -> None:
     payload = b"x" * 10000
     blob = _zip(("manifest.json", payload))
-    with pytest.raises(CrabError, match="unsupported"):
+    with pytest.raises(CrabError, match="encoding or size"):
         check_zip_members(blob, (_expect("manifest.json", payload),))
 
 
