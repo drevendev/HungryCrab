@@ -26,6 +26,7 @@ MAX_TOTAL_BYTES = 16 * 1024 * 1024
 MAX_MEMBERS = 256
 MAX_RATIO = 200
 _ALLOWED_SUFFIXES = frozenset({".json", ".md", ".txt"})
+_ALLOWED_COMPRESSION = frozenset({zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED})
 _BAD_WINDOWS_STEMS = frozenset({"CON", "PRN", "AUX", "NUL"}) | {
     f"{prefix}{n}" for prefix in ("COM", "LPT") for n in range(1, 10)
 }
@@ -145,13 +146,13 @@ def check_zip_members(
                     info.is_dir()
                     or (info.create_system == 3 and file_type not in (0, stat.S_IFREG))
                     or info.flag_bits & 1
-                    or info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
+                    or info.compress_type not in _ALLOWED_COMPRESSION
                     or info.file_size != spec.size
                     or info.file_size > MAX_MEMBER_BYTES
                     or (info.file_size > 0 and info.compressed_size == 0)
                     or info.file_size > info.compress_size * MAX_RATIO
                 ):
-                    raise _refuse("non-regular, unsupported, encrypted, or oversized member")
+                    raise _refuse("invalid archive member encoding or size")
                 total_actual += info.file_size
                 if total_actual > MAX_TOTAL_BYTES:
                     raise _refuse("unpacked byte budget")
@@ -163,7 +164,14 @@ def check_zip_members(
                 if digest != spec.sha256:
                     raise _refuse("member hash mismatch")
                 checked.append(CheckedMember(name, len(payload), digest, spec.role))
-    except (zipfile.BadZipFile, RuntimeError, EOFError, zlib.error, OSError, ValueError) as exc:
+    except (
+        zipfile.BadZipFile,
+        RuntimeError,
+        EOFError,
+        zlib.error,
+        OSError,
+        ValueError,
+    ) as exc:
         raise _refuse("corrupt or unreadable ZIP") from exc
 
     return tuple(checked)
