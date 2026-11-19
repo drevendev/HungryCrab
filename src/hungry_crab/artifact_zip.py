@@ -149,7 +149,7 @@ def check_zip_members(
                     or info.compress_type not in _ALLOWED_COMPRESSION
                     or info.file_size != spec.size
                     or info.file_size > MAX_MEMBER_BYTES
-                    or (info.file_size > 0 and info.compressed_size == 0)
+                    or (info.file_size > 0 and info.compress_size == 0)
                     or info.file_size > info.compress_size * MAX_RATIO
                 ):
                     raise _refuse("invalid archive member encoding or size")
