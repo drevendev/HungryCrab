@@ -45,9 +45,7 @@ def test_full_acquisition_profile_marks_fixture_phase_and_timed_stack() -> None:
     single = _pytest_command(capture_mode="sys", profile="quota_target")
     assert "--setup-show" not in single
     assert "faulthandler_timeout=30" not in single
-    assert single[-1].endswith(
-        "::test_main_and_wiki_connections_share_one_real_stream_limit"
-    )
+    assert single[-1].endswith("::test_main_and_wiki_connections_share_one_real_stream_limit")
 
 
 @pytest.mark.parametrize("stream", ["stdout", "stderr"])
