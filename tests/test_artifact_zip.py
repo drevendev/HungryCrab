@@ -103,13 +103,12 @@ def test_refuse_unix_symlink_even_if_named_json() -> None:
         check_zip_members(stream.getvalue(), (_expect("manifest.json", b"target"),))
 
 
-
 @pytest.mark.parametrize("unsupported_flag", [0x0001, 0x0020, 0x0040, 0x1000])
 def test_refuse_unsupported_zip_feature_flags(unsupported_flag: int) -> None:
     """Even matched stored bytes cannot authorize unsupported ZIP feature flags."""
     blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
-    local_header = blob.index(b"PK\\x03\\x04")
-    central_header = blob.index(b"PK\\x01\\x02")
+    local_header = blob.index(b"PK\x03\x04")
+    central_header = blob.index(b"PK\x01\x02")
     struct.pack_into("<H", blob, local_header + 6, unsupported_flag)
     struct.pack_into("<H", blob, central_header + 8, unsupported_flag)
     with pytest.raises(CrabError, match="invalid archive member encoding or size"):
