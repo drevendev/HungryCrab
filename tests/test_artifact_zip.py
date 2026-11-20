@@ -115,7 +115,6 @@ def test_refuse_unsupported_zip_feature_flags(unsupported_flag: int) -> None:
         check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
 
 
-
 @pytest.mark.parametrize("local_only_flag", [0x0001, 0x0020, 0x0040, 0x1000])
 def test_refuse_unsupported_local_only_zip_feature_flags(local_only_flag: int) -> None:
     """Local ZIP flags must match the central directory even if bytes and hash match."""
