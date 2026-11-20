@@ -99,9 +99,7 @@ class MatchedProviderRecords:
     artifact_id: int
     artifact_size: int
     artifact_digest: str
-    artifact_job_attempt_lineage: Literal["UNVERIFIED"] = field(
-        default="UNVERIFIED", init=False
-    )
+    artifact_job_attempt_lineage: Literal["UNVERIFIED"] = field(default="UNVERIFIED", init=False)
 
     def require_lineage_for_admission(self) -> None:
         """Fail closed until an independent provider-backed lineage witness exists."""
