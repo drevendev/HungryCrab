@@ -22,6 +22,11 @@ SYMBOLS = (
 )
 MAX_PDB_BYTES = 64 * 1024 * 1024
 MSF_MAGIC = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\x00\x00\x00"
+# Fixed public module-relative observations, extracted without private stack bytes.
+OBSERVED_RVAS = {
+    "ntdll.pdb": (0x16A4FA,),
+    "ws2_32.pdb": (0x2566A, 0x1FCCD, 0x21DC8),
+}
 
 
 def _u32(data: bytes, offset: int) -> int:
@@ -113,6 +118,50 @@ def classify_identity(
     }
 
 
+def public_address_labels(text: str, rvas: tuple[int, ...]) -> list[dict[str, object]]:
+    """Label nearest public entries within an image section, never infer stack frames."""
+    sections: dict[int, tuple[int, int]] = {}
+    for match in re.finditer(
+        r"(?ms)^\s*SECTION HEADER #(\d+)\s*\n.*?"
+        r"^\s*([0-9A-Fa-f]+) virtual size\s*\n"
+        r"^\s*([0-9A-Fa-f]+) virtual address\s*$",
+        text,
+    ):
+        sections[int(match[1])] = (int(match[3], 16), int(match[2], 16))
+    entries: dict[int, list[tuple[int, str]]] = {}
+    for match in re.finditer(
+        r"(?m)^.*S_PUB32[^\r\n]*`([^`\r\n]+)`\r?\n"
+        r"\s*flags = function, addr = ([0-9]+):([0-9]+)\s*$",
+        text,
+    ):
+        section = int(match[2])
+        # LLVM prints these segment/offset pairs in decimal, unlike section addresses.
+        entries.setdefault(section, []).append((int(match[3]), match[1]))
+    labels: list[dict[str, object]] = []
+    for rva in rvas:
+        candidates = [
+            (base + offset, name)
+            for section, (base, size) in sections.items()
+            if base <= rva < base + size
+            for offset, name in entries.get(section, [])
+            if 0 <= offset < size and base + offset <= rva
+        ]
+        if not candidates:
+            labels.append({"rva": f"0x{rva:X}", "status": "PUBLIC_ENTRY_UNAVAILABLE"})
+            continue
+        nearest = max(address for address, _ in candidates)
+        labels.append(
+            {
+                "rva": f"0x{rva:X}",
+                "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+                "entry_rva": f"0x{nearest:X}",
+                "offset": rva - nearest,
+                "names": sorted({name for address, name in candidates if address == nearest}),
+            }
+        )
+    return labels
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path)
@@ -171,6 +220,8 @@ def main() -> None:
             except ValueError as error:
                 actual_dbi_age = None
                 dbi_error = str(error)
+            summary = result.stdout.decode("utf-8", errors="replace")
+            identity_result = classify_identity(summary, identity, actual_dbi_age=actual_dbi_age)
             records.append(
                 {
                     "pdb": filename,
@@ -179,10 +230,11 @@ def main() -> None:
                     "bytes": len(data),
                     "sha256": hashlib.sha256(data).hexdigest(),
                     "dbi_read_error": dbi_error,
-                    **classify_identity(
-                        result.stdout.decode("utf-8", errors="replace"),
-                        identity,
-                        actual_dbi_age=actual_dbi_age,
+                    **identity_result,
+                    "address_labels": (
+                        public_address_labels(summary, OBSERVED_RVAS[filename])
+                        if identity_result["identity_status"] == "MATCHED"
+                        else []
                     ),
                 }
             )

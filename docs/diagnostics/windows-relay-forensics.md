@@ -91,6 +91,10 @@ Missing, malformed or unsupported metadata stays held. A zero legacy DBI age als
 held, although Microsoft's implementation permits that historical fallback. A GUID match
 or a newer Info age alone is insufficient. Successful binding only validates the symbol
 file for the recorded image; it does not establish a call chain, handle owner or root cause.
+Only after that binding succeeds, the collector labels the four already-public RVAs using
+LLVM's section headers and function entries. Labels are nearest public entries with offsets,
+not function-length proof, reconstructed callers or an unwound stack. Missing section/entry
+data stays unavailable. No original stack bytes are needed or uploaded for this step.
 
 Manual dispatch defaults to `scope=symbols`: symbol capture and harness checks only.
 `scope=all` explicitly adds the six relay runtime/context profiles. The original dumps

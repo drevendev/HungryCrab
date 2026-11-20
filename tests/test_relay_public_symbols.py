@@ -125,3 +125,30 @@ def test_collection_retains_missing_dbi_instead_of_qualifying_summary_only(
     assert manifest["status"] == "PUBLIC_RECORDS_CAPTURED_WITH_IDENTITY_HOLDS"
     assert all(record["dbi_read_error"] for record in manifest["records"])
     assert all(record["identity_status"] != "MATCHED" for record in manifest["records"])
+    assert all(record["address_labels"] == [] for record in manifest["records"])
+
+
+def test_public_labels_use_decimal_offsets_and_stay_inside_the_declared_section() -> None:
+    text = """
+  1 | S_PUB32 [size = 32] `earlier`
+           flags = function, addr = 0001:10
+  2 | S_PUB32 [size = 32] `nearest`
+           flags = function, addr = 0001:25
+  3 | S_PUB32 [size = 32] `alias`
+           flags = function, addr = 0001:25
+  4 | S_PUB32 [size = 32] `data_is_not_a_function`
+           flags = none, addr = 0001:27
+  SECTION HEADER #1
+     .text name
+      100 virtual size
+     1000 virtual address
+"""
+    labels = _symbols.public_address_labels(text, (0x101C, 0x1005, 0x1200))
+    assert labels[0] == {
+        "rva": "0x101C",
+        "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+        "entry_rva": "0x1019",
+        "offset": 3,
+        "names": ["alias", "nearest"],
+    }
+    assert labels[1]["status"] == labels[2]["status"] == "PUBLIC_ENTRY_UNAVAILABLE"
