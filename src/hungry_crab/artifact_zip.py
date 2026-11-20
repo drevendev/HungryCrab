@@ -31,6 +31,7 @@ _BAD_WINDOWS_STEMS = frozenset({"CON", "PRN", "AUX", "NUL"}) | {
     f"{prefix}{n}" for prefix in ("COM", "LPT") for n in "123456789¹²³"
 }
 _WINDOWS_FORBIDDEN = frozenset('<>:"|?*')
+_WINDOWS_SPECIAL_ATTRIBUTES = 0x0008 | 0x0010 | 0x0040 | 0x0400
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,9 @@ def check_zip_members(
                     supported_flags |= 0x0002 | 0x0004
                 if (
                     info.is_dir()
+                    # Windows volume, directory, device and reparse-point entries
+                    # may have ordinary filenames; filename-based is_dir() misses them.
+                    or info.external_attr & _WINDOWS_SPECIAL_ATTRIBUTES
                     or (info.create_system == 3 and file_type not in (0, stat.S_IFREG))
                     or info.flag_bits & ~supported_flags
                     or info.compress_type not in _ALLOWED_COMPRESSION
