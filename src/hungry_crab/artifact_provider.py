@@ -11,7 +11,8 @@ A successful comparison is an identity match, NOT portable admission.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Literal
 
 from .errors import CrabError
 
@@ -70,7 +71,11 @@ class ObservedJob:
 
 @dataclass(frozen=True)
 class ObservedArtifact:
-    """Native artifact identity/digest; the bundle's own manifest is irrelevant."""
+    """Native artifact identity/digest, not producer job/attempt lineage.
+
+    GitHub's artifact record identifies a run, not the job or attempt which
+    uploaded it. Never infer those fields from the untrusted ZIP/manifest.
+    """
 
     artifact_id: int
     run_id: int
@@ -81,7 +86,12 @@ class ObservedArtifact:
 
 @dataclass(frozen=True)
 class MatchedProviderRecords:
-    """Exact comparison receipt only; no permission, grant, or admission flag."""
+    """Exact identity receipt only; it cannot establish artifact job/attempt lineage.
+
+    Native run/job success plus an artifact run ID does not prove the selected
+    job/attempt produced those bytes. In particular, reruns keep the run ID.
+    The constant UNVERIFIED state prevents confusing a match with A2 admission.
+    """
 
     run_id: int
     run_attempt: int
@@ -89,6 +99,13 @@ class MatchedProviderRecords:
     artifact_id: int
     artifact_size: int
     artifact_digest: str
+    artifact_job_attempt_lineage: Literal["UNVERIFIED"] = field(
+        default="UNVERIFIED", init=False
+    )
+
+    def require_lineage_for_admission(self) -> None:
+        """Fail closed until an independent provider-backed lineage witness exists."""
+        raise _hold("artifact-to-job/attempt lineage not independently verified")
 
 
 def _positive(value: object) -> bool:
@@ -120,6 +137,8 @@ def compare_provider_records(
     Never call this with records copied from archive/manifest/PR prose. Even
     matching records cannot authorize COPY, REIMPLEMENT, or publication: A2
     must still validate bytes, complete coverage, sources, rights and grants.
+    An artifact run ID is not producer-job/attempt evidence. Any future A2
+    admission must independently correlate that lineage or return typed HOLD.
     """
     if (
         type(expected) is not ExpectedProvider
