@@ -50,6 +50,18 @@ def test_all_declared_regular_members_match_exact_bytes() -> None:
         "a\\payload.json",
         "nul.txt",
         "folder/CON.json",
+        "folder/COM¹.json",
+        "folder/COM².json",
+        "folder/COM³.json",
+        "folder/LPT¹.json",
+        "folder/LPT².json",
+        "folder/LPT³.json",
+        "a?.json",
+        "a<.json",
+        "a>.json",
+        'a".json',
+        "a|.json",
+        "a*.json",
         "payload.exe",
         "folder./payload.json",
         "a/./payload.md",
@@ -60,6 +72,28 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
     blob = _zip((bad_name, b"a"))
     with pytest.raises(CrabError):
         check_zip_members(blob, (_expect(bad_name, b"a"),))
+
+
+def test_safe_unicode_member_path_remains_allowed() -> None:
+    payload = b"{}"
+    member_name = "sources/café.json"
+    checked = check_zip_members(_zip((member_name, payload)), (_expect(member_name, payload),))
+    assert checked[0].path == member_name
+
+
+@pytest.mark.parametrize(
+    "bad_name",
+    ["folder/COM¹.json", "folder/LPT³.json", "a?.json", "a<.json", "a|.json"],
+)
+def test_windows_unsafe_paths_rejected_in_raw_zip_and_manifest_separately(
+    bad_name: str,
+) -> None:
+    """Raw archive names and externally declared names must each be checked."""
+    payload = b"ok"
+    with pytest.raises(CrabError, match="unsafe raw archive path or alias"):
+        check_zip_members(_zip((bad_name, payload)), (_expect("safe.json", payload),))
+    with pytest.raises(CrabError, match="invalid manifest member"):
+        check_zip_members(_zip(("safe.json", payload)), (_expect(bad_name, payload),))
 
 
 @pytest.mark.parametrize(

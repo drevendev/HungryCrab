@@ -28,8 +28,9 @@ MAX_RATIO = 200
 _ALLOWED_SUFFIXES = frozenset({".json", ".md", ".txt"})
 _ALLOWED_COMPRESSION = frozenset({zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED})
 _BAD_WINDOWS_STEMS = frozenset({"CON", "PRN", "AUX", "NUL"}) | {
-    f"{prefix}{n}" for prefix in ("COM", "LPT") for n in range(1, 10)
+    f"{prefix}{n}" for prefix in ("COM", "LPT") for n in "123456789¹²³"
 }
+_WINDOWS_FORBIDDEN = frozenset('<>:"|?*')
 
 
 @dataclass(frozen=True)
@@ -74,7 +75,7 @@ def _canonical(path: str) -> bool:
             not part
             or part in {".", ".."}
             or part.rstrip(" .") != part
-            or ":" in part
+            or any(char in _WINDOWS_FORBIDDEN for char in part)
             or part.split(".", 1)[0].upper() in _BAD_WINDOWS_STEMS
         ):
             return False
