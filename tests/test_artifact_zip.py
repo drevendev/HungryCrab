@@ -147,6 +147,43 @@ def test_refuse_member_size_mismatch() -> None:
         check_zip_members(blob, (_expect("manifest.json", b"12"),))
 
 
+@pytest.mark.parametrize("attribute", [0x0008, 0x0010, 0x0040, 0x0400])
+def test_refuse_windows_special_attributes_without_trailing_slash(attribute: int) -> None:
+    """DOS metadata can flag a directory, device, label or reparse point as a file."""
+    info = zipfile.ZipInfo("manifest.json")
+    info.create_system = 0
+    info.external_attr = attribute
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(info, b"ok")
+    with pytest.raises(CrabError, match="invalid archive member encoding or size"):
+        check_zip_members(stream.getvalue(), (_expect("manifest.json", b"ok"),))
+
+
+def test_allow_ordinary_windows_archive_attribute() -> None:
+    info = zipfile.ZipInfo("manifest.json")
+    info.create_system = 0
+    info.external_attr = 0x0020
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(info, b"ok")
+    checked = check_zip_members(stream.getvalue(), (_expect("manifest.json", b"ok"),))
+    assert checked[0].path == "manifest.json"
+
+
+@pytest.mark.parametrize("file_type", [stat.S_IFLNK, stat.S_IFCHR, stat.S_IFDIR])
+def test_refuse_special_unix_mode_even_with_dos_origin(file_type: int) -> None:
+    """A DOS/FAT origin marker cannot hide special-file metadata in the mode bits."""
+    info = zipfile.ZipInfo("manifest.json")
+    info.create_system = 0
+    info.external_attr = ((file_type | 0o644) << 16) | 0x0020
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(info, b"ok")
+    with pytest.raises(CrabError, match="invalid archive member encoding or size"):
+        check_zip_members(stream.getvalue(), (_expect("manifest.json", b"ok"),))
+
+
 def test_refuse_unix_symlink_even_if_named_json() -> None:
     stream = io.BytesIO()
     info = zipfile.ZipInfo("manifest.json")
