@@ -1,0 +1,9 @@
+{
+  "schema": 2,
+  "status": "FAILED",
+  "run_id": "44791319784",
+  "workflow_sha": "03bb104a937b66fb2a6457213d19cc44df66e23a",
+  "records": [],
+  "interpretation": "Public symbol records only; no unwound stack or causal finding",
+  "error": "Command '['/usr/bin/llvm-pdbutil-22', '--version']' timed out after 10 seconds"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "source_run": 44791319784,
+  "source_head": "4abf0846937e3669f7569963cb22473b4f7f0348",
+  "attempts": [
+    {
+      "attempt": 1,
+      "job": 136479420983,
+      "error_lines": [
+        "2026-11-20T18:17:31.6846752Z     raise TimeoutExpired(",
+        "2026-11-20T18:17:31.6847008Z subprocess.TimeoutExpired: Command '['/usr/bin/llvm-pdbutil-22', '--version']' timed out after 10 seconds"
+      ]
+    },
+    {
+      "attempt": 2,
+      "job": 136483248197,
+      "artifact_id": 14656409062,
+      "error_lines": [
+        "2026-11-20T18:25:10.3015223Z TimeoutError: The read operation timed out"
+      ]
+    }
+  ],
+  "interpretation": "Tool startup and public-network timeouts respectively; neither is an original native exception reproduction; no exception was swallowed."
+}
+

@@ -1,0 +1,32 @@
+diff --git a/scripts/relay_public_symbols.py b/scripts/relay_public_symbols.py
+index 65d8de4..948e154 100644
+--- a/scripts/relay_public_symbols.py
++++ b/scripts/relay_public_symbols.py
+@@ -52,9 +52,9 @@ def dbi_age(data: bytes) -> int:
+         return data[index * block_size : (index + 1) * block_size]
+ 
+     mapping = block(block_map)
+-    directory = b"".join(
+-        block(_u32(mapping, index * 4)) for index in range(directory_blocks)
+-    )[:directory_size]
++    directory = b"".join(block(_u32(mapping, index * 4)) for index in range(directory_blocks))[
++        :directory_size
++    ]
+     stream_count = _u32(directory, 0)
+     if not 4 <= stream_count <= 4096 or 4 + stream_count * 4 > len(directory):
+         raise ValueError("invalid MSF stream directory")
+diff --git a/tests/test_relay_public_symbols.py b/tests/test_relay_public_symbols.py
+index c93c793..1c449ef 100644
+--- a/tests/test_relay_public_symbols.py
++++ b/tests/test_relay_public_symbols.py
+@@ -25,9 +25,7 @@ def _pdb(age: int = 1, *, block_size: int = 4096) -> bytes:
+     data[:32] = _script["MSF_MAGIC"]
+     struct.pack_into("<6I", data, 32, block_size, 1, 9, 36, 0, 4)
+     struct.pack_into("<I", data, block_size * 4, 3)
+-    struct.pack_into(
+-        "<9I", data, block_size * 3, 4, 0xFFFFFFFF, 28, block_size + 4, 64, 5, 6, 7, 8
+-    )
++    struct.pack_into("<9I", data, block_size * 3, 4, 0xFFFFFFFF, 28, block_size + 4, 64, 5, 6, 7, 8)
+     struct.pack_into("<3I", data, block_size * 8, 0xFFFFFFFF, 20091201, age)
+     return bytes(data)
+ 

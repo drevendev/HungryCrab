@@ -1,0 +1,418 @@
+{
+  "recorded_at_utc": "2026-11-20T18:41:38Z",
+  "interpretation": "Previously completed exact-source/landed Actions job inventories read on resume; not results for PR699",
+  "runs": {
+    "44464760372": {
+      "total_count": 22,
+      "jobs": [
+        {
+          "id": 135359758599,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758719,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758722,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758729,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758733,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758768,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758781,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758841,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758845,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758850,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758907,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758924,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758934,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758937,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359758983,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359759038,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359759069,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135359759135,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135364262739,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135364262747,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135364262764,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135364262848,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "44479395408": {
+      "total_count": 22,
+      "jobs": [
+        {
+          "id": 135407666241,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666446,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666467,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666523,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666532,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666534,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666573,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666587,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666618,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666627,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666634,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666648,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666653,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666687,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666698,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666716,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666744,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135407666747,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135412763574,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135412763585,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135412763594,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135412763600,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "44532024065": {
+      "total_count": 22,
+      "jobs": [
+        {
+          "id": 135587543037,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543296,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543401,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543452,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543481,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543489,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543544,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543586,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543619,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543623,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543633,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543655,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543719,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543720,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543735,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543758,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543856,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135587543859,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135594620548,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135594620584,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135594620651,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 135594620703,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  }
+}
+

@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-20T18:37:22Z",
+  "method": "Transcribed previously recovered MINIDUMP header/directory scalar inventory. No debugger, execution, raw-memory publication or additional raw-dump read after owner's Actions-only confirmation.",
+  "private_storage": "Ignored local .crab/experiments; original files retained",
+  "entries": [
+    {
+      "file": "python.exe.44424.dmp",
+      "bytes": 2371012,
+      "sha256": "a28f0ae454f8f6548829e1148728da36d370076424bd0b786651b1eb7de384d4",
+      "flags": "0x200121",
+      "streams": [
+        [
+          3,
+          292,
+          1776
+        ],
+        [
+          4,
+          5188,
+          2080
+        ],
+        [
+          13,
+          4536,
+          7268
+        ],
+        [
+          5,
+          2164,
+          40258
+        ],
+        [
+          6,
+          168,
+          1608
+        ],
+        [
+          7,
+          56,
+          188
+        ],
+        [
+          15,
+          1364,
+          244
+        ],
+        [
+          21,
+          524,
+          11804
+        ],
+        [
+          22,
+          152,
+          12328
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "file": "python.exe.18580.dmp",
+      "bytes": 2370000,
+      "sha256": "2c1892b95cf4a5eeac1d46660c5ae734e32bf66db4198b955aadd810867c975f",
+      "flags": "0x200121",
+      "streams": [
+        [
+          3,
+          292,
+          1776
+        ],
+        [
+          4,
+          5188,
+          2080
+        ],
+        [
+          13,
+          4536,
+          7268
+        ],
+        [
+          5,
+          2100,
+          40258
+        ],
+        [
+          6,
+          168,
+          1608
+        ],
+        [
+          7,
+          56,
+          188
+        ],
+        [
+          15,
+          1364,
+          244
+        ],
+        [
+          21,
+          524,
+          11804
+        ],
+        [
+          22,
+          152,
+          12328
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  ],
+  "stream_tuple": [
+    "type",
+    "bytes",
+    "file_offset"
+  ],
+  "handle_data_stream_type_12": "ABSENT_BOTH",
+  "handle_operation_list_stream_type_18": "ABSENT_BOTH",
+  "conclusion": "HANDLE_STREAM_ABSENT; HANDLE_OWNER_UNKNOWN. No original unwound stack was obtained; root cause is unresolved."
+}
+

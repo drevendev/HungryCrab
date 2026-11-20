@@ -1,0 +1,475 @@
+{
+  "recorded_at_utc": "2026-11-20T18:41:38Z",
+  "source_head": "b75d4f3305716ad7e95111409371e05acab7beda",
+  "synthetic_merge": {
+    "sha": "16f53c3bcb06faa435de58606957283636092606",
+    "parents": [
+      "9b8011f7676644e4c9f0a55ad5df43d2bb065633",
+      "b75d4f3305716ad7e95111409371e05acab7beda"
+    ]
+  },
+  "runs": {
+    "44793174994": {
+      "total_count": 18,
+      "jobs": [
+        {
+          "id": 136485900286,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:39Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900286"
+        },
+        {
+          "id": 136485900537,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:29Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900537"
+        },
+        {
+          "id": 136485900565,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:53Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900565"
+        },
+        {
+          "id": 136485900576,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:49Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900576"
+        },
+        {
+          "id": 136485900602,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:26Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900602"
+        },
+        {
+          "id": 136485900609,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:30:31Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900609"
+        },
+        {
+          "id": 136485900643,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": "2026-11-20T18:29:39Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900643"
+        },
+        {
+          "id": 136485900648,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": "2026-11-20T18:30:47Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900648"
+        },
+        {
+          "id": 136485900679,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:47Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900679"
+        },
+        {
+          "id": 136485900686,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": "2026-11-20T18:31:01Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900686"
+        },
+        {
+          "id": 136485900695,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": "2026-11-20T18:37:16Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900695"
+        },
+        {
+          "id": 136485900760,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:47Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900760"
+        },
+        {
+          "id": 136485900761,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:38Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900761"
+        },
+        {
+          "id": 136485900792,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:39:13Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900792"
+        },
+        {
+          "id": 136485900840,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": null,
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900840"
+        },
+        {
+          "id": 136485900874,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:29:39Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900874"
+        },
+        {
+          "id": 136485900951,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:10Z",
+          "completed_at": "2026-11-20T18:30:21Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900951"
+        },
+        {
+          "id": 136485900979,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:11Z",
+          "completed_at": "2026-11-20T18:37:08Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174994/job/136485900979"
+        }
+      ]
+    },
+    "44791182447": {
+      "total_count": 22,
+      "jobs": [
+        {
+          "id": 136478935865,
+          "name": "Lint and type-check",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:36Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478935865"
+        },
+        {
+          "id": 136478936131,
+          "name": "Hard acquisition quota (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:43Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936131"
+        },
+        {
+          "id": 136478936165,
+          "name": "Immutable novelty (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:26:21Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936165"
+        },
+        {
+          "id": 136478936185,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:21Z",
+          "completed_at": "2026-11-20T18:17:03Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936185"
+        },
+        {
+          "id": 136478936189,
+          "name": "Clean installation (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:24Z",
+          "completed_at": "2026-11-20T18:18:52Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936189"
+        },
+        {
+          "id": 136478936198,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:17:40Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936198"
+        },
+        {
+          "id": 136478936206,
+          "name": "Clean installation (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:41Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936206"
+        },
+        {
+          "id": 136478936224,
+          "name": "Acquisition lifecycle (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:17:45Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936224"
+        },
+        {
+          "id": 136478936235,
+          "name": "Base installation without optional extras",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:36Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936235"
+        },
+        {
+          "id": 136478936253,
+          "name": "Hard acquisition quota (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:18:52Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936253"
+        },
+        {
+          "id": 136478936294,
+          "name": "Discovery operation gates (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:21Z",
+          "completed_at": "2026-11-20T18:23:42Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936294"
+        },
+        {
+          "id": 136478936402,
+          "name": "Discovery operation gates (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:52Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936402"
+        },
+        {
+          "id": 136478936406,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:49Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936406"
+        },
+        {
+          "id": 136478936458,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:17:04Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936458"
+        },
+        {
+          "id": 136478936466,
+          "name": "Discovery operation gates (windows-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:22:11Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936466"
+        },
+        {
+          "id": 136478936473,
+          "name": "Immutable novelty (windows-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:26:45Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936473"
+        },
+        {
+          "id": 136478936475,
+          "name": "Immutable novelty (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:17:04Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936475"
+        },
+        {
+          "id": 136478936589,
+          "name": "Acquisition lifecycle (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:16:20Z",
+          "completed_at": "2026-11-20T18:16:50Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136478936589"
+        },
+        {
+          "id": 136484620600,
+          "name": "Test (windows-latest, Python 3.11)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-11-20T18:26:47Z",
+          "completed_at": null,
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136484620600"
+        },
+        {
+          "id": 136484620626,
+          "name": "Test (ubuntu-latest, Python 3.14)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:26:48Z",
+          "completed_at": "2026-11-20T18:30:19Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136484620626"
+        },
+        {
+          "id": 136484620635,
+          "name": "Test (ubuntu-latest, Python 3.11)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:26:47Z",
+          "completed_at": "2026-11-20T18:29:29Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136484620635"
+        },
+        {
+          "id": 136484620707,
+          "name": "Test (windows-latest, Python 3.14)",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-11-20T18:26:47Z",
+          "completed_at": null,
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44791182447/job/136484620707"
+        }
+      ]
+    },
+    "44793174935": {
+      "total_count": 8,
+      "jobs": [
+        {
+          "id": 136485843839,
+          "name": "Diagnostic harness checks",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:29:23Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485843839"
+        },
+        {
+          "id": 136485844131,
+          "name": "Relay (current_checkout, Python 3.11.16, acquisition_file)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:32:00Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844131"
+        },
+        {
+          "id": 136485844192,
+          "name": "Relay (historical_acquisition_reference, Python 3.11.16, acquisition_file)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:32:41Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844192"
+        },
+        {
+          "id": 136485844233,
+          "name": "Relay (current_checkout, Python 3.11.16, quota_target)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:29:48Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844233"
+        },
+        {
+          "id": 136485844235,
+          "name": "Relay (historical_acquisition_reference, Python 3.14.10, quota_target)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:29:48Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844235"
+        },
+        {
+          "id": 136485844312,
+          "name": "Relay (historical_acquisition_reference, Python 3.11.16, quota_target)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:30:00Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844312"
+        },
+        {
+          "id": 136485844417,
+          "name": "Relay (current_checkout, Python 3.14.10, quota_target)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:04Z",
+          "completed_at": "2026-11-20T18:29:40Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485844417"
+        },
+        {
+          "id": 136485846353,
+          "name": "Recovered public module symbols",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-11-20T18:29:02Z",
+          "completed_at": "2026-11-20T18:29:02Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174935/job/136485846353"
+        }
+      ]
+    },
+    "44793174859": {
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 136485844136,
+          "name": "Analyze Python",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-11-20T18:29:05Z",
+          "completed_at": "2026-11-20T18:30:01Z",
+          "html_url": "https://github.com/drevendev/HungryCrab/actions/runs/44793174859/job/136485844136"
+        }
+      ]
+    }
+  }
+}
+

@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-20T18:41:38Z",
+  "repository": "drevendev/HungryCrab",
+  "owner_instruction": "Continue T6 and PR693 verification. All execution checks in Actions, no paid model runs. Owner explicitly confirmed no private Windows runner; preserve Actions-only.",
+  "previous_checkpoint": "T6-RESUME-FINAL-20261118.json",
+  "boundaries": {
+    "checks": "ACTIONS_ONLY",
+    "local_debugger": "NOT_RUN",
+    "new_native_dump_capture": "NOT_RUN",
+    "local_native_reproduction": "NOT_RUN",
+    "raw_dump_upload": "NOT_DONE",
+    "paid_model_runs": "NOT_RUN",
+    "local_donor_acquisition": "NOT_RUN",
+    "donor_execution": "NOT_RUN",
+    "merge_tag_release": "NOT_DONE_THIS_TURN"
+  },
+  "prior_integration": [
+    {
+      "pr": 693,
+      "state": "MERGED_BY_OTHER_ACTOR_BEFORE_RESUME",
+      "head": "f94355b6f025a4fe01dc76742a883d91e7cd2d15",
+      "landed": "9a4554b2d44a127505ce2a3931f639f53bdcd756",
+      "source_ci": {
+        "run": 44464760372,
+        "result": "SUCCESS",
+        "jobs": 22
+      },
+      "source_diagnostic": {
+        "run": 44464760358,
+        "result": "SUCCESS"
+      },
+      "source_codeql": {
+        "run": 44464760406,
+        "result": "SUCCESS"
+      },
+      "landed_ci": {
+        "run": 44479395408,
+        "result": "SUCCESS",
+        "jobs": 22
+      }
+    },
+    {
+      "pr": 694,
+      "state": "MERGED_BY_OTHER_ACTOR_BEFORE_RESUME",
+      "head": "723a522574ea7e4a85c64542e0bb63d38f10742a",
+      "landed": "23bb5b67c25fa21dfc91cb85fcc53bdc2dfc8e30",
+      "landed_ci": {
+        "run": 44532024065,
+        "result": "SUCCESS",
+        "jobs": 22
+      },
+      "change": "Setup phases and timed faulthandler capture; no causal native fix"
+    }
+  ],
+  "receiving_state": {
+    "initial_master": "05e40d7c595d2a47d1f3631eff28246e00bb8b16",
+    "initial_master_ci": {
+      "run": 44735354019,
+      "result": "SUCCESS",
+      "jobs": 22
+    },
+    "current_master": "9b8011f7676644e4c9f0a55ad5df43d2bb065633",
+    "current_master_ci": {
+      "run": 44791182447,
+      "result": "IN_PROGRESS"
+    },
+    "current_master_codeql": {
+      "run": 44791182495,
+      "result": "SUCCESS"
+    },
+    "concurrent_change": "PR698 landed while this work was being prepared; only artifact_zip.py and test_artifact_zip.py changed, no overlap with PR699"
+  },
+  "candidate": {
+    "pr": 699,
+    "url": "https://github.com/drevendev/HungryCrab/pull/699",
+    "state": "OPEN_DRAFT",
+    "head": "b75d4f3305716ad7e95111409371e05acab7beda",
+    "base": "9b8011f7676644e4c9f0a55ad5df43d2bb065633",
+    "branch": "codex/t6-pdb-binding-679",
+    "worktree": "C:\\MyProjects\\Codex\\HungryCrab\\.crab\\worktrees\\t6-pdb-679",
+    "scope": "Public symbol diagnostic, synthetic parser/binding controls, workflow and explanatory documentation only; no shipped CLI behavior change"
+  },
+  "corrected_binding": {
+    "old_conclusion": "PDB Info age equality was incorrectly used as image binding; previous held records are preserved, not silently rewritten",
+    "source": "https://github.com/microsoft/microsoft-pdb/blob/master/PDB/dbi/pdb.cpp",
+    "rule": "Exact GUID; Info age >= image age; DBI age == image age, nonzero",
+    "legacy_zero": "HELD intentionally stricter than Microsoft's legacy fallback",
+    "ntdll": {
+      "info_age": 4,
+      "dbi_age": 1,
+      "expected": 1,
+      "status": "MATCHED",
+      "fault_rva": "0x16A4FA",
+      "label": "KiRaiseUserExceptionDispatcher+0x3A"
+    },
+    "ws2_32": {
+      "info_age": 3,
+      "dbi_age": 1,
+      "expected": 1,
+      "status": "MATCHED"
+    },
+    "limits": "Nearest public labels only. Scanned pointers are not verified callers; no function-length proof, unwound native stack, handle owner or root cause."
+  },
+  "validation": {
+    "focused_dispatch": {
+      "run": 44793173312,
+      "head": "b75d4f3305716ad7e95111409371e05acab7beda",
+      "result": "SUCCESS",
+      "selected_successful_jobs": 2,
+      "intentionally_skipped_matrix": 1,
+      "harness": {
+        "passed": 49,
+        "skipped": 1,
+        "ruff": "SUCCESS",
+        "repository_mypy": "SUCCESS:138 source files",
+        "script_mypy": "SUCCESS:1 source file"
+      },
+      "artifact_id": 14658145280,
+      "artifact_digest": "sha256:37d1d034276032a38edd1533643777d31fcfbed5eb0aea1115cf8996cb790d42"
+    },
+    "diagnostic_pr": {
+      "run": 44793174935,
+      "head": "b75d4f3305716ad7e95111409371e05acab7beda",
+      "result": "SUCCESS",
+      "successful_jobs": 7,
+      "intentionally_skipped_live_symbol_job": 1,
+      "actual_checkout": "16f53c3bcb06faa435de58606957283636092606",
+      "checkout_kind": "refs/pull/699/merge; separate event head is b75d4f3",
+      "profiles": 6,
+      "children_per_profile": 8,
+      "outcome": "NOT_REPRODUCED",
+      "causal_fix": false
+    },
+    "codeql": {
+      "run": 44793174859,
+      "head": "b75d4f3305716ad7e95111409371e05acab7beda",
+      "result": "SUCCESS",
+      "jobs": 1
+    },
+    "ci": {
+      "run": 44793174994,
+      "head": "b75d4f3305716ad7e95111409371e05acab7beda",
+      "result": "IN_PROGRESS",
+      "jobs_currently_visible": 18,
+      "success": 17,
+      "in_progress": 1,
+      "expected_final_jobs": 22,
+      "note": "Four full-suite jobs are dependency-gated and have not started yet. Do not claim complete validation from focused or superseded checks."
+    }
+  },
+  "failure_history": [
+    {
+      "run": 44789972952,
+      "head": "a79f2bd7ac10bb060cb8fbaddc5ecf7b855a067a",
+      "failure": "Hosted format --check",
+      "correction": "Exact hosted formatting patch applied in a152a4b; first actual public PDB capture succeeded"
+    },
+    {
+      "run": 44791319784,
+      "head": "4abf0846937e3669f7569963cb22473b4f7f0348",
+      "attempt": 1,
+      "job": 136479420983,
+      "failure": "llvm-pdbutil-22 --version exceeded 10 seconds",
+      "native_reproduction": false
+    },
+    {
+      "run": 44791319784,
+      "head": "4abf0846937e3669f7569963cb22473b4f7f0348",
+      "attempt": 2,
+      "job": 136483248197,
+      "failure": "urllib read timeout",
+      "artifact_id": 14656409062,
+      "native_reproduction": false,
+      "rerun_scope": "Single failed-job rerun requested; provider returned latest attempt containing eight jobs"
+    },
+    {
+      "run": 44791319822,
+      "head": "4abf0846937e3669f7569963cb22473b4f7f0348",
+      "result": "SUPERSEDED_AND_CANCELLED_BY_NEW_PUSH",
+      "not_a_pass": true
+    }
+  ],
+  "final_workflow_decision": "Live external symbol enrichment requires explicit workflow_dispatch; deterministic parser/binding tests, six existing relay profiles and full CI remain PR validation. Selected symbol tool/network failures still fail and retain artifacts; no continue-on-error.",
+  "original_evidence": {
+    "dumps": "Privately preserved; no new raw-dump reads after the owner's latest boundary confirmation",
+    "directory_inventory": "original-dump-stream-inventory.json",
+    "handle_data_stream": "ABSENT_BOTH",
+    "handle_operation_list_stream": "ABSENT_BOTH",
+    "native_unwind": "NOT_OBTAINED",
+    "handle_owner": "UNKNOWN",
+    "original_first_assertion_failure": "UNKNOWN",
+    "first_forensic_acceptance": "INCOMPLETE",
+    "private_actions_runner_count": 0,
+    "owner_reply": "Нет, сохраняем Actions-only",
+    "conclusion": "Original private dump debugger analysis unavailable in the current authorized Actions environment. Absent handle streams rule out handle-table data in these dumps; they do not prove every causal inference impossible."
+  },
+  "task_states": {
+    "671": "CLOSED/completed",
+    "675": "OPEN",
+    "679": "OPEN; forensic attribution incomplete"
+  },
+  "next_steps": [
+    "Read remaining PR699 exact-head full CI and inspect concrete failures if any",
+    "Keep PR699 draft and unmerged pending full verification/review and explicit merge authorization",
+    "Keep original forensic gate open; no local WinDbg or public raw-dump processing, speculative runtime patch, paid run or repeated native campaign"
+  ]
+}
+

@@ -1,0 +1,78 @@
+{
+  "schema": 2,
+  "status": "PUBLIC_RECORDS_CAPTURED",
+  "run_id": "44793173312",
+  "workflow_sha": "b75d4f3305716ad7e95111409371e05acab7beda",
+  "records": [
+    {
+      "pdb": "ntdll.pdb",
+      "expected_symbol_id": "44294CBD55E8CD67B3D56B689F03152D1",
+      "source": "https://msdl.microsoft.com/download/symbols/ntdll.pdb/44294CBD55E8CD67B3D56B689F03152D1/ntdll.pdb",
+      "bytes": 1921024,
+      "sha256": "26d65ee88992ad9c3b258142f7dd3aac3b56f9e271587d9043d01dab3552163c",
+      "dbi_read_error": null,
+      "identity_status": "MATCHED",
+      "actual_guid": "44294CBD55E8CD67B3D56B689F03152D",
+      "actual_age": 4,
+      "actual_dbi_age": 1,
+      "expected_age": 1,
+      "match_rule": "exact GUID; PDB Info age >= image age; nonzero DBI age == image age",
+      "address_labels": [
+        {
+          "rva": "0x16A4FA",
+          "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+          "entry_rva": "0x16A4C0",
+          "offset": 58,
+          "names": [
+            "KiRaiseUserExceptionDispatcher"
+          ]
+        }
+      ]
+    },
+    {
+      "pdb": "ws2_32.pdb",
+      "expected_symbol_id": "9DC73321ED08893007DF02E641F44B871",
+      "source": "https://msdl.microsoft.com/download/symbols/ws2_32.pdb/9DC73321ED08893007DF02E641F44B871/ws2_32.pdb",
+      "bytes": 528384,
+      "sha256": "9feee371ece7e9542762eac7528e5eac108593d6da15a51a8eb8b31378bdf038",
+      "dbi_read_error": null,
+      "identity_status": "MATCHED",
+      "actual_guid": "9DC73321ED08893007DF02E641F44B87",
+      "actual_age": 3,
+      "actual_dbi_age": 1,
+      "expected_age": 1,
+      "match_rule": "exact GUID; PDB Info age >= image age; nonzero DBI age == image age",
+      "address_labels": [
+        {
+          "rva": "0x2566A",
+          "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+          "entry_rva": "0x25630",
+          "offset": 58,
+          "names": [
+            "?Prolog_v1@@YAHPEAPEAVDPROCESS@@PEAPEAVDTHREAD@@@Z"
+          ]
+        },
+        {
+          "rva": "0x1FCCD",
+          "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+          "entry_rva": "0x1FC98",
+          "offset": 53,
+          "names": [
+            "?FindIFSSocket@DSOCKET@@CAPEAV1@_K@Z"
+          ]
+        },
+        {
+          "rva": "0x21DC8",
+          "status": "NEAREST_PUBLIC_ENTRY_ONLY",
+          "entry_rva": "0x20EB0",
+          "offset": 3864,
+          "names": [
+            "select"
+          ]
+        }
+      ]
+    }
+  ],
+  "interpretation": "Public symbol records only; no unwound stack or causal finding",
+  "tool": "Ubuntu LLVM version 22.1.2\n  Optimized build.\n"
+}
