@@ -62,6 +62,27 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
         check_zip_members(blob, (_expect(bad_name, b"a"),))
 
 
+@pytest.mark.parametrize(
+    ("original_name", "raw_name", "declared_name"),
+    [
+        ("manifest.jsonX", b"manifest.json\x00", "manifest.json"),
+        ("pages_report.md", b"pages\\report.md", "pages/report.md"),
+    ],
+)
+def test_refuse_raw_zip_member_name_alias(
+    original_name: str, raw_name: bytes, declared_name: str
+) -> None:
+    """Reject original ZIP names even if zipfile normalizes them to declared paths."""
+    blob = _zip((original_name, b"ok"), compression=zipfile.ZIP_STORED)
+    original_bytes = original_name.encode("ascii")
+    assert len(original_bytes) == len(raw_name)
+    # Seekable synthetic ZIP: same-length names appear in both headers.
+    assert blob.count(original_bytes) == 2
+    blob = blob.replace(original_bytes, raw_name)
+    with pytest.raises(CrabError, match="unsafe raw archive path or alias"):
+        check_zip_members(blob, (_expect(declared_name, b"ok"),))
+
+
 def test_refuse_missing_or_extra_member() -> None:
     blob = _zip(("manifest.json", b"{}"), ("extra.md", b"extra"))
     with pytest.raises(CrabError):
