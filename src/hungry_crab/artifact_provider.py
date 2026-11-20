@@ -115,7 +115,9 @@ def compare_provider_records(
 ) -> MatchedProviderRecords:
     """Compare independent native records to one reviewed, exact expected identity.
 
-    Only full GitHub SHA-1 OIDs are supported here; do not silently accept a\n    Git SHA-256 OID without a separately reviewed object-format contract.\n    Never call this with records copied from archive/manifest/PR prose. Even
+    Only full GitHub SHA-1 OIDs are supported here; do not silently accept a
+    Git SHA-256 OID without a separately reviewed object-format contract.
+    Never call this with records copied from archive/manifest/PR prose. Even
     matching records cannot authorize COPY, REIMPLEMENT, or publication: A2
     must still validate bytes, complete coverage, sources, rights and grants.
     """
@@ -132,8 +134,11 @@ def compare_provider_records(
             not all(
                 _positive(getattr(candidate, field))
                 for field in (
-                    "repository_id", "workflow_id", "head_repository_id",
-                    "run_id", "run_attempt",
+                    "repository_id",
+                    "workflow_id",
+                    "head_repository_id",
+                    "run_id",
+                    "run_attempt",
                 )
             )
             or not _sha(candidate.workflow_sha)
@@ -175,9 +180,16 @@ def compare_provider_records(
         raise _hold("producer job/run incomplete, unsuccessful, or artifact expired")
 
     run_fields = (
-        "repository_id", "workflow_id", "workflow_sha", "tool_sha",
-        "event", "head_repository_id", "head_ref", "head_sha",
-        "run_id", "run_attempt",
+        "repository_id",
+        "workflow_id",
+        "workflow_sha",
+        "tool_sha",
+        "event",
+        "head_repository_id",
+        "head_ref",
+        "head_sha",
+        "run_id",
+        "run_attempt",
     )
     if any(getattr(run, field) != getattr(expected, field) for field in run_fields):
         raise _hold("producer, request, run or executed revision does not match")
