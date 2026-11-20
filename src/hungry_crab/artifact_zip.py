@@ -172,9 +172,8 @@ def check_zip_members(
                     # Windows volume, directory, device and reparse-point entries
                     # may have ordinary filenames; filename-based is_dir() misses them.
                     or info.external_attr & _WINDOWS_SPECIAL_ATTRIBUTES
-                    or # Fail closed on special POSIX type metadata even when the archive
-                    # claims a DOS/FAT origin: the OS marker is not a trust proof.
-                    file_type not in (0, stat.S_IFREG)
+                    # The claimed origin OS cannot authorize special POSIX mode bits.
+                    or file_type not in (0, stat.S_IFREG)
                     or info.flag_bits & ~supported_flags
                     or info.compress_type not in _ALLOWED_COMPRESSION
                     or info.file_size != spec.size
