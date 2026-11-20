@@ -171,6 +171,19 @@ def test_allow_ordinary_windows_archive_attribute() -> None:
     assert checked[0].path == "manifest.json"
 
 
+@pytest.mark.parametrize("file_type", [stat.S_IFLNK, stat.S_IFCHR, stat.S_IFDIR])
+def test_refuse_special_unix_mode_even_with_dos_origin(file_type: int) -> None:
+    """A DOS/FAT origin marker cannot hide special-file metadata in the mode bits."""
+    info = zipfile.ZipInfo("manifest.json")
+    info.create_system = 0
+    info.external_attr = ((file_type | 0o644) << 16) | 0x0020
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(info, b"ok")
+    with pytest.raises(CrabError, match="invalid archive member encoding or size"):
+        check_zip_members(stream.getvalue(), (_expect("manifest.json", b"ok"),))
+
+
 def test_refuse_unix_symlink_even_if_named_json() -> None:
     stream = io.BytesIO()
     info = zipfile.ZipInfo("manifest.json")
