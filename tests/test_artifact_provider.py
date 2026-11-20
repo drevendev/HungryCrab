@@ -188,7 +188,6 @@ def test_refuse_fake_native_records() -> None:
         compare_provider_records(expected, run, None, artifact)  # type: ignore[arg-type]
 
 
-
 def test_prior_attempt_artifact_cannot_prove_current_job_lineage() -> None:
     expected, run, job, _artifact = _records()
     # The successful second attempt reuses the run ID. Native artifact
