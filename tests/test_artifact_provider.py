@@ -79,8 +79,7 @@ def test_matching_native_records_is_not_rights_authority() -> None:
     match = compare_provider_records(expected, run, job, artifact)
     assert match == MatchedProviderRecords(789, 2, 300, 400, 1024, _DIGEST)
     assert not any(
-        hasattr(match, name)
-        for name in ("trusted", "approved", "can_copy", "grant", "admitted")
+        hasattr(match, name) for name in ("trusted", "approved", "can_copy", "grant", "admitted")
     )
 
 
