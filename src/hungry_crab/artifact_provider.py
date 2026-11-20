@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 from .errors import CrabError
 
-_FULL_GIT_SHA = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+_FULL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
 _PROVIDER_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
@@ -115,7 +115,7 @@ def compare_provider_records(
 ) -> MatchedProviderRecords:
     """Compare independent native records to one reviewed, exact expected identity.
 
-    Never call this with records copied from archive/manifest/PR prose. Even
+    Only full GitHub SHA-1 OIDs are supported here; do not silently accept a\n    Git SHA-256 OID without a separately reviewed object-format contract.\n    Never call this with records copied from archive/manifest/PR prose. Even
     matching records cannot authorize COPY, REIMPLEMENT, or publication: A2
     must still validate bytes, complete coverage, sources, rights and grants.
     """
@@ -139,9 +139,12 @@ def compare_provider_records(
             or not _sha(candidate.workflow_sha)
             or not _sha(candidate.tool_sha)
             or not _sha(candidate.head_sha)
+            or type(candidate.event) is not str
             or not candidate.event
+            or type(candidate.head_ref) is not str
             or not candidate.head_ref.startswith("refs/heads/")
             or len(candidate.head_ref) <= len("refs/heads/")
+            or any(ord(c) <= 32 or ord(c) == 127 for c in candidate.head_ref)
         ):
             raise _hold("incomplete or unsupported producer identity")
 
