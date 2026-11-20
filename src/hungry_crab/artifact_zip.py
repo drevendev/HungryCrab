@@ -140,6 +140,20 @@ def check_zip_members(
                 spec = declared.get(name)
                 if spec is None:
                     raise _refuse("undeclared archive member")
+                # ZIP's central directory does not certify the local header.
+                # zipfile.open() checks its filename, but does not reject
+                # unsupported flags or compression mismatches in that header.
+                offset = info.header_offset
+                if (
+                    offset < 0
+                    or offset + 30 > len(archive)
+                    or archive[offset : offset + 4] != b"PK\x03\x04"
+                ):
+                    raise _refuse("invalid local ZIP header")
+                local_flags = int.from_bytes(archive[offset + 6 : offset + 8], "little")
+                local_method = int.from_bytes(archive[offset + 8 : offset + 10], "little")
+                if local_flags != info.flag_bits or local_method != info.compress_type:
+                    raise _refuse("local and central ZIP headers disagree")
                 mode = info.external_attr >> 16
                 file_type = stat.S_IFMT(mode)
                 # Admit only documented flags that this inert reader supports:
