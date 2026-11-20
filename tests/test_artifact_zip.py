@@ -115,6 +115,28 @@ def test_refuse_unsupported_zip_feature_flags(unsupported_flag: int) -> None:
         check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
 
 
+
+@pytest.mark.parametrize("local_only_flag", [0x0001, 0x0020, 0x0040, 0x1000])
+def test_refuse_unsupported_local_only_zip_feature_flags(local_only_flag: int) -> None:
+    """Local ZIP flags must match the central directory even if bytes and hash match."""
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
+    local_header = blob.index(b"PK\x03\x04")
+    central_header = blob.index(b"PK\x01\x02")
+    assert struct.unpack_from("<H", blob, central_header + 8)[0] == 0
+    struct.pack_into("<H", blob, local_header + 6, local_only_flag)
+    with pytest.raises(CrabError, match="local and central ZIP headers disagree"):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
+def test_refuse_local_only_zip_compression_mismatch() -> None:
+    """Central ZIP_STORED must not conceal a different local compression method."""
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
+    local_header = blob.index(b"PK\x03\x04")
+    struct.pack_into("<H", blob, local_header + 8, zipfile.ZIP_DEFLATED)
+    with pytest.raises(CrabError, match="local and central ZIP headers disagree"):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
 def test_refuse_high_compression_ratio() -> None:
     payload = b"x" * 10000
     blob = _zip(("manifest.json", payload))
