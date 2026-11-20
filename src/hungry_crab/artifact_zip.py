@@ -142,10 +142,15 @@ def check_zip_members(
                     raise _refuse("undeclared archive member")
                 mode = info.external_attr >> 16
                 file_type = stat.S_IFMT(mode)
+                # Admit only documented flags that this inert reader supports:
+                # data descriptor, UTF-8 names, and Deflate option bits.
+                supported_flags = 0x0008 | 0x0800
+                if info.compress_type == zipfile.ZIP_DEFLATED:
+                    supported_flags |= 0x0002 | 0x0004
                 if (
                     info.is_dir()
                     or (info.create_system == 3 and file_type not in (0, stat.S_IFREG))
-                    or info.flag_bits & 1
+                    or info.flag_bits & ~supported_flags
                     or info.compress_type not in _ALLOWED_COMPRESSION
                     or info.file_size != spec.size
                     or info.file_size > MAX_MEMBER_BYTES
@@ -167,6 +172,7 @@ def check_zip_members(
     except (
         zipfile.BadZipFile,
         RuntimeError,
+        NotImplementedError,
         EOFError,
         zlib.error,
         OSError,
