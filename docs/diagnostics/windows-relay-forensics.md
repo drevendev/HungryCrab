@@ -76,13 +76,26 @@ pointers are **not an unwound stack**, and must never be presented as verified c
 `scripts/relay_public_symbols.py` runs only in Actions and reads two fixed public Microsoft
 PDB identities recovered from these module records. It accepts no private dump or arbitrary
 URL/command, caps downloads at64MiB per file, bounds tool waits, and retains LLVM's public
-records and section headers. Resolve an RVA only against the matching GUID/age and image
+records and section headers. Resolve an RVA only against a verified image/PDB binding and image
 section layout; nearest public symbols alone cannot establish a call chain or cause. The
 source, tool output and downloaded-file hashes remain evidence alongside the unresolved gate.
-The first public responses had the recorded GUIDs but ages4/3 rather than the recorded1.
-These identities remain explicitly **HELD**. Successful capture is not a matched-symbol
-finding. The helper records actual/expected ages, and its Actions controls reject wrong
-or unavailable binding keys. See [Microsoft's binding-key definition](https://github.com/microsoft/pdb-rs/blob/main/docs/terminology.md).
+The initial helper incorrectly treated the PDB Info age as the image-binding age. Those
+earlier records stay unchanged: they did not capture the DBI age and cannot retroactively
+be qualified from their summaries alone. [Microsoft's OpenValidate4 implementation](https://github.com/microsoft/microsoft-pdb/blob/master/PDB/dbi/pdb.cpp)
+checks an exact GUID, a PDB Info age at least as new as the image age, and a matching DBI
+age. Source indexing can advance the Info age without changing the image binding.
+
+The helper now records **both ages**. Its bounded MSF7 reader locates the fixed DBI header
+through the stream block directory, instead of guessing from `llvm-pdbutil --summary`.
+Missing, malformed or unsupported metadata stays held. A zero legacy DBI age also stays
+held, although Microsoft's implementation permits that historical fallback. A GUID match
+or a newer Info age alone is insufficient. Successful binding only validates the symbol
+file for the recorded image; it does not establish a call chain, handle owner or root cause.
+
+Manual dispatch defaults to `scope=symbols`: symbol capture and harness checks only.
+`scope=all` explicitly adds the six relay runtime/context profiles. The original dumps
+remain private; no local debugger, raw-dump upload or new crash reproduction is required
+to verify these public PDB binding rules.
 
 CI uploads `relay-forensics-*` artifacts on both success and failure for focused lifecycle
 jobs and the full Windows suites. The artifact directory must be fresh: reuse fails rather
