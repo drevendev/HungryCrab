@@ -188,6 +188,30 @@ def test_refuse_fake_native_records() -> None:
         compare_provider_records(expected, run, None, artifact)  # type: ignore[arg-type]
 
 
+
+def test_prior_attempt_artifact_cannot_prove_current_job_lineage() -> None:
+    expected, run, job, _artifact = _records()
+    # The successful second attempt reuses the run ID. Native artifact
+    # metadata has no producer job/attempt: a leftover first-attempt artifact
+    # can have exactly these fields, including the reviewed artifact ID.
+    prior_attempt_artifact = ObservedArtifact(
+        artifact_id=expected.artifact_id,
+        run_id=expected.run_id,
+        size=expected.artifact_size,
+        digest=expected.artifact_digest,
+        expired=False,
+    )
+    assert run.run_attempt == job.run_attempt == 2
+    assert not hasattr(prior_attempt_artifact, "run_attempt")
+    assert not hasattr(prior_attempt_artifact, "job_id")
+    identity_match = compare_provider_records(expected, run, job, prior_attempt_artifact)
+    assert identity_match.artifact_job_attempt_lineage == "UNVERIFIED"
+    # The identity comparison still succeeds, but a portable admission gate
+    # MUST HOLD until independent provider-backed artifact lineage exists.
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        identity_match.require_lineage_for_admission()
+
+
 def test_refuse_self_consistent_mismatched_attempt_or_digest() -> None:
     expected, run, job, artifact = _records()
     # A different successful attempt with its own valid native job cannot be
