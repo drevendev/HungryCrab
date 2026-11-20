@@ -77,7 +77,8 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
 def test_safe_unicode_member_path_remains_allowed() -> None:
     payload = b"{}"
     member_name = "sources/café.json"
-    assert check_zip_members(_zip((member_name, payload)), (_expect(member_name, payload),))[0].path == member_name
+    checked = check_zip_members(_zip((member_name, payload)), (_expect(member_name, payload),))
+    assert checked[0].path == member_name
 
 
 @pytest.mark.parametrize(
