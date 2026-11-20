@@ -130,9 +130,13 @@ def check_zip_members(
             seen: set[str] = set()
             total_actual = 0
             for info in entries:
+                # zipfile may normalize a raw NUL suffix or Windows separators.
+                # Never admit an alias merely because its normalized spelling
+                # matches a declared manifest path.
                 name = info.filename
-                if not _canonical(name):
-                    raise _refuse("unsafe archive path or file type")
+                raw_name = info.orig_filename
+                if raw_name != name or not _canonical(raw_name):
+                    raise _refuse("unsafe raw archive path or alias")
                 folded_name = name.casefold()
                 if folded_name in seen:
                     raise _refuse("duplicate archive member")
