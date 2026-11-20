@@ -25,9 +25,7 @@ def _pdb(age: int = 1, *, block_size: int = 4096) -> bytes:
     data[:32] = _script["MSF_MAGIC"]
     struct.pack_into("<6I", data, 32, block_size, 1, 9, 36, 0, 4)
     struct.pack_into("<I", data, block_size * 4, 3)
-    struct.pack_into(
-        "<9I", data, block_size * 3, 4, 0xFFFFFFFF, 28, block_size + 4, 64, 5, 6, 7, 8
-    )
+    struct.pack_into("<9I", data, block_size * 3, 4, 0xFFFFFFFF, 28, block_size + 4, 64, 5, 6, 7, 8)
     struct.pack_into("<3I", data, block_size * 8, 0xFFFFFFFF, 20091201, age)
     return bytes(data)
 

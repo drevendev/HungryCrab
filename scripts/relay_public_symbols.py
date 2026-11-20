@@ -52,9 +52,9 @@ def dbi_age(data: bytes) -> int:
         return data[index * block_size : (index + 1) * block_size]
 
     mapping = block(block_map)
-    directory = b"".join(
-        block(_u32(mapping, index * 4)) for index in range(directory_blocks)
-    )[:directory_size]
+    directory = b"".join(block(_u32(mapping, index * 4)) for index in range(directory_blocks))[
+        :directory_size
+    ]
     stream_count = _u32(directory, 0)
     if not 4 <= stream_count <= 4096 or 4 + stream_count * 4 > len(directory):
         raise ValueError("invalid MSF stream directory")
@@ -165,6 +165,7 @@ def main() -> None:
             (destination / f"{filename}.txt").write_bytes(result.stdout)
             (destination / f"{filename}.stderr.txt").write_bytes(result.stderr)
             dbi_error: str | None = None
+            actual_dbi_age: int | None
             try:
                 actual_dbi_age = dbi_age(data)
             except ValueError as error:
