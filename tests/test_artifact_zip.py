@@ -81,7 +81,6 @@ def test_safe_unicode_member_path_remains_allowed() -> None:
     assert checked[0].path == member_name
 
 
-
 @pytest.mark.parametrize(
     "bad_name",
     ["folder/COM¹.json", "folder/LPT³.json", "a?.json", "a<.json", "a|.json"],
