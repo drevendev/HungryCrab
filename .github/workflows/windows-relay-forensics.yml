@@ -29,6 +29,9 @@ env:
 
 jobs:
   symbols:
+    # Historical symbol enrichment depends on an external service, not repository behavior.
+    # Keep it explicit; parser/binding regressions remain in harness and the full CI suites.
+    if: github.event_name == 'workflow_dispatch'
     name: Recovered public module symbols
     runs-on: ubuntu-latest
     timeout-minutes: 10

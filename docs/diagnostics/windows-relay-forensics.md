@@ -100,6 +100,11 @@ Manual dispatch defaults to `scope=symbols`: symbol capture and harness checks o
 `scope=all` explicitly adds the six relay runtime/context profiles. The original dumps
 remain private; no local debugger, raw-dump upload or new crash reproduction is required
 to verify these public PDB binding rules.
+Live Microsoft symbol enrichment runs only on explicit manual dispatch. Ordinary PR
+validation keeps the deterministic binding/parser controls and existing relay profiles;
+it does not depend on the availability of the public symbol server. An explicitly selected
+symbol capture still fails on tool/network errors and retains its failed manifest. This
+separation does not waive T6 attribution or turn a missing download into a matched identity.
 
 CI uploads `relay-forensics-*` artifacts on both success and failure for focused lifecycle
 jobs and the full Windows suites. The artifact directory must be fresh: reuse fails rather
