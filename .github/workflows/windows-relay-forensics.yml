@@ -11,6 +11,12 @@ on:
       - scripts/relay_public_symbols.py
       - tests/test_relay_public_symbols.py
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Run the public-symbol checks alone or include relay runtime profiles
+        type: choice
+        options: [symbols, all]
+        default: symbols
 
 permissions:
   contents: read
@@ -23,6 +29,9 @@ env:
 
 jobs:
   symbols:
+    # Historical symbol enrichment depends on an external service, not repository behavior.
+    # Keep it explicit; parser/binding regressions remain in harness and the full CI suites.
+    if: github.event_name == 'workflow_dispatch'
     name: Recovered public module symbols
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -58,6 +67,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      - run: uv run mypy scripts/relay_public_symbols.py
       - run: uv run pytest tests/test_acquisition_windows_forensics.py tests/test_relay_public_symbols.py -q
       - name: Prepare hosted formatting corrections
         if: failure()
@@ -71,6 +81,7 @@ jobs:
           name: relay-harness-formatting
           path: formatting.patch
   reference:
+    if: github.event_name != 'workflow_dispatch' || inputs.scope == 'all'
     name: Relay (${{ matrix.subject }}, Python ${{ matrix.python }}, ${{ matrix.profile }})
     runs-on: windows-latest
     timeout-minutes: 12
