@@ -232,6 +232,7 @@ def compare_provider_records(
         artifact_digest=artifact.digest,
     )
 
+
 def check_downloaded_artifact_bytes(
     matched: MatchedProviderRecords, downloaded_archive: bytes
 ) -> None:
