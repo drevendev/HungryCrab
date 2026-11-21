@@ -226,6 +226,7 @@ def test_refuse_self_consistent_mismatched_attempt_or_digest() -> None:
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         compare_provider_records(expected, run, job, new_artifact)
 
+
 def _matched_downloaded_archive() -> tuple[MatchedProviderRecords, bytes]:
     # Inert synthetic bytes deliberately need not be a valid ZIP: this gate
     # checks only the provider's outer-archive digest, not member integrity.
