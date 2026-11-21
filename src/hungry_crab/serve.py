@@ -231,7 +231,11 @@ class GhIssueClient:
                 return as_dict(
                     json.loads(
                         self._run(
-                            "api", path, "--jq", projection, timeout=min(60.0, self.timeout, remaining)
+                            "api",
+                            path,
+                            "--jq",
+                            projection,
+                            timeout=min(60.0, self.timeout, remaining),
                         )
                     )
                 )
