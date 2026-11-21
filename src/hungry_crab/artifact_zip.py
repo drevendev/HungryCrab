@@ -27,7 +27,7 @@ MAX_MEMBERS = 256
 MAX_RATIO = 200
 _ALLOWED_SUFFIXES = frozenset({".json", ".md", ".txt"})
 _ALLOWED_COMPRESSION = frozenset({zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED})
-_BAD_WINDOWS_STEMS = frozenset({"CON", "PRN", "AUX", "NUL"}) | {
+_BAD_WINDOWS_STEMS = frozenset({"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}) | {
     f"{prefix}{n}" for prefix in ("COM", "LPT") for n in "123456789¹²³"
 }
 _WINDOWS_FORBIDDEN = frozenset('<>:"|?*')
