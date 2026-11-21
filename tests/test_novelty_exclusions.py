@@ -437,6 +437,28 @@ def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_sta
     assert client.paths == expected
 
 
+def test_gh_provider_timeout_clamps_float_roundoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Binary-float deadline arithmetic can produce 60.00000000000001.
+    assert (30.9 + 60) - 30.9 > 60
+    monkeypatch.setattr("hungry_crab.serve.time.monotonic", lambda: 30.9)
+
+    class Client(GhIssueClient):
+        def __init__(self) -> None:
+            self.timeout = 120.0
+            self.timeouts: list[float] = []
+
+        def _run(self, *args: str, timeout: float | None = None) -> str:
+            assert timeout is not None
+            self.timeouts.append(timeout)
+            if "?state=open" in args[1]:
+                return json.dumps({"numbers": []})
+            return json.dumps({"default_branch": "main"})
+
+    client = Client()
+    assert client.novelty_heads(MAW_SLUG, []) == {}
+    assert client.timeouts == [60.0, 60.0]
+
+
 def test_unscoped_original_proposal_cannot_bypass_novelty_publication_hold(tmp_path: Path) -> None:
     directory, donor, maw, finding = pair(tmp_path, hunger="issues-only")
     finding["source_behavior"] = "reads bounded chunks"
