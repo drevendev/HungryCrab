@@ -83,7 +83,7 @@ def test_safe_unicode_member_path_remains_allowed() -> None:
 
 @pytest.mark.parametrize(
     "bad_name",
-    ["folder/COM¹.json", "folder/LPT³.json", "a?.json", "a<.json", "a|.json"],
+    ["folder/COM¹.json", "folder/LPT³.json", "CONIN$.txt", "folder/conout$.json", "a?.json", "a<.json", "a|.json"],
 )
 def test_windows_unsafe_paths_rejected_in_raw_zip_and_manifest_separately(
     bad_name: str,
