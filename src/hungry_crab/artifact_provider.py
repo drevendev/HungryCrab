@@ -10,10 +10,12 @@ A successful comparison is an identity match, NOT portable admission.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass, field
 from typing import Literal
 
+from .artifact_zip import MAX_ARCHIVE_BYTES
 from .errors import CrabError
 
 _FULL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
@@ -229,3 +231,27 @@ def compare_provider_records(
         artifact_size=artifact.size,
         artifact_digest=artifact.digest,
     )
+
+def check_downloaded_artifact_bytes(
+    matched: MatchedProviderRecords, downloaded_archive: bytes
+) -> None:
+    """Check the outer ZIP bytes against independently selected provider metadata.
+
+    This establishes only size and digest consistency with the matched native
+    artifact record. It does NOT establish the uploading job/attempt, archive
+    safety, origin, rights, or permission for portable admission. In particular,
+    this function does not remove the require_lineage_for_admission() HOLD.
+    The caller must obtain raw archive bytes without extracting or executing
+    any member, and must not derive the expected digest from those bytes.
+    """
+    if type(matched) is not MatchedProviderRecords or type(downloaded_archive) is not bytes:
+        raise _hold("missing matched provider receipt or raw downloaded artifact")
+    if (
+        not _positive(matched.artifact_size)
+        or matched.artifact_size > MAX_ARCHIVE_BYTES
+        or not _digest(matched.artifact_digest)
+        or len(downloaded_archive) != matched.artifact_size
+    ):
+        raise _hold("downloaded artifact size or provider digest is invalid")
+    if "sha256:" + hashlib.sha256(downloaded_archive).hexdigest() != matched.artifact_digest:
+        raise _hold("downloaded artifact SHA-256 does not match provider digest")
