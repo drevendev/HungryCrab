@@ -6,6 +6,7 @@ claim that a live API reader, policy assessor, or portable admission exists.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 
 import pytest
@@ -16,8 +17,10 @@ from hungry_crab.artifact_provider import (
     ObservedArtifact,
     ObservedJob,
     ObservedRun,
+    check_downloaded_artifact_bytes,
     compare_provider_records,
 )
+from hungry_crab.artifact_zip import MAX_ARCHIVE_BYTES
 from hungry_crab.errors import CrabError
 
 _SHA = "a" * 40
@@ -222,3 +225,45 @@ def test_refuse_self_consistent_mismatched_attempt_or_digest() -> None:
     new_artifact = replace(artifact, digest="sha256:" + "e" * 64)
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         compare_provider_records(expected, run, job, new_artifact)
+
+def _matched_downloaded_archive() -> tuple[MatchedProviderRecords, bytes]:
+    # Inert synthetic bytes deliberately need not be a valid ZIP: this gate
+    # checks only the provider's outer-archive digest, not member integrity.
+    archive = b"PK" + bytes(range(32))
+    expected, run, job, artifact = _records()
+    native_digest = "sha256:" + hashlib.sha256(archive).hexdigest()
+    expected = replace(expected, artifact_size=len(archive), artifact_digest=native_digest)
+    artifact = replace(artifact, size=len(archive), digest=native_digest)
+    return compare_provider_records(expected, run, job, artifact), archive
+
+
+def test_matching_downloaded_zip_bytes_remains_lineage_unverified() -> None:
+    matched, archive = _matched_downloaded_archive()
+    assert check_downloaded_artifact_bytes(matched, archive) is None
+    assert matched.artifact_job_attempt_lineage == "UNVERIFIED"
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        matched.require_lineage_for_admission()
+
+
+def test_downloaded_zip_bytes_refuse_same_size_tampering_and_truncation() -> None:
+    matched, archive = _matched_downloaded_archive()
+    corrupted = archive[:-1] + bytes([archive[-1] ^ 1])
+    assert len(corrupted) == len(archive)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(matched, corrupted)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(matched, archive[:-1])
+
+
+def test_downloaded_zip_bytes_refuse_untrusted_receipts_and_unbounded_data() -> None:
+    matched, archive = _matched_downloaded_archive()
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(None, archive)  # type: ignore[arg-type]
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(matched, bytearray(archive))  # type: ignore[arg-type]
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(replace(matched, artifact_digest="invalid"), archive)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        check_downloaded_artifact_bytes(
+            replace(matched, artifact_size=MAX_ARCHIVE_BYTES + 1), archive
+        )
