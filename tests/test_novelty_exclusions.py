@@ -437,7 +437,6 @@ def test_gh_provider_reads_only_bounded_default_and_pending_metadata(pending_sta
     assert client.paths == expected
 
 
-
 def test_gh_provider_timeout_clamps_float_roundoff(monkeypatch: pytest.MonkeyPatch) -> None:
     # Binary-float deadline arithmetic can produce 60.00000000000001.
     assert (30.9 + 60) - 30.9 > 60
