@@ -211,10 +211,7 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         self.assertIsNotNone(stopped)
         self.assertEqual(len(snapshot["jobs"]), 100)
         self.assertTrue(
-            any(
-                error.get("error") == "INVALID_OR_DUPLICATE_JOB_ID"
-                for error in snapshot["errors"]
-            )
+            any(error.get("error") == "INVALID_OR_DUPLICATE_JOB_ID" for error in snapshot["errors"])
         )
         self.assertTrue(
             any(error.get("error") == "JOB_COUNT_MISMATCH" for error in snapshot["errors"])
