@@ -15,7 +15,6 @@ from pathlib import Path
 from unittest import mock
 from urllib.error import URLError
 
-
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github/workflows/ci-completion-metadata.yml"
 BASE = "/actions/runs/111"
 JOBS = BASE + "/attempts/1/jobs?per_page=100&page=1"
