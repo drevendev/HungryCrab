@@ -181,7 +181,12 @@ jobs:
                       failures.append({"error": "INVALID_ARTIFACT_ITEM", "page": page})
                       continue
                   artifact_id = item.get("id")
-                  if not isinstance(artifact_id, int) or artifact_id in seen_artifact_ids:
+                  if (
+                      not isinstance(artifact_id, int)
+                      or isinstance(artifact_id, bool)
+                      or artifact_id <= 0
+                      or artifact_id in seen_artifact_ids
+                  ):
                       failures.append({"error": "INVALID_OR_DUPLICATE_ARTIFACT_ID", "page": page})
                       continue
                   seen_artifact_ids.add(artifact_id)
