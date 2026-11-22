@@ -141,6 +141,39 @@ class CompletionMetadataObserverTests(unittest.TestCase):
             )
         )
 
+    def test_invalid_artifact_ids_fail_closed_with_saved_snapshot(self):
+        for artifact_id in (True, 0, -1):
+            with self.subTest(artifact_id=artifact_id):
+                snapshot, stopped, _ = self.execute(
+                    {
+                        ARTIFACTS.format(1): {
+                            "total_count": 1,
+                            "artifacts": [
+                                {
+                                    "id": artifact_id,
+                                    "name": "invalid-id",
+                                    "size_in_bytes": 1,
+                                    "expired": False,
+                                }
+                            ],
+                        }
+                    }
+                )
+                self.assertIsNotNone(stopped)
+                self.assertEqual(snapshot["run_artifacts_not_attempt_scoped"], [])
+                self.assertTrue(
+                    any(
+                        error.get("error") == "INVALID_OR_DUPLICATE_ARTIFACT_ID"
+                        for error in snapshot["errors"]
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        error.get("error") == "ARTIFACT_COUNT_MISMATCH"
+                        for error in snapshot["errors"]
+                    )
+                )
+
     def test_101_artifacts_are_collected_across_two_pages(self):
         snapshot, stopped, calls = self.execute(
             {
