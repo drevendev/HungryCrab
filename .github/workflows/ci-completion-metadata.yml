@@ -1,0 +1,129 @@
+name: CI completion metadata snapshot
+
+# Runs on default-branch code, independently of the CI runner that may crash.
+# Never check out or execute code from an untrusted pull request.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: read
+
+jobs:
+  snapshot:
+    name: Snapshot completed CI run metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Capture exact source attempt and job status
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          run_id = os.environ["SOURCE_RUN_ID"]
+          attempt = os.environ["SOURCE_ATTEMPT"]
+          token = os.environ["GH_TOKEN"]
+          if not re.fullmatch(r"[1-9][0-9]*", run_id) or not re.fullmatch(r"[1-9][0-9]*", attempt):
+              raise SystemExit("Invalid provider-owned numeric run or attempt identity")
+          if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+              raise SystemExit("Invalid provider-owned repository identity")
+
+          failures = []
+          base = "https://api.github.com/repos/" + repo
+
+          def get(path):
+              request = Request(
+                  base + path,
+                  headers={
+                      "Authorization": "Bearer " + token,
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "HungryCrab-ci-metadata-snapshot",
+                  },
+              )
+              try:
+                  with urlopen(request, timeout=20) as response:
+                      return json.load(response)
+              except (HTTPError, URLError, TimeoutError, ValueError) as error:
+                  failures.append({"path": path, "error": type(error).__name__,
+                                   "code": getattr(error, "code", None)})
+                  return {}
+
+          source = get(f"/actions/runs/{run_id}/attempts/{attempt}")
+          jobs = []
+          for page in range(1, 21):
+              payload = get(f"/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100&page={page}")
+              page_jobs = payload.get("jobs", [])
+              if not isinstance(page_jobs, list):
+                  failures.append({"error": "INVALID_JOBS_PAYLOAD", "page": page})
+                  break
+              for job in page_jobs:
+                  jobs.append({
+                      "id": job.get("id"),
+                      "name": job.get("name"),
+                      "status": job.get("status"),
+                      "conclusion": job.get("conclusion"),
+                      "started_at": job.get("started_at"),
+                      "completed_at": job.get("completed_at"),
+                      "steps": [
+                          {"number": step.get("number"), "name": step.get("name"),
+                           "status": step.get("status"), "conclusion": step.get("conclusion")}
+                          for step in job.get("steps", [])
+                      ],
+                  })
+              if len(page_jobs) < 100:
+                  break
+              if page == 20:
+                  failures.append({"error": "JOBS_PAGE_LIMIT_REACHED"})
+          artifact_payload = get(f"/actions/runs/{run_id}/artifacts?per_page=100")
+          artifacts = [
+              {"id": item.get("id"), "name": item.get("name"),
+               "size_in_bytes": item.get("size_in_bytes"), "expired": item.get("expired")}
+              for item in artifact_payload.get("artifacts", [])
+          ]
+
+          snapshot = {
+              "schema": "hungrycrab-ci-completion-metadata/1",
+              "source_repository": repo,
+              "source_run_id": int(run_id),
+              "source_attempt": int(attempt),
+              "source_workflow_name": source.get("name"),
+              "source_head_sha": source.get("head_sha"),
+              "source_status": source.get("status"),
+              "source_conclusion": source.get("conclusion"),
+              "source_updated_at": source.get("updated_at"),
+              "jobs": jobs,
+              "run_artifacts_not_attempt_scoped": artifacts,
+              "errors": failures,
+              "limitations": (
+                  "This independent snapshot preserves provider metadata, not crashed "
+                  "runner memory, unavailable console logs, minidumps, or root cause. "
+                  "The artifact list is run-wide, not attempt-scoped."
+              ),
+          }
+          Path("ci-source-metadata.json").write_text(
+              json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+          )
+          if not source.get("id") or not jobs or failures:
+              raise SystemExit("Incomplete source metadata; preserved partial snapshot")
+          PY
+      - name: Preserve independent metadata snapshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-source-metadata-${{ github.event.workflow_run.id }}-attempt-${{ github.event.workflow_run.run_attempt }}
+          path: ci-source-metadata.json
+          if-no-files-found: error
+          retention-days: 14
