@@ -40,7 +40,11 @@ def item(n: int) -> dict:
 
 class CompletionMetadataObserverTests(unittest.TestCase):
     def execute(
-        self, pages: dict, job_pages: dict | None = None
+        self,
+        pages: dict,
+        job_pages: dict | None = None,
+        *,
+        elapsed_per_request: float = 0.0,
     ) -> tuple[dict, SystemExit | None, list[str]]:
         payloads = {
             SOURCE: {
@@ -72,15 +76,19 @@ class CompletionMetadataObserverTests(unittest.TestCase):
             **pages,
         }
         calls = []
+        clock = [0.0]
 
         def fake_urlopen(request, timeout):
-            self.assertEqual(timeout, 20)
+            self.assertGreater(timeout, 0)
+            self.assertLessEqual(timeout, 20)
+            self.assertLessEqual(timeout, 180 - clock[0])
             url = request.full_url
             prefix = "https://api.github.com/repos/drevendev/HungryCrab"
             self.assertTrue(url.startswith(prefix))
             path = url[len(prefix) :]
             calls.append(path)
             answer = payloads[path]
+            clock[0] += elapsed_per_request
             if isinstance(answer, Exception):
                 raise answer
             return io.BytesIO(json.dumps(answer).encode("utf-8"))
@@ -98,6 +106,7 @@ class CompletionMetadataObserverTests(unittest.TestCase):
                 with (
                     mock.patch.dict(os.environ, env),
                     mock.patch("urllib.request.urlopen", side_effect=fake_urlopen),
+                    mock.patch("time.monotonic", side_effect=lambda: clock[0]),
                 ):
                     stopped = None
                     try:
@@ -111,6 +120,24 @@ class CompletionMetadataObserverTests(unittest.TestCase):
             finally:
                 os.chdir(original_dir)
         return result, stopped, calls
+
+    def test_collection_budget_exhaustion_keeps_partial_metadata(self):
+        snapshot, stopped, calls = self.execute(
+            {ARTIFACTS.format(1): {"total_count": 0, "artifacts": []}},
+            elapsed_per_request=95.0,
+        )
+        self.assertIsNotNone(stopped)
+        self.assertEqual(snapshot["source_run_id"], 111)
+        self.assertEqual(len(snapshot["jobs"]), 1)
+        self.assertEqual(snapshot["run_artifacts_not_attempt_scoped"], [])
+        self.assertEqual(snapshot["collection_budget_seconds"], 180)
+        self.assertEqual(snapshot["collection_elapsed_seconds"], 190.0)
+        self.assertIn(SOURCE, calls)
+        self.assertIn(JOBS, calls)
+        self.assertNotIn(ARTIFACTS.format(1), calls)
+        self.assertTrue(
+            any(error.get("error") == "COLLECTION_DEADLINE_EXCEEDED" for error in snapshot["errors"])
+        )
 
     def test_101_artifacts_are_collected_across_two_pages(self):
         snapshot, stopped, calls = self.execute(
