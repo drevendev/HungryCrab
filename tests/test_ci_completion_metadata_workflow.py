@@ -158,7 +158,6 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         self.assertEqual(snapshot["run_artifacts_not_attempt_scoped"], [])
         self.assertNotIn(ARTIFACTS.format(2), calls)
 
-
     def test_101_attempt_jobs_are_collected_across_two_pages(self):
         first_page = [{"id": i, "name": f"job-{i}", "steps": []} for i in range(1, 101)]
         snapshot, stopped, calls = self.execute(
@@ -184,7 +183,7 @@ class CompletionMetadataObserverTests(unittest.TestCase):
                 JOBS: {
                     "total_count": 2,
                     "jobs": [{"id": 9, "name": "only-job", "steps": []}],
-                }
+                },
             },
         )
         self.assertIsNotNone(stopped)
