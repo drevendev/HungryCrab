@@ -66,7 +66,7 @@ class CompletionMetadataObserverTests(unittest.TestCase):
                             },
                         ],
                     }
-                ]
+                ],
             },
             **(job_pages or {}),
             **pages,
