@@ -2,6 +2,7 @@
 
 No GitHub API, runner, or untrusted PR code is executed by these tests.
 """
+
 from __future__ import annotations
 
 import io
@@ -10,9 +11,9 @@ import os
 from pathlib import Path
 import tempfile
 import textwrap
+import unittest
 from unittest import mock
 from urllib.error import URLError
-import unittest
 
 
 WORKFLOW = Path(__file__).resolve().parents[1] / ".github/workflows/ci-completion-metadata.yml"
@@ -40,11 +41,30 @@ def item(n: int) -> dict:
 class CompletionMetadataObserverTests(unittest.TestCase):
     def execute(self, pages: dict) -> tuple[dict, SystemExit | None, list[str]]:
         payloads = {
-            SOURCE: {"id": 111, "name": "CI", "run_attempt": 1,
-                     "head_sha": "abcd", "status": "completed", "conclusion": "failure"},
-            JOBS: {"jobs": [{"id": 9, "name": "Windows Python 3.14", "steps": [
-                {"number": 1, "name": "Tests", "status": "in_progress", "conclusion": None},
-            ]}]},
+            SOURCE: {
+                "id": 111,
+                "name": "CI",
+                "run_attempt": 1,
+                "head_sha": "abcd",
+                "status": "completed",
+                "conclusion": "failure",
+            },
+            JOBS: {
+                "jobs": [
+                    {
+                        "id": 9,
+                        "name": "Windows Python 3.14",
+                        "steps": [
+                            {
+                                "number": 1,
+                                "name": "Tests",
+                                "status": "in_progress",
+                                "conclusion": None,
+                            },
+                        ],
+                    }
+                ]
+            },
             **pages,
         }
         calls = []
@@ -54,25 +74,33 @@ class CompletionMetadataObserverTests(unittest.TestCase):
             url = request.full_url
             prefix = "https://api.github.com/repos/drevendev/HungryCrab"
             self.assertTrue(url.startswith(prefix))
-            path = url[len(prefix):]
+            path = url[len(prefix) :]
             calls.append(path)
             answer = payloads[path]
             if isinstance(answer, Exception):
                 raise answer
             return io.BytesIO(json.dumps(answer).encode("utf-8"))
 
-        env = {"GITHUB_REPOSITORY": "drevendev/HungryCrab",
-               "SOURCE_RUN_ID": "111", "SOURCE_ATTEMPT": "1", "GH_TOKEN": "fixture"}
+        env = {
+            "GITHUB_REPOSITORY": "drevendev/HungryCrab",
+            "SOURCE_RUN_ID": "111",
+            "SOURCE_ATTEMPT": "1",
+            "GH_TOKEN": "fixture",
+        }
         original_dir = Path.cwd()
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 os.chdir(temp_dir)
-                with mock.patch.dict(os.environ, env), mock.patch(
-                        "urllib.request.urlopen", side_effect=fake_urlopen):
+                with (
+                    mock.patch.dict(os.environ, env),
+                    mock.patch("urllib.request.urlopen", side_effect=fake_urlopen),
+                ):
                     stopped = None
                     try:
-                        exec(compile(embedded_python(), str(WORKFLOW), "exec"),
-                             {"__name__": "__main__"})
+                        exec(
+                            compile(embedded_python(), str(WORKFLOW), "exec"),
+                            {"__name__": "__main__"},
+                        )
                     except SystemExit as error:
                         stopped = error
                 result = json.loads(Path("ci-source-metadata.json").read_text(encoding="utf-8"))
@@ -81,10 +109,15 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         return result, stopped, calls
 
     def test_101_artifacts_are_collected_across_two_pages(self):
-        snapshot, stopped, calls = self.execute({
-            ARTIFACTS.format(1): {"total_count": 101, "artifacts": [item(i) for i in range(1, 101)]},
-            ARTIFACTS.format(2): {"total_count": 101, "artifacts": [item(101)]},
-        })
+        snapshot, stopped, calls = self.execute(
+            {
+                ARTIFACTS.format(1): {
+                    "total_count": 101,
+                    "artifacts": [item(i) for i in range(1, 101)],
+                },
+                ARTIFACTS.format(2): {"total_count": 101, "artifacts": [item(101)]},
+            }
+        )
         self.assertIsNone(stopped)
         self.assertEqual(snapshot["errors"], [])
         self.assertEqual(len(snapshot["run_artifacts_not_attempt_scoped"]), 101)
@@ -92,22 +125,31 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         self.assertEqual(calls.count(ARTIFACTS.format(2)), 1)
 
     def test_failed_second_page_keeps_partial_snapshot_but_fails(self):
-        snapshot, stopped, calls = self.execute({
-            ARTIFACTS.format(1): {"total_count": 101, "artifacts": [item(i) for i in range(1, 101)]},
-            ARTIFACTS.format(2): URLError("synthetic second-page outage"),
-        })
+        snapshot, stopped, calls = self.execute(
+            {
+                ARTIFACTS.format(1): {
+                    "total_count": 101,
+                    "artifacts": [item(i) for i in range(1, 101)],
+                },
+                ARTIFACTS.format(2): URLError("synthetic second-page outage"),
+            }
+        )
         self.assertIsNotNone(stopped)
         self.assertEqual(len(snapshot["run_artifacts_not_attempt_scoped"]), 100)
-        self.assertTrue(any(error.get("error") == "ARTIFACT_COUNT_MISMATCH"
-                            for error in snapshot["errors"]))
-        self.assertTrue(any(error.get("path") == ARTIFACTS.format(2)
-                            for error in snapshot["errors"]))
+        self.assertTrue(
+            any(error.get("error") == "ARTIFACT_COUNT_MISMATCH" for error in snapshot["errors"])
+        )
+        self.assertTrue(
+            any(error.get("path") == ARTIFACTS.format(2) for error in snapshot["errors"])
+        )
         self.assertIn(ARTIFACTS.format(2), calls)
 
     def test_single_empty_page_is_complete(self):
-        snapshot, stopped, calls = self.execute({
-            ARTIFACTS.format(1): {"total_count": 0, "artifacts": []},
-        })
+        snapshot, stopped, calls = self.execute(
+            {
+                ARTIFACTS.format(1): {"total_count": 0, "artifacts": []},
+            }
+        )
         self.assertIsNone(stopped)
         self.assertEqual(snapshot["run_artifacts_not_attempt_scoped"], [])
         self.assertNotIn(ARTIFACTS.format(2), calls)
