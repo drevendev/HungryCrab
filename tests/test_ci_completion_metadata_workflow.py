@@ -158,6 +158,29 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         self.assertEqual(snapshot["run_artifacts_not_attempt_scoped"], [])
         self.assertNotIn(ARTIFACTS.format(2), calls)
 
+    def test_source_attempt_identity_mismatch_fails_closed(self):
+        snapshot, stopped, _ = self.execute(
+            {
+                SOURCE: {
+                    "id": 111,
+                    "name": "CI",
+                    "run_attempt": 2,
+                    "head_sha": "abcd",
+                    "status": "completed",
+                    "conclusion": "failure",
+                },
+                ARTIFACTS.format(1): {"total_count": 0, "artifacts": []},
+            }
+        )
+        self.assertIsNotNone(stopped)
+        self.assertEqual(snapshot["source_attempt"], 1)
+        self.assertTrue(
+            any(
+                error.get("error") == "SOURCE_ATTEMPT_IDENTITY_MISMATCH"
+                for error in snapshot["errors"]
+            )
+        )
+
     def test_101_attempt_jobs_are_collected_across_two_pages(self):
         first_page = [{"id": i, "name": f"job-{i}", "steps": []} for i in range(1, 101)]
         snapshot, stopped, calls = self.execute(
