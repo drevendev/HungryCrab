@@ -63,30 +63,73 @@ jobs:
 
           source = get(f"/actions/runs/{run_id}/attempts/{attempt}")
           jobs = []
+          job_total = None
+          seen_job_ids = set()
           for page in range(1, 21):
               payload = get(f"/actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100&page={page}")
-              page_jobs = payload.get("jobs", [])
-              if not isinstance(page_jobs, list):
-                  failures.append({"error": "INVALID_JOBS_PAYLOAD", "page": page})
+              page_jobs = payload.get("jobs")
+              total_count = payload.get("total_count")
+              if (
+                  not isinstance(total_count, int)
+                  or isinstance(total_count, bool)
+                  or total_count < 0
+                  or not isinstance(page_jobs, list)
+              ):
+                  failures.append({"error": "INVALID_JOBS_PAGE", "page": page})
+                  break
+              if job_total is None:
+                  job_total = total_count
+              elif job_total != total_count:
+                  failures.append({
+                      "error": "JOB_TOTAL_CHANGED", "page": page,
+                      "expected": job_total, "observed": total_count,
+                  })
                   break
               for job in page_jobs:
+                  if not isinstance(job, dict):
+                      failures.append({"error": "INVALID_JOB_ITEM", "page": page})
+                      continue
+                  job_id = job.get("id")
+                  if (
+                      not isinstance(job_id, int)
+                      or isinstance(job_id, bool)
+                      or job_id <= 0
+                      or job_id in seen_job_ids
+                  ):
+                      failures.append({"error": "INVALID_OR_DUPLICATE_JOB_ID", "page": page})
+                      continue
+                  seen_job_ids.add(job_id)
+                  steps = job.get("steps") or []
+                  if not isinstance(steps, list) or any(not isinstance(step, dict) for step in steps):
+                      failures.append({"error": "INVALID_JOB_STEPS", "page": page, "id": job_id})
+                      steps = []
                   jobs.append({
-                      "id": job.get("id"),
+                      "id": job_id,
                       "name": job.get("name"),
                       "status": job.get("status"),
                       "conclusion": job.get("conclusion"),
                       "started_at": job.get("started_at"),
                       "completed_at": job.get("completed_at"),
                       "steps": [
-                          {"number": step.get("number"), "name": step.get("name"),
-                           "status": step.get("status"), "conclusion": step.get("conclusion")}
-                          for step in job.get("steps", [])
+                          {
+                              "number": step.get("number"), "name": step.get("name"),
+                              "status": step.get("status"), "conclusion": step.get("conclusion"),
+                          }
+                          for step in steps
                       ],
                   })
+              if len(jobs) >= job_total:
+                  break
               if len(page_jobs) < 100:
+                  failures.append({"error": "TRUNCATED_JOB_PAGE", "page": page})
                   break
               if page == 20:
-                  failures.append({"error": "JOBS_PAGE_LIMIT_REACHED"})
+                  failures.append({"error": "JOB_PAGE_LIMIT_REACHED", "cap": 2000})
+          if job_total is None or len(jobs) != job_total:
+              failures.append({
+                  "error": "JOB_COUNT_MISMATCH",
+                  "expected": job_total, "received": len(jobs),
+              })
           artifacts = []
           artifact_total = None
           seen_artifact_ids = set()
