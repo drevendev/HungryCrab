@@ -8,10 +8,10 @@ from __future__ import annotations
 import io
 import json
 import os
-from pathlib import Path
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 from unittest import mock
 from urllib.error import URLError
 
