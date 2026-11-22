@@ -136,7 +136,9 @@ class CompletionMetadataObserverTests(unittest.TestCase):
         self.assertIn(JOBS, calls)
         self.assertNotIn(ARTIFACTS.format(1), calls)
         self.assertTrue(
-            any(error.get("error") == "COLLECTION_DEADLINE_EXCEEDED" for error in snapshot["errors"])
+            any(
+                error.get("error") == "COLLECTION_DEADLINE_EXCEEDED" for error in snapshot["errors"]
+            )
         )
 
     def test_101_artifacts_are_collected_across_two_pages(self):
