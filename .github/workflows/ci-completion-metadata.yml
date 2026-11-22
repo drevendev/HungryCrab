@@ -62,6 +62,19 @@ jobs:
                   return {}
 
           source = get(f"/actions/runs/{run_id}/attempts/{attempt}")
+          if (
+              source.get("id") != int(run_id)
+              or source.get("run_attempt") != int(attempt)
+              or source.get("status") != "completed"
+          ):
+              failures.append({
+                  "error": "SOURCE_ATTEMPT_IDENTITY_MISMATCH",
+                  "expected_run_id": int(run_id),
+                  "observed_run_id": source.get("id"),
+                  "expected_attempt": int(attempt),
+                  "observed_attempt": source.get("run_attempt"),
+                  "observed_status": source.get("status"),
+              })
           jobs = []
           job_total = None
           seen_job_ids = set()
