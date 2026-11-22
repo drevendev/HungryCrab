@@ -55,7 +55,15 @@ jobs:
               )
               try:
                   with urlopen(request, timeout=20) as response:
-                      return json.load(response)
+                      payload = json.load(response)
+                  if not isinstance(payload, dict):
+                      failures.append({
+                          "path": path,
+                          "error": "NON_OBJECT_JSON_RESPONSE",
+                          "type": type(payload).__name__,
+                      })
+                      return {}
+                  return payload
               except (HTTPError, URLError, TimeoutError, ValueError) as error:
                   failures.append({"path": path, "error": type(error).__name__,
                                    "code": getattr(error, "code", None)})

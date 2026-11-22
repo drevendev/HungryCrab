@@ -181,6 +181,35 @@ class CompletionMetadataObserverTests(unittest.TestCase):
             )
         )
 
+    def test_non_object_source_response_preserves_partial_snapshot(self):
+        snapshot, stopped, calls = self.execute(
+            {
+                SOURCE: [],
+                ARTIFACTS.format(1): {"total_count": 0, "artifacts": []},
+            }
+        )
+        self.assertIsNotNone(stopped)
+        self.assertIn(SOURCE, calls)
+        self.assertIn(
+            {"path": SOURCE, "error": "NON_OBJECT_JSON_RESPONSE", "type": "list"},
+            snapshot["errors"],
+        )
+
+    def test_non_object_jobs_page_preserves_partial_snapshot(self):
+        snapshot, stopped, calls = self.execute(
+            {ARTIFACTS.format(1): {"total_count": 0, "artifacts": []}},
+            job_pages={JOBS: None},
+        )
+        self.assertIsNotNone(stopped)
+        self.assertIn(JOBS, calls)
+        self.assertIn(
+            {"path": JOBS, "error": "NON_OBJECT_JSON_RESPONSE", "type": "NoneType"},
+            snapshot["errors"],
+        )
+        self.assertTrue(
+            any(error.get("error") == "INVALID_JOBS_PAGE" for error in snapshot["errors"])
+        )
+
     def test_101_attempt_jobs_are_collected_across_two_pages(self):
         first_page = [{"id": i, "name": f"job-{i}", "steps": []} for i in range(1, 101)]
         snapshot, stopped, calls = self.execute(
