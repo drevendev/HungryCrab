@@ -87,12 +87,46 @@ jobs:
                   break
               if page == 20:
                   failures.append({"error": "JOBS_PAGE_LIMIT_REACHED"})
-          artifact_payload = get(f"/actions/runs/{run_id}/artifacts?per_page=100")
-          artifacts = [
-              {"id": item.get("id"), "name": item.get("name"),
-               "size_in_bytes": item.get("size_in_bytes"), "expired": item.get("expired")}
-              for item in artifact_payload.get("artifacts", [])
-          ]
+          artifacts = []
+          artifact_total = None
+          seen_artifact_ids = set()
+          for page in range(1, 21):
+              payload = get(f"/actions/runs/{run_id}/artifacts?per_page=100&page={page}")
+              page_artifacts = payload.get("artifacts")
+              total_count = payload.get("total_count")
+              if (not isinstance(total_count, int) or isinstance(total_count, bool)
+                      or total_count < 0 or not isinstance(page_artifacts, list)):
+                  failures.append({"error": "INVALID_ARTIFACT_PAGE", "page": page})
+                  break
+              if artifact_total is None:
+                  artifact_total = total_count
+              elif artifact_total != total_count:
+                  failures.append({"error": "ARTIFACT_TOTAL_CHANGED", "page": page,
+                                   "expected": artifact_total, "observed": total_count})
+                  break
+              for item in page_artifacts:
+                  if not isinstance(item, dict):
+                      failures.append({"error": "INVALID_ARTIFACT_ITEM", "page": page})
+                      continue
+                  artifact_id = item.get("id")
+                  if not isinstance(artifact_id, int) or artifact_id in seen_artifact_ids:
+                      failures.append({"error": "INVALID_OR_DUPLICATE_ARTIFACT_ID", "page": page})
+                      continue
+                  seen_artifact_ids.add(artifact_id)
+                  artifacts.append({
+                      "id": artifact_id, "name": item.get("name"),
+                      "size_in_bytes": item.get("size_in_bytes"), "expired": item.get("expired"),
+                  })
+              if len(artifacts) >= artifact_total:
+                  break
+              if len(page_artifacts) < 100:
+                  failures.append({"error": "TRUNCATED_ARTIFACT_PAGE", "page": page})
+                  break
+              if page == 20:
+                  failures.append({"error": "ARTIFACT_PAGE_LIMIT_REACHED", "cap": 2000})
+          if artifact_total is None or len(artifacts) != artifact_total:
+              failures.append({"error": "ARTIFACT_COUNT_MISMATCH",
+                               "expected": artifact_total, "received": len(artifacts)})
 
           snapshot = {
               "schema": "hungrycrab-ci-completion-metadata/1",
