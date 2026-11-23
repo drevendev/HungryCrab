@@ -59,11 +59,13 @@ def _refuse(reason: str) -> CrabError:
     return CrabError(f"untrusted archive refused: {reason}")
 
 
-def _ambiguous_unicode_mark(char: str) -> bool:
-    """Reject controls and targeted default-ignorable marks, not all combining marks."""
+def _unsafe_unicode_path_char(char: str) -> bool:
+    """Reject controls, non-ASCII spacing separators and targeted ignorable marks."""
     point = ord(char)
+    category = unicodedata.category(char)
     return (
-        unicodedata.category(char) in {"Cc", "Cf", "Cs", "Zl", "Zp"}
+        category in {"Cc", "Cf", "Cs", "Zl", "Zp"}
+        or (category == "Zs" and char != " ")  # Keep ordinary ASCII interior spaces.
         or point == 0x034F  # Combining grapheme joiner (Mn).
         or point in {0x17B4, 0x17B5}  # Khmer inherent vowels (Mn).
         or 0x180B <= point <= 0x180D  # Mongolian FVS 1-3 (Mn).
@@ -81,7 +83,7 @@ def _canonical(path: str) -> bool:
         or unicodedata.normalize("NFC", path) != path
         or path.startswith("/")
         or "\\" in path
-        or any(_ambiguous_unicode_mark(char) for char in path)
+        or any(_unsafe_unicode_path_char(char) for char in path)
     ):
         return False
     parts = path.split("/")
