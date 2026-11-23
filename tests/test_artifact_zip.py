@@ -74,6 +74,28 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
         check_zip_members(blob, (_expect(bad_name, b"a"),))
 
 
+@pytest.mark.parametrize(
+    "hidden",
+    ["\\u202e", "\\u200b", "\\u2066", "\\u0085", "\\u2028", "\\ud800"],
+)
+def test_refuse_invisible_or_ill_formed_manifest_paths(hidden: str) -> None:
+    payload = b"ok"
+    blob = _zip(("pages/report.md", payload))
+    with pytest.raises(CrabError, match="invalid manifest member"):
+        check_zip_members(blob, (_expect(f"pages/{hidden}report.md", payload),))
+
+
+@pytest.mark.parametrize(
+    "hidden",
+    ["\\u202e", "\\u200b", "\\u2066", "\\u0085", "\\u2028"],
+)
+def test_refuse_invisible_or_format_control_archive_paths(hidden: str) -> None:
+    payload = b"ok"
+    blob = _zip((f"pages/rep{hidden}ort.md", payload))
+    with pytest.raises(CrabError, match="unsafe raw archive path or alias"):
+        check_zip_members(blob, (_expect("pages/report.md", payload),))
+
+
 def test_safe_unicode_member_path_remains_allowed() -> None:
     payload = b"{}"
     member_name = "sources/café.json"
