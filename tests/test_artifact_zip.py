@@ -137,6 +137,40 @@ def test_refuse_casefold_collision_in_archive() -> None:
         check_zip_members(blob, (_expect("a.json", b"first"), _expect("A.JSON", b"second")))
 
 
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("evidence.json", "evidence.json/page.md"),
+        ("evidence.json/page.md", "evidence.json"),
+        ("Evidence.json", "evidence.json/page.md"),
+        ("evidence.json/page.md", "Evidence.json"),
+        ("pages/data.json", "pages/data.json/nested/page.md"),
+    ],
+)
+def test_refuse_file_directory_namespace_conflict(first: str, second: str) -> None:
+    payload = b"ok"
+    members = (_expect(first, payload), _expect(second, payload))
+    blob = _zip((first, payload), (second, payload))
+    with pytest.raises(CrabError, match="manifest file/directory conflict"):
+        check_zip_members(blob, members)
+
+
+def test_refuse_archive_namespace_conflict_with_safe_manifest() -> None:
+    payload = b"ok"
+    blob = _zip(("evidence.json", payload), ("evidence.json/page.md", payload))
+    members = (_expect("evidence.json", payload), _expect("pages/page.md", payload))
+    with pytest.raises(CrabError, match="undeclared archive member"):
+        check_zip_members(blob, members)
+
+
+def test_allow_regular_members_with_shared_directory() -> None:
+    payload = b"ok"
+    names = ("pages/data.json", "pages/page.md", "pages/data.json.backup.txt")
+    blob = _zip(*((name, payload) for name in names))
+    records = check_zip_members(blob, tuple(_expect(name, payload) for name in names))
+    assert tuple(record.path for record in records) == names
+
+
 def test_refuse_same_name_duplicate_archive_members() -> None:
     blob = _zip(("a.json", b"first"), ("a.json", b"second"))
     with pytest.raises(CrabError):
