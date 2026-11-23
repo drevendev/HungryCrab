@@ -120,10 +120,12 @@ def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> N
         if cursor + 46 > eocd or archive[cursor : cursor + 4] != b"PK\x01\x02":
             raise _refuse("invalid ZIP envelope")
         name_size, extra_size, entry_comment_size = struct.unpack_from("<3H", archive, cursor + 28)
+        member_disk = struct.unpack_from("<H", archive, cursor + 34)[0]
         local_offset = struct.unpack_from("<I", archive, cursor + 42)[0]
         cursor += 46 + name_size + extra_size + entry_comment_size
         if (
-            extra_size != 0
+            member_disk != 0
+            or extra_size != 0
             or entry_comment_size != 0
             or cursor > eocd
             or local_offset != info.header_offset
