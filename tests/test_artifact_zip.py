@@ -278,6 +278,15 @@ def test_refuse_unaccounted_zip_envelope_bytes(damage: str) -> None:
         check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
 
 
+def test_refuse_nonzero_disk_start_in_central_entry() -> None:
+    """A single-disk EOCD cannot authorize a member from another disk."""
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
+    directory = blob.index(b"PK\x01\x02")
+    struct.pack_into("<H", blob, directory + 34, 1)
+    with pytest.raises(CrabError):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
 def test_refuse_extra_central_directory_records() -> None:
     """Unlisted central-directory bytes are not covered by infolist()."""
     blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
