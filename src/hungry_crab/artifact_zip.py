@@ -11,6 +11,7 @@ import hashlib
 import io
 import re
 import stat
+import struct
 import unicodedata
 import zipfile
 import zlib
@@ -83,6 +84,102 @@ def _canonical(path: str) -> bool:
     return PurePosixPath(path).suffix.lower() in _ALLOWED_SUFFIXES
 
 
+def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> None:
+    """Admit a single-disk ZIP with no unaccounted byte ranges.
+
+    The A2 evidence carrier intentionally does not accept prepended stubs,
+    comments, archive extra fields, ZIP64 or unrelated local records.
+    This does not attest who produced the ZIP.
+    """
+    eocd = len(archive) - 22
+    if eocd < 0 or archive[eocd : eocd + 4] != b"PK\x05\x06":
+        raise _refuse("invalid ZIP envelope")
+    (
+        disk,
+        directory_disk,
+        disk_entries,
+        total_entries,
+        directory_size,
+        directory_start,
+        comment_size,
+    ) = struct.unpack_from("<4H2IH", archive, eocd + 4)
+    if (
+        disk != 0
+        or directory_disk != 0
+        or disk_entries != len(entries)
+        or total_entries != len(entries)
+        or comment_size != 0
+        or directory_start + directory_size != eocd
+    ):
+        raise _refuse("invalid ZIP envelope")
+
+    # Parse the entire central directory: zipfile's infolist() alone does not
+    # prove that no unlisted records or opaque directory bytes remain.
+    cursor = directory_start
+    for info in entries:
+        if cursor + 46 > eocd or archive[cursor : cursor + 4] != b"PK\x01\x02":
+            raise _refuse("invalid ZIP envelope")
+        name_size, extra_size, entry_comment_size = struct.unpack_from("<3H", archive, cursor + 28)
+        member_disk = struct.unpack_from("<H", archive, cursor + 34)[0]
+        local_offset = struct.unpack_from("<I", archive, cursor + 42)[0]
+        cursor += 46 + name_size + extra_size + entry_comment_size
+        if (
+            member_disk != 0
+            or extra_size != 0
+            or entry_comment_size != 0
+            or cursor > eocd
+            or local_offset != info.header_offset
+        ):
+            raise _refuse("invalid ZIP envelope")
+    if cursor != eocd:
+        raise _refuse("invalid ZIP envelope")
+
+    # Every local header, payload and optional data descriptor must be
+    # contiguous, with no prefix, gap, orphan record or trailing payload.
+    boundary = 0
+    for info in sorted(entries, key=lambda item: item.header_offset):
+        offset = info.header_offset
+        if (
+            offset != boundary
+            or offset + 30 > directory_start
+            or archive[offset : offset + 4] != b"PK\x03\x04"
+        ):
+            raise _refuse("invalid ZIP envelope")
+        name_size, extra_size = struct.unpack_from("<2H", archive, offset + 26)
+        payload_end = offset + 30 + name_size + extra_size + info.compress_size
+        if extra_size != 0 or payload_end > directory_start:
+            raise _refuse("invalid ZIP envelope")
+        local_crc, local_compressed, local_unpacked = struct.unpack_from(
+            "<3I", archive, offset + 14
+        )
+        if info.flag_bits & 0x0008:
+            if (
+                local_crc not in (0, info.CRC)
+                or local_compressed not in (0, info.compress_size)
+                or local_unpacked not in (0, info.file_size)
+            ):
+                raise _refuse("invalid ZIP envelope")
+            descriptor = struct.pack("<3I", info.CRC, info.compress_size, info.file_size)
+            if archive[payload_end : payload_end + 12] == descriptor:
+                boundary = payload_end + 12
+            elif archive[payload_end : payload_end + 16] == b"PK\x07\x08" + descriptor:
+                boundary = payload_end + 16
+            else:
+                raise _refuse("invalid ZIP envelope")
+        else:
+            if (local_crc, local_compressed, local_unpacked) != (
+                info.CRC,
+                info.compress_size,
+                info.file_size,
+            ):
+                raise _refuse("invalid ZIP envelope")
+            boundary = payload_end
+        if boundary > directory_start:
+            raise _refuse("invalid ZIP envelope")
+    if boundary != directory_start:
+        raise _refuse("invalid ZIP envelope")
+
+
 def check_zip_members(
     archive: bytes,
     expected: Sequence[ExpectedMember],
@@ -129,6 +226,7 @@ def check_zip_members(
             entries = bundle.infolist()
             if len(entries) != len(expected) or len(entries) > MAX_MEMBERS:
                 raise _refuse("undeclared, missing, or excess archive members")
+            _check_zip_envelope(archive, entries)
             seen: set[str] = set()
             total_actual = 0
             for info in entries:
