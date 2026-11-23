@@ -84,7 +84,6 @@ def _canonical(path: str) -> bool:
     return PurePosixPath(path).suffix.lower() in _ALLOWED_SUFFIXES
 
 
-
 def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> None:
     """Admit a single-disk ZIP with no unaccounted byte ranges.
 
