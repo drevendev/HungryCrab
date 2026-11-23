@@ -65,6 +65,9 @@ def _ambiguous_unicode_mark(char: str) -> bool:
     return (
         unicodedata.category(char) in {"Cc", "Cf", "Cs", "Zl", "Zp"}
         or point == 0x034F  # Combining grapheme joiner (Mn).
+        or 0x180B <= point <= 0x180D  # Mongolian FVS 1–3 (Mn).
+        or point == 0x180F  # Mongolian FVS 4 (Mn).
+        or point in {0x115F, 0x1160, 0x3164, 0xFFA0}  # Hangul fillers (Lo).
         or 0xFE00 <= point <= 0xFE0F  # Variation selectors (Mn).
         or 0xE0100 <= point <= 0xE01EF  # Supplementary variation selectors (Mn).
     )
