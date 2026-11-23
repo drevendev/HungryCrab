@@ -120,9 +120,7 @@ def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> N
     for info in entries:
         if cursor + 46 > eocd or archive[cursor : cursor + 4] != b"PK\x01\x02":
             raise _refuse("invalid ZIP envelope")
-        name_size, extra_size, entry_comment_size = struct.unpack_from(
-            "<3H", archive, cursor + 28
-        )
+        name_size, extra_size, entry_comment_size = struct.unpack_from("<3H", archive, cursor + 28)
         local_offset = struct.unpack_from("<I", archive, cursor + 42)[0]
         cursor += 46 + name_size + extra_size + entry_comment_size
         if (
@@ -160,15 +158,10 @@ def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> N
                 or local_unpacked not in (0, info.file_size)
             ):
                 raise _refuse("invalid ZIP envelope")
-            descriptor = struct.pack(
-                "<3I", info.CRC, info.compress_size, info.file_size
-            )
+            descriptor = struct.pack("<3I", info.CRC, info.compress_size, info.file_size)
             if archive[payload_end : payload_end + 12] == descriptor:
                 boundary = payload_end + 12
-            elif (
-                archive[payload_end : payload_end + 16]
-                == b"PK\x07\x08" + descriptor
-            ):
+            elif archive[payload_end : payload_end + 16] == b"PK\x07\x08" + descriptor:
                 boundary = payload_end + 16
             else:
                 raise _refuse("invalid ZIP envelope")
