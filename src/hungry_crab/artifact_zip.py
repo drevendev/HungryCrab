@@ -216,6 +216,14 @@ def check_zip_members(
         folded.add(folded_name)
         declared[member.path] = member
 
+    # Exact membership below binds the ZIP to this validated file namespace.
+    # A regular file must never be an ancestor of another regular file,
+    # including on a case-insensitive filesystem and in either input order.
+    for name in folded:
+        parts = name.split("/")
+        if any("/".join(parts[:depth]) in folded for depth in range(1, len(parts))):
+            raise _refuse("manifest file/directory conflict")
+
     total_declared = sum(member.size for member in expected)
     if total_declared > MAX_TOTAL_BYTES:
         raise _refuse("manifest total byte budget")
