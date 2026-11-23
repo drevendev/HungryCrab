@@ -85,6 +85,8 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
         "\u034f",
         "\u17b4",
         "\u17b5",
+        "\u00a0",  # NO-BREAK SPACE (Zs).
+        "\u2007",  # FIGURE SPACE (Zs).
         "\u180b",
         "\u180f",
         "\u115f",
@@ -114,6 +116,8 @@ def test_refuse_invisible_or_ill_formed_manifest_paths(hidden: str) -> None:
         "\u034f",
         "\u17b4",
         "\u17b5",
+        "\u00a0",  # NO-BREAK SPACE (Zs).
+        "\u2007",  # FIGURE SPACE (Zs).
         "\u180b",
         "\u180f",
         "\u115f",
@@ -131,9 +135,9 @@ def test_refuse_invisible_or_format_control_archive_paths(hidden: str) -> None:
         check_zip_members(blob, (_expect("pages/report.md", payload),))
 
 
-def test_safe_unicode_member_path_remains_allowed() -> None:
+@pytest.mark.parametrize("member_name", ["sources/café.json", "pages/quarter 1.md"])
+def test_safe_unicode_member_path_remains_allowed(member_name: str) -> None:
     payload = b"{}"
-    member_name = "sources/café.json"
     checked = check_zip_members(_zip((member_name, payload)), (_expect(member_name, payload),))
     assert checked[0].path == member_name
 
