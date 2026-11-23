@@ -259,9 +259,7 @@ def test_refuse_zip_that_is_not_an_archive() -> None:
 @pytest.mark.parametrize("damage", ["prefix", "trailer", "gap", "orphan"])
 def test_refuse_unaccounted_zip_envelope_bytes(damage: str) -> None:
     """A valid listed member cannot hide unrelated ZIP envelope bytes."""
-    blob = bytearray(
-        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
-    )
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
     if damage == "prefix":
         blob[:0] = b"untracked-stub"
     elif damage == "trailer":
@@ -282,9 +280,7 @@ def test_refuse_unaccounted_zip_envelope_bytes(damage: str) -> None:
 
 def test_refuse_extra_central_directory_records() -> None:
     """Unlisted central-directory bytes are not covered by infolist()."""
-    blob = bytearray(
-        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
-    )
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
     eocd = blob.rfind(b"PK\x05\x06")
     added = b"PK\x05\x05\x00\x00"
     blob[eocd:eocd] = added
@@ -297,9 +293,7 @@ def test_refuse_extra_central_directory_records() -> None:
 
 def test_refuse_mismatched_local_header_crc() -> None:
     """The content hash alone must not bless a forged local header."""
-    blob = bytearray(
-        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
-    )
+    blob = bytearray(_zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED))
     struct.pack_into("<I", blob, 14, 0)
     with pytest.raises(CrabError, match="ZIP envelope"):
         check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
