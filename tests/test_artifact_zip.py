@@ -254,3 +254,68 @@ def test_refuse_bad_manifest_digest_and_bool_size() -> None:
 def test_refuse_zip_that_is_not_an_archive() -> None:
     with pytest.raises(CrabError, match="corrupt"):
         check_zip_members(b"not a zip", (_expect("manifest.json", b"{}"),))
+
+
+@pytest.mark.parametrize("damage", ["prefix", "trailer", "gap", "orphan"])
+def test_refuse_unaccounted_zip_envelope_bytes(damage: str) -> None:
+    """A valid listed member cannot hide unrelated ZIP envelope bytes."""
+    blob = bytearray(
+        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
+    )
+    if damage == "prefix":
+        blob[:0] = b"untracked-stub"
+    elif damage == "trailer":
+        blob.extend(b"untracked-tail")
+    else:
+        directory = blob.index(b"PK\x01\x02")
+        if damage == "orphan":
+            extra = _zip(("hidden.txt", b"hidden"), compression=zipfile.ZIP_STORED)
+            added = extra[: extra.index(b"PK\x01\x02")]
+        else:
+            added = b"untracked-gap"
+        blob[directory:directory] = added
+        eocd = blob.rfind(b"PK\x05\x06")
+        struct.pack_into("<I", blob, eocd + 16, directory + len(added))
+    with pytest.raises(CrabError):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
+def test_refuse_extra_central_directory_records() -> None:
+    """Unlisted central-directory bytes are not covered by infolist()."""
+    blob = bytearray(
+        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
+    )
+    eocd = blob.rfind(b"PK\x05\x06")
+    added = b"PK\x05\x05\x00\x00"
+    blob[eocd:eocd] = added
+    eocd += len(added)
+    old_size = struct.unpack_from("<I", blob, eocd + 12)[0]
+    struct.pack_into("<I", blob, eocd + 12, old_size + len(added))
+    with pytest.raises(CrabError):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
+def test_refuse_mismatched_local_header_crc() -> None:
+    """The content hash alone must not bless a forged local header."""
+    blob = bytearray(
+        _zip(("manifest.json", b"ok"), compression=zipfile.ZIP_STORED)
+    )
+    struct.pack_into("<I", blob, 14, 0)
+    with pytest.raises(CrabError, match="ZIP envelope"):
+        check_zip_members(bytes(blob), (_expect("manifest.json", b"ok"),))
+
+
+def test_allow_standard_streaming_zip_data_descriptor() -> None:
+    """A normal non-seekable producer may emit a bounded data descriptor."""
+
+    class NonSeekableStream(io.BytesIO):
+        def seek(self, pos: int, whence: int = 0) -> int:
+            raise OSError("stream cannot seek")
+
+    stream = NonSeekableStream()
+    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED) as bundle:
+        bundle.writestr("manifest.json", b"ok")
+    blob = stream.getvalue()
+    assert struct.unpack_from("<H", blob, 6)[0] & 0x0008
+    checked = check_zip_members(blob, (_expect("manifest.json", b"ok"),))
+    assert checked[0].path == "manifest.json"
