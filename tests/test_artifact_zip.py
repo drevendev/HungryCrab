@@ -76,7 +76,7 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
 
 @pytest.mark.parametrize(
     "hidden",
-    ["\\u202e", "\\u200b", "\\u2066", "\\u0085", "\\u2028", "\\ud800"],
+    ["\u202e", "\u200b", "\u2066", "\u0085", "\u2028", "\ud800"],
 )
 def test_refuse_invisible_or_ill_formed_manifest_paths(hidden: str) -> None:
     payload = b"ok"
@@ -87,7 +87,7 @@ def test_refuse_invisible_or_ill_formed_manifest_paths(hidden: str) -> None:
 
 @pytest.mark.parametrize(
     "hidden",
-    ["\\u202e", "\\u200b", "\\u2066", "\\u0085", "\\u2028"],
+    ["\u202e", "\u200b", "\u2066", "\u0085", "\u2028"],
 )
 def test_refuse_invisible_or_format_control_archive_paths(hidden: str) -> None:
     payload = b"ok"
