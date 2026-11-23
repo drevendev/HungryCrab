@@ -66,7 +66,7 @@ def _canonical(path: str) -> bool:
         or unicodedata.normalize("NFC", path) != path
         or path.startswith("/")
         or "\\" in path
-        or any(ord(char) < 32 or ord(char) == 127 for char in path)
+        or any(unicodedata.category(char) in {"Cc", "Cf", "Cs", "Zl", "Zp"} for char in path)
     ):
         return False
     parts = path.split("/")
