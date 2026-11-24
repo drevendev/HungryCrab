@@ -75,9 +75,70 @@ def test_refuse_unsafe_and_non_evidence_paths(bad_name: str) -> None:
         check_zip_members(blob, (_expect(bad_name, b"a"),))
 
 
-def test_safe_unicode_member_path_remains_allowed() -> None:
+@pytest.mark.parametrize(
+    "hidden",
+    [
+        "\u202e",
+        "\u200b",
+        "\u2066",
+        "\u0085",
+        "\u2028",
+        "\u034f",
+        "\u17b4",
+        "\u17b5",
+        "\u00a0",  # NO-BREAK SPACE (Zs).
+        "\u2007",  # FIGURE SPACE (Zs).
+        "\u180b",
+        "\u180f",
+        "\u115f",
+        "\u1160",
+        "\u3164",
+        "\uffa0",
+        "\ufe0f",
+        "\U000e0100",
+        "\ud800",
+    ],
+)
+def test_refuse_invisible_or_ill_formed_manifest_paths(hidden: str) -> None:
+    payload = b"ok"
+    blob = _zip(("pages/report.md", payload))
+    with pytest.raises(CrabError, match="invalid manifest member"):
+        check_zip_members(blob, (_expect(f"pages/{hidden}report.md", payload),))
+
+
+@pytest.mark.parametrize(
+    "hidden",
+    [
+        "\u202e",
+        "\u200b",
+        "\u2066",
+        "\u0085",
+        "\u2028",
+        "\u034f",
+        "\u17b4",
+        "\u17b5",
+        "\u00a0",  # NO-BREAK SPACE (Zs).
+        "\u2007",  # FIGURE SPACE (Zs).
+        "\u180b",
+        "\u180f",
+        "\u115f",
+        "\u1160",
+        "\u3164",
+        "\uffa0",
+        "\ufe0f",
+        "\U000e0100",
+    ],
+)
+def test_refuse_invisible_or_format_control_archive_paths(hidden: str) -> None:
+    payload = b"ok"
+    blob = _zip((f"pages/rep{hidden}ort.md", payload))
+    with pytest.raises(CrabError, match="unsafe raw archive path or alias"):
+        check_zip_members(blob, (_expect("pages/report.md", payload),))
+
+
+@pytest.mark.parametrize("member_name", ["sources/café.json", "pages/quarter 1.md"])
+def test_safe_unicode_member_path_remains_allowed(member_name: str) -> None:
     payload = b"{}"
-    member_name = "sources/café.json"
     checked = check_zip_members(_zip((member_name, payload)), (_expect(member_name, payload),))
     assert checked[0].path == member_name
 
@@ -136,6 +197,40 @@ def test_refuse_casefold_collision_in_archive() -> None:
     blob = _zip(("a.json", b"first"), ("A.JSON", b"second"))
     with pytest.raises(CrabError):
         check_zip_members(blob, (_expect("a.json", b"first"), _expect("A.JSON", b"second")))
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("evidence.json", "evidence.json/page.md"),
+        ("evidence.json/page.md", "evidence.json"),
+        ("Evidence.json", "evidence.json/page.md"),
+        ("evidence.json/page.md", "Evidence.json"),
+        ("pages/data.json", "pages/data.json/nested/page.md"),
+    ],
+)
+def test_refuse_file_directory_namespace_conflict(first: str, second: str) -> None:
+    payload = b"ok"
+    members = (_expect(first, payload), _expect(second, payload))
+    blob = _zip((first, payload), (second, payload))
+    with pytest.raises(CrabError, match="manifest file/directory conflict"):
+        check_zip_members(blob, members)
+
+
+def test_refuse_archive_namespace_conflict_with_safe_manifest() -> None:
+    payload = b"ok"
+    blob = _zip(("evidence.json", payload), ("evidence.json/page.md", payload))
+    members = (_expect("evidence.json", payload), _expect("pages/page.md", payload))
+    with pytest.raises(CrabError, match="undeclared archive member"):
+        check_zip_members(blob, members)
+
+
+def test_allow_regular_members_with_shared_directory() -> None:
+    payload = b"ok"
+    names = ("pages/data.json", "pages/page.md", "pages/data.json.backup.txt")
+    blob = _zip(*((name, payload) for name in names))
+    records = check_zip_members(blob, tuple(_expect(name, payload) for name in names))
+    assert tuple(record.path for record in records) == names
 
 
 def test_refuse_same_name_duplicate_archive_members() -> None:
