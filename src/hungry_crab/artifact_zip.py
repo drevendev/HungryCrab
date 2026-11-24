@@ -59,6 +59,23 @@ def _refuse(reason: str) -> CrabError:
     return CrabError(f"untrusted archive refused: {reason}")
 
 
+def _unsafe_unicode_path_char(char: str) -> bool:
+    """Reject controls, non-ASCII spacing separators and targeted ignorable marks."""
+    point = ord(char)
+    category = unicodedata.category(char)
+    return (
+        category in {"Cc", "Cf", "Cs", "Zl", "Zp"}
+        or (category == "Zs" and char != " ")  # Keep ordinary ASCII interior spaces.
+        or point == 0x034F  # Combining grapheme joiner (Mn).
+        or point in {0x17B4, 0x17B5}  # Khmer inherent vowels (Mn).
+        or 0x180B <= point <= 0x180D  # Mongolian FVS 1-3 (Mn).
+        or point == 0x180F  # Mongolian FVS 4 (Mn).
+        or point in {0x115F, 0x1160, 0x3164, 0xFFA0}  # Hangul fillers (Lo).
+        or 0xFE00 <= point <= 0xFE0F  # Variation selectors (Mn).
+        or 0xE0100 <= point <= 0xE01EF  # Supplementary variation selectors (Mn).
+    )
+
+
 def _canonical(path: str) -> bool:
     if (
         not path
@@ -66,7 +83,7 @@ def _canonical(path: str) -> bool:
         or unicodedata.normalize("NFC", path) != path
         or path.startswith("/")
         or "\\" in path
-        or any(ord(char) < 32 or ord(char) == 127 for char in path)
+        or any(_unsafe_unicode_path_char(char) for char in path)
     ):
         return False
     parts = path.split("/")
@@ -215,6 +232,14 @@ def check_zip_members(
             raise _refuse("duplicate manifest member")
         folded.add(folded_name)
         declared[member.path] = member
+
+    # Exact membership below binds the ZIP to this validated file namespace.
+    # A regular file must never be an ancestor of another regular file,
+    # including on a case-insensitive filesystem and in either input order.
+    for name in folded:
+        parts = name.split("/")
+        if any("/".join(parts[:depth]) in folded for depth in range(1, len(parts))):
+            raise _refuse("manifest file/directory conflict")
 
     total_declared = sum(member.size for member in expected)
     if total_declared > MAX_TOTAL_BYTES:
