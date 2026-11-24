@@ -70,6 +70,10 @@ def _records() -> tuple[ExpectedProvider, ObservedRun, ObservedJob, ObservedArti
     artifact = ObservedArtifact(
         artifact_id=expected.artifact_id,
         run_id=expected.run_id,
+        repository_id=expected.repository_id,
+        head_repository_id=expected.head_repository_id,
+        head_branch=expected.head_ref.removeprefix("refs/heads/"),
+        head_sha=expected.head_sha,
         size=expected.artifact_size,
         digest=expected.artifact_digest,
         expired=False,
@@ -130,6 +134,14 @@ def test_refuse_nonmatching_or_unsuccessful_job(field: str, bad: object) -> None
     [
         ("artifact_id", 401),
         ("run_id", 790),
+        ("repository_id", 124),
+        ("repository_id", True),
+        ("head_repository_id", 124),
+        ("head_repository_id", None),
+        ("head_branch", "other"),
+        ("head_branch", ""),
+        ("head_sha", "e" * 40),
+        ("head_sha", "abcdef0"),
         ("size", 1025),
         ("digest", "sha256:" + "e" * 64),
         ("digest", None),
@@ -199,6 +211,10 @@ def test_prior_attempt_artifact_cannot_prove_current_job_lineage() -> None:
     prior_attempt_artifact = ObservedArtifact(
         artifact_id=expected.artifact_id,
         run_id=expected.run_id,
+        repository_id=expected.repository_id,
+        head_repository_id=expected.head_repository_id,
+        head_branch=expected.head_ref.removeprefix("refs/heads/"),
+        head_sha=expected.head_sha,
         size=expected.artifact_size,
         digest=expected.artifact_digest,
         expired=False,
@@ -268,3 +284,14 @@ def test_downloaded_zip_bytes_refuse_untrusted_receipts_and_unbounded_data() -> 
         check_downloaded_artifact_bytes(
             replace(matched, artifact_size=MAX_ARCHIVE_BYTES + 1), archive
         )
+
+
+def test_native_artifact_scope_does_not_require_same_head_repository() -> None:
+    # Matching identity is not a decision that fork-origin evidence is trusted.
+    expected, run, job, artifact = _records()
+    expected = replace(expected, head_repository_id=999, head_ref="refs/heads/topic/branch")
+    run = replace(run, head_repository_id=999, head_ref="refs/heads/topic/branch")
+    artifact = replace(artifact, head_repository_id=999, head_branch="topic/branch")
+    matched = compare_provider_records(expected, run, job, artifact)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        matched.require_lineage_for_admission()
