@@ -75,12 +75,17 @@ class ObservedJob:
 class ObservedArtifact:
     """Native artifact identity/digest, not producer job/attempt lineage.
 
-    GitHub's artifact record identifies a run, not the job or attempt which
+    GitHub's artifact record identifies a run and its repository/head scope,
+    not the job or attempt which
     uploaded it. Never infer those fields from the untrusted ZIP/manifest.
     """
 
     artifact_id: int
     run_id: int
+    repository_id: int
+    head_repository_id: int
+    head_branch: str
+    head_sha: str
     size: int
     digest: str
     expired: bool
@@ -179,6 +184,11 @@ def compare_provider_records(
         or not _positive(job.run_attempt)
         or not _positive(artifact.artifact_id)
         or not _positive(artifact.run_id)
+        or not _positive(artifact.repository_id)
+        or not _positive(artifact.head_repository_id)
+        or type(artifact.head_branch) is not str
+        or not artifact.head_branch
+        or not _sha(artifact.head_sha)
         or type(expected.artifact_size) is not int
         or type(artifact.size) is not int
         or expected.artifact_size <= 0
@@ -218,6 +228,10 @@ def compare_provider_records(
         or job.run_attempt != run.run_attempt
         or artifact.artifact_id != expected.artifact_id
         or artifact.run_id != run.run_id
+        or artifact.repository_id != run.repository_id
+        or artifact.head_repository_id != run.head_repository_id
+        or artifact.head_branch != run.head_ref.removeprefix("refs/heads/")
+        or artifact.head_sha != run.head_sha
         or artifact.size != expected.artifact_size
         or artifact.digest != expected.artifact_digest
     ):
