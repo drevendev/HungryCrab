@@ -7,6 +7,7 @@ import io
 import stat
 import struct
 import zipfile
+import zlib
 
 import pytest
 
@@ -322,3 +323,52 @@ def test_allow_standard_streaming_zip_data_descriptor() -> None:
     assert struct.unpack_from("<H", blob, 6)[0] & 0x0008
     checked = check_zip_members(blob, (_expect("manifest.json", b"ok"),))
     assert checked[0].path == "manifest.json"
+
+
+@pytest.mark.parametrize("compression", [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED])
+@pytest.mark.parametrize("payload", [b"", b"ordinary evidence"])
+def test_accept_complete_compressed_stream(compression: int, payload: bytes) -> None:
+    blob = _zip(("manifest.json", payload), compression=compression)
+    assert check_zip_members(blob, (_expect("manifest.json", payload),))[0].size == len(payload)
+
+
+@pytest.mark.parametrize("compression", [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED])
+def test_refuse_understated_unpacked_length(compression: int) -> None:
+    """Consistent headers and a valid prefix hash do not prove the whole payload."""
+    prefix = b"evidence"
+    blob = bytearray(_zip(("manifest.json", prefix + b"extra"), compression=compression))
+    directory = blob.index(b"PK\\x01\\x02")
+    crc = zlib.crc32(prefix)
+    struct.pack_into("<I", blob, 14, crc)
+    struct.pack_into("<I", blob, 22, len(prefix))
+    struct.pack_into("<I", blob, directory + 16, crc)
+    struct.pack_into("<I", blob, directory + 24, len(prefix))
+    with pytest.raises(CrabError, match="member length mismatch|compressed member stream"):
+        check_zip_members(bytes(blob), (_expect("manifest.json", prefix),))
+
+
+@pytest.mark.parametrize("damage", ["trailing", "truncated", "concatenated"])
+def test_refuse_incomplete_or_nonexclusive_deflate_stream(damage: str) -> None:
+    payload = b"ordinary evidence"
+    blob = bytearray(_zip(("manifest.json", payload)))
+    directory = blob.index(b"PK\\x01\\x02")
+    old_size = struct.unpack_from("<I", blob, 18)[0]
+    if damage == "truncated":
+        del blob[directory - 1]
+        delta = -1
+    else:
+        if damage == "concatenated":
+            encoder = zlib.compressobj(wbits=-zlib.MAX_WBITS)
+            added = encoder.compress(b"extra") + encoder.flush()
+        else:
+            added = b"trailing"
+        blob[directory:directory] = added
+        delta = len(added)
+    directory += delta
+    # Keep the envelope and both declared compressed sizes consistent.
+    struct.pack_into("<I", blob, 18, old_size + delta)
+    struct.pack_into("<I", blob, directory + 20, old_size + delta)
+    eocd = blob.rfind(b"PK\\x05\\x06")
+    struct.pack_into("<I", blob, eocd + 16, directory)
+    with pytest.raises(CrabError, match="compressed member stream|corrupt or unreadable ZIP"):
+        check_zip_members(bytes(blob), (_expect("manifest.json", payload),))
