@@ -337,13 +337,13 @@ def test_refuse_understated_unpacked_length(compression: int) -> None:
     """Consistent headers and a valid prefix hash do not prove the whole payload."""
     prefix = b"evidence"
     blob = bytearray(_zip(("manifest.json", prefix + b"extra"), compression=compression))
-    directory = blob.index(b"PK\\x01\\x02")
+    directory = blob.index(b"PK\x01\x02")
     crc = zlib.crc32(prefix)
     struct.pack_into("<I", blob, 14, crc)
     struct.pack_into("<I", blob, 22, len(prefix))
     struct.pack_into("<I", blob, directory + 16, crc)
     struct.pack_into("<I", blob, directory + 24, len(prefix))
-    with pytest.raises(CrabError, match="member length mismatch|compressed member stream"):
+    with pytest.raises(CrabError, match=r"member length mismatch|compressed member stream"):
         check_zip_members(bytes(blob), (_expect("manifest.json", prefix),))
 
 
@@ -351,7 +351,7 @@ def test_refuse_understated_unpacked_length(compression: int) -> None:
 def test_refuse_incomplete_or_nonexclusive_deflate_stream(damage: str) -> None:
     payload = b"ordinary evidence"
     blob = bytearray(_zip(("manifest.json", payload)))
-    directory = blob.index(b"PK\\x01\\x02")
+    directory = blob.index(b"PK\x01\x02")
     old_size = struct.unpack_from("<I", blob, 18)[0]
     if damage == "truncated":
         del blob[directory - 1]
@@ -368,7 +368,7 @@ def test_refuse_incomplete_or_nonexclusive_deflate_stream(damage: str) -> None:
     # Keep the envelope and both declared compressed sizes consistent.
     struct.pack_into("<I", blob, 18, old_size + delta)
     struct.pack_into("<I", blob, directory + 20, old_size + delta)
-    eocd = blob.rfind(b"PK\\x05\\x06")
+    eocd = blob.rfind(b"PK\x05\x06")
     struct.pack_into("<I", blob, eocd + 16, directory)
-    with pytest.raises(CrabError, match="compressed member stream|corrupt or unreadable ZIP"):
+    with pytest.raises(CrabError, match=r"compressed member stream|corrupt or unreadable ZIP"):
         check_zip_members(bytes(blob), (_expect("manifest.json", payload),))
