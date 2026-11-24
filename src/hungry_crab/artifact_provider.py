@@ -312,12 +312,7 @@ def fetch_attempt_job(
         raise _hold("invalid native attempt job listing")
     jobs = listing.get("jobs")
     total = listing.get("total_count")
-    if (
-        not isinstance(jobs, list)
-        or not _positive(total)
-        or total != len(jobs)
-        or len(jobs) > 100
-    ):
+    if not isinstance(jobs, list) or not _positive(total) or total != len(jobs) or len(jobs) > 100:
         raise _hold("incomplete or unsupported native attempt job listing")
     seen: set[int] = set()
     selected = None
@@ -332,8 +327,7 @@ def fetch_attempt_job(
             or (
                 "run_attempt" in job
                 and (
-                    not _positive(job["run_attempt"])
-                    or job["run_attempt"] != expected.run_attempt
+                    not _positive(job["run_attempt"]) or job["run_attempt"] != expected.run_attempt
                 )
             )
         ):
