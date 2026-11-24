@@ -197,6 +197,32 @@ def _check_zip_envelope(archive: bytes, entries: Sequence[zipfile.ZipInfo]) -> N
         raise _refuse("invalid ZIP envelope")
 
 
+def _check_compressed_stream(archive: bytes, info: zipfile.ZipInfo) -> None:
+    """Prove the entire bounded compressed payload, not only ZipExtFile's prefix."""
+    if info.compress_type == zipfile.ZIP_STORED:
+        if info.compress_size != info.file_size:
+            raise _refuse("stored member length mismatch")
+        return
+
+    # Envelope validation has already bounded this local payload, and the
+    # member checks have bounded both sizes and restricted the method.
+    offset = info.header_offset
+    name_size, extra_size = struct.unpack_from("<2H", archive, offset + 26)
+    start = offset + 30 + name_size + extra_size
+    compressed = archive[start : start + info.compress_size]
+    decoder = zlib.decompressobj(-zlib.MAX_WBITS)
+    # One extra output byte detects understated sizes without unbounded
+    # decompression. Never flush: flush() does not enforce an output ceiling.
+    payload = decoder.decompress(compressed, info.file_size + 1)
+    if (
+        len(payload) != info.file_size
+        or not decoder.eof
+        or decoder.unused_data
+        or decoder.unconsumed_tail
+    ):
+        raise _refuse("invalid compressed member stream")
+
+
 def check_zip_members(
     archive: bytes,
     expected: Sequence[ExpectedMember],
@@ -308,6 +334,7 @@ def check_zip_members(
                 total_actual += info.file_size
                 if total_actual > MAX_TOTAL_BYTES:
                     raise _refuse("unpacked byte budget")
+                _check_compressed_stream(archive, info)
                 with bundle.open(info, "r") as stream:
                     payload = stream.read(spec.size + 1)
                     if len(payload) != spec.size or stream.read(1):
