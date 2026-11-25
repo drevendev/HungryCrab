@@ -7,6 +7,7 @@ import pytest
 
 from hungry_crab.artifact_attestation import (
     MAX_CANDIDATES,
+    MAX_VERIFIER_OUTPUT,
     ExpectedAttestation,
     select_attestation_candidate,
 )
@@ -170,5 +171,33 @@ def test_wrong_subject_digest_stops() -> None:
     expected = _expected()
     entry = _entry(expected)
     entry["verificationResult"]["statement"]["subject"][0]["digest"]["sha256"] = "c" * 64
+    with pytest.raises(CrabError, match="no unique"):
+        _select([entry], expected)
+
+
+def test_oversized_verifier_output_stops() -> None:
+    expected = _expected()
+    payload = json.dumps([_entry(expected)]).encode()
+    payload += b" " * (MAX_VERIFIER_OUTPUT + 1 - len(payload))
+    with pytest.raises(CrabError, match="unqualified"):
+        select_attestation_candidate(
+            payload, expected, verifier_exit_code=0, lookup_complete=True
+        )
+
+
+@pytest.mark.parametrize("count", [0, 2])
+def test_wrong_subject_cardinality_stops(count: int) -> None:
+    expected = _expected()
+    entry = _entry(expected)
+    statement = entry["verificationResult"]["statement"]
+    statement["subject"] *= count
+    with pytest.raises(CrabError, match="subject cardinality"):
+        _select([entry], expected)
+
+
+def test_wrong_predicate_type_stops() -> None:
+    expected = _expected()
+    entry = _entry(expected)
+    entry["verificationResult"]["statement"]["predicateType"] = "https://example.test/other/v1"
     with pytest.raises(CrabError, match="no unique"):
         _select([entry], expected)
