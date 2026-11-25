@@ -29,7 +29,13 @@ def _expected() -> ExpectedAttestation:
             "runInvocationURI": "https://github.com/example/producer/actions/runs/42/attempts/2",
         },
         predicate_type="https://example.test/a2/v1",
-        predicate={"artifact_id": 7, "artifact_size": 42, "request": "r", "pair": "p", "policy": "v"},
+        predicate={
+            "artifact_id": 7,
+            "artifact_size": 42,
+            "request": "r",
+            "pair": "p",
+            "policy": "v",
+        },
         zip_sha256="b" * 64,
     )
 
@@ -137,7 +143,9 @@ def test_missing_timestamps_stop() -> None:
 @pytest.mark.parametrize("payload", [b"[", b"\xff", b'[{"a": 1, "a": 2}]', b"[NaN]"])
 def test_malformed_output_stops(payload: bytes) -> None:
     with pytest.raises(CrabError, match="malformed"):
-        select_attestation_candidate(payload, _expected(), verifier_exit_code=0, lookup_complete=True)
+        select_attestation_candidate(
+            payload, _expected(), verifier_exit_code=0, lookup_complete=True
+        )
 
 
 @pytest.mark.parametrize(("exit_code", "complete"), [(1, True), (0, False), (False, True)])
