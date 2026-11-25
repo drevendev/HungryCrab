@@ -276,7 +276,11 @@ def check_downloaded_artifact_bytes(
 
 
 def fetch_attempt_job(
-    expected: ExpectedProvider, repository: str, *, client: GitHubClient
+    expected: ExpectedProvider,
+    repository: str,
+    *,
+    client: GitHubClient,
+    require_singleton: bool = False,
 ) -> ObservedJob:
     """Read the selected job from its native attempt-scoped REST endpoint.
 
@@ -285,6 +289,9 @@ def fetch_attempt_job(
     job listing is not equivalent: reruns reuse run IDs. Refuse incomplete
     listings rather than guess from job names or timestamps. This is only job
     membership evidence, not proof that the job uploaded the artifact.
+    Singleton mode additionally rejects every attempt with more than one job.
+    It does not validate the reviewed workflow topology, upload step, signature,
+    or producer receipt and cannot establish lineage or admit the archive.
     """
     if (
         type(expected) is not ExpectedProvider
@@ -317,6 +324,10 @@ def fetch_attempt_job(
     total = listing.get("total_count")
     if not isinstance(jobs, list) or not _positive(total) or total != len(jobs) or len(jobs) > 100:
         raise _hold("incomplete or unsupported native attempt job listing")
+    if type(require_singleton) is not bool:
+        raise _hold("invalid singleton job requirement")
+    if require_singleton and total != 1:
+        raise _hold("native attempt is not a singleton job")
     seen: set[int] = set()
     selected = None
     for job in jobs:
