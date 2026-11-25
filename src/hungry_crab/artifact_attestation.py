@@ -66,6 +66,10 @@ def _object(value: object) -> dict[str, object]:
     return value
 
 
+def _positive(value: object) -> bool:
+    return type(value) is int and value > 0
+
+
 def _valid_expected(expected: ExpectedAttestation) -> bool:
     cert = expected.certificate
     predicate = expected.predicate
@@ -78,10 +82,7 @@ def _valid_expected(expected: ExpectedAttestation) -> bool:
         and type(expected.predicate_type) is str
         and bool(expected.predicate_type.strip())
         and set(predicate) == set(_PREDICATE_FIELDS)
-        and all(
-            type(predicate[k]) is int and predicate[k] > 0
-            for k in ("artifact_id", "artifact_size")
-        )
+        and all(_positive(predicate[k]) for k in ("artifact_id", "artifact_size"))
         and all(
             isinstance(predicate[k], str) and bool(str(predicate[k]).strip())
             for k in ("request", "pair", "policy")
