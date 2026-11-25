@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -304,6 +305,9 @@ def test_native_artifact_scope_does_not_require_same_head_repository() -> None:
 def _attempt_client() -> Mock:
     expected, _, _, _ = _records()
     client = Mock(spec=GitHubClient)
+    client.cache_dir = None
+    client.gh = None
+    client.token = "test-token"
     client.repo.return_value = {"id": expected.repository_id}
     client.get.return_value = {
         "total_count": 1,
@@ -378,3 +382,26 @@ def test_fetch_job_refuses_wrong_repository_and_unavailable_endpoint() -> None:
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         fetch_attempt_job(expected, "owner/repo", client=client)
     assert client.get.call_count == 1
+
+
+@pytest.mark.parametrize("cached", [False, True])
+def test_fetch_job_refuses_anonymous_or_cached_client(cached: bool) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    if cached:
+        client.cache_dir = Path("unused-cache")
+    else:
+        client.token = None
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+    client.repo.assert_not_called()
+    client.get.assert_not_called()
+
+
+@pytest.mark.parametrize("endpoint", ["repo", "get"])
+def test_fetch_job_normalizes_deep_json_failure(endpoint: str) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    getattr(client, endpoint).side_effect = RecursionError("deep JSON")
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
