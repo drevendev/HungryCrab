@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import replace
+from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -19,9 +21,12 @@ from hungry_crab.artifact_provider import (
     ObservedRun,
     check_downloaded_artifact_bytes,
     compare_provider_records,
+    fetch_attempt_job,
 )
 from hungry_crab.artifact_zip import MAX_ARCHIVE_BYTES
-from hungry_crab.errors import CrabError
+from hungry_crab.cache import Slug
+from hungry_crab.errors import CrabError, ExternalCommandError
+from hungry_crab.fetch.github import GitHubClient
 
 _SHA = "a" * 40
 _WORKFLOW = "b" * 40
@@ -295,3 +300,108 @@ def test_native_artifact_scope_does_not_require_same_head_repository() -> None:
     matched = compare_provider_records(expected, run, job, artifact)
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         matched.require_lineage_for_admission()
+
+
+def _attempt_client() -> Mock:
+    expected, _, _, _ = _records()
+    client = Mock(spec=GitHubClient)
+    client.cache_dir = None
+    client.gh = None
+    client.token = "test-token"
+    client.repo.return_value = {"id": expected.repository_id}
+    client.get.return_value = {
+        "total_count": 1,
+        "jobs": [
+            {
+                "id": expected.job_id,
+                "run_id": expected.run_id,
+                "head_sha": expected.head_sha,
+                "status": "completed",
+                "conclusion": "success",
+            }
+        ],
+    }
+    return client
+
+
+def test_fetch_job_uses_native_attempt_endpoint_and_preserves_hold() -> None:
+    expected, run, _, artifact = _records()
+    client = _attempt_client()
+    job = fetch_attempt_job(expected, "owner/repo", client=client)
+    client.repo.assert_called_once_with(Slug("owner", "repo"))
+    client.get.assert_called_once_with(
+        "repos/owner/repo/actions/runs/789/attempts/2/jobs?per_page=100&page=1"
+    )
+    match = compare_provider_records(expected, run, job, artifact)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        match.require_lineage_for_admission()
+
+
+@pytest.mark.parametrize(
+    ("field", "bad"),
+    [
+        ("id", 301),
+        ("id", True),
+        ("run_id", 790),
+        ("head_sha", "e" * 40),
+        ("run_attempt", 1),
+        ("run_attempt", True),
+        ("status", "in_progress"),
+        ("conclusion", "cancelled"),
+    ],
+)
+def test_fetch_job_refuses_wrong_or_unsuccessful_attempt_member(field: str, bad: object) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    client.get.return_value["jobs"][0][field] = bad
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+
+
+def test_fetch_job_refuses_incomplete_and_duplicate_listings() -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    listing = client.get.return_value
+    listing["total_count"] = 2
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+    listing["jobs"].append(dict(listing["jobs"][0]))
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+
+
+def test_fetch_job_refuses_wrong_repository_and_unavailable_endpoint() -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    client.repo.return_value = {"id": 999}
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+    client.get.assert_not_called()
+    client.repo.return_value = {"id": expected.repository_id}
+    client.get.side_effect = ExternalCommandError("unavailable")
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+    assert client.get.call_count == 1
+
+
+@pytest.mark.parametrize("cached", [False, True])
+def test_fetch_job_refuses_anonymous_or_cached_client(cached: bool) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    if cached:
+        client.cache_dir = Path("unused-cache")
+    else:
+        client.token = None
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)
+    client.repo.assert_not_called()
+    client.get.assert_not_called()
+
+
+@pytest.mark.parametrize("endpoint", ["repo", "get"])
+def test_fetch_job_normalizes_deep_json_failure(endpoint: str) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    getattr(client, endpoint).side_effect = RecursionError("deep JSON")
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client)

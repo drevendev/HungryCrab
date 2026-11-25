@@ -1,8 +1,9 @@
 """Fail-closed comparison of A2's out-of-band provider records (issue #684).
 
-This module does NOT fetch provider evidence, validate a downloaded artifact, or
-decide source/rights authority. The caller must independently retrieve native
-run/job/artifact records and independently review the executed workflow/tool
+This module compares provider evidence and retrieves exact-attempt job membership.
+It checks downloaded archive bytes against the matched provider digest, not the
+archive's contents or source/rights authority. The caller must independently
+retrieve the remaining native records and review the executed workflow/tool
 pins; archive-controlled metadata cannot supply either side of that trust root.
 
 A successful comparison is an identity match, NOT portable admission.
@@ -16,7 +17,9 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from .artifact_zip import MAX_ARCHIVE_BYTES
+from .cache import Slug
 from .errors import CrabError
+from .fetch.github import GitHubClient
 
 _FULL_GIT_SHA = re.compile(r"[0-9a-f]{40}")
 _PROVIDER_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
@@ -270,3 +273,81 @@ def check_downloaded_artifact_bytes(
         raise _hold("downloaded artifact size or provider digest is invalid")
     if "sha256:" + hashlib.sha256(downloaded_archive).hexdigest() != matched.artifact_digest:
         raise _hold("downloaded artifact SHA-256 does not match provider digest")
+
+
+def fetch_attempt_job(
+    expected: ExpectedProvider, repository: str, *, client: GitHubClient
+) -> ObservedJob:
+    """Read the selected job from its native attempt-scoped REST endpoint.
+
+    Repository and expected identity must come from reviewed caller policy,
+    never an artifact. Use a fresh, authenticated read-only client. A run-wide
+    job listing is not equivalent: reruns reuse run IDs. Refuse incomplete
+    listings rather than guess from job names or timestamps. This is only job
+    membership evidence, not proof that the job uploaded the artifact.
+    """
+    if (
+        type(expected) is not ExpectedProvider
+        or not _positive(expected.repository_id)
+        or not _positive(expected.run_id)
+        or not _positive(expected.run_attempt)
+        or not _positive(expected.job_id)
+        or not _sha(expected.head_sha)
+    ):
+        raise _hold("invalid expected attempt/job identity")
+    if client.cache_dir is not None or (not client.gh and not client.token):
+        raise _hold("native attempt job read requires an authenticated uncached client")
+    try:
+        slug = Slug.parse(repository)
+        if slug.host != "github.com" or str(slug) != repository:
+            raise _hold("unsupported native producer repository")
+        repo = client.repo(slug)
+        if not _positive(repo.get("id")) or repo["id"] != expected.repository_id:
+            raise _hold("native producer repository ID mismatch")
+        listing = client.get(
+            f"repos/{slug}/actions/runs/{expected.run_id}/"
+            f"attempts/{expected.run_attempt}/jobs?per_page=100&page=1"
+        )
+    except (CrabError, OSError, ValueError, RecursionError) as exc:
+        raise _hold("native attempt-scoped job read unavailable") from exc
+
+    if not isinstance(listing, dict):
+        raise _hold("invalid native attempt job listing")
+    jobs = listing.get("jobs")
+    total = listing.get("total_count")
+    if not isinstance(jobs, list) or not _positive(total) or total != len(jobs) or len(jobs) > 100:
+        raise _hold("incomplete or unsupported native attempt job listing")
+    seen: set[int] = set()
+    selected = None
+    for job in jobs:
+        if (
+            not isinstance(job, dict)
+            or not _positive(job.get("id"))
+            or job["id"] in seen
+            or not _positive(job.get("run_id"))
+            or job["run_id"] != expected.run_id
+            or job.get("head_sha") != expected.head_sha
+            or (
+                "run_attempt" in job
+                and (
+                    not _positive(job["run_attempt"]) or job["run_attempt"] != expected.run_attempt
+                )
+            )
+        ):
+            raise _hold("conflicting native attempt job identity")
+        seen.add(job["id"])
+        if job["id"] == expected.job_id:
+            selected = job
+    if (
+        selected is None
+        or selected.get("status") != "completed"
+        or selected.get("conclusion") != "success"
+    ):
+        raise _hold("selected job absent or unsuccessful in native attempt")
+    return ObservedJob(
+        job_id=expected.job_id,
+        run_id=expected.run_id,
+        run_attempt=expected.run_attempt,
+        status="completed",
+        conclusion="success",
+    )
