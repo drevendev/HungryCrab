@@ -405,3 +405,46 @@ def test_fetch_job_normalizes_deep_json_failure(endpoint: str) -> None:
     getattr(client, endpoint).side_effect = RecursionError("deep JSON")
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         fetch_attempt_job(expected, "owner/repo", client=client)
+
+
+def test_singleton_attempt_membership_preserves_admission_hold() -> None:
+    expected, run, _, artifact = _records()
+    client = _attempt_client()
+    job = fetch_attempt_job(expected, "owner/repo", client=client, require_singleton=True)
+    match = compare_provider_records(expected, run, job, artifact)
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        match.require_lineage_for_admission()
+
+
+@pytest.mark.parametrize("conclusion", ["success", "skipped", "failure"])
+def test_singleton_attempt_refuses_even_unselected_jobs(conclusion: str) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    listing = client.get.return_value
+    listing["total_count"] = 2
+    listing["jobs"].append(dict(listing["jobs"][0], id=301, conclusion=conclusion))
+    # Ordinary job membership still permits a complete multi-job listing.
+    assert fetch_attempt_job(expected, "owner/repo", client=client).job_id == expected.job_id
+    with pytest.raises(CrabError, match="native attempt is not a singleton job"):
+        fetch_attempt_job(expected, "owner/repo", client=client, require_singleton=True)
+
+
+@pytest.mark.parametrize("total_count", [0, 2, True])
+def test_singleton_attempt_refuses_incomplete_listing(total_count: object) -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    client.get.return_value["total_count"] = total_count
+    with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
+        fetch_attempt_job(expected, "owner/repo", client=client, require_singleton=True)
+
+
+def test_singleton_attempt_refuses_non_boolean_requirement() -> None:
+    expected, _, _, _ = _records()
+    client = _attempt_client()
+    with pytest.raises(CrabError, match="invalid singleton job requirement"):
+        fetch_attempt_job(
+            expected,
+            "owner/repo",
+            client=client,
+            require_singleton="true",  # type: ignore[arg-type]
+        )
