@@ -180,9 +180,7 @@ def test_oversized_verifier_output_stops() -> None:
     payload = json.dumps([_entry(expected)]).encode()
     payload += b" " * (MAX_VERIFIER_OUTPUT + 1 - len(payload))
     with pytest.raises(CrabError, match="unqualified"):
-        select_attestation_candidate(
-            payload, expected, verifier_exit_code=0, lookup_complete=True
-        )
+        select_attestation_candidate(payload, expected, verifier_exit_code=0, lookup_complete=True)
 
 
 @pytest.mark.parametrize("count", [0, 2])
