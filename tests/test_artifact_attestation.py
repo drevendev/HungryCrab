@@ -2,6 +2,7 @@
 
 import copy
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -199,3 +200,69 @@ def test_wrong_predicate_type_stops() -> None:
     entry["verificationResult"]["statement"]["predicateType"] = "https://example.test/other/v1"
     with pytest.raises(CrabError, match="no unique"):
         _select([entry], expected)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("issuer", "https://example.test"),
+        ("runnerEnvironment", "self-hosted"),
+        ("sourceRepositoryIdentifier", "0"),
+        ("sourceRepositoryIdentifier", "0123"),
+        ("sourceRepositoryIdentifier", "123x"),
+        ("buildConfigDigest", ""),
+        ("runInvocationURI", " "),
+    ],
+)
+def test_invalid_expected_certificate_stops(field: str, value: str) -> None:
+    expected = _expected()
+    expected.certificate[field] = value
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("artifact_id", 0),
+        ("artifact_id", True),
+        ("artifact_size", -1),
+        ("artifact_size", 42.0),
+        ("request", ""),
+        ("pair", " "),
+        ("policy", 1),
+    ],
+)
+def test_invalid_expected_predicate_stops(field: str, value: str | int | float) -> None:
+    expected = _expected()
+    expected.predicate[field] = value  # type: ignore[assignment]
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
+
+
+def test_expected_certificate_missing_field_stops() -> None:
+    expected = _expected()
+    del expected.certificate["buildSignerDigest"]
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
+
+
+def test_expected_predicate_extra_field_stops() -> None:
+    expected = _expected()
+    expected.predicate["extra"] = "unreviewed"
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
+
+
+@pytest.mark.parametrize("digest", ["", "b" * 63, "B" * 64, "z" * 64])
+def test_invalid_expected_digest_stops(digest: str) -> None:
+    expected = replace(_expected(), zip_sha256=digest)
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
+
+
+@pytest.mark.parametrize("predicate_type", ["", " "])
+def test_invalid_expected_predicate_type_stops(predicate_type: str) -> None:
+    expected = replace(_expected(), predicate_type=predicate_type)
+    with pytest.raises(CrabError, match="unqualified"):
+        _select([_entry(expected)], expected)
