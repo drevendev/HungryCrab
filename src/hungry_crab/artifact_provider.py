@@ -1,8 +1,9 @@
 """Fail-closed comparison of A2's out-of-band provider records (issue #684).
 
-This module does NOT fetch provider evidence, validate a downloaded artifact, or
-decide source/rights authority. The caller must independently retrieve native
-run/job/artifact records and independently review the executed workflow/tool
+This module compares provider evidence and retrieves exact-attempt job membership.
+It checks downloaded archive bytes against the matched provider digest, not the
+archive's contents or source/rights authority. The caller must independently
+retrieve the remaining native records and review the executed workflow/tool
 pins; archive-controlled metadata cannot supply either side of that trust root.
 
 A successful comparison is an identity match, NOT portable admission.
@@ -294,6 +295,8 @@ def fetch_attempt_job(
         or not _sha(expected.head_sha)
     ):
         raise _hold("invalid expected attempt/job identity")
+    if client.cache_dir is not None or (not client.gh and not client.token):
+        raise _hold("native attempt job read requires an authenticated uncached client")
     try:
         slug = Slug.parse(repository)
         if slug.host != "github.com" or str(slug) != repository:
@@ -305,7 +308,7 @@ def fetch_attempt_job(
             f"repos/{slug}/actions/runs/{expected.run_id}/"
             f"attempts/{expected.run_attempt}/jobs?per_page=100&page=1"
         )
-    except (CrabError, OSError, ValueError) as exc:
+    except (CrabError, OSError, ValueError, RecursionError) as exc:
         raise _hold("native attempt-scoped job read unavailable") from exc
 
     if not isinstance(listing, dict):
