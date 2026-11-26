@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -62,11 +61,10 @@ def _reject_constant(value: str) -> object:
     raise ValueError(f"unsupported JSON constant: {value}")
 
 
-def _finite_float(value: str) -> float:
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError("nonfinite JSON number")
-    return number
+def _reject_fractional_number(value: str) -> object:
+    # Until the provider schema and verifier canonicalization are qualified,
+    # do not round, underflow or otherwise normalize non-integer tokens.
+    raise ValueError(f"unsupported JSON number representation: {value}")
 
 
 def _endpoint(scope: InventoryScope) -> str:
@@ -141,11 +139,13 @@ def _next_cursor(links: tuple[str, ...], scope: InventoryScope, endpoint: str) -
 def read_inventory(
     scope: InventoryScope, fetch_page: Callable[[str, int], AttestationPage]
 ) -> tuple[bytes, ...]:
-    """Return exact canonicalized inline bundles only after cursor exhaustion.
+    """Return canonicalized inline bundles only after cursor exhaustion.
 
     The transport receives a rebuilt fixed-host URL and a remaining body-byte
     budget; it must never follow redirects or fetch bundle URLs. A URL-only
     provider schema is deliberately unsupported until separately reviewed.
+    This restricted JSON subset accepts integer number tokens only, not
+    fractional or exponent forms. Output is not raw provider response bytes.
     No partial inventory is returned on any error.
     """
     endpoint = _endpoint(scope)
@@ -167,7 +167,7 @@ def read_inventory(
                 page.body.decode("utf-8"),
                 object_pairs_hook=_unique_object,
                 parse_constant=_reject_constant,
-                parse_float=_finite_float,
+                parse_float=_reject_fractional_number,
             )
         except (ValueError, RecursionError) as exc:
             raise _hold("malformed inventory JSON") from exc
