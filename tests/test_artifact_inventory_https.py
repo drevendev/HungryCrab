@@ -24,6 +24,10 @@ class Response:
         self.body = body
         self.status = status
         self.reads: list[int] = []
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
 
     def read(self, amount: int) -> bytes:
         self.reads.append(amount)
@@ -66,6 +70,7 @@ def test_complete_response_preserves_all_link_fields(monkeypatch: pytest.MonkeyP
     assert page.body == b"{}"
     assert page.links == ("first", "second")
     assert response.reads == [2]
+    assert response.closed
     assert connection.closed
     [(method, target, headers)] = connection.requests
     assert method == "GET"
@@ -82,6 +87,7 @@ def test_no_redirect_or_retry(monkeypatch: pytest.MonkeyPatch, status: int) -> N
         AttestationHTTPS(TOKEN)(URL, 100)
     assert len(connection.requests) == 1
     assert response.reads == []
+    assert response.closed
     assert connection.closed
 
 
@@ -107,6 +113,7 @@ def test_bad_framing_refused_before_read(
     with pytest.raises(CrabError, match="REMOTE_VERIFICATION_REQUIRED"):
         AttestationHTTPS(TOKEN)(URL, 100)
     assert response.reads == []
+    assert response.closed
     assert connection.closed
 
 
@@ -116,6 +123,7 @@ def test_short_body_refused(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(CrabError, match="incomplete inventory response"):
         AttestationHTTPS(TOKEN)(URL, 100)
     assert response.reads == [3]
+    assert response.closed
     assert connection.closed
 
 
@@ -154,4 +162,20 @@ def test_network_error_is_sanitized(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(CrabError, match="inventory HTTPS transport failed") as error:
         AttestationHTTPS(TOKEN)(URL, 100)
     assert TOKEN not in str(error.value)
+    assert connection.closed
+
+
+def test_interrupted_detached_response_is_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = Response([("Content-Length", "2")])
+    connection = install(monkeypatch, response)
+
+    def fail(amount: int) -> bytes:
+        assert amount == 2
+        raise TimeoutError(TOKEN)
+
+    monkeypatch.setattr(response, "read", fail)
+    with pytest.raises(CrabError, match="inventory HTTPS transport failed") as error:
+        AttestationHTTPS(TOKEN)(URL, 100)
+    assert TOKEN not in str(error.value)
+    assert response.closed
     assert connection.closed
