@@ -56,6 +56,23 @@ def test_short_nonterminal_page_uses_cursor_not_item_count() -> None:
     assert parse_qs(urlsplit(urls[1]).query)["after"] == ["a+b/="]
 
 
+@pytest.mark.parametrize("encoded", ["%", "%A", "%ZZ", "%FF", "%C3%28", "%ED%A0%80"])
+def test_lossy_cursor_decoding_refused(encoded: str) -> None:
+    link = _link("placeholder").replace("after=placeholder", f"after={encoded}")
+    fetch, urls = _fetcher(_page([_entry(1)], link))
+    with pytest.raises(CrabError, match="invalid pagination URL"):
+        inventory.read_inventory(SCOPE, fetch)
+    assert len(urls) == 1
+
+
+@pytest.mark.parametrize("cursor", ["%FF", "\u00e9", "\ufffd"])
+def test_valid_encoded_cursor_round_trip(cursor: str) -> None:
+    fetch, urls = _fetcher(_page([_entry(1)], _link(cursor)), _page([_entry(2)]))
+    assert inventory.read_inventory(SCOPE, fetch) == (b'{"example":1}', b'{"example":2}')
+    assert len(urls) == 2
+    assert parse_qs(urlsplit(urls[1]).query)["after"] == [cursor]
+
+
 def test_empty_terminal_page() -> None:
     fetch, urls = _fetcher(_page([]))
     assert inventory.read_inventory(SCOPE, fetch) == ()
