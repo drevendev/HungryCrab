@@ -118,6 +118,14 @@ def test_duplicate_json_key_refused() -> None:
         inventory.read_inventory(SCOPE, fetch)
 
 
+@pytest.mark.parametrize("number", ["1e999", "-1e999", "NaN", "Infinity", "-Infinity"])
+def test_nonfinite_json_number_refused(number: str) -> None:
+    body = ('{"attestations":[{"repository_id":123,"bundle":{"value":' + number + "}}]}").encode()
+    fetch, _ = _fetcher(inventory.AttestationPage(200, body, (), True))
+    with pytest.raises(CrabError, match="malformed inventory JSON"):
+        inventory.read_inventory(SCOPE, fetch)
+
+
 def test_page_cap_before_exhaustion(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(inventory, "MAX_PAGES", 1)
     fetch, urls = _fetcher(_page([_entry(1)], _link("next")))
