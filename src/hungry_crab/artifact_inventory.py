@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -59,6 +60,13 @@ def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
 
 def _reject_constant(value: str) -> object:
     raise ValueError(f"unsupported JSON constant: {value}")
+
+
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("nonfinite JSON number")
+    return number
 
 
 def _endpoint(scope: InventoryScope) -> str:
@@ -152,6 +160,7 @@ def read_inventory(
                 page.body.decode("utf-8"),
                 object_pairs_hook=_unique_object,
                 parse_constant=_reject_constant,
+                parse_float=_finite_float,
             )
         except (ValueError, RecursionError) as exc:
             raise _hold("malformed inventory JSON") from exc
