@@ -82,9 +82,7 @@ def _query(scope: InventoryScope, cursor: str | None = None) -> dict[str, str]:
     return params
 
 
-def _next_cursor(
-    links: tuple[str, ...], scope: InventoryScope, endpoint: str
-) -> str | None:
+def _next_cursor(links: tuple[str, ...], scope: InventoryScope, endpoint: str) -> str | None:
     if sum(len(value.encode("utf-8")) for value in links) > MAX_LINK_BYTES:
         raise _hold("oversized Link fields")
     relations: set[str] = set()
