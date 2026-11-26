@@ -73,31 +73,35 @@ class AttestationHTTPS:
                 },
             )
             response = connection.getresponse()
-            if response.status != 200:
-                raise _hold("unsuccessful inventory response")
-            headers = response.headers
-            if (
-                headers.defects
-                or headers.get_all("Transfer-Encoding")
-                or headers.get_all("Trailer")
-            ):
-                raise _hold("unsupported response framing")
-            encodings = headers.get_all("Content-Encoding") or []
-            if encodings not in ([], ["identity"]):
-                raise _hold("unsupported response encoding")
-            lengths = headers.get_all("Content-Length") or []
-            if len(lengths) != 1 or not _LENGTH.fullmatch(lengths[0]):
-                raise _hold("missing or ambiguous response length")
-            length = int(lengths[0])
-            if length > remaining:
-                raise _hold("inventory response exceeds byte budget")
-            links = tuple(headers.get_all("Link") or [])
-            if sum(len(link.encode("utf-8")) for link in links) > MAX_LINK_BYTES:
-                raise _hold("oversized Link fields")
-            body = response.read(length)
-            if len(body) != length:
-                raise _hold("incomplete inventory response")
-            return AttestationPage(200, body, links, True)
+            try:
+                if response.status != 200:
+                    raise _hold("unsuccessful inventory response")
+                headers = response.headers
+                if (
+                    headers.defects
+                    or headers.get_all("Transfer-Encoding")
+                    or headers.get_all("Trailer")
+                ):
+                    raise _hold("unsupported response framing")
+                encodings = headers.get_all("Content-Encoding") or []
+                if encodings not in ([], ["identity"]):
+                    raise _hold("unsupported response encoding")
+                lengths = headers.get_all("Content-Length") or []
+                if len(lengths) != 1 or not _LENGTH.fullmatch(lengths[0]):
+                    raise _hold("missing or ambiguous response length")
+                length = int(lengths[0])
+                if length > remaining:
+                    raise _hold("inventory response exceeds byte budget")
+                links = tuple(headers.get_all("Link") or [])
+                if sum(len(link.encode("utf-8")) for link in links) > MAX_LINK_BYTES:
+                    raise _hold("oversized Link fields")
+                body = response.read(length)
+                if len(body) != length:
+                    raise _hold("incomplete inventory response")
+                return AttestationPage(200, body, links, True)
+            finally:
+                # A closing response may own the socket independently of the connection.
+                response.close()
         except (OSError, http.client.HTTPException, ValueError):
             # Do not surface remote exception strings or request credentials.
             raise _hold("inventory HTTPS transport failed") from None
