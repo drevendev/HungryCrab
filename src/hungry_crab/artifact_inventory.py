@@ -94,6 +94,10 @@ def _next_cursor(links: tuple[str, ...], scope: InventoryScope, endpoint: str) -
     relations: set[str] = set()
     cursor = None
     for field in links:
+        # Reject raw HTTP field controls before urlsplit can silently strip them.
+        # HTAB is allowed as header whitespace, never inside the matched URL.
+        if re.search(r"[\x00-\x08\x0a-\x1f\x7f]", field):
+            raise _hold("invalid pagination URL: raw control character")
         # GitHub emits comma-separated angle-bracket links. Do not silently
         # ignore an unsupported syntax, since it could hide another next link.
         for part in re.split(r",(?=\s*<)", field):
