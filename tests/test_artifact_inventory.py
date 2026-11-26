@@ -65,7 +65,29 @@ def test_lossy_cursor_decoding_refused(encoded: str) -> None:
     assert len(urls) == 1
 
 
-@pytest.mark.parametrize("cursor", ["%FF", "\u00e9", "\ufffd"])
+@pytest.mark.parametrize("control", ["\x00", "\x01", "\x1f", "\x7f", "\r", "\n"])
+@pytest.mark.parametrize("location", ["prefix", "cursor", "field"])
+def test_raw_link_control_refused(control: str, location: str) -> None:
+    link = _link("placeholder")
+    if location == "prefix":
+        link = link.replace("<https:", f"<{control}https:")
+    elif location == "cursor":
+        link = link.replace("after=placeholder", f"after=a{control}b")
+    else:
+        link = control + link
+    fetch, urls = _fetcher(_page([_entry(1)], link))
+    with pytest.raises(CrabError, match="invalid pagination URL"):
+        inventory.read_inventory(SCOPE, fetch)
+    assert len(urls) == 1
+
+
+def test_link_horizontal_tab_whitespace_allowed() -> None:
+    fetch, urls = _fetcher(_page([_entry(1)], "\t" + _link("next") + "\t"), _page([]))
+    assert inventory.read_inventory(SCOPE, fetch) == (b'{"example":1}',)
+    assert len(urls) == 2
+
+
+@pytest.mark.parametrize("cursor", ["%FF", "\u00e9", "\ufffd", "\x00", "\x1f", "\x7f"])
 def test_valid_encoded_cursor_round_trip(cursor: str) -> None:
     fetch, urls = _fetcher(_page([_entry(1)], _link(cursor)), _page([_entry(2)]))
     assert inventory.read_inventory(SCOPE, fetch) == (b'{"example":1}', b'{"example":2}')
