@@ -143,6 +143,22 @@ def test_nonfinite_json_number_refused(number: str) -> None:
         inventory.read_inventory(SCOPE, fetch)
 
 
+@pytest.mark.parametrize("number", ["9007199254740993.0", "1e-999", "0.5", "1e0", "-0.0"])
+def test_fractional_or_exponent_token_refused_without_partial_result(number: str) -> None:
+    body = ('{"attestations":[{"repository_id":123,"bundle":{"value":' + number + "}}]").encode()
+    fetch, urls = _fetcher(
+        _page([_entry(1)], _link("next")), inventory.AttestationPage(200, body, (), True)
+    )
+    with pytest.raises(CrabError, match="malformed inventory JSON"):
+        inventory.read_inventory(SCOPE, fetch)
+    assert len(urls) == 2
+
+
+def test_large_integer_value_preserved() -> None:
+    fetch, _ = _fetcher(_page([_entry(9007199254740993)]))
+    assert inventory.read_inventory(SCOPE, fetch) == (b'{"example":9007199254740993}',)
+
+
 def test_page_cap_before_exhaustion(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(inventory, "MAX_PAGES", 1)
     fetch, urls = _fetcher(_page([_entry(1)], _link("next")))
