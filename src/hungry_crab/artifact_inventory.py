@@ -108,8 +108,15 @@ def _next_cursor(links: tuple[str, ...], scope: InventoryScope, endpoint: str) -
             relations.add(relation)
             try:
                 parsed = urlsplit(url)
+                if re.search(r"%(?![0-9A-Fa-f]{2})", parsed.query):
+                    raise ValueError("malformed percent escape")
                 pairs = parse_qsl(
-                    parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=4
+                    parsed.query,
+                    keep_blank_values=True,
+                    strict_parsing=True,
+                    encoding="utf-8",
+                    errors="strict",
+                    max_num_fields=4,
                 )
             except ValueError as exc:
                 raise _hold("invalid pagination URL") from exc
