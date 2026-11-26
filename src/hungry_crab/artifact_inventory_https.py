@@ -76,7 +76,11 @@ class AttestationHTTPS:
             if response.status != 200:
                 raise _hold("unsuccessful inventory response")
             headers = response.headers
-            if headers.defects or headers.get_all("Transfer-Encoding") or headers.get_all("Trailer"):
+            if (
+                headers.defects
+                or headers.get_all("Transfer-Encoding")
+                or headers.get_all("Trailer")
+            ):
                 raise _hold("unsupported response framing")
             encodings = headers.get_all("Content-Encoding") or []
             if encodings not in ([], ["identity"]):
