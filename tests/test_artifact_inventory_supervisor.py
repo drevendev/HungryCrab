@@ -32,9 +32,7 @@ def test_same_deadline_and_isolated_launch(monkeypatch: pytest.MonkeyPatch) -> N
         assert TOKEN not in repr(command)
         assert kwargs["cwd"] == str(Path(sys.executable).parent)
         expected_env = (
-            {"SystemRoot": supervisor.os.environ["SystemRoot"]}
-            if sys.platform == "win32"
-            else {}
+            {"SystemRoot": supervisor.os.environ["SystemRoot"]} if sys.platform == "win32" else {}
         )
         assert kwargs["env"] == expected_env
         assert kwargs["process_group"] is True
