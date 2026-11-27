@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from time import monotonic
 from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from .errors import CrabError
@@ -141,7 +143,10 @@ def _next_cursor(links: tuple[str, ...], scope: InventoryScope, endpoint: str) -
 
 
 def read_inventory(
-    scope: InventoryScope, fetch_page: Callable[[str, int], AttestationPage]
+    scope: InventoryScope,
+    fetch_page: Callable[[str, int], AttestationPage],
+    *,
+    deadline: float | None = None,
 ) -> tuple[bytes, ...]:
     """Return canonicalized inline bundles only after cursor exhaustion.
 
@@ -150,8 +155,19 @@ def read_inventory(
     provider schema is deliberately unsupported until separately reviewed.
     This restricted JSON subset accepts integer number tokens only, not
     fractional or exponent forms. Output is not raw provider response bytes.
-    No partial inventory is returned on any error.
+    No partial inventory is returned on any error. An optional absolute
+    monotonic deadline rejects late results across the entire traversal; it
+    cannot interrupt a blocked fetcher. The caller must separately enforce
+    process cancellation using the same deadline before live admission.
     """
+    if deadline is not None and not math.isfinite(deadline):
+        raise _hold("invalid inventory deadline")
+
+    def require_time() -> None:
+        if deadline is not None and monotonic() >= deadline:
+            raise _hold("inventory deadline expired")
+
+    require_time()
     endpoint = _endpoint(scope)
     seen_cursors: set[str] = set()
     seen_bundles: set[str] = set()
@@ -159,10 +175,12 @@ def read_inventory(
     remaining = MAX_BYTES
     cursor = None
     for _ in range(MAX_PAGES):
+        require_time()
         if remaining <= 0:
             raise _hold("inventory byte cap exhausted")
         url = f"{_HOST}{endpoint}?{urlencode(_query(scope, cursor))}"
         page = fetch_page(url, remaining)
+        require_time()
         if page.status != 200 or page.complete is not True or len(page.body) > remaining:
             raise _hold("incomplete or unsuccessful inventory page")
         remaining -= len(page.body)
@@ -181,6 +199,7 @@ def read_inventory(
         if len(entries) > PAGE_SIZE:
             raise _hold("provider page exceeds requested size")
         for entry in entries:
+            require_time()
             if (
                 not isinstance(entry, dict)
                 or type(entry.get("repository_id")) is not int
@@ -200,6 +219,7 @@ def read_inventory(
             if len(bundles) >= MAX_ITEMS:
                 raise _hold("inventory item cap reached")
         cursor = _next_cursor(page.links, scope, endpoint)
+        require_time()
         if cursor is None:
             return tuple(bundles)
         if cursor in seen_cursors or not entries:
