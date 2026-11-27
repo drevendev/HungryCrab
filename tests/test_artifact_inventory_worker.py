@@ -62,9 +62,7 @@ def test_one_page_preserves_bytes_and_link_order(monkeypatch: pytest.MonkeyPatch
         json.dumps([TOKEN, URL, 100, 5, "extra"]).encode(),
     ],
 )
-def test_invalid_request_never_calls_transport(
-    monkeypatch: pytest.MonkeyPatch, raw: bytes
-) -> None:
+def test_invalid_request_never_calls_transport(monkeypatch: pytest.MonkeyPatch, raw: bytes) -> None:
     calls = []
 
     def forbidden(*args: object, **kwargs: object) -> None:
@@ -84,9 +82,7 @@ def test_invalid_request_never_calls_transport(
         AttestationPage(200, b"{}", ("x" * (MAX_LINK_BYTES + 1),), True),
     ],
 )
-def test_invalid_page_has_no_output(
-    monkeypatch: pytest.MonkeyPatch, page: AttestationPage
-) -> None:
+def test_invalid_page_has_no_output(monkeypatch: pytest.MonkeyPatch, page: AttestationPage) -> None:
     monkeypatch.setattr(worker, "AttestationHTTPS", lambda *a, **k: lambda *args: page)
     assert invoke(encode()) == (1, b"")
 
