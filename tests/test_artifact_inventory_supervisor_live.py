@@ -71,7 +71,7 @@ def test_real_hanging_child_is_reaped_even_after_flushing_valid_frame(
     monkeypatch.setattr(subprocess, "Popen", capture_popen)
     monkeypatch.setattr(supervisor, "run_bounded", launch)
     before = monotonic()
-    with pytest.raises(CrabError, match="worker failed|deadline expired"):
+    with pytest.raises(CrabError, match=r"worker failed|deadline expired"):
         supervisor.IsolatedAttestationHTTPS("synthetic_token", deadline=before + 5)(
             "https://invalid.example/", 100
         )
