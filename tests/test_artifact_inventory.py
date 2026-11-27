@@ -296,9 +296,7 @@ def test_deadline_stops_before_processing_next_bundle(
         )
 
     monkeypatch.setattr(inventory, "monotonic", lambda: now)
-    monkeypatch.setattr(
-        inventory, "json", SimpleNamespace(loads=json.loads, dumps=delayed_dumps)
-    )
+    monkeypatch.setattr(inventory, "json", SimpleNamespace(loads=json.loads, dumps=delayed_dumps))
     with pytest.raises(CrabError, match="inventory deadline expired"):
         inventory.read_inventory(SCOPE, fetch, deadline=12.0)
     assert serialized == [{"example": 1}]
