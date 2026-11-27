@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 import pytest
@@ -270,4 +271,45 @@ def test_deadline_includes_link_processing(monkeypatch: pytest.MonkeyPatch) -> N
     fetch, urls = _fetcher(_page([_entry(1)]))
     with pytest.raises(CrabError, match="inventory deadline expired"):
         inventory.read_inventory(SCOPE, fetch, deadline=12.0)
+    assert len(urls) == 1
+
+
+def test_deadline_stops_before_processing_next_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = 10.0
+    serialized: list[object] = []
+    fetch, urls = _fetcher(_page([_entry(1), _entry(2)], _link("next")))
+
+    def delayed_dumps(
+        bundle: object,
+        *,
+        sort_keys: bool,
+        separators: tuple[str, str],
+        ensure_ascii: bool,
+    ) -> str:
+        nonlocal now
+        serialized.append(bundle)
+        now = 12.0
+        return json.dumps(
+            bundle, sort_keys=sort_keys, separators=separators, ensure_ascii=ensure_ascii
+        )
+
+    monkeypatch.setattr(inventory, "monotonic", lambda: now)
+    monkeypatch.setattr(
+        inventory, "json", SimpleNamespace(loads=json.loads, dumps=delayed_dumps)
+    )
+    with pytest.raises(CrabError, match="inventory deadline expired"):
+        inventory.read_inventory(SCOPE, fetch, deadline=12.0)
+    assert serialized == [{"example": 1}]
+    assert len(urls) == 1
+
+
+def test_no_deadline_does_not_read_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unexpected_clock() -> float:
+        pytest.fail("legacy inventory traversal must not read the clock")
+
+    monkeypatch.setattr(inventory, "monotonic", unexpected_clock)
+    fetch, urls = _fetcher(_page([_entry(1)]))
+    assert inventory.read_inventory(SCOPE, fetch) == (b'{"example":1}',)
     assert len(urls) == 1
