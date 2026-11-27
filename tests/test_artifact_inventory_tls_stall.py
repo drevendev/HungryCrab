@@ -66,6 +66,7 @@ def test_parent_reaps_worker_during_real_tls_handshake(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     processes: list[subprocess.Popen[bytes]] = []
+    timeouts: list[subprocess.TimeoutExpired] = []
     original_popen = subprocess.Popen
 
     def capture_popen(*args: Any, **kwargs: Any) -> subprocess.Popen[bytes]:
@@ -83,7 +84,11 @@ def test_parent_reaps_worker_during_real_tls_handshake(
         def launch(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
             assert command[1:] == ["-I", "-m", "hungry_crab.artifact_inventory_worker"]
             assert kwargs["process_group"] is True
-            return run_bounded([sys.executable, "-I", "-c", CHILD, str(port)], **kwargs)
+            try:
+                return run_bounded([sys.executable, "-I", "-c", CHILD, str(port)], **kwargs)
+            except subprocess.TimeoutExpired as exc:
+                timeouts.append(exc)
+                raise
 
         monkeypatch.setattr(supervisor, "run_bounded", launch)
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -99,4 +104,6 @@ def test_parent_reaps_worker_during_real_tls_handshake(
     assert TOKEN not in str(error.value)
     assert len(processes) == 1
     assert processes[0].poll() is not None
-    assert processes[0].returncode != 0
+    # Windows Job Object teardown can report exit status zero. Require the
+    # actual parent-side transport timeout, not a platform-specific exit code.
+    assert len(timeouts) == 1
