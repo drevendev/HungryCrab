@@ -28,7 +28,7 @@ def _worker_env() -> dict[str, str]:
     # Windows requires SystemRoot for some system libraries. Never inherit
     # arbitrary environment, proxy, CA, Python, token or TLS key-log settings.
     if sys.platform == "win32":
-        root = os.environ.get("SystemRoot")
+        root = os.environ.get("SYSTEMROOT")
         if not root or not Path(root).is_absolute():
             raise _hold("missing Windows system root")
         return {"SystemRoot": root}
