@@ -76,6 +76,36 @@ def run(args: list[str], *, cwd: Path, env: dict[str, str], code: int = 0) -> st
     return result.stdout
 
 
+def isolated_inventory_smoke(interpreter: Path, directory: Path, env: dict[str, str]) -> None:
+    """Qualify installed private A2 modules without network or real credentials."""
+    worker_env = {key: value for key, value in env.items() if key.upper() == "SYSTEMROOT"}
+    result = subprocess.run(
+        [str(interpreter), "-I", "-m", "hungry_crab.artifact_inventory_worker"],
+        cwd=directory,
+        env=worker_env,
+        input=b'["","https://invalid.example/",100,1]',
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode != 1 or result.stdout or result.stderr:
+        raise RuntimeError("installed inventory worker did not refuse silently")
+    program = (
+        "from time import monotonic\n"
+        "from hungry_crab.artifact_inventory_supervisor import IsolatedAttestationHTTPS\n"
+        "from hungry_crab.errors import CrabError\n"
+        "try:\n"
+        "    IsolatedAttestationHTTPS('', deadline=monotonic()+15)"
+        "('https://invalid.example/', 100)\n"
+        "except CrabError as exc:\n"
+        "    assert str(exc) == 'REMOTE_VERIFICATION_REQUIRED: isolated inventory worker refused'\n"
+        "else:\n"
+        "    raise AssertionError('invalid inventory request accepted')\n"
+    )
+    run([str(interpreter), "-I", "-c", program], cwd=directory, env=worker_env)
+    print("PASS: installed isolated inventory worker and supervisor refusal")
+
+
 def repositories(workspace: Path, env: dict[str, str]) -> None:
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     for name in ("prey", "maw"):
@@ -178,6 +208,7 @@ def main() -> int:
                 == f"crab {version}"
             )
             assert "discover" in run([*module, "--help"], cwd=directory, env=tool_env)
+            isolated_inventory_smoke(interpreter, directory, tool_env)
             launcher = directory / f"{extra} краб route.py"
             run([*module, "launcher", str(launcher)], cwd=directory, env=tool_env)
             invocation = [str(interpreter), str(launcher)]
