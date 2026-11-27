@@ -203,3 +203,71 @@ def test_aggregate_byte_cap(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(CrabError, match="incomplete or unsuccessful"):
         inventory.read_inventory(SCOPE, fetch)
     assert len(urls) == 2
+
+
+@pytest.mark.parametrize("deadline", [float("nan"), float("inf"), float("-inf"), 10.0, 9.0])
+def test_invalid_or_expired_deadline_never_fetches(
+    monkeypatch: pytest.MonkeyPatch, deadline: float
+) -> None:
+    monkeypatch.setattr(inventory, "monotonic", lambda: 10.0)
+    fetch, urls = _fetcher(_page([]))
+    with pytest.raises(CrabError, match="inventory deadline"):
+        inventory.read_inventory(SCOPE, fetch, deadline=deadline)
+    assert urls == []
+
+
+@pytest.mark.parametrize("late_page", [1, 2])
+def test_late_page_rejected_without_partial_inventory(
+    monkeypatch: pytest.MonkeyPatch, late_page: int
+) -> None:
+    now = 10.0
+    monkeypatch.setattr(inventory, "monotonic", lambda: now)
+    fetch, urls = _fetcher(_page([_entry(1)], _link("next")), _page([_entry(2)]))
+
+    def delayed_fetch(url: str, limit: int) -> inventory.AttestationPage:
+        nonlocal now
+        page = fetch(url, limit)
+        if len(urls) == late_page:
+            now = 12.0
+        return page
+
+    with pytest.raises(CrabError, match="inventory deadline expired"):
+        inventory.read_inventory(SCOPE, delayed_fetch, deadline=12.0)
+    assert len(urls) == late_page
+
+
+def test_shared_deadline_accepts_timely_exhaustion(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = 10.0
+    monkeypatch.setattr(inventory, "monotonic", lambda: now)
+    fetch, urls = _fetcher(_page([_entry(1)], _link("next")), _page([_entry(2)]))
+
+    def timed_fetch(url: str, limit: int) -> inventory.AttestationPage:
+        nonlocal now
+        now += 0.5
+        return fetch(url, limit)
+
+    assert inventory.read_inventory(SCOPE, timed_fetch, deadline=12.0) == (
+        b'{"example":1}',
+        b'{"example":2}',
+    )
+    assert len(urls) == 2
+
+
+def test_deadline_includes_link_processing(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = 10.0
+    monkeypatch.setattr(inventory, "monotonic", lambda: now)
+    original = inventory._next_cursor
+
+    def delayed_cursor(
+        links: tuple[str, ...], scope: inventory.InventoryScope, endpoint: str
+    ) -> str | None:
+        nonlocal now
+        cursor = original(links, scope, endpoint)
+        now = 12.0
+        return cursor
+
+    monkeypatch.setattr(inventory, "_next_cursor", delayed_cursor)
+    fetch, urls = _fetcher(_page([_entry(1)]))
+    with pytest.raises(CrabError, match="inventory deadline expired"):
+        inventory.read_inventory(SCOPE, fetch, deadline=12.0)
+    assert len(urls) == 1
