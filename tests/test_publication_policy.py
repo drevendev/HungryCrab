@@ -23,7 +23,7 @@ from hungry_crab.pr_publication import (
     publication_handoff_from_receipt,
     publish_prepared_pull_request,
 )
-from hungry_crab.publication_policy import parse_publication_allow
+from hungry_crab.publication_policy import current_publication_allow, parse_publication_allow
 from hungry_crab.publication_safety import scan_publication
 
 
@@ -129,6 +129,26 @@ def test_override_is_exact_current_content_bound_and_maw_owned(tmp_path: Path) -
     with pytest.raises(CrabError, match="possible secret"):
         publish_prepared_pull_request(prepared, callback)
     assert effects == ["published"]
+
+
+def test_merged_override_must_match_committed_policy(tmp_path: Path) -> None:
+    finding = "a" * 64
+    policy = (
+        "serve:\n  <<:\n    - publication_allow:\n"
+        f"        - finding: {finding}\n"
+        "          reason: Reviewed isolated fixture\n"
+        "    - publication_allow: []\n"
+    )
+    path = tmp_path / ".crab.yml"
+    path.write_text(policy, encoding="utf-8")
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "add", ".crab.yml")
+    git(tmp_path, "commit", "-m", "test: owner-reviewed merged override")
+    assert current_publication_allow(tmp_path) == (finding,)
+
+    path.write_text(policy.replace(finding, "b" * 64), encoding="utf-8")
+    with pytest.raises(CrabError, match="committed policy"):
+        current_publication_allow(tmp_path)
 
 
 @pytest.mark.parametrize(

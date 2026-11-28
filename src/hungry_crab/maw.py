@@ -295,6 +295,28 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
         self._flattened.add(node)
 
 
+def read_maw_yaml_bytes(path: Path) -> bytes:
+    with path.open("rb") as source:
+        return source.read(MAX_MAW_CONFIG_BYTES + 1)
+
+
+def load_maw_yaml(text: str) -> object:
+    """Use the same bounded, duplicate-checking parser for all maw policy reads."""
+    if len(text) > MAX_MAW_CONFIG_BYTES or len(text.encode("utf-8")) > MAX_MAW_CONFIG_BYTES:
+        raise yaml.YAMLError(f"configuration exceeds {MAX_MAW_CONFIG_BYTES} bytes")
+    try:
+        return yaml.load(text, Loader=_UniqueKeySafeLoader)
+    except RecursionError:
+        raise yaml.YAMLError("configuration is too deeply nested") from None
+
+
+def load_committed_maw_yaml(root: Path) -> object:
+    text = GitRunner(root, lazy_fetch=False).try_run(
+        "--no-replace-objects", "show", f"HEAD:{CONFIG_FILE}", stdout_limit=MAX_MAW_CONFIG_BYTES
+    )
+    return load_maw_yaml(text or "")
+
+
 @dataclass
 class MawConfig:
     root: Path
@@ -328,14 +350,7 @@ class MawConfig:
             return config
         # Read at most the fixed budget plus one witness byte. Repeated bounded
         # reads also work when the input stream returns short chunks.
-        payload = bytearray()
-        with path.open("rb") as stream:
-            while len(payload) <= MAX_MAW_CONFIG_BYTES:
-                remaining = MAX_MAW_CONFIG_BYTES + 1 - len(payload)
-                chunk = stream.read(min(64 * 1024, remaining))
-                if not chunk:
-                    break
-                payload.extend(chunk)
+        payload = read_maw_yaml_bytes(path)
         if len(payload) > MAX_MAW_CONFIG_BYTES:
             raise UsageError(f"{path}: configuration exceeds {MAX_MAW_CONFIG_BYTES} bytes")
         try:
@@ -344,7 +359,7 @@ class MawConfig:
             # Decode failures may quote source bytes; never echo private config.
             raise UsageError(f"{path}: invalid UTF-8 configuration") from None
         try:
-            loaded = yaml.load(source_text, Loader=_UniqueKeySafeLoader)
+            loaded = load_maw_yaml(source_text)
         except yaml.YAMLError as exc:
             # Parser messages contain the original YAML source, including secrets.
             # Only the numeric location from PyYAML's marks is safe to expose.
@@ -464,7 +479,7 @@ class MawConfig:
 
     def write_scoring(self, scoring: dict[str, Any]) -> Path:
         """Atomically replace only scoring, preserving the owner's surrounding policy."""
-        data = dict(self.raw) if self.exists else as_dict(yaml.safe_load(DEFAULT_CONFIG_TEXT))
+        data = dict(self.raw) if self.exists else as_dict(load_maw_yaml(DEFAULT_CONFIG_TEXT))
         data["scoring"] = scoring
         MawConfig.from_data(self.root, data)
         if self.exists and scoring == self.scoring:
@@ -487,7 +502,7 @@ def write_default_config(root: Path, *, force: bool = False, profile: str = "bal
     if path.exists() and not force:
         raise CrabError(f"{path} already exists", hint="pass --force to overwrite it")
     text = DEFAULT_CONFIG_TEXT.replace("profile: balanced", "profile: " + profile, 1)
-    intended = as_dict(yaml.safe_load(text))
+    intended = as_dict(load_maw_yaml(text))
     intended["hunger"] = hunger_for(profile)
     text = replace_section(text, "hunger", hunger_for(profile))
     _validated_rewrite(root, text, intended)
@@ -504,11 +519,11 @@ def write_default_config(root: Path, *, force: bool = False, profile: str = "bal
 def _validated_rewrite(root: Path, text: str, intended: dict[str, Any]) -> None:
     MawConfig.from_data(root, intended)
     try:
-        loaded = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
+        loaded = load_maw_yaml(text)
+    except yaml.YAMLError:
         raise UsageError(
             "configuration rewrite is not valid YAML", hint="edit scoring manually"
-        ) from exc
+        ) from None
     if not isinstance(loaded, dict):
         raise UsageError("configuration rewrite must remain a mapping")
     MawConfig.from_data(root, loaded)

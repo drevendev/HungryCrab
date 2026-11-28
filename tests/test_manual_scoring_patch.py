@@ -50,6 +50,25 @@ def test_manual_patch_refuses_duplicate_keys_and_changed_config(tmp_path: Path) 
         manual_patch(TuneReport(0, 3), config)
 
 
+def test_scoring_patch_and_write_use_the_same_inline_merge_policy(tmp_path: Path) -> None:
+    source = "trust:\n  <<: [{same_owner: false}, {same_owner: true}]\n"
+    path = tmp_path / ".crab.yml"
+    path.write_bytes(source.encode())
+    config = MawConfig.load(tmp_path)
+    report = TuneReport(5, 3, [Suggestion("category", "docs", 1.0, 0.7, "synthetic", 5, 1.0)])
+    patch = manual_patch(report, config)
+    assert patch["config_sha256"] == hashlib.sha256(source.encode()).hexdigest()
+    assert path.read_bytes() == source.encode()
+
+    scoring = patch["operation"]["value"]
+    assert scoring == {"categories": {"docs": 0.7}}
+    config.write_scoring(scoring)
+    reloaded = MawConfig.load(tmp_path)
+    assert reloaded.scoring == scoring
+    assert reloaded.trust.same_owner is False
+    assert path.read_bytes().startswith(source.encode())
+
+
 def test_cli_patch_is_json_without_a_write(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -16,7 +16,7 @@ from .compare.scoring import Scoring
 from .errors import UsageError
 from .learning_keys import ambiguous_overrides, learning_key
 from .ledger import Ledger
-from .maw import MawConfig
+from .maw import MAX_MAW_CONFIG_BYTES, MawConfig, load_maw_yaml, read_maw_yaml_bytes
 from .memory import NEGATIVE, POSITIVE, decision
 
 STEP_UP = 0.1
@@ -254,11 +254,14 @@ def manual_patch(report: TuneReport, config: MawConfig) -> dict[str, Any]:
     """Describe a manual edit, binding it to untouched bytes rather than rewriting aliases."""
     if config.path.is_file() != config.exists:
         raise UsageError("configuration changed while preparing the manual scoring patch")
-    source = config.path.read_bytes() if config.exists else b""
+    source = read_maw_yaml_bytes(config.path) if config.exists else b""
+    if len(source) > MAX_MAW_CONFIG_BYTES:
+        raise UsageError(f"configuration exceeds {MAX_MAW_CONFIG_BYTES} bytes")
     try:
-        node = yaml.compose(source)
-    except yaml.YAMLError as exc:
-        raise UsageError("manual scoring patch requires valid YAML") from exc
+        text = source.decode("utf-8")
+        node = yaml.compose(text)
+    except (UnicodeDecodeError, yaml.YAMLError, RecursionError):
+        raise UsageError("manual scoring patch requires valid YAML") from None
     visited: set[int] = set()
 
     def unique(current: yaml.Node | None) -> None:
@@ -278,8 +281,11 @@ def manual_patch(report: TuneReport, config: MawConfig) -> dict[str, Any]:
             for value in current.value:
                 unique(value)
 
-    unique(node)
-    current = yaml.safe_load(source) if node is not None else {}
+    try:
+        unique(node)
+        current = load_maw_yaml(text) if node is not None else {}
+    except (yaml.YAMLError, RecursionError):
+        raise UsageError("manual scoring patch requires unambiguous safe YAML") from None
     if not isinstance(current, dict):
         raise UsageError("manual scoring patch requires a YAML mapping")
     fresh = MawConfig.from_data(config.root, current)
