@@ -20,6 +20,7 @@ def main() -> int:
     port = int(port_arg)
     trace = Path(trace_file)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     if ca_file:
         context.load_verify_locations(ca_file)
     assert context.check_hostname and context.verify_mode == ssl.CERT_REQUIRED

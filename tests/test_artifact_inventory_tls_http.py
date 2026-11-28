@@ -12,7 +12,8 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
-from time import monotonic
+from tempfile import TemporaryDirectory
+from time import monotonic, sleep
 from typing import Any
 from urllib.parse import urlencode
 
@@ -57,9 +58,87 @@ def listener() -> Iterator[socket.socket]:
         yield server
 
 
-def _tls_context(certificate: str) -> ssl.SSLContext:
+@pytest.fixture(scope="module")
+def tls_material() -> Iterator[Path]:
+    """Generate disposable CA and leaf credentials outside the source tree."""
+    with TemporaryDirectory(prefix="crab-tls-") as directory:
+        root = Path(directory)
+
+        def openssl(*args: str) -> None:
+            subprocess.run(
+                ["openssl", *args], cwd=root, check=True, capture_output=True, timeout=30
+            )
+
+        openssl(
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-subj",
+            "/CN=Crab Test CA",
+            "-addext",
+            "basicConstraints=critical,CA:TRUE",
+            "-addext",
+            "keyUsage=critical,keyCertSign,cRLSign",
+            "-keyout",
+            "ca-key.pem",
+            "-out",
+            "test-ca.pem",
+        )
+        for serial, (name, hostname) in enumerate(
+            (("loopback-server", "api.github.com"), ("wrong-host", "wrong-host.invalid")),
+            start=1,
+        ):
+            openssl(
+                "req",
+                "-new",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-subj",
+                f"/CN={hostname}",
+                "-keyout",
+                f"{name}-key.pem",
+                "-out",
+                f"{name}.csr",
+            )
+            (root / "leaf.ext").write_text(
+                "basicConstraints=critical,CA:FALSE\n"
+                "keyUsage=critical,digitalSignature,keyEncipherment\n"
+                "extendedKeyUsage=serverAuth\n"
+                f"subjectAltName=DNS:{hostname}\n",
+                encoding="ascii",
+            )
+            openssl(
+                "x509",
+                "-req",
+                "-in",
+                f"{name}.csr",
+                "-CA",
+                "test-ca.pem",
+                "-CAkey",
+                "ca-key.pem",
+                "-set_serial",
+                str(serial),
+                "-days",
+                "1",
+                "-extfile",
+                "leaf.ext",
+                "-out",
+                f"{name}.pem",
+            )
+        yield root
+
+
+def _tls_context(certificate: str, tls_material: Path) -> ssl.SSLContext:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(FIXTURE / certificate, FIXTURE / "loopback-server-test-key.pem")
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.load_cert_chain(
+        tls_material / certificate, tls_material / f"{Path(certificate).stem}-key.pem"
+    )
     return context
 
 
@@ -67,6 +146,7 @@ def _install_worker(
     monkeypatch: pytest.MonkeyPatch,
     listener: socket.socket,
     trace: Path,
+    tls_material: Path,
     *,
     trusted: bool = True,
     socket_timeout: float | None = None,
@@ -87,7 +167,7 @@ def _install_worker(
             "-I",
             str(FIXTURE / "worker.py"),
             str(listener.getsockname()[1]),
-            str(FIXTURE / "test-ca.pem") if trusted else "",
+            str(tls_material / "test-ca.pem") if trusted else "",
             str(trace),
             str(socket_timeout) if socket_timeout is not None else "",
         ]
@@ -140,9 +220,9 @@ def _serve(
 
 
 def _requests(
-    listener: socket.socket, *responses: Callable[[ssl.SSLSocket], None]
+    listener: socket.socket, tls_material: Path, *responses: Callable[[ssl.SSLSocket], None]
 ) -> tuple[bytes | None, ...]:
-    context = _tls_context("loopback-server.pem")
+    context = _tls_context("loopback-server.pem", tls_material)
     return tuple(_serve(listener, context, respond) for respond in responses)
 
 
@@ -173,14 +253,15 @@ def test_worker_verifies_tls_before_sending_http(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     listener: socket.socket,
+    tls_material: Path,
     certificate: str,
     trusted: bool,
     verify_code: int | None,
 ) -> None:
     trace = tmp_path / "tls-trace"
-    probe = _install_worker(monkeypatch, listener, trace, trusted=trusted)
+    probe = _install_worker(monkeypatch, listener, trace, tls_material, trusted=trusted)
     client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=monotonic() + 15)
-    context = _tls_context(certificate)
+    context = _tls_context(certificate, tls_material)
     with ThreadPoolExecutor(max_workers=1) as executor:
         observed = executor.submit(_serve, listener, context, _respond(EMPTY, FIRST, NEXT))
         if verify_code is None:
@@ -204,12 +285,12 @@ def test_worker_verifies_tls_before_sending_http(
 
 
 def test_inventory_rebuilds_next_link_over_tls(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, listener: socket.socket
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, listener: socket.socket, tls_material: Path
 ) -> None:
-    probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace")
+    probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace", tls_material)
     with ThreadPoolExecutor(max_workers=1) as executor:
         observed = executor.submit(
-            _requests, listener, _respond(ENTRY, FIRST, NEXT), _respond(EMPTY)
+            _requests, listener, tls_material, _respond(ENTRY, FIRST, NEXT), _respond(EMPTY)
         )
         deadline = monotonic() + 15
         client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=deadline)
@@ -234,13 +315,16 @@ def test_inventory_refuses_semantic_link_errors_after_complete_http(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     listener: socket.socket,
+    tls_material: Path,
     link: str,
     reason: str,
 ) -> None:
-    probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace")
+    probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace", tls_material)
     with ThreadPoolExecutor(max_workers=1) as executor:
         preceding = NEXT if link == NEXT else FIRST
-        observed = executor.submit(_requests, listener, _respond(ENTRY, preceding, link))
+        observed = executor.submit(
+            _requests, listener, tls_material, _respond(ENTRY, preceding, link)
+        )
         deadline = monotonic() + 15
         client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=deadline)
         with pytest.raises(CrabError, match=f"REMOTE_VERIFICATION_REQUIRED: {reason}") as error:
@@ -258,7 +342,7 @@ def _stall_headers(peer: ssl.SSLSocket) -> None:
 
 
 def _stall_body(peer: ssl.SSLSocket) -> None:
-    peer.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 4096\r\nConnection: close\r\n\r\n{")
+    peer.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 4096\r\nConnection: close\r\n\r\n")
 
 
 def _trickle_body(peer: ssl.SSLSocket) -> None:
@@ -286,14 +370,28 @@ def test_inventory_deadline_cancels_http_and_reaps_worker(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     listener: socket.socket,
+    tls_material: Path,
     respond: Callable[[ssl.SSLSocket], None],
     phase: str,
     idle_timeout: float,
 ) -> None:
     trace = tmp_path / "tls-trace"
-    probe = _install_worker(monkeypatch, listener, trace, socket_timeout=idle_timeout)
+    probe = _install_worker(monkeypatch, listener, trace, tls_material, socket_timeout=idle_timeout)
+
+    def send(peer: ssl.SSLSocket) -> None:
+        respond(peer)
+        if respond is _stall_body:
+            # Prevent the HTTP header buffer from prefetching the only body byte.
+            until = monotonic() + 5
+            while monotonic() < until:
+                if trace.exists() and "body-entered " in trace.read_text(encoding="ascii"):
+                    peer.sendall(b"{")
+                    return
+                sleep(0.01)
+            pytest.fail("worker did not enter the body read")
+
     with ThreadPoolExecutor(max_workers=1) as executor:
-        observed = executor.submit(_requests, listener, respond)
+        observed = executor.submit(_requests, listener, tls_material, send)
         deadline = monotonic() + 8
         client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=deadline)
         with pytest.raises(
