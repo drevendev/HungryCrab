@@ -185,7 +185,7 @@ def test_worker_verifies_tls_before_sending_http(
             _assert_request(observed.result(timeout=FIXTURE_TIMEOUT), URL)
         else:
             with pytest.raises(
-                CrabError, match="REMOTE_VERIFICATION_REQUIRED: .*worker refused"
+                CrabError, match=r"REMOTE_VERIFICATION_REQUIRED: .*worker refused"
             ) as error:
                 client(URL, 1024)
             assert TOKEN not in str(error.value)
@@ -201,7 +201,9 @@ def test_inventory_rebuilds_next_link_over_tls(
 ) -> None:
     probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace")
     with ThreadPoolExecutor(max_workers=1) as executor:
-        observed = executor.submit(_requests, listener, _respond(ENTRY, FIRST, NEXT), _respond(EMPTY))
+        observed = executor.submit(
+            _requests, listener, _respond(ENTRY, FIRST, NEXT), _respond(EMPTY)
+        )
         deadline = monotonic() + 15
         client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=deadline)
         assert read_inventory(SCOPE, client, deadline=deadline) == (b'{"test":"first"}',)
