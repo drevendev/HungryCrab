@@ -296,8 +296,15 @@ class _UniqueKeySafeLoader(yaml.SafeLoader):
 
 
 def read_maw_yaml_bytes(path: Path) -> bytes:
+    payload = bytearray()
     with path.open("rb") as source:
-        return source.read(MAX_MAW_CONFIG_BYTES + 1)
+        while len(payload) <= MAX_MAW_CONFIG_BYTES:
+            remaining = MAX_MAW_CONFIG_BYTES + 1 - len(payload)
+            chunk = source.read(min(64 * 1024, remaining))
+            if not chunk:
+                break
+            payload.extend(chunk)
+    return bytes(payload)
 
 
 def load_maw_yaml(text: str) -> object:
