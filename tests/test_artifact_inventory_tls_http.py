@@ -41,6 +41,7 @@ TRICKLE_IDLE_TIMEOUT = 2.5
 class WorkerProbe:
     processes: list[subprocess.Popen[bytes]] = field(default_factory=list)
     timeouts: list[subprocess.TimeoutExpired] = field(default_factory=list)
+    completed: list[subprocess.CompletedProcess[bytes]] = field(default_factory=list)
 
     def assert_reaped(self, count: int) -> None:
         assert len(self.processes) == count
@@ -91,7 +92,9 @@ def _install_worker(
             str(socket_timeout) if socket_timeout is not None else "",
         ]
         try:
-            return run_bounded(harness, **kwargs)
+            completed = run_bounded(harness, **kwargs)
+            probe.completed.append(completed)
+            return completed
         except subprocess.TimeoutExpired as error:
             probe.timeouts.append(error)
             raise
@@ -190,6 +193,10 @@ def test_worker_verifies_tls_before_sending_http(
                 client(URL, 1024)
             assert TOKEN not in str(error.value)
             assert observed.result(timeout=FIXTURE_TIMEOUT) is None
+            (completed,) = probe.completed
+            assert completed.returncode != 0
+            assert completed.stdout == b""
+            assert completed.stderr == b""
             assert [event for event, _ in _trace(trace)] == [f"certificate-rejected-{verify_code}"]
     probe.assert_reaped(1)
     assert not probe.timeouts
@@ -232,7 +239,8 @@ def test_inventory_refuses_semantic_link_errors_after_complete_http(
 ) -> None:
     probe = _install_worker(monkeypatch, listener, tmp_path / "tls-trace")
     with ThreadPoolExecutor(max_workers=1) as executor:
-        observed = executor.submit(_requests, listener, _respond(ENTRY, NEXT, link))
+        preceding = NEXT if link == NEXT else FIRST
+        observed = executor.submit(_requests, listener, _respond(ENTRY, preceding, link))
         deadline = monotonic() + 15
         client = supervisor.IsolatedAttestationHTTPS(TOKEN, deadline=deadline)
         with pytest.raises(CrabError, match=f"REMOTE_VERIFICATION_REQUIRED: {reason}") as error:
@@ -302,6 +310,8 @@ def test_inventory_deadline_cancels_http_and_reaps_worker(
     assert not timeout.stderr
     assert TOKEN not in str(error.value)
     assert not select.select([listener], [], [], 0)[0]
+    if respond is _stall_body:
+        assert any(event == "body-read" for event, _ in observations)
     if respond is _trickle_body:
         reads = [at for event, at in observations if event == "body-read"]
         assert len(reads) > 1, "worker must receive successive body fragments"
