@@ -182,6 +182,10 @@ jobs:
         run: uv run python -c "import subprocess, sys; sys.exit(subprocess.run(['crab', 'mcp', '--check']).returncode != 2)"
       - run: uv run pytest tests/test_deep_channels.py tests/test_deep_manifests.py
       - run: uv run crab digest . --maw . --out digest-out --maw-license MIT --fail-on-miner-error --fail-on-loss
+      - name: Maw policy at the supported PyYAML floor
+        run: |
+          uv pip install --no-deps pyyaml==6.0.2
+          uv run --no-sync pytest tests/test_maw_config.py tests/test_manual_scoring_patch.py tests/test_publication_policy.py tests/test_loop_hardening.py -q
 
   install:
     name: Clean installation (${{ matrix.os }})

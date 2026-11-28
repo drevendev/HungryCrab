@@ -26,7 +26,7 @@ from .digest_integrity import digest_integrity_errors
 from .errors import CrabError, UsageError
 from .loop_config import AUTONOMIES, RequiredCheck, mapping, strings
 from .loop_provider import LoopProvider, human_merge
-from .maw import MawConfig, maw_slug
+from .maw import MawConfig, load_committed_maw_yaml, maw_slug
 
 LOOP_SCHEMA = "hungry-crab.loop/1"
 PHASES = ("crave", "hunt", "eat", "serve", "grow", "trial", "taste", "molt", "harden")
@@ -454,16 +454,14 @@ class Loop:
     def _work_allowed(self, *, publish_pr: bool = False) -> bool:
         import yaml
 
-        from .fetch.git import GitRunner
-
         current = MawConfig.load(self.maw)
-        committed = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
         try:
-            policy = yaml.safe_load(committed or "")
-            grant = policy.get("loop", {}) if isinstance(policy, dict) else {}
-            serve = policy.get("serve", {}) if isinstance(policy, dict) else {}
+            policy = load_committed_maw_yaml(self.maw)
         except yaml.YAMLError:
             return False
+        if not isinstance(policy, dict):
+            return False
+        grant, serve = policy.get("loop", {}), policy.get("serve", {})
         return (
             self.settings.autonomy == "work"
             and self.settings.work_authorized
@@ -489,12 +487,9 @@ class Loop:
     def serving_allowed(self) -> bool:
         import yaml
 
-        from .fetch.git import GitRunner
-
         current = MawConfig.load(self.maw)
-        text = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
         try:
-            policy = yaml.safe_load(text or "")
+            policy = load_committed_maw_yaml(self.maw)
             if not isinstance(policy, dict):
                 return False
             grant, serve = policy.get("loop", {}), policy.get("serve", {})
@@ -512,11 +507,8 @@ class Loop:
     def pr_only_ci_allowed(self) -> bool:
         import yaml
 
-        from .fetch.git import GitRunner
-
-        text = GitRunner(self.maw).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
         try:
-            policy = yaml.safe_load(text or "")
+            policy = load_committed_maw_yaml(self.maw)
             return bool(
                 self.settings.pr_only_ci
                 and isinstance(policy, dict)

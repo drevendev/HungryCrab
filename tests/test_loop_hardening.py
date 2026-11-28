@@ -192,6 +192,31 @@ def test_working_tree_edits_cannot_grant_work_and_revocation_is_immediate(loop: 
     assert not loop._work_allowed()
 
 
+def test_loop_gates_use_the_same_merges_in_head_and_worktree(loop: Loop) -> None:
+    path = loop.maw / ".crab.yml"
+    authorized = "autonomy: work, work_authorized: true, pr_only_ci: true"
+    refused = "autonomy: read, work_authorized: false, pr_only_ci: false"
+    policy = (
+        f"loop:\n  <<: [{{{authorized}}}, {{{refused}}}]\n"
+        "serve:\n  <<: [{issues: auto, prs: auto}, {issues: ask, prs: ask}]\n"
+    )
+    path.write_text(policy, encoding="utf-8")
+    git(loop.maw, "add", ".crab.yml")
+    git(loop.maw, "commit", "-m", "test: allow work with owner merge precedence")
+    current = Loop(loop.maw, provider=loop.provider, now=loop.now)
+    assert current._work_allowed(publish_pr=True)
+    assert current.serving_allowed()
+    assert current.pr_only_ci_allowed()
+
+    path.write_text(policy.replace(authorized, refused), encoding="utf-8")
+    git(loop.maw, "add", ".crab.yml")
+    git(loop.maw, "commit", "-m", "test: revoke merged owner authorization")
+    path.write_text(policy, encoding="utf-8")
+    assert not current._work_allowed(publish_pr=True)
+    assert not current.serving_allowed()
+    assert not current.pr_only_ci_allowed()
+
+
 @pytest.mark.parametrize("revoked", ["ledger", "prs-off", "prs-ask"])
 @pytest.mark.parametrize("effect", ["provider", "push", "ledger"])
 def test_live_grow_policy_withdrawal_stops_the_next_provider_effect(

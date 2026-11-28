@@ -9,7 +9,6 @@ from pathlib import Path
 import yaml
 
 from .errors import CrabError
-from .fetch.git import GitRunner
 from .publication_safety import PublicationFinding, scan_publication
 
 
@@ -66,15 +65,14 @@ def current_publication_allow(root: Path) -> tuple[str, ...]:
     This is supervised publication policy, not a sandbox against an agent with Git write access.
     Scheduled sessions still require independent host enforcement (#243).
     """
-    from .maw import MawConfig
+    from .maw import MawConfig, load_committed_maw_yaml
 
     config = MawConfig.load(root)
     current = config.serve.publication_allow
     if not current:
         return ()
-    committed = GitRunner(root).try_run("--no-replace-objects", "show", "HEAD:.crab.yml")
     try:
-        data = yaml.safe_load(committed or "")
+        data = load_committed_maw_yaml(root)
         serve = data.get("serve", {}) if isinstance(data, dict) else {}
         approved = parse_publication_allow(serve.get("publication_allow", []))
         live_serve = config.raw.get("serve", {})
@@ -82,8 +80,8 @@ def current_publication_allow(root: Path) -> tuple[str, ...]:
             "publication_allow", []
         ):
             raise CrabError("publication overrides must match the current maw's committed policy")
-    except (ValueError, yaml.YAMLError, AttributeError) as exc:
-        raise CrabError("cannot verify committed publication overrides") from exc
+    except (ValueError, yaml.YAMLError, AttributeError):
+        raise CrabError("cannot verify committed publication overrides") from None
     if current != approved:
         raise CrabError("publication overrides must match the current maw's committed policy")
     return current
