@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.11] - 2026-11-28
+
+### Added
+
+- Add internal Actions evidence checks for bounded ZIP members, provider artifact and
+  run identity, downloaded digests, and isolated attestation inventory requests.
+  Artifact-only admission remains held under #684.
+- Capture completed CI run metadata in a separate workflow, including job state and
+  the available artifact inventory after a runner exits unexpectedly (#679, #707).
+
 ### Fixed
 
 - Own accepted acquisition relay connections before blocking reads, reject late
@@ -28,6 +38,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   messages for a single standalone Bash command (either exact title/body option order);
   continue refusing substitutions, extra flags, redirections, pipelines and cache-root
   execution (#401).
+- Preserve upstream file-license notices, selected SPDX alternatives and applicable
+  share-alike terms in COPY attribution (#219, #632–#634).
+- Read Python export and statement evidence, recognize TypeScript JSONC settings,
+  and keep nested test fixture manifests out of the detected project stack (#650,
+  #652, #653, #669).
+- Diagnose incomplete cached Git acquisitions and digest output write failures
+  with actionable paths (#212, #648, #649).
+
+### Documentation
+
+- Record fixed-pair routing guidance and the proposed portable source-rights
+  contract (#676, #695). Full local Codex and Actions acceptance remains tracked
+  under #585 and #540.
 
 ## [0.6.10] - 2026-11-04
 
@@ -1416,7 +1439,8 @@ ledger, the Agent Skills and the Claude Code plugin).
 - CI on Ubuntu and Windows with Python 3.11 and 3.14: ruff, mypy, pytest and a self-digest
   smoke test.
 
-[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.10...HEAD
+[Unreleased]: https://github.com/drevendev/HungryCrab/compare/v0.6.11...HEAD
+[0.6.11]: https://github.com/drevendev/HungryCrab/compare/v0.6.10...v0.6.11
 [0.6.10]: https://github.com/drevendev/HungryCrab/compare/v0.6.9...v0.6.10
 [0.6.9]: https://github.com/drevendev/HungryCrab/compare/v0.6.8...v0.6.9
 [0.6.8]: https://github.com/drevendev/HungryCrab/compare/v0.6.7...v0.6.8
