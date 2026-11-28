@@ -39,9 +39,9 @@ The prey is never executed. Not one line of its text reaches your issues unless 
 it may.
 
 **Status: [latest published release](https://github.com/drevendev/HungryCrab/releases/latest).
-The 0.6.10 maintenance patch covers 24 CLI, miner, configuration and documentation issues on
-[0.6.0 Everywhere](https://github.com/drevendev/HungryCrab/releases/tag/v0.6.0), a limited
-stable analysis release.** The CLI is available on [PyPI](https://pypi.org/project/hungry-crab/).
+The 0.6.11 reliability patch includes acquisition, novelty and discovery accounting
+repairs and internal Actions evidence checks.** The CLI is available on
+[PyPI](https://pypi.org/project/hungry-crab/).
 Update the CLI and plugins for bounded Windows/Linux acquisition, authenticated notices,
 runtime evidence and source-linked behavior findings (see the [changelog](CHANGELOG.md)).
 Standalone catch supports an explicitly selected fixed-capacity volume; without one it remains
@@ -60,10 +60,12 @@ maintenance issues to their fixes and checks under the [scope](docs/releases/0.6
 [tracker #587](https://github.com/drevendev/HungryCrab/issues/587).
 The earlier [0.6.9 release record](docs/releases/0.6.9-candidate.md) covers MIT/path-licence,
 source-reading, evidence-integrity and host-safety fixes.
-Complete useful-change discovery and its unchanged independent comparative acceptance
-belong to [0.6.11](docs/releases/0.6.11-scope.md) under [#585](https://github.com/drevendev/HungryCrab/issues/585).
-Search remains experimental: the latest comparison confirmed zero useful changes
-in either arm. Development continues at 0.6.11.dev0.
+The [0.6.11 scope](docs/releases/0.6.11-scope.md) records the released capabilities
+and open checks. The full local Codex and Actions workflow and the independent
+discovery acceptance are tracked for 0.7 in
+[#585](https://github.com/drevendev/HungryCrab/issues/585) and
+[#540](https://github.com/drevendev/HungryCrab/issues/540). Search remains experimental.
+The latest comparison confirmed zero useful changes in either arm.
 
 ## The metaphor, in five words
 

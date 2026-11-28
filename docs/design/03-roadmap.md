@@ -26,7 +26,10 @@ Track C · Forks                                        F0 ─ F1 ─ F2
 | 0.6 | Everywhere | MCP server (`crab_digest`, `crab_menu`), PyPI package, `npx skills add`, docs for Codex/Cursor, `crab report` (HTML report of a digest) | Released as **0.6.0**, a limited stable analysis scope: local stdio MCP, portable skills, source/wheel installation and HTML reports, with Windows/Linux protocol and install checks in CI. The package is on PyPI as `hungry-crab` from 0.6.1, published from CI from 0.6.2. GUI-host meals and the earlier live criteria are post-release work by explicit owner decision. See [Everywhere](../everywhere.md). |
 | 1.0 | Stable | stable schemas (`nutrient`, `manifest`, `.crab.yml`), semver guarantees, ledger migrations, a set of 50 license test repositories, public benchmarks | schemas frozen, changelog and release automation — on the crab itself |
 
-Released: **0.6.10** (2026-11-04), a bounded maintenance patch, after **0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26), **0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23), and **0.6.1** (2026-10-22),
+Released: **0.6.11** (2026-11-28), a reliability patch, after **0.6.10** (2026-11-04),
+**0.6.9** (2026-11-03), **0.6.8** and **0.6.7** (2026-10-28), **0.6.6** (2026-10-26),
+**0.6.5** and **0.6.4** (2026-10-25), **0.6.3** and **0.6.2** (2026-10-23),
+and **0.6.1** (2026-10-22),
 security releases on **0.6.0
 Everywhere** (2026-10-22), a limited stable analysis release, after **0.2.0**. `hungry-crab` is
 on PyPI from 0.6.1.
@@ -48,13 +51,17 @@ The release tree precedes the reopened **0.6.10.dev0** development tree.
 [its scope](../releases/0.6.10-scope.md) and
 [implementation/validation map](../releases/0.6.10-maintenance.md).
 The release tree precedes the reopened **0.6.11.dev0** development tree.
-The complete useful-change search/verification/replanning cycle and independent
-comparative acceptance move to **0.6.11** under
-[specification #585](../releases/0.6.11-scope.md).
-[#540](https://github.com/drevendev/HungryCrab/issues/540) remains open there.
+
+**0.6.11** ships the verified reliability fixes and internal Actions foundations
+described in the [release scope](../releases/0.6.11-scope.md). Artifact-only
+admission and the full hosted-to-local handoff remain open in
+[#684](https://github.com/drevendev/HungryCrab/issues/684) and
+[#686](https://github.com/drevendev/HungryCrab/issues/686).
+Complete search, verification and replanning, including comparative acceptance,
+are tracked for **0.7** in [#585](https://github.com/drevendev/HungryCrab/issues/585) and
+[#540](https://github.com/drevendev/HungryCrab/issues/540).
 The [latest comparison](../experiments/release-069-breadth-qualification.md)
-confirmed zero useful changes in either arm. Its failed gates are transferred,
-not passed; search remains experimental.
+confirmed zero useful changes in either arm. Search remains experimental.
 
 The **0.6.8** discovery/recovery patch packages #494 and the #497–#500 review
 repairs. The verified release commit precedes the reopened 0.6.9.dev0 commit;
