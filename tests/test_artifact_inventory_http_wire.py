@@ -31,8 +31,10 @@ def _serve(peer: socket.socket, response: bytes) -> bytes:
     ("response", "accepted"),
     [
         (
-            b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n"
-            b"Link: first\r\nLink: second\r\nConnection: close\r\n\r\n{}",
+            (
+                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n"
+                b"Link: first\r\nLink: second\r\nConnection: close\r\n\r\n{}"
+            ),
             True,
         ),
         (b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\n{}", False),
@@ -41,8 +43,10 @@ def _serve(peer: socket.socket, response: bytes) -> bytes:
             False,
         ),
         (
-            b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nTransfer-Encoding: chunked\r\n"
-            b"\r\n2\r\n{}\r\n0\r\n\r\n",
+            (
+                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nTransfer-Encoding: chunked\r\n"
+                b"\r\n2\r\n{}\r\n0\r\n\r\n"
+            ),
             False,
         ),
         (b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nmalformed header\r\n\r\n{}", False),
