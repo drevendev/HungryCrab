@@ -297,7 +297,9 @@ def test_inline_yaml_merge_sources_reject_duplicate_explicit_keys(
         "[{<<: {same_owner: true}, same_owner: false}, {same_owner: true}]",
     ],
 )
-def test_yaml_merge_sources_allow_normal_cross_source_overrides(tmp_path: Path, sources: str) -> None:
+def test_yaml_merge_sources_allow_normal_cross_source_overrides(
+    tmp_path: Path, sources: str
+) -> None:
     write_tree(tmp_path, {CONFIG_FILE: f"trust:\n  <<: {sources}\n"})
     assert MawConfig.load(tmp_path).trust.same_owner is False
 
