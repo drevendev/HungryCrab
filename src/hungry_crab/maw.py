@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from yaml.constructor import ConstructorError
+from yaml.nodes import Node
 
 from .budget import BUDGET_POLICIES
 from .cache import Slug, Target, maw_paths
@@ -237,36 +239,60 @@ class _DuplicateYamlMappingKey(yaml.YAMLError):
 class _UniqueKeySafeLoader(yaml.SafeLoader):
     """Use only safe YAML constructors and reject explicit duplicate keys at any depth."""
 
+    def __init__(self, stream: str) -> None:
+        super().__init__(stream)
+        self._flattened: set[yaml.MappingNode] = set()
+        self._flattening: set[yaml.MappingNode] = set()
+
     def flatten_mapping(self, node: yaml.MappingNode) -> None:
-        # SafeLoader recursively flattens inline YAML merge sources without calling
-        # construct_mapping on them. Check each original mapping before flattening.
-        checked: set[int] | None = getattr(self, "_checked_duplicate_nodes", None)
-        if checked is None:
-            checked = set()
-            self._checked_duplicate_nodes = checked
-        if id(node) not in checked:
-            checked.add(id(node))
-            seen: set[Any] = set()
-            seen_merge = False
-            for key_node, _ in node.value:
-                # A merge can supply many defaults through a sequence, but multiple
-                # explicit << directives in one mapping silently overwrite policy.
-                if key_node.tag == "tag:yaml.org,2002:merge":
-                    if seen_merge:
-                        raise _DuplicateYamlMappingKey(key_node.start_mark)
-                    seen_merge = True
-                    continue
-                if key_node.tag == "tag:yaml.org,2002:value":
-                    key_node.tag = "tag:yaml.org,2002:str"
-                key = self.construct_object(key_node, deep=True)
-                try:
-                    if key in seen:
-                        raise _DuplicateYamlMappingKey(key_node.start_mark)
-                    seen.add(key)
-                except TypeError:
-                    # SafeLoader will raise its usual unhashable-key error.
-                    break
-        super().flatten_mapping(node)
+        if node in self._flattened:
+            return
+        if node in self._flattening:
+            raise ConstructorError(None, None, "recursive YAML merge", node.start_mark)
+        self._flattening.add(node)
+
+        seen: set[Any] = set()
+        explicit: list[tuple[Node, Node]] = []
+        merge: Node | None = None
+        for key_node, value_node in node.value:
+            if key_node.tag == "tag:yaml.org,2002:merge":
+                if merge is not None:
+                    raise _DuplicateYamlMappingKey(key_node.start_mark)
+                merge = value_node
+                continue
+            if key_node.tag == "tag:yaml.org,2002:value":
+                key_node.tag = "tag:yaml.org,2002:str"
+            key = self.construct_object(key_node, deep=True)
+            try:
+                if key in seen:
+                    raise _DuplicateYamlMappingKey(key_node.start_mark)
+                seen.add(key)
+            except TypeError:
+                raise ConstructorError(
+                    None, None, "unhashable YAML key", key_node.start_mark
+                ) from None
+            explicit.append((key_node, value_node))
+
+        if merge is not None:
+            # Earlier sources win, followed by the receiving mapping's explicit
+            # keys. Keep the precedence independent of PyYAML's merge ordering.
+            sources = merge.value if isinstance(merge, yaml.SequenceNode) else [merge]
+            pairs: dict[tuple[Node, Node], None] = {}
+            for source in reversed(sources):
+                if not isinstance(source, yaml.MappingNode):
+                    raise ConstructorError(
+                        None, None, "expected YAML merge mapping", source.start_mark
+                    )
+                self.flatten_mapping(source)
+                for pair in source.value:
+                    # Retain each source pair once at its highest precedence.
+                    # Repeated aliases cannot multiply the flattened pair list.
+                    pairs.pop(pair, None)
+                    pairs[pair] = None
+            node.value = [*pairs, *explicit]
+
+        self._flattening.remove(node)
+        self._flattened.add(node)
 
 
 @dataclass
